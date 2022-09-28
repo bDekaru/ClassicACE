@@ -73,6 +73,12 @@ namespace ACE.Database.SQLFormatters.Shard
                 writer.WriteLine();
                 CreateSQLINSERTStatement(input.Id, input.CharacterPropertiesTitleBook.OrderBy(r => r.TitleId).ToList(), writer);
             }
+
+            if (input.CharacterPropertiesCampRegistry != null && input.CharacterPropertiesCampRegistry.Count > 0)
+            {
+                writer.WriteLine();
+                CreateSQLINSERTStatement(input.Id, input.CharacterPropertiesCampRegistry.OrderBy(r => r.CampId).ToList(), writer);
+            }
         }
 
         public void CreateSQLINSERTStatement(uint characterId, IList<CharacterPropertiesContractRegistry> input, StreamWriter writer)
@@ -134,6 +140,15 @@ namespace ACE.Database.SQLFormatters.Shard
             writer.WriteLine("INSERT INTO `character_properties_title_book` (`character_Id`, `title_Id`)");
 
             var lineGenerator = new Func<int, string>(i => $"{characterId}, {input[i].TitleId})");
+
+            ValuesWriter(input.Count, lineGenerator, writer);
+        }
+
+        public void CreateSQLINSERTStatement(uint characterId, IList<CharacterPropertiesCampRegistry> input, StreamWriter writer)
+        {
+            writer.WriteLine("INSERT INTO `character_properties_camp_registry` (`character_Id`, `camp_Id`, `num_Interactions`, `last_Decay_Time`)");
+
+            var lineGenerator = new Func<int, string>(i => $"{characterId}, {input[i].CampId}, {input[i].NumInteractions}, {input[i].LastDecayTime})");
 
             ValuesWriter(input.Count, lineGenerator, writer);
         }

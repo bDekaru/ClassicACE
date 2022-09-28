@@ -253,5 +253,29 @@ namespace ACE.Database
                 callback?.Invoke(result);
             }));
         }
+
+        public void LogAccountSessionStart(uint accountId, string accountName, string sessionIP)
+        {
+            _queue.Add(new Task(() =>
+            {
+                BaseDatabase.LogAccountSessionStart(accountId, accountName, sessionIP);
+            }));
+        }
+
+        public void LogCharacterLogin(uint accountId, string accountName, string sessionIP, uint characterId, string characterName)
+        {
+            _queue.Add(new Task(() =>
+            {
+                BaseDatabase.LogCharacterLogin(accountId, accountName, sessionIP, characterId, characterName);
+            }));
+        }
+
+        public void CreatePKKill(uint victimId, uint killerId, uint? victimMonarchId, uint? killerMonarchId)
+        {
+            _queue.Add(new Task(() =>
+            {
+                BaseDatabase.CreatePKKill(victimId, killerId, victimMonarchId, killerMonarchId);
+            }));
+        }
     }
 }

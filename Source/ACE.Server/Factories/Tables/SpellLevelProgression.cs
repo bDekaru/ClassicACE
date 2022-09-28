@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 using ACE.Entity.Enum;
@@ -8422,6 +8423,40 @@ namespace ACE.Server.Factories.Tables
         public static List<SpellId> GetSpellLevels(SpellId spellId)
         {
             return spellProgression.TryGetValue(spellId, out var progression) ? progression : null;
+        }
+
+        public static SpellId GetLevel1SpellId(SpellId spellId)
+        {
+            foreach(var spellProgressionEntry in spellProgression)
+            {
+                foreach(var entry in spellProgressionEntry.Value)
+                {
+                    if (spellId == entry)
+                        return spellProgressionEntry.Key;
+                }
+            }
+
+            return SpellId.Undef;
+        }
+
+        public static SpellId GetSpellAtLevel(SpellId level1SpellId, int level, bool ifNoMatchReturnLowestPossibleLevel = false)
+        {
+            var spellLevels = GetSpellLevels(level1SpellId);
+
+            if (spellLevels == null)
+                return SpellId.Undef;
+
+            int spellLevelIndex = Math.Max(level - 1, 0);
+
+            while (ifNoMatchReturnLowestPossibleLevel && spellLevelIndex < spellLevels.Count && spellLevels[spellLevelIndex] == SpellId.Undef)
+            {
+                if (spellLevelIndex < spellLevels.Count)
+                    spellLevelIndex++;
+                else
+                    return SpellId.Undef;
+            }
+
+            return spellLevels[spellLevelIndex];
         }
     }
 }

@@ -288,6 +288,9 @@ namespace ACE.Server.WorldObjects
             var workmanship = salvageItem.Workmanship ?? 1.0f;
             var stackSize = salvageItem.StackSize ?? 1;
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && salvageItem.WeenieType == WeenieType.Missile)
+                stackSize = 1; // thrown weapons count just as a single item no matter the stack size.
+
             // should this be getting the highest tinkering skill,
             // or the tinkering skill for the material?
             var salvageSkill = GetCreatureSkill(Skill.Salvaging).Current;
@@ -296,13 +299,15 @@ namespace ACE.Server.WorldObjects
 
             // take augs into account for salvaging only
             var salvageAmount = CalcNumUnits((int)salvageSkill, workmanship, AugmentationBonusSalvage) * stackSize;
-            var tinkeringAmount = CalcNumUnits((int)highestTrainedTinkeringSkill, workmanship, 0);
+            var tinkeringAmount = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM ? 0 : CalcNumUnits((int)highestTrainedTinkeringSkill, workmanship, 0); // CustomDM always uses the salvageAmount
 
             // cap tinkeringAmount to item workmanship
             tinkeringAmount = Math.Min(tinkeringAmount, (int)Math.Round(salvageItem.Workmanship ?? 1.0f)) * stackSize;
 
             // choose the best one
             var addStructure = Math.Max(salvageAmount, tinkeringAmount);
+
+            addStructure = (int)(addStructure * PropertyManager.GetDouble("salvage_amount_multiplier").Item);
 
             var skill = salvageAmount > tinkeringAmount ? Skill.Salvaging : GetMaxSkill(TinkeringSkills).Skill;
 

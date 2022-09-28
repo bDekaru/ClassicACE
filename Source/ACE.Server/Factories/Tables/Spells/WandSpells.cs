@@ -42,6 +42,14 @@ namespace ACE.Server.Factories.Tables
 
         static WandSpells()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Ruleset.Infiltration)
+            {
+                wandSpells = new List<(SpellId, float)>()
+                {
+                    ( SpellId.DefenderSelf1,      0.25f ),
+                    ( SpellId.HermeticLinkSelf1,  0.50f ),
+                };
+            }
             // takes ~0.3ms
             BuildSpells();
         }

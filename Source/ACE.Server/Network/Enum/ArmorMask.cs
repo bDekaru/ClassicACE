@@ -20,7 +20,7 @@ namespace ACE.Server.Network.Enum
         /// <summary>
         /// Determines if there is a highlight for each armor protection vs. damage type
         /// </summary>
-        public static ArmorMask GetHighlightMask(WorldObject armor)
+        public static ArmorMask GetHighlightMask(WorldObject armor, bool isArmorCapped = false)
         {
             ArmorMask highlightMask = 0;
 
@@ -28,7 +28,7 @@ namespace ACE.Server.Network.Enum
                 return highlightMask;
 
             // item enchanments are currently being cast on wielder
-            if (armor.EnchantmentManager.GetArmorMod() != 0)
+            if (armor.EnchantmentManager.GetArmorMod() != 0 || isArmorCapped)
                 highlightMask |= ArmorMask.ArmorLevel;
             if (armor.EnchantmentManager.GetArmorModVsType(DamageType.Slash) != 0)
                 highlightMask |= ArmorMask.SlashingProtection;

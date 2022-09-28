@@ -1114,13 +1114,34 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("addallspells", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Adds all known spells to your own spellbook.")]
         public static void HandleAddAllSpells(Session session, params string[] parameters)
         {
-            for (uint spellLevel = 1; spellLevel <= 8; spellLevel++)
+            switch (Common.ConfigManager.Config.Server.WorldRuleset)
             {
-                session.Player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel);
-                session.Player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel);
-                session.Player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel);
-                session.Player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel);
-                session.Player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel);
+                case Common.Ruleset.EoR:
+                    for (uint spellLevel = 1; spellLevel <= 8; spellLevel++)
+                    {
+                        session.Player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel);
+                        session.Player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel);
+                        session.Player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel);
+                        session.Player.LearnSpellsInBulk(MagicSchool.VoidMagic, spellLevel);
+                        session.Player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel);
+                    }
+                    break;
+                case Common.Ruleset.Infiltration:
+                    for (uint spellLevel = 1; spellLevel <= 7; spellLevel++)
+                    {
+                        session.Player.LearnSpellsInBulk(MagicSchool.CreatureEnchantment, spellLevel);
+                        session.Player.LearnSpellsInBulk(MagicSchool.ItemEnchantment, spellLevel);
+                        session.Player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel);
+                        session.Player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel);
+                    }
+                    break;
+                case Common.Ruleset.CustomDM:
+                    for (uint spellLevel = 1; spellLevel <= 7; spellLevel++)
+                    {
+                        session.Player.LearnSpellsInBulk(MagicSchool.LifeMagic, spellLevel);
+                        session.Player.LearnSpellsInBulk(MagicSchool.WarMagic, spellLevel);
+                    }
+                    break;
             }
         }
 
@@ -1457,19 +1478,19 @@ namespace ACE.Server.Command.Handlers
             var targetID = session.Player.CurrentAppraisalTarget;
             if (targetID == null)
             {
-                Console.WriteLine("ERROR: no appraisal target");
+                CommandHandlerHelper.WriteOutputInfo(session, "ERROR: no appraisal target");
                 return;
             }
             var targetGuid = new ObjectGuid(targetID.Value);
             var target = session.Player.CurrentLandblock?.GetObject(targetGuid);
             if (target == null)
             {
-                Console.WriteLine("Couldn't find " + targetGuid);
+                CommandHandlerHelper.WriteOutputInfo(session, "Couldn't find " + targetGuid);
                 return;
             }
 
             var visible = session.Player.IsDirectVisible(target);
-            Console.WriteLine("Visible: " + visible);
+            CommandHandlerHelper.WriteOutputInfo(session, "Visible: " + visible);
         }
 
         [CommandHandler("showstats", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Shows a list of a creature's current attribute/skill levels", "showstats")]
@@ -1767,6 +1788,7 @@ namespace ACE.Server.Command.Handlers
         {
             session.Network.EnqueueSend(new GameMessageSystemChat($"CurrentLandblock: {session.Player.CurrentLandblock.Id.Landblock:X4}", ChatMessageType.Broadcast));
             session.Network.EnqueueSend(new GameMessageSystemChat($"Location: {session.Player.Location.ToLOCString()}", ChatMessageType.Broadcast));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Location: {session.Player.Location.ToLOCStringAlt()}", ChatMessageType.Broadcast));
             session.Network.EnqueueSend(new GameMessageSystemChat($"Physics : {session.Player.PhysicsObj.Position}", ChatMessageType.Broadcast));
         }
 
@@ -2311,6 +2333,48 @@ namespace ACE.Server.Command.Handlers
             var success = LootGenerationFactory.MutateItem(wo, profile, true);
 
             session.Player.TryCreateInInventoryWithNetworking(wo);
+        }
+
+        [CommandHandler("lootgentype", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Generate a piece of loot from the LootGenerationFactory.", "<TreasureItemType_Orig> <tier> <TreasureArmorType|TreasureWeaponType>")]
+        public static void HandleLootGenType(Session session, params string[] parameters)
+        {
+            TreasureItemType_Orig treasureType = TreasureItemType_Orig.Undef;
+            TreasureArmorType armorType = TreasureArmorType.Undef;
+            TreasureWeaponType weaponType = TreasureWeaponType.Undef;
+
+            if (!Enum.TryParse(parameters[0], true, out treasureType))
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find {parameters[0]}", ChatMessageType.Broadcast));
+                return;
+            }
+
+            int tier = 1;
+            if (parameters.Length > 1)
+                int.TryParse(parameters[1], out tier);
+
+            if (tier < 1 || tier > 8)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Loot Tier must be a number between 1 and 8", ChatMessageType.Broadcast));
+                return;
+            }
+
+            if (parameters.Length > 2)
+            {
+                if (!Enum.TryParse(parameters[2], true, out armorType))
+                {
+                    if (!Enum.TryParse(parameters[2], true, out weaponType))
+                    {
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find {parameters[2]}", ChatMessageType.Broadcast));
+                        return;
+                    }
+                }
+            }
+
+            var wo = LootGenerationFactory.CreateRandomLootObjects_New(tier, 0.0f, TreasureItemCategory.MagicItem, treasureType, armorType, weaponType);
+            if (wo != null)
+                session.Player.TryCreateInInventoryWithNetworking(wo);
+            else
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Failed to generate item.", ChatMessageType.Broadcast));
         }
 
         [CommandHandler("ciloot", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Generates randomized loot in player's inventory", "<tier> optional: <# items>")]
@@ -2887,6 +2951,7 @@ namespace ACE.Server.Command.Handlers
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"CurrentLandblock: 0x{wo.CurrentLandblock?.Id.Landblock:X4}", ChatMessageType.Broadcast));
             session.Network.EnqueueSend(new GameMessageSystemChat($"Location: {wo.Location?.ToLOCString()}", ChatMessageType.Broadcast));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Location: {wo.Location?.ToLOCStringAlt()}", ChatMessageType.Broadcast));
             session.Network.EnqueueSend(new GameMessageSystemChat($"Physics : {wo.PhysicsObj?.Position}", ChatMessageType.Broadcast));
             session.Network.EnqueueSend(new GameMessageSystemChat($"CurCell: 0x{wo.PhysicsObj?.CurCell?.ID:X8}", ChatMessageType.Broadcast));
         }
@@ -2914,26 +2979,30 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("fast", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]
         public static void HandleFast(Session session, params string[] parameters)
         {
-            var spell = new Spell(SpellId.QuicknessSelf8);
+            var EoR = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR;
+
+            var spell = new Spell(EoR ? SpellId.QuicknessSelf8 : SpellId.QuicknessSelf7);
             session.Player.CreateEnchantment(session.Player, session.Player, null, spell);
 
-            spell = new Spell(SpellId.SprintSelf8);
+            spell = new Spell(EoR ? SpellId.SprintSelf8 : SpellId.SprintSelf7);
             session.Player.CreateEnchantment(session.Player, session.Player, null, spell);
 
-            spell = new Spell(SpellId.StrengthSelf8);
+            spell = new Spell(EoR ? SpellId.StrengthSelf8 : SpellId.StrengthSelf7);
             session.Player.CreateEnchantment(session.Player, session.Player, null, spell);
         }
 
         [CommandHandler("slow", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]
         public static void HandleSlow(Session session, params string[] parameters)
         {
-            var spell = new Spell(SpellId.SlownessSelf8);
+            var EoR = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR;
+
+            var spell = new Spell(EoR ? SpellId.SlownessSelf8 : SpellId.SlownessSelf7);
             session.Player.CreateEnchantment(session.Player, session.Player, null, spell);
 
-            spell = new Spell(SpellId.LeadenFeetSelf8);
+            spell = new Spell(EoR ? SpellId.LeadenFeetSelf8 : SpellId.LeadenFeetSelf7);
             session.Player.CreateEnchantment(session.Player, session.Player, null, spell);
 
-            spell = new Spell(SpellId.WeaknessSelf8);
+            spell = new Spell(EoR ? SpellId.WeaknessSelf8 : SpellId.WeaknessSelf7);
             session.Player.CreateEnchantment(session.Player, session.Player, null, spell);
         }
 
@@ -3030,8 +3099,12 @@ namespace ACE.Server.Command.Handlers
         {
             var wo = CommandHandlerHelper.GetLastAppraisedObject(session);
 
+            uint? staticGuid = null;
+            if (!wo.Guid.IsStatic() && wo.Generator != null)
+                staticGuid = wo.Generator.GetStaticGuid(wo.Guid.Full);
+
             if (wo != null)
-                session.Network.EnqueueSend(new GameMessageSystemChat($"GUID: {wo.Guid}\nWeenieClassId: {wo.WeenieClassId}\nWeenieClassName: {wo.WeenieClassName}", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"GUID: {wo.Guid}{(staticGuid != null ? $"\nLandblockInstanceGUID: {staticGuid.Value.ToString("x8")}" : "")}\nWeenieClassId: {wo.WeenieClassId}\nWeenieClassName: {wo.WeenieClassName}", ChatMessageType.Broadcast));
         }
 
         public static WorldObject LastTestAim;
@@ -3313,18 +3386,34 @@ namespace ACE.Server.Command.Handlers
         }
 
         /// <summary>
-        /// Shows the DeathTreasure tier for the last appraised monster
+        /// Shows the DeathTreasure tier for the last appraised monster, container or generator
         /// </summary>
-        [CommandHandler("showtier", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows the DeathTreasure tier for the last appraised monster")]
+        [CommandHandler("showtier", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows the DeathTreasure tier for the last appraised monster, container or generator")]
         public static void HandleShowTier(Session session, params string[] parameters)
         {
-            var creature = CommandHandlerHelper.GetLastAppraisedObject(session) as Creature;
+            var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
+            var creature = obj as Creature;
 
             if (creature != null)
             {
-                var msg = creature.DeathTreasure != null ? $"DeathTreasure - Tier: {creature.DeathTreasure.Tier}" : "doesn't have PropertyDataId.DeathTreasureType";
+                var msg = creature.DeathTreasure != null ? $"DeathTreasure {(TreasureDeathDesc)creature.DeathTreasure.TreasureType}({creature.DeathTreasure.TreasureType}) - Tier: {creature.DeathTreasure.Tier} QualityMod: {creature.DeathTreasure.LootQualityMod}" : "doesn't have PropertyDataId.DeathTreasureType";
 
                 CommandHandlerHelper.WriteOutputInfo(session, $"{creature.Name} ({creature.Guid}) {msg}");
+            }
+            else if(obj != null && obj.GeneratorProfiles != null)
+            {
+                int counter = 1;
+                foreach (var generator in obj.GeneratorProfiles)
+                {
+                    if (generator.RegenLocationType.HasFlag(RegenLocationType.Treasure))
+                    {
+                        var treasure = LootGenerationFactory.GetTweakedDeathTreasureProfile(generator.Biota.WeenieClassId, obj);
+
+                        var msg = treasure != null ? $"Generator {counter} - DeathTreasure {(TreasureDeathDesc)treasure.TreasureType}({treasure.TreasureType}) - Tier: {treasure.Tier} QualityMod: {treasure.LootQualityMod}" : "doesn't have a valid DeathTreasureType";
+                        counter++;
+                        CommandHandlerHelper.WriteOutputInfo(session, $"{obj.Name} ({obj.Guid}) {msg}");
+                    }
+                }
             }
         }
 
@@ -3753,6 +3842,8 @@ namespace ACE.Server.Command.Handlers
                         }
                         msg += $"BuyPrice: {(vendor.BuyPrice.HasValue ? $"{vendor.BuyPrice:F}" : "NULL")}\n";
                         msg += $"SellPrice: {(vendor.SellPrice.HasValue ? $"{vendor.SellPrice:F}" : "NULL")}\n";
+                        msg += $"BuyPriceBase: {(vendor.BuyPriceBase.HasValue ? $"{vendor.BuyPriceBase:F}" : "NULL")}\n";
+                        msg += $"SellPriceBase: {(vendor.SellPriceBase.HasValue ? $"{vendor.SellPriceBase:F}" : "NULL")}\n";
 
                         msg += $"DealMagicalItems: {(vendor.DealMagicalItems.HasValue ? $"{vendor.DealMagicalItems}" : "NULL")}\n";
                         msg += $"VendorService: {(vendor.VendorService.HasValue ? $"{vendor.VendorService}" : "NULL")}\n";
@@ -3766,10 +3857,12 @@ namespace ACE.Server.Command.Handlers
                         msg += $"VendorHappyMaxItems: {(vendor.VendorHappyMaxItems.HasValue ? $"{vendor.VendorHappyMaxItems}" : "NULL")}\n";
 
                         msg += $"MoneyOutflow: {vendor.MoneyOutflow:N0} {(vendor.MoneyOutflow == 1 ? currencyWeenie.GetName() : currencyWeenie.GetPluralName())}\n";
+                        msg += $"RecentMoneyOutflow: {vendor.RecentMoneyOutflow:N0} {(vendor.RecentMoneyOutflow == 1 ? currencyWeenie.GetName() : currencyWeenie.GetPluralName())}\n";
                         msg += $"NumItemsBought: {vendor.NumItemsBought:N0}\n";
                         msg += $"NumItemsSold: {vendor.NumItemsSold:N0}\n";
                         msg += $"NumServicesSold: {vendor.NumServicesSold:N0}\n";
                         msg += $"MoneyIncome: {vendor.MoneyIncome:N0} {(vendor.MoneyIncome == 1 ? currencyWeenie.GetName() : currencyWeenie.GetPluralName())}\n";
+                        msg += $"RecentMoneyIncome: {vendor.RecentMoneyIncome:N0} {(vendor.RecentMoneyIncome == 1 ? currencyWeenie.GetName() : currencyWeenie.GetPluralName())}\n";
                     }
 
                     if (all || createList)
@@ -3891,6 +3984,144 @@ namespace ACE.Server.Command.Handlers
             //session.Player.TryCastSpell(spell, target, tryResist: false);
 
             session.Player.HandleActionUseWithTarget(guid, target.Guid.Full);
+        }
+
+        [CommandHandler("portalstorm", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Tests starting a portal storm on yourself", "storm_level [0=Brewing, 1=Imminent, 2=Stormed, 3=Subsided]")]
+        public static void HandlePortalStorm(Session session, params string[] parameters)
+        {
+            if (!uint.TryParse(parameters[0], out var storm_level))
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Invalid storm level {parameters[0]}");
+                return;
+            }
+            if (storm_level > 3) storm_level = 3;
+
+            switch (storm_level) {
+                case 0:
+                    session.Network.EnqueueSend(new GameEventPortalStormBrewing(session));
+                    break;
+                case 1:
+                    session.Network.EnqueueSend(new GameEventPortalStormImminent(session));
+                    break;
+                case 2:
+                    // Portal Storm Event comes immediatley before the teleport
+                    session.Network.EnqueueSend(new GameEventPortalStorm(session));
+
+                    // We're going to move the player to 0,0
+                    Position newPos = new Position(0x7F7F001C, 84, 84, 80, 0, 0, 0, 1);
+                    session.Player.Teleport(newPos);
+                    break;
+                case 3:
+                    session.Network.EnqueueSend(new GameEventPortalStormSubsided(session));
+                    break;
+            }
+        }
+
+        [CommandHandler("testrng", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Performs some tests with the random number generator")]
+        public static void HandleTestRNG(Session session, params string[] parameters)
+        {
+            int testRolls = 100000;
+
+            SortedDictionary<int, int> valueDistribution = new SortedDictionary<int, int>();
+            for (int i = 0; i < testRolls; i++)
+            {
+                //var roll = ThreadSafeRandom.Next(0, 99);
+                var roll = (int)(Math.Round(ThreadSafeRandom.Next(0.0f, 1.0f), 2) * 100);
+
+                if (valueDistribution.ContainsKey(roll))
+                    valueDistribution[roll]++;
+                else
+                    valueDistribution.Add(roll, 1);
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, "--------- Random Number Generator Test ----------");
+            CommandHandlerHelper.WriteOutputInfo(session, $"------------- Rolling {testRolls} times --------------");
+            CommandHandlerHelper.WriteOutputInfo(session, "---- ThreadSafeRandom.Next(0.0f, 1.0f) * 100 ----");
+            foreach (KeyValuePair<int, int> entry in valueDistribution)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"value: {entry.Key} amount: {entry.Value} percent: {entry.Value * 100f / testRolls}%");
+            }
+
+            int previousRoll = -1;
+            int maxStreak = 0;
+            int currentStreak = 0;
+            SortedDictionary<int, int> streakCounter = new SortedDictionary<int, int>();
+            for (int i = 0; i < testRolls; i++)
+            {
+                //var roll = ThreadSafeRandom.Next(0, 99);
+                var roll = (int)(Math.Round(ThreadSafeRandom.Next(0.0f, 1.0f), 2) * 100);
+
+                bool isStreak = roll == previousRoll;
+
+                if (isStreak)
+                    currentStreak++;
+
+                if (streakCounter.ContainsKey(currentStreak))
+                    streakCounter[currentStreak]++;
+                else
+                    streakCounter.Add(currentStreak, 1);
+
+                if (isStreak)
+                    currentStreak = 0;
+
+                if (currentStreak > maxStreak)
+                    maxStreak = currentStreak;
+
+                previousRoll = roll;
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, "--- Streaks: consecutive rolls the same value ---");
+            foreach (KeyValuePair<int, int> entry in streakCounter)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"value: {entry.Key} amount: {entry.Value} percent: {entry.Value * 100f / testRolls}%");
+            }
+
+            previousRoll = -1;
+            maxStreak = 0;
+            currentStreak = 0;
+            streakCounter.Clear();
+            for (int i = 0; i < testRolls; i++)
+            {
+                //var roll = ThreadSafeRandom.Next(0, 99);
+                var roll = (int)(Math.Round(ThreadSafeRandom.Next(0.0f, 1.0f), 2) * 100);
+
+                bool isClustered = Math.Abs(roll - previousRoll) < 10;
+                if (isClustered)
+                    currentStreak++;
+
+                if (streakCounter.ContainsKey(currentStreak))
+                    streakCounter[currentStreak]++;
+                else
+                    streakCounter.Add(currentStreak, 1);
+
+                if (isClustered)
+                    currentStreak = 0;
+
+                if (currentStreak > maxStreak)
+                    maxStreak = currentStreak;
+
+                if(!isClustered)
+                    previousRoll = roll;
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, "--- Clustering: consecutive rolls less than 10 apart ---");
+            foreach (KeyValuePair<int, int> entry in streakCounter)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"value: {entry.Key} amount: {entry.Value} percent: {entry.Value * 100f / testRolls}%");
+            }
+            CommandHandlerHelper.WriteOutputInfo(session, "-------- Random Number Generator Test Finished --------");
+        }
+
+        [CommandHandler("showTerrain", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Show information about the terrain the player is standing on")]
+        public static void HandleShowTerrain(Session session, params string[] parameters)
+        {
+            var terrain = session.Player.CurrentLandblock.PhysicsLandblock.get_terrain(session.Player.Location.PositionX, session.Player.Location.PositionY);
+            var terrainType = terrain >> 2 & 0x1F;      // TerrainTypes table size = 32 (grass, desert, volcano, etc.)
+            var sceneType = terrain >> 11;              // SceneTypes table size = 89 total, 32 which can be indexed for each terrain type
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Terrain: 0x{terrain:X4}");
+            CommandHandlerHelper.WriteOutputInfo(session, $"TerrainType: 0x{terrainType:X4}");
+            CommandHandlerHelper.WriteOutputInfo(session, $"SceneType: 0x{sceneType:X4}");
         }
     }
 }

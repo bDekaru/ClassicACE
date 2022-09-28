@@ -45,6 +45,18 @@ namespace ACE.Server.WorldObjects
 
         public bool LastContact = true;
 
+        protected CampManager _campManager;
+
+        public CampManager CampManager
+        {
+            get
+            {
+                if (_campManager == null)
+                    _campManager = new CampManager(this);
+                return _campManager;
+            }
+        }
+
         public bool IsJumping
         {
             get
@@ -64,6 +76,29 @@ namespace ACE.Server.WorldObjects
 
         public ACE.Entity.Position LastGroundPos;
         public ACE.Entity.Position SnapPos;
+        public float PrevMovementUpdateMaxSpeed;
+        public bool HasPerformedActionsSinceLastMovementUpdate; // Ideally we wouldn't need this, but necessary until we figure out how to detect certain actions while a player isn't running with FastTicks enabled.
+        public double LastPlayerAutoposTime;
+        public double LastPlayerMovementCheckTime;
+        public int MovementEnforcementCounter;
+
+        public double NextTechniqueActivationTime = 0;
+        public double NextTechniqueNegativeActivationTime = 0;
+
+        public static double TechniqueActivationInterval = 5;
+        public static double TechniqueNegativeActivationInterval = 10;
+
+        private bool? CachedAttemptToTaunt = null;
+        public bool IsAttemptingToTaunt
+        {
+            get
+            {
+                if (!CachedAttemptToTaunt.HasValue)
+                    CachedAttemptToTaunt = GetCharacterOption(CharacterOption.AttemptToTaunt);
+
+                return CachedAttemptToTaunt ?? false;
+            }
+        }
 
         public ConfirmationManager ConfirmationManager;
 
@@ -202,6 +237,8 @@ namespace ACE.Server.WorldObjects
             if (!PlayerKillsPkl.HasValue)
                 PlayerKillsPkl = 0;
 
+            AttackType = AttackType.Punch;
+
             return; // todo
 
             // =======================================
@@ -263,7 +300,7 @@ namespace ACE.Server.WorldObjects
 
             if (wo == null)
             {
-                log.Debug($"{Name}.HandleActionIdentifyObject({objectGuid:X8}): couldn't find object");
+                //log.Debug($"{Name}.HandleActionIdentifyObject({objectGuid:X8}): couldn't find object");
                 Session.Network.EnqueueSend(new GameEventIdentifyObjectResponse(Session, objectGuid));
                 return;
             }
@@ -307,7 +344,12 @@ namespace ACE.Server.WorldObjects
             if (creature != null)
             {
                 player = obj as Player;
-                var skill = player != null ? Skill.AssessPerson : Skill.AssessCreature;
+
+                Skill skill;
+                if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    skill = Skill.AssessCreature;
+                else
+                    skill = player != null ? Skill.AssessPerson : Skill.AssessCreature;
 
                 var currentSkill = (int)GetCreatureSkill(skill).Current;
                 int difficulty = (int)creature.GetCreatureSkill(Skill.Deception).Current;
@@ -748,7 +790,7 @@ namespace ACE.Server.WorldObjects
             var wo = FindObject(itemGuid, SearchLocations.Everywhere);
             if (wo == null)
             {
-                log.Debug($"HandleActionForceObjDescSend() - couldn't find object {itemGuid:X8}");
+                //log.Debug($"HandleActionForceObjDescSend() - couldn't find object {itemGuid:X8}");
                 return;
             }
             Session.Network.EnqueueSend(new GameMessageObjDescEvent(wo));
@@ -947,6 +989,7 @@ namespace ACE.Server.WorldObjects
             }*/
 
             LastJumpTime = DateTime.UtcNow;
+            HasPerformedActionsSinceLastMovementUpdate = true;
 
             UpdateVitalDelta(Stamina, -staminaCost);
 
@@ -1096,26 +1139,29 @@ namespace ACE.Server.WorldObjects
             }
 
             // send CO network messages for admin objects
-            if (Adminvision && oldState != Adminvision)
+            if (oldState != Adminvision)
             {
                 var adminObjs = PhysicsObj.ObjMaint.GetKnownObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && o.WeenieObj.WorldObject.Visibility);
-                PhysicsObj.enqueue_objs(adminObjs);
-
                 var nodrawObjs = PhysicsObj.ObjMaint.GetKnownObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && ((o.WeenieObj.WorldObject.NoDraw ?? false) || o.WeenieObj.WorldObject.UiHidden));
 
-                foreach (var wo in nodrawObjs)
-                    Session.Network.EnqueueSend(new GameMessageUpdateObject(wo.WeenieObj.WorldObject, Adminvision, Adminvision ? true : false));
+                if (Adminvision)
+                {
+                    PhysicsObj.enqueue_objs(adminObjs);
+                    foreach (var wo in nodrawObjs)
+                        Session.Network.EnqueueSend(new GameMessageUpdateObject(wo.WeenieObj.WorldObject, Adminvision, Adminvision ? true : false));
+                }
+                else
+                {
+                    foreach (var wo in adminObjs)
+                        RemoveTrackedObject(wo.WeenieObj.WorldObject, false);
 
-                // sending DO network messages for /adminvision off here doesn't work in client unfortunately?
+                    foreach (var wo in nodrawObjs)
+                        RemoveTrackedObject(wo.WeenieObj.WorldObject, false);
+                }
             }
 
             string state = Adminvision ? "enabled" : "disabled";
             Session.Network.EnqueueSend(new GameMessageSystemChat($"Admin Vision is {state}.", ChatMessageType.Broadcast));
-
-            if (oldState != Adminvision && !Adminvision)
-            {
-                Session.Network.EnqueueSend(new GameMessageSystemChat("Note that you will need to log out and back in before the visible items become invisible again.", ChatMessageType.Broadcast));
-            }
         }
 
         public void SendMessage(string msg, ChatMessageType type = ChatMessageType.Broadcast, WorldObject source = null)

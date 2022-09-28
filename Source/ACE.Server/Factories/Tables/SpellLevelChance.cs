@@ -84,6 +84,142 @@ namespace ACE.Server.Factories.Tables
             T8_SpellLevelChances
         };
 
+        static SpellLevelChance()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+                T1_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 1, 0.40f ),
+                    ( 2, 0.58f ),
+                    ( 3, 0.02f ),
+                };
+
+                T2_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 3, 0.58f ),
+                    ( 4, 0.38f ),
+                    ( 5, 0.04f ),
+                };
+
+                T3_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 4, 0.65f ),
+                    ( 5, 0.30f ),
+                    ( 6, 0.05f ),
+                };
+
+                T4_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 4, 0.10f ),
+                    ( 5, 0.80f ),
+                    ( 6, 0.10f ),
+                };
+
+                T5_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 5, 0.75f ),
+                    ( 6, 0.25f ),
+                };
+
+                T6_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 5, 0.20f ),
+                    ( 6, 0.80f ),
+                };
+
+                T7_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 6, 0.95f ),
+                    ( 7, 0.05f ),
+                };
+
+                T8_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 6, 0.75f ),
+                    ( 7, 0.25f ),
+                };
+
+                spellLevelChances = new List<ChanceTable<int>>()
+                {
+                    T1_SpellLevelChances,
+                    T2_SpellLevelChances,
+                    T3_SpellLevelChances,
+                    T4_SpellLevelChances,
+                    T5_SpellLevelChances,
+                    T6_SpellLevelChances,
+                    T7_SpellLevelChances,
+                    T8_SpellLevelChances
+                };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                T1_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 1, 0.65f ),
+                    ( 2, 0.33f ),
+                    ( 3, 0.02f ),
+                };
+
+                T2_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 3, 0.68f ),
+                    ( 4, 0.28f ),
+                    ( 5, 0.04f ),
+                };
+
+                T3_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 4, 0.65f ),
+                    ( 5, 0.30f ),
+                    ( 6, 0.05f ),
+                };
+
+                T4_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 4, 0.10f ),
+                    ( 5, 0.80f ),
+                    ( 6, 0.10f ),
+                };
+
+                T5_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 5, 0.75f ),
+                    ( 6, 0.25f ),
+                };
+
+                T6_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 5, 0.20f ),
+                    ( 6, 0.80f ),
+                };
+
+                T7_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 6, 0.95f ),
+                    ( 7, 0.05f ),
+                };
+
+                T8_SpellLevelChances = new ChanceTable<int>()
+                {
+                    ( 6, 0.75f ),
+                    ( 7, 0.25f ),
+                };
+
+                spellLevelChances = new List<ChanceTable<int>>()
+                {
+                    T1_SpellLevelChances,
+                    T2_SpellLevelChances,
+                    T3_SpellLevelChances,
+                    T4_SpellLevelChances,
+                    T5_SpellLevelChances,
+                    T6_SpellLevelChances,
+                    T7_SpellLevelChances,
+                    T8_SpellLevelChances
+                };
+            }
+        }
+
         /// <summary>
         /// Rolls for a spell level for a tier
         /// </summary>

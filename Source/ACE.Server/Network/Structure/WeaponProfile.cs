@@ -54,9 +54,20 @@ namespace ACE.Server.Network.Structure
             DamageVariance = GetDamageVariance(weapon);
             DamageMod = GetDamageMultiplier(weapon);
             WeaponLength = weapon.GetProperty(PropertyFloat.WeaponLength) ?? 1.0f;
-            MaxVelocity = weapon.MaximumVelocity ?? 1.0f;
+            if(weapon.ItemType == ItemType.MissileWeapon && weapon.WeaponSkill == Skill.ThrownWeapon)
+            {
+                if (weapon.Wielder == null)
+                {
+                    // we're not wielded so estimate the thrown distance.
+                    MaxVelocity = Creature.GetEstimatedThrownWeaponMaxVelocity(weapon);
+                    MaxVelocityEstimated = 1; // Enables the "(based on STRENGTH 100)" text.
+                }
+                else
+                    MaxVelocity = Creature.GetThrownWeaponMaxVelocity(weapon);
+            }
+            else
+                MaxVelocity = weapon.MaximumVelocity ?? 1.0f;
             WeaponOffense = GetWeaponOffense(weapon);
-            //MaxVelocityEstimated = (uint)Math.Round(MaxVelocity);   // not found in pcaps?
         }
 
         /// <summary>
@@ -79,7 +90,17 @@ namespace ACE.Server.Network.Structure
             var baseSpeed = weapon.GetProperty(PropertyInt.WeaponTime) ?? 0;   // safe to assume defaults here?
             var speedMod = weapon.EnchantmentManager.GetWeaponSpeedMod();
             var auraSpeedMod = weapon.Wielder != null ? weapon.Wielder.EnchantmentManager.GetWeaponSpeedMod() : 0;
-            Enchantment_WeaponTime = weapon.IsEnchantable ? speedMod + auraSpeedMod : speedMod;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            {
+                var multSpeedMod = weapon.EnchantmentManager.GetWeaponMultiplicativeSpeedMod();
+
+                int multSpeedBonus = -(int)Math.Round(baseSpeed - (baseSpeed * multSpeedMod));
+                Enchantment_WeaponTime = weapon.IsEnchantable ? speedMod + auraSpeedMod + multSpeedBonus : speedMod + multSpeedBonus;
+            }
+            else
+                Enchantment_WeaponTime = weapon.IsEnchantable ? speedMod + auraSpeedMod : speedMod;
+
             return (uint)Math.Max(0, baseSpeed + Enchantment_WeaponTime);
         }
 

@@ -7,10 +7,12 @@ using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
+using ACE.Server.Command.Handlers;
 using ACE.Server.Entity;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
+using Google.Protobuf.WellKnownTypes;
 
 namespace ACE.Server.WorldObjects
 {
@@ -18,9 +20,11 @@ namespace ACE.Server.WorldObjects
     {
         public enum SkillAlterationType
         {
-            Undef      = 0,
-            Specialize = 1,
-            Lower      = 2,
+            Undef           = 0,
+            Specialize      = 1,
+            Lower           = 2,
+            SetPrimary      = 3,
+            SetSecondary    = 4
         }
 
         public SkillAlterationType TypeOfAlteration
@@ -91,6 +95,12 @@ namespace ACE.Server.WorldObjects
                     case SkillAlterationType.Lower:
                         msg += $"lower your {skill.Skill.ToSentence()} skill from {(skill.AdvancementClass == SkillAdvancementClass.Specialized ? "specialized to trained" : "trained to untrained")} and refund the skill credits and experience invested in this skill.";
                         break;
+                    case SkillAlterationType.SetPrimary:
+                        msg += $"set your {skill.Skill.ToSentence()} skill as a primary skill.";
+                        break;
+                    case SkillAlterationType.SetSecondary:
+                        msg += $"set your {skill.Skill.ToSentence()} skill as a secondary of {GetHighestValidPrimarySkill(player).Skill.ToSentence()} and refund the experience invested in this skill.";
+                        break;
                 }
 
                 if (!player.ConfirmationManager.EnqueueSend(new Confirmation_AlterSkill(player.Guid, Guid), msg))
@@ -100,6 +110,44 @@ namespace ACE.Server.WorldObjects
             }
 
             AlterSkill(player, skill, skillBase);
+        }
+
+        private CreatureSkill GetHighestValidPrimarySkill(Player player)
+        {
+            CreatureSkill highestSkill;
+
+            var axe = player.GetCreatureSkill(Skill.Axe);
+            var dagger = player.GetCreatureSkill(Skill.Dagger);
+            //var mace = player.GetCreatureSkill(Skill.Mace);
+            var spear = player.GetCreatureSkill(Skill.Spear);
+            //var staff = player.GetCreatureSkill(Skill.Staff);
+            var sword = player.GetCreatureSkill(Skill.Sword);
+            var unarmed = player.GetCreatureSkill(Skill.UnarmedCombat);
+            var bow = player.GetCreatureSkill(Skill.Bow);
+            //var crossbow = player.GetCreatureSkill(Skill.Crossbow);
+            var thrown = player.GetCreatureSkill(Skill.ThrownWeapon);
+
+            highestSkill = axe;
+            if (dagger.Current > highestSkill.Current)
+                highestSkill = dagger;
+            //if (mace.Current > highestSkill.Current)
+            //    highestSkill = mace;
+            if (spear.Current > highestSkill.Current)
+                highestSkill = spear;
+            //if (staff.Current > highestSkill.Current)
+            //    highestSkill = staff;
+            if (sword.Current > highestSkill.Current)
+                highestSkill = sword;
+            if (unarmed.Current > highestSkill.Current)
+                highestSkill = unarmed;
+            if (bow.Current > highestSkill.Current)
+                highestSkill = bow;
+            //if (crossbow.Current > highestSkill.Current)
+            //    highestSkill = crossbow;
+            if (thrown.Current > highestSkill.Current)
+                highestSkill = thrown;
+
+            return highestSkill;
         }
 
         public bool VerifyRequirements(Player player, CreatureSkill skill, SkillBase skillBase)
@@ -162,6 +210,76 @@ namespace ACE.Server.WorldObjects
 
                     break;
 
+                case SkillAlterationType.SetPrimary:
+
+                    // ensure skill is trained or specialized
+                    if (skill.AdvancementClass < SkillAdvancementClass.Trained)
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {skill.Skill.ToSentence()} skill must be trained or specialized in order to be altered in this way!", ChatMessageType.WorldBroadcast));
+                        return false;
+                    }
+
+                    if(!skill.IsSecondary)
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {skill.Skill.ToSentence()} skill is already set as a primary skill!", ChatMessageType.WorldBroadcast));
+                        return false;
+                    }
+
+                    break;
+
+                case SkillAlterationType.SetSecondary:
+
+                    // ensure skill is trained or specialized
+                    if (skill.AdvancementClass < SkillAdvancementClass.Trained)
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {skill.Skill.ToSentence()} skill must be trained or specialized in order to be altered in this way!", ChatMessageType.WorldBroadcast));
+                        return false;
+                    }
+
+                    // ensure not already secondary
+                    if (skill.IsSecondary)
+                    {
+                        var currentPrimarySkill = player.GetCreatureSkill(skill.SecondaryTo);
+                        if (currentPrimarySkill != null)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {skill.Skill.ToSentence()} skill is already a secondary skill of {currentPrimarySkill.Skill.ToSentence()} skill!", ChatMessageType.WorldBroadcast));
+                        else
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {skill.Skill.ToSentence()} skill is already a secondary skill!", ChatMessageType.WorldBroadcast));
+                        return false;
+                    }
+
+                    // ensure primary skill is trained or specialized
+                    var primarySkill = GetHighestValidPrimarySkill(player);
+                    if (primarySkill.AdvancementClass < SkillAdvancementClass.Trained)
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {primarySkill.Skill.ToSentence()} skill must be trained or specialized in order to be altered in this way!", ChatMessageType.WorldBroadcast));
+                        return false;
+                    }
+
+                    // ensure not same skill
+                    if (primarySkill.Skill == skill.Skill)
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your highest primary skill cannot be set as a secondary.", ChatMessageType.WorldBroadcast));
+                        return false;
+                    }
+
+                    // ensure no secondaries
+                    bool hasSecondary = false;
+                    foreach (var entry in player.Skills)
+                    {
+                        if (entry.Value.SecondaryTo == skill.Skill)
+                        {
+                            hasSecondary = true;
+                            break;
+                        }
+                    }
+                    if (hasSecondary)
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Cannot set a skill with secondaries as a secondary.", ChatMessageType.WorldBroadcast));
+                        return false;
+                    }
+
+                    break;
+
             }
             return true;
         }
@@ -211,7 +329,7 @@ namespace ACE.Server.WorldObjects
                     // keep trained, but recover the xp spent
                     else if (skill.AdvancementClass == SkillAdvancementClass.Trained)
                     {
-                        var untrainable = Player.IsSkillUntrainable(skill.Skill);
+                        var untrainable = Player.IsSkillUntrainable(skill.Skill, player.HeritageGroup);
 
                         if (player.UntrainSkill(skill.Skill, skillBase.TrainedCost))
                         {
@@ -225,6 +343,26 @@ namespace ACE.Server.WorldObjects
                             player.TryConsumeFromInventoryWithNetworking(this, 1);
                         }
                     }
+                    break;
+
+                case SkillAlterationType.SetPrimary:
+
+                    skill.SecondaryTo = Skill.None;
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {skill.Skill.ToSentence()} skill is now set as a primary skill!", ChatMessageType.WorldBroadcast));
+                    player.TryConsumeFromInventoryWithNetworking(this, 1);
+                    break;
+
+                case SkillAlterationType.SetSecondary:
+
+                    var primarySkill = GetHighestValidPrimarySkill(player);
+                    if (skill.Ranks != 0)
+                    {
+                        player.RefundXP(skill.ExperienceSpent);
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have been refunded {skill.ExperienceSpent:N0} experience.", ChatMessageType.WorldBroadcast));
+                    }
+                    skill.SecondaryTo = primarySkill.Skill;
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {skill.Skill.ToSentence()} skill is now set as secondary of {primarySkill.Skill.ToSentence()} skill!", ChatMessageType.WorldBroadcast));
+                    player.TryConsumeFromInventoryWithNetworking(this, 1);
                     break;
             }
         }

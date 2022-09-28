@@ -32,7 +32,7 @@ namespace ACE.Common
 
         public static double NextInterval(float qualityMod)
         {
-            return Math.Max(0.0, random.Value.NextDouble() - qualityMod);
+            return Math.Min(Math.Max(0.0, random.Value.NextDouble() - qualityMod), 1.0);
         }
 
         /// <summary>

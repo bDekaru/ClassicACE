@@ -159,7 +159,7 @@ namespace ACE.Server.Factories
                             missileDefMod = testItem.WeaponMissileDefense.Value;
                         if (testItem.WieldDifficulty != null)
                             wield = testItem.WieldDifficulty.Value;
-                        if (testItem.WeaponSkill == Skill.TwoHandedCombat)
+                        if (testItem.IsTwoHanded)
                         {
                             if (logStats)
                             {

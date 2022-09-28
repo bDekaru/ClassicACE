@@ -216,7 +216,11 @@ namespace ACE.Entity.Enum.Properties
         [ServerOnly]
         PCAPRecordeOmegaY              = 8017,
         [ServerOnly]
-        PCAPRecordeOmegaZ              = 8018
+        PCAPRecordeOmegaZ              = 8018,
+
+        // CustomDM
+        [ServerOnly]
+        LeyLineTriggerChance           = 10001
     }
 
     public static class PropertyFloatExtensions

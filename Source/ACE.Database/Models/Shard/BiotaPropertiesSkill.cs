@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 #nullable disable
@@ -15,6 +15,7 @@ namespace ACE.Database.Models.Shard
         public uint InitLevel { get; set; }
         public uint ResistanceAtLastCheck { get; set; }
         public double LastUsedTime { get; set; }
+        public ushort SecondaryTo { get; set; }
 
         public virtual Biota Object { get; set; }
     }

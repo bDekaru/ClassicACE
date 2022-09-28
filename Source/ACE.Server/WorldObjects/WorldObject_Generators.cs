@@ -4,6 +4,7 @@ using System.Linq;
 
 using ACE.Common;
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
@@ -566,14 +567,93 @@ namespace ACE.Server.WorldObjects
             var generator = Generator.GeneratorProfiles.FirstOrDefault(g => g.Spawned.ContainsKey(Guid.Full));
             generator?.NotifyGenerator(Guid, regenerationType);
 
+            if (generator?.GeneratorResetInProgress == true)
+                return;
+
             if (Generator.GeneratorId > 0) // Generator is controlled by another generator.
             {
-                if ((!(Generator is Container) || Generator.GeneratorAutomaticDestruction) && Generator.InitCreate > 0 && Generator.CurrentCreate == 0) // Parent generator is non-container (Container, Corpse, Chest, Slumlord, Storage, Hook, Creature) generator
-                    Generator.Destroy(); // Generator's complete spawn count has been wiped out
+                if ((!(Generator is Container) || Generator.GeneratorAutomaticDestruction) && Generator.InitCreate > 0) // Parent generator is non-container (Container, Corpse, Chest, Slumlord, Storage, Hook, Creature) generator
+                {
+                    if (Generator.CurrentCreate == 0)
+                        Generator.Destroy(); // Generator's complete spawn count has been wiped out
+                    else
+                    {
+                        bool hasNonStuckEntries = false;
+                        var stuckList = new List<WorldObject>();
+                        foreach (var genEntryId in Generator.GeneratorActiveProfiles)
+                        {
+                            var genEntry = Generator.GeneratorProfiles[genEntryId];
+                            foreach (var woi in genEntry.Spawned.Values)
+                            {
+                                var wo = woi.TryGetWorldObject();
+                                if (wo != null)
+                                {
+                                    if (wo.IsCreature || !wo.Stuck)
+                                        hasNonStuckEntries = true;
+                                    else
+                                        stuckList.Add(wo);
+                                }
+                            }
+                        }
+
+                        if (!hasNonStuckEntries)
+                        {
+                            // All we have left are stuck items, let's destroy the generator and schedule the rot of all remaining items.
+                            foreach (var entry in stuckList)
+                            {
+                                // Stop generating new items and do not relock ourselves, in 5 minutes we decay.
+                                entry.Generator = null;
+                                entry.GeneratorId = null;
+                                entry.GeneratorProfiles.Clear();
+                                entry.TimeToRot = 300;
+                                if(entry.GetProperty(PropertyBool.DefaultLocked).HasValue)
+                                    entry.DefaultLocked = false;
+                            }
+                            Generator.Destroy();
+                        }
+                    }
+                }
             }
-            else if (Generator.GeneratorAutomaticDestruction && Generator.InitCreate > 0 && Generator.CurrentCreate == 0)
+            else if (Generator.GeneratorAutomaticDestruction && Generator.InitCreate > 0)
             {
-                Generator.Destroy(); // Generator's complete spawn count has been wiped out
+                if (Generator.CurrentCreate == 0)
+                    Generator.Destroy(); // Generator's complete spawn count has been wiped out
+                else
+                {
+                    bool hasNonStuckEntries = false;
+                    var stuckList = new List<WorldObject>();
+                    foreach (var genEntryId in Generator.GeneratorActiveProfiles)
+                    {
+                        var genEntry = Generator.GeneratorProfiles[genEntryId];
+                        foreach (var woi in genEntry.Spawned.Values)
+                        {
+                            var wo = woi.TryGetWorldObject();
+                            if (wo != null)
+                            {
+                                if (wo.IsCreature || !wo.Stuck)
+                                    hasNonStuckEntries = true;
+                                else
+                                    stuckList.Add(wo);
+                            }
+                        }
+                    }
+
+                    if (!hasNonStuckEntries)
+                    {
+                        // All we have left are stuck items, let's destroy the generator and schedule the rot of all remaining items.
+                        foreach (var entry in stuckList)
+                        {
+                            // Stop generating new items and do not relock ourselves, in 5 minutes we decay.
+                            entry.Generator = null;
+                            entry.GeneratorId = null;
+                            entry.GeneratorProfiles.Clear();
+                            entry.TimeToRot = 300;
+                            if (entry.GetProperty(PropertyBool.DefaultLocked).HasValue)
+                                entry.DefaultLocked = false;
+                        }
+                        Generator.Destroy();
+                    }
+                }
             }
 
             //if (!Generator.IsDestroyed)
@@ -642,7 +722,27 @@ namespace ACE.Server.WorldObjects
                 CheckGeneratorStatus(); // due to staging if generator hadn't entered world, reprocess CheckGeneratorStatus for first generator status to update
 
                 if (!GeneratorDisabled)
+                {
+                    if (PropertyManager.GetBool("increase_minimum_encounter_spawn_density").Item && (GetProperty(ACE.Entity.Enum.Properties.PropertyBool.IsPseudoRandomGenerator) ?? false == true))
+                    {
+                        // Disable the landscape pseudo random generators that are too close to lifestones or portals
+                        if (!Name.ToLower().Contains("harmless")) // Harmless generators can stay enabled
+                        {
+                            foreach (var obj in CurrentLandblock.GetAllWorldObjectsForDiagnostics())
+                            {
+                                PlayerKillerStatus pkStatus = (PlayerKillerStatus)(obj.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) ?? 0);
+                                if ((obj.ItemType == ItemType.LifeStone || obj.ItemType == ItemType.Portal || pkStatus == PlayerKillerStatus.Vendor || pkStatus == PlayerKillerStatus.RubberGlue) && PhysicsObj.get_distance_to_object(obj.PhysicsObj, true) < 50)
+                                {
+                                    GeneratorDisabled = true;
+                                    GeneratorEnteredWorld = true;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
                     StartGenerator();   // spawn initial objects for this generator
+                }
 
                 GeneratorEnteredWorld = true;
             }

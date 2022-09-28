@@ -8,6 +8,8 @@ namespace ACE.Server.Factories.Tables.Wcids
 {
     public static class BowWcids_Sho
     {
+        private static ChanceTable<WeenieClassName> T1_Chances = new ChanceTable<WeenieClassName>();
+
         private static ChanceTable<WeenieClassName> T1_T4_Chances = new ChanceTable<WeenieClassName>()
         {
             ( WeenieClassName.bowshort, 0.50f ),
@@ -65,20 +67,130 @@ namespace ACE.Server.Factories.Tables.Wcids
             T6_T8_Chances,
             T6_T8_Chances,
         };
-
-        public static WeenieClassName Roll(int tier)
+        
+        public static WeenieClassName Roll(int tier, out TreasureWeaponType weaponType)
         {
-            return bowTiers[tier - 1].Roll();
+            var roll = bowTiers[tier - 1].Roll();
+
+            if (roll == WeenieClassName.shouyumi && Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                weaponType = TreasureWeaponType.BowShort; // Modify weapon type so we get correct mutations.
+            else
+                weaponType = TreasureWeaponType.Bow;
+
+            return roll;
         }
-
+        
         private static readonly Dictionary<WeenieClassName, TreasureWeaponType> _combined = new Dictionary<WeenieClassName, TreasureWeaponType>();
-
+                
         static BowWcids_Sho()
         {
-            foreach (var bowTier in bowTiers)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
             {
-                foreach (var entry in bowTier)
-                    _combined.TryAdd(entry.result, TreasureWeaponType.Bow);
+                T1_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.shouyumi,   3.0f ),
+                    ( WeenieClassName.yumi,       1.0f )
+                };
+
+                T1_T4_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.shouyumi, 1.0f ),
+                    ( WeenieClassName.yumi,     1.0f )
+                };
+
+                T5_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.yumi,                         4.0f ),
+
+                    ( WeenieClassName.bowslashing,                  1.0f ),
+                    ( WeenieClassName.bowpiercing,                  1.0f ),
+                    ( WeenieClassName.bowblunt,                     1.0f ),
+                    ( WeenieClassName.bowacid,                      1.0f ),
+                    ( WeenieClassName.bowfire,                      1.0f ),
+                    ( WeenieClassName.bowfrost,                     1.0f ),
+                    ( WeenieClassName.bowelectric,                  1.0f ),
+                };
+
+                T6_T8_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.bowslashing,                  1.0f ),
+                    ( WeenieClassName.bowpiercing,                  1.0f ),
+                    ( WeenieClassName.bowblunt,                     1.0f ),
+                    ( WeenieClassName.bowacid,                      1.0f ),
+                    ( WeenieClassName.bowfire,                      1.0f ),
+                    ( WeenieClassName.bowfrost,                     1.0f ),
+                    ( WeenieClassName.bowelectric,                  1.0f ),
+                };
+                
+                // we have to refresh this list or it will still contain the previous values.
+                bowTiers = new List<ChanceTable<WeenieClassName>>()
+		        {
+                    T1_Chances,
+		            T1_T4_Chances,
+		            T1_T4_Chances,
+		            T1_T4_Chances,
+		            T5_Chances,
+		            T6_T8_Chances,
+		            T6_T8_Chances,
+		            T6_T8_Chances,
+		        };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                T1_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.shouyumi,   3.0f ),
+                    ( WeenieClassName.yumi,       1.0f )
+                };
+
+                T1_T4_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.shouyumi, 1.0f ),
+                    ( WeenieClassName.yumi,     1.0f )
+                };
+
+                T5_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.yumi,                         16.0f ),
+
+                    ( WeenieClassName.bowslashing,                  1.0f ),
+                    ( WeenieClassName.bowpiercing,                  1.0f ),
+                    ( WeenieClassName.bowblunt,                     1.0f ),
+                    ( WeenieClassName.bowacid,                      1.0f ),
+                    ( WeenieClassName.bowfire,                      1.0f ),
+                    ( WeenieClassName.bowfrost,                     1.0f ),
+                    ( WeenieClassName.bowelectric,                  1.0f ),
+                };
+
+                T6_T8_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.bowslashing,                  1.0f ),
+                    ( WeenieClassName.bowpiercing,                  1.0f ),
+                    ( WeenieClassName.bowblunt,                     1.0f ),
+                    ( WeenieClassName.bowacid,                      1.0f ),
+                    ( WeenieClassName.bowfire,                      1.0f ),
+                    ( WeenieClassName.bowfrost,                     1.0f ),
+                    ( WeenieClassName.bowelectric,                  1.0f ),
+                };
+
+                // we have to refresh this list or it will still contain the previous values.
+                bowTiers = new List<ChanceTable<WeenieClassName>>()
+                {
+                    T1_Chances,
+                    T1_T4_Chances,
+                    T1_T4_Chances,
+                    T1_T4_Chances,
+                    T5_Chances,
+                    T6_T8_Chances,
+                    T6_T8_Chances,
+                    T6_T8_Chances,
+                };
+                
+	            foreach (var bowTier in bowTiers)
+	            {
+	                foreach (var entry in bowTier)
+	                    _combined.TryAdd(entry.result, TreasureWeaponType.Bow);
+	            }
             }
         }
 

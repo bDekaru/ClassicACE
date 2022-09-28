@@ -20,7 +20,7 @@ namespace ACE.Server.WorldObjects
 
             if (amount > AvailableExperience)
             {
-                log.Error($"{Name}.HandleActionRaiseAttribute({attribute}, {amount}) - amount > AvaiableExperience ({AvailableExperience})");
+                //log.Error($"{Name}.HandleActionRaiseAttribute({attribute}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
                 return false;
             }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -78,7 +78,7 @@ namespace ACE.Database.Models.World
             {
                 var config = Common.ConfigManager.Config.MySql.World;
 
-                var connectionString = $"server={config.Host};port={config.Port};user={config.Username};password={config.Password};database={config.Database};TreatTinyAsBoolean=False";
+                var connectionString = $"server={config.Host};port={config.Port};user={config.Username};password={config.Password};database={config.Database};TreatTinyAsBoolean=False;SslMode=None;AllowPublicKeyRetrieval=true;ApplicationName=ACEmulator";
 
                 optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), builder =>
                 {
@@ -2255,6 +2255,10 @@ namespace ACE.Database.Models.World
                 entity.Property(e => e.Type)
                     .HasColumnName("type")
                     .HasComment("Type of Property the value applies to (PropertySkill.????)");
+
+                entity.Property(e => e.SecondaryTo)
+                    .HasColumnName("secondary_To")
+                    .HasComment("Id of the skill this is a secondary skill of");
 
                 entity.HasOne(d => d.Object)
                     .WithMany(p => p.WeeniePropertiesSkill)

@@ -3,6 +3,21 @@ using System.Collections.Generic;
 
 namespace ACE.Common
 {
+    public enum Ruleset
+    {
+        Invalid,
+        //Release,                // November 1999
+        //DarkMajesty,            // October 2001
+        CustomDM,
+        Infiltration,           // February 2005
+        //ThroneOfDestiny,        // July 2005
+        //FromDarknessLight,      // November 2010 - Void Magic
+        //MasterOfDesign,         // November 2011 - Innate Augmentations
+        //MasterOfArms,           // February 2012 - New weapon skills
+        //BalanceOfPower,         // February 2013 - Summoning
+        EoR                     // May 2015
+    }
+
     public class GameConfiguration
     {
         public string WorldName { get; set; }
@@ -49,5 +64,12 @@ namespace ACE.Common
         public bool LandblockPreloading { get; set; }
 
         public List<PreloadedLandblocks> PreloadedLandblocks { get; set; }
+
+        /// <summary>
+        /// Determines which era's ruleset to use.
+        /// </summary>
+        [System.ComponentModel.DefaultValue(Ruleset.EoR)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        public Ruleset WorldRuleset { get; set; }
     }
 }

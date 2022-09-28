@@ -69,6 +69,9 @@ namespace ACE.Server.Factories.Tables.Wcids
 
         public static WeenieClassName Roll(TreasureDeath profile)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                return Roll_AllSpellComponents(profile);
+
             // possible retail bug: peas not dropping in t6 / t7??
             if (profile.Tier >= 7)
             {
@@ -193,6 +196,296 @@ namespace ACE.Server.Factories.Tables.Wcids
             }
 
             return WeenieClassName.undef;
+        }
+
+        private static List<WeenieClassName> herbs = new List<WeenieClassName>()
+        {
+            WeenieClassName.amaranth,
+            WeenieClassName.bistort,
+            WeenieClassName.comfrey,
+            WeenieClassName.damiana,
+            WeenieClassName.dragonsblood,
+            WeenieClassName.eyebright,
+            WeenieClassName.frankincense,
+            WeenieClassName.ginseng,
+            WeenieClassName.hawthorn,
+            WeenieClassName.henbane,
+            WeenieClassName.hyssop,
+            WeenieClassName.mandrake,
+            WeenieClassName.mugwort,
+            WeenieClassName.myrrh,
+            WeenieClassName.saffron,
+            WeenieClassName.vervain,
+            WeenieClassName.wormwood,
+            WeenieClassName.yarrow
+        };
+
+        private static List<WeenieClassName> herbsPea = new List<WeenieClassName>()
+        {
+            WeenieClassName.peaherbamaranth,
+            WeenieClassName.peaherbbistort,
+            WeenieClassName.peaherbcomfrey,
+            WeenieClassName.peaherbdamiana,
+            WeenieClassName.peaherbdragonsblood,
+            WeenieClassName.peaherbeyebright,
+            WeenieClassName.peaherbfrankincense,
+            WeenieClassName.peaherbginseng,
+            WeenieClassName.peaherbhawthorn,
+            WeenieClassName.peaherbhenbane,
+            WeenieClassName.peaherbhyssop,
+            WeenieClassName.peaherbmandrake,
+            WeenieClassName.peaherbmugwort,
+            WeenieClassName.peaherbmyrrh,
+            WeenieClassName.peaherbsaffron,
+            WeenieClassName.peaherbvervain,
+            WeenieClassName.peaherbwormwood,
+            WeenieClassName.peaherbyarrow
+        };
+
+        private static List<WeenieClassName> powderedGems = new List<WeenieClassName>()
+        {
+            WeenieClassName.agate,
+            WeenieClassName.amber,
+            WeenieClassName.azurite,
+            WeenieClassName.bloodstone,
+            WeenieClassName.carnelian,
+            WeenieClassName.hematite,
+            WeenieClassName.lapislazul,
+            WeenieClassName.malachite,
+            WeenieClassName.moonstone,
+            WeenieClassName.onyx,
+            WeenieClassName.quartz,
+            WeenieClassName.turquoise
+        };
+
+        private static List<WeenieClassName> powderedGemsPea = new List<WeenieClassName>()
+        {
+            WeenieClassName.peapowderagate,
+            WeenieClassName.peapowderamber,
+            WeenieClassName.peapowderazurite,
+            WeenieClassName.peapowderbloodstone,
+            WeenieClassName.peapowdercarnelian,
+            WeenieClassName.peapowderhematite,
+            WeenieClassName.peapowderlapislazuli,
+            WeenieClassName.peapowdermalachite,
+            WeenieClassName.peapowdermoonstone,
+            WeenieClassName.peapowderonyx,
+            WeenieClassName.peapowderquartz,
+            WeenieClassName.peapowderturquoise
+        };
+
+        private static List<WeenieClassName> alchemicalSubstances = new List<WeenieClassName>()
+        {
+            WeenieClassName.alchembrimstone,
+            WeenieClassName.alchemcadmia,
+            WeenieClassName.alchemcinnabar,
+            WeenieClassName.alchemcobalt,
+            WeenieClassName.alchemcolcothar,
+            WeenieClassName.alchemgypsum,
+            WeenieClassName.alchemquicksilver,
+            WeenieClassName.alchemrealgar,
+            WeenieClassName.alchemstibnite,
+            WeenieClassName.alchemturpeth,
+            WeenieClassName.alchemverdigris,
+            WeenieClassName.alchemvitriol
+        };
+
+        private static List<WeenieClassName> alchemicalSubstancesPea = new List<WeenieClassName>()
+        {
+            WeenieClassName.peaalchembrimstone,
+            WeenieClassName.peaalchemcadmia,
+            WeenieClassName.peaalchemcinnabar,
+            WeenieClassName.peaalchemcobalt,
+            WeenieClassName.peaalchemcolcothar,
+            WeenieClassName.peaalchemgypsum,
+            WeenieClassName.peaalchemquicksilver,
+            WeenieClassName.peaalchemrealgar,
+            WeenieClassName.peaalchemstibnite,
+            WeenieClassName.peaalchemturpeth,
+            WeenieClassName.peaalchemverdigris,
+            WeenieClassName.peaalchemvitriol
+        };
+
+        private static List<WeenieClassName> talismans = new List<WeenieClassName>()
+        {
+            WeenieClassName.aldertalisman,
+            WeenieClassName.ashwoodtalisman,
+            WeenieClassName.birchtalisman,
+            WeenieClassName.blackthorntalisman,
+            WeenieClassName.cedartalisman,
+            WeenieClassName.ebonytalisman,
+            WeenieClassName.eldertalisman,
+            WeenieClassName.hazeltalisman,
+            WeenieClassName.hemlocktalisman,
+            WeenieClassName.oaktalisman,
+            WeenieClassName.poplartalisman,
+            WeenieClassName.rowantalisman,
+            WeenieClassName.willowtalisman,
+            WeenieClassName.yewtalisman
+        };
+
+        private static List<WeenieClassName> talismansPea = new List<WeenieClassName>()
+        {
+            WeenieClassName.peatalismanalder,
+            WeenieClassName.peatalismanashwood,
+            WeenieClassName.peatalismanbirch,
+            WeenieClassName.peatalismanblackthorn,
+            WeenieClassName.peatalismancedar,
+            WeenieClassName.peatalismanebony,
+            WeenieClassName.peatalismanelder,
+            WeenieClassName.peatalismanhazel,
+            WeenieClassName.peatalismanhemlock,
+            WeenieClassName.peatalismanoak,
+            WeenieClassName.peatalismanpoplar,
+            WeenieClassName.peatalismanrowan,
+            WeenieClassName.peatalismanwillow,
+            WeenieClassName.peatalismanyew
+        };
+
+        private static List<WeenieClassName> tapers = new List<WeenieClassName>()
+        {
+            WeenieClassName.taperblue,
+            WeenieClassName.taperbrown,
+            WeenieClassName.tapergreen,
+            WeenieClassName.tapergrey,
+            WeenieClassName.taperindigo,
+            WeenieClassName.taperorange,
+            WeenieClassName.taperpink,
+            WeenieClassName.taperred,
+            WeenieClassName.taperviolet,
+            WeenieClassName.taperwhite,
+            WeenieClassName.taperyellow,
+            WeenieClassName.taperturquoise
+        };
+
+        private static List<WeenieClassName> tapersPea = new List<WeenieClassName>()
+        {
+            WeenieClassName.peataperblue,
+            WeenieClassName.peataperbrown,
+            WeenieClassName.peatapergreen,
+            WeenieClassName.peatapergrey,
+            WeenieClassName.peataperindigo,
+            WeenieClassName.peataperorange,
+            WeenieClassName.peataperpink,
+            WeenieClassName.peataperred,
+            WeenieClassName.peataperviolet,
+            WeenieClassName.peataperwhite,
+            WeenieClassName.peataperyellow,
+            WeenieClassName.peataperturquoise
+        };
+
+        private static WeenieClassName Roll_AllSpellComponents(TreasureDeath profile)
+        {
+            var type = ThreadSafeRandom.Next(1, 6);
+            var isPea = false;
+
+            if (profile.Tier > 1)
+                isPea = ((ThreadSafeRandom.Next(1, 10) / 10) + profile.LootQualityMod) >= 1;
+
+            switch (type)
+            {
+                case 1:
+                    if(isPea)
+                        return herbsPea[ThreadSafeRandom.Next(0, herbsPea.Count - 1)];
+                    return herbs[ThreadSafeRandom.Next(0, herbs.Count - 1)];
+                case 2:
+                    if (isPea)
+                        return powderedGemsPea[ThreadSafeRandom.Next(0, powderedGemsPea.Count - 1)];
+                    return powderedGems[ThreadSafeRandom.Next(0, powderedGems.Count - 1)];
+                case 3:
+                    if (isPea)
+                        return alchemicalSubstancesPea[ThreadSafeRandom.Next(0, alchemicalSubstancesPea.Count - 1)];
+                    return alchemicalSubstances[ThreadSafeRandom.Next(0, alchemicalSubstances.Count - 1)];
+                case 4:
+                    if (isPea)
+                        return talismansPea[ThreadSafeRandom.Next(0, talismansPea.Count - 1)];
+                    return talismans[ThreadSafeRandom.Next(0, talismans.Count - 1)];
+                case 5:
+                    if (isPea)
+                        return tapersPea[ThreadSafeRandom.Next(0, tapersPea.Count - 1)];
+                    return tapers[ThreadSafeRandom.Next(0, tapers.Count - 1)];
+                case 6:
+                    var table = peaTiers[profile.Tier - 1];
+                    return table.Roll(profile.LootQualityMod);
+            }
+
+            return WeenieClassName.undef;
+        }
+
+        static SpellComponentWcids()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                T1_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.scarablead,      1.0f ),
+                };
+
+                T2_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.scarablead,     10.0f ),
+                    ( WeenieClassName.scarabiron,     10.0f ),
+
+                    ( WeenieClassName.peascarablead,   1.0f ),
+                    ( WeenieClassName.peascarabiron,   1.0f ),
+                };
+
+                T3_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.scarablead,     10.0f ),
+                    ( WeenieClassName.scarabiron,     20.0f ),
+                    ( WeenieClassName.scarabcopper,   10.0f ),
+
+                    ( WeenieClassName.peascarablead,   1.0f ),
+                    ( WeenieClassName.peascarabiron,   2.0f ),
+                    ( WeenieClassName.peascarabcopper, 1.0f ),
+                };
+
+                T4_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.scarabiron,     10.0f ),
+                    ( WeenieClassName.scarabcopper,   20.0f ),
+                    ( WeenieClassName.scarabsilver,   10.0f ),
+
+                    ( WeenieClassName.peascarabiron,   1.0f ),
+                    ( WeenieClassName.peascarabcopper, 2.0f ),
+                    ( WeenieClassName.peascarabsilver, 1.0f ),
+                };
+
+                T5_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.scarabcopper,   10.0f ),
+                    ( WeenieClassName.scarabsilver,   20.0f ),
+                    ( WeenieClassName.scarabgold,     10.0f ),
+
+                    ( WeenieClassName.peascarabcopper, 1.0f ),
+                    ( WeenieClassName.peascarabsilver, 2.0f ),
+                    ( WeenieClassName.peascarabgold,   1.0f ),
+                };
+
+                T6_T8_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.scarabsilver,   10.0f ),
+                    ( WeenieClassName.scarabgold,     20.0f ),
+                    ( WeenieClassName.scarabpyreal,   10.0f ),
+
+                    ( WeenieClassName.peascarabsilver, 1.0f ),
+                    ( WeenieClassName.peascarabgold,   2.0f ),
+                    ( WeenieClassName.peascarabpyreal, 1.0f ),
+                };
+
+                peaTiers = new List<ChanceTable<WeenieClassName>>()
+                {
+                    T1_Chances,
+                    T2_Chances,
+                    T3_Chances,
+                    T4_Chances,
+                    T5_Chances,
+                    T6_T8_Chances,
+                    T6_T8_Chances,
+                    T6_T8_Chances,
+                };
+            }
         }
     }
 }

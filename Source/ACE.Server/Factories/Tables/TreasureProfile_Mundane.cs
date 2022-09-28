@@ -77,6 +77,74 @@ namespace ACE.Server.Factories.Tables
             mundaneProfile8,
         };
 
+        static TreasureProfile_Mundane()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+                mundaneProfile7 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Pyreal,         1.0f ),
+                    ( TreasureItemType_Orig.Consumable,     1.0f ),
+                    ( TreasureItemType_Orig.HealKit,        1.0f ),
+                    ( TreasureItemType_Orig.Lockpick,       1.0f ),
+                    ( TreasureItemType_Orig.SpellComponent, 1.0f ),
+                    ( TreasureItemType_Orig.ManaStone,      1.0f ),
+                };
+
+                mundaneProfile8 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Pyreal,         1.0f ),
+                    ( TreasureItemType_Orig.SpellComponent, 1.0f ),
+                    ( TreasureItemType_Orig.ManaStone,      1.0f ),
+                };
+
+                // we have to refresh this list or it will still contain the previous values.
+                mundaneProfiles = new List<ChanceTable<TreasureItemType_Orig>>()
+                {
+                    mundaneProfile1,
+                    mundaneProfile2,
+                    mundaneProfile3,
+                    mundaneProfile4,
+                    mundaneProfile5,
+                    mundaneProfile6,
+                    mundaneProfile7,
+                    mundaneProfile8,
+                };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                mundaneProfile7 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Pyreal,         1.0f ),
+                    ( TreasureItemType_Orig.Consumable,     1.0f ),
+                    ( TreasureItemType_Orig.HealKit,        1.0f ),
+                    ( TreasureItemType_Orig.Lockpick,       1.0f ),
+                    ( TreasureItemType_Orig.SpellComponent, 1.0f ),
+                    ( TreasureItemType_Orig.ManaStone,      1.0f ),
+                };
+
+                mundaneProfile8 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Pyreal,         1.0f ),
+                    ( TreasureItemType_Orig.SpellComponent, 1.0f ),
+                    ( TreasureItemType_Orig.ManaStone,      1.0f ),
+                };
+
+                // we have to refresh this list or it will still contain the previous values.
+                mundaneProfiles = new List<ChanceTable<TreasureItemType_Orig>>()
+                {
+                    mundaneProfile1,
+                    mundaneProfile2,
+                    mundaneProfile3,
+                    mundaneProfile4,
+                    mundaneProfile5,
+                    mundaneProfile6,
+                    mundaneProfile7,
+                    mundaneProfile8,
+                };
+            }
+        }
+
         /// <summary>
         /// Rolls for a TreasureItemType for a TreasureItemCategory.MundaneItem
         /// </summary>

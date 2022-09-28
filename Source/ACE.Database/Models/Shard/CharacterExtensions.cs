@@ -707,5 +707,99 @@ namespace ACE.Database.Models.Shard
                 rwLock.ExitUpgradeableReadLock();
             }
         }
+
+        // =====================================
+        // CharacterPropertiesCampRegistry
+        // =====================================
+
+        public static List<CharacterPropertiesCampRegistry> GetCamps(this Character character, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterReadLock();
+            try
+            {
+                return character.CharacterPropertiesCampRegistry.ToList();
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+        }
+
+        public static CharacterPropertiesCampRegistry GetCamp(this Character character, uint campId, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterReadLock();
+            try
+            {
+                return character.CharacterPropertiesCampRegistry.FirstOrDefault(q => q.CampId == campId);
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+        }
+
+        public static CharacterPropertiesCampRegistry GetOrCreateCamp(this Character character, uint campId, ReaderWriterLockSlim rwLock, out bool campRegistryWasCreated)
+        {
+            rwLock.EnterWriteLock();
+            try
+            {
+                var entity = character.CharacterPropertiesCampRegistry.FirstOrDefault(q => q.CampId == campId);
+
+                if (entity == null)
+                {
+                    entity = new CharacterPropertiesCampRegistry
+                    {
+                        CampId = campId
+                    };
+
+                    character.CharacterPropertiesCampRegistry.Add(entity);
+
+                    campRegistryWasCreated = true;
+                }
+                else
+                    campRegistryWasCreated = false;
+
+                return entity;
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
+        }
+
+        public static bool EraseCamp(this Character character, uint campId, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterWriteLock();
+            try
+            {
+                var entity = character.CharacterPropertiesCampRegistry.FirstOrDefault(q => q.CampId == campId);
+
+                if (entity == null)
+                    return false;
+
+                character.CharacterPropertiesCampRegistry.Remove(entity);
+
+                return true;
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
+        }
+
+        public static void EraseAllCamps(this Character character, out List<uint> campsIdsErased, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterWriteLock();
+            try
+            {
+                campsIdsErased = character.CharacterPropertiesCampRegistry.Select(r => r.CampId).ToList();
+
+                character.CharacterPropertiesCampRegistry.Clear();
+            }
+            finally
+            {
+                rwLock.ExitWriteLock();
+            }
+        }
     }
 }

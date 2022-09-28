@@ -977,6 +977,12 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyInt.Value); else SetProperty(PropertyInt.Value, value.Value); }
         }
 
+        public int? OriginalValue
+        {
+            get => GetProperty(PropertyInt.OriginalValue);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.OriginalValue); else SetProperty(PropertyInt.OriginalValue, value.Value); }
+        }
+
         /// <summary>
         /// Flag indicates if an equipped item w/ built-in spells is currently activated, and mana is burning on item
         /// </summary>
@@ -1601,6 +1607,12 @@ namespace ACE.Server.WorldObjects
             set { if (value == null) RemoveProperty(PropertyString.HeritageGroup); else SetProperty(PropertyString.HeritageGroup, value); }
         }
 
+        public string ItemHeritageGroupRestriction
+        {
+            get => GetProperty(PropertyString.ItemHeritageGroupRestriction);
+            set { if (value == null) RemoveProperty(PropertyString.ItemHeritageGroupRestriction); else SetProperty(PropertyString.ItemHeritageGroupRestriction, value); }
+        }
+
         public string Sex
         {
             get => GetProperty(PropertyString.Sex);
@@ -1785,6 +1797,12 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyInt.UseCreatesContractId); else SetProperty(PropertyInt.UseCreatesContractId, value.Value); }
         }
 
+        public int? TacticAndTechniqueId
+        {
+            get => GetProperty(PropertyInt.TacticAndTechniqueId);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.TacticAndTechniqueId); else SetProperty(PropertyInt.TacticAndTechniqueId, value.Value); }
+        }
+
         /// <summary>
         /// Unix time this object was created
         /// </summary>
@@ -1913,7 +1931,7 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyDataId.ClothingBase); else SetProperty(PropertyDataId.ClothingBase, value.Value); }
         }
 
-        public int? ItemCurMana
+        public virtual int? ItemCurMana
         {
             get => GetProperty(PropertyInt.ItemCurMana);
             set { if (!value.HasValue) RemoveProperty(PropertyInt.ItemCurMana); else SetProperty(PropertyInt.ItemCurMana, value.Value); }
@@ -2658,6 +2676,15 @@ namespace ACE.Server.WorldObjects
             set { if (value == null) RemoveProperty(PropertyString.ActivationTalk); else SetProperty(PropertyString.ActivationTalk, value); }
         }
 
+        /// <summary>
+        /// The string that is sent to the player when activation fails due to the ResetInterval cooldown.
+        /// </summary>
+        public string ActivationFailure
+        {
+            get => GetProperty(PropertyString.ActivationFailure);
+            set { if (value == null) RemoveProperty(PropertyString.ActivationFailure); else SetProperty(PropertyString.ActivationFailure, value); }
+        }
+
         public Sound UseSound
         {
             get => (Sound)(GetProperty(PropertyDataId.UseSound) ?? 0);
@@ -3072,6 +3099,24 @@ namespace ACE.Server.WorldObjects
         {
             get => GetProperty(PropertyFloat.RotationSpeed);
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.RotationSpeed); else SetProperty(PropertyFloat.RotationSpeed, value.Value); }
+        }
+
+        public int? ResistAwareness
+        {
+            get => GetProperty(PropertyInt.ResistAwareness);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.ResistAwareness); else SetProperty(PropertyInt.ResistAwareness, value.Value); }
+        }
+
+        public int? Tier
+        {
+            get => GetProperty(PropertyInt.Tier);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Tier); else SetProperty(PropertyInt.Tier, value.Value); }
+        }
+
+        public int EmptyId
+        {
+            get => GetProperty(PropertyInt.EmptyId) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.EmptyId); else SetProperty(PropertyInt.EmptyId, value); }
         }
 
         public bool HasMissileFlightPlacement => CSetup.HasMissileFlightPlacement;

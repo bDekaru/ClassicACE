@@ -83,12 +83,12 @@ namespace ACE.Server.Factories
                 // mutate DamageMod / ElementalDamageBonus / WieldRequirements
                 var mutationFilter = MutationCache.GetMutation(scriptName);
 
-                mutationFilter.TryMutate(wo, profile.Tier);
+                mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
 
                 // mutate WeaponDefense
                 mutationFilter = MutationCache.GetMutation("MissileWeapons.weapon_defense.txt");
 
-                mutationFilter.TryMutate(wo, profile.Tier);
+                mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
             }
 
             // weapon speed
@@ -115,14 +115,17 @@ namespace ACE.Server.Factories
             wo.GemType = RollGemType(profile.Tier);
 
             // workmanship
-            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier);
+            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
 
             // burden
             MutateBurden(wo, profile, true);
 
-            // missile / magic defense
-            wo.WeaponMissileDefense = MissileMagicDefense.Roll(profile.Tier);
-            wo.WeaponMagicDefense = MissileMagicDefense.Roll(profile.Tier);
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR) // Infiltration data has these in the weapon_defense.txt files
+            {
+                // missile / magic defense
+                wo.WeaponMissileDefense = MissileMagicDefense.Roll(profile.Tier);
+                wo.WeaponMagicDefense = MissileMagicDefense.Roll(profile.Tier);
+            }
 
             // spells
             if (!isMagical)
@@ -149,7 +152,13 @@ namespace ACE.Server.Factories
         {
             var elementalStr = isElemental ? "elemental" : "non_elemental";
 
-            return "MissileWeapons." + weaponType.GetScriptName() + "_" + elementalStr + ".txt";
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            {
+                string ruleset = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? "Infiltration" : "CustomDM";
+                return $"MissileWeapons.{ruleset}." + weaponType.GetScriptName() + "_" + elementalStr + ".txt";
+            }
+            else
+                return "MissileWeapons." + weaponType.GetScriptName() + "_" + elementalStr + ".txt";
         }
 
         private static bool GetMutateMissileWeaponData(uint wcid, int tier)
@@ -334,7 +343,7 @@ namespace ACE.Server.Factories
         private static int GetElementalMissileWeapon()
         {
             // Determine missile weapon type: 0 - Bow, 1 - Crossbows, 2 - Atlatl, 3 - Slingshot, 4 - Compound Bow, 5 - Compound Crossbow
-            int missileType = ThreadSafeRandom.Next(0, 5);
+            int missileType = ThreadSafeRandom.Next(0, ThreadSafeRandom.Next(0, LootTables.ElementalMissileWeaponsMatrix.Length - 1));
 
             // Determine element type: 0 - Slashing, 1 - Piercing, 2 - Blunt, 3 - Frost, 4 - Fire, 5 - Acid, 6 - Electric
             int element = ThreadSafeRandom.Next(0, 6);
@@ -349,14 +358,8 @@ namespace ACE.Server.Factories
         private static int GetNonElementalMissileWeapon()
         {
             // Determine missile weapon type: 0 - Bow, 1 - Crossbows, 2 - Atlatl
-            int missileType = ThreadSafeRandom.Next(0, 2);
-            var subType = missileType switch
-            {
-                0 => ThreadSafeRandom.Next(0, 6),
-                1 => ThreadSafeRandom.Next(0, 2),
-                2 => ThreadSafeRandom.Next(0, 1),
-                _ => 0, // Default/Else
-            };
+            int missileType = ThreadSafeRandom.Next(0, LootTables.NonElementalMissileWeaponsMatrix.Length - 1);
+            int subType = ThreadSafeRandom.Next(0, LootTables.NonElementalMissileWeaponsMatrix[missileType].Length - 1);
             return LootTables.NonElementalMissileWeaponsMatrix[missileType][subType];
         }
     }

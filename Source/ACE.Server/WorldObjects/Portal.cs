@@ -248,7 +248,7 @@ namespace ACE.Server.WorldObjects
                 var hasQuest = player.QuestManager.HasQuest(QuestRestriction);
                 var canSolve = player.QuestManager.CanSolve(QuestRestriction);
 
-                var success = hasQuest && !canSolve;
+                var success = hasQuest && (!canSolve || player.QuestManager.GetMinDelta(QuestRestriction) == 0); // If the quest can be solved again now it means you have to reflag, unless the minDelta is 0, that means you never have to reflag.
 
                 if (!success)
                 {

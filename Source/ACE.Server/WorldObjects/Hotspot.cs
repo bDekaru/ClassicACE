@@ -31,7 +31,7 @@ namespace ACE.Server.WorldObjects
                 CycleTime = 1;
         }
 
-        private HashSet<ObjectGuid> Creatures = new HashSet<ObjectGuid>();
+        private Dictionary<ObjectGuid, bool> Creatures = new Dictionary<ObjectGuid, bool>();
 
         private ActionChain ActionLoop = null;
 
@@ -43,10 +43,12 @@ namespace ACE.Server.WorldObjects
             if (!AffectsAis && !(wo is Player))
                 return;
 
-            if (!Creatures.Contains(creature.Guid))
+            if (!Creatures.ContainsKey(creature.Guid))
             {
                 //Console.WriteLine($"{Name} ({Guid}).OnCollideObject({creature.Name})");
-                Creatures.Add(creature.Guid);
+
+                Creatures.Add(creature.Guid, true); // true means this was added this cycle.
+                Activate(wo as Creature); // Antecipate first activation to the moment of contact, much better feedback this way.
             }
 
             if (ActionLoop == null)
@@ -145,8 +147,11 @@ namespace ACE.Server.WorldObjects
 
         private void Activate()
         {
-            foreach (var creatureGuid in Creatures.ToList())
+            foreach (var entry in Creatures)
             {
+                var creatureGuid = entry.Key;
+                var firstCycle = entry.Value;
+
                 var creature = CurrentLandblock.GetObject(creatureGuid) as Creature;
 
                 // verify current state of collision here
@@ -156,7 +161,11 @@ namespace ACE.Server.WorldObjects
                     Creatures.Remove(creatureGuid);
                     continue;
                 }
-                Activate(creature);
+
+                if (!firstCycle) // If it's our first cycle it means we've already activated at the moment of contact.
+                    Activate(creature);
+                else
+                    Creatures[creatureGuid] = false;
             }
         }
 
@@ -168,6 +177,12 @@ namespace ACE.Server.WorldObjects
             var iAmount = (int)Math.Round(amount);
 
             var player = creature as Player;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && WeenieClassId == 8127) // Menhir Mana Field
+            {
+                if (player != null)
+                    player.AlignLeyLineAmulet(this);
+            }
 
             switch (DamageType)
             {
@@ -182,7 +197,7 @@ namespace ACE.Server.WorldObjects
                     else
                         iAmount = (int)creature.TakeDamage(this, DamageType, amount);
 
-                    if (creature.IsDead && Creatures.Contains(creature.Guid))
+                    if (creature.IsDead && Creatures.ContainsKey(creature.Guid))
                         Creatures.Remove(creature.Guid);
 
                     break;

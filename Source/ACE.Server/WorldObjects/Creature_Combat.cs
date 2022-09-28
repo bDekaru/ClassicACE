@@ -7,6 +7,7 @@ using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Factories.Tables;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Structure;
@@ -377,6 +378,87 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        Skill CachedHighestMeleeSkill = Skill.None;
+        Skill CachedHighestMissileSkill = Skill.None;
+
+        /// <summary>
+        /// Returns the highest melee skill for the player
+        /// (light / heavy / finesse)
+        /// </summary>
+        public Skill GetHighestMeleeSkill()
+        {
+            Entity.CreatureSkill maxMelee;
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
+            {
+                var light = GetCreatureSkill(Skill.LightWeapons);
+                var heavy = GetCreatureSkill(Skill.HeavyWeapons);
+                var finesse = GetCreatureSkill(Skill.FinesseWeapons);
+
+                maxMelee = light;
+                if (heavy.Current > maxMelee.Current)
+                    maxMelee = heavy;
+                if (finesse.Current > maxMelee.Current)
+                    maxMelee = finesse;
+            }
+            else
+            {
+                if (!(this is Player) && CachedHighestMeleeSkill != Skill.None)
+                    return CachedHighestMeleeSkill;
+
+                var axe = GetCreatureSkill(Skill.Axe);
+                var dagger = GetCreatureSkill(Skill.Dagger);
+                var mace = GetCreatureSkill(Skill.Mace);
+                var spear = GetCreatureSkill(Skill.Spear);
+                var staff = GetCreatureSkill(Skill.Staff);
+                var sword = GetCreatureSkill(Skill.Sword);
+                var unarmed = GetCreatureSkill(Skill.UnarmedCombat);
+
+                maxMelee = axe;
+                if (dagger.Current > maxMelee.Current)
+                    maxMelee = dagger;
+                if (mace.Current > maxMelee.Current)
+                    maxMelee = mace;
+                if (spear.Current > maxMelee.Current)
+                    maxMelee = spear;
+                if (staff.Current > maxMelee.Current)
+                    maxMelee = staff;
+                if (sword.Current > maxMelee.Current)
+                    maxMelee = sword;
+                if (unarmed.Current > maxMelee.Current)
+                    maxMelee = unarmed;
+
+                CachedHighestMeleeSkill = maxMelee.Skill;
+            }
+
+            return maxMelee.Skill;
+        }
+
+        public Skill GetHighestMissileSkill()
+        {
+            Entity.CreatureSkill maxMissile;
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
+                return Skill.MissileWeapons;
+            else
+            {
+                if (!(this is Player) && CachedHighestMissileSkill != Skill.None)
+                    return CachedHighestMissileSkill;
+
+                var bow = GetCreatureSkill(Skill.Bow);
+                var crossbow = GetCreatureSkill(Skill.Crossbow);
+                var thrown = GetCreatureSkill(Skill.ThrownWeapon);
+
+                maxMissile = bow;
+                if (crossbow.Current > maxMissile.Current)
+                    maxMissile = crossbow;
+                if (thrown.Current > maxMissile.Current)
+                    maxMissile = thrown;
+
+                CachedHighestMissileSkill = maxMissile.Skill;
+            }
+
+            return maxMissile.Skill;
+        }
+
         /// <summary>
         /// Returns the attack type for non-player creatures
         /// </summary>
@@ -411,12 +493,40 @@ namespace ACE.Server.WorldObjects
         /// <param name="attackType">Uses strength for melee, coordination for missile</param>
         public float GetAttributeMod(WorldObject weapon)
         {
+            // The damage done by melee weapons—such as swords, maces, daggers, spears, and so on—is now affected more by the strength of the combatant. Strong warriors will find that they do more damage per hit than before.
+            // This does not affect missile or unarmed combat. Note that this applies to monsters as well, so be careful when facing monsters that wield weapons!
+            // Asheron's Call Release Notes - 2000/02 - Shadows of the Past
+            //if (IsHumanoid && GetCurrentWeaponSkill() == Skill.UnarmedCombat)
+            //    return 1.0f;
+
             var isBow = weapon != null && weapon.IsBow;
 
-            //var attribute = isBow || GetCurrentWeaponSkill() == Skill.FinesseWeapons ? Coordination : Strength;
-            var attribute = isBow || weapon?.WeaponSkill == Skill.FinesseWeapons ? Coordination : Strength;
+            Entity.CreatureAttribute attribute;
+            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                attribute = isBow || weapon?.WeaponSkill == Skill.Dagger || weapon?.WeaponSkill == Skill.Spear || weapon?.WeaponSkill == Skill.Staff ? Coordination : Strength;
+            else if (ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                attribute = isBow || weapon?.WeaponSkill == Skill.Dagger ? Coordination : Strength;
+            else
+                attribute = isBow || weapon?.WeaponSkill == Skill.FinesseWeapons ? Coordination : Strength;
 
-            return SkillFormula.GetAttributeMod((int)attribute.Current, isBow);
+            Skill skill = GetCurrentWeaponSkill();
+            if (isBow)
+                skill = Skill.Bow; // Group up bows and crossbows while excluding thrown weapons.
+            else if (skill == Skill.UnarmedCombat && !IsHumanoid)
+                skill = Skill.None; // Non humanoids(creatures that aren't able to wield weapons) use unarmed combat but still have the regular weapon factor.
+
+            return SkillFormula.GetAttributeMod((int)attribute.Current, skill);
+        }
+        public virtual int GetUnarmedSkillDamageBonus()
+        {
+            if (IsHumanoid && ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration && GetCurrentWeaponSkill() == Skill.UnarmedCombat) // Non humanoids(creatures that aren't able to wield weapons) do not get a damage bonus based on skill.
+            {
+                var skill = GetCreatureSkill(Skill.UnarmedCombat).Current;
+
+                return (int)skill / 20;
+            }
+            else
+                return 0;
         }
 
         /// <summary>
@@ -437,19 +547,29 @@ namespace ACE.Server.WorldObjects
 
             var skill = weapon != null ? weapon.WeaponSkill : Skill.UnarmedCombat;
 
-            var creatureSkill = GetCreatureSkill(skill);
-
-            if (creatureSkill.InitLevel == 0)
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
             {
-                // convert to post-MoA skill
+                var creatureSkill = GetCreatureSkill(skill);
+
+                if (creatureSkill.InitLevel == 0)
+                {
+                    // convert to post-MoA skill
+                    if (weapon != null && weapon.IsRanged)
+                        skill = Skill.MissileWeapons;
+                    else if (skill == Skill.Sword)
+                        skill = Skill.HeavyWeapons;
+                    else if (skill == Skill.Dagger)
+                        skill = Skill.FinesseWeapons;
+                    else
+                        skill = Skill.LightWeapons;
+                }
+            }
+            else
+            {
                 if (weapon != null && weapon.IsRanged)
-                    skill = Skill.MissileWeapons;
-                else if (skill == Skill.Sword)
-                    skill = Skill.HeavyWeapons;
-                else if (skill == Skill.Dagger)
-                    skill = Skill.FinesseWeapons;
+                    skill = GetHighestMissileSkill();
                 else
-                    skill = Skill.LightWeapons;
+                    skill = GetHighestMeleeSkill();
             }
 
             //Console.WriteLine("Monster weapon skill: " + skill);
@@ -535,6 +655,18 @@ namespace ACE.Server.WorldObjects
         public virtual void OnDamageTarget(WorldObject target, CombatType attackType, bool critical)
         {
             // empty base for non-player creatures?
+        }
+
+        /// <summary>
+        /// Called when a creature receives an attack, evaded or not
+        /// </summary>
+        public virtual void OnAttackReceived(WorldObject attacker, CombatType attackType, bool critical, bool avoided)
+        {
+            var attackerAsCreature = attacker as Creature;
+            if (!avoided && attackerAsCreature != null)
+                attackerAsCreature.TryCastAssessDebuff(this, attackType);
+
+            numRecentAttacksReceived++;
         }
 
         /// <summary>
@@ -643,23 +775,41 @@ namespace ACE.Server.WorldObjects
         public float GetShieldMod(WorldObject attacker, DamageType damageType, WorldObject weapon)
         {
             // ensure combat stance
-            if (CombatMode == CombatMode.NonCombat)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR && CombatMode == CombatMode.NonCombat)
                 return 1.0f;
 
             // does the player have a shield equipped?
             var shield = GetEquippedShield();
             if (shield == null) return 1.0f;
 
+            var player = this as Player;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if (player != null && GetCreatureSkill(Skill.Shield).AdvancementClass < SkillAdvancementClass.Trained)
+                    return 0.0f;
+            }
+
             // phantom weapons ignore all armor and shields
             if (weapon != null && weapon.HasImbuedEffect(ImbuedEffectType.IgnoreAllArmor))
                 return 1.0f;
 
-            // is monster in front of player,
-            // within shield effectiveness area?
-            var effectiveAngle = 180.0f;
-            var angle = GetAngle(attacker);
-            if (Math.Abs(angle) > effectiveAngle / 2.0f)
-                return 1.0f;
+            bool bypassShieldAngleCheck = false;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var techniqueTrinket = GetEquippedTrinket();
+                if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Defensive)
+                    bypassShieldAngleCheck = true; // Shields cover all angles while using the Defensive technique.
+            }
+
+            if (!bypassShieldAngleCheck)
+            {
+                // is monster in front of player,
+                // within shield effectiveness area?
+                var effectiveAngle = 180.0f;
+                var angle = GetAngle(attacker);
+                if (Math.Abs(angle) > effectiveAngle / 2.0f)
+                    return 1.0f;
+            }
 
             // get base shield AL
             var baseSL = shield.GetProperty(PropertyInt.ArmorLevel) ?? 0.0f;
@@ -696,16 +846,7 @@ namespace ACE.Server.WorldObjects
 
             var effectiveLevel = effectiveSL * effectiveRL;
 
-            // SL cap:
-            // Trained / untrained: 1/2 shield skill
-            // Spec: shield skill
-            // SL cap is applied *after* item enchantments
-            var shieldSkill = GetCreatureSkill(Skill.Shield);
-            var shieldCap = shieldSkill.Current;
-            if (shieldSkill.AdvancementClass != SkillAdvancementClass.Specialized)
-                shieldCap = (uint)Math.Round(shieldCap / 2.0f);
-
-            effectiveLevel = Math.Min(effectiveLevel, shieldCap);
+            effectiveLevel = CapShield(effectiveLevel);
 
             var ignoreShieldMod = attacker.GetIgnoreShieldMod(weapon);
             //Console.WriteLine($"IgnoreShieldMod: {ignoreShieldMod}");
@@ -718,12 +859,38 @@ namespace ACE.Server.WorldObjects
             return shieldMod;
         }
 
+        public static double GetThrownWeaponMaxVelocity(WorldObject throwed)
+        {
+            Creature thrower = throwed.Wielder as Creature;
+
+            if (thrower == null || throwed == null)
+                return 0;
+
+            return GetThrownWeaponMaxVelocity((int)thrower.Strength.Current, ((throwed.StackUnitEncumbrance ?? throwed.EncumbranceVal) ?? 1));
+        }
+
+        public static double GetEstimatedThrownWeaponMaxVelocity(WorldObject throwed)
+        {
+            if (throwed == null)
+                return 0;
+
+            return GetThrownWeaponMaxVelocity(100, ((throwed.StackUnitEncumbrance ?? throwed.EncumbranceVal) ?? 1));
+        }
+
+        public static double GetThrownWeaponMaxVelocity(int throwerStrength, int throwedEncumbrance)
+        {
+            return Math.Clamp(16 - 0.06 * throwerStrength + 0.0009 * Math.Pow(throwerStrength, 2) - (Math.Sqrt(throwedEncumbrance) - Math.Sqrt(5)), 5.45, 27.3); // Custom formula - Asheron's Call Strategies and Secrets has some info on the original formula on pages 150 and 151.
+        }
+
         /// <summary>
         /// Returns the total applicable Recklessness modifier,
         /// taking into account both attacker and defender players
         /// </summary>
         public static float GetRecklessnessMod(Creature attacker, Creature defender)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 1.0f;
+
             var playerAttacker = attacker as Player;
             var playerDefender = defender as Player;
 
@@ -744,88 +911,108 @@ namespace ACE.Server.WorldObjects
 
         public float GetSneakAttackMod(WorldObject target)
         {
-            // ensure trained
-            var sneakAttack = GetCreatureSkill(Skill.SneakAttack);
-            if (sneakAttack.AdvancementClass < SkillAdvancementClass.Trained)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
                 return 1.0f;
-
-            // ensure creature target
-            var creatureTarget = target as Creature;
-            if (creatureTarget == null)
-                return 1.0f;
-
-            // Effects:
-            // General Sneak Attack effects:
-            //   - 100% chance to sneak attack from behind an opponent.
-            //   - Deception trained: 10% chance to sneak attack from the front of an opponent
-            //   - Deception specialized: 15% chance to sneak attack from the front of an opponent
-            var angle = creatureTarget.GetAngle(this);
-            var behind = Math.Abs(angle) > 90.0f;
-            var chance = 0.0f;
-            if (behind)
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                chance = 1.0f;
+                // ensure creature target
+                var creatureTarget = target as Creature;
+                if (creatureTarget == null)
+                    return 1.0f;
+
+                var angle = creatureTarget.GetAngle(this);
+                var behind = Math.Abs(angle) > 90.0f;
+
+                if (behind)
+                    return 1.2f; // 20% damage bonus
+                else
+                    return 1.0f;
             }
             else
             {
-                var deception = GetCreatureSkill(Skill.Deception);
-                if (deception.AdvancementClass == SkillAdvancementClass.Trained)
-                    chance = 0.1f;
-                else if (deception.AdvancementClass == SkillAdvancementClass.Specialized)
-                    chance = 0.15f;
+                // ensure trained
+                var sneakAttack = GetCreatureSkill(Skill.SneakAttack);
+                if (sneakAttack.AdvancementClass < SkillAdvancementClass.Trained)
+                    return 1.0f;
 
-                // if Deception is below 306 skill, these chances are reduced proportionately.
-                // this is in addition to proprtional reduction if your Sneak Attack skill is below your attack skill.
-                var deceptionCap = 306;
-                if (deception.Current < deceptionCap)
-                    chance *= Math.Min((float)deception.Current / deceptionCap, 1.0f);
-            }
-            //Console.WriteLine($"Sneak attack {(behind ? "behind" : "front")}, chance {Math.Round(chance * 100)}%");
+                // ensure creature target
+                var creatureTarget = target as Creature;
+                if (creatureTarget == null)
+                    return 1.0f;
 
-            var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
-            if (rng >= chance)
-                return 1.0f;
-
-            // Damage Rating:
-            // Sneak Attack Trained:
-            //   + 10 Damage Rating when Sneak Attack activates
-            // Sneak Attack Specialized:
-            //   + 20 Damage Rating when Sneak Attack activates
-            var damageRating = sneakAttack.AdvancementClass == SkillAdvancementClass.Specialized ? 20.0f : 10.0f;
-
-            // Sneak Attack works for melee, missile, and magic attacks.
-
-            // if the Sneak Attack skill is lower than your attack skill (as determined by your equipped weapon)
-            // then the damage rating is reduced proportionately. Because the damage rating caps at 10 for trained
-            // and 20 for specialized, there is no reason to raise the skill above your attack skill
-            var attackSkill = GetCreatureSkill(GetCurrentAttackSkill());
-            if (sneakAttack.Current < attackSkill.Current)
-            {
-                if (attackSkill.Current > 0)
-                    damageRating *= (float)sneakAttack.Current / attackSkill.Current;
+                // Effects:
+                // General Sneak Attack effects:
+                //   - 100% chance to sneak attack from behind an opponent.
+                //   - Deception trained: 10% chance to sneak attack from the front of an opponent
+                //   - Deception specialized: 15% chance to sneak attack from the front of an opponent
+                var angle = creatureTarget.GetAngle(this);
+                var behind = Math.Abs(angle) > 90.0f;
+                var chance = 0.0f;
+                if (behind)
+                {
+                    chance = 1.0f;
+                }
                 else
-                    damageRating = 0;
+                {
+                    var deception = GetCreatureSkill(Skill.Deception);
+                    if (deception.AdvancementClass == SkillAdvancementClass.Trained)
+                        chance = 0.1f;
+                    else if (deception.AdvancementClass == SkillAdvancementClass.Specialized)
+                        chance = 0.15f;
+
+                    // if Deception is below 306 skill, these chances are reduced proportionately.
+                    // this is in addition to proprtional reduction if your Sneak Attack skill is below your attack skill.
+                    var deceptionCap = 306;
+                    if (deception.Current < deceptionCap)
+                        chance *= Math.Min((float)deception.Current / deceptionCap, 1.0f);
+                }
+                //Console.WriteLine($"Sneak attack {(behind ? "behind" : "front")}, chance {Math.Round(chance * 100)}%");
+
+                var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
+                if (rng >= chance)
+                    return 1.0f;
+
+                // Damage Rating:
+                // Sneak Attack Trained:
+                //   + 10 Damage Rating when Sneak Attack activates
+                // Sneak Attack Specialized:
+                //   + 20 Damage Rating when Sneak Attack activates
+                var damageRating = sneakAttack.AdvancementClass == SkillAdvancementClass.Specialized ? 20.0f : 10.0f;
+
+                // Sneak Attack works for melee, missile, and magic attacks.
+
+                // if the Sneak Attack skill is lower than your attack skill (as determined by your equipped weapon)
+                // then the damage rating is reduced proportionately. Because the damage rating caps at 10 for trained
+                // and 20 for specialized, there is no reason to raise the skill above your attack skill
+                var attackSkill = GetCreatureSkill(GetCurrentAttackSkill());
+                if (sneakAttack.Current < attackSkill.Current)
+                {
+                    if (attackSkill.Current > 0)
+                        damageRating *= (float)sneakAttack.Current / attackSkill.Current;
+                    else
+                        damageRating = 0;
+                }
+
+                // if the defender has Assess Person, they reduce the extra Sneak Attack damage Deception can add
+                // from the front by up to 100%.
+                // this percent is reduced proportionately if your buffed Assess Person skill is below the deception cap.
+                // this reduction does not apply to attacks from behind.
+                if (!behind)
+                {
+                    // compare to assess person or deception??
+                    // wiki info is confusing here, it says 'your buffed Assess Person'
+                    // which sounds like its scaling sourceAssess / targetAssess,
+                    // but i think it should be targetAssess / deceptionCap?
+                    var targetAssess = creatureTarget.GetCreatureSkill(Skill.AssessPerson).Current;
+
+                    var deceptionCap = 306;
+                    damageRating *= 1.0f - Math.Min((float)targetAssess / deceptionCap, 1.0f);
+                }
+
+                var sneakAttackMod = (100 + damageRating) / 100.0f;
+                //Console.WriteLine("SneakAttackMod: " + sneakAttackMod);
+                return sneakAttackMod;
             }
-
-            // if the defender has Assess Person, they reduce the extra Sneak Attack damage Deception can add
-            // from the front by up to 100%.
-            // this percent is reduced proportionately if your buffed Assess Person skill is below the deception cap.
-            // this reduction does not apply to attacks from behind.
-            if (!behind)
-            {
-                // compare to assess person or deception??
-                // wiki info is confusing here, it says 'your buffed Assess Person'
-                // which sounds like its scaling sourceAssess / targetAssess,
-                // but i think it should be targetAssess / deceptionCap?
-                var targetAssess = creatureTarget.GetCreatureSkill(Skill.AssessPerson).Current;
-
-                var deceptionCap = 306;
-                damageRating *= 1.0f - Math.Min((float)targetAssess / deceptionCap, 1.0f);
-            }
-
-            var sneakAttackMod = (100 + damageRating) / 100.0f;
-            //Console.WriteLine("SneakAttackMod: " + sneakAttackMod);
-            return sneakAttackMod;
         }
 
         public void FightDirty(WorldObject target, WorldObject weapon)
@@ -997,6 +1184,134 @@ namespace ACE.Server.WorldObjects
                 playerSource.SendMessage(msg, ChatMessageType.Combat, this);
             if (playerTarget != null)
                 playerTarget.SendMessage(msg, ChatMessageType.Combat, this);
+        }
+
+        private double NextAssessDebuffActivationTime = 0;
+        private static double AssessDebuffActivationInterval = 10;
+        public void TryCastAssessDebuff(Creature target, CombatType combatType)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            if (this == target)
+                return; // We don't want to find vulnerabilities on ourselves!
+
+            var currentTime = Time.GetUnixTime();
+
+            if (NextAssessDebuffActivationTime > currentTime)
+                return;
+
+            var skill = GetCreatureSkill(Skill.AssessCreature);
+            if (skill.AdvancementClass == SkillAdvancementClass.Untrained || skill.AdvancementClass == SkillAdvancementClass.Inactive)
+                return;
+
+            var sourceAsPlayer = this as Player;
+            var targetAsPlayer = target as Player;
+
+            var activationChance = 0.25f;
+            if(sourceAsPlayer != null)
+                activationChance += sourceAsPlayer.ScaleWithPowerAccuracyBar(0.25f);
+
+            if (activationChance < ThreadSafeRandom.Next(0.0f, 1.0f))
+                return;
+
+            NextAssessDebuffActivationTime = currentTime + AssessDebuffActivationInterval;
+
+            var defenseSkill = target.GetCreatureSkill(Skill.Deception);
+
+            var avoidChance = 1.0f - SkillCheck.GetSkillChance(skill.Current, defenseSkill.Current);
+            if (avoidChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                if (sourceAsPlayer != null)
+                    sourceAsPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{target.Name}'s deception stops you from finding a vulnerability!", ChatMessageType.Magic));
+
+                if (targetAsPlayer != null)
+                {
+                    Proficiency.OnSuccessUse(targetAsPlayer, defenseSkill, skill.Current);
+                    targetAsPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your deception stops {Name} from finding a vulnerability!", ChatMessageType.Magic));
+                }
+
+                return;
+            }
+            else if(sourceAsPlayer != null)
+                Proficiency.OnSuccessUse(sourceAsPlayer, skill, defenseSkill.Current);
+
+            string spellType;
+            // 2/3 chance of the vulnerability being explicity of the type of attack that was used, otherwise random 1/3 for each type
+            SpellId spellId;
+            if (ThreadSafeRandom.Next(1, 3) != 3)
+            {
+                switch (combatType)
+                {
+                    default:
+                    case CombatType.Melee:
+                        spellId = SpellId.VulnerabilityOther1;
+                        spellType = "melee";
+                        break;
+                    case CombatType.Missile:
+                        spellId = SpellId.DefenselessnessOther1;
+                        spellType = "missile";
+                        break;
+                    case CombatType.Magic:
+                        spellId = SpellId.MagicYieldOther1;
+                        spellType = "magic";
+                        break;
+                }
+            }
+            else
+            {
+                var spellRNG = ThreadSafeRandom.Next(1, 3);
+                switch (spellRNG)
+                {
+                    default:
+                    case 1:
+                        spellId = SpellId.VulnerabilityOther1;
+                        spellType = "melee";
+                        break;
+                    case 2:
+                        spellId = SpellId.DefenselessnessOther1;
+                        spellType = "missile";
+                        break;
+                    case 3:
+                        spellId = SpellId.MagicYieldOther1;
+                        spellType = "magic";
+                        break;
+                }
+            }
+
+            var spellLevels = SpellLevelProgression.GetSpellLevels(spellId);
+            int maxUsableSpellLevel = Math.Min(spellLevels.Count, 5);
+
+            if (spellLevels.Count == 0)
+                return;
+
+            int minSpellLevel = Math.Min(Math.Max(0, (int)Math.Floor(((float)skill.Current - 150) / 50.0)), maxUsableSpellLevel);
+            int maxSpellLevel = Math.Max(0, Math.Min((int)Math.Floor(((float)skill.Current - 50) / 50.0), maxUsableSpellLevel));
+
+            int spellLevel = ThreadSafeRandom.Next(minSpellLevel, maxSpellLevel);
+            var spell = new Spell(spellLevels[spellLevel]);
+
+            if (spell.NonComponentTargetType == ItemType.None)
+                TryCastSpell(spell, null, this, null, false, false, false, false);
+            else
+                TryCastSpell(spell, target, this, null, false, false, false, false);
+
+            string spellTypePrefix;
+            switch(spellLevel + 1)
+            {
+                case 1: spellTypePrefix = "a minor"; break;
+                default:
+                case 2: spellTypePrefix = "a"; break;
+                case 3: spellTypePrefix = "a moderate"; break;
+                case 4: spellTypePrefix = "a severe"; break;
+                case 5: spellTypePrefix = "a major"; break;
+                case 6: spellTypePrefix = "a crippling"; break;
+            }
+
+            if (sourceAsPlayer != null)
+                sourceAsPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your assess knowledge allows you to expose {spellTypePrefix} {spellType} vulnerability on {target.Name}!", ChatMessageType.Magic));
+            if (targetAsPlayer != null)
+                targetAsPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name}'s assess knowledge exposes {spellTypePrefix} {spellType} vulnerability on you!", ChatMessageType.Magic));
         }
 
         /// <summary>

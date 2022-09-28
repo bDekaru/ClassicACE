@@ -42,6 +42,15 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if (MagnifyingGlass.IsMagnifyingGlass(this))
+                {
+                    MagnifyingGlass.UseObjectOnTarget(player, this, target);
+                    return;
+                }
+            }
+
             // fallback on recipe manager
             base.HandleActionUseOnTarget(player, target);
         }

@@ -629,6 +629,24 @@ namespace ACE.Entity.Enum.Properties
         /// </summary>
         [ServerOnly]
         InventoryOrder                          = 9015,
+
+        // CustomDM
+        [ServerOnly]
+        TacticAndTechniqueId                     = 10000,
+        [ServerOnly]
+        LeyLineSchool                            = 10001,
+        [ServerOnly]
+        LeyLineEffectId                          = 10002,
+        [ServerOnly]
+        LeyLineSeed                              = 10003,
+        [ServerOnly]
+        LeyLineLastDecayTime                     = 10004,
+        RecentMoneyIncome                        = 10005,
+        RecentMoneyOutflow                       = 10006,
+        Tier                                     = 10007,
+        ResistAwareness                          = 10008,
+        [ServerOnly]
+        EmptyId                                  = 10009,
     }
 
     public static class PropertyIntExtensions

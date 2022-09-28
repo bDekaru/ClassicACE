@@ -6,6 +6,7 @@ using ACE.Common;
 using ACE.Common.Extensions;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Server.Entity;
 using ACE.Server.Factories;
 
 namespace ACE.Server.WorldObjects
@@ -41,13 +42,22 @@ namespace ACE.Server.WorldObjects
 
         public static List<WorldObject> GenerateWieldedTreasureSets(List<TreasureWielded> items)
         {
-            var curIdx = 0;
-            List<WorldObject> results = null;
-            GenerateWieldedTreasureSets(items, ref results, ref curIdx);
-            return results;
+            //var curIdx = 0;
+            //List<WorldObject> results = null;
+            //GenerateWieldedTreasureSets(items, ref results, ref curIdx);
+            //return results;
+
+            // Redirecting this to the old code as the new one doesn't produce the desired results.
+            // Tested with Assassin(11498), it will spawn either with a missile weapon or unarmed, never with a dagger and shield.
+            var wieldedTreasure = new List<WorldObject>();
+            var table = new TreasureWieldedTable(items);
+            foreach (var set in table.Sets)
+                wieldedTreasure.AddRange(GenerateWieldedTreasureSet(set));
+
+            return wieldedTreasure;
         }
 
-        private static void GenerateWieldedTreasureSets(List<TreasureWielded> items, ref List<WorldObject> results, ref int curIdx, bool skip = false)
+        /*private static void GenerateWieldedTreasureSets(List<TreasureWielded> items, ref List<WorldObject> results, ref int curIdx, bool skip = false)
         {
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
             var probability = 0.0f;
@@ -109,7 +119,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        /*public static List<WorldObject> GenerateWieldedTreasureSets(TreasureWieldedTable table)
+        public static List<WorldObject> GenerateWieldedTreasureSets(TreasureWieldedTable table)
         {
             var wieldedTreasure = new List<WorldObject>();
 
@@ -117,7 +127,7 @@ namespace ACE.Server.WorldObjects
                 wieldedTreasure.AddRange(GenerateWieldedTreasureSet(set));
 
             return wieldedTreasure;
-        }
+        }*/
 
         public static List<WorldObject> GenerateWieldedTreasureSet(TreasureWieldedSet set)
         {
@@ -129,9 +139,8 @@ namespace ACE.Server.WorldObjects
 
             foreach (var item in set.Items)
             {
-                if (item.Item.SetStart || probability >= 1.0f)
+                if (probability >= 1.0f)
                 {
-                    rng = ThreadSafeRandom.Next(0.0f, 1.0f);
                     probability = 0.0f;
                     rolled = false;
                 }
@@ -153,7 +162,7 @@ namespace ACE.Server.WorldObjects
             }
 
             return wieldedTreasure;
-        }*/
+        }
 
         public static WorldObject CreateWieldedTreasure(TreasureWielded item)
         {

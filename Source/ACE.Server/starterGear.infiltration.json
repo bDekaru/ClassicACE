@@ -1,0 +1,971 @@
+{
+    "skills": [
+        {
+            "id": "6",
+            "name": "Melee Defense"
+        },
+        {
+            "id": "7",
+            "name": "Missile Defense"
+        },
+        {
+            "id": "14",
+            "name": "Arcane Lore"
+        },
+        {
+            "id": "15",
+            "name": "Magic Defense"
+        },
+        {
+            "id": "16",
+            "name": "Mana Conversion"
+        },
+        {
+            "id": "18",
+            "name": "Item Tinkering"
+        },
+        {
+            "id": "20",
+            "name": "Deception"
+        },
+        {
+            "id": "21",
+            "name": "Healing",
+            "gear": [
+                {
+                    "weenieId": "628",
+                    "name": "Handy Healing Kit",
+                    "stacksize": "1"
+                }
+            ]
+        },
+        {
+            "id": "22",
+            "name": "Jump",
+            "gear": [
+                {
+                    "weenieId": "273",
+                    "name": "Pyreal",
+                    "stacksize": "500"
+                },
+                {
+                    "weenieId": "1077",
+                    "name": "Welcome Letter",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "166",
+                    "name": "Sack",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "5084",
+                    "name": "Calling Stone",
+                    "stacksize": "1"
+                }
+            ],
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "259",
+                            "name": "Bread",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "261",
+                            "name": "Cheese",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "258",
+                            "name": "Apple",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "23",
+            "name": "Lockpick",
+            "gear": [
+                {
+                    "weenieId": "511",
+                    "name": "Crude Lockpick",
+                    "stacksize": "1"
+                }
+            ]
+        },
+        {
+            "id": "24",
+            "name": "Run"
+        },
+        {
+            "id": "27",
+            "name": "Assess Creature"
+        },
+        {
+            "id": "28",
+            "name": "Weapon Tinkering"
+        },
+        {
+            "id": "29",
+            "name": "Armor Tinkering"
+        },
+        {
+            "id": "30",
+            "name": "Magic Item Tinkering"
+        },
+        {
+            "id": "31",
+            "name": "Creature Enchantment",
+            "gear": [
+                {
+                    "weenieId": "691",
+                    "name": "Lead Scarab",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "774",
+                    "name": "Hyssop",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "760",
+                    "name": "Realgar",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "789",
+                    "name": "Powdered Moonstone",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "749",
+                    "name": "Poplar Talisman",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "626",
+                    "name": "Powdered Hematite",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "750",
+                    "name": "Rowan Talisman",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "754",
+                    "name": "Cadmia",
+                    "stacksize": "10",
+                    "specializedOnly": "true"
+                },
+                {
+                    "weenieId": "782",
+                    "name": "Powdered Agate",
+                    "stacksize": "10",
+                    "specializedOnly": "true"
+                }
+            ],
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "4914",
+                            "name": "Aluvian Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "4916",
+                            "name": "Gharu'ndim Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "4915",
+                            "name": "Sho Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ],
+            "spells": [
+                {
+                    "spellId": "1",
+                    "name": "Strength Other I",
+                    "specializedOnly": "false"
+                },
+                {
+                    "spellId": "18",
+                    "name": "Invulnerability Self I",
+                    "specializedOnly": "false"
+                },
+                {
+                    "spellId": "678",
+                    "name": "Arcane Enlightment Self I",
+                    "specializedOnly": "true"
+                }
+            ]
+        },
+        {
+            "id": "32",
+            "name": "Item Enchantment",
+            "gear": [
+                {
+                    "weenieId": "691",
+                    "name": "Lead Scarab",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "774",
+                    "name": "Hyssop",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "740",
+                    "name": "Ashwood Talisman",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "759",
+                    "name": "Quicksilver",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "792",
+                    "name": "Powdered Turquoise",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "756",
+                    "name": "Cobalt",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "790",
+                    "name": "Powdered Onyx",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "761",
+                    "name": "Stibnite",
+                    "stacksize": "10",
+                    "specializedOnly": "true"
+                }
+            ],
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "4914",
+                            "name": "Aluvian Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "4916",
+                            "name": "Gharu'ndim Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "4915",
+                            "name": "Sho Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ],
+            "spells": [
+                {
+                    "spellId": "35",
+                    "name": "Blood Drinker I",
+                    "specializedOnly": "false"
+                },
+                {
+                    "spellId": "51",
+                    "name": "Impenetrability I",
+                    "specializedOnly": "false"
+                },
+                {
+                    "spellId": "49",
+                    "name": "Swift Killer I",
+                    "specializedOnly": "true"
+                }
+            ]
+        },
+        {
+            "id": "33",
+            "name": "Life Magic",
+            "gear": [
+                {
+                    "weenieId": "691",
+                    "name": "Lead Scarab",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "780",
+                    "name": "Wormwood",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "790",
+                    "name": "Powdered Onyx",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "756",
+                    "name": "Cobalt",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "744",
+                    "name": "Ebony Talisman",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "774",
+                    "name": "Hyssop",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "783",
+                    "name": "Powdered Amber",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "757",
+                    "name": "Colcothar",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "751",
+                    "name": "Willow Talisman",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "776",
+                    "name": "Mugwort",
+                    "stacksize": "10",
+                    "specializedOnly": "true"
+                },
+                {
+                    "weenieId": "755",
+                    "name": "Cinnabar",
+                    "stacksize": "10",
+                    "specializedOnly": "true"
+                },
+                {
+                    "weenieId": "752",
+                    "name": "Yew Talisman",
+                    "stacksize": "3",
+                    "specializedOnly": "true"
+                }
+            ],
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "4914",
+                            "name": "Aluvian Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "4916",
+                            "name": "Gharu'ndim Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "4915",
+                            "name": "Sho Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ],
+            "spells": [
+                {
+                    "spellId": "23",
+                    "name": "Armor Other I",
+                    "specializedOnly": "false"
+                },
+                {
+                    "spellId": "6",
+                    "name": "Heal Self I",
+                    "specializedOnly": "false"
+                },
+                {
+                    "spellId": "53",
+                    "name": "Rejuvenation Other I",
+                    "specializedOnly": "true"
+                }
+            ]
+        },
+        {
+            "id": "34",
+            "name": "War Magic",
+            "gear": [
+                {
+                    "weenieId": "691",
+                    "name": "Lead Scarab",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "772",
+                    "name": "Hawthorn",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "790",
+                    "name": "Powdered Onyx",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "741",
+                    "name": "Birch Talisman",
+                    "stacksize": "3"
+                },
+                {
+                    "weenieId": "762",
+                    "name": "Turpeth",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "760",
+                    "name": "Realgar",
+                    "stacksize": "10"
+                },
+                {
+                    "weenieId": "756",
+                    "name": "Cobalt",
+                    "stacksize": "10",
+                    "specializedOnly": "true"
+                }
+            ],
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "4914",
+                            "name": "Aluvian Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "4916",
+                            "name": "Gharu'ndim Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "4915",
+                            "name": "Sho Wand",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ],
+            "spells": [
+                {
+                    "spellId": "27",
+                    "name": "Flame Bolt I",
+                    "specializedOnly": "false"
+                },
+                {
+                    "spellId": "86",
+                    "name": "Force Bolt I",
+                    "specializedOnly": "false"
+                },
+                {
+                    "spellId": "75",
+                    "name": "Lightning Bolt I",
+                    "specializedOnly": "true"
+                }
+            ]
+        },
+        {
+            "id": "35",
+            "name": "Leadership"
+        },
+        {
+            "id": "36",
+            "name": "Loyalty"
+        },
+        {
+            "id": "37",
+            "name": "Fletching",
+            "gear": [
+                {
+                    "weenieId": "4586",
+                    "name": "Bundle of Arrowheads",
+                    "stacksize": "30"
+                },
+                {
+                    "weenieId": "4585",
+                    "name": "Bundle of Arrowshafts",
+                    "stacksize": "30"
+                },
+                {
+                    "weenieId": "5339",
+                    "name": "Bundle of Quarrelshafts",
+                    "stacksize": "30"
+                },
+                {
+                    "weenieId": "15296",
+                    "name": "Bundle of Atlatl Dart Shafts",
+                    "stacksize": "30"
+                }
+            ]
+        },
+        {
+            "id": "38",
+            "name": "Alchemy",
+            "gear": [
+                {
+                    "weenieId": "4751",
+                    "name": "Mortar and Pestle",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "2414",
+                    "name": "Azurite",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "2414",
+                    "name": "Azurite",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "2414",
+                    "name": "Azurite",
+                    "stacksize": "1"
+                }
+            ]
+        },
+        {
+            "id": "39",
+            "name": "Cooking",
+            "gear": [
+                {
+                    "weenieId": "4761",
+                    "name": "Flour",
+                    "stacksize": "6"
+                },
+                {
+                    "weenieId": "4746",
+                    "name": "Water",
+                    "stacksize": "6"
+                }
+            ]
+        },
+        {
+            "id": "40",
+            "name": "Salvaging",
+            "gear": [
+                {
+                    "weenieId": "20646",
+                    "name": "Ust",
+                    "stacksize": "1"
+                }
+            ]
+        },
+        {
+            "id": "1",
+            "name": "Axe",
+            "gear": [
+                {
+                    "weenieId": "12740",
+                    "name": "Training Hand Axe",
+                    "stacksize": "1"
+                }
+            ]
+        },
+        {
+            "id": "4",
+            "name": "Dagger",
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "527",
+                            "name": "Starter Knife",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "523",
+                            "name": "Starter Jambiya",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "527",
+                            "name": "Starter Knife",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "5",
+            "name": "Mace",
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "520",
+                            "name": "Starter Club",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "526",
+                            "name": "Starter Kasrullah",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "524",
+                            "name": "Starter Jitte",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "9",
+            "name": "Spear",
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "534",
+                            "name": "Starter Spear",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "519",
+                            "name": "Starter Budiaq",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "539",
+                            "name": "Starter Yari",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "10",
+            "name": "Staff",
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "529",
+                            "name": "Starter Quarter Staff",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "528",
+                            "name": "Starter Nabut",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "525",
+                            "name": "Starter Jo",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "11",
+            "name": "Sword",
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "535",
+                            "name": "Starter Sword",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "533",
+                            "name": "Starter Simi",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "538",
+                            "name": "Starter Yaoji",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "13",
+            "name": "Unarmed Combat",
+            "gear": [
+                {
+                    "weenieId": "12742",
+                    "name": "Training Cestus",
+                    "stacksize": "1"
+                }
+            ]
+        },
+        {
+            "id": "2",
+            "name": "Bow",
+            "gear": [
+                {
+                    "weenieId": "300",
+                    "name": "Arrows",
+                    "stacksize": "250"
+                }
+            ],
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "518",
+                            "name": "Starter Short Bow",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "537",
+                            "name": "Starter Yag",
+                            "stacksize": "1"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "531",
+                            "name": "Starter Shouyumi",
+                            "stacksize": "1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "3",
+            "name": "Crossbow",
+            "gear": [
+                {
+                    "weenieId": "12749",
+                    "name": "Light Training Crossbow",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "305",
+                    "name": "Bolts",
+                    "stacksize": "250"
+                }
+            ]
+        },
+        {
+            "id": "12",
+            "name": "Thrown Weapons",
+            "gear": [
+                {
+                    "weenieId": "23109",
+                    "name": "Starter Atlatl",
+                    "stacksize": "1"
+                },
+                {
+                    "weenieId": "12464",
+                    "name": "Atlatl Darts",
+                    "stacksize": "200"
+                }
+            ],
+            "heritage": [
+                {
+                    "id": "1",
+                    "name": "Aluvian",
+                    "gear": [
+                        {
+                            "weenieId": "522",
+                            "name": "Starter Darts",
+                            "stacksize": "50"
+                        }
+                    ]
+                },
+                {
+                    "id": "2",
+                    "name": "Gharu'ndim",
+                    "gear": [
+                        {
+                            "weenieId": "522",
+                            "name": "Starter Darts",
+                            "stacksize": "50"
+                        }
+                    ]
+                },
+                {
+                    "id": "3",
+                    "name": "Sho",
+                    "gear": [
+                        {
+                            "weenieId": "532",
+                            "name": "Starter Shouken",
+                            "stacksize": "50"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

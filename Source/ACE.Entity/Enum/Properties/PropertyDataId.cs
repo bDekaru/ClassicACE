@@ -168,12 +168,18 @@ namespace ACE.Entity.Enum.Properties
         [ServerOnly]
         PCAPRecordedMaxVelocityEstimated = 8030,
         [ServerOnly]
-        PCAPPhysicsDIDDataTemplatedFrom  = 8044
+        PCAPPhysicsDIDDataTemplatedFrom  = 8044,
 
         //[ServerOnly]
         //HairTexture                = 9001,
         //[ServerOnly]
         //DefaultHairTexture         = 9002,
+
+        // CustomDM
+        [ServerOnly]
+        LeyLineTriggerSpellId            = 10000,
+        [ServerOnly]
+        LeyLineCastSpellId               = 10001
     }
 
     public static class PropertyDataIdExtensions

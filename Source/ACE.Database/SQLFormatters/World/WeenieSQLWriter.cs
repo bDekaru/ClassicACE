@@ -7,19 +7,27 @@ using System.Linq;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
+using log4net;
 
 namespace ACE.Database.SQLFormatters.World
 {
     public class WeenieSQLWriter : SQLWriter
     {
+        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         /// <summary>
         /// Default is formed from: input.ClassId.ToString("00000") + " " + name
         /// </summary>
-        public string GetDefaultFileName(Weenie input)
+        public string GetDefaultFileName(Weenie input, string appendText = "")
         {
             var name = input.WeeniePropertiesString.FirstOrDefault(r => r.Type == (int)PropertyString.Name);
+            var level = input.WeeniePropertiesInt.FirstOrDefault(r => r.Type == (int)PropertyInt.Level);
 
-            var fileName = input.ClassId.ToString("00000") + " " + (name != null ? name.Value : "");
+            var fileName = input.ClassId.ToString("00000") + " " + (name != null ? name.Value : "") + " - " + input.ClassName;
+            if (appendText.Length > 0)
+                fileName += appendText;
+            else if(level != null)
+                fileName += " - Level " + level.Value;
             fileName = IllegalInFileName.Replace(fileName, "_");
             fileName += ".sql";
 
@@ -755,15 +763,51 @@ namespace ACE.Database.SQLFormatters.World
             var lineGenerator = new Func<int, string>(i =>
             {
                 string weenieName = null;
+                var level = 0;
 
                 if (WeenieNames != null)
                     WeenieNames.TryGetValue(input[i].WeenieClassId, out weenieName);
 
-                var label = weenieName + $" ({input[i].WeenieClassId})";
+                if (WeenieLevels != null)
+                    WeenieLevels.TryGetValue(input[i].WeenieClassId, out level);
+
+                var label = "";
+                if (WeenieClassNames != null && WeenieClassNames.TryGetValue(input[i].WeenieClassId, out var className))
+                    label += weenieName + $"({input[i].WeenieClassId}/{className})";
+                else
+                    label = weenieName + $" ({input[i].WeenieClassId})";
+
+                if (level > 0)
+                    label += $" - Level: {level}";
 
                 if ((input[i].WhereCreate & (int)RegenLocationType.Treasure) != 0)
                 {
-                    label = GetValueForTreasureData(input[i].WeenieClassId, false);
+                    label = GetValueForTreasureData(input[i].WeenieClassId);
+                }
+                else if (TreasureDeath != null)
+                {
+                    var weenie = DatabaseManager.World.GetCachedWeenie(input[i].WeenieClassId);
+                    if (weenie != null)
+                    {
+                        var deathTreasureType = ACE.Entity.Models.WeenieExtensions.GetProperty(weenie, PropertyDataId.DeathTreasureType) ?? 0;
+                        if (deathTreasureType != 0 && TreasureDeath.TryGetValue(deathTreasureType, out var treasureDeath))
+                            label += $" - {(TreasureDeathDesc)treasureDeath.TreasureType} - {GetValueForTreasureData(treasureDeath.TreasureType)}";
+                    }
+                    else
+                    {
+                        string parentWeenieName = null;
+
+                        if (WeenieNames != null)
+                            WeenieNames.TryGetValue(weenieClassID, out parentWeenieName);
+
+                        var parentLabel = "";
+                        if (WeenieClassNames != null && WeenieClassNames.TryGetValue(weenieClassID, out var parentClassName))
+                            parentLabel += parentWeenieName + $"({weenieClassID}/{parentClassName})";
+                        else
+                            parentLabel = parentWeenieName + $" ({weenieClassID})";
+
+                        log.Warn($"[SQLWRITER] {parentLabel}: Generator has entry to unknown weeniedClassId: {input[i].WeenieClassId}");
+                    }
                 }
 
                 return  $"{weenieClassID}, " +

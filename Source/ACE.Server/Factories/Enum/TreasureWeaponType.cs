@@ -19,8 +19,12 @@ namespace ACE.Server.Factories.Enum
 
         MissileWeapon,
         Bow,
+        BowShort,
         Crossbow,
+        CrossbowLight,
         Atlatl,
+        AtlatlRegular,
+        Thrown,
 
         Caster,
 
@@ -62,6 +66,7 @@ namespace ACE.Server.Factories.Enum
                 case TreasureWeaponType.TwoHandedMace:
                 case TreasureWeaponType.TwoHandedSpear:
                 case TreasureWeaponType.TwoHandedSword:
+                case TreasureWeaponType.Thrown:
                     return true;
             }
             return false;
@@ -73,8 +78,11 @@ namespace ACE.Server.Factories.Enum
             {
                 case TreasureWeaponType.MissileWeapon:
                 case TreasureWeaponType.Bow:
+                case TreasureWeaponType.BowShort:
                 case TreasureWeaponType.Crossbow:
+                case TreasureWeaponType.CrossbowLight:
                 case TreasureWeaponType.Atlatl:
+                case TreasureWeaponType.AtlatlRegular:
                     return true;
             }
             return false;
@@ -87,42 +95,104 @@ namespace ACE.Server.Factories.Enum
 
         public static string GetScriptName(this TreasureWeaponType weaponType)
         {
-            switch (weaponType)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                case TreasureWeaponType.Axe:
-                    return "axe";
-                case TreasureWeaponType.Dagger:
-                    return "dagger";
-                case TreasureWeaponType.DaggerMS:
-                    return "dagger_ms";
-                case TreasureWeaponType.Mace:
-                    return "mace";
-                case TreasureWeaponType.MaceJitte:
-                    return "mace_jitte";
-                case TreasureWeaponType.Spear:
-                case TreasureWeaponType.TwoHandedSpear:
-                    return "spear";
-                case TreasureWeaponType.Staff:
-                    return "staff";
-                case TreasureWeaponType.Sword:
-                    return "sword";
-                case TreasureWeaponType.SwordMS:
-                    return "sword_ms";
-                case TreasureWeaponType.Unarmed:
-                    return "unarmed";
-                case TreasureWeaponType.TwoHandedAxe:
-                case TreasureWeaponType.TwoHandedMace:
-                case TreasureWeaponType.TwoHandedSword:
-                    return "cleaver";
+                switch (weaponType)
+                {
+                    case TreasureWeaponType.Axe:
+                        return "axe";
+                    case TreasureWeaponType.Dagger:
+                        return "dagger";
+                    case TreasureWeaponType.DaggerMS:
+                        return "dagger_ms";
+                    case TreasureWeaponType.Mace:
+                        return "mace";
+                    case TreasureWeaponType.MaceJitte:
+                        return "mace_jitte";
+                    case TreasureWeaponType.Spear:
+                        return "spear";
+                    case TreasureWeaponType.Staff:
+                        return "staff";
+                    case TreasureWeaponType.Sword:
+                        return "sword";
+                    case TreasureWeaponType.SwordMS:
+                        return "sword_ms";
+                    case TreasureWeaponType.Unarmed:
+                        return "unarmed";
+                    case TreasureWeaponType.TwoHandedAxe:
+                        return "two_handed_axe";
+                    case TreasureWeaponType.TwoHandedMace:
+                        return "two_handed_mace";
+                    case TreasureWeaponType.TwoHandedSpear:
+                        return "two_handed_spear";
+                    case TreasureWeaponType.TwoHandedSword:
+                        return "two_handed_sword";
 
-                case TreasureWeaponType.Bow:
-                    return "bow";
-                case TreasureWeaponType.Crossbow:
-                    return "crossbow";
-                case TreasureWeaponType.Atlatl:
-                    return "atlatl";
-                case TreasureWeaponType.Caster:
-                    return "caster";
+                    case TreasureWeaponType.Bow:
+                        return "bow";
+                    case TreasureWeaponType.BowShort:
+                        return "bow_short";
+                    case TreasureWeaponType.Crossbow:
+                        return "crossbow";
+                    case TreasureWeaponType.CrossbowLight:
+                        return "crossbow_light";
+                    case TreasureWeaponType.Atlatl:
+                        return "atlatl";
+                    case TreasureWeaponType.AtlatlRegular:
+                        return "atlatl_regular";
+                    case TreasureWeaponType.Thrown:
+                        return "thrown";
+                    case TreasureWeaponType.Caster:
+                        return "caster";
+                }
+            }
+            else
+            {
+                switch (weaponType)
+                {
+                    case TreasureWeaponType.Axe:
+                        return "axe";
+                    case TreasureWeaponType.Dagger:
+                        return "dagger";
+                    case TreasureWeaponType.DaggerMS:
+                        return "dagger_ms";
+                    case TreasureWeaponType.Mace:
+                        return "mace";
+                    case TreasureWeaponType.MaceJitte:
+                        return "mace_jitte";
+                    case TreasureWeaponType.Spear:
+                    case TreasureWeaponType.TwoHandedSpear:
+                        return "spear";
+                    case TreasureWeaponType.Staff:
+                        return "staff";
+                    case TreasureWeaponType.Sword:
+                        return "sword";
+                    case TreasureWeaponType.SwordMS:
+                        return "sword_ms";
+                    case TreasureWeaponType.Unarmed:
+                        return "unarmed";
+                    case TreasureWeaponType.TwoHandedAxe:
+                    case TreasureWeaponType.TwoHandedMace:
+                    case TreasureWeaponType.TwoHandedSword:
+                        return "cleaver";
+
+                    case TreasureWeaponType.Bow:
+                        return "bow";
+                    case TreasureWeaponType.BowShort:
+                        return "bow_short";
+                    case TreasureWeaponType.Crossbow:
+                        return "crossbow";
+                    case TreasureWeaponType.CrossbowLight:
+                        return "crossbow_light";
+                    case TreasureWeaponType.Atlatl:
+                        return "atlatl";
+                    case TreasureWeaponType.AtlatlRegular:
+                        return "atlatl_regular";
+                    case TreasureWeaponType.Thrown:
+                        return "thrown";
+                    case TreasureWeaponType.Caster:
+                        return "caster";
+                }
             }
             return null;
         }
@@ -149,6 +219,8 @@ namespace ACE.Server.Factories.Enum
                     return "sword";
                 case TreasureWeaponType.Unarmed:
                     return "unarmed";
+                case TreasureWeaponType.Thrown:
+                    return "thrown";
 
                 case TreasureWeaponType.TwoHandedAxe:
                     return "two_handed_axe";

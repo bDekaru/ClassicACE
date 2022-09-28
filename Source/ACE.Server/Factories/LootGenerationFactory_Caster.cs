@@ -28,16 +28,20 @@ namespace ACE.Server.Factories
             if (wield == 0)
             {
                 // Determine plain caster type: 0 - Orb, 1 - Sceptre, 2 - Staff, 3 - Wand
-                subType = ThreadSafeRandom.Next(0, 3);
+                subType = ThreadSafeRandom.Next(0, LootTables.CasterWeaponsMatrix[wield].Length - 1);
                 casterWeenie = LootTables.CasterWeaponsMatrix[wield][subType];
             }
             else
             {
                 // Determine caster type: 1 - Sceptre, 2 - Baton, 3 - Staff
-                int casterType = ThreadSafeRandom.Next(1, 3);
+                int casterType = ThreadSafeRandom.Next(1, LootTables.CasterWeaponsMatrix.Length - 1);
+                if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                    // Determine element type: 0 - Slashing, 1 - Piercing, 2 - Blunt, 3 - Frost, 4 - Fire, 5 - Acid, 6 - Electric
+                    element = ThreadSafeRandom.Next(0, 6);
+                else
+                    // Determine element type: 0 - Slashing, 1 - Piercing, 2 - Blunt, 3 - Frost, 4 - Fire, 5 - Acid, 6 - Electric, 7 - Nether
+                    element = forceWar ? ThreadSafeRandom.Next(0, 6) : ThreadSafeRandom.Next(0, 7);
 
-                // Determine element type: 0 - Slashing, 1 - Piercing, 2 - Blunt, 3 - Frost, 4 - Fire, 5 - Acid, 6 - Electric, 7 - Nether
-                element = forceWar ? ThreadSafeRandom.Next(0, 6) : ThreadSafeRandom.Next(0, 7);
                 casterWeenie = LootTables.CasterWeaponsMatrix[casterType][element];
             }
 
@@ -116,14 +120,14 @@ namespace ACE.Server.Factories
 
                 // mutate ManaConversionMod
                 var mutationFilter = MutationCache.GetMutation("Casters.caster.txt");
-                mutationFilter.TryMutate(wo, profile.Tier);
+                mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
 
                 // mutate ElementalDamageMod / WieldRequirements
                 var isElemental = wo.W_DamageType != DamageType.Undef;
                 var scriptName = GetCasterScript(isElemental);
 
                 mutationFilter = MutationCache.GetMutation(scriptName);
-                mutationFilter.TryMutate(wo, profile.Tier);
+                mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
 
                 // this part was not handled by mutation filter
                 if (wo.WieldRequirements == WieldRequirement.RawSkill)
@@ -136,7 +140,7 @@ namespace ACE.Server.Factories
 
                 // mutate WeaponDefense
                 mutationFilter = MutationCache.GetMutation("Casters.weapon_defense.txt");
-                mutationFilter.TryMutate(wo, profile.Tier);
+                mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
             }
 
             // material type
@@ -156,13 +160,16 @@ namespace ACE.Server.Factories
             wo.GemType = RollGemType(profile.Tier);
 
             // workmanship
-            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier);
+            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
 
             // burden?
 
-            // missile defense / magic defense
-            wo.WeaponMissileDefense = MissileMagicDefense.Roll(profile.Tier);
-            wo.WeaponMagicDefense = MissileMagicDefense.Roll(profile.Tier);
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR) // Infiltration data has these in the weapon_defense.txt files
+            {
+                // missile defense / magic defense
+                wo.WeaponMissileDefense = MissileMagicDefense.Roll(profile.Tier);
+                wo.WeaponMagicDefense = MissileMagicDefense.Roll(profile.Tier);
+            }
 
             // spells
             if (!isMagical)
@@ -224,7 +231,13 @@ namespace ACE.Server.Factories
         {
             var elementalStr = isElemental ? "elemental" : "non_elemental";
 
-            return $"Casters.caster_{elementalStr}.txt";
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            {
+                string ruleset = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? "Infiltration" : "CustomDM";
+                return $"Casters.{ruleset}.caster_{elementalStr}.txt";
+            }
+            else
+                return $"Casters.caster_{elementalStr}.txt";
         }
 
         private static bool GetMutateCasterData(uint wcid)

@@ -11,6 +11,7 @@ using ACE.Entity.Models;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
+using ACE.Server.WorldObjects.Entity;
 
 namespace ACE.Server.Entity
 {
@@ -180,6 +181,13 @@ namespace ACE.Server.Entity
             AttackType = attacker.AttackType;
             AttackHeight = attacker.AttackHeight ?? AttackHeight.Medium;
 
+            var isAttackFromSneaking = false;
+            if (playerAttacker != null)
+            {
+                isAttackFromSneaking = playerAttacker.IsAttackFromSneaking;
+                playerAttacker.IsAttackFromSneaking = false;
+            }
+
             // check lifestone protection
             if (playerDefender != null && playerDefender.UnderLifestoneProtection)
             {
@@ -199,7 +207,7 @@ namespace ACE.Server.Entity
             if (!Overpower)
             {
                 EvasionChance = GetEvadeChance(attacker, defender);
-                if (EvasionChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                if (attacker != defender && EvasionChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                 {
                     Evaded = true;
                     return 0.0f;
@@ -234,7 +242,42 @@ namespace ACE.Server.Entity
             SneakAttackMod = attacker.GetSneakAttackMod(defender);
             HeritageMod = attacker.GetHeritageBonus(Weapon) ? 1.05f : 1.0f;
 
-            DamageRatingMod = Creature.AdditiveCombine(DamageRatingBaseMod, RecklessnessMod, SneakAttackMod, HeritageMod);
+            TacticAndTechniqueType attackerTechniqueId = TacticAndTechniqueType.None;
+            WorldObject attackerTechniqueTrinket;
+            TacticAndTechniqueType defenderTechniqueId = TacticAndTechniqueType.None;
+            WorldObject defenderTechniqueTrinket;
+
+            var extraDamageMod = 1.0f;
+
+            if (playerAttacker != null && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                attackerTechniqueTrinket = attacker.GetEquippedTrinket();
+                if (attackerTechniqueTrinket != null)
+                    attackerTechniqueId = (TacticAndTechniqueType)attackerTechniqueTrinket.TacticAndTechniqueId;
+
+                defenderTechniqueTrinket = defender.GetEquippedTrinket();
+                if (defenderTechniqueTrinket != null)
+                    defenderTechniqueId = (TacticAndTechniqueType)defenderTechniqueTrinket.TacticAndTechniqueId;
+
+                if (attackerTechniqueId == TacticAndTechniqueType.Reckless)
+                {
+                    if (CombatType == CombatType.Melee || attacker.GetDistance(defender) < 3) // Make sure we're close to each other.
+                    {
+                        CreatureSkill attackerMeleeDef = playerAttacker.GetCreatureSkill(Skill.MeleeDefense);
+                        CreatureSkill defenderMeleeDef = defender.GetCreatureSkill(Skill.MeleeDefense);
+
+                        var activationChance = SkillCheck.GetSkillChance(attackerMeleeDef.Current, defenderMeleeDef.Current);
+                        activationChance += playerAttacker.ScaleWithPowerAccuracyBar((float)activationChance);
+                        if (activationChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                            RecklessnessMod = 1.20f; // Extra damage dealt while attacking with the Reckless technique.
+                    }
+                }
+
+                if (playerAttacker.AttackHeight == AttackHeight.High) // High height attacks give players an extra 10% damage bonus.
+                    extraDamageMod += 0.10f;
+            }
+
+            DamageRatingMod = Creature.AdditiveCombine(DamageRatingBaseMod, RecklessnessMod, SneakAttackMod, HeritageMod, extraDamageMod);
 
             if (pkBattle)
             {
@@ -245,9 +288,50 @@ namespace ACE.Server.Entity
             // damage before mitigation
             DamageBeforeMitigation = BaseDamage * AttributeMod * PowerMod * SlayerMod * DamageRatingMod;
 
-            // critical hit?
             var attackSkill = attacker.GetCreatureSkill(attacker.GetCurrentWeaponSkill());
-            CriticalChance = WorldObject.GetWeaponCriticalChance(Weapon, attacker, attackSkill, defender);
+
+            if (attackerTechniqueId != TacticAndTechniqueType.Defensive)
+            {
+                // critical hit?
+                CriticalChance = WorldObject.GetWeaponCriticalChance(Weapon, attacker, attackSkill, defender);
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM )
+                {
+                    if (playerAttacker != null)
+                    {
+                        if (isAttackFromSneaking)
+                            CriticalChance = 1.0f;
+                        else if (attackerTechniqueId == TacticAndTechniqueType.Opportunist)
+                        {
+                            if(attacker != defender)
+                                CriticalChance += 0.10f + playerAttacker.ScaleWithPowerAccuracyBar(0.10f); // Extra critical chance while using the Opportunist technique.
+
+                            var currentTime = Time.GetUnixTime();
+                            var chance = 0.15f + playerAttacker.ScaleWithPowerAccuracyBar(0.15f);
+                            if (attacker != defender && playerAttacker.NextTechniqueNegativeActivationTime <= currentTime && chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                            {
+                                // Chance of inflicting self damage while using the Opportunist technique.
+                                playerAttacker.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
+                                playerAttacker.DamageTarget(playerAttacker, damageSource);
+                            }
+                        }
+
+                        if (CombatType != CombatType.Magic)
+                        {
+                            // A full power/accuracy bar doubles critical chance
+                            CriticalChance += playerAttacker.ScaleWithPowerAccuracyBar(CriticalChance);
+                        }
+                    }
+
+                    if(playerDefender != null)
+                    {
+                        if (defenderTechniqueId == TacticAndTechniqueType.Riposte)
+                            CriticalChance += 0.10f; // Extra chance of receiving critical hits while using the Riposte technique.
+                    }
+                }
+            }
+            else
+                CriticalChance = 0.0f; // Defensive technique never crits.
 
             // https://asheron.fandom.com/wiki/Announcements_-_2002/08_-_Atonement
             // It should be noted that any time a character is logging off, PK or not, all physical attacks against them become automatically critical.
@@ -279,7 +363,7 @@ namespace ACE.Server.Entity
 
                     // recklessness excluded from crits
                     RecklessnessMod = 1.0f;
-                    DamageRatingMod = Creature.AdditiveCombine(DamageRatingBaseMod, CriticalDamageRatingMod, SneakAttackMod, HeritageMod);
+                    DamageRatingMod = Creature.AdditiveCombine(DamageRatingBaseMod, CriticalDamageRatingMod, SneakAttackMod, HeritageMod, extraDamageMod);
 
                     if (pkBattle)
                         DamageRatingMod = Creature.AdditiveCombine(DamageRatingMod, PkDamageMod);
@@ -393,6 +477,32 @@ namespace ACE.Server.Entity
 
             EffectiveDefenseSkill = defender.GetEffectiveDefenseSkill(CombatType);
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                Player playerAttacker = attacker as Player;
+
+                if (playerAttacker != null)
+                {
+                    if (playerAttacker.AttackHeight == AttackHeight.Medium) // Medium height attacks gives players 10% extra attack skill.
+                        EffectiveAttackSkill = (uint)Math.Round(EffectiveAttackSkill * 1.10f);
+                }
+
+                Player playerDefender = defender as Player;
+                if (playerDefender != null)
+                {
+                    var defenderTechnique = playerDefender.GetEquippedTrinket();
+                    if (defenderTechnique != null && defenderTechnique.TacticAndTechniqueId == (int)TacticAndTechniqueType.Reckless)
+                        return 0.0f; // No evasion while using Reckless technique.
+
+                    if (playerDefender != null && playerDefender.AttackHeight == AttackHeight.Low) // While using low height attacks players get an extra defence skill bonus.
+                        EffectiveDefenseSkill = (uint)Math.Round(EffectiveDefenseSkill * 1.10f);
+                }
+
+                // Evasion penalty for receiving too many attacks per second.
+                if (defender.attacksReceivedPerSecond > 0.0f && Defender.AttackTarget != attacker) // But we still have full evasion chance against our attack target.
+                    EffectiveDefenseSkill = (uint)Math.Round(EffectiveDefenseSkill * (1.0f - Math.Min(1.0f, defender.attacksReceivedPerSecond / 40.0f)));
+            }
+
             var evadeChance = 1.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveDefenseSkill);
             return (float)evadeChance;
         }
@@ -421,6 +531,8 @@ namespace ACE.Server.Entity
             // TODO: combat maneuvers for player?
             BaseDamageMod = attacker.GetBaseDamageMod(DamageSource);
 
+            BaseDamageMod.BaseDamage.MaxDamage += attacker.GetUnarmedSkillDamageBonus();
+
             // some quest bows can have built-in damage bonus
             if (Weapon?.WeenieType == WeenieType.MissileLauncher)
                 BaseDamageMod.DamageBonus += Weapon.Damage ?? 0;
@@ -444,6 +556,9 @@ namespace ACE.Server.Entity
             }
 
             BaseDamageMod = attacker.GetBaseDamage(AttackPart.Value);
+
+            BaseDamageMod.BaseDamage.MaxDamage += attacker.GetUnarmedSkillDamageBonus();
+
             BaseDamage = (float)ThreadSafeRandom.Next(BaseDamageMod.MinDamage, BaseDamageMod.MaxDamage);
 
             DamageType = attacker.GetDamageType(AttackPart.Value, CombatType);
@@ -467,7 +582,7 @@ namespace ACE.Server.Entity
         public void GetBodyPart(Creature defender, Quadrant quadrant)
         {
             // get cached body parts table
-            var bodyParts = Creature.GetBodyParts(defender.WeenieClassId);
+            var bodyParts = !defender.IsModified ? Creature.GetBodyParts(defender.WeenieClassId) : Creature.GetBodyParts(defender); // If we're modified(our level has been altered) get our custom body parts instead of the generic one.
 
             // rng roll for body part
             var bodyPart = bodyParts.RollBodyPart(quadrant);

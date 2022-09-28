@@ -5,6 +5,8 @@ using ACE.DatLoader;
 using ACE.Entity.Enum;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
+using ACE.Server.Entity.Actions;
+using ACE.Server.Network.GameMessages.Messages;
 
 namespace ACE.Server.WorldObjects.Entity
 {
@@ -115,6 +117,15 @@ namespace ACE.Server.WorldObjects.Entity
                     creature.ChangesDetected = true;
 
                 PropertiesSkill.LevelFromPP = value;
+
+                if (!IsSecondary && creature != null && creature.Skills != null)
+                {
+                    foreach (var entry in creature.Skills)
+                    {
+                        if (entry.Value.SecondaryTo == Skill)
+                            entry.Value.UpdateSecondarySkill(value);
+                    }
+                }
             }
         }
 
@@ -191,6 +202,91 @@ namespace ACE.Server.WorldObjects.Entity
                 iTotal = Math.Max(iTotal, 0);   // skill level cannot be debuffed below 0
 
                 return (uint)iTotal;
+            }
+        }
+
+        public bool IsSecondary
+        {
+            get => Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && PropertiesSkill.SecondaryTo != 0;
+        }
+
+        public Skill SecondaryTo
+        {
+            get => PropertiesSkill.SecondaryTo;
+            set
+            {
+                PropertiesSkill.SecondaryTo = value;
+                UpdateSecondarySkill();
+            }
+        }
+
+        private void UpdateSecondarySkill()
+        {
+            if (SecondaryTo == 0 || creature == null)
+            {
+                UpdateSecondarySkill(0);
+                return;
+            }
+
+            var primary = creature.GetCreatureSkill(SecondaryTo, false);
+            if (primary == null)
+                return;
+
+            UpdateSecondarySkill(primary.Ranks);
+        }
+
+        private void UpdateSecondarySkill(ushort primaryRanks)
+        {
+            var oldValue = Ranks;
+
+            if (SecondaryTo == 0 || creature == null)
+            {
+                Ranks = 0;
+            }
+            else
+            {
+                if (AdvancementClass == SkillAdvancementClass.Specialized)
+                    Ranks = (ushort)(primaryRanks > 10 ? primaryRanks - 10 : 0);
+                else
+                    Ranks = (ushort)(primaryRanks > 20 ? primaryRanks - 20 : 0);
+            }
+
+            if (Ranks != oldValue && creature is Player player)
+            {
+                creature.ChangesDetected = true;
+
+                if(Ranks != 0)
+                    ExperienceSpent = (uint)player.GetXPBetweenSkillLevels(AdvancementClass, 0, Ranks);
+                else
+                    ExperienceSpent = 0;
+
+                // Delay sending theses message for one tick so they appear after the original skill message.
+                if (SecondaryTo != 0)
+                {
+                    var sendMessageChain = new ActionChain();
+                    sendMessageChain.AddDelayForOneTick();
+
+                    sendMessageChain.AddAction(player, () =>
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(player, this));
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your base {Skill.ToSentence()} secondary skill is now {Base}!", ChatMessageType.Advancement));
+                    });
+
+                    sendMessageChain.EnqueueChain();
+                }
+                else
+                {
+                    var sendMessageChain = new ActionChain();
+                    sendMessageChain.AddDelayForOneTick();
+
+                    sendMessageChain.AddAction(player, () =>
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(player, this));
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your base {Skill.ToSentence()} skill is now {Base}!", ChatMessageType.Advancement));
+                    });
+
+                    sendMessageChain.EnqueueChain();
+                }
             }
         }
 

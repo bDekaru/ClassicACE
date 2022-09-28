@@ -2,17 +2,27 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
   <PropertyGroup>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <RetainVMGarbageCollection>true</RetainVMGarbageCollection>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <Authors>ACEmulator Contributors</Authors>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/ACEmulator/ACE</RepositoryUrl>
     <PackageProjectUrl>https://emulator.ac</PackageProjectUrl>
-    <Copyright>© 2017-2020 ACEmulator Team and Contributors</Copyright>
+    <Copyright>© 2017-2022 ACEmulator Team and Contributors</Copyright>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <Description>Asheron's Call server emulator</Description>
     <Company>ACEmulator</Company>
@@ -30,10 +40,26 @@
     <None Remove="Entity\Mutations\ArmorLevel\olthoi_armor.txt" />
     <None Remove="Entity\Mutations\ArmorLevel\olthoi_shield.txt" />
     <None Remove="Entity\Mutations\ArmorLevel\shield_level.txt" />
+    <None Remove="Entity\Mutations\ArmorLevel\Infiltration\armor_level.txt" />
+    <None Remove="Entity\Mutations\ArmorLevel\Infiltration\covenant_armor_level.txt" />
+    <None Remove="Entity\Mutations\ArmorLevel\Infiltration\covenant_shield_level.txt" />
+    <None Remove="Entity\Mutations\ArmorLevel\Infiltration\shield_level.txt" />
+    <None Remove="Entity\Mutations\ArmorLevel\CustomDM\armor_level.txt" />
+    <None Remove="Entity\Mutations\ArmorLevel\CustomDM\covenant_armor_level.txt" />
+    <None Remove="Entity\Mutations\ArmorLevel\CustomDM\covenant_shield_level.txt" />
+    <None Remove="Entity\Mutations\ArmorLevel\CustomDM\shield_level.txt" />
     <None Remove="Entity\Mutations\Casters\caster.txt" />
     <None Remove="Entity\Mutations\Casters\caster_elemental.txt" />
     <None Remove="Entity\Mutations\Casters\caster_non_elemental.txt" />
     <None Remove="Entity\Mutations\Casters\weapon_defense.txt" />
+    <None Remove="Entity\Mutations\Casters\Infiltration\caster.txt" />
+    <None Remove="Entity\Mutations\Casters\Infiltration\caster_elemental.txt" />
+    <None Remove="Entity\Mutations\Casters\Infiltration\caster_non_elemental.txt" />
+    <None Remove="Entity\Mutations\Casters\Infiltration\weapon_defense.txt" />
+    <None Remove="Entity\Mutations\Casters\CustomDM\caster.txt" />
+    <None Remove="Entity\Mutations\Casters\CustomDM\caster_elemental.txt" />
+    <None Remove="Entity\Mutations\Casters\CustomDM\caster_non_elemental.txt" />
+    <None Remove="Entity\Mutations\Casters\CustomDM\weapon_defense.txt" />    
     <None Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\heavy_axe.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\heavy_dagger.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\heavy_dagger_ms.txt" />
@@ -55,6 +81,26 @@
     <None Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\light_finesse_unarmed.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\two_handed_cleaver.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\two_handed_spear.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\axe.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\dagger.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\dagger_ms.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\mace.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\spear.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\staff.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\sword.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\sword_ms.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\thwrown.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\unarmed.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\axe.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\dagger.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\dagger_ms.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\mace.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\spear.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\staff.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\sword.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\sword_ms.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\thwrown.txt" />
+    <Nome Remove="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\unarmed.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\axe_offense_defense.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\dagger_offense_defense.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\mace_jitte_offense_defense.txt" />
@@ -67,6 +113,21 @@
     <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\two_handed_spear_offense_defense.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\two_handed_sword_offense_defense.txt" />
     <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\unarmed_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\axe_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\dagger_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\mace_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\spear_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\staff_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\sword_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\unarmed_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\axe_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\dagger_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\mace_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\spear_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\staff_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\sword_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\thrown_offense_defense.txt" />
+    <None Remove="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\unarmed_offense_defense.txt" />
     <None Remove="Entity\Mutations\MissileWeapons\atlatl_elemental.txt" />
     <None Remove="Entity\Mutations\MissileWeapons\atlatl_non_elemental.txt" />
     <None Remove="Entity\Mutations\MissileWeapons\bow_elemental.txt" />
@@ -74,6 +135,26 @@
     <None Remove="Entity\Mutations\MissileWeapons\crossbow_elemental.txt" />
     <None Remove="Entity\Mutations\MissileWeapons\crossbow_non_elemental.txt" />
     <None Remove="Entity\Mutations\MissileWeapons\weapon_defense.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\atlatl_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\atlatl_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\atlatl_regular_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\bow_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\bow_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\bow_short_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\crossbow_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\crossbow_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\crossbow_light_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\Infiltration\weapon_defense.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\atlatl_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\atlatl_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\atlatl_regular_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\bow_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\bow_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\bow_short_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\crossbow_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\crossbow_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\crossbow_light_non_elemental.txt" />
+    <None Remove="Entity\Mutations\MissileWeapons\CustomDM\weapon_defense.txt" />
     <None Remove="Entity\Mutations\Recipes\3800000F - Stamp.txt" />
     <None Remove="Entity\Mutations\Recipes\38000011 - Steel.txt" />
     <None Remove="Entity\Mutations\Recipes\38000012 - Armoredillo Hide.txt" />
@@ -133,10 +214,26 @@
     <EmbeddedResource Include="Entity\Mutations\ArmorLevel\olthoi_armor.txt" />
     <EmbeddedResource Include="Entity\Mutations\ArmorLevel\olthoi_shield.txt" />
     <EmbeddedResource Include="Entity\Mutations\ArmorLevel\shield_level.txt" />
+    <EmbeddedResource Include="Entity\Mutations\ArmorLevel\Infiltration\armor_level.txt" />
+    <EmbeddedResource Include="Entity\Mutations\ArmorLevel\Infiltration\covenant_armor_level.txt" />
+    <EmbeddedResource Include="Entity\Mutations\ArmorLevel\Infiltration\covenant_shield_level.txt" />
+    <EmbeddedResource Include="Entity\Mutations\ArmorLevel\Infiltration\shield_level.txt" />
+    <EmbeddedResource Include="Entity\Mutations\ArmorLevel\CustomDM\armor_level.txt" />
+    <EmbeddedResource Include="Entity\Mutations\ArmorLevel\CustomDM\covenant_armor_level.txt" />
+    <EmbeddedResource Include="Entity\Mutations\ArmorLevel\CustomDM\covenant_shield_level.txt" />
+    <EmbeddedResource Include="Entity\Mutations\ArmorLevel\CustomDM\shield_level.txt" />
     <EmbeddedResource Include="Entity\Mutations\Casters\caster.txt" />
     <EmbeddedResource Include="Entity\Mutations\Casters\caster_elemental.txt" />
     <EmbeddedResource Include="Entity\Mutations\Casters\caster_non_elemental.txt" />
     <EmbeddedResource Include="Entity\Mutations\Casters\weapon_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Casters\Infiltration\caster.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Casters\Infiltration\caster_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Casters\Infiltration\caster_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Casters\Infiltration\weapon_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Casters\CustomDM\caster.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Casters\CustomDM\caster_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Casters\CustomDM\caster_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Casters\CustomDM\weapon_defense.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\heavy_axe.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\heavy_dagger.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\heavy_dagger_ms.txt" />
@@ -158,6 +255,29 @@
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\light_finesse_unarmed.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\two_handed_cleaver.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\two_handed_spear.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\axe.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\dagger.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\dagger_ms.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\mace.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\spear.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\staff.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\sword.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\sword_ms.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\Infiltration\unarmed.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\axe.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\dagger.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\dagger_ms.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\mace.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\spear.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\staff.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\sword.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\sword_ms.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\thrown.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\unarmed.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\two_handed_axe.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\two_handed_mace.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\two_handed_spear.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\Damage_WieldDifficulty_DamageVariance\CustomDM\two_handed_sword.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\axe_offense_defense.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\dagger_offense_defense.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\mace_jitte_offense_defense.txt" />
@@ -170,6 +290,25 @@
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\two_handed_spear_offense_defense.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\two_handed_sword_offense_defense.txt" />
     <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\unarmed_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\axe_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\dagger_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\mace_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\spear_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\staff_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\sword_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\Infiltration\unarmed_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\axe_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\dagger_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\mace_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\spear_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\staff_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\sword_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\thrown_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\unarmed_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\two_handed_axe_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\two_handed_mace_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\two_handed_spear_offense_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MeleeWeapons\WeaponOffense_WeaponDefense\CustomDM\two_handed_sword_offense_defense.txt" />
     <EmbeddedResource Include="Entity\Mutations\MissileWeapons\atlatl_elemental.txt" />
     <EmbeddedResource Include="Entity\Mutations\MissileWeapons\atlatl_non_elemental.txt" />
     <EmbeddedResource Include="Entity\Mutations\MissileWeapons\bow_elemental.txt" />
@@ -177,6 +316,26 @@
     <EmbeddedResource Include="Entity\Mutations\MissileWeapons\crossbow_elemental.txt" />
     <EmbeddedResource Include="Entity\Mutations\MissileWeapons\crossbow_non_elemental.txt" />
     <EmbeddedResource Include="Entity\Mutations\MissileWeapons\weapon_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\atlatl_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\atlatl_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\atlatl_regular_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\bow_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\bow_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\bow_short_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\crossbow_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\crossbow_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\crossbow_light_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\Infiltration\weapon_defense.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\atlatl_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\atlatl_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\atlatl_regular_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\bow_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\bow_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\bow_short_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\crossbow_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\crossbow_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\crossbow_light_non_elemental.txt" />
+    <EmbeddedResource Include="Entity\Mutations\MissileWeapons\CustomDM\weapon_defense.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\3800000F - Stamp.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000011 - Steel.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000012 - Armoredillo Hide.txt" />
@@ -263,6 +422,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="starterGear.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="starterGear.CustomDM.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="starterGear.Infiltration.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="start_server.bat">

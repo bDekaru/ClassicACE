@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 using ACE.Common;
@@ -11,7 +12,7 @@ namespace ACE.Server.Entity.Mutations
 
         public List<MutationOutcome> Outcomes = new List<MutationOutcome>();
 
-        public bool TryMutate(WorldObject wo, int tier, double rng)
+        public bool TryMutate(WorldObject wo, int tier, double rng, float qualityMod = 0.0f)
         {
             // if at least 6 tiers are defined,
             // if we are rolling for a higher tier,
@@ -27,7 +28,10 @@ namespace ACE.Server.Entity.Mutations
                 return false;
 
             // roll again to select the mutations
-            rng = ThreadSafeRandom.Next(0.0f, 1.0f);
+            if (qualityMod >= 0)
+                rng = ThreadSafeRandom.Next(qualityMod, 1.0f);
+            else
+                rng = ThreadSafeRandom.Next(0.0f, Math.Max(1.0f + qualityMod, 0.0f));
 
             var mutated = false;
             foreach (var outcome in Outcomes)

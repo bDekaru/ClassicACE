@@ -19,29 +19,51 @@ namespace ACE.Server.Factories
 
             chance = ThreadSafeRandom.Next(1, 100);
 
-            switch (chance)
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
             {
-                case var rate when (rate < 2):
-                    wo = WorldObjectFactory.CreateNewWorldObject(49485); // Encapsulated Spirit
-                    break;
-                case var rate when (rate < 10):
-                    wo = CreateSummoningEssence(profile.Tier);
-                    break;
-                case var rate when (rate < 28):
-                    wo = CreateRandomScroll(profile);
-                    break;
-                case var rate when (rate < 57):
-                    wo = CreateFood();
-                    break;
-                default:
-                    int genericLootMatrixIndex = profile.Tier - 1;
-                    int upperLimit = LootTables.GenericLootMatrix[genericLootMatrixIndex].Length - 1;
+                switch (chance)
+                {
+                    case var rate when (rate < 2):
+                        wo = WorldObjectFactory.CreateNewWorldObject(49485); // Encapsulated Spirit
+                        break;
+                    case var rate when (rate < 10):
+                        wo = CreateSummoningEssence(profile.Tier);
+                        break;
+                    case var rate when (rate < 28):
+                        wo = CreateRandomScroll(profile);
+                        break;
+                    case var rate when (rate < 57):
+                        wo = CreateFood();
+                        break;
+                    default:
+                        int genericLootMatrixIndex = profile.Tier - 1;
+                        int upperLimit = LootTables.GenericLootMatrix[genericLootMatrixIndex].Length - 1;
 
-                    chance = ThreadSafeRandom.Next(0, upperLimit);
-                    uint id = (uint)LootTables.GenericLootMatrix[genericLootMatrixIndex][chance];
+                        chance = ThreadSafeRandom.Next(0, upperLimit);
+                        uint id = (uint)LootTables.GenericLootMatrix[genericLootMatrixIndex][chance];
 
-                    wo = WorldObjectFactory.CreateNewWorldObject(id);
-                    break;
+                        wo = WorldObjectFactory.CreateNewWorldObject(id);
+                        break;
+                }
+            }
+            else
+            {
+                switch (chance)
+                {
+                    case var rate when (rate < 3):
+                        wo = CreateRandomScroll(profile);
+                        break;
+                    default:
+                        int genericLootMatrixIndex = profile.Tier - 1;
+                        int upperLimit = LootTables.GenericLootMatrix[genericLootMatrixIndex].Length - 1;
+
+                        chance = ThreadSafeRandom.Next(0, upperLimit);
+                        uint id = (uint)LootTables.GenericLootMatrix[genericLootMatrixIndex][chance];
+
+                        wo = WorldObjectFactory.CreateNewWorldObject(id);
+                        break;
+                }
             }
 
             return wo;

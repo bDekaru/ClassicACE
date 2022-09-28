@@ -276,6 +276,13 @@ namespace ACE.Server.WorldObjects
             var speedMod = weapon != null ? weapon.EnchantmentManager.GetWeaponSpeedMod() : 0;
             var auraSpeedMod = wielder != null ? wielder.EnchantmentManager.GetWeaponSpeedMod() : 0;
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            {
+                var multSpeedMod = weapon != null ? weapon.EnchantmentManager.GetWeaponMultiplicativeSpeedMod() : 1.0f;
+
+                return (uint)Math.Max(0, Math.Round((baseSpeed * multSpeedMod) + speedMod + auraSpeedMod));
+            }
+
             return (uint)Math.Max(0, baseSpeed + speedMod + auraSpeedMod);
         }
 
@@ -954,10 +961,30 @@ namespace ACE.Server.WorldObjects
             return HasProc && ProcSpell == spellID;
         }
 
+        private double NextProcAttemptTime = 0;
+        private static double ProcAttemptInterval = 10;
         public void TryProcItem(WorldObject attacker, Creature target)
         {
+            var currentTime = Time.GetUnixTime();
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if (ItemMaxMana > 0 && !IsAffecting)
+                    return; // The item spells must be active for the item to proc.
+
+                if (NextProcAttemptTime > currentTime)
+                    return;
+            }
+
             // roll for a chance of casting spell
             var chance = ProcSpellRate ?? 0.0f;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                Player playerWielder = Wielder as Player;
+                if(playerWielder != null)
+                    chance += playerWielder.ScaleWithPowerAccuracyBar((float)chance);
+            }
 
             // special handling for aetheria
             if (Aetheria.IsAetheria(WeenieClassId) && attacker is Creature wielder)
@@ -966,6 +993,9 @@ namespace ACE.Server.WorldObjects
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
             if (rng >= chance)
                 return;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                NextProcAttemptTime = currentTime + ProcAttemptInterval;
 
             var spell = new Spell(ProcSpell.Value);
 

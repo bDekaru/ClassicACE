@@ -489,6 +489,31 @@ namespace ACE.Server.Managers
             //string
             foreach (var item in DefaultStringProperties)
                 PropertyManager.ModifyString(item.Key, item.Value.Item);
+
+            // Alternative ruleset's default overrides
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+                PropertyManager.ModifyBool("item_dispel", true);
+                PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
+                PropertyManager.ModifyBool("allow_xp_at_max_level", true);
+
+                PropertyManager.ModifyLong("max_level", 126);
+
+                PropertyManager.ModifyBool("show_dat_warning", true);
+                PropertyManager.ModifyString("dat_warning_msg", "The location you are attempting to enter is not present in your data files.");
+            }
+            else if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                PropertyManager.ModifyBool("item_dispel", true);
+                PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
+                PropertyManager.ModifyBool("allow_xp_at_max_level", true);
+                PropertyManager.ModifyBool("increase_minimum_encounter_spawn_density", true);
+
+                PropertyManager.ModifyLong("max_level", 126);
+
+                PropertyManager.ModifyBool("show_dat_warning", true);
+                PropertyManager.ModifyString("dat_warning_msg", "The location you are attempting to enter is not present in your data files.");
+            }
         }
 
         // ==================================================================================
@@ -552,6 +577,7 @@ namespace ACE.Server.Managers
                 ("fellow_kt_killer", new Property<bool>(true, "if FALSE, fellowship kill tasks will share with the fellowship, even if the killer doesn't have the quest")),
                 ("fellow_kt_landblock", new Property<bool>(false, "if TRUE, fellowship kill tasks will share with landblock range (192 distance radius, or entire dungeon)")),
                 ("fellow_quest_bonus", new Property<bool>(false, "if TRUE, applies EvenShare formula to fellowship quest reward XP (300% max bonus, defaults to false in retail)")),
+                ("fix_chest_missing_inventory_window", new Property<bool>(false, "Very non-standard fix. This fixes an acclient bug where unlocking a chest, and then quickly opening it before the client has received the Locked=false update from server can result in the chest opening, but with the chest inventory window not displaying. Bug has a higher chance of appearing with more network latency.")),
                 ("gateway_ties_summonable", new Property<bool>(true, "if disabled, players cannot summon ties from gateways. defaults to enabled, as in retail")),
                 ("house_15day_account", new Property<bool>(true, "if disabled, houses can be purchased with accounts created less than 15 days old")),
                 ("house_30day_cooldown", new Property<bool>(true, "if disabled, houses can be purchased without waiting 30 days between each purchase")),
@@ -605,7 +631,13 @@ namespace ACE.Server.Managers
                 ("use_wield_requirements", new Property<bool>(true, "disable this to bypass wield requirements. mostly for dev debugging")),
                 ("version_info_enabled", new Property<bool>(false, "toggles the /aceversion player command")),
                 ("vendor_shop_uses_generator", new Property<bool>(false, "enables or disables vendors using generator system in addition to createlist to create artificial scarcity")),
-                ("world_closed", new Property<bool>(false, "enable this to startup world as a closed to players world"))
+                ("world_closed", new Property<bool>(false, "enable this to startup world as a closed to players world")),
+                ("allow_xp_at_max_level", new Property<bool>(false, "enable this to allow players to continue earning xp after reaching max level")),
+                ("block_vpn_connections", new Property<bool>(false, "enable this to block user sessions from IPs identified as VPN proxies")),
+                ("increase_minimum_encounter_spawn_density", new Property<bool>(false, "enable this to increase the density of random encounters that spawn in low density landblocks")),
+                ("enforce_player_movement", new Property<bool>(false, "enable this to enforce server side verification of player movement")),
+                ("enforce_player_movement_speed", new Property<bool>(false, "enable this to enforce server side verification of player movement speed")),
+                ("enforce_player_movement_kick", new Property<bool>(false, "enable this to kick players that fail movement verification too frenquently"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
@@ -624,7 +656,8 @@ namespace ACE.Server.Managers
                 ("rares_max_days_between", new Property<long>(45, "for rares_real_time_v2: the maximum number of days a player can go before a rare is generated on rare eligible creature kills")),
                 ("rares_max_seconds_between", new Property<long>(5256000, "for rares_real_time: the maximum number of seconds a player can go before a second chance at a rare is allowed on rare eligible creature kills that did not generate a rare")),
                 ("summoning_killtask_multicredit_cap", new Property<long>(2, "if allow_summoning_killtask_multicredit is enabled, the maximum # of killtask credits a player can receive from 1 kill")),
-                ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects"))
+                ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects")),
+                ("max_level", new Property<long>(275, "Set the max character level."))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<double>> DefaultDoubleProperties =
@@ -660,7 +693,20 @@ namespace ACE.Server.Managers
                 ("vitae_penalty", new Property<double>(0.05, "the amount of vitae penalty a player gets per death")),
                 ("vitae_penalty_max", new Property<double>(0.40, "the maximum vitae penalty a player can have")),
                 ("void_pvp_modifier", new Property<double>(0.5, "Scales the amount of damage players take from Void Magic. Defaults to 0.5, as per retail. For earlier content where DRR isn't as readily available, this can be adjusted for balance.")),
-                ("xp_modifier", new Property<double>(1.0, "scales the amount of xp received by players"))
+                ("xp_modifier", new Property<double>(1.0, "Globally scales the amount of xp received by players, note that this multiplies the other xp_modifier options.")),
+                ("xp_modifier_kill_tier1", new Property<double>(1.0, "Scales the amount of xp received by players for killing creatures below level 28.")),
+                ("xp_modifier_kill_tier2", new Property<double>(1.0, "Scales the amount of xp received by players for killing creatures between level 28 and level 65.")),
+                ("xp_modifier_kill_tier3", new Property<double>(1.0, "Scales the amount of xp received by players for killing creatures between level 65 and level 95.")),
+                ("xp_modifier_kill_tier4", new Property<double>(1.0, "Scales the amount of xp received by players for killing creatures between level 95 and level 110.")),
+                ("xp_modifier_kill_tier5", new Property<double>(1.0, "Scales the amount of xp received by players for killing creatures between level 110 and level 135.")),
+                ("xp_modifier_kill_tier6", new Property<double>(1.0, "Scales the amount of xp received by players for killing creatures above level 135.")),
+                ("xp_modifier_reward_tier1", new Property<double>(1.0, "Scales the amount of xp received by players for completing quests of level 28 or below, or for unspecified level quests while being under level 16.")),
+                ("xp_modifier_reward_tier2", new Property<double>(1.0, "Scales the amount of xp received by players for completing quests between level 28 and level 65, or for unspecified level quests while being between level 16 and 36.")),
+                ("xp_modifier_reward_tier3", new Property<double>(1.0, "Scales the amount of xp received by players for completing quests between level 65 and level 95, or for unspecified level quests while being between level 36 and 56.")),
+                ("xp_modifier_reward_tier4", new Property<double>(1.0, "Scales the amount of xp received by players for completing quests between level 95 and level 110, or for unspecified level quests while being between level 56 and 76.")),
+                ("xp_modifier_reward_tier5", new Property<double>(1.0, "Scales the amount of xp received by players for completing quests between level 110 and level 135, or for unspecified level quests while being between level 76 and 96.")),
+                ("xp_modifier_reward_tier6", new Property<double>(1.0, "Scales the amount of xp received by players for completing quests of level 135 and above, or for unspecified level quests while being over level 96.")),
+                ("salvage_amount_multiplier", new Property<double>(1.0, "Scales the amount of salvage a player gets from items."))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<string>> DefaultStringProperties =
@@ -671,7 +717,13 @@ namespace ACE.Server.Managers
                 ("popup_welcome", new Property<string>("To begin your training, speak to the Society Greeter. Walk up to the Society Greeter using the 'W' key, then double-click on her to initiate a conversation.", "Welcome message popup in training halls")),
                 ("popup_welcome_olthoi", new Property<string>("Welcome to the Olthoi hive! Be sure to talk to the Olthoi Queen to receive the Olthoi protections granted by the energies of the hive.", "Welcome message displayed on the first login for an Olthoi Player")),
                 ("popup_motd", new Property<string>("", "Popup message of the day")),
-                ("server_motd", new Property<string>("", "Server message of the day"))
+                ("server_motd", new Property<string>("", "Server message of the day")),
+                ("server_motd2", new Property<string>("", "Server message of the day - Second message")),
+                ("server_motd3", new Property<string>("", "Server message of the day - Third message")),
+                ("server_motd4", new Property<string>("", "Server message of the day - Fourth message")),
+                ("turbine_chat_webhook", new Property<string>("", "Webhook to be used for turbine chat. This is for copying ingame general chat channels to a Discord channel.")),
+                ("turbine_chat_webhook_audit", new Property<string>("", "Webhook to be used for ingame audit log.")),
+                ("proxycheck_api_key", new Property<string>("", "API key for proxycheck.io service for VPN detection"))
                 );
     }
 }

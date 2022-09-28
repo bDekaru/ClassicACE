@@ -12,6 +12,7 @@ namespace ACE.Entity.Models
         public uint InitLevel { get; set; }
         public uint ResistanceAtLastCheck { get; set; }
         public double LastUsedTime { get; set; }
+        public Skill SecondaryTo { get; set; }
 
         public PropertiesSkill Clone()
         {
@@ -23,6 +24,7 @@ namespace ACE.Entity.Models
                 InitLevel = InitLevel,
                 ResistanceAtLastCheck = ResistanceAtLastCheck,
                 LastUsedTime = LastUsedTime,
+                SecondaryTo = SecondaryTo,
             };
 
             return result;

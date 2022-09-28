@@ -15,6 +15,7 @@ using ACE.Server.Managers;
 using ACE.Server.Network.Structure;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Network.Handlers;
 
 namespace ACE.Server.WorldObjects
 {
@@ -111,9 +112,13 @@ namespace ACE.Server.WorldObjects
                 if ((Location.Cell & 0xFFFF) < 0x100)
                     globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
 
+                string webhookMsg = new String(globalPKDe);
+
                 globalPKDe += "\n[PKDe]";
 
                 PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Broadcast));
+
+                _ = TurbineChatHandler.SendWebhookedChat("Bael'Zharon", webhookMsg, null, "General");
             }
             else if (IsPKLiteDeath(topDamager))
                 pkPlayer.PlayerKillsPkl++;
@@ -163,6 +168,12 @@ namespace ACE.Server.WorldObjects
             NumDeaths++;
             suicideInProgress = false;
 
+            // todo: since we are going to be using 'time since Player last died to an OlthoiPlayer'
+            // as a factor in slag generation, this will eventually be moved to after the slag generation
+
+            //if (topDamager != null && topDamager.IsOlthoiPlayer)
+                //OlthoiLootTimestamp = (int)Time.GetUnixTime();
+
             if (CombatMode == CombatMode.Magic && MagicState.IsCasting)
                 FailCast(false);
 
@@ -195,6 +206,8 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(msgSelfInflictedDeath);
             }
 
+            var hadVitae = HasVitae;
+
             // update vitae
             // players who died in a PKLite fight do not accrue vitae
             if (!IsPKLiteDeath(topDamager))
@@ -216,7 +229,7 @@ namespace ACE.Server.WorldObjects
 
             dieChain.AddAction(this, () =>
             {
-                CreateCorpse(topDamager);
+                CreateCorpse(topDamager, hadVitae);
 
                 ThreadSafeTeleportOnDeath(); // enter portal space
 
@@ -554,6 +567,9 @@ namespace ACE.Server.WorldObjects
 
             var destroyCoins = PropertyManager.GetBool("corpse_destroy_pyreals").Item;
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                destroyCoins = false; // Let's override the setting for now.
+
             // add items to corpse
             foreach (var dropItem in dropItems)
             {
@@ -642,7 +658,11 @@ namespace ACE.Server.WorldObjects
                 return ThreadSafeRandom.Next(0, 1);
 
             // level 21+
-            var numItemsDropped = (level / 20) + ThreadSafeRandom.Next(0, 2);
+            int numItemsDropped;
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
+                numItemsDropped = (level / 20) + ThreadSafeRandom.Next(0, 2);
+            else
+                numItemsDropped = (level / 10) + ThreadSafeRandom.Next(0, 2);
 
             numItemsDropped = Math.Min(numItemsDropped, MaxItemsDropped);   // is this really a max cap?
 
@@ -1023,6 +1043,22 @@ namespace ACE.Server.WorldObjects
                 destroyedItems.Add(destroyItem);
             }
             return destroyedItems;
+        }
+
+        /// <summary>
+        /// Determines the amount of slag to drop on a Player corpse when killed by an OlthoiPlayer
+        /// </summary>
+        public List<WorldObject> CalculateDeathItems_Olthoi(Corpse corpse, bool hadVitae)
+        {
+            var slag = LootGenerationFactory.RollSlag(this, hadVitae);
+
+            if (slag == null)
+                return new List<WorldObject>();
+
+            if (!corpse.TryAddToInventory(slag))
+                log.Warn($"Player_Death: couldn't add item to {Name}'s corpse: {slag.Name}");
+
+            return new List<WorldObject>() { slag };
         }
     }
 }

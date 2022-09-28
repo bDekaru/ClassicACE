@@ -91,6 +91,28 @@ namespace ACE.Server.WorldObjects
 
             var proj = WorldObjectFactory.CreateNewWorldObject(ammo.WeenieClassId);
 
+            if (ammo.WeenieType == WeenieType.Missile && ammo.MaterialType != null)
+            {
+                // Copy some values here so our thrown weapon "ammo" is a representative copy of our mutated weapon.
+                proj.Damage = ammo.Damage;
+                proj.DamageVariance = ammo.DamageVariance;
+                proj.WeaponTime = ammo.WeaponTime;
+                proj.WeaponOffense = ammo.WeaponOffense;
+                proj.WeaponDefense = ammo.WeaponDefense;
+                proj.WeaponMissileDefense = ammo.WeaponMissileDefense;
+                proj.WeaponMagicDefense = ammo.WeaponMagicDefense;
+
+                proj.MaterialType = ammo.MaterialType;
+                proj.Workmanship = ammo.Workmanship;
+                proj.GemType = ammo.GemType;
+                proj.GemCount = ammo.GemCount;
+
+                proj.EncumbranceVal = ammo.StackUnitEncumbrance;
+                proj.StackUnitEncumbrance = ammo.StackUnitEncumbrance;
+                proj.Value = ammo.StackUnitValue;
+                proj.StackUnitValue = ammo.StackUnitValue;
+            }
+
             proj.ProjectileSource = this;
             proj.ProjectileTarget = target;
 
@@ -211,7 +233,11 @@ namespace ACE.Server.WorldObjects
         {
             var missileLauncher = GetEquippedMissileWeapon();
 
-            var maxVelocity = missileLauncher?.MaximumVelocity ?? DefaultProjectileSpeed;
+            double maxVelocity;
+            if (missileLauncher?.WeenieType == WeenieType.Missile)
+                maxVelocity = GetThrownWeaponMaxVelocity(missileLauncher);
+            else
+                maxVelocity = missileLauncher?.MaximumVelocity ?? DefaultProjectileSpeed;
 
             if (maxVelocity == 0.0f)
             {
@@ -406,7 +432,13 @@ namespace ACE.Server.WorldObjects
         public float GetMaxMissileRange()
         {
             var weapon = GetEquippedMissileWeapon();
-            var maxVelocity = weapon?.MaximumVelocity ?? DefaultMaxVelocity;
+            double maxVelocity = weapon?.MaximumVelocity ?? DefaultMaxVelocity;
+
+            //if (WeenieType == WeenieType.Missile && (weapon?.MaximumVelocity ?? 0) == 0)
+            if (weapon?.WeenieType == WeenieType.Missile)
+                maxVelocity = GetThrownWeaponMaxVelocity(weapon);
+            else
+                maxVelocity = weapon?.MaximumVelocity ?? DefaultMaxVelocity;
 
             var missileRange = (float)Math.Pow(maxVelocity, 2.0f) * 0.1020408163265306f;
             //var missileRange = (float)Math.Pow(maxVelocity, 2.0f) * 0.0682547266398198f;

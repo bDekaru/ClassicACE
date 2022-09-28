@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 #nullable disable
@@ -18,6 +18,7 @@ namespace ACE.Database.Models.Shard
             CharacterPropertiesSpellBar = new HashSet<CharacterPropertiesSpellBar>();
             CharacterPropertiesSquelch = new HashSet<CharacterPropertiesSquelch>();
             CharacterPropertiesTitleBook = new HashSet<CharacterPropertiesTitleBook>();
+            CharacterPropertiesCampRegistry = new HashSet<CharacterPropertiesCampRegistry>();
         }
 
         public uint Id { get; set; }
@@ -44,5 +45,6 @@ namespace ACE.Database.Models.Shard
         public virtual ICollection<CharacterPropertiesSpellBar> CharacterPropertiesSpellBar { get; set; }
         public virtual ICollection<CharacterPropertiesSquelch> CharacterPropertiesSquelch { get; set; }
         public virtual ICollection<CharacterPropertiesTitleBook> CharacterPropertiesTitleBook { get; set; }
+        public virtual ICollection<CharacterPropertiesCampRegistry> CharacterPropertiesCampRegistry { get; set; }
     }
 }

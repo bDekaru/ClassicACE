@@ -103,14 +103,12 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        // neversaydie [on/off]
-        [CommandHandler("neversaydie", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 0,
+        // immortal [on/off]
+        [CommandHandler("immortal", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 0,
             "Turn immortality on or off.",
             "[ on | off ]\n" + "Defaults to on.")]
         public static void HandleNeverSayDie(Session session, params string[] parameters)
         {
-            // @neversaydie [on/off] - Turn immortality on or off. Defaults to on.
-
             string param;
 
             if (parameters.Length > 0)
@@ -132,23 +130,27 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        // portal_bypass
-        [CommandHandler("portal_bypass", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 0,
+        // portalbypass [on/off]
+        [CommandHandler("portalbypass", AccessLevel.Sentinel, CommandHandlerFlag.RequiresWorld, 0,
             "Toggles the ability to bypass portal restrictions.",
-            "")]
+            "[ on | off ]\n" + "Defaults to on.")]
         public static void HandlePortalBypass(Session session, params string[] parameters)
         {
-            // @portal_bypass - Toggles the ability to bypass portal restrictions.
+            string param;
 
-            var param = session.Player.IgnorePortalRestrictions;
+            if (parameters.Length > 0)
+                param = parameters[0];
+            else
+                param = "on";
 
             switch (param)
             {
-                case true:
+                case "off":
                     session.Player.IgnorePortalRestrictions = false;
                     session.Network.EnqueueSend(new GameMessageSystemChat("You are once again bound by portal restrictions.", ChatMessageType.Broadcast));
                     break;
-                case false:
+                case "on":
+                default:
                     session.Player.IgnorePortalRestrictions = true;
                     session.Network.EnqueueSend(new GameMessageSystemChat("You are no longer bound by portal restrictions.", ChatMessageType.Broadcast));
                     break;

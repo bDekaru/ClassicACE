@@ -103,9 +103,18 @@ namespace ACE.Server.WorldObjects
             if (CombatTable == null)
                 GetCombatTable();
 
-            // if caster, roll for spellcasting chance
-            if (HasKnownSpells && TryRollSpell())
-                return CombatType.Magic;
+            if (!IsModified)
+            {
+                // if caster, roll for spellcasting chance
+                if (HasKnownSpells && TryRollSpell())
+                    return CombatType.Magic;
+            }
+            else
+            {
+                // If we're modified(our level has been altered) get our custom spellbook instead of the generic one.
+                if (HasKnownSpellsModified && TryRollSpellModified())
+                    return CombatType.Magic;
+            }
 
             if (IsRanged)
                 return CombatType.Missile;
@@ -428,6 +437,11 @@ namespace ACE.Server.WorldObjects
                 BPTableCache[wcid] = bpTable;
             }
             return bpTable;
+        }
+
+        public static BodyPartTable GetBodyParts(Creature creature)
+        {
+            return new BodyPartTable(creature.Weenie);
         }
 
         /// <summary>

@@ -464,19 +464,32 @@ namespace ACE.Server.Managers
                 case 0x38000043:    // Leather
                     target.Retained = true;
                     break;
-                case 0x3900004E:    // Sandstone: 43 -> 4E
+                case 0x3800004E:    // Sandstone: 43 -> 4E
                     target.Retained = false;
                     break;
                 case 0x3800002F:    // Moonstone
                     target.ItemMaxMana += 500;
                     break;
 
-                case 0x39000042:
-                    // legacy, these are handled in recipe mods
-                    //target.SetProperty(PropertyString.ItemHeritageGroupRestriction, "Aluvian");     // Teak
-                    //target.SetProperty(PropertyString.ItemHeritageGroupRestriction, "Gharu'ndim");  // Ebony
-                    //target.SetProperty(PropertyString.ItemHeritageGroupRestriction, "Sho");         // Porcelain
-                    //target.SetProperty(PropertyString.ItemHeritageGroupRestriction, "Viamontian");  // Satin
+                case 0x38000042:
+                    switch (target.ItemHeritageGroupRestriction)
+                    {
+                        case "Aluvian":
+                            target.HeritageGroup = HeritageGroup.Aluvian;
+                            break;
+
+                        case "Gharu'ndim":
+                            target.HeritageGroup = HeritageGroup.Gharundim;
+                            break;
+
+                        case "Sho":
+                            target.HeritageGroup = HeritageGroup.Sho;
+                            break;
+
+                        case "Viamontian":
+                            target.HeritageGroup = HeritageGroup.Viamontian;
+                            break;
+                    }
                     break;
 
                 case 0x38000035:    // Copper
@@ -510,12 +523,12 @@ namespace ACE.Server.Managers
 
                 // armatures / trinkets
                 // these are handled in recipe mod
-                case 0x39000048:    // Amber
-                case 0x39000049:    // Diamond
-                case 0x39000050:    // GromnieHide
-                case 0x39000051:    // Pyreal
-                case 0x39000052:    // Ruby
-                case 0x39000053:    // Sapphire
+                case 0x38000048:    // Amber
+                case 0x38000049:    // Diamond
+                case 0x38000050:    // GromnieHide
+                case 0x38000051:    // Pyreal
+                case 0x38000052:    // Ruby
+                case 0x38000053:    // Sapphire
                     return false;
 
                 // magic item tinkering
@@ -1080,7 +1093,7 @@ namespace ACE.Server.Managers
             if (amount > 1)
                 wo.SetStackSize((int)amount);
 
-            player.TryCreateInInventoryWithNetworking(wo);
+            player.TryCreateInInventoryWithNetworking(wo, out _, true);
             return wo;
         }
 
@@ -1153,7 +1166,15 @@ namespace ACE.Server.Managers
                 if (mod.ExecutesOnSuccess != success)
                     continue;
 
-                // adjust vitals, but all appear to be 0 in current database?
+                // adjust vitals
+                if (mod.Health != 0)
+                    ModifyVital(player, PropertyAttribute2nd.Health, mod.Health);
+
+                if (mod.Stamina != 0)
+                    ModifyVital(player, PropertyAttribute2nd.Stamina, mod.Stamina);
+
+                if (mod.Mana != 0)
+                    ModifyVital(player, PropertyAttribute2nd.Mana, mod.Mana);
 
                 // apply type mods
                 foreach (var boolMod in mod.RecipeModsBool)
@@ -1180,6 +1201,31 @@ namespace ACE.Server.Managers
             }
 
             return modified;
+        }
+
+        private static void ModifyVital(Player player, PropertyAttribute2nd attribute2nd, int value)
+        {
+            var vital = player.GetCreatureVital(attribute2nd);
+
+            var vitalChange = (uint)Math.Abs(player.UpdateVitalDelta(vital, value));
+
+            if (attribute2nd == PropertyAttribute2nd.Health)
+            {
+                if (value >= 0)
+                    player.DamageHistory.OnHeal(vitalChange);
+                else
+                    player.DamageHistory.Add(player, DamageType.Health, vitalChange);
+
+                if (player.Health.Current <= 0)
+                {
+                    // should this be possible?
+                    //var lastDamager = player != null ? new DamageHistoryInfo(player) : null;
+                    var lastDamager = new DamageHistoryInfo(player);
+
+                    player.OnDeath(lastDamager, DamageType.Health, false);
+                    player.Die();
+                }
+            }
         }
 
         public static void ModifyBool(Player player, RecipeModsBool boolMod, WorldObject source, WorldObject target, WorldObject result, HashSet<uint> modified)
@@ -1417,6 +1463,29 @@ namespace ACE.Server.Managers
         {
             if (useMutateNative)
                 return TryMutateNative(player, source, target, recipe, dataId);
+
+            if (dataId == 0x38000042)
+            {
+                // Can this be done with mutation script?
+                switch (target.ItemHeritageGroupRestriction)
+                {
+                    case "Aluvian":
+                        target.HeritageGroup = HeritageGroup.Aluvian;
+                        break;
+
+                    case "Gharu'ndim":
+                        target.HeritageGroup = HeritageGroup.Gharundim;
+                        break;
+
+                    case "Sho":
+                        target.HeritageGroup = HeritageGroup.Sho;
+                        break;
+
+                    case "Viamontian":
+                        target.HeritageGroup = HeritageGroup.Viamontian;
+                        break;
+                }
+            }
 
             var numTimesTinkered = target.NumTimesTinkered;
 

@@ -172,7 +172,7 @@ namespace ACE.Server.Factories.Tables
             SpellId.EnfeebleOther1,
 
             //SpellId.ManaBoostSelf1,       // these 2 mana boost spells exist,
-            //SpellId.ManaBoostOther1       // but they weren't learnable by the player in retail
+            //SpellId.ManaBoostOther1,      // but they weren't learnable by the player in retail
             SpellId.ManaDrainOther1,
 
             SpellId.RegenerationSelf1,
@@ -357,6 +357,94 @@ namespace ACE.Server.Factories.Tables
 
         static ScrollSpells()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                lifeSpells = new List<SpellId>()
+                { 
+                    // life spells
+                    SpellId.HealSelf1,
+                    SpellId.HealOther1,
+                    SpellId.HarmOther1,
+
+                    SpellId.RevitalizeSelf1,
+                    SpellId.RevitalizeOther1,
+                    SpellId.EnfeebleOther1,
+
+                    //SpellId.ManaBoostSelf1,       // these 2 mana boost spells exist,
+                    //SpellId.ManaBoostOther1,      // but they weren't learnable by the player in retail
+                    SpellId.ManaDrainOther1,
+
+                    SpellId.FesterOther1,
+
+                    SpellId.ExhaustionOther1,
+
+                    SpellId.ManaDepletionOther1,
+
+                    SpellId.HealthToStaminaSelf1,
+                    SpellId.HealthToManaSelf1,
+                    SpellId.StaminaToHealthSelf1,
+                    SpellId.StaminaToManaSelf1,
+                    SpellId.ManaToHealthSelf1,
+                    SpellId.ManaToStaminaSelf1,
+
+                    SpellId.InfuseHealth1,
+                    SpellId.InfuseStamina1,
+                    SpellId.InfuseMana1,
+
+                    SpellId.DrainHealth1,
+                    SpellId.DrainStamina1,
+                    SpellId.DrainMana1,
+
+                    SpellId.HealthBolt1,
+                    SpellId.StaminaBolt1,
+                    SpellId.ManaBolt1,
+
+                    SpellId.DispelLifeBadSelf1,
+                    SpellId.DispelLifeBadOther1,
+                };
+
+                NumSpells = lifeSpells.Count + warSpells.Count;
+                Table = new SpellId[NumSpells][];
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            {
+                creatureSpells.Add(SpellId.SpearMasterySelf1);
+                creatureSpells.Add(SpellId.SpearMasteryOther1);
+                creatureSpells.Add(SpellId.SpearIneptitudeOther1);
+
+                creatureSpells.Add(SpellId.StaffMasterySelf1);
+                creatureSpells.Add(SpellId.StaffMasteryOther1);
+                creatureSpells.Add(SpellId.StaffIneptitudeOther1);
+
+                creatureSpells.Add(SpellId.MaceMasterySelf1);
+                creatureSpells.Add(SpellId.MaceMasteryOther1);
+                creatureSpells.Add(SpellId.MaceIneptitudeOther1);
+
+                creatureSpells.Add(SpellId.CrossbowMasterySelf1);
+                creatureSpells.Add(SpellId.CrossbowMasteryOther1);
+                creatureSpells.Add(SpellId.CrossbowIneptitudeOther1);
+
+                creatureSpells.Add(SpellId.ThrownWeaponMasterySelf1);
+                creatureSpells.Add(SpellId.ThrownWeaponMasteryOther1);
+                creatureSpells.Add(SpellId.ThrownWeaponIneptitudeOther1);
+
+                creatureSpells.Add(SpellId.UnarmedCombatMasterySelf1);
+                creatureSpells.Add(SpellId.UnarmedCombatMasteryOther1);
+                creatureSpells.Add(SpellId.UnarmedCombatIneptitudeOther1);
+
+                itemSpells.Remove(SpellId.BloodDrinkerOther1);
+                itemSpells.Remove(SpellId.HeartSeekerOther1);
+                itemSpells.Remove(SpellId.SwiftKillerOther1);
+                itemSpells.Remove(SpellId.DefenderOther1);
+                itemSpells.Remove(SpellId.HermeticLinkOther1);
+
+                itemSpells.Remove(SpellId.SpiritDrinkerSelf1);
+                itemSpells.Remove(SpellId.SpiritDrinkerOther1);
+                itemSpells.Remove(SpellId.SpiritLoather1);
+
+                NumSpells = creatureSpells.Count + lifeSpells.Count + itemSpells.Count + warSpells.Count;
+                Table = new SpellId[NumSpells][];
+            }
             // ~0.5ms
             BuildSpells();
         }
@@ -368,11 +456,15 @@ namespace ACE.Server.Factories.Tables
 
             var startIdx = 0;
 
-            startIdx += AddSpells(creatureSpells, startIdx);
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                startIdx += AddSpells(creatureSpells, startIdx);
+                startIdx += AddSpells(itemSpells, startIdx);
+            }
             startIdx += AddSpells(lifeSpells, startIdx);
-            startIdx += AddSpells(itemSpells, startIdx);
             startIdx += AddSpells(warSpells, startIdx);
-            startIdx += AddSpells(voidSpells, startIdx);
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+                startIdx += AddSpells(voidSpells, startIdx);
 
             if (startIdx != NumSpells)
             {

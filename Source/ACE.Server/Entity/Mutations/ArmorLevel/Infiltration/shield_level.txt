@@ -1,0 +1,162 @@
+Shield Mutation #1:
+
+Tier chances: 1, 0, 0, 0, 0, 0
+
+    - Chance 10%:
+        ArmorLevel += 10
+
+    - Chance 20%:
+        ArmorLevel += 20
+
+    - Chance 40%:
+        ArmorLevel += 30
+
+    - Chance 20%:
+        ArmorLevel += 40
+
+    - Chance 10%:
+        ArmorLevel += 50
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #2:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance 5%:
+        ArmorLevel += 20
+
+    - Chance 10%:
+        ArmorLevel += 30
+
+    - Chance 20%:
+        ArmorLevel += 40
+
+    - Chance 30%:
+        ArmorLevel += 50
+
+    - Chance 20%:
+        ArmorLevel += 60
+
+    - Chance 10%:
+        ArmorLevel += 70
+
+    - Chance 5%:
+        ArmorLevel += 80
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #3:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance 5%:
+        ArmorLevel += 30
+
+    - Chance 10%:
+        ArmorLevel += 40
+
+    - Chance 20%:
+        ArmorLevel += 50
+
+    - Chance 30%:
+        ArmorLevel += 60
+
+    - Chance 20%:
+        ArmorLevel += 70
+
+    - Chance 10%:
+        ArmorLevel += 80
+
+    - Chance 5%:
+        ArmorLevel += 90
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #4:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance 5%:
+        ArmorLevel += 40
+
+    - Chance 10%:
+        ArmorLevel += 50
+
+    - Chance 20%:
+        ArmorLevel += 60
+
+    - Chance 30%:
+        ArmorLevel += 70
+
+    - Chance 20%:
+        ArmorLevel += 80
+
+    - Chance 10%:
+        ArmorLevel += 90
+
+    - Chance 5%:
+        ArmorLevel += 100
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #5:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 5%:
+        ArmorLevel += 50
+
+    - Chance 10%:
+        ArmorLevel += 60
+
+    - Chance 20%:
+        ArmorLevel += 70
+
+    - Chance 30%:
+        ArmorLevel += 80
+
+    - Chance 20%:
+        ArmorLevel += 90
+
+    - Chance 10%:
+        ArmorLevel += 100
+
+    - Chance 5%:
+        ArmorLevel += 110
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #6:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 5%:
+        ArmorLevel += 60
+
+    - Chance 10%:
+        ArmorLevel += 70
+
+    - Chance 20%:
+        ArmorLevel += 80
+
+    - Chance 30%:
+        ArmorLevel += 90
+
+    - Chance 20%:
+        ArmorLevel += 100
+
+    - Chance 10%:
+        ArmorLevel += 110
+
+    - Chance 5%:
+        ArmorLevel += 120
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+

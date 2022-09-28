@@ -1,6 +1,3 @@
-using System;
-using System.Numerics;
-
 using ACE.Common;
 using ACE.Entity;
 using ACE.Entity.Enum;
@@ -12,6 +9,8 @@ using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
+using System;
+using System.Numerics;
 
 namespace ACE.Server.WorldObjects
 {
@@ -305,19 +304,49 @@ namespace ACE.Server.WorldObjects
             var critical = false;
             var critDefended = false;
             var overpower = false;
+            var resisted = false;
 
-            var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower);
+            var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower, ref resisted);
+
+            creatureTarget.OnAttackReceived(sourceCreature, CombatType.Magic, critical, resisted);
 
             if (damage != null)
             {
                 if (Spell.MetaSpellType == ACE.Entity.Enum.SpellType.EnchantmentProjectile)
                 {
                     // handle EnchantmentProjectile successfully landing on target
-                    ProjectileSource.CreateEnchantment(creatureTarget, ProjectileSource, ProjectileLauncher, Spell);
+                    ProjectileSource.CreateEnchantment(creatureTarget, ProjectileSource, ProjectileLauncher, Spell, false, FromProc);
                 }
                 else
                 {
                     DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower);
+
+                    if (player != null && player != creatureTarget)
+                    {
+                        var currentTime = Time.GetUnixTime();
+                        if (player.NextTechniqueNegativeActivationTime <= currentTime)
+                        {
+                            var techniqueTrinket = player.GetEquippedTrinket();
+                            if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Opportunist)
+                            {
+                                var chance = 0.225f;
+                                if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                {
+                                    // Chance of inflicting self damage while using the Opportunist technique.
+                                    var criticalSelf = false;
+                                    var critDefendedSelf = false;
+                                    var overpowerSelf = false;
+                                    var resistedSelf = false;
+
+                                    var damage2 = CalculateDamage(ProjectileSource, player, ref criticalSelf, ref critDefendedSelf, ref overpowerSelf, ref resistedSelf);
+                                    if(damage2 != null)
+                                        DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf);
+
+                                    player.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // if this SpellProjectile has a TargetEffect, play it on successful hit
@@ -375,7 +404,7 @@ namespace ACE.Server.WorldObjects
         /// Calculates the damage for a spell projectile
         /// Used by war magic, void magic, and life magic projectiles
         /// </summary>
-        public float? CalculateDamage(WorldObject source, Creature target, ref bool criticalHit, ref bool critDefended, ref bool overpower)
+        public float? CalculateDamage(WorldObject source, Creature target, ref bool criticalHit, ref bool critDefended, ref bool overpower, ref bool resisted)
         {
             var sourcePlayer = source as Player;
             var targetPlayer = target as Player;
@@ -416,7 +445,7 @@ namespace ACE.Server.WorldObjects
 
             var resistSource = IsWeaponSpell ? weapon : source;
 
-            var resisted = source.TryResistSpell(target, Spell, resistSource, true);
+            resisted = source.TryResistSpell(target, Spell, resistSource, true);
             if (resisted && !overpower)
                 return null;
 
@@ -426,6 +455,13 @@ namespace ACE.Server.WorldObjects
 
             // critical hit
             var criticalChance = GetWeaponMagicCritFrequency(weapon, sourceCreature, attackSkill, target);
+
+            if (sourcePlayer != null && source != target)
+            {
+                var techniqueTrinket = sourcePlayer.GetEquippedTrinket();
+                if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Opportunist)
+                    criticalChance += 0.10f;
+            }
 
             if (ThreadSafeRandom.Next(0.0f, 1.0f) < criticalChance)
             {
@@ -535,6 +571,12 @@ namespace ACE.Server.WorldObjects
                     }
                 }
                 baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
+                
+                if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                {
+                    if (sourcePlayer == null)
+                        baseDamage /= 2; // Monsters do half projectile spell damage.
+                }
 
                 weaponResistanceMod = GetWeaponResistanceModifier(weapon, sourceCreature, attackSkill, Spell.DamageType);
 
@@ -578,7 +620,12 @@ namespace ACE.Server.WorldObjects
                     // does target have shield equipped?
                     var shield = target.GetEquippedShield();
                     if (shield != null && shield.GetAbsorbMagicDamage() != null)
-                        return GetShieldMod(target, shield);
+                 	{
+                        if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.Infiltration)
+                            return GetShieldMod(target, shield);
+                        else
+                            return AbsorbMagic(target, shield);
+                    }
 
                     break;
 
@@ -811,20 +858,25 @@ namespace ACE.Server.WorldObjects
                 {
                     var critProt = critDefended ? " Your critical hit was avoided with their augmentation!" : "";
 
-                    var attackerMsg = $"{critMsg}{overpowerMsg}{sneakMsg}You {verb} {target.Name} for {amount} points with {Spell.Name}.{critProt}";
+                    var yourselfOrTargetName = target.Name;
+
+                    if (sourcePlayer == target)
+                        yourselfOrTargetName = "yourself";
+
+                    var attackerMsg = $"{critMsg}{overpowerMsg}{sneakMsg}You {verb} {yourselfOrTargetName} for {amount} points with {Spell.Name}.{critProt}";
 
                     // could these crit / sneak attack?
                     if (nonHealth)
                     {
                         var vital = Spell.Category == SpellCategory.StaminaLowering ? "stamina" : "mana";
-                        attackerMsg = $"With {Spell.Name} you drain {amount} points of {vital} from {target.Name}.";
+                        attackerMsg = $"With {Spell.Name} you drain {amount} points of {vital} from {yourselfOrTargetName}.";
                     }
 
                     if (!sourcePlayer.SquelchManager.Squelches.Contains(target, ChatMessageType.Magic))
                         sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat(attackerMsg, ChatMessageType.Magic));
                 }
 
-                if (targetPlayer != null)
+                if (targetPlayer != null && sourcePlayer != targetPlayer)
                 {
                     var critProt = critDefended ? " Your augmentation allows you to avoid a critical hit!" : "";
 

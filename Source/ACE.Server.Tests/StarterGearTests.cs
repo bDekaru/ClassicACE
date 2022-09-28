@@ -15,6 +15,10 @@ namespace ACE.Server.Tests
         public void CanParseStarterGearJson()
         {
             string contents = File.ReadAllText("../../../../../ACE.Server/starterGear.json");
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                contents = File.ReadAllText("../../../../../ACE.Server/starterGear.infiltration.json");
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                contents = File.ReadAllText("../../../../../ACE.Server/starterGear.customDM.json");
 
             StarterGearConfiguration config = JsonConvert.DeserializeObject<StarterGearConfiguration>(contents);
         }

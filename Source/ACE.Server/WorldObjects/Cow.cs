@@ -1,7 +1,11 @@
 using System;
 
 using ACE.Entity;
+using ACE.Entity.Enum;
 using ACE.Entity.Models;
+using ACE.Server.Factories;
+using ACE.Server.Network.GameMessages.Messages;
+
 namespace ACE.Server.WorldObjects
 {
     public class Cow : Creature
@@ -35,6 +39,24 @@ namespace ACE.Server.WorldObjects
         public override void ActOnUse(WorldObject activator)
         {
             // handled in base.OnActivate -> EmoteManager.OnUse()
+
+            if (activator is Player player)
+            {
+                if(player.GetNumInventoryItemsOfWCID((uint)Factories.Enum.WeenieClassName.flask) > 0 && player.TryConsumeFromInventoryWithNetworking((int)Factories.Enum.WeenieClassName.flask))
+                {
+                    var wo = WorldObjectFactory.CreateNewWorldObject((int)Factories.Enum.WeenieClassName.milk);
+
+                    if (wo != null)
+                    {
+                        if (!player.TryCreateInInventoryWithNetworking(wo, out _, true))
+                            wo.Destroy();
+                        else
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You milk the {Name} and fill a flask.", ChatMessageType.Broadcast));
+                    }
+                }
+                else
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"If you had an empty flask you could try milking the cow.", ChatMessageType.Broadcast));
+            }
         }
     }
 }

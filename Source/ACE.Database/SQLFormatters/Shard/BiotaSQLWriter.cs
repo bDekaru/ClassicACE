@@ -34,10 +34,10 @@ namespace ACE.Database.SQLFormatters.Shard
 
         public void CreateSQLINSERTStatement(Biota input, StreamWriter writer)
         {
-            writer.WriteLine("INSERT INTO `biota` (`id`, `weenie_Class_Id`, `weenie_Type`, `populated_Collection_Flags`)");
+            writer.WriteLine("INSERT INTO `biota` (`id`, `weenie_Class_Id`, `weenie_Type`, `populated_Collection_Flags`, `is_Partial_Collection`)");
 
             // Default to all flags if none are set
-            var output = $"VALUES ({input.Id}, {input.WeenieClassId}, {input.WeenieType}, {(input.PopulatedCollectionFlags != 0 ? input.PopulatedCollectionFlags : 4294967295)}) /* {Enum.GetName(typeof(WeenieType), input.WeenieType)} */;";
+            var output = $"VALUES ({input.Id}, {input.WeenieClassId}, {input.WeenieType}, {(input.PopulatedCollectionFlags != 0 ? input.PopulatedCollectionFlags : 4294967295)}, {(input.IsPartialCollection ? 1 : 0)}) /* {Enum.GetName(typeof(WeenieType), input.WeenieType)} */;";
 
             output = FixNullFields(output);
 
@@ -283,7 +283,7 @@ namespace ACE.Database.SQLFormatters.Shard
 
         public void CreateSQLINSERTStatement(uint id, IList<BiotaPropertiesSkill> input, StreamWriter writer)
         {
-            writer.WriteLine("INSERT INTO `biota_properties_skill` (`object_Id`, `type`, `level_From_P_P`, `s_a_c`, `p_p`, `init_Level`, `resistance_At_Last_Check`, `last_Used_Time`)");
+            writer.WriteLine("INSERT INTO `biota_properties_skill` (`object_Id`, `type`, `level_From_P_P`, `s_a_c`, `p_p`, `init_Level`, `resistance_At_Last_Check`, `last_Used_Time`, `secondary_To`)");
 
             var lineGenerator = new Func<int, string>(i =>
                 $"{id}, " +
@@ -293,7 +293,8 @@ namespace ACE.Database.SQLFormatters.Shard
                 $"{input[i].PP.ToString().PadLeft(11)}, " +
                 $"{input[i].InitLevel.ToString().PadLeft(3)}, " +
                 $"{input[i].ResistanceAtLastCheck.ToString().PadLeft(3)}, " +
-                $"{input[i].LastUsedTime}) " +
+                $"{input[i].LastUsedTime}, " +
+                $"{input[i].SecondaryTo}) " +
                 // ReSharper disable once PossibleNullReferenceException
                 $"/* {Enum.GetName(typeof(Skill), input[i].Type).PadRight(19)} {((SkillAdvancementClass)input[i].SAC).ToString()} */");
 
@@ -615,7 +616,7 @@ namespace ACE.Database.SQLFormatters.Shard
 
                 if ((input[i].WhereCreate & (int)RegenLocationType.Treasure) != 0)
                 {
-                    label = GetValueForTreasureData(input[i].WeenieClassId, false);
+                    label = GetValueForTreasureData(input[i].WeenieClassId);
                 }
 
                 return $"{id}, " +

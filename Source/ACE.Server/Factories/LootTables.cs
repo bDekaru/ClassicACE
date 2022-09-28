@@ -286,13 +286,81 @@ namespace ACE.Server.Factories
             new int[] { 41041, 41042, 41043, 41044, 41045 }  // 11 - Magari Yari
         };
 
-        public static readonly List<int[][]> MeleeWeaponsMatrices = new List<int[][]>()
+        public static readonly int[][] AxesMatrix =
+                {
+            new int[] { 301, 3750, 3751, 3752, 3753 },       // 0 - Battle Axe
+            new int[] { 303, 3754, 3755, 3756, 3757 },       // 1 - Hand Axe
+            new int[] { 336, 3842, 3843, 3844, 3845 },       // 2 - Ono
+            new int[] { 342, 3857, 3858, 3859, 3860 },       // 3 - Shou-ono
+            new int[] { 344, 3865, 3866, 3867, 3868 },       // 4 - Silifi
+            new int[] { 357, 3901, 3902, 3903, 3904 },       // 5 - Tungi
+            new int[] { 359, 3905, 3906, 3907, 3908 }        // 6 - War Hammer
+         };
+
+        public static readonly int[][] DaggersMatrix =
         {
-            HeavyWeaponsMatrix,
-            LightWeaponsMatrix,
-            FinesseWeaponsMatrix,
-            TwoHandedWeaponsMatrix
+            new int[] { 314, 3778, 3779, 3780, 3781 },       // 1 - Dagger (MS)
+            new int[] { 319, 3794, 3795, 3796, 3797 },       // 2 - Jambiya (MS)
+            new int[] { 328, 3826, 3827, 3828, 3829 },       // 3 - Khanjar
+            new int[] { 329, 3830, 3831, 3832, 3833 },       // 4 - Knife (MS)
+            new int[] { 22440, 22441, 22442, 22443, 22444 }  // 5 - Dirk
         };
+
+        public static readonly int[][] MacesMatrix =
+        {
+            new int[] { 309, 3766, 3767, 3768, 3769 },       // 0 - Club
+            new int[] { 313, 3774, 3775, 3776, 3777 },       // 1 - Dabus
+            new int[] { 321, 3802, 3803, 3804, 3805 },       // 2 - Jitte
+            new int[] { 325, 3814, 3815, 3816, 3817 },       // 3 - Kasrullah
+            new int[] { 331, 3834, 3835, 3836, 3837 },       // 4 - Mace
+            new int[] { 332, 3937, 3938, 3939, 3940 },       // 5 - Morning Star
+            new int[] { 356, 3897, 3898, 3899, 3900 },       // 6 - Tofun
+            new int[] { 7768, 7787, 7788, 7789, 7790 }       // 7 - Spiked Club
+        };
+
+        public static readonly int[][] SpearsMatrix =
+        {
+            new int[] { 308, 3762, 3763, 3764, 3765 },       // 0 - Budiaq
+            new int[] { 348, 3873, 3874, 3875, 3876 },       // 1 - Spear
+            new int[] { 362, 3913, 3914, 3915, 3916 },       // 2 - Yari
+            new int[] { 7771, 7795, 7796, 7797, 7798 },      // 3 - Naginata
+            new int[] { 7772, 7791, 7792, 7793, 7794 }       // 4 - Trident
+        };
+
+        public static readonly int[][] StavesMatrix =
+        {
+            new int[] { 22158, 22154, 22155, 22156, 22157 },   // 0 - Jo
+            new int[] { 22163, 22159, 22160, 22161, 22162 },   // 1 - Nabut
+            new int[] { 22168, 22164, 22165, 22166, 22167 }    // 2 - Quarter Staff
+            //new int[] { 322, 3806, 3807, 3808, 3809 },         // 3 - Old Jo
+            //new int[] { 333, 3838, 3839, 3840, 3841 },         // 4 - Old Nabut
+            //new int[] { 338, 3846, 3847, 3848, 3936 }          // 5 - Old Quarter Staff
+        };
+
+        public static readonly int[][] SwordsMatrix =
+        {
+            new int[] { 324, 3810, 3811, 3812, 3813 },       //  0 - Kaskara
+            new int[] { 327, 3822, 3823, 3824, 3825 },       //  1 - Ken
+            new int[] { 339, 3849, 3850, 3851, 3852 },       //  2 - Scimitar
+            new int[] { 340, 3853, 3854, 3855, 3856 },       //  3 - Shamshir
+            new int[] { 345, 3869, 3870, 3871, 3872 },       //  4 - Simi
+            new int[] { 350, 3877, 3878, 3879, 3880 },       //  5 - Broad Sword
+            new int[] { 351, 3881, 3882, 3883, 3884 },       //  6 - Long Sword
+            new int[] { 352, 3885, 3886, 3887, 3888 },       //  7 - Short Sword
+            new int[] { 353, 3889, 3890, 3891, 3892 },       //  8 - Tachi
+            new int[] { 354, 3893, 3894, 3895, 3896 },       //  9 - Takuba
+            new int[] { 361, 3909, 3910, 3911, 3912 },       // 10 - Yaoji
+            new int[] { 6853, 45104, 45105, 45106, 45107 }   // 11 - Rapier (MS)
+        };
+
+        public static readonly int[][] UnarmedMatrix =
+        {
+            new int[] { 326, 3818, 3819, 3820, 3821 },       // 0 - Katar
+            new int[] { 4190, 4191, 4192, 4193, 4194 },      // 1 - Cestus
+            new int[] { 4195, 4196, 4197, 4198, 4199 }       // 2 - Nekode
+        };
+
+        public static readonly List<int[][]> MeleeWeaponsMatrices;
 
         public static readonly HashSet<uint> AetheriaWcids = new HashSet<uint>()
         {
@@ -332,6 +400,41 @@ namespace ACE.Server.Factories
                 { 13, 17, 22, 26, 30, 35, 39, 42, 45 }, // Cleaving
                 { 14, 19, 23, 28, 33, 37, 42, 45, 48 }  // Spears
         };
+
+        //ClassicToDo: The following data has been copy pasted from heavy weapons, adjust to proper values. But do we even have to? This is what is referred to as the "Old Method" and is setup as a fallback, is it even used?
+        public static readonly int[] AxeDamageTable =
+                //  0|250|300|325|350|370|400|420|430
+                { 26, 33, 40, 47, 54, 61, 68, 71, 74 }; // Axe
+
+        public static readonly int[,] DaggerDamageTable =
+        {
+                //  0|250|300|325|350|370|400|420|430
+                { 24, 31, 38, 45, 51, 58, 65, 68, 71 }, // Dagger
+                { 13, 16, 20, 23, 26, 30, 33, 36, 38 }  // MultiDagger
+        };
+
+        public static readonly int[] MaceDamageTable =
+                //  0|250|300|325|350|370|400|420|430
+                { 22, 29, 36, 43, 49, 56, 63, 66, 69 }; // Mace
+
+        public static readonly int[] SpearDamageTable =
+                //  0|250|300|325|350|370|400|420|430
+                { 25, 32, 39, 46, 52, 59, 66, 69, 72 }; // Spear
+
+        public static readonly int[,] SwordDamageTable =
+        {
+                //  0|250|300|325|350|370|400|420|430
+                { 24, 31, 38, 45, 51, 58, 65, 68, 71 }, // Sword
+                { 12, 16, 19, 23, 26, 30, 33, 36, 38 }  // MultiSword
+        };
+
+        public static readonly int[] StaffDamageTable =
+                //  0|250|300|325|350|370|400|420|430
+                { 23, 30, 36, 43, 50, 56, 63, 66, 70 }; // Staff
+
+        public static readonly int[] UnarmedDamageTable =
+                //  0|250|300|325|350|370|400|420|430
+                { 20, 26, 31, 37, 43, 48, 54, 56, 59 }; // UA
 
         public static readonly int[][] CasterWeaponsMatrix =
         {
@@ -427,7 +530,7 @@ namespace ACE.Server.Factories
             new int[] { 6,7 }
         };
 
-        public static readonly int[] food = { 258, 4746, 259, 547, 260, 5758, 261, 262, 263, 264, 265 };
+        public static readonly int[] food = { 258, 4746, 259, 547, 260, 5758, 261, 262, 263, 264, 265 }; // Apple, Water, Bread, Brimstone-cap Mushroom, Cabbage, Carrot, Cheese, Chicken, Fish, Grapes, Meat
 
         public static readonly int[][] GenericLootMatrix =
         {
@@ -2361,6 +2464,64 @@ namespace ACE.Server.Factories
 
         static LootTables()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration) // Override default EoR values
+            {
+                MeleeWeaponsMatrices = new List<int[][]>()
+                {
+                    AxesMatrix,
+                    DaggersMatrix,
+                    MacesMatrix,
+                    SpearsMatrix,
+                    StavesMatrix,
+                    SwordsMatrix,
+                    UnarmedMatrix
+                };
+
+                CasterWeaponsMatrix = new int[][]
+                {
+                    new int[] { 2366, 2548, 2547, 2472 }, // Orb, Sceptre, Staff, Wand
+                    new int[] { 29265, 29264, 29260, 29263, 29262, 29259, 29261, 43381 }, // Sceptre: Slashing, Piercing, Blunt, Frost, Fire, Acid, Electric, Nether
+                    new int[] { 37223, 37222, 37225, 37221, 37220, 37224, 37219, 43383 }  // Staff: Slashing, Piercing, Blunt, Frost, Fire, Acid, Electric, Nether
+                };
+
+                NonElementalMissileWeaponsMatrix = new int[][]
+                {
+                    new int[] { 306, 307, 334, 341, 360, 363 }, // Longbow, Shortbow, Nayin, Shouyumi, Yag, Yumi
+                    new int[] { 311, 312 }, // Heavy Crossbow, Light Crossbow
+                    new int[] { 12463, 20640 } // Atlatl, Royal Atlatl
+                };
+
+                ElementalMissileWeaponsMatrix = new int[][]
+                {
+                    new int[] { 29244, 29239, 29243, 29241, 29242, 29238, 29240 },
+                    new int[] { 29251, 29246, 29250, 29248, 29249, 29245, 29247 },
+                    new int[] { 29258, 29253, 29257, 29255, 29256, 29252, 29254 },
+                };
+
+                DinnerwareLootMatrix = new int[] { 141, 142, 148, 149, 150, 154, 161, 163, 168, 243, 254 };
+
+                food = new int[] { 258, 259, 547, 260, 261, 262, 546, 263, 264, 4753 }; // Apple, Bread, Brimstone-cap Mushroom, Cabbage, Cheese, Chicken, Egg, Fish, Grapes, Side of Beef
+
+                GenericLootMatrix = new int[][]
+                {
+                    new int[] { 8329, 27331, 2434, 378, 377, 379, 2457, 2460, 27326, 628, 629, 513, 545, 258, 259, 547, 260, 261, 262, 546, 263, 264, 4753 }, // Food incorporated into this tier as only low level stuff drop food.
+                    new int[] { 8329, 8328, 27331, 2434, 2435, 378, 377, 379, 2457, 2460, 27326, 2470, 27319, 27322, 629, 630, 513, 545, 512 },
+                    new int[] { 8329, 8328, 8326, 2435, 27330, 27322, 27319, 2470, 27324, 2458, 2461, 630, 631, 512, 514 },
+                    new int[] { 8326, 8331, 2436, 27330, 27324, 27327, 27320, 27323, 2458, 2461, 632, 631, 514, 515 },
+                    new int[] { 8331, 8327, 2436, 27328, 27320, 27323, 27327, 27325, 27318, 27321, 632, 9229, 515, 516 },
+                    new int[] { 8327, 8330, 27328, 27325, 27318, 27321, 9229, 516 },
+                    new int[] { 8330, 8327, 8330, 27328, 27325, 27318, 27321, 9229, 516 },
+                    new int[] { 8330, 8327, 8330, 27328, 27325, 27318, 27321, 9229, 516 }
+                };
+
+                jewelryTables = new List<int[]>()
+                {
+                    ringItems,
+                    braceletItems,
+                    necklaceItems
+                };
+            }
+
             BuildCantripsTable(ref MinorCantrips, 0);
             BuildCantripsTable(ref MajorCantrips, 1);
             BuildCantripsTable(ref EpicCantrips, 2);

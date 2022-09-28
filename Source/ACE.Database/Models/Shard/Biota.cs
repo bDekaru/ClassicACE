@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 #nullable disable
@@ -39,6 +39,7 @@ namespace ACE.Database.Models.Shard
         public uint WeenieClassId { get; set; }
         public int WeenieType { get; set; }
         public uint PopulatedCollectionFlags { get; set; }
+        public bool IsPartialCollection { get; set; }
 
         public virtual BiotaPropertiesBook BiotaPropertiesBook { get; set; }
         public virtual ICollection<BiotaPropertiesAllegiance> BiotaPropertiesAllegiance { get; set; }

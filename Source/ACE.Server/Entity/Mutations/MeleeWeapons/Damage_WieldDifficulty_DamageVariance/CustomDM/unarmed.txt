@@ -1,0 +1,252 @@
+Unarmed Mutation #1:
+
+Tier chances: 1, 0, 0, 0, 0, 0
+
+    - Chance 10%:
+        Damage += 0
+
+    - Chance 20%:
+        Damage += 1
+
+    - Chance 40%:
+        Damage += 2
+
+    - Chance 20%:
+        Damage += 3
+
+    - Chance 10%:
+        Damage += 4
+
+Unarmed Mutation #2:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance 5%:
+        Damage += 0
+
+    - Chance 10%:
+        Damage += 1
+
+    - Chance 20%:
+        Damage += 2
+
+    - Chance 10%:
+        Damage += 3
+
+    - Chance 5%:
+        Damage += 4
+
+    - Chance 15%:
+        Damage += 5
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 25%:
+        Damage += 6
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 10%:
+        Damage += 7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+Unarmed Mutation #3:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance 15%:
+        Damage += 5
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 25%:
+        Damage += 6
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 10%:
+        Damage += 7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 38%:
+        Damage += 8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance 12%:
+        Damage += 9
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+Unarmed Mutation #4:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance 38%:
+        Damage += 8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance 12%:
+        Damage += 9
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance 15%:
+        Damage += 10
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance 20%:
+        Damage += 11
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance 15%:
+        Damage += 12
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+Unarmed Mutation #5:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 15%:
+        Damage += 10
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance 20%:
+        Damage += 11
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance 15%:
+        Damage += 12
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance 10%:
+        Damage += 13
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance 20%:
+        Damage += 14
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance 15%:
+        Damage += 15
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance 5%:
+        Damage += 16
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+Unarmed Mutation #6:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 10%:
+        Damage += 13
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance 20%:
+        Damage += 14
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance 15%:
+        Damage += 15
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance 5%:
+        Damage += 16
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance 25%:
+        Damage += 17
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 370
+
+    - Chance 10%:
+        Damage += 18
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 370
+
+    - Chance 6%:
+        Damage += 19
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 400
+
+    - Chance 4%:
+        Damage += 20
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 400
+
+    - Chance 3%:
+        Damage += 21
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 400
+
+    - Chance 2%:
+        Damage += 22
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 400
+
+Unarmed Mutation #7:
+
+Tier chances: 0.5, 0.6, 0.7, 0.8, 0.9, 1
+
+    - Chance 10%:
+        DamageVariance = 0.75
+
+    - Chance 20%:
+        DamageVariance = 0.66
+
+    - Chance 40%:
+        DamageVariance = 0.6
+
+    - Chance 20%:
+        DamageVariance = 0.55
+
+    - Chance 10%:
+        DamageVariance = 0.5

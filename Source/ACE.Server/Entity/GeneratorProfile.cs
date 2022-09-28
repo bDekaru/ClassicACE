@@ -13,6 +13,7 @@ using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Physics.Common;
 using ACE.Server.WorldObjects;
+using ACE.Common;
 
 namespace ACE.Server.Entity
 {
@@ -163,7 +164,10 @@ namespace ACE.Server.Entity
         /// </summary>
         public DateTime GetSpawnTime()
         {
+            if (Generator.CurrentlyPoweringUp || Generator.CachedRegenerationInterval >= Delay)
                 return DateTime.UtcNow;
+            else
+                return DateTime.UtcNow.AddSeconds(Delay);
         }
 
         /// <summary>
@@ -342,6 +346,8 @@ namespace ACE.Server.Entity
                     obj.Location = new ACE.Entity.Position(Generator.Location.Cell, Generator.Location.PositionX + Biota.OriginX ?? 0, Generator.Location.PositionY + Biota.OriginY ?? 0, Generator.Location.PositionZ + Biota.OriginZ ?? 0, Biota.AnglesX ?? 0, Biota.AnglesY ?? 0, Biota.AnglesZ ?? 0, Biota.AnglesW ?? 0);
             }
 
+            obj.Location.PositionZ += 0.05f;
+
             if (!VerifyLandblock(obj) || !VerifyWalkableSlope(obj))
                 return false;
 
@@ -421,6 +427,11 @@ namespace ACE.Server.Entity
 
             obj.Location = new ACE.Entity.Position(Generator.Location);
 
+            obj.Location.PositionZ += 0.05f;
+
+            if (!VerifyLandblock(obj) || !VerifyWalkableSlope(obj))
+                return false;
+
             return obj.EnterWorld();
         }
 
@@ -465,12 +476,24 @@ namespace ACE.Server.Entity
             // it's a DeathTreasure or WieldedTreasure table DID
             // there is no overlap of DIDs between these 2 tables,
             // so they can be searched in any order..
-            var deathTreasure = DatabaseManager.World.GetCachedDeathTreasure(Biota.WeenieClassId);
+            var deathTreasure = LootGenerationFactory.GetTweakedDeathTreasureProfile(Biota.WeenieClassId, Generator);
+
             if (deathTreasure != null)
             {
-                // TODO: get randomly generated death treasure from LootGenerationFactory
                 //log.Debug($"{_generator.Name}.TreasureGenerator(): found death treasure {Biota.WeenieClassId}");
-                return LootGenerationFactory.CreateRandomLootObjects(deathTreasure);
+                var generatedLoot = LootGenerationFactory.CreateRandomLootObjects(deathTreasure);
+
+                if ((RegenLocationType & RegenLocationType.Contain) == 0) // If we're not a container make sure we respect our generate limit.
+                {
+                    while (generatedLoot.Count > MaxCreate)
+                    {
+                        int index = ThreadSafeRandom.Next(0, generatedLoot.Count - 1);
+                        generatedLoot[index].DeleteObject();
+                        generatedLoot.RemoveAt(index);
+                    }
+                }
+
+                return generatedLoot;
             }
             else
             {
@@ -562,8 +585,10 @@ namespace ACE.Server.Entity
             NextAvailable = DateTime.UtcNow.AddSeconds(Delay);
         }
 
+        public bool GeneratorResetInProgress = false;
         public void Reset()
         {
+            GeneratorResetInProgress = true;
             foreach (var rNode in Spawned.Values)
             {
                 var wo = rNode.TryGetWorldObject();
@@ -583,6 +608,7 @@ namespace ACE.Server.Entity
                     wo.Destroy();
                 }
             }
+            GeneratorResetInProgress = false;
 
             CleanupProfile();
         }

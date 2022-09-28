@@ -86,7 +86,7 @@ namespace ACE.Server.WorldObjects
 
             // send network actions
             var targetDist = GetDistanceToTarget();
-            var turnTo = IsRanged || (CurrentAttack == CombatType.Magic && targetDist <= GetSpellMaxRange()) || AiImmobile;
+            var turnTo = (IsRanged && targetDist <= MaxRange) || (CurrentAttack == CombatType.Magic && targetDist <= GetSpellMaxRange()) || AiImmobile;
             if (turnTo)
                 TurnTo(AttackTarget);
             else
@@ -362,7 +362,7 @@ namespace ACE.Server.WorldObjects
             }
 
             var runSkill = GetCreatureSkill(Skill.Run).Current;
-            var runRate = MovementSystem.GetRunRate(burden, (int)runSkill, 1.0f);
+            var runRate = MovementSystem.GetRunRate(burden, (int)runSkill, ACE.Common.ConfigManager.Config.Server.WorldRuleset == ACE.Common.Ruleset.CustomDM ? 1.5f : 1.0f);
 
             return (float)runRate;
         }

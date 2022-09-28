@@ -5,6 +5,7 @@ using log4net;
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Server.Factories.Entity;
 
 namespace ACE.Server.Factories.Tables
 {
@@ -37,6 +38,16 @@ namespace ACE.Server.Factories.Tables
 
         static MissileSpells()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
+            {
+                weaponMissileSpells = new List<(SpellId, float)>()
+                {
+                    //( SpellId.SwiftKillerSelf1,  0.30f ),
+                    ( SpellId.DefenderSelf1,     0.25f ),
+                    //( SpellId.BloodDrinkerSelf1, 1.00f ),
+                };
+            }
+
             // takes ~0.3ms
             BuildSpells();
         }
@@ -92,6 +103,30 @@ namespace ACE.Server.Factories.Tables
             ( SpellId.BloodDrinkerSelf1, 1.00f ),
         };
 
+        private static ChanceTable<SpellId> missileProcs = new ChanceTable<SpellId>(ChanceTableType.Weight)
+        {
+            ( SpellId.Undef,               10.0f ),
+
+            ( SpellId.HealSelf1,            1.0f ),
+            ( SpellId.RevitalizeSelf1,      1.0f ),
+
+            ( SpellId.ManaToStaminaSelf1,   2.0f ),
+            ( SpellId.ManaToHealthSelf1,    2.0f ),
+            ( SpellId.DrainHealth1,         2.0f ),
+            ( SpellId.DrainStamina1,        2.0f ),
+        };
+
+        private static ChanceTable<SpellId> missileProcsCertain = new ChanceTable<SpellId>(ChanceTableType.Weight)
+        {
+            ( SpellId.HealSelf1,            1.0f ),
+            ( SpellId.RevitalizeSelf1,      1.0f ),
+
+            ( SpellId.ManaToStaminaSelf1,   2.0f ),
+            ( SpellId.ManaToHealthSelf1,    2.0f ),
+            ( SpellId.DrainHealth1,         2.0f ),
+            ( SpellId.DrainStamina1,        2.0f ),
+        };
+
         public static List<SpellId> Roll(TreasureDeath treasureDeath)
         {
             var spells = new List<SpellId>();
@@ -104,6 +139,19 @@ namespace ACE.Server.Factories.Tables
                     spells.Add(spell.spellId);
             }
             return spells;
+        }
+
+        public static SpellId RollProc(TreasureDeath treasureDeath)
+        {
+            float lootQualityMod = 0.0f;
+            if (treasureDeath != null)
+                lootQualityMod = treasureDeath.LootQualityMod;
+            return missileProcs.Roll(lootQualityMod);
+        }
+
+        public static SpellId PseudoRandomRollProc(int seed)
+        {
+            return missileProcsCertain.PseudoRandomRoll(seed);
         }
     }
 }

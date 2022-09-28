@@ -103,23 +103,42 @@ namespace ACE.Server.Factories.Tables.Wcids
             ( WeenieClassName.glovescloth,         0.10f ),
         };
 
-        public static WeenieClassName Roll(TreasureDeath treasureDeath)
+        public static WeenieClassName Roll(TreasureDeath treasureDeath, TreasureRoll treasureRoll)
         {
-            var heritage = HeritageChance.Roll(treasureDeath.UnknownChances, true);
-
-            switch (heritage)
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
             {
-                case TreasureHeritageGroup.Aluvian:
-                    return ClothingWcids_Aluvian.Roll();
+                var heritage = HeritageChance.Roll(treasureDeath.UnknownChances, treasureRoll);
 
-                case TreasureHeritageGroup.Gharundim:
-                    return ClothingWcids_Gharundim.Roll();
+                switch (heritage)
+                {
+                    case TreasureHeritageGroup.Aluvian:
+                        return ClothingWcids_Aluvian.Roll();
 
-                case TreasureHeritageGroup.Sho:
-                    return ClothingWcids_Sho.Roll();
+                    case TreasureHeritageGroup.Gharundim:
+                        return ClothingWcids_Gharundim.Roll();
 
-                case TreasureHeritageGroup.Viamontian:
-                    return ClothingWcids_Viamontian.Roll();
+                    case TreasureHeritageGroup.Sho:
+                        return ClothingWcids_Sho.Roll();
+                }
+            }
+            else
+            {
+                var heritage = HeritageChance.Roll(treasureDeath.UnknownChances, treasureRoll, true);
+
+                switch (heritage)
+                {
+                    case TreasureHeritageGroup.Aluvian:
+                        return ClothingWcids_Aluvian.Roll();
+
+                    case TreasureHeritageGroup.Gharundim:
+                        return ClothingWcids_Gharundim.Roll();
+
+                    case TreasureHeritageGroup.Sho:
+                        return ClothingWcids_Sho.Roll();
+
+                    case TreasureHeritageGroup.Viamontian:
+                        return ClothingWcids_Viamontian.Roll();
+                }
             }
             return WeenieClassName.undef;
         }
@@ -128,6 +147,145 @@ namespace ACE.Server.Factories.Tables.Wcids
 
         static ClothingWcids()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+                ClothingWcids_Aluvian = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.shirt,        4.0f ),
+                    ( WeenieClassName.doublet,      4.0f ),
+                    ( WeenieClassName.tunic,        4.0f ),
+                    ( WeenieClassName.smock,        4.0f ),
+                    ( WeenieClassName.shirtbaggy,   4.0f ),
+                    ( WeenieClassName.tunicbaggy,   4.0f ),
+
+                    ( WeenieClassName.pants,        4.0f ),
+                    ( WeenieClassName.trousers,     4.0f ),
+                    ( WeenieClassName.breecheswide, 4.0f ),
+
+                    ( WeenieClassName.capcloth,     1.0f ),
+                    ( WeenieClassName.cowlcloth,    1.0f ),
+
+                    ( WeenieClassName.glovescloth,  1.0f ),
+
+                    ( WeenieClassName.shoes,        1.0f ),
+                };
+
+                ClothingWcids_Gharundim = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.jerkin,        4.0f ),
+                    ( WeenieClassName.smock,         4.0f ),
+                    ( WeenieClassName.shirtloose,    4.0f ),
+                    ( WeenieClassName.shirtpuffy,    4.0f ),
+                    ( WeenieClassName.tunicpuffy,    4.0f ),
+                    ( WeenieClassName.tunicbaggy,    4.0f ),
+
+                    ( WeenieClassName.breechesbaggy, 4.0f ),
+                    ( WeenieClassName.pantsbaggy,    4.0f ),
+                    ( WeenieClassName.pantaloons,    4.0f ),
+
+                    ( WeenieClassName.capfez,        1.0f ),
+                    ( WeenieClassName.qafiya,        1.0f ),
+                    ( WeenieClassName.turban,        1.0f ),
+
+                    ( WeenieClassName.glovescloth,   1.0f ),
+
+                    ( WeenieClassName.sandals,       1.0f ),
+                    ( WeenieClassName.shoes,         1.0f ),
+                    ( WeenieClassName.slippers,      1.0f ),
+                };
+
+                ClothingWcids_Sho = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.shirtbaggy,    4.0f ),
+                    ( WeenieClassName.shirtflared,   4.0f ),
+                    ( WeenieClassName.tunicflared,   4.0f ),
+                    ( WeenieClassName.doublet,       4.0f ),
+                    ( WeenieClassName.shirtloose,    4.0f ),
+                    ( WeenieClassName.tunicloose,    4.0f ),
+
+                    ( WeenieClassName.pantsflared,   4.0f ),
+                    ( WeenieClassName.breechesloose, 4.0f ),
+                    ( WeenieClassName.pantsloose,    4.0f ),
+
+                    ( WeenieClassName.capcloth,      1.0f ),
+                    ( WeenieClassName.capsho,        1.0f ),
+
+                    ( WeenieClassName.glovescloth,   1.0f ),
+
+                    ( WeenieClassName.shoes,         1.0f ),
+                    ( WeenieClassName.slippers,      1.0f ),
+                };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                ClothingWcids_Aluvian = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.shirt,        4.0f ),
+                    ( WeenieClassName.doublet,      4.0f ),
+                    ( WeenieClassName.tunic,        4.0f ),
+                    ( WeenieClassName.smock,        4.0f ),
+                    ( WeenieClassName.shirtbaggy,   4.0f ),
+                    ( WeenieClassName.tunicbaggy,   4.0f ),
+
+                    ( WeenieClassName.pants,        4.0f ),
+                    ( WeenieClassName.trousers,     4.0f ),
+                    ( WeenieClassName.breecheswide, 4.0f ),
+
+                    ( WeenieClassName.capcloth,     1.0f ),
+                    ( WeenieClassName.cowlcloth,    1.0f ),
+
+                    ( WeenieClassName.glovescloth,  1.0f ),
+
+                    ( WeenieClassName.shoes,        1.0f ),
+                };
+
+                ClothingWcids_Gharundim = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.jerkin,        4.0f ),
+                    ( WeenieClassName.smock,         4.0f ),
+                    ( WeenieClassName.shirtloose,    4.0f ),
+                    ( WeenieClassName.shirtpuffy,    4.0f ),
+                    ( WeenieClassName.tunicpuffy,    4.0f ),
+                    ( WeenieClassName.tunicbaggy,    4.0f ),
+
+                    ( WeenieClassName.breechesbaggy, 4.0f ),
+                    ( WeenieClassName.pantsbaggy,    4.0f ),
+                    ( WeenieClassName.pantaloons,    4.0f ),
+
+                    ( WeenieClassName.capfez,        1.0f ),
+                    ( WeenieClassName.qafiya,        1.0f ),
+                    ( WeenieClassName.turban,        1.0f ),
+
+                    ( WeenieClassName.glovescloth,   1.0f ),
+
+                    ( WeenieClassName.sandals,       1.0f ),
+                    ( WeenieClassName.shoes,         1.0f ),
+                    ( WeenieClassName.slippers,      1.0f ),
+                };
+
+                ClothingWcids_Sho = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
+                {
+                    ( WeenieClassName.shirtbaggy,    4.0f ),
+                    ( WeenieClassName.shirtflared,   4.0f ),
+                    ( WeenieClassName.tunicflared,   4.0f ),
+                    ( WeenieClassName.doublet,       4.0f ),
+                    ( WeenieClassName.shirtloose,    4.0f ),
+                    ( WeenieClassName.tunicloose,    4.0f ),
+
+                    ( WeenieClassName.pantsflared,   4.0f ),
+                    ( WeenieClassName.breechesloose, 4.0f ),
+                    ( WeenieClassName.pantsloose,    4.0f ),
+
+                    ( WeenieClassName.capcloth,      1.0f ),
+                    ( WeenieClassName.capsho,        1.0f ),
+
+                    ( WeenieClassName.glovescloth,   1.0f ),
+
+                    ( WeenieClassName.shoes,         1.0f ),
+                    ( WeenieClassName.slippers,      1.0f ),
+                };
+            }
+
             BuildCombined(ClothingWcids_Aluvian);
             BuildCombined(ClothingWcids_Gharundim);
             BuildCombined(ClothingWcids_Sho);

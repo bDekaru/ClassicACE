@@ -5,6 +5,7 @@ using log4net;
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Server.Factories.Entity;
 
 namespace ACE.Server.Factories.Tables
 {
@@ -38,6 +39,16 @@ namespace ACE.Server.Factories.Tables
 
         static MeleeSpells()
         {
+            if(Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
+            {
+                weaponMeleeSpells = new List<(SpellId, float)>()
+                {
+                    ( SpellId.DefenderSelf1,     0.25f ),
+                    //( SpellId.BloodDrinkerSelf1, 1.00f ),
+                    //( SpellId.SwiftKillerSelf1,  0.30f ),
+                    ( SpellId.HeartSeekerSelf1,  0.25f ),
+                };
+            }
             // takes ~0.3ms
             BuildSpells();
         }
@@ -94,6 +105,30 @@ namespace ACE.Server.Factories.Tables
             ( SpellId.HeartSeekerSelf1,  0.25f ),
         };
 
+        private static ChanceTable<SpellId> meleeProcs = new ChanceTable<SpellId>(ChanceTableType.Weight)
+        {
+            ( SpellId.Undef,               10.0f ),
+
+            ( SpellId.HealSelf1,            1.0f ),
+            ( SpellId.RevitalizeSelf1,      1.0f ),
+
+            ( SpellId.ManaToStaminaSelf1,   2.0f ),
+            ( SpellId.ManaToHealthSelf1,    2.0f ),
+            ( SpellId.DrainHealth1,         2.0f ),
+            ( SpellId.DrainStamina1,        2.0f ),
+        };
+
+        private static ChanceTable<SpellId> meleeProcsCertain = new ChanceTable<SpellId>(ChanceTableType.Weight)
+        {
+            ( SpellId.HealSelf1,            1.0f ),
+            ( SpellId.RevitalizeSelf1,      1.0f ),
+
+            ( SpellId.ManaToStaminaSelf1,   2.0f ),
+            ( SpellId.ManaToHealthSelf1,    2.0f ),
+            ( SpellId.DrainHealth1,         2.0f ),
+            ( SpellId.DrainStamina1,        2.0f ),
+        };
+
         public static List<SpellId> Roll(TreasureDeath treasureDeath)
         {
             var spells = new List<SpellId>();
@@ -106,6 +141,16 @@ namespace ACE.Server.Factories.Tables
                     spells.Add(spell.spellId);
             }
             return spells;
+        }
+
+        public static SpellId RollProc(TreasureDeath treasureDeath)
+        {
+            return meleeProcs.Roll(treasureDeath.LootQualityMod);
+        }
+
+        public static SpellId PseudoRandomRollProc(int seed)
+        {
+            return meleeProcsCertain.PseudoRandomRoll(seed);
         }
     }
 }

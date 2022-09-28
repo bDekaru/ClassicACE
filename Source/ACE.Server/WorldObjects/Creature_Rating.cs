@@ -201,6 +201,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetDamageRating()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // get from base properties (monsters)?
             var damageRating = DamageRating ?? 0;
 
@@ -229,6 +232,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetDamageResistRating(CombatType? combatType = null, bool directDamage = true)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // get from base properties (monsters)?
             var damageResistRating = DamageResistRating ?? 0;
 
@@ -258,6 +264,9 @@ namespace ACE.Server.WorldObjects
 
         public float GetDamageResistRatingMod(CombatType? combatType = null, bool directDamage = true)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 1;
+
             var damageResistRating = GetDamageResistRating(combatType, directDamage);
 
             var allowBug = PropertyManager.GetBool("allow_negative_rating_curve").Item;
@@ -296,6 +305,9 @@ namespace ACE.Server.WorldObjects
         {
             // crit chance
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // get from base properties (monsters)?
             var critChanceRating = CritRating ?? 0;
 
@@ -313,6 +325,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetCritDamageRating()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // get from base properties (monsters)?
             var critDamageRating = CritDamageRating ?? 0;
 
@@ -339,6 +354,9 @@ namespace ACE.Server.WorldObjects
         {
             // crit resist chance
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // get from base properties (monsters)?
             var critResistRating = CritResistRating ?? 0;
 
@@ -351,6 +369,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetCritDamageResistRating()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // get from base properties (monsters)?
             var critDamageResistRating = CritDamageResistRating ?? 0;
 
@@ -369,6 +390,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetHealingBoostRating()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // get from base properties (monsters)?
             var healBoostRating = HealingBoostRating ?? 0;
 
@@ -387,6 +411,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetHealingResistRating()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // debuff?
             var healResistRating = HealingResistRating ?? 0;
 
@@ -398,6 +425,9 @@ namespace ACE.Server.WorldObjects
 
         public float GetHealingRatingMod()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 1;
+
             var boostMod = GetPositiveRatingMod(GetHealingBoostRating());
             var resistMod = GetNegativeRatingMod(GetHealingResistRating());
 
@@ -406,6 +436,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetLifeResistRating()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // only affects health drain?
             // only cast by Sigil of Perserverance (Aetheria)?
 
@@ -425,6 +458,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetDotResistanceRating()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // get from base properties (monsters)?
             var dotResistRating = DotResistRating ?? 0;
 
@@ -436,6 +472,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetNetherResistRating()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return 0;
+
             // there is a property defined for this,
             // but does anything use this?
 

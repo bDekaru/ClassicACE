@@ -15,7 +15,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Determines the monster inventory items to wield
         /// </summary>
-        public List<WorldObject> SelectWieldedTreasure()
+        public List<WorldObject> SelectWieldedTreasure(bool allowMelee = true, bool allowRanged = true, bool allowCaster = true)
         {
             /*foreach (var item in Inventory.Values)
                 Console.WriteLine($"{item.Name} - {item.WeenieType}");*/
@@ -23,7 +23,7 @@ namespace ACE.Server.WorldObjects
             var wieldedClothing = SelectWieldedClothing();
             var wieldedArmor = SelectWieldedArmor();
 
-            var wieldedWeapons = SelectWieldedWeapons();
+            var wieldedWeapons = SelectWieldedWeapons(allowMelee, allowRanged, allowCaster);
             var wieldedShield = SelectWieldedShield();
 
             if (wieldedShield != null && (wieldedWeapons.Count == 0 || !wieldedWeapons[0].IsRanged))
@@ -166,19 +166,35 @@ namespace ACE.Server.WorldObjects
             return (a.ArmorLevel ?? 0).CompareTo(b.ArmorLevel ?? 0);
         }
 
-        public void GetMonsterInventory(List<WorldObject> allWeapons, List<WorldObject> ammo)
+        bool HasRangedWeapon = false;
+
+        public void GetMonsterInventory(List<WorldObject> allWeapons, List<WorldObject> ammo, bool allowMelee = true, bool allowRanged = true, bool allowCaster = true)
         {
             // similar to GetInventoryItemsOfTypeWeenieType, optimized for this particular scenario
+
+            HasRangedWeapon = false;
             foreach (var item in Inventory.Values)
             {
                 switch (item.WeenieType)
                 {
                     case WeenieType.MeleeWeapon:
-                    case WeenieType.MissileLauncher:
-                    case WeenieType.Missile:
+
+                        if (allowMelee)
+                            allWeapons.Add(item);
+                        break;
+
                     case WeenieType.Caster:
 
-                        allWeapons.Add(item);
+                        if(allowCaster)
+                            allWeapons.Add(item);
+                        break;
+
+                    case WeenieType.MissileLauncher:
+                    case WeenieType.Missile:
+
+                        HasRangedWeapon = true;
+                        if (allowRanged)
+                            allWeapons.Add(item);
                         break;
 
                     case WeenieType.Ammunition:
@@ -198,14 +214,14 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public List<WorldObject> SelectWieldedWeapons()
+        public List<WorldObject> SelectWieldedWeapons(bool allowMelee = true, bool allowRanged = true, bool allowCaster = true)
         {
             //Console.WriteLine($"{Name}.SelectWieldedWeapons()");
 
             var allWeapons = new List<WorldObject>();
             var ammo = new List<WorldObject>();
 
-            GetMonsterInventory(allWeapons, ammo);
+            GetMonsterInventory(allWeapons, ammo, allowMelee, allowRanged, allowCaster);
 
             if (allWeapons.Count == 0) return new List<WorldObject>();
 
@@ -320,9 +336,9 @@ namespace ACE.Server.WorldObjects
             return totalSum - totalProduct;
         }
 
-        public void EquipInventoryItems(bool weaponsOnly = false)
+        public void EquipInventoryItems(bool weaponsOnly = false, bool allowMelee = true, bool allowRanged = true, bool allowCaster = true)
         {
-            var items = weaponsOnly ? SelectWieldedWeapons() : SelectWieldedTreasure();
+            var items = weaponsOnly ? SelectWieldedWeapons(allowMelee, allowRanged, allowCaster) : SelectWieldedTreasure(allowMelee, allowRanged, allowCaster);
 
             if (items == null) return;
 

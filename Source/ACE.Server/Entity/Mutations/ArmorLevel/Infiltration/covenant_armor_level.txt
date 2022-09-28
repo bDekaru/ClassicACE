@@ -1,0 +1,612 @@
+Covenant Armor Mutation #1:
+
+Tier chances: 1, 1, 1, 0, 0, 0
+
+    - Chance 12%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 200
+        ArmorLevel += Random(0, 100)
+
+    - Chance 11%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 160
+        ArmorLevel += Random(0, 100)
+
+    - Chance 11%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 145
+        ArmorLevel += Random(0, 100)
+
+    - Chance 11%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 250
+        ArmorLevel += Random(0, 100)
+
+    - Chance 11%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 205
+        ArmorLevel += Random(0, 100)
+
+    - Chance 11%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 185
+        ArmorLevel += Random(0, 100)
+
+    - Chance 11%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 300
+        ArmorLevel += Random(0, 50)
+
+    - Chance 11%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 245
+        ArmorLevel += Random(0, 50)
+
+    - Chance 11%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 225
+        ArmorLevel += Random(0, 50)
+
+Covenant Armor Mutation #2:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance 7%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 200
+        ArmorLevel += Random(0, 100)
+
+    - Chance 7%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 160
+        ArmorLevel += Random(0, 100)
+
+    - Chance 6%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 145
+        ArmorLevel += Random(0, 100)
+
+    - Chance 7%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 250
+        ArmorLevel += Random(0, 100)
+
+    - Chance 7%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 205
+        ArmorLevel += Random(0, 100)
+
+    - Chance 6%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 185
+        ArmorLevel += Random(0, 100)
+
+    - Chance 7%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 300
+        ArmorLevel += Random(0, 50)
+
+    - Chance 7%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 245
+        ArmorLevel += Random(0, 50)
+
+    - Chance 6%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 225
+        ArmorLevel += Random(0, 50)
+
+    - Chance 7%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 325
+        ArmorLevel += Random(0, 50)
+
+    - Chance 7%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 270
+        ArmorLevel += Random(0, 50)
+
+    - Chance 6%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 245
+        ArmorLevel += Random(0, 50)
+
+    - Chance 7%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 350
+        ArmorLevel += Random(0, 40)
+
+    - Chance 7%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 290
+        ArmorLevel += Random(0, 40)
+
+    - Chance 6%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 265
+        ArmorLevel += Random(0, 40)
+
+Covenant Armor Mutation #3:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 6%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 200
+        ArmorLevel += Random(0, 100)
+
+    - Chance 6%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 160
+        ArmorLevel += Random(0, 100)
+
+    - Chance 5%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 145
+        ArmorLevel += Random(0, 100)
+
+    - Chance 6%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 250
+        ArmorLevel += Random(0, 100)
+
+    - Chance 6%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 205
+        ArmorLevel += Random(0, 100)
+
+    - Chance 5%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 185
+        ArmorLevel += Random(0, 100)
+
+    - Chance 6%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 300
+        ArmorLevel += Random(0, 50)
+
+    - Chance 6%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 245
+        ArmorLevel += Random(0, 50)
+
+    - Chance 5%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 225
+        ArmorLevel += Random(0, 50)
+
+    - Chance 6%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 325
+        ArmorLevel += Random(0, 50)
+
+    - Chance 6%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 270
+        ArmorLevel += Random(0, 50)
+
+    - Chance 5%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 245
+        ArmorLevel += Random(0, 50)
+
+    - Chance 6%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 350
+        ArmorLevel += Random(0, 40)
+
+    - Chance 5%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 290
+        ArmorLevel += Random(0, 40)
+
+    - Chance 5%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 265
+        ArmorLevel += Random(0, 40)
+
+    - Chance 6%:
+        ArmorLevel = 440
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 370
+        ArmorLevel += Random(0, 30)
+
+    - Chance 5%:
+        ArmorLevel = 440
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 305
+        ArmorLevel += Random(0, 30)
+
+    - Chance 5%:
+        ArmorLevel = 440
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 280
+        ArmorLevel += Random(0, 30)
+
+Covenant Armor Mutation #4:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 5%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 200
+        ArmorLevel += Random(0, 100)
+
+    - Chance 5%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 160
+        ArmorLevel += Random(0, 100)
+
+    - Chance 5%:
+        ArmorLevel = 100
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 145
+        ArmorLevel += Random(0, 100)
+
+    - Chance 5%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 250
+        ArmorLevel += Random(0, 100)
+
+    - Chance 5%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 205
+        ArmorLevel += Random(0, 100)
+
+    - Chance 5%:
+        ArmorLevel = 200
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 185
+        ArmorLevel += Random(0, 100)
+
+    - Chance 5%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 300
+        ArmorLevel += Random(0, 50)
+
+    - Chance 5%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 245
+        ArmorLevel += Random(0, 50)
+
+    - Chance 5%:
+        ArmorLevel = 300
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 225
+        ArmorLevel += Random(0, 50)
+
+    - Chance 5%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 325
+        ArmorLevel += Random(0, 50)
+
+    - Chance 5%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 270
+        ArmorLevel += Random(0, 50)
+
+    - Chance 5%:
+        ArmorLevel = 350
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 245
+        ArmorLevel += Random(0, 50)
+
+    - Chance 5%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 350
+        ArmorLevel += Random(0, 40)
+
+    - Chance 5%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 290
+        ArmorLevel += Random(0, 40)
+
+    - Chance 5%:
+        ArmorLevel = 400
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 265
+        ArmorLevel += Random(0, 40)
+
+    - Chance 5%:
+        ArmorLevel = 440
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 370
+        ArmorLevel += Random(0, 30)
+
+    - Chance 5%:
+        ArmorLevel = 440
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 305
+        ArmorLevel += Random(0, 30)
+
+    - Chance 5%:
+        ArmorLevel = 440
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 280
+        ArmorLevel += Random(0, 30)
+
+    - Chance 4%:
+        ArmorLevel = 470
+        WieldRequirements = RawSkill
+        WieldSkillType = 6
+        WieldDifficulty = 400
+        ArmorLevel += Random(0, 30)
+
+    - Chance 3%:
+        ArmorLevel = 470
+        WieldRequirements = RawSkill
+        WieldSkillType = 7
+        WieldDifficulty = 330
+        ArmorLevel += Random(0, 30)
+
+    - Chance 3%:
+        ArmorLevel = 470
+        WieldRequirements = RawSkill
+        WieldSkillType = 15
+        WieldDifficulty = 300
+        ArmorLevel += Random(0, 30)
+
+Covenant Armor Mutation #5:
+
+Tier chances: 1, 1, 1, 1, 1, 1
+
+    - Chance 60%:
+
+    - Chance 29%:
+        ArmorModVsSlash += 0.1
+
+    - Chance 10%:
+        ArmorModVsSlash += 0.2
+
+    - Chance 1%:
+        ArmorModVsSlash += 0.3
+
+Covenant Armor Mutation #6:
+
+Tier chances: 1, 1, 1, 1, 1, 1
+
+    - Chance 60%:
+
+    - Chance 29%:
+        ArmorModVsPierce += 0.1
+
+    - Chance 10%:
+        ArmorModVsPierce += 0.2
+
+    - Chance 1%:
+        ArmorModVsPierce += 0.3
+
+Covenant Armor Mutation #7:
+
+Tier chances: 1, 1, 1, 1, 1, 1
+
+    - Chance 60%:
+
+    - Chance 29%:
+        ArmorModVsBludgeon += 0.1
+
+    - Chance 10%:
+        ArmorModVsBludgeon += 0.2
+
+    - Chance 1%:
+        ArmorModVsBludgeon += 0.3
+
+Covenant Armor Mutation #8:
+
+Tier chances: 1, 1, 1, 1, 1, 1
+
+    - Chance 45%:
+
+    - Chance 24%:
+        ArmorModVsCold += 0.2
+
+    - Chance 15%:
+        ArmorModVsCold += 0.4
+
+    - Chance 10%:
+        ArmorModVsCold += 0.6
+
+    - Chance 5%:
+        ArmorModVsCold += 0.8
+
+    - Chance 1%:
+        ArmorModVsCold += 1
+
+Covenant Armor Mutation #9:
+
+Tier chances: 1, 1, 1, 1, 1, 1
+
+    - Chance 45%:
+
+    - Chance 24%:
+        ArmorModVsFire += 0.2
+
+    - Chance 15%:
+        ArmorModVsFire += 0.4
+
+    - Chance 10%:
+        ArmorModVsFire += 0.6
+
+    - Chance 5%:
+        ArmorModVsFire += 0.8
+
+    - Chance 1%:
+        ArmorModVsFire += 1
+
+Covenant Armor Mutation #10:
+
+Tier chances: 1, 1, 1, 1, 1, 1
+
+    - Chance 45%:
+
+    - Chance 24%:
+        ArmorModVsAcid += 0.2
+
+    - Chance 15%:
+        ArmorModVsAcid += 0.4
+
+    - Chance 10%:
+        ArmorModVsAcid += 0.6
+
+    - Chance 5%:
+        ArmorModVsAcid += 0.8
+
+    - Chance 1%:
+        ArmorModVsAcid += 1
+
+Covenant Armor Mutation #11:
+
+Tier chances: 1, 1, 1, 1, 1, 1
+
+    - Chance 45%:
+
+    - Chance 24%:
+        ArmorModVsElectric += 0.2
+
+    - Chance 15%:
+        ArmorModVsElectric += 0.4
+
+    - Chance 10%:
+        ArmorModVsElectric += 0.6
+
+    - Chance 5%:
+        ArmorModVsElectric += 0.8
+
+    - Chance 1%:
+        ArmorModVsElectric += 1
+
+Covenant Armor Mutation #12:
+
+Tier chances: 0.5, 0.5, 0.5, 0.6, 0.8, 0
+
+    - Chance 25%:
+        EncumbranceVal *= Random(0.65, 0.75)
+
+    - Chance 50%:
+        EncumbranceVal *= Random(0.55, 0.65)
+
+    - Chance 25%:
+        EncumbranceVal *= Random(0.45, 0.55)
+
+Covenant Armor Mutation #13:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 25%:
+        EncumbranceVal *= Random(0.55, 0.65)
+
+    - Chance 50%:
+        EncumbranceVal *= Random(0.45, 0.55)
+
+    - Chance 25%:
+        EncumbranceVal *= Random(0.35, 0.45)
+

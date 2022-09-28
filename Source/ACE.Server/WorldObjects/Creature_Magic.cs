@@ -20,14 +20,10 @@ namespace ACE.Server.WorldObjects
             if (castItem != null && (castItem.SpellDID ?? 0) == spell.Id)
                 baseCost = (uint)(castItem.ItemManaCost ?? 0);
 
-            if ((spell.School == MagicSchool.ItemEnchantment) && (spell.MetaSpellType == SpellType.Enchantment) &&
-                (spell.Category >= SpellCategory.ArmorValueRaising) && (spell.Category <= SpellCategory.AcidicResistanceLowering) && target is Player targetPlayer)
+            if (target is Creature targetCreature && spell.School == MagicSchool.ItemEnchantment && spell.MetaSpellType == SpellType.Enchantment && spell.IsImpenBaneType && targetCreature == this)
             {
-                var numTargetItems = 1;
-                if (targetPlayer != null)
-                    numTargetItems = targetPlayer.EquippedObjects.Values.Count(i => (i is Clothing || i.IsShield) && i.IsEnchantable);
-
-                baseCost += spell.ManaMod * (uint)numTargetItems;
+                var numExtraTargetItems = targetCreature.EquippedObjects.Values.Count(i => (i is Clothing || i.IsShield) && i.IsEnchantable);
+                baseCost += spell.ManaMod * (uint)numExtraTargetItems;
             }
             else if ((spell.Flags & SpellFlags.FellowshipSpell) != 0)
             {

@@ -137,6 +137,8 @@ namespace ACE.Server.Factories
                     return new CraftTool(weenie, guid);
                 case WeenieType.LightSource:
                     return new LightSource(weenie, guid);
+                case WeenieType.LeyLineAmulet:
+                    return new LeyLineAmulet(weenie, guid);
                 default:
                     return new GenericObject(weenie, guid);
             }
@@ -252,6 +254,8 @@ namespace ACE.Server.Factories
                     return new CraftTool(biota);
                 case WeenieType.LightSource:
                     return new LightSource(biota);
+                case WeenieType.LeyLineAmulet:
+                    return new LeyLineAmulet(biota);
                 default:
                     return new GenericObject(biota);
             }
@@ -302,7 +306,70 @@ namespace ACE.Server.Factories
                 }
                 else
                 {
-                    worldObject = CreateWorldObject(biota);
+                    if (biota.IsPartialCollection)
+                    {
+                        worldObject = CreateWorldObject(weenie, guid);
+                        worldObject.Location = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+
+                        if (biota.BiotaPropertiesBool != null)
+                        {
+                            foreach (var value in biota.BiotaPropertiesBool)
+                                worldObject.SetProperty((ACE.Entity.Enum.Properties.PropertyBool)value.Type, value.Value);
+                        }
+                        if (biota.BiotaPropertiesDID != null)
+                        {
+                            foreach (var value in biota.BiotaPropertiesDID)
+                                worldObject.SetProperty((ACE.Entity.Enum.Properties.PropertyDataId)value.Type, value.Value);
+                        }
+                        if (biota.BiotaPropertiesFloat != null)
+                        {
+                            foreach (var value in biota.BiotaPropertiesFloat)
+                                worldObject.SetProperty((ACE.Entity.Enum.Properties.PropertyFloat)value.Type, value.Value);
+                        }
+                        if (biota.BiotaPropertiesIID != null)
+                        {
+                            foreach (var value in biota.BiotaPropertiesIID)
+                                worldObject.SetProperty((ACE.Entity.Enum.Properties.PropertyInstanceId)value.Type, value.Value);
+                        }
+                        if (biota.BiotaPropertiesInt != null)
+                        {
+                            foreach (var value in biota.BiotaPropertiesInt)
+                                worldObject.SetProperty((ACE.Entity.Enum.Properties.PropertyInt)value.Type, value.Value);
+                        }
+                        if (biota.BiotaPropertiesInt64 != null)
+                        {
+                            foreach (var value in biota.BiotaPropertiesInt64)
+                                worldObject.SetProperty((ACE.Entity.Enum.Properties.PropertyInt64)value.Type, value.Value);
+                        }
+                        if (biota.BiotaPropertiesString != null)
+                        {
+                            foreach (var value in biota.BiotaPropertiesString)
+                                worldObject.SetProperty((ACE.Entity.Enum.Properties.PropertyString)value.Type, value.Value);
+                        }
+                        // Todo: Add partial collection support for the following properties if we ever need them:
+                        // PropertiesPosition
+                        // PropertiesSpellBook
+                        // PropertiesAnimPart
+                        // PropertiesPalette
+                        // PropertiesTextureMap
+                        // PropertiesCreateList
+                        // PropertiesEmote
+                        // PropertiesEventFilter
+                        // PropertiesGenerator
+                        // PropertiesAttribute
+                        // PropertiesAttribute2nd
+                        // PropertiesBodyPart
+                        // PropertiesSkill
+                        // PropertiesBook
+                        // PropertiesBookPageData
+                        // PropertiesAllegiance
+                        // PropertiesEnchantmentRegistry
+                        // HousePermissions
+                    }
+                    else
+                    {
+                        worldObject = CreateWorldObject(biota);
+                    }
 
                     if (worldObject.Location == null)
                     {

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace ACE.Server.Entity
 {
@@ -14,5 +14,8 @@ namespace ACE.Server.Entity
 
         [JsonProperty("stacksize")]
         public ushort StackSize { get; set; }
+
+        [JsonProperty("specializedOnly")]
+        public bool SpecializedOnly { get; set; }
     }
 }

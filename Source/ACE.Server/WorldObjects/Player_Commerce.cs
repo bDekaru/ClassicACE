@@ -60,7 +60,7 @@ namespace ACE.Server.WorldObjects
 
             SpendCurrency(currencyWcid, cost, true);
 
-            vendor.MoneyIncome += (int)cost;
+            vendor.AddMoneyIncome((int)cost);
 
             foreach (var item in genericItems)
             {
@@ -69,7 +69,7 @@ namespace ACE.Server.WorldObjects
                 if (!service)
                 {
                     // errors shouldn't be possible here, since the items were pre-validated, but just in case...
-                    if (!TryCreateInInventoryWithNetworking(item))
+                    if (!TryCreateInInventoryWithNetworking(item, out _, true))
                     {
                         log.Error($"[VENDOR] {Name}.FinalizeBuyTransaction({vendor.Name}) - couldn't add {item.Name} ({item.Guid}) to player inventory after validation, this shouldn't happen!");
 
@@ -84,7 +84,7 @@ namespace ACE.Server.WorldObjects
 
             foreach (var item in uniqueItems)
             {
-                if (TryCreateInInventoryWithNetworking(item))
+                if (TryCreateInInventoryWithNetworking(item, out _, true))
                 {
                     vendor.UniqueItemsForSale.Remove(item.Guid);
 
@@ -187,7 +187,7 @@ namespace ACE.Server.WorldObjects
 
             var payoutCoinStacks = CreatePayoutCoinStacks(payoutCoinAmount);
 
-            vendor.MoneyOutflow += payoutCoinAmount;
+            vendor.AddMoneyOutflow(payoutCoinAmount);
 
             // remove sell items from player inventory
             foreach (var item in sellList.Values)
@@ -205,7 +205,7 @@ namespace ACE.Server.WorldObjects
             // add coins to player inventory
             foreach (var item in payoutCoinStacks)
             {
-                if (!TryCreateInInventoryWithNetworking(item))  // this shouldn't happen because of pre-validations in itemsToReceive
+                if (!TryCreateInInventoryWithNetworking(item, out _, true))  // this shouldn't happen because of pre-validations in itemsToReceive
                 {
                     log.WarnFormat("[VENDOR] Payout 0x{0:X8}:{1} for player {2} failed to add to inventory HandleActionSellItem.", item.Guid.Full, item.Name, Name);
                     item.Destroy();

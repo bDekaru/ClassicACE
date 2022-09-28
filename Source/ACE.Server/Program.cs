@@ -157,6 +157,8 @@ namespace ACE.Server
                 Console.Title = consoleTitle;
             }
 
+            log.Info($"Server Ruleset: {ConfigManager.Config.Server.WorldRuleset}"); 
+
             if (ConfigManager.Config.Offline.PurgeDeletedCharacters)
             {
                 log.Info($"Purging deleted characters, and their possessions, older than {ConfigManager.Config.Offline.PurgeDeletedCharactersDays} days ({DateTime.Now.AddDays(-ConfigManager.Config.Offline.PurgeDeletedCharactersDays)})...");
@@ -169,6 +171,13 @@ namespace ACE.Server
                 log.Info($"Purging orphaned biotas...");
                 ShardDatabaseOfflineTools.PurgeOrphanedBiotasInParallel(out var numberOfBiotasPurged);
                 log.Info($"Purged {numberOfBiotasPurged:N0} biotas.");
+            }
+
+            if (ConfigManager.Config.Offline.PurgeExpiredCampEntries)
+            {
+                log.Info($"Purging expired camp entries...");
+                ShardDatabaseOfflineTools.PurgeExpiredCampEntries(out var numberOfEntriesPurged);
+                log.Info($"Purged {numberOfEntriesPurged:N0} camp entries.");
             }
 
             if (ConfigManager.Config.Offline.PruneDeletedCharactersFromFriendLists)

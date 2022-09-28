@@ -36,6 +36,8 @@ namespace ACE.Server.WorldObjects
 
             StopExistingMoveToChains();
 
+            EndSneaking();
+
             // source item is always in our possession
             var sourceItem = FindObject(sourceObjectGuid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out _, out _, out var sourceItemIsEquipped);
 
@@ -57,7 +59,7 @@ namespace ACE.Server.WorldObjects
             }
 
             // handle objects with built-in spells
-            if (sourceItem.SpellDID != null)
+            if (sourceItem.SpellDID != null && sourceItem.WeenieType != WeenieType.Gem)
             {
                 if (!RecipeManager.VerifyUse(this, sourceItem, target))
                 {
@@ -183,6 +185,8 @@ namespace ACE.Server.WorldObjects
 
             StopExistingMoveToChains();
 
+            EndSneaking();
+
             var item = FindObject(itemGuid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems | SearchLocations.Landblock);
 
             if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
@@ -226,7 +230,11 @@ namespace ACE.Server.WorldObjects
             LastUseTime = 0.0f;
 
             if (success)
+            {
+                if (item is PressurePlate pressurePlate)
+                    pressurePlate.NextActivationIsFromUse = true;
                 item.OnActivate(this);
+            }
 
             // manually managed
             if (LastUseTime == float.MinValue)

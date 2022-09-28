@@ -1,0 +1,171 @@
+Short Bow Mutation #1:
+
+Tier chances: 0.5, 0, 0, 0, 0, 0
+
+    - Chance 25%:
+        DamageMod = 1.1
+
+    - Chance 50%:
+        DamageMod = 1.2
+
+    - Chance 25%:
+        DamageMod = 1.3
+
+Short Bow Mutation #2:
+
+Tier chances: 0, 0.6, 0, 0, 0, 0
+
+    - Chance 10%:
+        DamageMod = 1.1
+
+    - Chance 20%:
+        DamageMod = 1.2
+
+    - Chance 40%:
+        DamageMod = 1.3
+
+    - Chance 20%:
+        DamageMod = 1.4
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 10%:
+        DamageMod = 1.5
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+Short Bow Mutation #3:
+
+Tier chances: 0, 0, 0.7, 0, 0, 0
+
+    - Chance 10%:
+        DamageMod = 1.3
+
+    - Chance 20%:
+        DamageMod = 1.4
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 40%:
+        DamageMod = 1.5
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 20%:
+        DamageMod = 1.6
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 270
+
+    - Chance 10%:
+        DamageMod = 1.7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 270
+
+Short Bow Mutation #4:
+
+Tier chances: 0, 0, 0, 0.8, 0, 0
+
+    - Chance 10%:
+        DamageMod = 1.5
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance 20%:
+        DamageMod = 1.6
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 270
+
+    - Chance 40%:
+        DamageMod = 1.7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 270
+
+    - Chance 20%:
+        DamageMod = 1.8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290
+
+    - Chance 10%:
+        DamageMod = 1.9
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290
+
+Short Bow Mutation #5:
+
+Tier chances: 0, 0, 0, 0, 0.9, 0
+
+    - Chance 10%:
+        DamageMod = 1.7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 270
+
+    - Chance 20%:
+        DamageMod = 1.8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 270
+
+    - Chance 40%:
+        DamageMod = 1.9
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290
+
+    - Chance 20%:
+        DamageMod = 2
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290
+
+
+    - Chance 10%:
+        DamageMod = 2.1
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290
+
+Short Bow Mutation #6:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 10%:
+        DamageMod = 1.8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 270
+
+    - Chance 20%:
+        DamageMod = 1.9
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290
+
+    - Chance 40%:
+        DamageMod = 2
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290
+
+    - Chance 20%:
+        DamageMod = 2.1
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290
+
+    - Chance 10%:
+        DamageMod = 2.2
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 290

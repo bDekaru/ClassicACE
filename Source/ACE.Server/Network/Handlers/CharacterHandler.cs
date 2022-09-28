@@ -16,6 +16,7 @@ using ACE.Server.Managers;
 using ACE.Server.Network.Enum;
 using ACE.Server.Network.GameMessages;
 using ACE.Server.Network.GameMessages.Messages;
+using System;
 
 namespace ACE.Server.Network.Handlers
 {
@@ -68,6 +69,14 @@ namespace ACE.Server.Network.Handlers
                     return;
                 }
             });
+
+            // Only allow era appropriate heritages.
+            if (ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration && characterCreateInfo.Heritage != HeritageGroup.Aluvian && characterCreateInfo.Heritage != HeritageGroup.Gharundim && characterCreateInfo.Heritage != HeritageGroup.Sho)
+            {
+                SendCharacterCreateResponse(session, CharacterGenerationVerificationResponse.Pending);
+                session.Network.EnqueueSend(new GameEvent.Events.GameEventPopupString(session, "Only Aluvian, Gharu'ndim and Sho heritages are allowed on this server."));
+                return;
+            }
 
             // Disable OlthoiPlay characters for now. They're not implemented yet.
             // FIXME: Restore OlthoiPlay characters when properly handled.
@@ -256,6 +265,15 @@ namespace ACE.Server.Network.Handlers
             session.State = SessionState.WorldConnected;
 
             WorldManager.PlayerEnterWorld(session, character);
+
+            try
+            {
+                DatabaseManager.Shard.LogCharacterLogin(session.AccountId, session.Account, session.EndPoint.Address.ToString(), character.Id, character.Name);
+            }
+            catch (Exception)
+            {
+
+            }
         }
 
 

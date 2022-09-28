@@ -20,6 +20,8 @@ namespace ACE.DatLoader
             SpellTable = ReadFromDat<SpellTable>(SpellTable.FILE_ID);
             TabooTable = ReadFromDat<TabooTable>(TabooTable.FILE_ID);
             XpTable = ReadFromDat<XpTable>(XpTable.FILE_ID);
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                XpTableFull = ReadFromDat<XpTable>(XpTable.FILE_ID_FULL);
         }
 
         public BadData BadData { get; }
@@ -35,5 +37,6 @@ namespace ACE.DatLoader
         public SpellTable SpellTable { get; }
         public TabooTable TabooTable { get; }
         public XpTable XpTable { get; }
+        public XpTable XpTableFull { get; } // CustomDM: These tables contain the full 275 level entries, the tables in regular XpTable stop at level 126 for CustomDM
     }
 }

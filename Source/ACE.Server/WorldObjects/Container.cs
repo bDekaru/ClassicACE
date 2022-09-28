@@ -15,6 +15,8 @@ using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages;
+using ACE.Server.Entity;
+using ACE.Server.Factories.Tables;
 
 namespace ACE.Server.WorldObjects
 {
@@ -210,6 +212,11 @@ namespace ACE.Server.WorldObjects
         {
             return Inventory.Values.Count(wo => wo.UseBackpackSlot);
         }
+        public int? MerchandiseItemTypes
+        {
+            get => GetProperty(PropertyInt.MerchandiseItemTypes);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.MerchandiseItemTypes); else SetProperty(PropertyInt.MerchandiseItemTypes, value.Value); }
+        }
 
         public int GetFreeInventorySlots(bool includeSidePacks = true)
         {
@@ -218,7 +225,10 @@ namespace ACE.Server.WorldObjects
             if (includeSidePacks)
             {
                 foreach (var sidePack in Inventory.Values.OfType<Container>())
-                    freeSlots += (sidePack.ItemCapacity ?? 0) - sidePack.CountPackItems();
+                {
+                    if(sidePack.MerchandiseItemTypes == 0) // Do not take into account specialized containers when counting free slots as chances are the items won't match the container's limitations.
+                        freeSlots += (sidePack.ItemCapacity ?? 0) - sidePack.CountPackItems();
+                }
             }
 
             return freeSlots;
@@ -387,11 +397,11 @@ namespace ACE.Server.WorldObjects
         /// If enough burden is available, this will try to add an item to the main pack. If the main pack is full, it will try to add it to the first side pack with room.<para />
         /// It will also increase the EncumbranceVal and Value.
         /// </summary>
-        public bool TryAddToInventory(WorldObject worldObject, int placementPosition = 0, bool limitToMainPackOnly = false, bool burdenCheck = true)
+        public bool TryAddToInventory(WorldObject worldObject, int placementPosition = 0, bool limitToMainPackOnly = false, bool burdenCheck = true, bool allowStacking = false)
         {
             if (worldObject == null) return false;
 
-            return TryAddToInventory(worldObject, out _, placementPosition, limitToMainPackOnly, burdenCheck);
+            return TryAddToInventory(ref worldObject, out _, placementPosition, limitToMainPackOnly, burdenCheck, allowStacking);
         }
 
         /// <summary>
@@ -492,11 +502,115 @@ namespace ACE.Server.WorldObjects
             return newStackSize <= maxStackSize;
         }
 
+        Dictionary<SpellId, int> SpellsToReplace = new Dictionary<SpellId, int>()
+        {
+            // -1 means replace with a pseudorandom(based on wcid) level 1 proc and so on.
+            // 0 means remove, positive values mean the spellId of the replacement spell.
+            { SpellId.BloodDrinkerSelf1, 0 }, 
+            { SpellId.BloodDrinkerSelf2, 0 },
+            { SpellId.BloodDrinkerSelf3, 0 },
+            { SpellId.BloodDrinkerSelf4, 0 },
+            { SpellId.BloodDrinkerSelf5, 0 },
+            { SpellId.BloodDrinkerSelf6, 0 },
+            { SpellId.BloodDrinkerSelf7, 0 },
+            { SpellId.BloodDrinkerSelf8, 0 },
+
+            { SpellId.BloodDrinkerOther1, 0 },
+            { SpellId.BloodDrinkerOther2, 0 },
+            { SpellId.BloodDrinkerOther3, 0 },
+            { SpellId.BloodDrinkerOther4, 0 },
+            { SpellId.BloodDrinkerOther5, 0 },
+            { SpellId.BloodDrinkerOther6, 0 },
+            { SpellId.BloodDrinkerOther7, 0 },
+            { SpellId.BloodDrinkerOther8, 0 },
+
+            { SpellId.SwiftKillerSelf1, 0 },
+            { SpellId.SwiftKillerSelf2, 0 },
+            { SpellId.SwiftKillerSelf3, 0 },
+            { SpellId.SwiftKillerSelf4, 0 },
+            { SpellId.SwiftKillerSelf5, 0 },
+            { SpellId.SwiftKillerSelf6, 0 },
+            { SpellId.SwiftKillerSelf7, 0 },
+            { SpellId.SwiftKillerSelf8, 0 },
+
+            { SpellId.SwiftKillerOther1, 0 },
+            { SpellId.SwiftKillerOther2, 0 },
+            { SpellId.SwiftKillerOther3, 0 },
+            { SpellId.SwiftKillerOther4, 0 },
+            { SpellId.SwiftKillerOther5, 0 },
+            { SpellId.SwiftKillerOther6, 0 },
+            { SpellId.SwiftKillerOther7, 0 },
+            { SpellId.SwiftKillerOther8, 0 },
+
+            //{ SpellId.HeartSeekerSelf1, 0 },
+            //{ SpellId.HeartSeekerSelf2, 0 },
+            //{ SpellId.HeartSeekerSelf3, 0 },
+            //{ SpellId.HeartSeekerSelf4, 0 },
+            //{ SpellId.HeartSeekerSelf5, 0 },
+            //{ SpellId.HeartSeekerSelf6, 0 },
+            //{ SpellId.HeartSeekerSelf7, 0 },
+            //{ SpellId.HeartSeekerSelf8, 0 },
+
+            //{ SpellId.HeartSeekerOther1, 0 },
+            //{ SpellId.HeartSeekerOther2, 0 },
+            //{ SpellId.HeartSeekerOther3, 0 },
+            //{ SpellId.HeartSeekerOther4, 0 },
+            //{ SpellId.HeartSeekerOther5, 0 },
+            //{ SpellId.HeartSeekerOther6, 0 },
+            //{ SpellId.HeartSeekerOther7, 0 },
+            //{ SpellId.HeartSeekerOther8, 0 },
+
+            //{ SpellId.DefenderSelf1, 0 },
+            //{ SpellId.DefenderSelf2, 0 },
+            //{ SpellId.DefenderSelf3, 0 },
+            //{ SpellId.DefenderSelf4, 0 },
+            //{ SpellId.DefenderSelf5, 0 },
+            //{ SpellId.DefenderSelf6, 0 },
+            //{ SpellId.DefenderSelf7, 0 },
+            //{ SpellId.DefenderSelf8, 0 },
+
+            //{ SpellId.DefenderOther1, 0 },
+            //{ SpellId.DefenderOther2, 0 },
+            //{ SpellId.DefenderOther3, 0 },
+            //{ SpellId.DefenderOther4, 0 },
+            //{ SpellId.DefenderOther5, 0 },
+            //{ SpellId.DefenderOther6, 0 },
+            //{ SpellId.DefenderOther7, 0 },
+            //{ SpellId.DefenderOther8, 0 },
+
+            { SpellId.SpiritDrinkerSelf1, 0 }, 
+            { SpellId.SpiritDrinkerSelf2, 0 },
+            { SpellId.SpiritDrinkerSelf3, 0 },
+            { SpellId.SpiritDrinkerSelf4, 0 },
+            { SpellId.SpiritDrinkerSelf5, 0 },
+            { SpellId.SpiritDrinkerSelf6, 0 },
+            { SpellId.SpiritDrinkerSelf7, 0 },
+            { SpellId.SpiritDrinkerSelf8, 0 },
+
+            { SpellId.SpiritDrinkerOther1, 0 },
+            { SpellId.SpiritDrinkerOther2, 0 },
+            { SpellId.SpiritDrinkerOther3, 0 },
+            { SpellId.SpiritDrinkerOther4, 0 },
+            { SpellId.SpiritDrinkerOther5, 0 },
+            { SpellId.SpiritDrinkerOther6, 0 },
+            { SpellId.SpiritDrinkerOther7, 0 },
+            { SpellId.SpiritDrinkerOther8, 0 },
+
+            { SpellId.Impenetrability1, 0 },
+            { SpellId.Impenetrability2, 0 },
+            { SpellId.Impenetrability3, 0 },
+            { SpellId.Impenetrability4, 0 },
+            { SpellId.Impenetrability5, 0 },
+            { SpellId.Impenetrability6, 0 },
+            { SpellId.Impenetrability7, 0 },
+            { SpellId.Impenetrability8, 0 },
+        };
+
         /// <summary>
         /// If enough burden is available, this will try to add an item to the main pack. If the main pack is full, it will try to add it to the first side pack with room.<para />
         /// It will also increase the EncumbranceVal and Value.
         /// </summary>
-        public bool TryAddToInventory(WorldObject worldObject, out Container container, int placementPosition = 0, bool limitToMainPackOnly = false, bool burdenCheck = true)
+        public bool TryAddToInventory(ref WorldObject worldObject, out Container container, int placementPosition = 0, bool limitToMainPackOnly = false, bool burdenCheck = true, bool allowStacking = false)
         {
             // bug: should be root owner
             if (this is Player player && burdenCheck)
@@ -524,6 +638,24 @@ namespace ACE.Server.WorldObjects
             {
                 containerItems = Inventory.Values.Where(i => !i.UseBackpackSlot).ToList();
 
+                if (allowStacking && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && worldObject.MaterialType == null && worldObject.MaxStackSize > 0 && worldObject.StackSize < worldObject.MaxStackSize)
+                {
+                    var wo = worldObject;
+                    var availableStack = containerItems.FirstOrDefault(i => i.WeenieClassId == wo.WeenieClassId && i.StackSize < wo.MaxStackSize - wo.StackSize);
+                    if(availableStack != null)
+                    {
+                        availableStack.SetStackSize(availableStack.StackSize + worldObject.StackSize);
+
+                        EncumbranceVal += (worldObject.EncumbranceVal ?? 0);
+                        Value += (worldObject.Value ?? 0);
+
+                        worldObject.Destroy();
+                        worldObject = availableStack;
+                        container = this;
+                        return true;
+                    }
+                }
+
                 if ((ItemCapacity ?? 0) <= containerItems.Count)
                 {
                     // Can we add this to any side pack?
@@ -534,7 +666,7 @@ namespace ACE.Server.WorldObjects
 
                         foreach (var sidePack in containers)
                         {
-                            if (sidePack.TryAddToInventory(worldObject, out container, placementPosition, true))
+                            if (sidePack.TryAddToInventory(ref worldObject, out container, placementPosition, true))
                             {
                                 EncumbranceVal += (worldObject.EncumbranceVal ?? 0);
                                 Value += (worldObject.Value ?? 0);
@@ -575,6 +707,81 @@ namespace ACE.Server.WorldObjects
             Value += (worldObject.Value ?? 0);
 
             container = this;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
+
+                // Convert weapon skills to merged ones
+                if (worldObject.WieldSkillType.HasValue)
+                    worldObject.WieldSkillType = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType);
+                if (worldObject.WieldSkillType2.HasValue)
+                    worldObject.WieldSkillType2 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType2);
+                if (worldObject.WieldSkillType3.HasValue)
+                    worldObject.WieldSkillType3 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType3);
+                if (worldObject.WieldSkillType4.HasValue)
+                    worldObject.WieldSkillType4 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType4);
+
+                // Remove invalid spells from items accessible by players, keep the spells on monster's items.
+                WorldObject owner = null;
+                if (container is Player || container is Corpse)
+                    owner = container;
+                else if (container.OwnerId.HasValue)
+                    owner = PlayerManager.GetOnlinePlayer(container.OwnerId.Value);
+                if (owner != null)
+                {
+                    var list = worldObject.Biota.GetKnownSpellsIds(BiotaDatabaseLock);
+                    foreach (var entry in list)
+                    {
+                        int replacementId;
+                        if (SpellsToReplace.TryGetValue((SpellId)entry, out replacementId))
+                        {
+                            if (worldObject.Biota.TryRemoveKnownSpell(entry, BiotaDatabaseLock))
+                            {
+                                if (replacementId < 0 && (worldObject is MeleeWeapon || worldObject is MissileLauncher || worldObject is Missile))
+                                {
+                                    int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
+
+                                    SpellId procSpellLevel1Id;
+                                    if (worldObject is MeleeWeapon)
+                                        procSpellLevel1Id = MeleeSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
+                                    else
+                                        procSpellLevel1Id = MissileSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
+
+                                    var procSpellId = SpellLevelProgression.GetSpellAtLevel(procSpellLevel1Id, level);
+
+                                    Spell spell = new Spell(procSpellId);
+                                    worldObject.ProcSpellRate = 0.15f;
+                                    worldObject.ProcSpell = (uint)procSpellId;
+                                    worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
+
+                                    log.Warn($"Replaced invalid spell {(SpellId)entry} with {procSpellId} as a proc on {worldObject.GetProperty(PropertyString.Name)}.");
+                                }
+                                else if (replacementId > 0)
+                                {
+                                    Spell spell = new Spell(replacementId);
+
+                                    if (spell.IsBeneficial)
+                                    {
+                                        worldObject.Biota.GetOrAddKnownSpell(replacementId, BiotaDatabaseLock, out _);
+                                        log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} on {worldObject.GetProperty(PropertyString.Name)}.");
+                                    }
+                                    else
+                                    {
+                                        worldObject.ProcSpellRate = 0.15f;
+                                        worldObject.ProcSpell = (uint)replacementId;
+                                        worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
+
+                                        log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} as a proc on {worldObject.GetProperty(PropertyString.Name)}.");
+                                    }
+                                }
+                                else
+                                    log.Warn($"Removed invalid spell {(SpellId)entry} from {worldObject.GetProperty(PropertyString.Name)}.");
+                            }
+                        }
+                    }
+                }
+            }
 
             OnAddItem();
 

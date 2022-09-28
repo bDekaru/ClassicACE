@@ -111,6 +111,21 @@ namespace ACE.Server.Factories.Tables
 
         static ArmorSpells()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
+            {
+                armorSpells = new List<(SpellId, float)>()
+                {
+                    ( SpellId.PiercingBane1,    0.15f ),
+                    ( SpellId.FlameBane1,       0.15f ),
+                    ( SpellId.FrostBane1,       0.15f ),
+                    //( SpellId.Impenetrability1, 1.00f ),
+                    ( SpellId.AcidBane1,        0.15f ),
+                    ( SpellId.BladeBane1,       0.15f ),
+                    ( SpellId.LightningBane1,   0.15f ),
+                    ( SpellId.BludgeonBane1,    0.15f ),
+                };
+            }
+
             // takes ~0.3ms
             BuildSpells();
         }

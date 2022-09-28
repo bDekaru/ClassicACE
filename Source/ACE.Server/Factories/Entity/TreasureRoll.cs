@@ -8,6 +8,7 @@ namespace ACE.Server.Factories.Entity
         public TreasureItemType_Orig ItemType;
         public TreasureArmorType ArmorType;
         public TreasureWeaponType WeaponType;
+        public TreasureHeritageGroup Heritage;
 
         public WeenieClassName Wcid;
 

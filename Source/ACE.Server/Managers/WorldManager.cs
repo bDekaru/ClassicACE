@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Linq;
 
 using log4net;
 
@@ -24,6 +25,7 @@ using ACE.Server.Physics.Common;
 
 using Character = ACE.Database.Models.Shard.Character;
 using Position = ACE.Entity.Position;
+using ACE.Server.Command.Handlers;
 
 namespace ACE.Server.Managers
 {
@@ -254,7 +256,14 @@ namespace ACE.Server.Managers
 
             if (character.TotalLogins <= 1)
             {
-                if (player.IsOlthoiPlayer)
+            	if (ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                {
+                    // Automatically use the welcome letter so it's already open for the new player to read.
+                    WorldObject welcomeLetter = player.Inventory.Values.FirstOrDefault(i => i.WeenieClassId == 1077);
+                    if (welcomeLetter != null)
+                        welcomeLetter.ActOnUse(player);
+                }
+                else if (player.IsOlthoiPlayer)
                     session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_welcome, popup_motd)));
                 else
                     session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_header, popup_motd, popup_welcome)));
@@ -264,17 +273,36 @@ namespace ACE.Server.Managers
                 session.Network.EnqueueSend(new GameEventPopupString(session, AppendLines(popup_header, popup_motd)));
             }
 
-            var info = "Welcome to Asheron's Call\n  powered by ACEmulator\n\nFor more information on commands supported by this server, type @acehelp\n";
+            var info = "Welcome to Asheron's Call\n  Powered by ClassicACE.\n\nFor more information on commands supported by this server, type @acehelp\n";
             session.Network.EnqueueSend(new GameMessageSystemChat(info, ChatMessageType.Broadcast));
 
             var server_motd = PropertyManager.GetString("server_motd").Item;
-            if (!string.IsNullOrEmpty(server_motd))
-                session.Network.EnqueueSend(new GameMessageSystemChat($"{server_motd}\n", ChatMessageType.Broadcast));
+            var server_motd2 = PropertyManager.GetString("server_motd2").Item;
+            var server_motd3 = PropertyManager.GetString("server_motd3").Item;
+            var server_motd4 = PropertyManager.GetString("server_motd4").Item;
+            if (!string.IsNullOrEmpty(server_motd) || !string.IsNullOrEmpty(server_motd2) || !string.IsNullOrEmpty(server_motd3) || !string.IsNullOrEmpty(server_motd4))
+            {
+                // Delay sending the MotD so it doesn't get lost in the login spam.
+                var motdChain = new ActionChain();
+                motdChain.AddDelaySeconds(15.0f);
+                motdChain.AddAction(player, () =>
+                {
+                    if (!string.IsNullOrEmpty(server_motd))
+                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd, ChatMessageType.Broadcast));
+                    if (!string.IsNullOrEmpty(server_motd2))
+                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd2, ChatMessageType.Broadcast));
+                    if (!string.IsNullOrEmpty(server_motd3))
+                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd3, ChatMessageType.Broadcast));
+                    if (!string.IsNullOrEmpty(server_motd4))
+                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd4, ChatMessageType.Broadcast));
+                });
+                motdChain.EnqueueChain();
+            }
 
             if (olthoiPlayerReturnedToLifestone)
                 session.Network.EnqueueSend(new GameMessageSystemChat("You have returned to the Olthoi Queen to serve the hive.", ChatMessageType.Broadcast));
             else if (playerLoggedInOnNoLogLandblock) // see http://acpedia.org/wiki/Mount_Elyrii_Hive
-                session.Network.EnqueueSend(new GameMessageSystemChat("The currents of portal space cannot return you from whence you came. Your previous location forbids login.", ChatMessageType.Broadcast));            
+                session.Network.EnqueueSend(new GameMessageSystemChat("The currents of portal space cannot return you from whence you came. Your previous location forbids login.", ChatMessageType.Broadcast));
         }
 
         private static string AppendLines(params string[] lines)

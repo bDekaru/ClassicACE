@@ -37,6 +37,7 @@ CREATE TABLE `biota` (
   `weenie_Class_Id` int unsigned NOT NULL COMMENT 'Weenie Class Id of the Weenie this Biota was created from',
   `weenie_Type` int NOT NULL DEFAULT '0' COMMENT 'WeenieType for this Object',
   `populated_Collection_Flags` int unsigned NOT NULL DEFAULT '4294967295',
+  `is_Partial_Collection` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `biota_wcid_idx` (`weenie_Class_Id`),
   KEY `biota_type_idx` (`weenie_Type`)
@@ -537,6 +538,7 @@ CREATE TABLE `biota_properties_skill` (
   `init_Level` int unsigned NOT NULL DEFAULT '0' COMMENT 'starting point for advancement of the skill (eg bonus points)',
   `resistance_At_Last_Check` int unsigned NOT NULL DEFAULT '0' COMMENT 'last use difficulty',
   `last_Used_Time` double NOT NULL DEFAULT '0' COMMENT 'time skill was last used',
+  `secondary_To` smallint(5) unsigned NOT NULL DEFAULT '0' COMMENT 'Id of the skill this is a secondary skill of',
   PRIMARY KEY (`object_Id`,`type`),
   CONSTRAINT `wcid_skill` FOREIGN KEY (`object_Id`) REFERENCES `biota` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Skill Properties of Weenies';
@@ -687,6 +689,19 @@ CREATE TABLE `character_properties_quest_registry` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='QuestBook Properties of Weenies';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+DROP TABLE IF EXISTS `character_properties_camp_registry`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `character_properties_camp_registry` (
+  `character_Id` int unsigned NOT NULL DEFAULT '0' COMMENT 'Id of the character this property belongs to',
+  `camp_Id` int unsigned  NOT NULL COMMENT 'Unique Id of Camp',
+  `num_Interactions` int NOT NULL DEFAULT '0' COMMENT 'Number of interactions with this camp',
+  `last_Decay_Time` int unsigned NOT NULL DEFAULT '0' COMMENT 'Timestamp of last decay of the number of interactions in this camp',
+  PRIMARY KEY (`character_Id`,`camp_Id`),
+  CONSTRAINT `wcid_campRegistry` FOREIGN KEY (`character_Id`) REFERENCES `character` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Camp Properties of Weenies';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 --
 -- Table structure for table `character_properties_shortcut_bar`
 --
@@ -828,6 +843,60 @@ CREATE TABLE `house_permission` (
   PRIMARY KEY (`house_Id`,`player_Guid`),
   KEY `biota_Id_house_Id_idx` (`house_Id`),
   CONSTRAINT `biota_Id_house_Id` FOREIGN KEY (`house_Id`) REFERENCES `biota` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `account_session_log`
+--
+
+DROP TABLE IF EXISTS `account_session_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `account_session_log` (
+  `sessionLogId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `accountId` INT UNSIGNED NOT NULL,
+  `accountName` VARCHAR(50) NOT NULL,  
+  `sessionIP` VARCHAR(45),
+  `loginDateTime` DATETIME,  
+  PRIMARY KEY (`sessionLogId`)  
+) ENGINE=INNODB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `character_login_log`
+--
+
+DROP TABLE IF EXISTS `character_login_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `character_login_log` (
+  `characterLoginLogId` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `accountId` INT UNSIGNED NOT NULL,
+  `accountName` VARCHAR(50) NOT NULL, 
+  `characterId` INT UNSIGNED NOT NULL,
+  `characterName` VARCHAR(50) NOT NULL,   
+  `sessionIP` VARCHAR(45),
+  `loginDateTime` DATETIME,  
+  PRIMARY KEY (`characterLoginLogId`)  
+) ENGINE=INNODB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `kills`
+--
+
+DROP TABLE IF EXISTS `pkkills`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `pkkills` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique Id of this Kill',
+  `killer_id` int unsigned NOT NULL COMMENT 'Unique Id of Killer Character',
+  `victim_id` int unsigned NOT NULL COMMENT 'Unique Id of Victim Character',
+  `killer_monarch_id` int unsigned,
+  `victim_monarch_id` int unsigned,
+  `kill_datetime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

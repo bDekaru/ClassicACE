@@ -52,6 +52,11 @@ namespace ACE.Server.WorldObjects
         private bool HasKnownSpells => Biota.HasKnownSpell(BiotaDatabaseLock);
 
         /// <summary>
+        /// Returns TRUE if the modified monster has known spells
+        /// </summary>
+        private bool HasKnownSpellsModified => Weenie.PropertiesSpellBook != null && Weenie.PropertiesSpellBook.Count > 0;
+
+        /// <summary>
         /// The next spell the monster will attempt to cast
         /// </summary>
         private Spell CurrentSpell { get; set; }
@@ -76,6 +81,40 @@ namespace ACE.Server.WorldObjects
             // This reduces memory consumption by not cloning the spell book every single TryRollSpell()
             //foreach (var spell in Biota.CloneSpells(BiotaDatabaseLock)) // Thread-safe
             foreach (var spell in Biota.PropertiesSpellBook) // Not thread-safe
+            {
+                var probability = spell.Value > 2.0f ? spell.Value - 2.0f : spell.Value / 100.0f;
+
+                var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
+
+                if (rng < probability)
+                {
+                    CurrentSpell = new Spell(spell.Key);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private bool TryRollSpellModified()
+        {
+            CurrentSpell = null;
+
+            //Console.WriteLine($"{Name}.TryRollSpell(), probability={GetProbabilityAny()}");
+
+            // monster spellbooks have probabilities with base 2.0
+            // ie. a 5% chance would be 2.05 instead of 0.05
+
+            // much less common, some monsters will have spells with just base 2.0 probability
+            // there were probably other criteria used to select these spells (emote responses, monster ai responses)
+            // for now, 2.0 base just becomes a 2% chance
+
+            if (Weenie.PropertiesSpellBook == null)
+                return false;
+
+            // We don't use thread safety here. Monster spell books aren't mutated cross-threads.
+            // This reduces memory consumption by not cloning the spell book every single TryRollSpell()
+            //foreach (var spell in Biota.CloneSpells(BiotaDatabaseLock)) // Thread-safe
+            foreach (var spell in Weenie.PropertiesSpellBook) // Not thread-safe
             {
                 var probability = spell.Value > 2.0f ? spell.Value - 2.0f : spell.Value / 100.0f;
 

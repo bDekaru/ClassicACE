@@ -1,0 +1,69 @@
+Elemental Atlatl Mutation #1:
+
+Tier chances: 1, 1, 1, 1, 1, 1
+
+    - Chance 15%:
+        DamageMod = 2.43
+
+    - Chance 35%:
+        DamageMod = 2.45
+
+    - Chance 35%:
+        DamageMod = 2.47
+
+    - Chance 15%:
+        DamageMod = 2.5
+
+Elemental Atlatl Mutation #2:
+
+Tier chances: 1, 1, 1, 1, 1, 0
+
+    - Chance 30%:
+        ElementalDamageBonus = 1
+
+    - Chance 40%:
+        ElementalDamageBonus = 2
+
+    - Chance 30%:
+        ElementalDamageBonus = 3
+
+Elemental Atlatl Mutation #3:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 15%:
+        ElementalDamageBonus = 1
+
+    - Chance 20%:
+        ElementalDamageBonus = 2
+
+    - Chance 15%:
+        ElementalDamageBonus = 3
+
+    - Chance 10%:
+        ElementalDamageBonus = 4
+        WieldDifficulty = 335
+
+    - Chance 15%:
+        ElementalDamageBonus = 5
+        WieldDifficulty = 335
+
+    - Chance 10%:
+        ElementalDamageBonus = 6
+        WieldDifficulty = 335
+
+    - Chance 6%:
+        ElementalDamageBonus = 7
+        WieldDifficulty = 360
+
+    - Chance 4%:
+        ElementalDamageBonus = 8
+        WieldDifficulty = 360
+
+    - Chance 3%:
+        ElementalDamageBonus = 9
+        WieldDifficulty = 360
+
+    - Chance 2%:
+        ElementalDamageBonus = 10
+        WieldDifficulty = 360

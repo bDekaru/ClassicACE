@@ -136,6 +136,8 @@ namespace ACE.Database
 
         public override bool SaveBiota(ACE.Entity.Models.Biota biota, ReaderWriterLockSlim rwLock)
         {
+            ProcessPartialSave(ref biota);
+
             CacheObject<Biota> cachedBiota;
 
             lock (biotaCacheMutex)

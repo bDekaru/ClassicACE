@@ -17,6 +17,8 @@ namespace ACE.Server.WorldObjects
         public WorldObject ParentLink;
         public List<WorldObject> ChildLinks = new List<WorldObject>();
 
+        public uint LandblockInstanceGuid;
+
         public void ActivateLinks(List<LandblockInstance> sourceObjects, List<Biota> biotas, WorldObject parent = null)
         {
             if (LinkedInstances.Count == 0) return;
@@ -64,6 +66,9 @@ namespace ACE.Server.WorldObjects
 
                 if (wo.LinkedInstances.Count > 0)
                     wo.ActivateLinks(sourceObjects, biotas);
+
+                if (!wo.EnterWorld())
+                    wo.Destroy();
             }
         }
 

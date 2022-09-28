@@ -1213,6 +1213,7 @@ CREATE TABLE `weenie_properties_skill` (
   `init_Level` int unsigned NOT NULL COMMENT 'starting point for advancement of the skill (eg bonus points)',
   `resistance_At_Last_Check` int unsigned NOT NULL COMMENT 'last use difficulty',
   `last_Used_Time` double NOT NULL COMMENT 'time skill was last used',
+  `secondary_To` smallint(5) unsigned NOT NULL DEFAULT '0' COMMENT 'Id of the skill this is a secondary skill of',
   PRIMARY KEY (`id`),
   UNIQUE KEY `wcid_skill_type_uidx` (`object_Id`,`type`),
   CONSTRAINT `wcid_skill` FOREIGN KEY (`object_Id`) REFERENCES `weenie` (`class_Id`) ON DELETE CASCADE

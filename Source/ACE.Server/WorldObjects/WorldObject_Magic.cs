@@ -32,7 +32,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Instantly casts a spell for a WorldObject (ie. spell traps)
         /// </summary>
-        public void TryCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool tryResist = true)
+        public void TryCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool tryResist = true, bool showMsg = true)
         {
             // TODO: look into further normalizing this / caster / weapon
 
@@ -53,13 +53,13 @@ namespace ACE.Server.WorldObjects
                 var fellows = targetPlayer.Fellowship.GetFellowshipMembers();
 
                 foreach (var fellow in fellows.Values)
-                    TryCastSpell_Inner(spell, fellow, itemCaster, weapon, isWeaponSpell, fromProc, tryResist);
+                    TryCastSpell_Inner(spell, fellow, itemCaster, weapon, isWeaponSpell, fromProc, tryResist, showMsg);
             }
             else
-                TryCastSpell_Inner(spell, target, itemCaster, weapon, isWeaponSpell, fromProc, tryResist);
+                TryCastSpell_Inner(spell, target, itemCaster, weapon, isWeaponSpell, fromProc, tryResist, showMsg);
         }
 
-        public void TryCastSpell_Inner(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool tryResist = true)
+        public void TryCastSpell_Inner(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool tryResist = true, bool showMsg = true)
         {
             // verify before resist, still consumes source item
             if (spell.MetaSpellType == SpellType.Dispel && !VerifyDispelPKStatus(itemCaster, target))
@@ -70,7 +70,7 @@ namespace ACE.Server.WorldObjects
                 return;
 
             // if not resisted, cast spell
-            HandleCastSpell(spell, target, itemCaster, weapon, isWeaponSpell, fromProc);
+            HandleCastSpell(spell, target, itemCaster, weapon, isWeaponSpell, fromProc, false, showMsg);
         }
 
         /// <summary>
@@ -101,13 +101,13 @@ namespace ACE.Server.WorldObjects
         /// based upon the caster's magic skill vs target's magic defense skill
         /// </summary>
         /// <returns>TRUE if spell is resisted</returns>
-        public static bool MagicDefenseCheck(uint casterMagicSkill, uint targetMagicDefenseSkill, out float resistChance)
+        public static bool MagicDefenseCheck(uint casterMagicSkill, uint targetMagicDefenseSkill, out float resistChance, float chanceMod = 1.0f)
         {
             // uses regular 0.03 factor, and not magic casting 0.07 factor
             var chance = SkillCheck.GetSkillChance((int)casterMagicSkill, (int)targetMagicDefenseSkill);
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
 
-            resistChance = (float)(1.0f - chance);
+            resistChance = (float)(1.0f - (chance * chanceMod));
 
             return chance <= rng;
         }
@@ -164,8 +164,26 @@ namespace ACE.Server.WorldObjects
             // Retrieve target's Magic Defense Skill
             var difficulty = targetCreature.GetEffectiveMagicDefense();
 
+            float resistChanceMod = 1.0f;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && casterCreature != null)
+            {
+                var amulet = casterCreature.GetEquippedLeyLineAmulet();
+                if (amulet != null && (amulet.LeyLineTriggerChance ?? 0) > 0 && (amulet.LeyLineEffectId == (uint)LeyLineEffect.LowerResistChance))
+                {
+                    SpellId triggerSpellLevel1Id = (SpellId)(amulet.LeyLineTriggerSpellId ?? 0);
+                    if (triggerSpellLevel1Id != SpellId.Undef)
+                    {
+                        var triggerSpellLvl1 = new Spell(triggerSpellLevel1Id);
+                        if (triggerSpellLvl1 != null && triggerSpellLvl1.Category == spell.Category)
+                        {
+                            resistChanceMod = 1.3f;
+                        }
+                    }
+                }
+            }
+
             //Console.WriteLine($"{target.Name}.ResistSpell({Name}, {spell.Name}): magicSkill: {magicSkill}, difficulty: {difficulty}");
-            bool resisted = MagicDefenseCheck(magicSkill, difficulty, out float resistChance);
+            bool resisted = MagicDefenseCheck(magicSkill, difficulty, out float resistChance, resistChanceMod);
 
             var player = this as Player;
             var targetPlayer = target as Player;
@@ -256,7 +274,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Creates a spell based on MetaSpellType
         /// </summary>
-        protected bool HandleCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool equip = false)
+        protected bool HandleCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool equip = false, bool showMsg = true)
         {
             var targetCreature = !spell.IsSelfTargeted || spell.IsFellowshipSpell ? target as Creature : this as Creature;
 
@@ -281,21 +299,21 @@ namespace ACE.Server.WorldObjects
 
                     // TODO: replace with some kind of 'rootOwner unless equip' concept?
                     if (itemCaster != null && (equip || itemCaster is Gem || itemCaster is Food))
-                        CreateEnchantment(targetCreature ?? target, itemCaster, itemCaster, spell, equip);
+                        CreateEnchantment(targetCreature ?? target, itemCaster, itemCaster, spell, equip, false, showMsg);
                     else
-                        CreateEnchantment(targetCreature ?? target, this, this, spell, equip);
+                        CreateEnchantment(targetCreature ?? target, this, this, spell, equip, false, showMsg);
 
                     break;
 
                 case SpellType.Boost:
                 case SpellType.FellowBoost:
 
-                    HandleCastSpell_Boost(spell, targetCreature);
+                    HandleCastSpell_Boost(spell, targetCreature, showMsg);
                     break;
 
                 case SpellType.Transfer:
 
-                    HandleCastSpell_Transfer(spell, targetCreature);
+                    HandleCastSpell_Transfer(spell, targetCreature, showMsg);
                     break;
 
                 case SpellType.Projectile:
@@ -333,7 +351,7 @@ namespace ACE.Server.WorldObjects
                 case SpellType.Dispel:
                 case SpellType.FellowDispel:
 
-                    HandleCastSpell_Dispel(spell, targetCreature ?? target);
+                    HandleCastSpell_Dispel(spell, targetCreature ?? target, showMsg);
                     break;
 
                 default:
@@ -370,7 +388,7 @@ namespace ACE.Server.WorldObjects
         /// Handles casting SpellType.Enchantment / FellowEnchantment spells
         /// this is also called if SpellType.EnchantmentProjectile successfully hits
         /// </summary>
-        public void CreateEnchantment(WorldObject target, WorldObject caster, WorldObject weapon, Spell spell, bool equip = false)
+        public void CreateEnchantment(WorldObject target, WorldObject caster, WorldObject weapon, Spell spell, bool equip = false, bool fromProc = false, bool showMsg = true)
         {
             // weird itemCaster -> caster collapsing going on here -- fixme
 
@@ -392,6 +410,14 @@ namespace ACE.Server.WorldObjects
                     caster = this;
                     cloakProc = true;
                 }
+            }
+            else if (fromProc)
+            {
+                // fromProc is assumed to be cloakProc currently
+                // todo: change fromProc from bool to WorldObject
+                // do we need separate concepts for itemCaster and fromProc objects?
+                caster = this;
+                cloakProc = true;
             }
 
             // create enchantment
@@ -432,7 +458,8 @@ namespace ACE.Server.WorldObjects
                     if (target == this)
                         targetName = casterCheck ? "yourself" : "you";
 
-                    player.SendChatMessage(player, $"{casterName} cast {spell.Name} on {targetName}{suffix}", ChatMessageType.Magic);
+                    if(showMsg)
+                        player.SendChatMessage(player, $"{casterName} cast {spell.Name} on {targetName}{suffix}", ChatMessageType.Magic);
                 }
             }
 
@@ -455,7 +482,8 @@ namespace ACE.Server.WorldObjects
             {
                 var targetName = target == playerTarget ? "you" : $"your {target.Name}";
 
-                playerTarget.SendChatMessage(this, $"{caster.Name} cast {spell.Name} on {targetName}{suffix}", ChatMessageType.Magic);
+                if (showMsg)
+                    playerTarget.SendChatMessage(this, $"{caster.Name} cast {spell.Name} on {targetName}{suffix}", ChatMessageType.Magic);
             }
         }
 
@@ -463,13 +491,14 @@ namespace ACE.Server.WorldObjects
         /// Handles casting SpellType.Boost / FellowBoost spells
         /// typically for Life Magic, ie. Heal, Harm
         /// </summary>
-        private void HandleCastSpell_Boost(Spell spell, Creature targetCreature)
+        private void HandleCastSpell_Boost(Spell spell, Creature targetCreature, bool showMsg = true)
         {
             var player = this as Player;
             var creature = this as Creature;
 
-            // double check caster and target are alive
-            if (creature != null && creature.IsDead || targetCreature != null && targetCreature.IsDead)
+            // prevent double deaths from indirect casts
+            // caster is already checked in player/monster, and re-checking caster here would break death emotes such as bunny smite
+            if (targetCreature != null && targetCreature.IsDead)
                 return;
 
             // handle negatives?
@@ -545,7 +574,8 @@ namespace ACE.Server.WorldObjects
                     casterMessage = $"You cast {spell.Name} and {verb} {Math.Abs(boost)} points of your {srcVital}.";
                 }
 
-                player.SendChatMessage(player, casterMessage, ChatMessageType.Magic);
+                if (showMsg)
+                    player.SendChatMessage(player, casterMessage, ChatMessageType.Magic);
             }
 
             if (targetCreature is Player targetPlayer && player != targetPlayer)
@@ -562,7 +592,8 @@ namespace ACE.Server.WorldObjects
                         targetPlayer.SetCurrentAttacker(creature);
                 }
 
-                targetPlayer.SendChatMessage(player, targetMessage, ChatMessageType.Magic);
+                if(showMsg)
+                    targetPlayer.SendChatMessage(player, targetMessage, ChatMessageType.Magic);
             }
 
             if (targetCreature != this && targetCreature.IsAlive && spell.VitalDamageType == DamageType.Health && boost < 0)
@@ -685,15 +716,16 @@ namespace ACE.Server.WorldObjects
         /// Handles casting SpellType.Transfer spells
         /// usually for Life Magic, ie. Stamina to Mana, Drain
         /// </summary>
-        private void HandleCastSpell_Transfer(Spell spell, Creature targetCreature)
+        private void HandleCastSpell_Transfer(Spell spell, Creature targetCreature, bool showMsg = true)
         {
             var player = this as Player;
             var creature = this as Creature;
 
             var targetPlayer = targetCreature as Player;
 
-            // double check caster and target are alive
-            if (creature != null && creature.IsDead || targetCreature != null && targetCreature.IsDead)
+            // prevent double deaths from indirect casts
+            // caster is already checked in player/monster, and re-checking caster here would break death emotes such as bunny smite
+            if (targetCreature != null && targetCreature.IsDead)
                 return;
 
             // source and destination can be the same creature, or different creatures
@@ -846,10 +878,10 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (player != null && sourceMsg != null)
+            if (player != null && sourceMsg != null && showMsg)
                 player.SendChatMessage(player, sourceMsg, ChatMessageType.Magic);
 
-            if (targetPlayer != null && targetMsg != null)
+            if (targetPlayer != null && targetMsg != null && showMsg)
                 targetPlayer.SendChatMessage(caster, targetMsg, ChatMessageType.Magic);
 
 
@@ -1280,6 +1312,8 @@ namespace ACE.Server.WorldObjects
             gateway.Quest = portal.Quest;
             gateway.QuestRestriction = portal.QuestRestriction;
 
+            gateway.Biota.PropertiesEmote = portal.Biota.PropertiesEmote;
+
             gateway.PortalRestrictions |= PortalBitmask.NoSummon; // all gateways are marked NoSummon but by default ruleset, the OriginalPortal is the one that is checked against
 
             gateway.EnterWorld();
@@ -1373,7 +1407,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Handles casting SpellType.Dispel / FellowDispel spells
         /// </summary>
-        private void HandleCastSpell_Dispel(Spell spell, WorldObject target)
+        private void HandleCastSpell_Dispel(Spell spell, WorldObject target, bool showMsg = true)
         {
             var player = this as Player;
             var creature = this as Creature;
@@ -1399,14 +1433,16 @@ namespace ACE.Server.WorldObjects
                 else
                     casterMsg = $"You cast {spell.Name} on {target.Name}{suffix}";
 
-                player.SendChatMessage(player, casterMsg, ChatMessageType.Magic);
+                if(showMsg)
+                    player.SendChatMessage(player, casterMsg, ChatMessageType.Magic);
             }
 
             if (target is Player targetPlayer && targetPlayer != player)
             {
                 var targetMsg = $"{Name} casts {spell.Name} on you{suffix.Replace("and dispel", "and dispels")}";
 
-                targetPlayer.SendChatMessage(this, targetMsg, ChatMessageType.Magic);
+                if (showMsg)
+                    targetPlayer.SendChatMessage(this, targetMsg, ChatMessageType.Magic);
 
                 // all dispels appear to be listed as non-beneficial, even the ones that only dispel negative spells
                 // we filter here to positive or all
@@ -2119,7 +2155,7 @@ namespace ACE.Server.WorldObjects
                     }
                 }
             }
-            else if (spell.IsOtherNegativeRedirectable || spell.IsItemRedirectableType)
+            else if (spell.IsOtherRedirectable || spell.IsItemRedirectableType)
             {
                 // blood loather, spirit loather, lure blade, turn blade, leaden weapon, hermetic void
                 if (targetCreature == null)

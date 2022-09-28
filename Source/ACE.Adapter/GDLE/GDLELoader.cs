@@ -7,11 +7,17 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 using ACE.Database.Models.World;
+using ACE.Database.SQLFormatters.World;
+using System;
+using ACE.Entity;
+using log4net;
 
 namespace ACE.Adapter.GDLE
 {
     public static class GDLELoader
     {
+        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         public static bool TryLoadLandblock(string file, out Models.Landblock result)
         {
             try
@@ -197,6 +203,23 @@ namespace ACE.Adapter.GDLE
                     results = null;
                     links = null;
                     return false;
+                }
+
+                foreach (var landblock in gdleModel.Landblocks)
+                {
+                    var landblockId = landblock.key;
+                    var landblockIdShifted = landblock.key >> 16;
+
+                    if (landblockIdShifted == 0)
+                    {
+                        var landblockIdFixed = landblock.key << 16;
+                        log.Warn($"[GDLELOADER-WORLDSPAWNS] landblockId 0x{landblockIdFixed.ToString("x8")}({landblockIdFixed}) was mistakenly set to 0x{landblockId.ToString("x8")}({landblockId})");
+                    }
+
+                    if((landblock.value.weenies == null || landblock.value.weenies.Count == 0) && (landblock.value.links == null || landblock.value.links.Count == 0))
+                    {
+                        log.Warn($"[GDLELOADER-WORLDSPAWNS] landblockId 0x{landblockIdShifted.ToString("x8")}({landblockIdShifted}) is empty.");
+                    }
                 }
 
                 ReGuidAndConvertLandblocks(out results, out links, startingIdOffset, gdleModel.Landblocks);

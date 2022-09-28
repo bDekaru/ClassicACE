@@ -117,6 +117,19 @@ namespace ACE.Server.Factories.Tables
 
         static GemMaterialChance()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                gemClassValue = new List<int>()
+                {
+                    50,
+                    100,
+                    250,
+                    500,
+                    1000,
+                    2000
+                };
+            }
+
             // build gemMaterialValue
             for (var i = 0; i < gemMaterialChances.Count; i++)
             {

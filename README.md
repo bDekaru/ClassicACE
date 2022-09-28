@@ -1,41 +1,16 @@
-# ACEmulator Core Server
+# ClassicACE [![License](https://img.shields.io/github/license/bDekaru/ClassicACE?style=plastic)](https://github.com/bDekaru/ClassicACE/blob/master/LICENSE) [![Discord](https://img.shields.io/discord/976661229055672350.svg?label=Join+Discord&style=plastic&logo=discord)](https://discord.gg/22F69jny)
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A0A2DN3BX)
 
-[![Discord](https://img.shields.io/discord/261242462972936192.svg?label=play+now!&style=for-the-badge&logo=discord)](https://discord.gg/C2WzhP9)
+**ClassicACE is an Asheron's Call Emulator based on ACEmulator. It adds rulesets which change the gameplay rules:**
+- *Infiltration Ruleset:* Replicates the gameplay of the Infiltration event which was released by Turbine in February 2005.
+- *CustomDM Ruleset:* A variation of the Infiltration ruleset with a lot of tweaks and changes, a truly custom Asheron's Call experience.
+- *EoR Ruleset:* End of Release - replicates the gameplay as it was at the time Asheron's Call was sunsetted. This is ACEmulator's default behavior and is included here for completeness and code compatibility.
 
-Build status: [![GitHub last commit (master)](https://img.shields.io/github/last-commit/acemulator/ace/master)](https://github.com/ACEmulator/ACE/commits/master) [![Windows CI](https://ci.appveyor.com/api/projects/status/rqebda31cgu8u59w/branch/master?svg=true)](https://ci.appveyor.com/project/LtRipley36706/ace/branch/master) [![docker build](https://github.com/ACEmulator/ACE/actions/workflows/docker-image.yml/badge.svg)](https://hub.docker.com/r/acemulator/ace)
+**Required Data Files:**
+- [Infiltration 1.8](https://mega.nz/file/EywGSJYZ#ryYTpCyq8iy21-1cye313ZG2SDyWQyXojc5HD7hC5ro)
+- [CustomDM 1.17](https://mega.nz/file/lrgjFKjb#q8RQARJLFCB6iMdMfSYKg52NECPbOxFkP-eHi9YLxJg)
 
-[![Download Latest Server Release](https://img.shields.io/github/v/release/ACEmulator/ACE?label=latest%20server%20release) ![GitHub Release Date](https://img.shields.io/github/release-date/acemulator/ace)](https://github.com/ACEmulator/ACE/releases/latest)
-[![Download Latest World Database Release](https://img.shields.io/github/v/release/ACEmulator/ACE-World-16PY-Patches?label=latest%20world%20database%20release) ![GitHub Release Date](https://img.shields.io/github/release-date/acemulator/ACE-World-16PY-Patches)](https://github.com/ACEmulator/ACE-World-16PY-Patches/releases/latest)
-
-[![GitHub All Releases](https://img.shields.io/github/downloads/acemulator/ace/total?label=server%20downloads)](https://github.com/ACEmulator/ACE/releases) [![GitHub All Releases](https://img.shields.io/github/downloads/acemulator/ACE-World-16PY-Patches/total?label=database%20downloads)](https://github.com/ACEmulator/ACE-World-16PY-Patches/releases) [![Docker Pulls](https://img.shields.io/docker/pulls/acemulator/ace)](https://hub.docker.com/r/acemulator/ace)
-
-**ACEmulator is a custom, completely from-scratch open source server implementation for Asheron's Call built on C#**
- * MySQL and MariaDB are used as the database engine.
- * Latest client supported.
- * [![License](https://img.shields.io/github/license/acemulator/ace)](https://github.com/ACEmulator/ACE/blob/master/LICENSE)
-
-***
 ## Disclaimer
 **This project is for educational and non-commercial purposes only, use of the game client is for interoperability with the emulated server.**
 - Asheron's Call was a registered trademark of Turbine, Inc. and WB Games Inc which has since expired.
-- ACEmulator is not associated or affiliated in any way with Turbine, Inc. or WB Games Inc.
-***
-## Getting Started
-Extended documentation can be found on the project [Wiki](https://github.com/ACEmulator/ACE/wiki).
-* [Developing ACE](https://github.com/ACEmulator/ACE/wiki/ACE-Development)
-* [Hosting ACE](https://github.com/ACEmulator/ACE/wiki/ACE-Hosting)
-* [Content Creation](https://github.com/ACEmulator/ACE/wiki/Content-Creation)
-
-## Contributions
-* Contributions in the form of issues and pull requests are welcomed and encouraged.
-* The preferred way to contribute is to fork the repo and submit a pull request on GitHub.
-* Code style information can be found on the [Wiki](https://github.com/ACEmulator/ACE/wiki/Code-Style).
-
-Please note that this project is released with a [Contributor Code of Conduct](https://github.com/ACEmulator/ACE/blob/master/CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
-
-## Bug Reports
-* Please use the [issue tracker](https://github.com/ACEmulator/ACE/issues) provided by GitHub to send us bug reports.
-* You may also discuss issues and bug reports on our discord listed below.
-
-## Contact
-* [Discord Channel](https://discord.gg/C2WzhP9)
+- ACEmulator and ClassicACE are not associated or affiliated in any way with Turbine, Inc. or WB Games Inc.

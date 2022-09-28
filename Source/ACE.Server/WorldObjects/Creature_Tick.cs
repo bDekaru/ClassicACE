@@ -36,6 +36,14 @@ namespace ACE.Server.WorldObjects
 
             DamageHistory.TryPrune();
 
+            if (numRecentAttacksReceived > 0)
+            {
+                attacksReceivedPerSecond = numRecentAttacksReceived / (float)CachedHeartbeatInterval;
+                numRecentAttacksReceived = 0;
+            }
+            else if (attacksReceivedPerSecond > 0.0f)
+                attacksReceivedPerSecond = 0.0f;
+
             // delete items when RemainingLifespan <= 0
             foreach (var expireItem in expireItems)
             {

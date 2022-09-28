@@ -1,0 +1,231 @@
+Shield Mutation #1:
+
+Tier Chances: 1, 0, 0, 0, 0, 0
+
+    - Chance: 25%:
+        ArmorLevel += 0
+
+    - Chance: 50%:
+        ArmorLevel += 10
+
+    - Chance: 25%:
+        ArmorLevel += 20
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #2:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance 50%:
+        ArmorLevel += 30
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 30%:
+        ArmorLevel += 40
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 20%:
+        ArmorLevel += 50
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #3:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance 15%:
+        ArmorLevel += 30
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 20%:
+        ArmorLevel += 40
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 30%:
+        ArmorLevel += 50
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 20%:
+        ArmorLevel += 60
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 10%:
+        ArmorLevel += 70
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 5%:
+        ArmorLevel += 80
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #4:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance 5%:
+        ArmorLevel += 40
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 10%:
+        ArmorLevel += 50
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 20%:
+        ArmorLevel += 60
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 30%:
+        ArmorLevel += 70
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 20%:
+        ArmorLevel += 80
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 10%:
+        ArmorLevel += 90
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 55
+
+    - Chance 5%:
+        ArmorLevel += 100
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 55
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #5:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 5%:
+        ArmorLevel += 50
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 10%:
+        ArmorLevel += 60
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 20%:
+        ArmorLevel += 70
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 30%:
+        ArmorLevel += 80
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 20%:
+        ArmorLevel += 90
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 55
+
+    - Chance 10%:
+        ArmorLevel += 100
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 55
+
+    - Chance 5%:
+        ArmorLevel += 110
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 75
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Shield Mutation #6:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 5%:
+        ArmorLevel += 60
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 10%:
+        ArmorLevel += 70
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 20%:
+        ArmorLevel += 80
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 35
+
+    - Chance 30%:
+        ArmorLevel += 90
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 55
+
+    - Chance 20%:
+        ArmorLevel += 100
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 55
+
+    - Chance 10%:
+        ArmorLevel += 110
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 75
+
+    - Chance 5%:
+        ArmorLevel += 120
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 95
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+

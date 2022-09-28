@@ -19,6 +19,16 @@ namespace ACE.Database.SQLFormatters
         /// </summary>
         public IDictionary<uint, string> WeenieNames;
 
+        public IDictionary<uint, string> WeenieClassNames;
+
+        /// <summary>
+        /// Set this to enable auto commenting when creating SQL statements.<para />
+        /// If a weenie id is found in the dictionary, the level will be added in the form of a /* Friendly Weenie Level */
+        /// </summary>
+        public IDictionary<uint, int> WeenieLevels;
+
+        public IDictionary<uint, int> WeenieTypes;
+
         /// <summary>
         /// Set this to enable auto commenting when creating SQL statements.<para />
         /// If a spell id is found in the dictionary, the name will be added in the form of a /* Friendly Spell Name */
@@ -220,7 +230,7 @@ namespace ACE.Database.SQLFormatters
                     }
                     break;
                 case PropertyDataId.WieldedTreasureType:
-                    string treasureW = "";
+                    /*string treasureW = "";
                     if (TreasureWielded != null && TreasureWielded.ContainsKey(value))
                     {
                         foreach (var item in TreasureWielded[value])
@@ -229,16 +239,22 @@ namespace ACE.Database.SQLFormatters
                         }
                         return treasureW;
                     }
-                    else if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
+                    else*/ if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
                     {
-                        return $"Loot Tier: {TreasureDeath[value].Tier}";
+                        if(Enum.IsDefined((TreasureDeathDesc)value))
+                            return $"{(TreasureDeathDesc)value} - Loot Tier: {TreasureDeath[value].Tier}";
+                        else
+                            return $"Loot Tier: {TreasureDeath[value].Tier}";
                     }
                     break;
                 case PropertyDataId.DeathTreasureType:
                     string treasureD = "";
                     if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
                     {
-                        return $"Loot Tier: {TreasureDeath[value].Tier}";
+                        if (Enum.IsDefined((TreasureDeathDesc)value))
+                            return $"{(TreasureDeathDesc)value} - Loot Tier: {TreasureDeath[value].Tier}";
+                        else
+                            return $"Loot Tier: {TreasureDeath[value].Tier}";
                     }
                     else if (TreasureWielded != null && TreasureWielded.ContainsKey(value))
                     {
@@ -281,7 +297,7 @@ namespace ACE.Database.SQLFormatters
 
         protected string GetValueForTreasureData(uint weenieOrType, bool isWeenieClassID = false)
         {
-            string label = "UNKNOWN RANDOMLY GENERATED TREASURE";
+            string label = "Random Loot: Unknown Tier";
 
             uint? deathTreasureType = null;
             uint? wieldedTreasureType = null;
@@ -304,7 +320,7 @@ namespace ACE.Database.SQLFormatters
             {
                 if (TreasureDeath != null && TreasureDeath.ContainsKey(deathTreasureType.Value))
                 {
-                    label = $"RANDOMLY GENERATED TREASURE from Loot Tier {TreasureDeath[deathTreasureType.Value].Tier} from Death Treasure Table id: {deathTreasureType}";
+                    label = $"Random Loot: Tier {TreasureDeath[deathTreasureType.Value].Tier} - DeathTreasureType: {deathTreasureType}({(TreasureDeathDesc)deathTreasureType})";
                 }
                 else if (TreasureWielded != null && TreasureWielded.ContainsKey(wieldedTreasureType.Value))
                 {
@@ -317,7 +333,7 @@ namespace ACE.Database.SQLFormatters
 
                         label += $"{(item.StackSize > 0 ? $"{item.StackSize}" : "1")}x {wName} ({item.WeenieClassId}), ";
                     }
-                    label = label.Substring(0, label.Length - 2) + $" from Wielded Treasure Table id: {wieldedTreasureType}";
+                    label = label.Substring(0, label.Length - 2) + $" - WieldedTreasureType: {wieldedTreasureType}";
                 }
             }
             else

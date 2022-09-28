@@ -69,5 +69,33 @@ namespace ACE.Entity.Enum
                     return AttackType.Undef;
             }
         }
+
+        public static AttackType ReduceMultiStrikeToDouble(this AttackType attackType)
+        {
+            if (!attackType.IsMultiStrike())
+                return AttackType.Undef;
+
+            switch (attackType)
+            {
+                case AttackType.DoubleThrust:
+                case AttackType.TripleThrust:
+                    return AttackType.DoubleThrust;
+
+                case AttackType.DoubleSlash:
+                case AttackType.TripleSlash:
+                    return AttackType.DoubleSlash;
+
+                case AttackType.OffhandDoubleThrust:
+                case AttackType.OffhandTripleThrust:
+                    return AttackType.OffhandDoubleThrust;
+
+                case AttackType.OffhandDoubleSlash:
+                case AttackType.OffhandTripleSlash:
+                    return AttackType.OffhandDoubleSlash;
+
+                default:
+                    return AttackType.Undef;
+            }
+        }
     }
 }

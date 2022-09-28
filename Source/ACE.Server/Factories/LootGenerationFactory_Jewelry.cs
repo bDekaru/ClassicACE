@@ -19,15 +19,27 @@ namespace ACE.Server.Factories
             int jewelrySlot = ThreadSafeRandom.Next(1, 100);
             int jewelType;
 
-            // Made this easier to read (switch -> if statement)
-            if (jewelrySlot <= 31)
-                jewelType = LootTables.ringItems[ThreadSafeRandom.Next(0, LootTables.ringItems.Length - 1)];
-            else if (jewelrySlot <= 62)
-                jewelType = LootTables.braceletItems[ThreadSafeRandom.Next(0, LootTables.braceletItems.Length - 1)];
-            else if (jewelrySlot <= 92)
-                jewelType = LootTables.necklaceItems[ThreadSafeRandom.Next(0, LootTables.necklaceItems.Length - 1)];
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+            {
+                // Made this easier to read (switch -> if statement)
+                if (jewelrySlot <= 31)
+                    jewelType = LootTables.ringItems[ThreadSafeRandom.Next(0, LootTables.ringItems.Length - 1)];
+                else if (jewelrySlot <= 62)
+                    jewelType = LootTables.braceletItems[ThreadSafeRandom.Next(0, LootTables.braceletItems.Length - 1)];
+                else if (jewelrySlot <= 92)
+                    jewelType = LootTables.necklaceItems[ThreadSafeRandom.Next(0, LootTables.necklaceItems.Length - 1)];
+                else
+                    jewelType = LootTables.trinketItems[ThreadSafeRandom.Next(0, LootTables.trinketItems.Length - 1)];
+            }
             else
-                jewelType = LootTables.trinketItems[ThreadSafeRandom.Next(0, LootTables.trinketItems.Length - 1)];
+            {
+                if (jewelrySlot <= 33)
+                    jewelType = LootTables.ringItems[ThreadSafeRandom.Next(0, LootTables.ringItems.Length - 1)];
+                else if (jewelrySlot <= 66)
+                    jewelType = LootTables.braceletItems[ThreadSafeRandom.Next(0, LootTables.braceletItems.Length - 1)];
+                else
+                    jewelType = LootTables.necklaceItems[ThreadSafeRandom.Next(0, LootTables.necklaceItems.Length - 1)];
+            }
 
             WorldObject wo = WorldObjectFactory.CreateNewWorldObject((uint)jewelType);
 
@@ -56,7 +68,7 @@ namespace ACE.Server.Factories
             wo.GemType = RollGemType(profile.Tier);
 
             // workmanship
-            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier);
+            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
 
             // wield level requirement for t7+
             if (profile.Tier > 6)

@@ -110,18 +110,21 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public void HandleActionMagicRemoveSpellId(uint spellId)
+        public bool HandleActionMagicRemoveSpellId(uint spellId, bool suppressErrorMessage = false)
         {
             if (!Biota.TryRemoveKnownSpell((int)spellId, BiotaDatabaseLock))
             {
+                if(!suppressErrorMessage)
                 log.Error("Invalid spellId passed to Player.RemoveSpellFromSpellBook");
-                return;
+                return false;
             }
 
             ChangesDetected = true;
 
             GameEventMagicRemoveSpell removeSpellEvent = new GameEventMagicRemoveSpell(Session, (ushort)spellId);
             Session.Network.EnqueueSend(removeSpellEvent);
+
+            return true;
         }
 
         public void EquipItemFromSet(WorldObject item)

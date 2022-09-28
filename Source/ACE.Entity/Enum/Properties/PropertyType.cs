@@ -9,7 +9,7 @@ namespace ACE.Entity.Enum.Properties
 
         PropertyBool,
         PropertyDataId,
-        PropertyDouble,
+        PropertyFloat,
         PropertyInstanceId,
         PropertyInt,
         PropertyInt64,

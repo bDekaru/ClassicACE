@@ -355,5 +355,11 @@ namespace ACE.Server.WorldObjects
         }
 
         public FactionBits Society => Faction1Bits ?? FactionBits.None;
+
+        public bool IsModified
+        {
+            get => GetProperty(PropertyBool.IsModified) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.IsModified); else SetProperty(PropertyBool.IsModified, value); }
+        }
     }
 }

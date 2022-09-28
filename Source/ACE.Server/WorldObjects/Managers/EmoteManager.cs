@@ -135,14 +135,14 @@ namespace ACE.Server.WorldObjects.Managers
                 case EmoteType.AwardLuminance:
 
                     if (player != null)
-                        player.EarnLuminance(emote.HeroXP64 ?? 0, XpType.Quest, ShareType.None);
+                        player.EarnLuminance(emote.Amount64 ?? emote.HeroXP64 ?? 0, XpType.Quest, ShareType.None);
 
                     break;
 
                 case EmoteType.AwardNoShareXP:
 
                     if (player != null)
-                        player.EarnXP(emote.Amount64 ?? emote.Amount ?? 0, XpType.Quest, ShareType.None);
+                        player.EarnXP(emote.Amount64 ?? emote.Amount ?? 0, XpType.Quest, player.Level, ShareType.None);
 
                     break;
 
@@ -172,9 +172,9 @@ namespace ACE.Server.WorldObjects.Managers
                     if (player != null)
                     {
                         var amt = emote.Amount64 ?? emote.Amount ?? 0;
-                        if (amt > 0)
+                        if (amt > 0 || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            player.EarnXP(amt, XpType.Quest, ShareType.All);
+                            player.EarnXP(amt, XpType.Quest, player.Level, ShareType.All);
                         }
                         else if (amt < 0)
                         {
@@ -256,9 +256,10 @@ namespace ACE.Server.WorldObjects.Managers
                         var treasureClass = (TreasureItemType_Orig?)emote.TreasureClass ?? TreasureItemType_Orig.Undef;
 
                         // Create a dummy treasure profile for passing emote values
-                        var profile = new Database.Models.World.TreasureDeath
+                        var profile = new ACE.Server.Factories.Entity.TreasureDeathExtended
                         {
                             Tier = treasureTier,
+                            ForceTreasureItemType = treasureClass,
                             //TreasureType = (uint)treasureType,
                             LootQualityMod = 0,
                             ItemChance = 100,
@@ -276,7 +277,7 @@ namespace ACE.Server.WorldObjects.Managers
                             UnknownChances = 21
                         };
 
-                        var treasure = LootGenerationFactory.CreateRandomLootObjects_New(profile, treasureType, treasureClass);
+                        var treasure = LootGenerationFactory.CreateRandomLootObjects_New(profile, treasureType);
                         if (treasure != null)
                         {
                             player.TryCreateForGive(WorldObject, treasure);
@@ -1051,8 +1052,10 @@ namespace ACE.Server.WorldObjects.Managers
                         else
                             newPos.Rotation = new Quaternion(emote.AnglesX ?? 0, emote.AnglesY ?? 0, emote.AnglesZ ?? 0, emote.AnglesW ?? 1);
 
-                        if (emote.ObjCellId != null)
-                            newPos.LandblockId = new LandblockId(emote.ObjCellId.Value);
+                        //if (emote.ObjCellId != null)
+                        //newPos.LandblockId = new LandblockId(emote.ObjCellId.Value);
+
+                        newPos.LandblockId = new LandblockId(PositionExtensions.GetCell(newPos));
 
                         // TODO: handle delay for this?
                         creature.MoveTo(newPos, creature.GetRunRate(), true, null, emote.Extent);
@@ -1239,7 +1242,7 @@ namespace ACE.Server.WorldObjects.Managers
                 case EmoteType.SpendLuminance:
 
                     if (player != null)
-                        player.SpendLuminance(emote.HeroXP64 ?? 0);
+                        player.SpendLuminance(emote.Amount64 ?? emote.HeroXP64 ?? 0);
                     break;
 
                 case EmoteType.StampFellowQuest:

@@ -87,7 +87,7 @@ namespace ACE.Server.Factories
             wo.GemType = RollGemType(profile.Tier);
 
             // workmanship
-            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier);
+            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
 
             // burden
             if (wo.HasMutateFilter(MutateFilter.EncumbranceVal))  // fixme: data
@@ -206,34 +206,53 @@ namespace ACE.Server.Factories
 
         private static string GetMutationScript_ArmorLevel(WorldObject wo, TreasureRoll roll)
         {
-            switch (roll.ArmorType)
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
             {
-                case TreasureArmorType.Covenant:
-
+                string ruleset = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? "Infiltration" : "CustomDM";
+                if (roll.ArmorType == TreasureArmorType.Covenant)
+                {
                     if (wo.IsShield)
-                        return "ArmorLevel.covenant_shield.txt";
-                    else
-                        return "ArmorLevel.covenant_armor.txt";
-
-                case TreasureArmorType.Olthoi:
-
+                        return $"ArmorLevel.{ruleset}.covenant_shield_level.txt";
+                    return $"ArmorLevel.{ruleset}.covenant_armor_level.txt";
+                }
+                else
+                {
                     if (wo.IsShield)
-                        return "ArmorLevel.olthoi_shield.txt";
-                    else
-                        return "ArmorLevel.olthoi_armor.txt";
+                        return $"ArmorLevel.{ruleset}.shield_level.txt";
+                    return $"ArmorLevel.{ruleset}.armor_level.txt";
+                }
             }
-
-            if (wo.IsShield)
-                return "ArmorLevel.shield_level.txt";
-
-            var coverage = wo.ClothingPriority ?? 0;
-
-            if ((coverage & (CoverageMask)CoverageMaskHelper.Extremities) != 0)
-                return "ArmorLevel.armor_level_extremity.txt";
-            else if ((coverage & (CoverageMask)CoverageMaskHelper.Outerwear) != 0)
-                return "ArmorLevel.armor_level_non_extremity.txt";
             else
-                return null;
+            {
+                switch (roll.ArmorType)
+                {
+                    case TreasureArmorType.Covenant:
+
+                        if (wo.IsShield)
+                            return "ArmorLevel.covenant_shield.txt";
+                        else
+                            return "ArmorLevel.covenant_armor.txt";
+
+                    case TreasureArmorType.Olthoi:
+
+                        if (wo.IsShield)
+                            return "ArmorLevel.olthoi_shield.txt";
+                        else
+                            return "ArmorLevel.olthoi_armor.txt";
+                }
+
+                if (wo.IsShield)
+                    return "ArmorLevel.shield_level.txt";
+
+                var coverage = wo.ClothingPriority ?? 0;
+
+                if ((coverage & (CoverageMask)CoverageMaskHelper.Extremities) != 0)
+                    return "ArmorLevel.armor_level_extremity.txt";
+                else if ((coverage & (CoverageMask)CoverageMaskHelper.Outerwear) != 0)
+                    return "ArmorLevel.armor_level_non_extremity.txt";
+                else
+                    return null;
+            }
         }
 
         /// <summary>
@@ -745,7 +764,7 @@ namespace ACE.Server.Factories
 
             wo.GemType = RollGemType(profile.Tier);
 
-            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier);
+            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
 
             wo.Value = Roll_ItemValue(wo, profile.Tier);
 
@@ -840,7 +859,7 @@ namespace ACE.Server.Factories
             wo.MaterialType = GetMaterialType(wo, profile.Tier);
 
             // workmanship
-            wo.Workmanship = WorkmanshipChance.Roll(profile.Tier);
+            wo.Workmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
 
             if (roll != null && profile.Tier == 8)
                 TryMutateGearRating(wo, profile, roll);
@@ -924,17 +943,24 @@ namespace ACE.Server.Factories
 
             var armorLevel = wo.ArmorLevel ?? 0;
 
-            // from the py16 mutation scripts
-            //wo.Value += (int)(armorLevel * armorLevel / 10.0f * bulkMod * sizeMod);
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
+            {
+                // from the py16 mutation scripts
+                //wo.Value += (int)(armorLevel * armorLevel / 10.0f * bulkMod * sizeMod);
 
-            // still probably not how retail did it
-            // modified for armor values to match closer to retail pcaps
-            var minRng = (float)Math.Min(bulkMod, sizeMod);
-            var maxRng = (float)Math.Max(bulkMod, sizeMod);
+                // still probably not how retail did it
+                // modified for armor values to match closer to retail pcaps
+                var minRng = (float)Math.Min(bulkMod, sizeMod);
+                var maxRng = (float)Math.Max(bulkMod, sizeMod);
 
-            var rng = ThreadSafeRandom.Next(minRng, maxRng);
+                var rng = ThreadSafeRandom.Next(minRng, maxRng);
 
-            wo.Value += (int)(armorLevel * armorLevel / 10.0f * rng);
+                wo.Value += (int)(armorLevel * armorLevel / 10.0f * rng);
+            }
+            else
+            {
+                wo.Value += (int)(armorLevel * bulkMod * sizeMod);
+            }
         }
 
         private static void MutateArmorModVsType(WorldObject wo, TreasureDeath profile)

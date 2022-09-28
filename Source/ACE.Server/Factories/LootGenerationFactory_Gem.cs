@@ -34,7 +34,7 @@ namespace ACE.Server.Factories
         private static void MutateGem(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll = null)
         {
             // workmanship
-            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier);
+            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
 
             // item color
             MutateColor(wo);
@@ -119,15 +119,24 @@ namespace ACE.Server.Factories
             var _spell = new Server.Entity.Spell(finalSpellId);
 
             // retail spellcraft was capped at 370
-            wo.ItemSpellcraft = Math.Min((int)_spell.Power, 370);
+            wo.ItemSpellcraft = Math.Min(GetSpellPower(_spell), 370);
 
             var castableMana = (int)_spell.BaseMana * 5;
 
             wo.ItemMaxMana = RollItemMaxMana_New(wo, roll, castableMana);
             wo.ItemCurMana = wo.ItemMaxMana;
 
-            // verified
-            wo.ItemManaCost = castableMana;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                // verified
+                wo.ItemManaCost = castableMana;
+            }
+            else
+            {
+                wo.ItemManaCost = (int)_spell.BaseMana;
+
+                AddActivationRequirements(wo, profile, roll);
+            }
 
             return true;
         }
@@ -144,11 +153,23 @@ namespace ACE.Server.Factories
 
         private static void MutateValue_Gem(WorldObject wo)
         {
-            var materialMod = MaterialTable.GetValueMod(wo.MaterialType);
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                var materialMod = MaterialTable.GetValueMod(wo.MaterialType);
 
-            var workmanshipMod = WorkmanshipChance.GetModifier(wo.ItemWorkmanship);
+                var workmanshipMod = WorkmanshipChance.GetModifier(wo.ItemWorkmanship);
 
-            wo.Value = (int)(wo.Value * materialMod * workmanshipMod);
+                wo.Value = (int)(wo.Value * materialMod * workmanshipMod);
+            }
+            else
+            {
+                var gemValue = GemMaterialChance.GemValue(wo.MaterialType);
+                var materialMod = MaterialTable.GetValueMod(wo.MaterialType);
+
+                var workmanshipMod = WorkmanshipChance.GetModifier(wo.ItemWorkmanship);
+
+                wo.Value = (int)(gemValue * materialMod * workmanshipMod);
+            }
         }
     }
 }

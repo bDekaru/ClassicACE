@@ -31,6 +31,18 @@ namespace ACE.DatLoader.Entity
             Attr2 = (uint)attr2;
             Z = divisor;
             X = 1;
+            if (attr2 != PropertyAttribute.Undef)
+                Y = 1;
+        }
+
+        public SkillFormula(PropertyAttribute attr1, uint attr1Multiplier, PropertyAttribute attr2, uint attr2Multiplier, uint divisor, uint addition)
+        {
+            Attr1 = (uint)attr1;
+            X = attr1Multiplier;
+            Attr2 = (uint)attr2;
+            Y = attr2Multiplier;
+            Z = divisor;
+            W = addition;
         }
     }
 }

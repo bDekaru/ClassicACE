@@ -7,6 +7,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Factories;
+using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics;
@@ -49,7 +50,7 @@ namespace ACE.Server.WorldObjects
             ActOnUse(activator, false);
         }
 
-        public void ActOnUse(WorldObject activator, bool confirmed)
+        public void ActOnUse(WorldObject activator, bool confirmed, WorldObject target = null)
         {
             if (!(activator is Player player))
                 return;
@@ -76,7 +77,7 @@ namespace ACE.Server.WorldObjects
             if (RareId != null && player.GetCharacterOption(CharacterOption.ConfirmUseOfRareGems) && !confirmed)
             {
                 var msg = $"Are you sure you want to use {Name}?";
-                var confirm = new Confirmation_Custom(player.Guid, () => ActOnUse(activator, true));
+                var confirm = new Confirmation_Custom(player.Guid, () => ActOnUse(activator, true, target));
                 if (!player.ConfirmationManager.EnqueueSend(confirm, msg))
                     player.SendWeenieError(WeenieError.ConfirmationInProgress);
                 return;
@@ -107,13 +108,13 @@ namespace ACE.Server.WorldObjects
 
                 var animMod = (UseUserAnimation == MotionCommand.MimeDrink || UseUserAnimation == MotionCommand.MimeEat) ? 0.5f : 1.0f;
 
-                player.ApplyConsumable(UseUserAnimation, () => UseGem(player), animMod);
+                player.ApplyConsumable(UseUserAnimation, () => UseGem(player, target), animMod);
             }
             else
-                UseGem(player);
+                UseGem(player, target);
         }
 
-        public void UseGem(Player player)
+        public void UseGem(Player player, WorldObject target)
         {
             if (player.IsDead) return;
 
@@ -137,19 +138,45 @@ namespace ACE.Server.WorldObjects
                 player.EnqueueBroadcast(new GameMessageSystemChat($"{player.Name} used the rare item {Name}", ChatMessageType.Broadcast));
             }
 
+            bool usesMana = false;
             if (SpellDID.HasValue)
             {
                 var spell = new Spell((uint)SpellDID);
+
+                usesMana = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (ItemManaCost ?? 0) != 0;
+                if (usesMana)
+                {
+                    int manaCost;
+
+                    var manaConversion = player.GetCreatureSkill(Skill.ManaConversion);
+                    if (manaConversion.AdvancementClass < SkillAdvancementClass.Trained)
+                        manaCost = (int)ItemManaCost;
+                    else
+                        manaCost = (int)Player.GetManaCost((uint)ItemSpellcraft, (uint)ItemManaCost, manaConversion.Current);
+
+                    if (ItemCurMana >= manaCost)
+                    {
+                        ItemCurMana -= manaCost;
+                        player.Session.Network.EnqueueSend(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.ItemCurMana, (int)ItemCurMana));
+                    }
+                    else
+                    {
+                        player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"The {Name} doesn't have enough mana!"));
+                        return;
+                    }
+                }
 
                 // should be 'You cast', instead of 'Item cast'
                 // omitting the item caster here, so player is also used for enchantment registry caster,
                 // which could prevent some scenarios with spamming enchantments from multiple gem sources to protect against dispels
 
                 // TODO: figure this out better
-                if (spell.MetaSpellType == SpellType.PortalSummon)
+                if (spell.MetaSpellType == SpellType.PortalSummon && (LinkedPortalOneDID != null || LinkedPortalTwoDID != null)) // if we're a summon portal gem and we have a linked portal use that, otherwise use the player's.
                     TryCastSpell(spell, player, this, tryResist: false);
                 else if (spell.IsImpenBaneType || spell.IsItemRedirectableType)
                     player.TryCastItemEnchantment_WithRedirects(spell, player, this);
+                else if(target != null)
+                    player.TryCastSpell(spell, target, this, tryResist: false);
                 else
                     player.TryCastSpell(spell, player, this, tryResist: false);
             }
@@ -163,6 +190,28 @@ namespace ACE.Server.WorldObjects
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name} accepted. Click on the quill icon in the lower right corner to open your contract tab to view your active contracts.", ChatMessageType.Broadcast));
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if (TacticAndTechniqueId > 0)
+                {
+                    switch ((TacticAndTechniqueType)TacticAndTechniqueId)
+                    {
+                        case TacticAndTechniqueType.Taunt:
+                            if (player.ToggleTauntSetting())
+                                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You will now start attempting to taunt opponents into attacking you.", ChatMessageType.Broadcast));
+                            else
+                                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You will no longer attempt to taunt opponents.", ChatMessageType.Broadcast));
+                            break;
+                        case TacticAndTechniqueType.Sneak:
+                            if (!player.IsSneaking)
+                                player.BeginSneaking();
+                            else
+                                player.EndSneaking();
+                            break;
+                    }
+                }
+            }
+
             if (UseCreateItem > 0)
             {
                 if (!HandleUseCreateItem(player))
@@ -172,7 +221,7 @@ namespace ACE.Server.WorldObjects
             if (UseSound > 0)
                 player.Session.Network.EnqueueSend(new GameMessageSound(player.Guid, UseSound));
 
-            if ((GetProperty(PropertyBool.UnlimitedUse) ?? false) == false)
+            if (!usesMana && (GetProperty(PropertyBool.UnlimitedUse) ?? false) == false)
                 player.TryConsumeFromInventoryWithNetworking(this, 1);
         }
 
@@ -246,8 +295,13 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            // fallback on recipe manager?
-            base.HandleActionUseOnTarget(player, target);
+            if (RecipeManager.GetRecipe(player, this, target) != null) // if we have a recipe do that, otherwise redirect to ActOnUse with a target.
+                base.HandleActionUseOnTarget(player, target);
+            else
+            {
+                ActOnUse(player, false, target);
+                player.SendUseDoneEvent();
+            }
         }
 
         /// <summary>

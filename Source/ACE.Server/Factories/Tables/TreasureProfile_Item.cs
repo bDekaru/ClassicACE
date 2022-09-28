@@ -108,6 +108,98 @@ namespace ACE.Server.Factories.Tables
             itemProfile11,
         };
 
+        static TreasureProfile_Item()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+               itemProfile8 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,    2.0f ),
+                    ( TreasureItemType_Orig.Armor,     2.0f ),
+                    ( TreasureItemType_Orig.Clothing,  1.5f ),
+                    ( TreasureItemType_Orig.Jewelry,   1.5f ),
+                    ( TreasureItemType_Orig.Gem,       1.5f ),
+                    ( TreasureItemType_Orig.ArtObject, 1.5f ),
+                };
+
+                itemProfile9 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,    4.6f ),
+                    ( TreasureItemType_Orig.Armor,     4.0f ),
+                    ( TreasureItemType_Orig.Clothing,  0.4f ),
+                    ( TreasureItemType_Orig.Jewelry,   0.2f ),
+                    ( TreasureItemType_Orig.Gem,       0.4f ),
+                    ( TreasureItemType_Orig.ArtObject, 0.4f ),
+                };
+
+                itemProfile10 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,    1.0f ),
+                    ( TreasureItemType_Orig.Armor,     1.0f ),
+                };
+
+                // we have to refresh this list or it will still contain the previous values.
+                itemProfiles = new List<ChanceTable<TreasureItemType_Orig>>()
+                {
+                    itemProfile1,
+                    itemProfile2,
+                    itemProfile3,
+                    itemProfile4,
+                    itemProfile5,
+                    itemProfile6,
+                    itemProfile7,
+                    itemProfile8,
+                    itemProfile9,
+                    itemProfile10,
+                    itemProfile11,
+                };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                itemProfile8 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,    2.0f ),
+                    ( TreasureItemType_Orig.Armor,     2.0f ),
+                    ( TreasureItemType_Orig.Clothing,  1.5f ),
+                    ( TreasureItemType_Orig.Jewelry,   1.5f ),
+                    ( TreasureItemType_Orig.Gem,       1.5f ),
+                    ( TreasureItemType_Orig.ArtObject, 1.5f ),
+                };
+
+                itemProfile9 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,    4.6f ),
+                    ( TreasureItemType_Orig.Armor,     4.0f ),
+                    ( TreasureItemType_Orig.Clothing,  0.4f ),
+                    ( TreasureItemType_Orig.Jewelry,   0.2f ),
+                    ( TreasureItemType_Orig.Gem,       0.4f ),
+                    ( TreasureItemType_Orig.ArtObject, 0.4f ),
+                };
+
+                itemProfile10 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,    1.0f ),
+                    ( TreasureItemType_Orig.Armor,     1.0f ),
+                };
+
+                // we have to refresh this list or it will still contain the previous values.
+                itemProfiles = new List<ChanceTable<TreasureItemType_Orig>>()
+                {
+                    itemProfile1,
+                    itemProfile2,
+                    itemProfile3,
+                    itemProfile4,
+                    itemProfile5,
+                    itemProfile6,
+                    itemProfile7,
+                    itemProfile8,
+                    itemProfile9,
+                    itemProfile10,
+                    itemProfile11,
+                };
+            }
+        }
+
         /// <summary>
         /// Rolls for a TreasureItemType for a non-magical TreasureItemCategory.Item
         /// </summary>

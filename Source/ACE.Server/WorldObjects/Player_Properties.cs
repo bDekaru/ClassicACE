@@ -453,6 +453,18 @@ namespace ACE.Server.WorldObjects
             set { if (value == null) RemoveProperty(PropertyString.Afk); else SetProperty(PropertyString.Afk, value); }
         }
 
+        public long? XpTrackerStartTimestamp
+        {
+            get => GetProperty(PropertyInt64.XpTrackerStartTimestamp);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt64.XpTrackerStartTimestamp); else SetProperty(PropertyInt64.XpTrackerStartTimestamp, value.Value); }
+        }
+
+        public long? XpTrackerTotalXp
+        {
+            get => GetProperty(PropertyInt64.XpTrackerTotalXp);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt64.XpTrackerTotalXp); else SetProperty(PropertyInt64.XpTrackerTotalXp, value.Value); }
+        }
+
         // ========================================
         // ===== Player Properties - Titles========
         // ========================================
@@ -1310,6 +1322,24 @@ namespace ACE.Server.WorldObjects
             set { if (!value) RemoveProperty(PropertyBool.NoOlthoiTalk); else SetProperty(PropertyBool.NoOlthoiTalk, value); }
         }
 
+        // not sure of the exact use for these fields in retail
+        // from the name, i would be inclined to think the last time an OlthoiPlayer found / looted some slag
+        // it could also mean the last time a Player corpse generated some slag
+
+        // going to lean towards the latter, and use it to indicate the last time a Player died to an OlthoiPlayer
+
+        public int? OlthoiLootTimestamp
+        {
+            get => GetProperty(PropertyInt.OlthoiLootTimestamp);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.OlthoiLootTimestamp); else SetProperty(PropertyInt.OlthoiLootTimestamp, value.Value); }
+        }
+
+        public int? OlthoiLootStep
+        {
+            get => GetProperty(PropertyInt.OlthoiLootStep);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.OlthoiLootStep); else SetProperty(PropertyInt.OlthoiLootStep, value.Value); }
+        }
+
         /// <summary>
         /// Returns player's augmentation resistance for damage type
         /// </summary>
@@ -1351,6 +1381,12 @@ namespace ACE.Server.WorldObjects
         {
             get => GetProperty(PropertyInt.ImbueSuccesses) ?? 0;
             set { if (value == 0) RemoveProperty(PropertyInt.ImbueSuccesses); else SetProperty(PropertyInt.ImbueSuccesses, value); }
+        }
+
+        public int? LeyLineSeed
+        {
+            get => GetProperty(PropertyInt.LeyLineSeed);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.LeyLineSeed); else SetProperty(PropertyInt.LeyLineSeed, value.Value); }
         }
     }
 }

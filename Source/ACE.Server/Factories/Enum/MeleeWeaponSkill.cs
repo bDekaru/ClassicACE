@@ -9,6 +9,13 @@ namespace ACE.Server.Factories.Enum
         LightWeapons,
         FinesseWeapons,
         TwoHandedCombat,
+        Axe,
+        Dagger,
+        Mace,
+        Spear,
+        Staff,
+        Sword,
+        UnarmedCombat
     };
 
     public static class MeleeWeaponSkillExtensions
@@ -25,6 +32,20 @@ namespace ACE.Server.Factories.Enum
                     return MeleeWeaponSkill.FinesseWeapons;
                 case Skill.TwoHandedCombat:
                     return MeleeWeaponSkill.TwoHandedCombat;
+                case Skill.Axe:
+                    return MeleeWeaponSkill.Axe;
+                case Skill.Dagger:
+                    return MeleeWeaponSkill.Dagger;
+                case Skill.Mace:
+                    return MeleeWeaponSkill.Mace;
+                case Skill.Spear:
+                    return MeleeWeaponSkill.Spear;
+                case Skill.Staff:
+                    return MeleeWeaponSkill.Staff;
+                case Skill.Sword:
+                    return MeleeWeaponSkill.Sword;
+                case Skill.UnarmedCombat:
+                    return MeleeWeaponSkill.UnarmedCombat;
             }
             return MeleeWeaponSkill.Undef;
         }
@@ -41,6 +62,20 @@ namespace ACE.Server.Factories.Enum
                     return "finesse";
                 case MeleeWeaponSkill.TwoHandedCombat:
                     return "two_handed";
+                case MeleeWeaponSkill.Axe:
+                    return "axe";
+                case MeleeWeaponSkill.Dagger:
+                    return "dagger";
+                case MeleeWeaponSkill.Mace:
+                    return "mace";
+                case MeleeWeaponSkill.Spear:
+                    return "spear";
+                case MeleeWeaponSkill.Staff:
+                    return "staff";
+                case MeleeWeaponSkill.Sword:
+                    return "sword";
+                case MeleeWeaponSkill.UnarmedCombat:
+                    return "unarmed";
             }
             return null;
         }

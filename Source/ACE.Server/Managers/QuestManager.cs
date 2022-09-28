@@ -328,6 +328,28 @@ namespace ACE.Server.Managers
             return true;
         }
 
+        public uint GetMinDelta(string questFormat)
+        {
+            var questName = GetQuestName(questFormat);
+
+            var quest = DatabaseManager.World.GetCachedQuest(questName);
+            if (quest == null)
+                return uint.MaxValue;
+
+            var playerQuest = GetQuest(questName);
+            if (playerQuest == null)
+                return uint.MaxValue;
+
+            uint scaledMinDelta;
+
+            if (CanScaleQuestMinDelta(quest))
+                scaledMinDelta = (uint)(quest.MinDelta * PropertyManager.GetDouble("quest_mindelta_rate", 1).Item);
+            else
+                scaledMinDelta = quest.MinDelta;
+
+            return scaledMinDelta;
+        }
+
         /// <summary>
         /// Returns the time remaining until the player can solve this quest again
         /// </summary>

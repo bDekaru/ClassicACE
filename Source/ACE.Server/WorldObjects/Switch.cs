@@ -1,5 +1,5 @@
 using System;
-
+using ACE.Common;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
@@ -29,6 +29,7 @@ namespace ACE.Server.WorldObjects
 
         private void SetEphemeralValues()
         {
+            UseTimestamp = Time.GetUnixTime();
         }
 
         public uint? UseTargetAnimation
@@ -40,6 +41,22 @@ namespace ACE.Server.WorldObjects
         public override void OnActivate(WorldObject activator)
         {
             if (!(activator is Creature)) return;
+
+            if (ResetInterval != null)
+            {
+                if(UseTimestamp >= Time.GetUnixTime())
+                {
+                    var activatorPlayer = activator as Player;
+                    if (activatorPlayer != null)
+                    {
+                        string failMessage = ActivationFailure == null ? $"The {Name.ToLower()} was used too recently!" : ActivationFailure;
+                        activatorPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat(failMessage, ChatMessageType.Broadcast));
+                    }
+                    return;
+                }
+                else
+                    UseTimestamp = Time.GetFutureUnixTime(ResetInterval.Value);
+            }
 
             // move this to base?
             EnqueueBroadcast(new GameMessageSound(activator.Guid, Sound.TriggerActivated));

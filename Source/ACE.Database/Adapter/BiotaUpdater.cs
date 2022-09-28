@@ -559,6 +559,7 @@ namespace ACE.Database.Adapter
                     existingValue.InitLevel = kvp.Value.InitLevel;
                     existingValue.ResistanceAtLastCheck = kvp.Value.ResistanceAtLastCheck;
                     existingValue.LastUsedTime = kvp.Value.LastUsedTime;
+                    existingValue.SecondaryTo = (ushort)kvp.Value.SecondaryTo;
                 }
             }
             foreach (var value in targetBiota.BiotaPropertiesSkill)

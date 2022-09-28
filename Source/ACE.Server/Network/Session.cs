@@ -58,6 +58,12 @@ namespace ACE.Server.Network
         public bool DatWarnLanguage;
 
         /// <summary>
+        /// Rate limiter for DDD packets
+        /// </summary>
+        public static readonly TimeSpan DDDInterval = TimeSpan.FromSeconds(6);
+        public DateTime LastDDDTime { get; set; }
+
+        /// <summary>
         /// Rate limiter for /passwd command
         /// </summary>
         public DateTime LastPassTime { get; set; }

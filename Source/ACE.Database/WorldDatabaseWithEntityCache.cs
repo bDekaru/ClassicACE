@@ -428,13 +428,18 @@ namespace ACE.Database
             return cachedEncounters.Count(r => r.Value != null);
         }
 
-        public List<Encounter> GetCachedEncountersByLandblock(ushort landblock)
+        public List<Encounter> GetCachedEncountersByLandblock(ushort landblock, out bool wasCached)
         {
             if (cachedEncounters.TryGetValue(landblock, out var value))
+            {
+                wasCached = true;
                 return value;
+            }
 
             using (var context = new WorldDbContext())
             {
+                wasCached = false;
+
                 var results = context.Encounter
                     .AsNoTracking()
                     .Where(r => r.Landblock == landblock)
@@ -443,6 +448,12 @@ namespace ACE.Database
                 cachedEncounters.TryAdd(landblock, results);
                 return results;
             }
+        }
+
+        public void ClearEncountersCache()
+        {
+            lock (cachedEncounters)
+                cachedEncounters.Clear();
         }
 
         public bool ClearCachedEncountersByLandblock(ushort landblock)
@@ -824,6 +835,11 @@ namespace ACE.Database
                 cachedDeathTreasure[dataId] = result;
                 return result;
             }
+        }
+
+        public void ClearDeathTreasureCache()
+        {
+            cachedDeathTreasure.Clear();
         }
 
 

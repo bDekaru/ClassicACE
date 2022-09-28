@@ -309,8 +309,110 @@ namespace ACE.Database
             }
         }
 
+        public void ProcessPartialSave(ref ACE.Entity.Models.Biota biota)
+        {
+            if (biota.IsPartiallyPersistant)
+            {
+                ACE.Entity.Models.Biota partialBiota = new ACE.Entity.Models.Biota();
+                partialBiota.Id = biota.Id;
+                partialBiota.WeenieClassId = biota.WeenieClassId;
+                partialBiota.WeenieType = biota.WeenieType;
+                partialBiota.PartialPersitanceFilter = biota.PartialPersitanceFilter;
+
+                foreach (var entry in biota.PartialPersitanceFilter)
+                {
+                    if (entry.PropertyType == PropertyType.PropertyBool)
+                    {
+                        if (biota.PropertiesBool.TryGetValue((PropertyBool)entry.Property, out var entryValue))
+                        {
+                            if (partialBiota.PropertiesBool == null)
+                                partialBiota.PropertiesBool = new Dictionary<PropertyBool, bool>();
+                            partialBiota.PropertiesBool.Add((PropertyBool)entry.Property, entryValue);
+                        }
+                    }
+                    else if (entry.PropertyType == PropertyType.PropertyDataId)
+                    {
+                        if (biota.PropertiesDID.TryGetValue((PropertyDataId)entry.Property, out var entryValue))
+                        {
+                            if (partialBiota.PropertiesDID == null)
+                                partialBiota.PropertiesDID = new Dictionary<PropertyDataId, uint>();
+                            partialBiota.PropertiesDID.Add((PropertyDataId)entry.Property, entryValue);
+                        }
+                    }
+                    else if (entry.PropertyType == PropertyType.PropertyFloat)
+                    {
+                        if (biota.PropertiesFloat.TryGetValue((PropertyFloat)entry.Property, out var entryValue))
+                        {
+                            if (partialBiota.PropertiesFloat == null)
+                                partialBiota.PropertiesFloat = new Dictionary<PropertyFloat, double>();
+                            partialBiota.PropertiesFloat.Add((PropertyFloat)entry.Property, entryValue);
+                        }
+                    }
+                    else if (entry.PropertyType == PropertyType.PropertyInstanceId)
+                    {
+                        if (biota.PropertiesIID.TryGetValue((PropertyInstanceId)entry.Property, out var entryValue))
+                        {
+                            if (partialBiota.PropertiesIID == null)
+                                partialBiota.PropertiesIID = new Dictionary<PropertyInstanceId, uint>();
+                            partialBiota.PropertiesIID.Add((PropertyInstanceId)entry.Property, entryValue);
+                        }
+                    }
+                    else if (entry.PropertyType == PropertyType.PropertyInt)
+                    {
+                        if (biota.PropertiesInt.TryGetValue((PropertyInt)entry.Property, out var entryValue))
+                        {
+                            if (partialBiota.PropertiesInt == null)
+                                partialBiota.PropertiesInt = new Dictionary<PropertyInt, int>();
+                            partialBiota.PropertiesInt.Add((PropertyInt)entry.Property, entryValue);
+                        }
+                    }
+                    else if (entry.PropertyType == PropertyType.PropertyInt64)
+                    {
+                        if (biota.PropertiesInt64.TryGetValue((PropertyInt64)entry.Property, out var entryValue))
+                        {
+                            if (partialBiota.PropertiesInt64 == null)
+                                partialBiota.PropertiesInt64 = new Dictionary<PropertyInt64, long>();
+                            partialBiota.PropertiesInt64.Add((PropertyInt64)entry.Property, entryValue);
+                        }
+                    }
+                    else if (entry.PropertyType == PropertyType.PropertyString)
+                    {
+                        if (biota.PropertiesString.TryGetValue((PropertyString)entry.Property, out var entryValue))
+                        {
+                            if (partialBiota.PropertiesString == null)
+                                partialBiota.PropertiesString = new Dictionary<PropertyString, string>();
+                            partialBiota.PropertiesString.Add((PropertyString)entry.Property, entryValue);
+                        }
+                    }
+                    // Todo: Add partial collection support for the following properties if we ever need them:
+                    // PropertiesPosition
+                    // PropertiesSpellBook
+                    // PropertiesAnimPart
+                    // PropertiesPalette
+                    // PropertiesTextureMap
+                    // PropertiesCreateList
+                    // PropertiesEmote
+                    // PropertiesEventFilter
+                    // PropertiesGenerator
+                    // PropertiesAttribute
+                    // PropertiesAttribute2nd
+                    // PropertiesBodyPart
+                    // PropertiesSkill
+                    // PropertiesBook
+                    // PropertiesBookPageData
+                    // PropertiesAllegiance
+                    // PropertiesEnchantmentRegistry
+                    // HousePermissions
+                }
+
+                biota = partialBiota;
+            }
+        }
+
         public virtual bool SaveBiota(ACE.Entity.Models.Biota biota, ReaderWriterLockSlim rwLock)
         {
+            ProcessPartialSave(ref biota);
+
             using (var context = new ShardDbContext())
             {
                 var existingBiota = GetBiota(context, biota.Id);
@@ -597,6 +699,7 @@ namespace ACE.Database
             query.Include(r => r.CharacterPropertiesSpellBar).Load();
             query.Include(r => r.CharacterPropertiesSquelch).Load();
             query.Include(r => r.CharacterPropertiesTitleBook).Load();
+            query.Include(r => r.CharacterPropertiesCampRegistry).Load();
 
             foreach (var result in results)
                 CharacterContexts.Add(result, context);
@@ -845,6 +948,80 @@ namespace ACE.Database
             finally
             {
                 rwLock.ExitReadLock();
+            }
+        }
+
+        public void LogAccountSessionStart(uint accountId, string accountName, string sessionIP)
+        {
+            var logEntry = new AccountSessionLog();
+
+            try
+            {
+                logEntry.AccountId = accountId;
+                logEntry.AccountName = accountName;
+                logEntry.SessionIP = sessionIP;
+                logEntry.LoginDateTime = DateTime.Now;
+
+                using (var context = new ShardDbContext())
+                {
+                    context.AccountSessions.Add(logEntry);
+                    context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Exception in LogAccountSessionStart saving session log data to DB. Ex: {ex}");
+            }
+
+            return;
+        }
+
+        public void LogCharacterLogin(uint accountId, string accountName, string sessionIP, uint characterId, string characterName)
+        {
+            var logEntry = new CharacterLoginLog();
+
+            try
+            {
+                logEntry.AccountId = accountId;
+                logEntry.AccountName = accountName;
+                logEntry.SessionIP = sessionIP;
+                logEntry.CharacterId = characterId;
+                logEntry.CharacterName = characterName;
+                logEntry.LoginDateTime = DateTime.Now;
+
+                using (var context = new ShardDbContext())
+                {
+                    context.CharacterLogins.Add(logEntry);
+                    context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Exception in LogCharacterLogin saving character login info to DB. Ex: {ex}");
+            }
+        }
+
+        public void CreatePKKill(uint victimId, uint killerId, uint? victimMonarchId, uint? killerMonarchId)
+        {
+            var kill = new PKKill();
+
+            try
+            {
+                kill.VictimId = victimId;
+                kill.KillerId = killerId;
+                kill.VictimMonarchId = victimMonarchId;
+                kill.KillerMonarchId = killerMonarchId;
+                kill.KillDateTime = DateTime.Now;
+
+                using (var context = new ShardDbContext())
+                {
+                    context.PKKills.Add(kill);
+                    context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Exception in CreateKill saving kill data to PKKills DB. Ex: {ex}");
             }
         }
     }

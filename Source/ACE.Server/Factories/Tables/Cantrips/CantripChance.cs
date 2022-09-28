@@ -285,6 +285,118 @@ namespace ACE.Server.Factories.Tables
 
         static CantripChance()
         {
+            if(Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            {
+                T1_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 1.0f ),
+                };
+
+                T2_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 1.0f ),
+                };
+
+                T3_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.98f ),
+                    ( 1, 0.02f ),
+                };
+
+                T4_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.95f ),
+                    ( 1, 0.05f ),
+                };
+
+                T5_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.95f ),
+                    ( 1, 0.04f ),
+                    ( 2, 0.01f ),
+                };
+
+                T6_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.930f ),
+                    ( 1, 0.050f ),
+                    ( 2, 0.015f ),
+                    ( 3, 0.005f ),
+                };
+
+                T7_T8_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.930f ),
+                    ( 1, 0.050f ),
+                    ( 2, 0.015f ),
+                    ( 3, 0.005f ),
+                };
+
+                _numCantrips = new List<ChanceTable<int>>()
+                {
+                    T1_NumCantrips,
+                    T2_NumCantrips,
+                    T3_NumCantrips,
+                    T4_NumCantrips,
+                    T5_NumCantrips,
+                    T6_NumCantrips,
+                    T7_T8_NumCantrips,
+                    T7_T8_NumCantrips,
+                };
+
+                T1_T2_CantripLevel = new ChanceTable<int>()
+                {
+                    ( 1, 1.0f )
+                };
+
+                T3_CantripLevel = new ChanceTable<int>()
+                {
+                    ( 1, 1.0f ),
+                };
+
+                T4_CantripLevel = new ChanceTable<int>()
+                {
+                    ( 1, 0.90f ),
+                    ( 2, 0.10f ),
+                };
+
+                T5_CantripLevel = new ChanceTable<int>()
+                {
+                    ( 1, 0.85f ),
+                    ( 2, 0.15f ),
+                };
+
+                T6_CantripLevel = new ChanceTable<int>()
+                {
+                    ( 1, 0.80f ),
+                    ( 2, 0.20f ),
+                };
+
+                T7_CantripLevel = new ChanceTable<int>()
+                {
+                    ( 1, 0.80f ),
+                    ( 2, 0.20f ),
+                };
+
+                T8_CantripLevel = new ChanceTable<int>()
+                {
+                    ( 1, 0.80f ),
+                    ( 2, 0.20f ),
+                };
+
+                _cantripLevels = new List<ChanceTable<int>>()
+                {
+                    T1_T2_CantripLevel,
+                    T1_T2_CantripLevel,
+                    T3_CantripLevel,
+                    T4_CantripLevel,
+                    T5_CantripLevel,
+                    T6_CantripLevel,
+                    T7_CantripLevel,
+                    T8_CantripLevel,
+                };
+            }
+
             ApplyNumCantripsMod(false);
             ApplyCantripLevelsMod(false);
         }

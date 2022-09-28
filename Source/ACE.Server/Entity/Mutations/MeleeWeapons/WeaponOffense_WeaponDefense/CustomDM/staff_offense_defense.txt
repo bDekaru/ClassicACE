@@ -1,0 +1,366 @@
+Staff Mutation #8:
+
+Tier chances: 1, 0, 0, 0, 0, 0
+
+    - Chance 5%:
+
+    - Chance 15%:
+        WeaponOffense += 0.01
+
+    - Chance 30%:
+        WeaponOffense += 0.02
+
+    - Chance 30%:
+        WeaponOffense += 0.03
+
+    - Chance 15%:
+        WeaponOffense += 0.04
+
+    - Chance 5%:
+        WeaponOffense += 0.05
+
+Staff Mutation #9:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance 5%:
+        WeaponOffense += 0.02
+
+    - Chance 15%:
+        WeaponOffense += 0.03
+
+    - Chance 30%:
+        WeaponOffense += 0.04
+
+    - Chance 30%:
+        WeaponOffense += 0.05
+
+    - Chance 15%:
+        WeaponOffense += 0.06
+
+    - Chance 5%:
+        WeaponOffense += 0.07
+
+Staff Mutation #10:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance 2%:
+        WeaponOffense += 0.03
+
+    - Chance 5%:
+        WeaponOffense += 0.04
+
+    - Chance 15%:
+        WeaponOffense += 0.05
+
+    - Chance 25%:
+        WeaponOffense += 0.06
+
+    - Chance 30%:
+        WeaponOffense += 0.07
+
+    - Chance 15%:
+        WeaponOffense += 0.08
+
+    - Chance 5%:
+        WeaponOffense += 0.09
+
+    - Chance 3%:
+        WeaponOffense += 0.1
+
+Staff Mutation #11:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance 5%:
+        WeaponOffense += 0.05
+
+    - Chance 15%:
+        WeaponOffense += 0.06
+
+    - Chance 25%:
+        WeaponOffense += 0.07
+
+    - Chance 30%:
+        WeaponOffense += 0.08
+
+    - Chance 15%:
+        WeaponOffense += 0.09
+
+    - Chance 5%:
+        WeaponOffense += 0.1
+
+    - Chance 3%:
+        WeaponOffense += 0.11
+
+    - Chance 2%:
+        WeaponOffense += 0.12
+
+Staff Mutation #12:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 3%:
+        WeaponOffense += 0.06
+
+    - Chance 5%:
+        WeaponOffense += 0.07
+
+    - Chance 15%:
+        WeaponOffense += 0.08
+
+    - Chance 25%:
+        WeaponOffense += 0.09
+
+    - Chance 25%:
+        WeaponOffense += 0.1
+
+    - Chance 15%:
+        WeaponOffense += 0.11
+
+    - Chance 5%:
+        WeaponOffense += 0.12
+
+    - Chance 3%:
+        WeaponOffense += 0.13
+
+    - Chance 2%:
+        WeaponOffense += 0.14
+
+    - Chance 2%:
+        WeaponOffense += 0.15
+
+Staff Mutation #13:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 5%:
+        WeaponOffense += 0.07
+
+    - Chance 5%:
+        WeaponOffense += 0.08
+
+    - Chance 10%:
+        WeaponOffense += 0.09
+
+    - Chance 15%:
+        WeaponOffense += 0.1
+
+    - Chance 20%:
+        WeaponOffense += 0.11
+
+    - Chance 20%:
+        WeaponOffense += 0.12
+
+    - Chance 15%:
+        WeaponOffense += 0.13
+
+    - Chance 5%:
+        WeaponOffense += 0.14
+
+    - Chance 5%:
+        WeaponOffense += 0.15
+
+Staff Mutation #14:
+
+Tier chances: 1, 0, 0, 0, 0, 0
+
+    - Chance 5%:
+
+    - Chance 15%:
+        WeaponDefense += 0.01
+
+    - Chance 30%:
+        WeaponDefense += 0.02
+
+    - Chance 30%:
+        WeaponDefense += 0.03
+
+    - Chance 15%:
+        WeaponDefense += 0.04
+
+    - Chance 5%:
+        WeaponDefense += 0.05
+
+Staff Mutation #15:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance 5%:
+        WeaponDefense += 0.02
+
+    - Chance 15%:
+        WeaponDefense += 0.03
+
+    - Chance 30%:
+        WeaponDefense += 0.04
+
+    - Chance 30%:
+        WeaponDefense += 0.05
+
+    - Chance 15%:
+        WeaponDefense += 0.06
+
+    - Chance 5%:
+        WeaponDefense += 0.07
+
+Staff Mutation #16:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance 2%:
+        WeaponDefense += 0.03
+
+    - Chance 5%:
+        WeaponDefense += 0.04
+
+    - Chance 15%:
+        WeaponDefense += 0.05
+
+    - Chance 25%:
+        WeaponDefense += 0.06
+
+    - Chance 30%:
+        WeaponDefense += 0.07
+
+    - Chance 15%:
+        WeaponDefense += 0.08
+
+    - Chance 5%:
+        WeaponDefense += 0.09
+
+    - Chance 3%:
+        WeaponDefense += 0.1
+
+Staff Mutation #17:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance 5%:
+        WeaponDefense += 0.05
+
+    - Chance 15%:
+        WeaponDefense += 0.06
+
+    - Chance 25%:
+        WeaponDefense += 0.07
+
+    - Chance 30%:
+        WeaponDefense += 0.08
+
+    - Chance 15%:
+        WeaponDefense += 0.09
+
+    - Chance 5%:
+        WeaponDefense += 0.1
+
+    - Chance 3%:
+        WeaponDefense += 0.11
+
+    - Chance 2%:
+        WeaponDefense += 0.12
+
+Staff Mutation #18:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 3%:
+        WeaponDefense += 0.06
+
+    - Chance 5%:
+        WeaponDefense += 0.07
+
+    - Chance 15%:
+        WeaponDefense += 0.08
+
+    - Chance 25%:
+        WeaponDefense += 0.09
+
+    - Chance 25%:
+        WeaponDefense += 0.1
+
+    - Chance 15%:
+        WeaponDefense += 0.11
+
+    - Chance 5%:
+        WeaponDefense += 0.12
+
+    - Chance 3%:
+        WeaponDefense += 0.13
+
+    - Chance 2%:
+        WeaponDefense += 0.14
+
+    - Chance 2%:
+        WeaponDefense += 0.15
+
+Staff Mutation #19:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 5%:
+        WeaponDefense += 0.07
+
+    - Chance 5%:
+        WeaponDefense += 0.08
+
+    - Chance 10%:
+        WeaponDefense += 0.09
+
+    - Chance 15%:
+        WeaponDefense += 0.1
+
+    - Chance 20%:
+        WeaponDefense += 0.11
+
+    - Chance 20%:
+        WeaponDefense += 0.12
+
+    - Chance 15%:
+        WeaponDefense += 0.13
+
+    - Chance 5%:
+        WeaponDefense += 0.14
+
+    - Chance 5%:
+        WeaponDefense += 0.15
+
+Staff Mutation #20:
+
+Tier chances: 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
+
+    - Chance 10%:
+        WeaponMissileDefense = 1.005
+
+    - Chance 20%:
+        WeaponMissileDefense = 1.01
+
+    - Chance 40%:
+        WeaponMissileDefense = 1.015
+
+    - Chance 20%:
+        WeaponMissileDefense = 1.02
+
+    - Chance 10%:
+        WeaponMissileDefense = 1.025
+
+Staff Mutation #21:
+
+Tier chances: 0.1, 0.1, 0.1, 0.1, 0.1, 0.1
+
+    - Chance 10%:
+        WeaponMagicDefense = 1.005
+
+    - Chance 20%:
+        WeaponMagicDefense = 1.01
+
+    - Chance 40%:
+        WeaponMagicDefense = 1.015
+
+    - Chance 20%:
+        WeaponMagicDefense = 1.02
+
+    - Chance 10%:
+        WeaponMagicDefense = 1.025
+

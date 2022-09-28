@@ -201,6 +201,20 @@ namespace ACE.Server.WorldObjects
             if (!(activator is Player player))
                 return new ActivationResult(true);
 
+            // heritage requirement
+            if (!IsCreature && HeritageGroup != 0)
+            {
+                if (player.HeritageGroup != HeritageGroup)
+                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, HeritageGroup.ToString()));
+            }
+
+            // allegiance rank requirement
+            if (ItemAllegianceRankLimit != null)
+            {
+                if((player.AllegianceRank ?? 0) < ItemAllegianceRankLimit)
+                    return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YourAllegianceRankIsTooLowToUseMagic));
+            }
+
             // verify arcane lore requirement
             if (ItemDifficulty != null)
             {

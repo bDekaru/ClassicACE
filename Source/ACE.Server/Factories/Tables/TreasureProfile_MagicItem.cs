@@ -213,6 +213,192 @@ namespace ACE.Server.Factories.Tables
             magicItemProfile24,
         };
 
+        static TreasureProfile_MagicItem()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+                magicItemProfile8 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,             2.0f ),
+                    ( TreasureItemType_Orig.Armor,              2.0f ),
+                    ( TreasureItemType_Orig.Scroll,             1.2f ),
+                    ( TreasureItemType_Orig.Clothing,           1.2f ),
+                    ( TreasureItemType_Orig.Jewelry,            1.2f ),
+                    ( TreasureItemType_Orig.Gem,                1.2f ),
+                    ( TreasureItemType_Orig.ArtObject,          1.2f ),
+                };
+
+                magicItemProfile9 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,             4.0f ),
+                    ( TreasureItemType_Orig.Armor,              3.6f ),
+                    ( TreasureItemType_Orig.Scroll,             1.0f ),
+                    ( TreasureItemType_Orig.Clothing,           0.4f ),
+                    ( TreasureItemType_Orig.Jewelry,            0.2f ),
+                    ( TreasureItemType_Orig.Gem,                0.4f ),
+                    ( TreasureItemType_Orig.ArtObject,          0.4f ),
+                };
+
+                magicItemProfile10 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,             3.0f ),
+                    ( TreasureItemType_Orig.Armor,              3.0f ),
+                    ( TreasureItemType_Orig.Scroll,             2.0f ),
+                    ( TreasureItemType_Orig.Clothing,           1.0f ),
+                    ( TreasureItemType_Orig.Jewelry,            1.0f ),
+                };
+
+                magicItemProfile11 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Jewelry,            1.0f ),
+                    ( TreasureItemType_Orig.Gem,                1.0f ),
+                    ( TreasureItemType_Orig.ArtObject,          1.0f ),
+                };
+
+                magicItemProfile12 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Scroll,             2.0f ),
+                    ( TreasureItemType_Orig.Jewelry,            1.0f ),
+                    ( TreasureItemType_Orig.Gem,                1.0f ),
+                    ( TreasureItemType_Orig.ArtObject,          1.0f ),
+                };
+
+                magicItemProfile22 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,             3.5f ),
+                    ( TreasureItemType_Orig.Armor,              3.5f ),
+                    ( TreasureItemType_Orig.Clothing,           1.5f ),
+                    ( TreasureItemType_Orig.Jewelry,            1.5f ),
+                };
+
+                magicItemProfile23 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Clothing,           3.0f ),
+                    ( TreasureItemType_Orig.Jewelry,            2.0f ),
+                };
+
+                // we have to refresh this list or it will still contain the previous values.
+                magicItemProfiles = new List<ChanceTable<TreasureItemType_Orig>>()
+                {
+                    magicItemProfile1,
+                    magicItemProfile2,
+                    magicItemProfile3,
+                    magicItemProfile4,
+                    magicItemProfile5,
+                    magicItemProfile6,
+                    magicItemProfile7,
+                    magicItemProfile8,
+                    magicItemProfile9,
+                    magicItemProfile10,
+                    magicItemProfile11,
+                    magicItemProfile12,
+                    magicItemProfile13,
+                    magicItemProfile14,
+                    magicItemProfile15,
+                    magicItemProfile16,
+                    magicItemProfile17,
+                    magicItemProfile18,
+                    magicItemProfile19,
+                    magicItemProfile20,
+                    magicItemProfile21,
+                    magicItemProfile22,
+                    magicItemProfile23,
+                    magicItemProfile24,
+                };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                magicItemProfile8 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,             2.0f ),
+                    ( TreasureItemType_Orig.Armor,              2.0f ),
+                    ( TreasureItemType_Orig.Scroll,             1.2f ),
+                    ( TreasureItemType_Orig.Clothing,           1.2f ),
+                    ( TreasureItemType_Orig.Jewelry,            1.2f ),
+                    ( TreasureItemType_Orig.Gem,                1.2f ),
+                    ( TreasureItemType_Orig.ArtObject,          1.2f ),
+                };
+
+                magicItemProfile9 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,             4.0f ),
+                    ( TreasureItemType_Orig.Armor,              3.6f ),
+                    ( TreasureItemType_Orig.Scroll,             1.0f ),
+                    ( TreasureItemType_Orig.Clothing,           0.4f ),
+                    ( TreasureItemType_Orig.Jewelry,            0.2f ),
+                    ( TreasureItemType_Orig.Gem,                0.4f ),
+                    ( TreasureItemType_Orig.ArtObject,          0.4f ),
+                };
+
+                magicItemProfile10 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,             3.0f ),
+                    ( TreasureItemType_Orig.Armor,              3.0f ),
+                    ( TreasureItemType_Orig.Scroll,             2.0f ),
+                    ( TreasureItemType_Orig.Clothing,           1.0f ),
+                    ( TreasureItemType_Orig.Jewelry,            1.0f ),
+                };
+
+                magicItemProfile11 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Jewelry,            1.0f ),
+                    ( TreasureItemType_Orig.Gem,                1.0f ),
+                    ( TreasureItemType_Orig.ArtObject,          1.0f ),
+                };
+
+                magicItemProfile12 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Scroll,             2.0f ),
+                    ( TreasureItemType_Orig.Jewelry,            1.0f ),
+                    ( TreasureItemType_Orig.Gem,                1.0f ),
+                    ( TreasureItemType_Orig.ArtObject,          1.0f ),
+                };
+
+                magicItemProfile22 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Weapon,             3.5f ),
+                    ( TreasureItemType_Orig.Armor,              3.5f ),
+                    ( TreasureItemType_Orig.Clothing,           1.5f ),
+                    ( TreasureItemType_Orig.Jewelry,            1.5f ),
+                };
+
+                magicItemProfile23 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Clothing,           3.0f ),
+                    ( TreasureItemType_Orig.Jewelry,            2.0f ),
+                };
+
+                // we have to refresh this list or it will still contain the previous values.
+                magicItemProfiles = new List<ChanceTable<TreasureItemType_Orig>>()
+                {
+                    magicItemProfile1,
+                    magicItemProfile2,
+                    magicItemProfile3,
+                    magicItemProfile4,
+                    magicItemProfile5,
+                    magicItemProfile6,
+                    magicItemProfile7,
+                    magicItemProfile8,
+                    magicItemProfile9,
+                    magicItemProfile10,
+                    magicItemProfile11,
+                    magicItemProfile12,
+                    magicItemProfile13,
+                    magicItemProfile14,
+                    magicItemProfile15,
+                    magicItemProfile16,
+                    magicItemProfile17,
+                    magicItemProfile18,
+                    magicItemProfile19,
+                    magicItemProfile20,
+                    magicItemProfile21,
+                    magicItemProfile22,
+                    magicItemProfile23,
+                    magicItemProfile24,
+                };
+            }
+        }
+
         /// <summary>
         /// Rolls for a TreasureItemType for a TreasureItemCategory.MagicItem
         /// </summary>

@@ -36,6 +36,13 @@ namespace ACE.Common
         public bool PurgeOrphanedBiotas { get; set; }
 
         /// <summary>
+        /// This will purge camp entries that have expired.
+        /// </summary>
+        [System.ComponentModel.DefaultValue(false)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        public bool PurgeExpiredCampEntries { get; set; }
+
+        /// <summary>
         /// Prune deleted characters from all friend lists
         /// </summary>
         [System.ComponentModel.DefaultValue(true)]

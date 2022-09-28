@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -52,11 +52,15 @@ namespace ACE.Database.Models.Shard
         public virtual DbSet<CharacterPropertiesSpellBar> CharacterPropertiesSpellBar { get; set; }
         public virtual DbSet<CharacterPropertiesSquelch> CharacterPropertiesSquelch { get; set; }
         public virtual DbSet<CharacterPropertiesTitleBook> CharacterPropertiesTitleBook { get; set; }
+        public virtual DbSet<CharacterPropertiesCampRegistry> CharacterPropertiesCampRegistry { get; set; }
         public virtual DbSet<ConfigPropertiesBoolean> ConfigPropertiesBoolean { get; set; }
         public virtual DbSet<ConfigPropertiesDouble> ConfigPropertiesDouble { get; set; }
         public virtual DbSet<ConfigPropertiesLong> ConfigPropertiesLong { get; set; }
         public virtual DbSet<ConfigPropertiesString> ConfigPropertiesString { get; set; }
         public virtual DbSet<HousePermission> HousePermission { get; set; }
+        public virtual DbSet<AccountSessionLog> AccountSessions { get; set; }
+        public virtual DbSet<CharacterLoginLog> CharacterLogins { get; set; }
+        public virtual DbSet<PKKill> PKKills { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -64,7 +68,7 @@ namespace ACE.Database.Models.Shard
             {
                 var config = Common.ConfigManager.Config.MySql.Shard;
 
-                var connectionString = $"server={config.Host};port={config.Port};user={config.Username};password={config.Password};database={config.Database};TreatTinyAsBoolean=False";
+                var connectionString = $"server={config.Host};port={config.Port};user={config.Username};password={config.Password};database={config.Database};TreatTinyAsBoolean=False;SslMode=None;AllowPublicKeyRetrieval=true;ApplicationName=ACEmulator";
 
                 optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString), builder =>
                 {
@@ -103,6 +107,10 @@ namespace ACE.Database.Models.Shard
                 entity.Property(e => e.WeenieType)
                     .HasColumnName("weenie_Type")
                     .HasComment("WeenieType for this Object");
+
+                entity.Property(e => e.IsPartialCollection)
+                    .HasColumnName("is_Partial_Collection")
+                    .HasDefaultValueSql("'0'");
             });
 
             modelBuilder.Entity<BiotaPropertiesAllegiance>(entity =>
@@ -1087,6 +1095,10 @@ namespace ACE.Database.Models.Shard
                     .HasColumnName("s_a_c")
                     .HasComment("skill state");
 
+                entity.Property(e => e.SecondaryTo)
+                    .HasColumnName("secondary_To")
+                    .HasComment("Id of the skill this is a secondary skill of");
+
                 entity.HasOne(d => d.Object)
                     .WithMany(p => p.BiotaPropertiesSkill)
                     .HasForeignKey(d => d.ObjectId)
@@ -1456,6 +1468,38 @@ namespace ACE.Database.Models.Shard
                     .HasConstraintName("wcid_titlebook");
             });
 
+            modelBuilder.Entity<CharacterPropertiesCampRegistry>(entity =>
+            {
+                entity.HasKey(e => new { e.CharacterId, e.CampId })
+                    .HasName("PRIMARY")
+                    .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+
+                entity.ToTable("character_properties_camp_registry");
+
+                entity.HasComment("Camp Properties of Weenies");
+
+                entity.Property(e => e.CharacterId)
+                    .HasColumnName("character_Id")
+                    .HasComment("Id of the character this property belongs to");
+
+                entity.Property(e => e.CampId)
+                    .HasColumnName("camp_Id")
+                    .HasComment("Unique Id of Camp");
+
+                entity.Property(e => e.NumInteractions)
+                    .HasColumnName("num_Interactions")
+                    .HasComment("Number of interactions with this camp");
+
+                entity.Property(e => e.LastDecayTime)
+                    .HasColumnName("last_Decay_Time")
+                    .HasComment("Timestamp of last decay of the number of interactions in this camp");
+
+                entity.HasOne(d => d.Character)
+                    .WithMany(p => p.CharacterPropertiesCampRegistry)
+                    .HasForeignKey(d => d.CharacterId)
+                    .HasConstraintName("wcid_campRegistry");
+            });
+
             modelBuilder.Entity<ConfigPropertiesBoolean>(entity =>
             {
                 entity.HasKey(e => e.Key)
@@ -1549,6 +1593,82 @@ namespace ACE.Database.Models.Shard
                     .WithMany(p => p.HousePermission)
                     .HasForeignKey(d => d.HouseId)
                     .HasConstraintName("biota_Id_house_Id");
+            });
+
+            modelBuilder.Entity<AccountSessionLog>(entity =>
+            {
+                entity.HasKey(e => e.Id)
+                    .HasName("PRIMARY");
+
+                entity.Property(e => e.Id).HasColumnName("sessionLogId");
+
+                entity.ToTable("account_session_log");
+
+                entity.Property(e => e.AccountId)
+                    .HasColumnName("accountId");
+
+                entity.Property(e => e.AccountName)
+                    .HasColumnName("accountName");
+
+                entity.Property(e => e.SessionIP)
+                    .HasColumnName("sessionIP");
+
+                entity.Property(e => e.LoginDateTime)
+                    .HasColumnName("loginDateTime");
+            });
+
+            modelBuilder.Entity<CharacterLoginLog>(entity =>
+            {
+                entity.HasKey(e => e.Id)
+                    .HasName("PRIMARY");
+
+                entity.Property(e => e.Id).HasColumnName("characterLoginLogId");
+
+                entity.ToTable("character_login_log");
+
+                entity.Property(e => e.AccountId)
+                    .HasColumnName("accountId");
+
+                entity.Property(e => e.AccountName)
+                    .HasColumnName("accountName");
+
+                entity.Property(e => e.SessionIP)
+                    .HasColumnName("sessionIP");
+
+                entity.Property(e => e.CharacterId)
+                    .HasColumnName("characterId");
+
+                entity.Property(e => e.CharacterName)
+                    .HasColumnName("characterName");
+
+                entity.Property(e => e.LoginDateTime)
+                    .HasColumnName("loginDateTime");
+            });
+
+            modelBuilder.Entity<PKKill>(entity =>
+            {
+                entity.HasKey(e => e.Id)
+                    .HasName("PRIMARY");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.ToTable("pkkills");
+
+
+                entity.Property(e => e.VictimId)
+                    .HasColumnName("victim_id");
+
+                entity.Property(e => e.KillerId)
+                    .HasColumnName("killer_id");
+
+                entity.Property(e => e.VictimMonarchId)
+                    .HasColumnName("victim_monarch_id");
+
+                entity.Property(e => e.KillerMonarchId)
+                    .HasColumnName("killer_monarch_id");
+
+                entity.Property(e => e.KillDateTime)
+                    .HasColumnName("kill_datetime");
             });
 
             OnModelCreatingPartial(modelBuilder);

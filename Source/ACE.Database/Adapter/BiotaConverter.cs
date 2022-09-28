@@ -377,6 +377,7 @@ namespace ACE.Database.Adapter
                         InitLevel = record.InitLevel,
                         ResistanceAtLastCheck = record.ResistanceAtLastCheck,
                         LastUsedTime = record.LastUsedTime,
+                        SecondaryTo = (Skill)record.SecondaryTo,
                     };
 
                     result.PropertiesSkill[(Skill)record.Type] = newEntity;
@@ -482,7 +483,7 @@ namespace ACE.Database.Adapter
             result.Id = biota.Id;
             result.WeenieClassId = biota.WeenieClassId;
             result.WeenieType = (int)biota.WeenieType;
-
+            result.IsPartialCollection = biota.IsPartiallyPersistant;
 
             if (biota.PropertiesBool != null)
             {
@@ -811,6 +812,7 @@ namespace ACE.Database.Adapter
                         InitLevel = kvp.Value.InitLevel,
                         ResistanceAtLastCheck = kvp.Value.ResistanceAtLastCheck,
                         LastUsedTime = kvp.Value.LastUsedTime,
+                        SecondaryTo = (ushort)kvp.Value.SecondaryTo,
                     };
 
                     result.BiotaPropertiesSkill.Add(entity);

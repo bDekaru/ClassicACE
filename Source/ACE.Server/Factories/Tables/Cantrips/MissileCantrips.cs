@@ -37,8 +37,111 @@ namespace ACE.Server.Factories.Tables
         {
             // takes ~0.3ms
             BuildSpells();
-        }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+                missileCantrips = new ChanceTable<SpellId>(ChanceTableType.Weight)
+                {
+                    ( SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1, 1.0f ),        // gets mutated into weapon skill aptitude,
+
+                    ( SpellId.CANTRIPDEFENDER1,               0.7f ),
+                    ( SpellId.CANTRIPSTRENGTH1,               0.7f ),
+                    ( SpellId.CANTRIPCOORDINATION1,           0.7f ),
+
+                    ( SpellId.CANTRIPBLOODTHIRST1,            0.6f ),
+                    ( SpellId.CANTRIPSWIFTHUNTER1,            0.6f ),
+                    ( SpellId.CANTRIPQUICKNESS1,              0.6f ),
+
+                    ( SpellId.CANTRIPENDURANCE1,              0.5f ),
+
+                    ( SpellId.CANTRIPARCANEPROWESS1,          0.4f ),
+                    ( SpellId.CANTRIPIMPREGNABILITY1,         0.4f ),
+
+                    ( SpellId.CANTRIPINVULNERABILITY1,        0.3f ),
+                    ( SpellId.CANTRIPMAGICRESISTANCE1,        0.3f ),
+
+                    ( SpellId.CANTRIPALCHEMICALPROWESS1,      0.1f ),
+                    ( SpellId.CANTRIPARMOREXPERTISE1,         0.1f ),
+                    ( SpellId.CANTRIPCOOKINGPROWESS1,         0.1f ),
+                    ( SpellId.CANTRIPDECEPTIONPROWESS1,       0.1f ),
+                    ( SpellId.CANTRIPFEALTY1,                 0.1f ),
+                    ( SpellId.CANTRIPFLETCHINGPROWESS1,       0.1f ),
+                    ( SpellId.CANTRIPHEALINGPROWESS1,         0.1f ),
+                    ( SpellId.CANTRIPITEMEXPERTISE1,          0.1f ),
+                    ( SpellId.CANTRIPJUMPINGPROWESS1,         0.1f ),
+                    ( SpellId.CANTRIPLEADERSHIP1,             0.1f ),
+                    ( SpellId.CANTRIPLOCKPICKPROWESS1,        0.1f ),
+                    ( SpellId.CANTRIPMAGICITEMEXPERTISE1,     0.1f ),
+                    ( SpellId.CANTRIPMONSTERATTUNEMENT1,      0.1f ),
+                    ( SpellId.CANTRIPPERSONATTUNEMENT1,       0.1f ),
+                    ( SpellId.CANTRIPSPRINT1,                 0.1f ),
+                    ( SpellId.CANTRIPWEAPONEXPERTISE1,        0.1f ),
+
+                    ( SpellId.CANTRIPARMOR1,                  0.1f ),
+                    ( SpellId.CANTRIPACIDWARD1,               0.1f ),
+                    ( SpellId.CANTRIPBLUDGEONINGWARD1,        0.1f ),
+                    ( SpellId.CANTRIPFLAMEWARD1,              0.1f ),
+                    ( SpellId.CANTRIPFROSTWARD1,              0.1f ),
+                    ( SpellId.CANTRIPPIERCINGWARD1,           0.1f ),
+                    ( SpellId.CANTRIPSLASHINGWARD1,           0.1f ),
+                    ( SpellId.CANTRIPSTORMWARD1,              0.1f ),
+
+                    ( SpellId.CANTRIPFOCUS1,                  0.1f ),
+                    ( SpellId.CANTRIPWILLPOWER1,              0.1f ),
+                };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                missileCantrips = new ChanceTable<SpellId>(ChanceTableType.Weight)
+                {
+                    ( SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1, 1.0f ),        // gets mutated into weapon skill aptitude,
+
+                    ( SpellId.CANTRIPDEFENDER1,               0.7f ),
+                    ( SpellId.CANTRIPSTRENGTH1,               0.7f ),
+                    ( SpellId.CANTRIPCOORDINATION1,           0.7f ),
+
+                    ( SpellId.CANTRIPBLOODTHIRST1,            0.6f ),
+                    ( SpellId.CANTRIPSWIFTHUNTER1,            0.6f ),
+                    ( SpellId.CANTRIPQUICKNESS1,              0.6f ),
+
+                    ( SpellId.CANTRIPENDURANCE1,              0.5f ),
+
+                    ( SpellId.CANTRIPARCANEPROWESS1,          0.4f ),
+                    ( SpellId.CANTRIPIMPREGNABILITY1,         0.4f ),
+
+                    ( SpellId.CANTRIPINVULNERABILITY1,        0.3f ),
+                    ( SpellId.CANTRIPMAGICRESISTANCE1,        0.3f ),
+
+                    ( SpellId.CANTRIPALCHEMICALPROWESS1,      0.1f ),
+                    ( SpellId.CANTRIPARMOREXPERTISE1,         0.1f ),
+                    ( SpellId.CANTRIPCOOKINGPROWESS1,         0.1f ),
+                    ( SpellId.CANTRIPDECEPTIONPROWESS1,       0.1f ),
+                    ( SpellId.CANTRIPFEALTY1,                 0.1f ),
+                    ( SpellId.CANTRIPFLETCHINGPROWESS1,       0.1f ),
+                    ( SpellId.CANTRIPHEALINGPROWESS1,         0.1f ),
+                    ( SpellId.CANTRIPITEMEXPERTISE1,          0.1f ),
+                    ( SpellId.CANTRIPJUMPINGPROWESS1,         0.1f ),
+                    ( SpellId.CANTRIPLEADERSHIP1,             0.1f ),
+                    ( SpellId.CANTRIPLOCKPICKPROWESS1,        0.1f ),
+                    ( SpellId.CANTRIPMAGICITEMEXPERTISE1,     0.1f ),
+                    ( SpellId.CANTRIPMONSTERATTUNEMENT1,      0.1f ),
+                    ( SpellId.CANTRIPSPRINT1,                 0.1f ),
+                    ( SpellId.CANTRIPWEAPONEXPERTISE1,        0.1f ),
+
+                    ( SpellId.CANTRIPARMOR1,                  0.1f ),
+                    ( SpellId.CANTRIPACIDWARD1,               0.1f ),
+                    ( SpellId.CANTRIPBLUDGEONINGWARD1,        0.1f ),
+                    ( SpellId.CANTRIPFLAMEWARD1,              0.1f ),
+                    ( SpellId.CANTRIPFROSTWARD1,              0.1f ),
+                    ( SpellId.CANTRIPPIERCINGWARD1,           0.1f ),
+                    ( SpellId.CANTRIPSLASHINGWARD1,           0.1f ),
+                    ( SpellId.CANTRIPSTORMWARD1,              0.1f ),
+
+                    ( SpellId.CANTRIPFOCUS1,                  0.1f ),
+                    ( SpellId.CANTRIPWILLPOWER1,              0.1f ),
+                };
+            }
+        }
         private static void BuildSpells()
         {
             for (var i = 0; i < spells.Count; i++)

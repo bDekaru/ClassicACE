@@ -57,12 +57,40 @@ namespace ACE.Server.Entity
             if (formula.X == 0) return 0;
 
             var attr1 = (PropertyAttribute)formula.Attr1;
+            var attr1Multiplier = formula.X;
             var attr2 = (PropertyAttribute)formula.Attr2;
+            var attr2Multiplier = formula.Y;
             var divisor = formula.Z;
+            var addition = formula.W;
 
-            var total = current ? creature.Attributes[attr1].Current : creature.Attributes[attr1].Base;
+            var total = (current ? creature.Attributes[attr1].Current : creature.Attributes[attr1].Base) * attr1Multiplier;
             if (attr2 != PropertyAttribute.Undef)
-                total += current ? creature.Attributes[attr2].Current : creature.Attributes[attr2].Base;
+                total += (current ? creature.Attributes[attr2].Current : creature.Attributes[attr2].Base) * attr2Multiplier;
+
+            total += addition;
+
+            if (divisor != 1)
+                total = (uint)((float)total / divisor).Round();
+
+            return total;
+        }
+
+        public static uint GetFormula(DatLoader.Entity.SkillFormula formula, uint currentOrBaseAttr1, uint currentOrBaseAttr2 = 0)
+        {
+            if (formula.X == 0) return 0;
+
+            var attr1 = (PropertyAttribute)formula.Attr1;
+            var attr1Multiplier = formula.X;
+            var attr2 = (PropertyAttribute)formula.Attr2;
+            var attr2Multiplier = formula.Y;
+            var divisor = formula.Z;
+            var addition = formula.W;
+
+            var total = currentOrBaseAttr1 * attr1Multiplier;
+            if (attr2 != PropertyAttribute.Undef)
+                total += currentOrBaseAttr2 * attr2Multiplier;
+
+            total += addition;
 
             if (divisor != 1)
                 total = (uint)((float)total / divisor).Round();

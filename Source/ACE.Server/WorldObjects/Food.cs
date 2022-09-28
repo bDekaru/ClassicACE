@@ -7,6 +7,7 @@ using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics;
+using ACE.Server.Factories;
 
 namespace ACE.Server.WorldObjects
 {
@@ -93,6 +94,18 @@ namespace ACE.Server.WorldObjects
             player.EnqueueBroadcast(soundEvent);
 
             player.TryConsumeFromInventoryWithNetworking(this, 1);
+
+            if (EmptyId != 0)
+            {
+                // We have an empty version.
+                var wo = WorldObjectFactory.CreateNewWorldObject((uint)EmptyId);
+
+                if (wo != null)
+                {
+                    if (!player.TryCreateInInventoryWithNetworking(wo, out _, true))
+                        wo.Destroy();
+                }
+            }
         }
 
         public void BoostVital(Player player)

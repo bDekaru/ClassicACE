@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 
 using ACE.Database.Models.World;
+using ACE.Server.Factories.Entity;
 using ACE.Server.Factories.Enum;
 
 namespace ACE.Server.Factories.Tables.Wcids
@@ -62,10 +63,10 @@ namespace ACE.Server.Factories.Tables.Wcids
             RadiantBloodWcids,
         };
 
-        public static WeenieClassName Roll(TreasureDeath profile, TreasureItemType_Orig treasureItemType)
+        public static WeenieClassName Roll(TreasureDeath profile, TreasureItemType_Orig treasureItemType, TreasureRoll treasureRoll)
         {
             // get society from extended heritage chances
-            var society = GetSociety(profile);
+            var society = GetSociety(profile, treasureRoll);
 
             if (society == SocietyType.Undef)
                 return WeenieClassName.undef;
@@ -80,9 +81,9 @@ namespace ACE.Server.Factories.Tables.Wcids
             return table[(int)societyArmorType - 1];
         }
 
-        public static SocietyType GetSociety(TreasureDeath profile)
+        public static SocietyType GetSociety(TreasureDeath profile, TreasureRoll treasureRoll)
         {
-            var heritage = HeritageChance.Roll(profile.UnknownChances);
+            var heritage = HeritageChance.Roll(profile.UnknownChances, treasureRoll);
 
             return heritage.ToSociety();
         }

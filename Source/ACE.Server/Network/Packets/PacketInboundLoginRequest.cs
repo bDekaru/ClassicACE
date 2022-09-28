@@ -16,9 +16,11 @@ namespace ACE.Server.Network.Packets
 
         public string GlsTicket { get; }
 
+        public string ClientVersionString { get; }
+
         public PacketInboundLoginRequest(ClientPacket packet)
         {
-            string someString = packet.DataReader.ReadString16L();         // always "1802"
+            ClientVersionString = packet.DataReader.ReadString16L();         // always "1802"
             uint len = packet.DataReader.ReadUInt32();                     // data length left in packet including ticket
             NetAuthType = (NetAuthType)packet.DataReader.ReadUInt32();
             var authFlags = (AuthFlags)packet.DataReader.ReadUInt32();

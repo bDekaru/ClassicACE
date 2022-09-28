@@ -1,5 +1,5 @@
 using System;
-
+using ACE.Common;
 using ACE.Entity.Enum;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
@@ -42,7 +42,23 @@ namespace ACE.Server.WorldObjects
                     damageEvent = sourcePlayer.DamageTarget(targetCreature, worldObject);
 
                     if (damageEvent != null && damageEvent.HasDamage)
+                    {
                         worldObject.EnqueueBroadcast(new GameMessageSound(worldObject.Guid, Sound.Collision, 1.0f));
+
+                        if(!(target is Player) && !damageEvent.Evaded && (worldObject.WeenieType == WeenieType.Missile || worldObject.WeenieType == WeenieType.Ammunition) && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
+                            var rng = ThreadSafeRandom.NextInterval(0);
+                            if (rng < 0.25) // 25% chance the ammo will be preserved
+                            {
+                                int currentAmount;
+                                if (targetCreature.ammoHitWith.TryGetValue(worldObject.WeenieClassId, out currentAmount))
+                                    currentAmount++;
+                                else
+                                    currentAmount = 1;
+                                targetCreature.ammoHitWith[worldObject.WeenieClassId] = currentAmount;
+                            }
+                        }
+                    }
                 }
                 else if (sourceCreature != null && sourceCreature.AttackTarget != null)
                 {
@@ -50,6 +66,8 @@ namespace ACE.Server.WorldObjects
                     var targetPlayer = sourceCreature.AttackTarget as Player;
 
                     damageEvent = DamageEvent.CalculateDamage(sourceCreature, targetCreature, worldObject);
+
+                    targetCreature.OnAttackReceived(sourceCreature, CombatType.Missile, damageEvent.IsCritical, damageEvent.Evaded);
 
                     if (targetPlayer != null)
                     {

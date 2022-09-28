@@ -73,6 +73,7 @@ namespace ACE.Entity.Enum
         SocialManager,
         Pet,
         PetDevice,
-        CombatPet        
+        CombatPet,
+        LeyLineAmulet
     }
 }

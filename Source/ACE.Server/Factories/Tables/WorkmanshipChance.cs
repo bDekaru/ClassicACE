@@ -79,14 +79,20 @@ namespace ACE.Server.Factories.Tables
         /// <summary>
         /// Rolls for a 1-10 workmanship for an item
         /// </summary>
-        public static int Roll(int tier)
+        public static int Roll(int tier, float qualityMod = 0.0f)
         {
+            // https://asheron.fandom.com/wiki/Quality_Flag - The Quality Flag also reduces the maximum worksmanship of items in the tier by 2. For example, in Wealth 6, the worksmanship range is 4 - 10. In Wealth 6(Quality), the range is 4 - 8.
+            // From the above combined with the fact that the non-zero loot_quality_mod values in the database ranges from 0.2 to 0.25 we can deduce that it's an inverted quality mod roll, capping the top instead of the bottom.
+
             // todo: add t7 / t8
             tier = Math.Clamp(tier, 1, 6);
 
             var workmanshipChance = workmanshipChances[tier - 1];
 
-            return workmanshipChance.Roll();
+            if(qualityMod >= 0)
+                return workmanshipChance.Roll(qualityMod, true);
+            else
+                return workmanshipChance.Roll(qualityMod, false);
         }
 
         /// <summary>

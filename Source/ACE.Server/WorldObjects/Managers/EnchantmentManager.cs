@@ -845,7 +845,16 @@ namespace ACE.Server.WorldObjects.Managers
 
             return modifier;
         }
+        public float GetMultiplicativeMod(PropertyInt statModKey)
+        {
+            var enchantments = GetEnchantments_TopLayer(EnchantmentTypeFlags.Multiplicative, (uint)statModKey);
 
+            var modifier = 1.0f;
+            foreach (var enchantment in enchantments.Where(e => (e.StatModType & EnchantmentTypeFlags.Skill) == 0))
+                modifier *= enchantment.StatModValue;
+
+            return modifier;
+        }
 
         /// <summary>
         /// Returns the base armor modifier from enchantments
@@ -999,6 +1008,16 @@ namespace ACE.Server.WorldObjects.Managers
                 return speedMod;*/
 
             return auraSpeedMod + speedMod;
+        }
+
+        /// <summary>
+        /// Returns the weapon speed modifier, ie. Infiltration Ruleset Rockslide (Palenqual weapons)
+        /// </summary>
+        public virtual float GetWeaponMultiplicativeSpeedMod()
+        {
+            var multSpeedMod = GetMultiplicativeMod(PropertyInt.WeaponTime);
+
+            return multSpeedMod;
         }
 
         /// <summary>

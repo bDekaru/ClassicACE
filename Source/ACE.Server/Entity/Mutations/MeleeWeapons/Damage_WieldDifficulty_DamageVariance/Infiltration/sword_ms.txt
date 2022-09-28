@@ -1,0 +1,62 @@
+SwordMS Mutation #1:
+
+Tier Chances: 1, 1, 0, 0, 0, 0
+
+    - Chance: 11%:
+        Damage += 0
+
+    - Chance: 19%:
+        Damage += 1
+
+    - Chance: 32%:
+        Damage += 2
+
+    - Chance: 19.1%:
+        Damage += 3
+
+    - Chance: 12%:
+        Damage += 4
+
+    - Chance: 6.9%:
+        Damage += 5
+
+SwordMS Mutation #2:
+
+Tier Chances: 0, 0, 1, 1, 1, 1
+
+    - Chance: 4.4%:
+        Damage += 0
+
+    - Chance: 5.6%:
+        Damage += 1
+
+    - Chance: 9%:
+        Damage += 2
+
+    - Chance: 14%:
+        Damage += 3
+
+    - Chance: 25%:
+        Damage += 4
+
+    - Chance: 42%:
+        Damage += 5
+
+SwordMS Mutation #3:
+
+Tier Chances: 1, 1, 1, 1, 1, 1
+
+    - Chance: 11%:
+        DamageVariance = 0.5
+
+    - Chance: 20%:
+        DamageVariance = 0.48
+
+    - Chance: 37%:
+        DamageVariance = 0.45
+
+    - Chance: 20%:
+        DamageVariance = 0.42
+
+    - Chance: 12%:
+        DamageVariance = 0.4

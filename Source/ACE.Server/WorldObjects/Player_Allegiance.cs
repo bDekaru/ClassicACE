@@ -94,7 +94,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            log.Debug($"[ALLEGIANCE] {Name} swearing allegiance to {patron.Name}");
+            log.Debug($"[ALLEGIANCE] {Name} ({Level}) swearing allegiance to {patron.Name} ({patron.Level})");
 
             PatronId = targetGuid;
 
@@ -338,14 +338,17 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            // patron must currently be greater or equal level
-            /*if (target.Level < Level)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.EoR)
             {
-                //Console.WriteLine(Name + " tried to swear to a lower level character");
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"You cannot swear to a lower level character.", ChatMessageType.Broadcast));
-                Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.AllegianceIllegalLevel));
-                return false;
-            }*/
+                // patron must currently be greater or equal level
+                if (target.Level < Level)
+                {
+                    //Console.WriteLine(Name + " tried to swear to a lower level character");
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"You cannot swear to a lower level character.", ChatMessageType.Broadcast));
+                    Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.AllegianceIllegalLevel));
+                    return false;
+                }
+            }
 
             var selfNode = AllegianceNode;
             var targetNode = target.AllegianceNode;

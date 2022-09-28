@@ -37,7 +37,10 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            UnlockerHelper.UseUnlocker(player, this, target);
+            if (target is PressurePlate trap)
+                trap.AttemptDisarm(player, this);
+            else
+                UnlockerHelper.UseUnlocker(player, this, target);
         }
     }
 }

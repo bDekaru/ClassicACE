@@ -753,6 +753,7 @@ namespace ACE.Database.Adapter
                     InitLevel = value.InitLevel,
                     ResistanceAtLastCheck = value.ResistanceAtLastCheck,
                     LastUsedTime = value.LastUsedTime,
+                    SecondaryTo = value.SecondaryTo,
                 });
             }
 

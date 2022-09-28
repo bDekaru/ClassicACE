@@ -74,13 +74,24 @@ namespace ACE.Server.WorldObjects
         public bool IsShield { get => CombatUse != null && CombatUse == ACE.Entity.Enum.CombatUse.Shield; }
         // ValidLocations is bugged for some older two-handed weapons, still contains MeleeWeapon instead of TwoHanded?
         //public bool IsTwoHanded { get => CurrentWieldedLocation != null && CurrentWieldedLocation == EquipMask.TwoHanded; }
-        public bool IsTwoHanded => WeaponSkill == Skill.TwoHandedCombat;
+        public bool IsTwoHanded { get => DefaultCombatStyle != null && (DefaultCombatStyle == CombatStyle.TwoHanded ); }
         public bool IsBow { get => DefaultCombatStyle != null && (DefaultCombatStyle == CombatStyle.Bow || DefaultCombatStyle == CombatStyle.Crossbow); }
         public bool IsAtlatl { get => DefaultCombatStyle != null && DefaultCombatStyle == CombatStyle.Atlatl; }
         public bool IsAmmoLauncher { get => IsBow || IsAtlatl; }
         public bool IsThrownWeapon { get => DefaultCombatStyle != null && DefaultCombatStyle == CombatStyle.ThrownWeapon; }
         public bool IsRanged { get => IsAmmoLauncher || IsThrownWeapon; }
         public bool IsCaster { get => DefaultCombatStyle != null && (DefaultCombatStyle == CombatStyle.Magic); }
+
+        public bool IsCreature
+        {
+            get
+            {
+                return WeenieType == WeenieType.Creature || WeenieType == WeenieType.Cow ||
+                       WeenieType == WeenieType.Sentinel || WeenieType == WeenieType.Admin ||
+                       WeenieType == WeenieType.Vendor ||
+                       WeenieType == WeenieType.CombatPet || WeenieType == WeenieType.Pet;
+            }
+        }
 
         public EmoteManager EmoteManager;
         public EnchantmentManagerWithCaching EnchantmentManager;
@@ -255,6 +266,9 @@ namespace ACE.Server.WorldObjects
 
             if (MotionTableId != 0)
                 CurrentMotionState = new Motion(MotionStance.Invalid);
+
+            AwareList = null;
+            NextAwarenessCheck = 0;
         }
 
         /// <summary>
@@ -715,6 +729,11 @@ namespace ACE.Server.WorldObjects
             EmoteManager.OnGeneration();
         }
 
+        public virtual void BeforeEnterWorld()
+        {
+            // empty base
+        }
+
         public virtual bool EnterWorld()
         {
             if (Location == null)
@@ -1018,15 +1037,30 @@ namespace ACE.Server.WorldObjects
 
         public Skill ConvertToMoASkill(Skill skill)
         {
-            if (this is Player player)
+            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (SkillExtensions.RetiredMelee.Contains(skill))
-                    return player.GetHighestMeleeSkill();
-                if (SkillExtensions.RetiredMissile.Contains(skill))
-                    return Skill.MissileWeapons;
+                switch (skill)
+                {
+                    case Skill.Mace: return Skill.Axe;
+                    case Skill.Staff: return Skill.Spear;
+                    case Skill.Crossbow: return Skill.Bow;
+                    default: return skill;
+                }
             }
+            else if (ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                return skill;
+            else
+            {
+                if (this is Player player)
+                {
+                    if (SkillExtensions.RetiredMelee.Contains(skill))
+                        return player.GetHighestMeleeSkill();
+                    if (SkillExtensions.RetiredMissile.Contains(skill))
+                        return Skill.MissileWeapons;
+                }
 
-            return skill;
+                return skill;
+            }
         }
 
         public void GetCurrentMotionState(out MotionStance currentStance, out MotionCommand currentMotion)
@@ -1077,5 +1111,19 @@ namespace ACE.Server.WorldObjects
         public virtual bool IsBeingTradedOrContainsItemBeingTraded(HashSet<ObjectGuid> guidList) => guidList.Contains(Guid);
 
         public bool IsSocietyArmor => WieldSkillType >= (int)PropertyInt.SocietyRankCelhan && WieldSkillType <= (int)PropertyInt.SocietyRankRadblo;
+
+        public int StructureUnitValue
+        {
+            get
+            {
+                var weenie = DatabaseManager.World.GetCachedWeenie(WeenieClassId);
+                var weenieValue = weenie?.GetValue() ?? 0;
+                var weenieMaxStructure = weenie?.GetMaxStructure() ?? 1;
+
+                var structureUnitValue = weenieValue / weenieMaxStructure;
+
+                return Math.Max(1, structureUnitValue);
+            }
+        }
     }
 }

@@ -13,10 +13,23 @@ namespace ACE.DatLoader
         private static int count;
 
         // End of retail Iteration versions.
+        public static string CLIENT_VERSION_STRING = "1802";
         private static int ITERATION_CELL = 982;
         private static int ITERATION_PORTAL = 2072;
         private static int ITERATION_HIRES = 497;
         private static int ITERATION_LANGUAGE = 994;
+
+        public static string INFILTRATION_CLIENT_VERSION_STRING = "i103";
+        private static int INFILTRATION_ITERATION_CELL = 10001;
+        private static int INFILTRATION_ITERATION_PORTAL = 10006;
+        private static int INFILTRATION_ITERATION_HIRES = 497;
+        private static int INFILTRATION_ITERATION_LANGUAGE = 10002;
+
+        public static string CUSTOMDM_CLIENT_VERSION_STRING = "c105";
+        private static int CUSTOMDM_ITERATION_CELL = 20004;
+        private static int CUSTOMDM_ITERATION_PORTAL = 20017;
+        private static int CUSTOMDM_ITERATION_HIRES = 497;
+        private static int CUSTOMDM_ITERATION_LANGUAGE = 20004;
         public static CellDatDatabase CellDat { get; private set; }
 
         public static PortalDatDatabase PortalDat { get; private set; }
@@ -25,6 +38,34 @@ namespace ACE.DatLoader
 
         public static void Initialize(string datFileDirectory, bool keepOpen = false, bool loadCell = true)
         {
+            int cellExpectedIteration;
+            int portalExpectedIteration;
+            int highResExpectedIteration;
+            int languageExpectedIteration;
+
+            switch (Common.ConfigManager.Config.Server.WorldRuleset)
+            {
+                default:
+                case Common.Ruleset.EoR:
+                    cellExpectedIteration = ITERATION_CELL;
+                    portalExpectedIteration = ITERATION_PORTAL;
+                    highResExpectedIteration = ITERATION_HIRES;
+                    languageExpectedIteration = ITERATION_LANGUAGE;
+                    break;
+                case Common.Ruleset.Infiltration:
+                    cellExpectedIteration = INFILTRATION_ITERATION_CELL;
+                    portalExpectedIteration = INFILTRATION_ITERATION_PORTAL;
+                    highResExpectedIteration = INFILTRATION_ITERATION_HIRES;
+                    languageExpectedIteration = INFILTRATION_ITERATION_LANGUAGE;
+                    break;
+                case Common.Ruleset.CustomDM:
+                    cellExpectedIteration = CUSTOMDM_ITERATION_CELL;
+                    portalExpectedIteration = CUSTOMDM_ITERATION_PORTAL;
+                    highResExpectedIteration = CUSTOMDM_ITERATION_HIRES;
+                    languageExpectedIteration = CUSTOMDM_ITERATION_LANGUAGE;
+                    break;
+            }
+
             var datDir = Path.GetFullPath(Path.Combine(datFileDirectory));
 
             if (loadCell)
@@ -35,8 +76,8 @@ namespace ACE.DatLoader
                     CellDat = new CellDatDatabase(datFile, keepOpen);
                     count = CellDat.AllFiles.Count;
                     log.Info($"Successfully opened {datFile} file, containing {count} records, iteration {CellDat.Iteration}");
-                    if (CellDat.Iteration != ITERATION_CELL)
-                        log.Warn($"{datFile} iteration does not match expected end-of-retail version of {ITERATION_CELL}.");
+                    if (CellDat.Iteration != cellExpectedIteration)
+                        log.Warn($"{datFile} iteration {CellDat.Iteration} does not match expected version of {cellExpectedIteration}.");
                 }
                 catch (FileNotFoundException ex)
                 {
@@ -49,11 +90,10 @@ namespace ACE.DatLoader
             {
                 datFile = Path.Combine(datDir, "client_portal.dat");
                 PortalDat = new PortalDatDatabase(datFile, keepOpen);
-                PortalDat.SkillTable.AddRetiredSkills();
                 count = PortalDat.AllFiles.Count;
                 log.Info($"Successfully opened {datFile} file, containing {count} records, iteration {PortalDat.Iteration}");
-                if (PortalDat.Iteration != ITERATION_PORTAL)
-                    log.Warn($"{datFile} iteration does not match expected end-of-retail version of {ITERATION_PORTAL}.");
+                if (PortalDat.Iteration != portalExpectedIteration)
+                    log.Warn($"{datFile} iteration {PortalDat.Iteration} does not match expected version of {portalExpectedIteration}.");
             }
             catch (FileNotFoundException ex)
             {
@@ -68,8 +108,8 @@ namespace ACE.DatLoader
                 HighResDat = new DatDatabase(datFile, keepOpen);
                 count = HighResDat.AllFiles.Count;
                 log.Info($"Successfully opened {datFile} file, containing {count} records, iteration {HighResDat.Iteration}");
-                if (HighResDat.Iteration != ITERATION_HIRES)
-                    log.Warn($"{datFile} iteration does not match expected end-of-retail version of {ITERATION_HIRES}.");
+                if (HighResDat.Iteration != highResExpectedIteration)
+                    log.Warn($"{datFile} iteration {HighResDat.Iteration} does not match expected iteration version of {highResExpectedIteration}.");
             }
 
             try
@@ -78,8 +118,8 @@ namespace ACE.DatLoader
                 LanguageDat = new LanguageDatDatabase(datFile, keepOpen);
                 count = LanguageDat.AllFiles.Count;
                 log.Info($"Successfully opened {datFile} file, containing {count} records, iteration {LanguageDat.Iteration}");
-                if(LanguageDat.Iteration != ITERATION_LANGUAGE)
-                    log.Warn($"{datFile} iteration does not match expected end-of-retail version of {ITERATION_LANGUAGE}.");
+                if (LanguageDat.Iteration != languageExpectedIteration)
+                    log.Warn($"{datFile} iteration {LanguageDat.Iteration} does not match expected version of {languageExpectedIteration}.");
             }
             catch (FileNotFoundException ex)
             {

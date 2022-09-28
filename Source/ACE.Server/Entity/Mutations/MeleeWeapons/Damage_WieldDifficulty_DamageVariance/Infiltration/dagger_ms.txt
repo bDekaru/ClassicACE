@@ -1,0 +1,50 @@
+DaggerMS Mutation #1:
+
+Tier Chances: 1, 1, 0, 0, 0, 0
+
+    - Chance: 12%:
+        Damage += 0
+
+    - Chance: 22%:
+        Damage += 1
+
+    - Chance: 44%:
+        Damage += 2
+
+    - Chance: 22%:
+        Damage += 3
+
+DaggerMS Mutation #3:
+
+Tier Chances: 0, 0, 1, 1, 1, 1
+
+    - Chance: 6.7%:
+        Damage += 0
+
+    - Chance: 14%:
+        Damage += 1
+
+    - Chance: 26.2%:
+        Damage += 2
+
+    - Chance: 53.1%:
+        Damage += 3
+
+DaggerMS Mutation #7:
+
+Tier Chances: 1, 1, 1, 1, 1, 1
+
+    - Chance: 11%:
+        DamageVariance = 0.75
+
+    - Chance: 21%:
+        DamageVariance = 0.74
+
+    - Chance: 36%:
+        DamageVariance = 0.73
+
+    - Chance: 20%:
+        DamageVariance = 0.72
+
+    - Chance: 12%:
+        DamageVariance = 0.71

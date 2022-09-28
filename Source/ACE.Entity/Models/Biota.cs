@@ -17,6 +17,9 @@ namespace ACE.Entity.Models
         public uint WeenieClassId { get; set; }
         public WeenieType WeenieType { get; set; }
 
+        public bool IsPartiallyPersistant { get { return PartialPersitanceFilter != null && PartialPersitanceFilter.Count > 0; } }
+        public IList<PartialPersistanceEntry> PartialPersitanceFilter { get; set; } // If this isn't null then only the fields contained here will be persisted to the database.
+
         public IDictionary<PropertyBool, bool> PropertiesBool { get; set; }
         public IDictionary<PropertyDataId, uint> PropertiesDID { get; set; }
         public IDictionary<PropertyFloat, double> PropertiesFloat { get; set; }

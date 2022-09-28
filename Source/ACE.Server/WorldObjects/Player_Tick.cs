@@ -17,6 +17,8 @@ using ACE.Server.Network.Sequence;
 using ACE.Server.Network.Structure;
 using ACE.Server.Physics;
 using ACE.Server.Physics.Common;
+using Google.Protobuf.WellKnownTypes;
+using Newtonsoft.Json.Linq;
 
 namespace ACE.Server.WorldObjects
 {
@@ -33,8 +35,39 @@ namespace ACE.Server.WorldObjects
         private double houseRentWarnTimestamp;
         private const double houseRentWarnInterval = 3600;
 
+        private double LeyLineAmuletsTickTimestamp;
+        private const double leyLineAmuletsTickInterval = 1800;
+
         public void Player_Tick(double currentUnixTime)
         {
+            if (CharacterSaveFailed)
+            {
+                // Boot the player as their Character object is not saving properly
+                if (!IsLoggingOut)
+                {
+                    log.Error($"{Session.Player.Name} | 0x{Guid} | Account: {Account.AccountName} - disconnected for CharacterSaveFailed");
+                    //Session.SendCharacterError(CharacterError.AccountLogin); // forces client to error screen
+                    Session.Terminate(SessionTerminationReason.CharacterSaveFailed, new GameMessageCharacterError(CharacterError.AccountLogin));
+                    //Session.LogOffPlayer(true);
+                    CharacterSaveFailed = false;
+                }
+                return;
+            }
+
+            if (BiotaSaveFailed)
+            {
+                // Boot the player as their Biota object is not saving properly
+                if (!IsLoggingOut)
+                {
+                    log.Error($"{Session.Player.Name} | 0x{Guid} | Account: {Account.AccountName} - disconnected for BiotaSaveFailed");
+                    //Session.SendCharacterError(CharacterError.AccountLogin); // forces client to error screen
+                    Session.Terminate(SessionTerminationReason.BiotaSaveFailed, new GameMessageCharacterError(CharacterError.AccountLogin));
+                    //Session.LogOffPlayer(true);
+                    BiotaSaveFailed = false;
+                }
+                return;
+            }
+
             actionQueue.RunActions();
 
             if (nextAgeUpdateTime <= currentUnixTime)
@@ -74,6 +107,13 @@ namespace ACE.Server.WorldObjects
                 else if (houseRentWarnTimestamp == 0)
                     houseRentWarnTimestamp = Time.GetFutureUnixTime(houseRentWarnInterval);
             }
+
+            if (LeyLineAmuletsTickTimestamp == 0 || currentUnixTime > LeyLineAmuletsTickTimestamp)
+            {
+                LeyLineAmuletsTick(currentUnixTime);
+
+                LeyLineAmuletsTickTimestamp = Time.GetFutureUnixTime(leyLineAmuletsTickInterval);
+            }
         }
 
         private static readonly TimeSpan MaximumTeleportTime = TimeSpan.FromMinutes(5);
@@ -112,6 +152,31 @@ namespace ACE.Server.WorldObjects
                     LogOut();
             }
 
+            bool wasAlreadyEnforcing = EnforceMovement || EnforceMovementSpeed;
+            EnforceMovement = PropertyManager.GetBool("enforce_player_movement").Item;
+            EnforceMovementSpeed = PropertyManager.GetBool("enforce_player_movement_speed").Item;
+            if ((EnforceMovement || EnforceMovementSpeed) && !Teleporting)
+            {
+                if (!wasAlreadyEnforcing)
+                {
+                    MovementEnforcementCounter = 0;
+                    Location = PhysicsObj.Position.ACEPosition();
+                    SnapPos = Location;
+                    PrevMovementUpdateMaxSpeed = 0.0f;
+                    LastPlayerMovementCheckTime = currentUnixTime;
+                    HasPerformedActionsSinceLastMovementUpdate = false;
+                }
+
+                if (MovementEnforcementCounter > 0)
+                    MovementEnforcementCounter--;
+
+                if (!HasAnyMovement() && currentUnixTime > LastPlayerMovementCheckTime + 5)
+                {
+                    LastPlayerMovementCheckTime = currentUnixTime;
+                    PrevMovementUpdateMaxSpeed = 0.0f;
+                }
+            }
+
             base.Heartbeat(currentUnixTime);
         }
 
@@ -123,7 +188,11 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Flag indicates if player is doing full physics simulation
         /// </summary>
-        public bool FastTick => IsPKType;
+        //public bool FastTick => IsPKType;
+        public bool FastTick => true;
+
+        public bool EnforceMovement { get; set; } = false;
+        public bool EnforceMovementSpeed { get; set; } = false;
 
         /// <summary>
         /// For advanced spellcasting / players glitching around during powersliding,
@@ -147,6 +216,12 @@ namespace ACE.Server.WorldObjects
 
         public void OnMoveToState(MoveToState moveToState)
         {
+            HasPerformedActionsSinceLastMovementUpdate = true;
+
+            LastMoveToStateWasRun = CheckIsRunning();
+            IsFirstAutoPosPacketSinceMoveToState = true;
+            //Session.Network.EnqueueSend(new GameMessageSystemChat($"moveToState - Running: {LastMoveToStateWasRun}", ChatMessageType.Broadcast));
+
             if (!FastTick)
                 return;
 
@@ -374,6 +449,27 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public static TimeSpan MoveToState_UpdatePosition_Threshold = TimeSpan.FromSeconds(1);
 
+        bool LastMoveToStateWasRun = false;
+        bool IsFirstAutoPosPacketSinceMoveToState = false;
+
+        public bool CheckIsRunning()
+        {
+            var minterp = PhysicsObj.get_minterp();
+            var isRunning = minterp.RawState.CurrentHoldKey == HoldKey.Run;
+            var isSideStepping = minterp.RawState.SideStepCommand != (uint)MotionCommand.Invalid;
+            if (isSideStepping)
+            {
+                // We're dealing with a lot of inconsistencies here.
+                var interpretedMotionState = CurrentMotionState.MotionState;
+                isRunning = (interpretedMotionState.ForwardCommand == MotionCommand.RunForward && minterp.RawState.ForwardCommand != (uint)MotionCommand.WalkBackwards)
+                    || (interpretedMotionState.ForwardCommand == MotionCommand.Invalid && minterp.RawState.SideStepCommand != (uint)MotionCommand.Invalid && minterp.RawState.CurrentHoldKey == HoldKey.Run)
+                    || (interpretedMotionState.ForwardCommand == MotionCommand.WalkForward && interpretedMotionState.SidestepCommand == MotionCommand.Invalid && !(minterp.RawState.CurrentHoldKey == HoldKey.Invalid && (minterp.RawState.ForwardCommand == (uint)MotionCommand.WalkForward || minterp.RawState.ForwardCommand == (uint)MotionCommand.WalkBackwards)))
+                    || (interpretedMotionState.ForwardCommand == MotionCommand.WalkForward && (interpretedMotionState.SidestepCommand == MotionCommand.SideStepRight || interpretedMotionState.SidestepCommand == MotionCommand.SideStepLeft) && minterp.RawState.CurrentHoldKey == HoldKey.Run);
+            }
+
+            return isRunning;
+        }
+
         /// <summary>
         /// Used by physics engine to actually update a player position
         /// Automatically notifies clients of updated position
@@ -382,6 +478,10 @@ namespace ACE.Server.WorldObjects
         /// <returns>TRUE if object moves to a different landblock</returns>
         public bool UpdatePlayerPosition(ACE.Entity.Position newPosition, bool forceUpdate = false)
         {
+            var currentTime = Time.GetUnixTime();
+            float deltaTime = (float)(currentTime - LastPlayerAutoposTime);
+            LastPlayerAutoposTime = currentTime;
+
             //Console.WriteLine($"{Name}.UpdatePlayerPhysics({newPosition}, {forceUpdate}, {Teleporting})");
             bool verifyContact = false;
 
@@ -436,11 +536,125 @@ namespace ACE.Server.WorldObjects
                         if (curCell != null)
                         {
                             //if (PhysicsObj.CurCell == null || curCell.ID != PhysicsObj.CurCell.ID)
-                                //PhysicsObj.change_cell_server(curCell);
+                            //PhysicsObj.change_cell_server(curCell);
 
                             PhysicsObj.set_request_pos(newPosition.Pos, newPosition.Rotation, curCell, Location.LandblockId.Raw);
+
+                            if (!Teleporting)
+                            {
+                                // The client does not seem to send any packets when walk/run is toggled by hitting shift, so unless the player does something else(like turning) we won't find about it.
+                                // To reduce the delay we check the distance the player requested on this packet and toggle walk/run ourselves, this still has a delay compared to the client.
+                                var minterp = PhysicsObj.get_minterp();
+                                if (!IsJumping && !PhysicsObj.TransientState.HasFlag(TransientStateFlags.Sliding) && !IsFirstAutoPosPacketSinceMoveToState && (minterp.RawState.ForwardCommand != (uint)MotionCommand.Ready || minterp.RawState.SideStepCommand != (uint)MotionCommand.Invalid))
+                                {
+                                    var isRunning = CheckIsRunning();
+                                    var isForward = minterp.RawState.ForwardCommand != (uint)MotionCommand.WalkBackwards;
+                                    var hasForwardOrBackwardsMovement = minterp.RawState.ForwardCommand != (uint)MotionCommand.Ready;
+                                    var isSideStepping = minterp.RawState.SideStepCommand != (uint)MotionCommand.Invalid;
+                                    var myRunRate = GetRunRate();
+
+                                    var curPos = Location.PhysPosition();
+                                    var reqPos = RequestedLocation.PhysPosition();
+                                    var realDist = curPos.Distance(reqPos);
+
+                                    float runRate;
+                                    float walkRate;
+                                    if (isForward)
+                                    {
+                                        runRate = myRunRate;
+                                        walkRate = 1.0f;
+                                    }
+                                    else
+                                    {
+                                        runRate = -0.65f * myRunRate * 0.65f;
+                                        walkRate = -0.65f * 0.65f;
+                                    }
+
+                                    if (isSideStepping)
+                                    {
+                                        if (hasForwardOrBackwardsMovement)
+                                        {
+                                            runRate *= 3.12f / 1.25f * 0.5f;
+                                            walkRate *= 3.12f / 1.25f * 0.5f;
+                                        }
+                                        else
+                                        {
+                                            var multiplier = 1.0f;
+                                            if (minterp.RawState.SideStepCommand == (uint)MotionCommand.SideStepLeft)
+                                                multiplier = -1.0f;
+
+                                            runRate = multiplier * 0.65f * myRunRate * 0.65f;
+                                            walkRate = multiplier * 0.65f * 0.65f;
+                                        }
+                                    }
+
+                                    var heading = curPos.Frame.get_vector_heading();
+                                    var testRunPoint = curPos.Frame.Origin + (heading * (runRate * 4.0f * deltaTime));
+                                    var testRunDist = (curPos.Frame.Origin - testRunPoint).Length();
+
+                                    var testWalkPoint = curPos.Frame.Origin + (heading * (walkRate * 4.0f * deltaTime));
+                                    var testWalkDist = (curPos.Frame.Origin - testWalkPoint).Length();
+
+                                    var shouldBeWalking = false;
+                                    var runDistDelta = Math.Abs(testRunDist - realDist);
+                                    var walkDistDelta = Math.Abs(testWalkDist - realDist);
+                                    if (LastMoveToStateWasRun)
+                                        runDistDelta -= 0.25f * deltaTime;
+                                    else
+                                        walkDistDelta -= 0.25f * deltaTime;
+
+                                    if (runDistDelta > walkDistDelta)
+                                        shouldBeWalking = true;
+
+                                    //Session.Network.EnqueueSend(new GameMessageSystemChat($"isRunning: {isRunning} wasRunning: {LastMoveToStateWasRun}", ChatMessageType.Broadcast));
+                                    //Session.Network.EnqueueSend(new GameMessageSystemChat($"{realDist.ToString("0.00")} {testRunDist.ToString("0.00")} {testWalkDist.ToString("0.00")}", ChatMessageType.Broadcast));
+
+                                    var toggledRunWalkState = false;
+                                    if (isRunning && shouldBeWalking)
+                                    {
+                                        toggledRunWalkState = true;
+
+                                        minterp.RawState.CurrentHoldKey = HoldKey.Invalid;
+                                        CurrentMoveToState.RawMotionState.CurrentHoldKey = HoldKey.Invalid;
+                                        CurrentMoveToState.RawMotionState.Flags &= ~RawMotionFlags.CurrentHoldKey;
+
+                                        if (isSideStepping && (hasForwardOrBackwardsMovement && !isForward))
+                                            CurrentMoveToState.RawMotionState.Flags &= ~RawMotionFlags.SideStepCommand;
+
+                                        //Session.Network.EnqueueSend(new GameMessageSystemChat($"{realDist.ToString("0.00")} {testRunDist.ToString("0.00")} {testWalkDist.ToString("0.00")}", ChatMessageType.Broadcast));
+                                        //Session.Network.EnqueueSend(new GameMessageSystemChat("Switch to walk", ChatMessageType.Broadcast));
+                                    }
+                                    else if (!isRunning && !shouldBeWalking)
+                                    {
+                                        toggledRunWalkState = true;
+
+                                        minterp.RawState.CurrentHoldKey = HoldKey.Run;
+                                        CurrentMoveToState.RawMotionState.CurrentHoldKey = HoldKey.Run;
+                                        CurrentMoveToState.RawMotionState.Flags |= RawMotionFlags.CurrentHoldKey;
+
+                                        if (isSideStepping && (hasForwardOrBackwardsMovement && !isForward))
+                                            CurrentMoveToState.RawMotionState.Flags |= RawMotionFlags.SideStepCommand;
+
+                                        //Session.Network.EnqueueSend(new GameMessageSystemChat($"{realDist.ToString("0.00")} {testRunDist.ToString("0.00")} {testWalkDist.ToString("0.00")}", ChatMessageType.Broadcast));
+                                        //Session.Network.EnqueueSend(new GameMessageSystemChat("Switch to run", ChatMessageType.Broadcast));
+                                    }
+
+                                    if (toggledRunWalkState)
+                                    {
+                                        var allowJump = minterp.motion_allows_jump(minterp.InterpretedState.ForwardCommand) == WeenieError.None;
+                                        minterp.apply_raw_movement(true, allowJump);
+
+                                        BroadcastMovement(CurrentMoveToState);
+                                    }
+                                }
+                                else
+                                {
+                                    IsFirstAutoPosPacketSinceMoveToState = false;
+                                }
+                            }
+
                             if (FastTick)
-                                success = PhysicsObj.update_object_server_new();
+                                success = PhysicsObj.update_object_server_new(!EnforceMovement) ;
                             else
                                 success = PhysicsObj.update_object_server();
 
@@ -463,11 +677,96 @@ namespace ACE.Server.WorldObjects
                                 }
                             }
 
+                            CheckSneaking(deltaTime);
                             CheckMonsters();
                         }
                     }
                     else
                         PhysicsObj.Position.Frame.Orientation = newPosition.Rotation;
+
+                    if (EnforceMovementSpeed && success && !Teleporting && GodState == null)
+                    {
+                        float enforcementDeltaTime = (float)(currentTime - LastPlayerMovementCheckTime);
+                        LastPlayerMovementCheckTime = currentTime;
+
+                        // Check for illegal player movements.
+                        var loggingHasPerformedActionsSinceLastMovementUpdate = HasPerformedActionsSinceLastMovementUpdate;
+                        var loggingPrevMaxMovementSpeed = PrevMovementUpdateMaxSpeed;
+                        var loggingInertia = false;
+
+                        var dist = Location.DistanceTo(newPosition);
+                        float velocity = PhysicsObj.CachedVelocity.Length();
+                        float currentMaxSpeed;
+
+                        if (dist > PhysicsGlobals.EPSILON)
+                        {
+                            if (FastTick)
+                            {
+                                var runRate = GetRunRate();
+                                currentMaxSpeed = (1.8f * runRate * enforcementDeltaTime * (1.0f + velocity / 8.0f)) + 5.0f;
+                                if (runRate < 1.9f && PhysicsObj.CachedVelocity.Z < -20.0f) // Very slow characters can still fall pretty quickly.
+                                    currentMaxSpeed *= 2.5f;
+                            }
+                            else
+                            {
+                                // This is no longer used because FastTick is set to be always on but leaving it here for now.
+                                currentMaxSpeed = (5.5f * GetRunRate() * enforcementDeltaTime * (1.0f + velocity / 5.0f)) + 2.0f;
+
+                                if (HasPerformedActionsSinceLastMovementUpdate)
+                                    currentMaxSpeed *= 1.8f;
+                            }
+
+                            if (currentMaxSpeed < PrevMovementUpdateMaxSpeed && PrevMovementUpdateMaxSpeed > 25.0f)
+                            {
+                                // We were going really fast and now we are slowing down but we might still have some inertia.
+                                loggingInertia = true;
+                                currentMaxSpeed = PrevMovementUpdateMaxSpeed * 0.5f;
+                            }
+                            PrevMovementUpdateMaxSpeed = currentMaxSpeed;
+
+                            if (dist > currentMaxSpeed)
+                            {
+                                if (MovementEnforcementCounter < 10 || !PropertyManager.GetBool("enforce_player_movement_kick").Item)
+                                {
+                                    if (MovementEnforcementCounter == 0 && currentMaxSpeed != 0 && dist < currentMaxSpeed * 1.5)
+                                    {
+                                        // Slight invalid movement detected but the player has otherwise been behaving, assume it was just a lag spike or client stutter.
+                                        MovementEnforcementCounter++;
+                                    }
+                                    else
+                                    {
+                                        MovementEnforcementCounter++;
+                                        Location = new ACE.Entity.Position(SnapPos);
+                                        Sequences.GetNextSequence(SequenceType.ObjectForcePosition);
+                                        SendUpdatePosition();
+
+                                        Session.Network.EnqueueSend(new GameMessageSystemChat("Invalid movement detected. Rolling back to last known good location.", ChatMessageType.Help));
+
+                                        log.Warn($"{Name} - INVALID MOVEMENT DETECTED - Speed: {dist.ToString("0.00")}/{currentMaxSpeed.ToString("0.00")} PrevMaxSpeed: {loggingPrevMaxMovementSpeed.ToString("0.00")}({loggingInertia}) FastTick: {FastTick} TimeSpam: {enforcementDeltaTime.ToString("0.00")} Velocity: {velocity.ToString("0.00")} actionsSinceLastMovementUpdate: {loggingHasPerformedActionsSinceLastMovementUpdate}");
+                                        //Session.Network.EnqueueSend(new GameMessageSystemChat($"Speed: {dist.ToString("0.00")}/{currentMaxSpeed.ToString("0.00")} PrevMaxSpeed: {loggingPrevMaxMovementSpeed.ToString("0.00")}({loggingInertia}) FastTick: {FastTick} TimeSpam: {deltaTime.ToString("0.00")} Velocity: {velocity.ToString("0.00")} timeSinceLastAction: {timeSinceLastAction.ToString("0.00")} isMovingOrAnimating: {isMovingOrAnimating} actionsSinceLastMovementUpdate: {loggingHasPerformedActionsSinceLastMovementUpdate}", ChatMessageType.Help));
+                                        return false;
+                                    }
+                                }
+                                else
+                                {
+                                    // Kick players when they go over 10 enforcements in a minute.
+                                    Session.Terminate(SessionTerminationReason.MovementEnforcementFailure, new GameMessageBootAccount(" because there is a divergence between your server and client locations"));
+                                    log.Warn($"{Name} - INVALID MOVEMENT DETECTED - Speed: {dist.ToString("0.00")}/{currentMaxSpeed.ToString("0.00")} PrevMaxSpeed: {loggingPrevMaxMovementSpeed.ToString("0.00")}({loggingInertia}) FastTick: {FastTick} TimeSpam: {enforcementDeltaTime.ToString("0.00")} Velocity: {velocity.ToString("0.00")} actionsSinceLastMovementUpdate: {loggingHasPerformedActionsSinceLastMovementUpdate}");
+                                    return false;
+                                }
+                            }
+                            //else
+                            //    Session.Network.EnqueueSend(new GameMessageSystemChat($"Speed: {dist.ToString("0.00")}/{currentMaxSpeed.ToString("0.00")} PrevMaxSpeed: {loggingPrevMaxMovementSpeed.ToString("0.00")}({loggingInertia}) FastTick: {FastTick} TimeSpam: {deltaTime.ToString("0.00")} Velocity: {velocity.ToString("0.00")} timeSinceLastAction: {timeSinceLastAction.ToString("0.00")} isMovingOrAnimating: {isMovingOrAnimating} actionsSinceLastMovementUpdate: {loggingHasPerformedActionsSinceLastMovementUpdate}", ChatMessageType.Broadcast));
+                        }
+                        //else
+                        //    Session.Network.EnqueueSend(new GameMessageSystemChat($"Speed: {dist.ToString("0.00")}/0.00 PrevMaxSpeed: {loggingPrevMaxMovementSpeed.ToString("0.00")}({loggingInertia}) FastTick: {FastTick} TimeSpam: {deltaTime.ToString("0.00")} Velocity: {velocity.ToString("0.00")} timeSinceLastAction: {timeSinceLastAction.ToString("0.00")} isMovingOrAnimating: {isMovingOrAnimating} actionsSinceLastMovementUpdate: {loggingHasPerformedActionsSinceLastMovementUpdate}", ChatMessageType.Broadcast));
+
+                        if (HasPerformedActionsSinceLastMovementUpdate && !IsJumping)
+                            HasPerformedActionsSinceLastMovementUpdate = false; // Delay disabling this until we're done with the jump.
+
+                        if (!IsJumping && PhysicsObj.TransientState.HasFlag(TransientStateFlags.OnWalkable))
+                            SnapPos = Location;
+                    }
                 }
 
                 // double update path: landblock physics update -> updateplayerphysics() -> update_object_server() -> Teleport() -> updateplayerphysics() -> return to end of original branch
@@ -504,6 +803,24 @@ namespace ACE.Server.WorldObjects
                         log.Debug($"[PERFORMANCE][PHYSICS] {Guid}:{Name} took {(elapsedSeconds * 1000):N1} ms to process UpdatePlayerPosition() at loc: {Location}");
                 }
             }
+        }
+
+        public bool HasAnyMovement()
+        {
+            if (FastTick)
+            {
+                if (PhysicsObj.IsMovingOrAnimating || IsMoving || IsPlayerMovingTo || IsPlayerMovingTo2)
+                    return true;
+            }
+            else
+            {
+                var isWaitingForNextUseTime = DateTime.UtcNow < NextUseTime;
+                var isPlayerInitiatedMovement = (CurrentMoveToState.RawMotionState.Flags & (RawMotionFlags.ForwardCommand | RawMotionFlags.SideStepCommand | RawMotionFlags.TurnCommand)) != 0;
+
+                if (isPlayerInitiatedMovement || HasPerformedActionsSinceLastMovementUpdate || IsJumping || PhysicsObj.IsMovingOrAnimating || IsMoving || IsPlayerMovingTo || IsPlayerMovingTo2 || isWaitingForNextUseTime)
+                    return true;
+            }
+            return false;
         }
 
         private static HashSet<uint> buggedCells = new HashSet<uint>()
@@ -588,6 +905,22 @@ namespace ACE.Server.WorldObjects
         public override void EnqueueAction(IAction action)
         {
             actionQueue.EnqueueAction(action);
+        }
+
+        public void LeyLineAmuletsTick(double currentUnixTime)
+        {
+            if (EquippedObjectsLoaded && InventoryLoaded)
+            {
+                var list = EquippedObjects.Values.Where(i => i.WeenieType == WeenieType.LeyLineAmulet).ToList();
+                list = list.Concat(Inventory.Values).Where(i => i.WeenieType == WeenieType.LeyLineAmulet).ToList();
+
+                foreach (var item in list)
+                {
+                    LeyLineAmulet amulet = item as LeyLineAmulet;
+                    if(amulet != null)
+                        amulet.CheckAlignmentDecay(this, currentUnixTime);
+                }
+            }
         }
 
         /// <summary>

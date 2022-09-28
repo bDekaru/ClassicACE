@@ -104,6 +104,147 @@ namespace ACE.Server.Factories.Tables
         {
             // takes ~0.3ms
             BuildSpells();
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+                armorCantrips = new ChanceTable<SpellId>(ChanceTableType.Weight)
+                {
+                    ( SpellId.CANTRIPSTRENGTH1,                    1.0f ),
+                    ( SpellId.CANTRIPENDURANCE1,                   1.0f ),
+                    ( SpellId.CANTRIPCOORDINATION1,                1.0f ),
+                    ( SpellId.CANTRIPQUICKNESS1,                   1.0f ),
+                    ( SpellId.CANTRIPFOCUS1,                       1.0f ),
+                    ( SpellId.CANTRIPWILLPOWER1,                   1.0f ),
+
+                    ( SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1,        1.0f ), // CANTRIPAXEAPTITUDE1
+                    ( SpellId.CANTRIPFINESSEWEAPONSAPTITUDE1,      1.0f ), // CANTRIPDAGGERAPTITUDE1
+                    ( SpellId.CANTRIPMACEAPTITUDE1,                1.0f ),
+                    ( SpellId.CANTRIPSPEARAPTITUDE1,               1.0f ),
+                    ( SpellId.CANTRIPSTAFFAPTITUDE1,               1.0f ),
+                    ( SpellId.CANTRIPHEAVYWEAPONSAPTITUDE1,        1.0f ), // CANTRIPSWORDAPTITUDE1
+                    ( SpellId.CANTRIPUNARMEDAPTITUDE1,             1.0f ),
+                    ( SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1,      1.0f ), // CANTRIPBOWAPTITUDE1
+                    ( SpellId.CANTRIPCROSSBOWAPTITUDE1,            1.0f ),
+                    ( SpellId.CANTRIPTHROWNAPTITUDE1,              1.0f ),
+
+                    ( SpellId.CANTRIPIMPREGNABILITY1,              1.0f ),
+                    ( SpellId.CANTRIPINVULNERABILITY1,             1.0f ),
+                    ( SpellId.CANTRIPMAGICRESISTANCE1,             1.0f ),
+
+                    ( SpellId.CANTRIPCREATUREENCHANTMENTAPTITUDE1, 1.0f ),
+                    ( SpellId.CANTRIPITEMENCHANTMENTAPTITUDE1,     1.0f ),
+                    ( SpellId.CANTRIPLIFEMAGICAPTITUDE1,           1.0f ),
+                    ( SpellId.CANTRIPWARMAGICAPTITUDE1,            1.0f ),
+
+                    ( SpellId.CANTRIPIMPENETRABILITY1,             1.0f ),
+                    ( SpellId.CANTRIPACIDBANE1,                    1.0f ),
+                    ( SpellId.CANTRIPBLUDGEONINGBANE1,             1.0f ),
+                    ( SpellId.CANTRIPFLAMEBANE1,                   1.0f ),
+                    ( SpellId.CANTRIPFROSTBANE1,                   1.0f ),
+                    ( SpellId.CANTRIPPIERCINGBANE1,                1.0f ),
+                    ( SpellId.CANTRIPSLASHINGBANE1,                1.0f ),
+                    ( SpellId.CANTRIPSTORMBANE1,                   1.0f ),
+
+                    ( SpellId.CANTRIPARMOR1,                       1.0f ),
+                    ( SpellId.CANTRIPACIDWARD1,                    1.0f ),
+                    ( SpellId.CANTRIPBLUDGEONINGWARD1,             1.0f ),
+                    ( SpellId.CANTRIPFLAMEWARD1,                   1.0f ),
+                    ( SpellId.CANTRIPFROSTWARD1,                   1.0f ),
+                    ( SpellId.CANTRIPPIERCINGWARD1,                1.0f ),
+                    ( SpellId.CANTRIPSLASHINGWARD1,                1.0f ),
+                    ( SpellId.CANTRIPSTORMWARD1,                   1.0f ),
+
+                    ( SpellId.CANTRIPALCHEMICALPROWESS1,           0.5f ),
+                    ( SpellId.CANTRIPARCANEPROWESS1,               0.5f ),
+                    ( SpellId.CANTRIPARMOREXPERTISE1,              0.5f ),
+                    ( SpellId.CANTRIPCOOKINGPROWESS1,              0.5f ),
+                    ( SpellId.CANTRIPDECEPTIONPROWESS1,            0.5f ),
+                    ( SpellId.CANTRIPFEALTY1,                      0.5f ),
+                    ( SpellId.CANTRIPFLETCHINGPROWESS1,            0.5f ),
+                    ( SpellId.CANTRIPHEALINGPROWESS1,              0.5f ),
+                    ( SpellId.CANTRIPITEMEXPERTISE1,               0.5f ),
+                    ( SpellId.CANTRIPJUMPINGPROWESS1,              0.5f ),
+                    ( SpellId.CANTRIPLEADERSHIP1,                  0.5f ),
+                    ( SpellId.CANTRIPLOCKPICKPROWESS1,             0.5f ),
+                    ( SpellId.CANTRIPMAGICITEMEXPERTISE1,          0.5f ),
+                    ( SpellId.CANTRIPMANACONVERSIONPROWESS1,       0.5f ),
+                    ( SpellId.CANTRIPMONSTERATTUNEMENT1,           0.25f ),
+                    ( SpellId.CANTRIPPERSONATTUNEMENT1,            0.25f ),
+                    ( SpellId.CantripSalvaging1,                   0.5f ),
+                    ( SpellId.CANTRIPSPRINT1,                      0.5f ),
+                    ( SpellId.CANTRIPWEAPONEXPERTISE1,             0.5f ),
+                };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                armorCantrips = new ChanceTable<SpellId>(ChanceTableType.Weight)
+                {
+                    ( SpellId.CANTRIPSTRENGTH1,                    1.0f ),
+                    ( SpellId.CANTRIPENDURANCE1,                   1.0f ),
+                    ( SpellId.CANTRIPCOORDINATION1,                1.0f ),
+                    ( SpellId.CANTRIPQUICKNESS1,                   1.0f ),
+                    ( SpellId.CANTRIPFOCUS1,                       1.0f ),
+                    ( SpellId.CANTRIPWILLPOWER1,                   1.0f ),
+
+                    ( SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1,        1.0f ), // CANTRIPAXEAPTITUDE1
+                    ( SpellId.CANTRIPFINESSEWEAPONSAPTITUDE1,      1.0f ), // CANTRIPDAGGERAPTITUDE1
+                    ( SpellId.CANTRIPMACEAPTITUDE1,                1.0f ),
+                    ( SpellId.CANTRIPSPEARAPTITUDE1,               1.0f ),
+                    ( SpellId.CANTRIPSTAFFAPTITUDE1,               1.0f ),
+                    ( SpellId.CANTRIPHEAVYWEAPONSAPTITUDE1,        1.0f ), // CANTRIPSWORDAPTITUDE1
+                    ( SpellId.CANTRIPUNARMEDAPTITUDE1,             1.0f ),
+                    ( SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1,      1.0f ), // CANTRIPBOWAPTITUDE1
+                    ( SpellId.CANTRIPCROSSBOWAPTITUDE1,            1.0f ),
+                    ( SpellId.CANTRIPTHROWNAPTITUDE1,              1.0f ),
+
+                    ( SpellId.CANTRIPIMPREGNABILITY1,              1.0f ),
+                    ( SpellId.CANTRIPINVULNERABILITY1,             1.0f ),
+                    ( SpellId.CANTRIPMAGICRESISTANCE1,             1.0f ),
+
+                    ( SpellId.CANTRIPLIFEMAGICAPTITUDE1,           1.0f ),
+                    ( SpellId.CANTRIPWARMAGICAPTITUDE1,            1.0f ),
+
+                    ( SpellId.CANTRIPIMPENETRABILITY1,             1.0f ),
+                    ( SpellId.CANTRIPACIDBANE1,                    1.0f ),
+                    ( SpellId.CANTRIPBLUDGEONINGBANE1,             1.0f ),
+                    ( SpellId.CANTRIPFLAMEBANE1,                   1.0f ),
+                    ( SpellId.CANTRIPFROSTBANE1,                   1.0f ),
+                    ( SpellId.CANTRIPPIERCINGBANE1,                1.0f ),
+                    ( SpellId.CANTRIPSLASHINGBANE1,                1.0f ),
+                    ( SpellId.CANTRIPSTORMBANE1,                   1.0f ),
+
+                    ( SpellId.CANTRIPARMOR1,                       1.0f ),
+                    ( SpellId.CANTRIPACIDWARD1,                    1.0f ),
+                    ( SpellId.CANTRIPBLUDGEONINGWARD1,             1.0f ),
+                    ( SpellId.CANTRIPFLAMEWARD1,                   1.0f ),
+                    ( SpellId.CANTRIPFROSTWARD1,                   1.0f ),
+                    ( SpellId.CANTRIPPIERCINGWARD1,                1.0f ),
+                    ( SpellId.CANTRIPSLASHINGWARD1,                1.0f ),
+                    ( SpellId.CANTRIPSTORMWARD1,                   1.0f ),
+
+                    ( SpellId.CantripDualWieldAptitude1,           1.0f ),
+                    ( SpellId.CantripShieldAptitude1,              1.0f ),
+
+                    ( SpellId.CANTRIPALCHEMICALPROWESS1,           0.5f ),
+                    ( SpellId.CANTRIPARCANEPROWESS1,               0.5f ),
+                    ( SpellId.CANTRIPARMOREXPERTISE1,              0.5f ),
+                    ( SpellId.CANTRIPCOOKINGPROWESS1,              0.5f ),
+                    ( SpellId.CANTRIPDECEPTIONPROWESS1,            0.5f ),
+                    ( SpellId.CANTRIPFEALTY1,                      0.5f ),
+                    ( SpellId.CANTRIPFLETCHINGPROWESS1,            0.5f ),
+                    ( SpellId.CANTRIPHEALINGPROWESS1,              0.5f ),
+                    ( SpellId.CANTRIPITEMEXPERTISE1,               0.5f ),
+                    ( SpellId.CANTRIPJUMPINGPROWESS1,              0.5f ),
+                    ( SpellId.CANTRIPLEADERSHIP1,                  0.5f ),
+                    ( SpellId.CANTRIPLOCKPICKPROWESS1,             0.5f ),
+                    ( SpellId.CANTRIPMAGICITEMEXPERTISE1,          0.5f ),
+                    ( SpellId.CANTRIPMANACONVERSIONPROWESS1,       0.5f ),
+                    ( SpellId.CANTRIPMONSTERATTUNEMENT1,           0.5f ),
+                    ( SpellId.CantripSalvaging1,                   0.5f ),
+                    ( SpellId.CANTRIPSPRINT1,                      0.5f ),
+                    ( SpellId.CANTRIPWEAPONEXPERTISE1,             0.5f ),
+                };
+            }
         }
 
         private static void BuildSpells()

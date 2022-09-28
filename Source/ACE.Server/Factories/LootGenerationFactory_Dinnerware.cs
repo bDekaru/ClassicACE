@@ -4,6 +4,7 @@ using System.Linq;
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
 using ACE.Server.Factories.Entity;
 using ACE.Server.Factories.Tables;
@@ -48,7 +49,7 @@ namespace ACE.Server.Factories
             wo.GemType = RollGemType(profile.Tier);
 
             // workmanship
-            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier);
+            wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
 
             // "Empty Flask" was the only dinnerware that never received spells
             if (isMagical && wo.WeenieClassId != (uint)WeenieClassName.flasksimple)

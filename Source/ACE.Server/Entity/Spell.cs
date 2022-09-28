@@ -82,6 +82,8 @@ namespace ACE.Server.Entity
 
             if (loadDB && (_spell == null || _spellBase == null))
                 log.Debug($"Spell.Init(spellID = {spellID}, loadDB = {loadDB}) failed! {(_spell == null ? "_spell was null" : "")} {(_spellBase == null ? "_spellBase was null" : "")}");
+
+            IntensityMod = 1.0f;
         }
 
         /// <summary>
@@ -148,6 +150,16 @@ namespace ACE.Server.Entity
 
             //DebugComponents();
 
+            var componentBurnChanceMod = 1.0f;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var amulet = player.GetEquippedLeyLineAmulet();
+                if (amulet != null && (amulet.LeyLineTriggerChance ?? 0) > 0 && (amulet.LeyLineEffectId == (uint)LeyLineEffect.LowerCompBurnChanceAllSpells) && School == (MagicSchool)amulet.LeyLineSchool)
+                {
+                    componentBurnChanceMod = 0.7f;
+                }
+            }
+
             foreach (var component in Formula.CurrentFormula)
             {
                 if (!SpellFormula.SpellComponentsTable.SpellComponents.TryGetValue(component, out var spellComponent))
@@ -157,7 +169,7 @@ namespace ACE.Server.Entity
                 }
 
                 // component burn rate = spell base rate * component destruction modifier * skillMod?
-                var burnRate = baseRate * spellComponent.CDM * skillMod;
+                var burnRate = baseRate * spellComponent.CDM * skillMod * componentBurnChanceMod;
 
                 // TODO: curve?
                 var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
@@ -252,6 +264,8 @@ namespace ACE.Server.Entity
             }
         }
 
+        public bool IsWeaponTargetType => (Category >= SpellCategory.AttackModRaising && Category <= SpellCategory.WeaponTimeLowering) || (Category >= SpellCategory.ManaConversionModLowering && Category <= SpellCategory.ManaConversionModRaising) || Category == SpellCategory.SpellDamageRaising;
+
         /// <summary>
         /// Returns TRUE if spell category matches spells that should redirect to items player is holding
         /// </summary>
@@ -274,9 +288,9 @@ namespace ACE.Server.Entity
             }
         }
 
-        public bool IsNegativeRedirectable => IsHarmful && (IsImpenBaneType || IsOtherNegativeRedirectable);
+        public bool IsNegativeRedirectable => IsHarmful && (IsImpenBaneType || IsOtherRedirectable);
 
-        public bool IsOtherNegativeRedirectable
+        public bool IsOtherRedirectable
         {
             get
             {
@@ -287,6 +301,12 @@ namespace ACE.Server.Entity
                     case SpellCategory.AttackModLowering:
                     case SpellCategory.WeaponTimeLowering:        // verified
                     case SpellCategory.ManaConversionModLowering: // hermetic void, replaced hide value, unchanged category in dat
+
+                    case SpellCategory.DamageRaising:
+                    case SpellCategory.DefenseModRaising:
+                    case SpellCategory.AttackModRaising:
+                    case SpellCategory.WeaponTimeRaising:
+                    case SpellCategory.ManaConversionModRaising:
                         return true;
                 }
                 return false;
@@ -317,15 +337,20 @@ namespace ACE.Server.Entity
         {
             get
             {
-                switch (Category)
+                if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                    return false;
+                else
                 {
-                    case SpellCategory.AttackModRaising:
-                    case SpellCategory.DamageRaising:
-                    case SpellCategory.DefenseModRaising:
-                    case SpellCategory.WeaponTimeRaising:        // verified
-                    case SpellCategory.ManaConversionModRaising:
-                    case SpellCategory.SpellDamageRaising:
-                        return true;
+                    switch (Category)
+                    {
+                        case SpellCategory.AttackModRaising:
+                        case SpellCategory.DamageRaising:
+                        case SpellCategory.DefenseModRaising:
+                        case SpellCategory.WeaponTimeRaising:        // verified
+                        case SpellCategory.ManaConversionModRaising:
+                        case SpellCategory.SpellDamageRaising:
+                            return true;
+                    }
                 }
                 return false;
             }

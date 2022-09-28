@@ -19,7 +19,7 @@ namespace ACE.Server.WorldObjects
 {
     partial class Creature
     {
-        public TreasureDeath DeathTreasure { get => DeathTreasureType.HasValue ? DatabaseManager.World.GetCachedDeathTreasure(DeathTreasureType.Value) : null; }
+        public TreasureDeath DeathTreasure { get => DeathTreasureType.HasValue ? LootGenerationFactory.GetTweakedDeathTreasureProfile(DeathTreasureType.Value, this) : null; }
 
         private bool onDeathEntered = false;
 
@@ -31,8 +31,10 @@ namespace ACE.Server.WorldObjects
         /// <param name="criticalHit">True if the death blow was a critical hit, generates a critical death message</param>
         public virtual DeathMessage OnDeath(DamageHistoryInfo lastDamager, DamageType damageType, bool criticalHit = false)
         {
+            var deathMessage = GetDeathMessage(lastDamager, damageType, criticalHit);
+
             if (onDeathEntered)
-                return GetDeathMessage(lastDamager, damageType, criticalHit);
+                return deathMessage;
 
             onDeathEntered = true;
 
@@ -51,7 +53,7 @@ namespace ACE.Server.WorldObjects
             if (!IsOnNoDeathXPLandblock)
                 OnDeath_GrantXP();
 
-            return GetDeathMessage(lastDamager, damageType, criticalHit);
+            return deathMessage;
         }
 
 
@@ -72,7 +74,7 @@ namespace ACE.Server.WorldObjects
 
                 var killerMsg = string.Format(deathMessage.Killer, Name);
 
-                if (lastDamager is Player playerKiller)
+                if (lastDamager is Player playerKiller && !onDeathEntered)
                     playerKiller.Session.Network.EnqueueSend(new GameEventKillerNotification(playerKiller.Session, killerMsg));
             }
             return deathMessage;
@@ -190,9 +192,29 @@ namespace ACE.Server.WorldObjects
 
                 var damagePercent = totalDamage / totalHealth;
 
-                var totalXP = (XpOverride ?? 0) * damagePercent;
+                float totalXP;
 
-                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill);
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    totalXP = (XpOverride ?? 0) * damagePercent;
+                else
+                {
+                    totalXP = GetCreatureDeathXP(Level ?? 0, (int)Health.MaxValue, Biota.PropertiesSpellBook?.Count ?? 0) * damagePercent;
+
+                    float typeCampBonus;
+                    float areaCampBonus;
+                    float restCampBonus;
+                    playerDamager.CampManager.HandleCampInteraction(this, out typeCampBonus, out areaCampBonus, out restCampBonus);
+
+                    float thirdXP = totalXP / 3.0f;
+                    totalXP = (thirdXP * typeCampBonus) + (thirdXP * areaCampBonus) + (thirdXP * restCampBonus);
+
+                    if (!CurrentLandblock.IsDungeon)
+                        totalXP *= 1.25f; // Surface provides 25% xp bonus to account for lower creature density.
+
+                    playerDamager.Session.Network.EnqueueSend(new GameEventKillerNotification(playerDamager.Session, $"You've earned {((long)Math.Round(totalXP)):N0} experience! T: {(typeCampBonus * 100).ToString("0")}% A: {(areaCampBonus * 100).ToString("0")}% R: {(restCampBonus * 100).ToString("0")}%"));
+                }
+
+                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill, Level);
 
                 // handle luminance
                 if (LuminanceAward != null)
@@ -201,6 +223,45 @@ namespace ACE.Server.WorldObjects
                     playerDamager.EarnLuminance(totalLuminance, XpType.Kill);
                 }
             }
+        }
+        public static int GetCreatureDeathXP(int level, int hitpoints = 0, int numSpellInSpellbook = 0, int formulaVersion = 0)
+        {
+            double baseXp = Math.Min((1.75 * Math.Pow(level, 2)) + (20 * level), 30000);
+
+            switch (formulaVersion)
+            {
+                case 1:
+                    baseXp *= 10;
+                    break;
+                case 2:
+                    baseXp *= 15;
+                    break;
+                case 3:
+                    baseXp = (baseXp * level / 2) + 5000;
+                    break;
+                case 4:
+                    baseXp = (baseXp * level) + 10000;
+                    break;
+                case 5:
+                    baseXp = (baseXp * level * 3) + 15000;
+                    break;
+                default:
+                    break;
+            }
+
+            double hitpointsXp = hitpoints / 10 * baseXp / 35;
+
+            double casterXp = baseXp * ((float)numSpellInSpellbook / 20);
+
+            double xp = baseXp + hitpointsXp + casterXp;
+
+            // Reduce xp for the first 20 levels.
+            if (level < 15)
+                xp *= 0.4;
+            else if (level <= 20)
+                xp -= (20 - level)/5 * 0.4 * xp;
+
+            return (int)Math.Round(xp);
         }
 
         /// <summary>
@@ -425,11 +486,11 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Create a corpse for both creatures and players currently
         /// </summary>
-        protected void CreateCorpse(DamageHistoryInfo killer)
+        protected void CreateCorpse(DamageHistoryInfo killer, bool hadVitae = false)
         {
             if (NoCorpse)
             {
-                if (killer.IsOlthoiPlayer) return;
+                if (killer != null && killer.IsOlthoiPlayer) return;
 
                 var loot = GenerateTreasure(killer, null);
 
@@ -524,7 +585,7 @@ namespace ACE.Server.WorldObjects
             if (player != null)
             {
                 corpse.SetPosition(PositionType.Location, corpse.Location);
-                var dropped = player.CalculateDeathItems(corpse);
+                var dropped = killer != null && killer.IsOlthoiPlayer ? player.CalculateDeathItems_Olthoi(corpse, hadVitae) : player.CalculateDeathItems(corpse);
                 corpse.RecalculateDecayTime(player);
 
                 if (dropped.Count > 0)
@@ -543,7 +604,29 @@ namespace ACE.Server.WorldObjects
                 var isPKLdeath = player.IsPKLiteDeath(killer);
 
                 if (isPKdeath)
+                {
                     corpse.PkLevel = PKLevel.PK;
+
+                    if(corpse != null && corpse.VictimId != null)
+                    {
+                        uint? victimMonarchId = null;
+                        uint? killerMonarchId = null;
+                        var killerAllegiance = AllegianceManager.GetAllegiance(PlayerManager.FindByGuid(killer.Guid));
+                        var victimAllegiance = AllegianceManager.GetAllegiance(PlayerManager.FindByGuid(new ObjectGuid(corpse.VictimId.Value)));
+
+                        if(killerAllegiance != null)
+                        {
+                            killerMonarchId = killerAllegiance.MonarchId;
+                        }
+
+                        if (victimAllegiance != null)
+                        {
+                            victimMonarchId = victimAllegiance.MonarchId;
+                        }
+
+                        DatabaseManager.Shard.CreatePKKill((uint)corpse.VictimId, (uint)killer.Guid.Full, victimMonarchId, killerMonarchId);
+                    }
+                }
 
                 if (!isPKdeath && !isPKLdeath)
                 {
@@ -559,8 +642,10 @@ namespace ACE.Server.WorldObjects
             {
                 corpse.IsMonster = true;
 
-                if (!killer.IsOlthoiPlayer)
+                if (killer == null || !killer.IsOlthoiPlayer)
                     GenerateTreasure(killer, corpse);
+                else
+                    GenerateTreasure_Olthoi(killer, corpse);
 
                 if (killer != null && killer.IsPlayer && !killer.IsOlthoiPlayer)
                 {
@@ -581,8 +666,11 @@ namespace ACE.Server.WorldObjects
 
             corpse.RemoveProperty(PropertyInt.Value);
 
-            if (CanGenerateRare && killer != null)
-                corpse.TryGenerateRare(killer);
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+            {
+                if (CanGenerateRare && killer != null)
+                    corpse.TryGenerateRare(killer);
+            }
 
             corpse.InitPhysicsObj();
 
@@ -680,7 +768,72 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            // Drop the ammo we've been hit with.
+            if (ammoHitWith.Count > 0)
+            {
+                List<WorldObject> items = new List<WorldObject>();
+                foreach (var entry in ammoHitWith)
+                {
+                    uint wcid = entry.Key;
+                    int amount = entry.Value;
+                    while (amount > 0)
+                    {
+                        WorldObject wo = WorldObjectFactory.CreateNewWorldObject(wcid);
+
+                        if (wo.MaxStackSize.HasValue)
+                        {
+                            if ((wo.MaxStackSize.Value != 0) & (amount > wo.MaxStackSize.Value))
+                            {
+                                // fit what we can in this stack and move on to a new stack
+                                wo.SetStackSize(wo.MaxStackSize.Value);
+                                items.Add(wo);
+                                amount = amount - wo.MaxStackSize.Value;
+                            }
+                            else
+                            {
+                                // we can fit all the remaining amount in this stack
+                                wo.SetStackSize(amount);
+                                items.Add(wo);
+                                amount = 0;
+                            }
+                        }
+                        else
+                        {
+                            if (amount > 0)
+                            {
+                                amount--;
+                                items.Add(wo);
+                            }
+                        }
+                    }
+                }
+                ammoHitWith.Clear();
+
+                foreach (WorldObject wo in items)
+                {
+                    if (corpse != null)
+                        corpse.TryAddToInventory(wo);
+                    else
+                        droppedItems.Add(wo);
+                }
+            }
+
             return droppedItems;
+        }
+        
+        /// <summary>
+        /// Generates random amounts of slag on a corpse
+        /// when an OlthoiPlayer is the killer
+        /// </summary>
+        private void GenerateTreasure_Olthoi(DamageHistoryInfo killer, Corpse corpse)
+        {
+            if (DeathTreasure == null) return;
+
+            var slag = LootGenerationFactory.RollSlag(DeathTreasure);
+
+            if (slag == null) return;
+
+            corpse.TryAddToInventory(slag);
         }
 
         public void DoCantripLogging(DamageHistoryInfo killer, WorldObject wo)

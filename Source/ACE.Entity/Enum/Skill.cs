@@ -64,7 +64,11 @@ namespace ACE.Entity.Enum
         SneakAttack,
         DirtyFighting,
         Challenge,          /* Unimplemented */
-        Summoning
+        Summoning,
+        // CustomDM
+        Appraise,
+        Armor,
+        Sneaking
     }
 
     public static class SkillExtensions
@@ -103,6 +107,74 @@ namespace ACE.Entity.Enum
 
     public static class SkillHelper
     {
+        static SkillHelper()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            {
+                ValidSkills.Remove(Skill.TwoHandedCombat);
+                ValidSkills.Remove(Skill.HeavyWeapons);
+                ValidSkills.Remove(Skill.LightWeapons);
+                ValidSkills.Remove(Skill.FinesseWeapons);
+                ValidSkills.Remove(Skill.MissileWeapons);
+                ValidSkills.Remove(Skill.Shield);
+                ValidSkills.Remove(Skill.DualWield);
+                ValidSkills.Remove(Skill.Recklessness);
+                ValidSkills.Remove(Skill.SneakAttack);
+                ValidSkills.Remove(Skill.DirtyFighting);
+                ValidSkills.Remove(Skill.VoidMagic);
+                ValidSkills.Remove(Skill.Summoning);
+
+                ValidSkills.Add(Skill.Axe);
+                ValidSkills.Add(Skill.Bow);
+                ValidSkills.Add(Skill.Crossbow);
+                ValidSkills.Add(Skill.Dagger);
+                ValidSkills.Add(Skill.Mace);
+                ValidSkills.Add(Skill.Spear);
+                ValidSkills.Add(Skill.Staff);
+                ValidSkills.Add(Skill.Sword);
+                ValidSkills.Add(Skill.ThrownWeapon);
+                ValidSkills.Add(Skill.UnarmedCombat);
+                ValidSkills.Add(Skill.Salvaging);
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                ValidSkills.Remove(Skill.TwoHandedCombat);
+                ValidSkills.Remove(Skill.HeavyWeapons);
+                ValidSkills.Remove(Skill.LightWeapons);
+                ValidSkills.Remove(Skill.FinesseWeapons);
+                ValidSkills.Remove(Skill.MissileWeapons);
+                ValidSkills.Remove(Skill.Recklessness);
+                ValidSkills.Remove(Skill.SneakAttack);
+                ValidSkills.Remove(Skill.DirtyFighting);
+                ValidSkills.Remove(Skill.VoidMagic);
+                ValidSkills.Remove(Skill.Summoning);
+
+                ValidSkills.Remove(Skill.AssessPerson);
+                ValidSkills.Remove(Skill.ItemEnchantment);
+                ValidSkills.Remove(Skill.CreatureEnchantment);
+                ValidSkills.Remove(Skill.Crossbow);
+                ValidSkills.Remove(Skill.Mace);
+                ValidSkills.Remove(Skill.Staff);
+
+                ValidSkills.Add(Skill.Axe);
+                ValidSkills.Add(Skill.Bow);
+                ValidSkills.Add(Skill.Crossbow);
+                ValidSkills.Add(Skill.Dagger);
+                ValidSkills.Add(Skill.Mace);
+                ValidSkills.Add(Skill.Spear);
+                ValidSkills.Add(Skill.Staff);
+                ValidSkills.Add(Skill.Sword);
+                ValidSkills.Add(Skill.ThrownWeapon);
+                ValidSkills.Add(Skill.UnarmedCombat);
+                ValidSkills.Add(Skill.Salvaging);
+
+                ValidSkills.Add(Skill.Awareness);
+                ValidSkills.Add(Skill.Appraise);
+                ValidSkills.Add(Skill.Armor);
+                ValidSkills.Add(Skill.Sneaking);
+            }
+        }
+
         public static HashSet<Skill> ValidSkills = new HashSet<Skill>
         {
             Skill.MeleeDefense,

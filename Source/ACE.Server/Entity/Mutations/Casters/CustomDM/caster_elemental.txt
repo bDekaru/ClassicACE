@@ -1,0 +1,74 @@
+Elemental Caster Mutation #1:
+
+Tier chances: 1, 1, 1, 1, 0, 0
+
+    - Chance 75%:
+        ElementalDamageMod = 1.01
+
+    - Chance 25%:
+        ElementalDamageMod = 1.02
+
+Elemental Caster Mutation #2:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 40%:
+        ElementalDamageMod = 1.01
+
+    - Chance 25%:
+        ElementalDamageMod = 1.02
+
+    - Chance 20%:
+        ElementalDamageMod = 1.03
+        WieldDifficulty = 310
+
+    - Chance 10%:
+        ElementalDamageMod = 1.04
+        WieldDifficulty = 310
+
+    - Chance 5%:
+        ElementalDamageMod = 1.05
+        WieldDifficulty = 310
+
+Elemental Caster Mutation #3:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 8%:
+        ElementalDamageMod = 1.01
+
+    - Chance 5%:
+        ElementalDamageMod = 1.02
+
+    - Chance 15%:
+        ElementalDamageMod = 1.03
+        WieldDifficulty = 310
+
+    - Chance 20%:
+        ElementalDamageMod = 1.04
+        WieldDifficulty = 310
+
+    - Chance 15%:
+        ElementalDamageMod = 1.05
+        WieldDifficulty = 310
+
+    - Chance 8%:
+        ElementalDamageMod = 1.06
+        WieldDifficulty = 330
+
+    - Chance 15%:
+        ElementalDamageMod = 1.07
+        WieldDifficulty = 330
+
+    - Chance 8%:
+        ElementalDamageMod = 1.08
+        WieldDifficulty = 330
+
+    - Chance 4%:
+        ElementalDamageMod = 1.09
+        WieldDifficulty = 355
+
+    - Chance 2%:
+        ElementalDamageMod = 1.1
+        WieldDifficulty = 355
+
