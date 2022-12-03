@@ -35,12 +35,16 @@ namespace ACE.Server.WorldObjects
 
         public override PowerAccuracy GetPowerRange()
         {
-            if (PowerLevel < 0.33f)
+            if (PowerLevel == 0)
+                return PowerAccuracy.Min;
+            else if (PowerLevel < 0.33f)
                 return PowerAccuracy.Low;
             else if (PowerLevel < 0.66f)
                 return PowerAccuracy.Medium;
-            else
+            else if (PowerLevel < 1f)
                 return PowerAccuracy.High;
+            else
+                return PowerAccuracy.Max;
         }
 
         public AttackQueue AttackQueue;

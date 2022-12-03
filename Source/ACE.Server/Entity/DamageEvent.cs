@@ -298,10 +298,18 @@ namespace ACE.Server.Entity
                 {
                     if (playerAttacker != null)
                     {
+                        /*
                         if (CombatType != CombatType.Magic)
                         {
                             // critical chance scales with power/accuracy bar
                             CriticalChance += playerAttacker.ScaleWithPowerAccuracyBar(CriticalChance);
+                        }
+                        */
+
+                        if (CombatType == CombatType.Missile)
+                        {
+                            // critical chance bonus from accuracy bar
+                            CriticalChance += playerAttacker.GetAccuracyCritChanceMod(Weapon);
                         }
 
                         if (isAttackFromSneaking)
@@ -360,6 +368,11 @@ namespace ACE.Server.Entity
                     // verify: CriticalMultiplier only applied to the additional crit damage,
                     // whereas CD/CDR applied to the total damage (base damage + additional crit damage)
                     CriticalDamageMod = 1.0f + WorldObject.GetWeaponCritDamageMod(Weapon, attacker, attackSkill, defender);
+
+                    if (CombatType == CombatType.Missile)
+                    {
+                        CriticalDamageMod += playerAttacker.GetAccuracyCritDamageMod(Weapon);
+                    }
 
                     CriticalDamageRatingMod = Creature.GetPositiveRatingMod(attacker.GetCritDamageRating());
 
@@ -475,7 +488,7 @@ namespace ACE.Server.Entity
             Player playerDefender = defender as Player;
             bool isPvP = playerAttacker != null && playerDefender != null;
 
-            AccuracyMod = attacker.GetAccuracyMod(Weapon);
+            AccuracyMod = attacker.GetAccuracySkillMod(Weapon);
 
             EffectiveAttackSkill = attacker.GetEffectiveAttackSkill();
 
