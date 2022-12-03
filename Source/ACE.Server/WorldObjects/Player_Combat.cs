@@ -1,19 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using ACE.Common;
-using ACE.DatLoader.Entity;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
-using ACE.Server.Managers;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Managers;
 using ACE.Server.Network.Enum;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
-using ACE.Server.Physics.Combat;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ACE.Server.WorldObjects
 {
@@ -251,7 +248,7 @@ namespace ACE.Server.WorldObjects
             var weapon = GetEquippedWeapon();
             var attackSkill = GetCreatureSkill(GetCurrentWeaponSkill()).Current;
             var offenseMod = GetWeaponOffenseModifier(this);
-            var accuracyMod = GetAccuracyMod(weapon);
+            var accuracyMod = GetAccuracySkillMod(weapon);
 
             attackSkill = (uint)Math.Round(attackSkill * accuracyMod * offenseMod);
 
@@ -454,12 +451,22 @@ namespace ACE.Server.WorldObjects
             return damageSource.GetDamageMod(this);
         }
 
+        /// <summary>
+        /// Scales from -50% modifier to +100% (Retail was -50% to +50%)
+        /// </summary>
         public override float GetPowerMod(WorldObject weapon)
         {
             if (weapon == null || !weapon.IsRanged)
-                return PowerLevel + 0.5f;
+            {
+                var powerMod = PowerLevel <= 0.5 ? PowerLevel + 0.5f : PowerLevel * 2;
+
+                return powerMod;
+
+                //return PowerLevel + 0.5f;
+            }
             else
             {
+                /*
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
                     if (weapon != null && weapon.IsRanged)
@@ -469,21 +476,71 @@ namespace ACE.Server.WorldObjects
                             return 1.0f + (AccuracyLevel * 0.5f);
                     }
                 }
+                */
                 return 1.0f;
             }
         }
 
-        public override float GetAccuracyMod(WorldObject weapon)
+        /// <summary>
+        /// Accuracy Skill Mod ranges from 1 to 1.1 (+0% to +10%)
+        /// (the accuracy bar now also grants crit mods)
+        /// </summary>
+        public override float GetAccuracySkillMod(WorldObject weapon)
         {
             if (weapon != null && weapon.IsRanged)
             {
+
+                /*
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
                     var techniqueTrinket = GetEquippedTrinket();
                     if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.PowerShot)
                         return 0.6f;
                 }
-                return AccuracyLevel + 0.6f;
+                */
+
+                var accuracyMod = 1 + (AccuracyLevel / 10);
+
+                Console.WriteLine($"GetAccuracyMod - AccuracyLevel: {AccuracyLevel}, AccuracyMod: {accuracyMod}");
+
+                return accuracyMod;
+
+            }
+            else
+                return 1.0f;
+        }
+
+        /// <summary>
+        /// Accuracy Crit Chance Mod ranges from 0 to 50
+        /// </summary>
+        public float GetAccuracyCritChanceMod(WorldObject weapon)
+        {
+            if (weapon != null && weapon.IsRanged)
+            {
+                var critChanceMod = AccuracyLevel <= 0.5 ? AccuracyLevel / 5 : AccuracyLevel / 4;
+
+                Console.WriteLine($"GetAccuracyCritChanceMod - AccuracyLevel: {AccuracyLevel}, CritChanceMod: {critChanceMod}");
+
+                return critChanceMod;
+
+            }
+            else
+                return 1.0f;
+        }
+
+        /// <summary>
+        /// Accuracy Crit Damage Mod ranges from 1 to 2
+        /// </summary>
+        public float GetAccuracyCritDamageMod(WorldObject weapon)
+        {
+            if (weapon != null && weapon.IsRanged)
+            {
+                var critDamageMod = AccuracyLevel;
+
+                Console.WriteLine($"GetAccuracyCritDamageMod - AccuracyLevel: {AccuracyLevel}, CritDamageMod: {critDamageMod}");
+
+                return critDamageMod;
+
             }
             else
                 return 1.0f;
@@ -706,6 +763,52 @@ namespace ACE.Server.WorldObjects
             return mainhandBurden + offhandBurden;
         }
 
+        /// <summary>
+        /// Returns weapon tier of a mainhand weapon
+        /// </summary>
+        public int GetMainHandWeaponTier()
+        {
+            var weapon = GetEquippedMainHand();
+
+            if (!weapon.WieldDifficulty.HasValue)
+                return 1;
+
+            int weaponTier;
+            if (weapon.WieldDifficulty.Value == 350)
+                weaponTier = 5;
+            else if (weapon.WieldDifficulty.Value == 325)
+                weaponTier = 4;
+            else if (weapon.WieldDifficulty.Value == 300)
+                weaponTier = 3;
+            else 
+                weaponTier = 2;
+
+            return weaponTier;
+        }
+
+        /// <summary>
+        /// Returns weapon tier of a mainhand weapon
+        /// </summary>
+        public int GetOffHandWeaponTier()
+        {
+            var weapon = GetEquippedOffHand();
+
+            if (weapon == null || !weapon.WieldDifficulty.HasValue)
+                return 1;
+
+            int weaponTier;
+            if (weapon.WieldDifficulty.Value == 350)
+                weaponTier = 5;
+            else if (weapon.WieldDifficulty.Value == 325)
+                weaponTier = 4;
+            else if (weapon.WieldDifficulty.Value == 300)
+                weaponTier = 3;
+            else
+                weaponTier = 2;
+
+            return weaponTier;
+        }
+
         public float GetStaminaMod()
         {
             var endurance = (int)Endurance.Base;
@@ -752,7 +855,9 @@ namespace ACE.Server.WorldObjects
 
             var burden = GetHeldItemBurden();
 
-            var baseCost = StaminaTable.GetStaminaCost(powerAccuracy, burden);
+            var weaponTier = Math.Max(GetMainHandWeaponTier(), GetOffHandWeaponTier());
+
+            var baseCost = StaminaTable.GetStaminaCost(powerAccuracy, weaponTier, burden);
 
             var staminaMod = GetStaminaMod();
 

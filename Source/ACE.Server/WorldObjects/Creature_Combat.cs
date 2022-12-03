@@ -481,7 +481,7 @@ namespace ACE.Server.WorldObjects
         /// Returns a value between 0.6-1.6 for bow attacks,
         /// depending on the accuracy meter
         /// </summary>
-        public virtual float GetAccuracyMod(WorldObject weapon)
+        public virtual float GetAccuracySkillMod(WorldObject weapon)
         {
             // doesn't apply for non-player creatures?
             return 1.0f;

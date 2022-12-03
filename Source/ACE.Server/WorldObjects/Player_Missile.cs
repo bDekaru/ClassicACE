@@ -23,12 +23,16 @@ namespace ACE.Server.WorldObjects
 
         public PowerAccuracy GetAccuracyRange()
         {
-            if (AccuracyLevel < 0.33f)
+            if (AccuracyLevel == 0)
+                return PowerAccuracy.Min;
+            else if (AccuracyLevel < 0.33f)
                 return PowerAccuracy.Low;
             else if (AccuracyLevel < 0.66f)
                 return PowerAccuracy.Medium;
-            else
+            else if (AccuracyLevel < 1)
                 return PowerAccuracy.High;
+            else
+                return PowerAccuracy.Max;
         }
 
         /// <summary>

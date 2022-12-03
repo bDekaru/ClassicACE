@@ -2,8 +2,10 @@ namespace ACE.Entity.Enum
 {
     public enum PowerAccuracy
     {
-        Low = 1,
-        Medium = 2,
-        High = 3
+        Min = 1,
+        Low = 2,
+        Medium = 3,
+        High = 4,
+        Max = 5
     }
 }
