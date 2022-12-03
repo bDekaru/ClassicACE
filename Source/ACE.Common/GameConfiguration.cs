@@ -9,7 +9,6 @@ namespace ACE.Common
         //Release,                // November 1999
         //DarkMajesty,            // October 2001
         CustomDM,
-        Timeline,
         Infiltration,           // February 2005
         //ThroneOfDestiny,        // July 2005
         //FromDarknessLight,      // November 2010 - Void Magic

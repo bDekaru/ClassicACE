@@ -117,7 +117,7 @@ namespace ACE.Server.WorldObjects
             if (vital.RegenRate == 0.0) return false;
 
             // take attributes into consideration (strength, endurance)
-            // (RETAIL) var attributeMod = GetAttributeMod(vital); 
+            var attributeMod = GetAttributeMod(vital);
 
             // take stance into consideration (combat, crouch, sitting, sleeping)
             var stanceMod = GetStanceMod(vital);
@@ -131,31 +131,7 @@ namespace ACE.Server.WorldObjects
                 augMod += player.AugmentationFasterRegen;
 
             // cap rate?
-            // (RETAIL) var currentTick = vital.RegenRate * attributeMod * stanceMod * enchantmentMod * augMod;
-
-            // Player Regeneration is now based on Maximum Vitals
-            // Health = 10% per 5 seconds
-            // Stamina = 20% per 5 seconds
-            // Mana = 20% per 5 seconds
-            double currentTick = 0.0;
-
-            if (this is Player)
-            {
-                if(vital == Health)
-                {
-                    currentTick = (vital.MaxValue / 10) * stanceMod * enchantmentMod * augMod;
-                }
-                else if (vital == Stamina)
-                {
-                    currentTick = (vital.MaxValue / 5) * stanceMod * enchantmentMod * augMod;
-                }
-                else if (vital == Mana)
-                {
-                    currentTick = (vital.MaxValue / 5) * stanceMod * enchantmentMod * augMod;
-                }
-            }
-            else
-                currentTick = vital.RegenRate * stanceMod * enchantmentMod * augMod;
+            var currentTick = vital.RegenRate * attributeMod * stanceMod * enchantmentMod * augMod;
 
             // add in partially accumulated / rounded vitals from previous tick(s)
             var totalTick = currentTick + vital.PartialRegen;
@@ -253,11 +229,11 @@ namespace ACE.Server.WorldObjects
                 default:
                     return 1.0f;
                 case MotionCommand.Crouch:
-                    return 1.1f;
+                    return 2.0f;
                 case MotionCommand.Sitting:
-                    return 1.25f;
+                    return 2.5f;
                 case MotionCommand.Sleeping:
-                    return 1.5f;
+                    return 3.0f;
             }
         }
     }
