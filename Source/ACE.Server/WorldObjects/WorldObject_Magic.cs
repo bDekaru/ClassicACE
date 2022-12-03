@@ -113,7 +113,7 @@ namespace ACE.Server.WorldObjects
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 resistChance = Math.Min(resistChance, 0.95f + (magicDefenseCapBonus * 0.01f));
 
-            return chance <= rng;
+            return resistChance >= rng;
         }
 
         /// <summary>
