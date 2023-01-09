@@ -1,5 +1,4 @@
 # ClassicACE [![License](https://img.shields.io/github/license/bDekaru/ClassicACE?style=plastic)](https://github.com/bDekaru/ClassicACE/blob/master/LICENSE) [![Discord](https://img.shields.io/discord/976661229055672350.svg?label=Join+Discord&style=plastic&logo=discord)](https://discord.gg/22F69jny)
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A0A2DN3BX)
 
 **ClassicACE is an Asheron's Call Emulator based on ACEmulator. It adds rulesets which change the gameplay rules:**
 - *Infiltration Ruleset:* Replicates the gameplay of the Infiltration event which was released by Turbine in February 2005.
