@@ -150,14 +150,12 @@ namespace ACE.Server.Entity
 
             //DebugComponents();
 
-            var componentBurnChanceMod = 1.0f;
+            var componentBurnChanceMod = 1.0f + player.CachedComponentBurnRateMod;
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 var amulet = player.GetEquippedLeyLineAmulet();
                 if (amulet != null && (amulet.LeyLineTriggerChance ?? 0) > 0 && (amulet.LeyLineEffectId == (uint)LeyLineEffect.LowerCompBurnChanceAllSpells) && School == (MagicSchool)amulet.LeyLineSchool)
-                {
-                    componentBurnChanceMod = 0.7f;
-                }
+                    componentBurnChanceMod *= 0.7f;
             }
 
             foreach (var component in Formula.CurrentFormula)

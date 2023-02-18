@@ -11,6 +11,7 @@ using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using Google.Protobuf.WellKnownTypes;
 
 namespace ACE.Server.WorldObjects
 {
@@ -71,7 +72,7 @@ namespace ACE.Server.WorldObjects
                 msg = $"The {target.Name} is still locked.\n";
             }
 
-            msg += GetConsumeUnlockerMessage(player, structure, true);
+            msg += GetConsumeUnlockerMessage(player, structure, isLockpick);
 
             player.Session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
         }
@@ -107,6 +108,9 @@ namespace ACE.Server.WorldObjects
                 structure = unlocker.Structure ?? 0;
                 
                 unlocker.Value -= unlocker.StructureUnitValue;
+
+                if (unlocker.Value < 0) // fix negative value
+                    unlocker.Value = 0;
 
                 if (unlocker.Structure == 0)
                 {

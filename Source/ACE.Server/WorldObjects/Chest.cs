@@ -47,12 +47,14 @@ namespace ACE.Server.WorldObjects
         {
             get
             {
-                var chestResetInterval = RegenerationInterval;
+                var chestResetInterval = GetProperty(PropertyFloat.ResetInterval);
+                if (chestResetInterval == null)
+                    chestResetInterval = GetProperty(PropertyFloat.RegenerationInterval);
 
-                if (chestResetInterval < 15)
+                if (chestResetInterval == null || chestResetInterval < 15)
                     chestResetInterval = Default_ChestResetInterval;
 
-                return chestResetInterval;
+                return chestResetInterval.Value;
             }
         }
 
@@ -95,6 +97,9 @@ namespace ACE.Server.WorldObjects
 
         public override ActivationResult CheckUseRequirements(WorldObject activator)
         {
+            if (TimeToRot > 0)
+                TimeToRot = DefaultTimeToRot.TotalSeconds; // Reset our decay timer.
+
             var baseRequirements = base.CheckUseRequirements(activator);
             if (!baseRequirements.Success)
                 return baseRequirements;
@@ -222,10 +227,19 @@ namespace ACE.Server.WorldObjects
 
             if (ChestClearedWhenClosed && InitCreate > 0)
             {
-                if (CurrentCreate == 0)
+                if (Generator != null && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    var actionChain = new ActionChain();
+                    actionChain.AddDelaySeconds(1.0f);
+                    actionChain.AddAction(this, () => Generator.ResetGenerator());
+                    actionChain.EnqueueChain();
+                }
+                else if (CurrentCreate == 0)
                     FadeOutAndDestroy(); // Chest's complete generated inventory count has been wiped out
-                    //Destroy(); // Chest's complete generated inventory count has been wiped out
+                                         //Destroy(); // Chest's complete generated inventory count has been wiped out
             }
+            else if (Generator != null && GeneratorId != null) // If we're a generated container start our decay timer once we've been opened and closed.
+                StartContainerDecay();
         }
 
         public void Reset(double? resetTimestamp)

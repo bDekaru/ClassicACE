@@ -231,9 +231,11 @@ namespace ACE.Server.WorldObjects
             SpellId.CANTRIPFLAMEWARD1,
             SpellId.CANTRIPSLASHINGWARD1,
             SpellId.CANTRIPPIERCINGWARD1,
+
+            SpellId.CantripArmorAptitude1,
         };
 
-        private static readonly List<SpellId> PossibleAcquireSpells = new List<SpellId>()
+        public static readonly List<SpellId> PossibleAcquireSpells = new List<SpellId>()
         {
             SpellId.ArmorSelf1,
             SpellId.ArmorOther1,
@@ -361,21 +363,26 @@ namespace ACE.Server.WorldObjects
             SpellId.ShieldMasteryOther1,
             SpellId.ShieldIneptitudeOther1,
 
+            SpellId.ArmorMasterySelf1,
+            SpellId.ArmorMasteryOther1,
+            SpellId.ArmorIneptitudeOther1,
+
             SpellId.LeadershipMasterySelf1,
             SpellId.LeadershipMasteryOther1,
             SpellId.FealtySelf1,
             SpellId.FealtyOther1,
 
-            SpellId.ArcanumSalvagingSelf1,
-            SpellId.ArcanumSalvagingOther1,
-            SpellId.ArmorExpertiseSelf1,
-            SpellId.ArmorExpertiseOther1,
-            SpellId.ItemExpertiseSelf1,
-            SpellId.ItemExpertiseOther1,
-            SpellId.MagicItemExpertiseSelf1,
-            SpellId.MagicItemExpertiseOther1,
-            SpellId.WeaponExpertiseSelf1,
-            SpellId.WeaponExpertiseOther1,
+            // Removed entries replaced with new entries to keep the list the same length to preserve the current pseudo-random generation. If/when adding new entries replace these instead.
+            SpellId.WeaknessOther1,//SpellId.ArcanumSalvagingSelf1,
+            SpellId.FrailtyOther1,//SpellId.ArcanumSalvagingOther1,
+            SpellId.ClumsinessOther1,//SpellId.ArmorExpertiseSelf1,
+            SpellId.SlownessOther1,//SpellId.ArmorExpertiseOther1,
+            SpellId.BafflementOther1,//SpellId.ItemExpertiseSelf1,
+            SpellId.FeeblemindOther1,//SpellId.ItemExpertiseOther1,
+            SpellId.VulnerabilityOther1,//SpellId.MagicItemExpertiseSelf1,
+            SpellId.DefenselessnessOther1,//SpellId.MagicItemExpertiseOther1,
+            SpellId.MagicYieldOther1,//SpellId.WeaponExpertiseSelf1,
+            SpellId.ArmorIneptitudeOther1,//SpellId.WeaponExpertiseOther1,
         };
 
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -576,7 +583,12 @@ namespace ACE.Server.WorldObjects
             spellId = possibleSpells[pseudoRandom.Next(0, possibleSpells.Count - 1)];
             Spell spell = new Spell(spellId);
             isBeneficial = spell.IsBeneficial;
-            spellName = spell.Name.Replace(" III", "").Replace(" I", "");
+            if (spell.Name.EndsWith(" I"))
+                spellName = spell.Name.Substring(0, spell.Name.Length - 2);
+            else if (spell.Name.EndsWith(" III"))
+                spellName = spell.Name.Substring(0, spell.Name.Length - 4);
+            else
+                spellName = spell.Name;
         }
 
         private void ResetAmulet()
@@ -606,19 +618,16 @@ namespace ACE.Server.WorldObjects
             {
                 uint playerSkillLevel = player.GetCreatureSkill(((LeyLineSchool ?? 0) == (int)MagicSchool.WarMagic) ? Skill.WarMagic : Skill.LifeMagic).Current;
 
-                SpellId grantedSpellId = SpellId.Undef;
                 for (int level = 1; level <= 6; level++)
                 {
                     SpellId grantedSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel((SpellId)level1SpellId, level, true);
                     Spell grantedSpellAttempt = new Spell(grantedSpellIdAttempt);
 
                     if (playerSkillLevel >= (int)grantedSpellAttempt.Power - 50)
-                        grantedSpellId = grantedSpellIdAttempt;
+                        player.LearnSpellWithNetworking((uint)grantedSpellIdAttempt);
                     else
                         break;
                 }
-                if (grantedSpellId != SpellId.Undef)
-                    player.LearnSpellWithNetworking((uint)grantedSpellId);
             }
 
             if (forceAddSpellsToWielder)

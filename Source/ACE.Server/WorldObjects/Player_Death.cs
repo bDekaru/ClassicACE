@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 using ACE.Common;
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
@@ -16,6 +12,9 @@ using ACE.Server.Network.Structure;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Handlers;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ACE.Server.WorldObjects
 {
@@ -116,9 +115,9 @@ namespace ACE.Server.WorldObjects
 
                 globalPKDe += "\n[PKDe]";
 
-                PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Broadcast));
+                PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Help));
 
-                _ = TurbineChatHandler.SendWebhookedChat("Bael'Zharon", webhookMsg, null, "General");
+                _ = TurbineChatHandler.SendWebhookedChat("", webhookMsg, null, "PvP");
             }
             else if (IsPKLiteDeath(topDamager))
                 pkPlayer.PlayerKillsPkl++;
@@ -477,92 +476,119 @@ namespace ACE.Server.WorldObjects
             // if player dies on a No Drop landblock,
             // they don't drop any items
 
-            if (corpse.IsOnNoDropLandblock || IsPKLiteDeath(corpse.KillerId))
+            bool onDropAllPyrealsLandblock = corpse.IsOnDropAllPyrealsLandblock;
+            bool onDropRecentlyPurchasedLandblock = corpse.IsOnDropRecentlyPurchasedLandblock;
+            bool onNoDropLandblock = corpse.IsOnNoDropLandblock;
+
+            if ((!onDropAllPyrealsLandblock && onNoDropLandblock) || IsPKLiteDeath(corpse.KillerId)) // Pyreals will drop even on no drop landblocks if it's also a drop all pyreals landblock.
                 return new List<WorldObject>();
 
-            var numItemsDropped = GetNumItemsDropped(corpse);
-
-            var numCoinsDropped = GetNumCoinsDropped();
-
-            var level = Level ?? 1;
-            var canDropWielded = level >= 35;
-
-            // get all items in inventory
-            var inventory = GetAllPossessions();
-
-            // exclude pyreals from randomized death item calculation
-            inventory = inventory.Where(i => i.WeenieClassId != coinStackWcid).ToList();
-
-            // exclude wielded items if < level 35
-            if (!canDropWielded)
-                inventory = inventory.Where(i => i.CurrentWieldedLocation == null).ToList();
-
-            // exclude bonded items
-            inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
-
-            // handle items with BondedStatus.Destroy
-            var destroyedItems = HandleDestroyBonded();
-
-            // construct the list of death items
-            var sorted = new DeathItems(inventory);
-
             var dropItems = new List<WorldObject>();
+            var destroyedItems = new List<WorldObject>();
 
-            if (numCoinsDropped > 0)
+            var numCoinsDropped = GetNumCoinsDropped(onDropAllPyrealsLandblock);
+            if(onDropAllPyrealsLandblock || !onNoDropLandblock)
             {
-                // add pyreals to dropped items
-                var pyreals = SpendCurrency(coinStackWcid, (uint)numCoinsDropped);
-                dropItems.AddRange(pyreals);
-                //Console.WriteLine($"Dropping {numCoinsDropped} pyreals");
-            }
-
-            // Remove the items from inventory
-            for (var i = 0; i < numItemsDropped && i < sorted.Inventory.Count; i++)
-            {
-                var deathItem = sorted.Inventory[i];
-
-                // split stack if needed
-                if ((deathItem.WorldObject.StackSize ?? 1) > 1)
+                if (numCoinsDropped > 0)
                 {
-                    var stack = FindObject(deathItem.WorldObject.Guid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out var foundInContainer, out var rootContainer, out _);
-
-                    if (stack != null)
-                    {
-                        AdjustStack(stack, -1, foundInContainer, rootContainer);
-                        Session.Network.EnqueueSend(new GameMessageSetStackSize(stack));
-
-                        var dropItem = WorldObjectFactory.CreateNewWorldObject(deathItem.WorldObject.WeenieClassId);
-                        dropItem.SetStackSize(1);
-
-                        //Console.WriteLine("Dropping " + deathItem.WorldObject.Name + " (stack)");
-                        dropItems.Add(dropItem);
-                    }
-                    else
-                    {
-                        log.WarnFormat("Couldn't find death item stack 0x{0:X8}:{1} for player {2}", deathItem.WorldObject.Guid.Full, deathItem.WorldObject.Name, Name);
-                    }
-                }
-                else
-                {
-                    if (TryRemoveFromInventoryWithNetworking(deathItem.WorldObject.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(deathItem.WorldObject.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
-                    {
-                        //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
-                        dropItems.Add(deathItem.WorldObject);
-                    }
-                    else
-                    {
-                        log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", deathItem.WorldObject.Guid.Full, deathItem.WorldObject.Name, Name);
-                    }
+                    // add pyreals to dropped items
+                    var pyreals = SpendCurrency(coinStackWcid, (uint)numCoinsDropped);
+                    dropItems.AddRange(pyreals);
+                    //Console.WriteLine($"Dropping {numCoinsDropped} pyreals");
                 }
             }
 
-            // handle items with BondedStatus.Slippery: always drop on death
-            var slipperyItems = GetSlipperyItems();
-
-            foreach (var item in slipperyItems)
+            if(onDropRecentlyPurchasedLandblock)
             {
-                if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
-                    dropItems.Add(item);
+                // get all items in inventory
+                var inventory = GetAllPossessions();
+
+                // exclude pyreals from randomized death item calculation
+                inventory = inventory.Where(i => i.WeenieClassId != coinStackWcid).ToList();
+
+                var time = Time.GetUnixTime() - 300;
+                inventory = inventory.Where(i => i.SoldTimestamp > time).ToList();
+
+                dropItems.AddRange(inventory);
+            }
+
+            if (!onNoDropLandblock)
+            {
+                var numItemsDropped = GetNumItemsDropped(corpse);
+
+                if (numItemsDropped > 0)
+                {
+                    var level = Level ?? 1;
+                    var canDropWielded = level >= 35;
+
+                    // get all items in inventory
+                    var inventory = GetAllPossessions();
+
+                    // exclude pyreals from randomized death item calculation
+                    inventory = inventory.Where(i => i.WeenieClassId != coinStackWcid).ToList();
+
+                    // exclude wielded items if < level 35
+                    if (!canDropWielded)
+                        inventory = inventory.Where(i => i.CurrentWieldedLocation == null).ToList();
+
+                    // exclude bonded items
+                    inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
+
+                    // handle items with BondedStatus.Destroy
+                    destroyedItems = HandleDestroyBonded();
+
+                    // construct the list of death items
+                    var sorted = new DeathItems(inventory);
+
+                    // Remove the items from inventory
+                    for (var i = 0; i < numItemsDropped && i < sorted.Inventory.Count; i++)
+                    {
+                        var deathItem = sorted.Inventory[i];
+
+                        // split stack if needed
+                        if ((deathItem.WorldObject.StackSize ?? 1) > 1)
+                        {
+                            var stack = FindObject(deathItem.WorldObject.Guid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out var foundInContainer, out var rootContainer, out _);
+
+                            if (stack != null)
+                            {
+                                AdjustStack(stack, -1, foundInContainer, rootContainer);
+                                Session.Network.EnqueueSend(new GameMessageSetStackSize(stack));
+
+                                var dropItem = WorldObjectFactory.CreateNewWorldObject(deathItem.WorldObject.WeenieClassId);
+                                dropItem.SetStackSize(1);
+
+                                //Console.WriteLine("Dropping " + deathItem.WorldObject.Name + " (stack)");
+                                dropItems.Add(dropItem);
+                            }
+                            else
+                            {
+                                log.WarnFormat("Couldn't find death item stack 0x{0:X8}:{1} for player {2}", deathItem.WorldObject.Guid.Full, deathItem.WorldObject.Name, Name);
+                            }
+                        }
+                        else
+                        {
+                            if (TryRemoveFromInventoryWithNetworking(deathItem.WorldObject.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(deathItem.WorldObject.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                            {
+                                //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                                dropItems.Add(deathItem.WorldObject);
+                            }
+                            else
+                            {
+                                log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", deathItem.WorldObject.Guid.Full, deathItem.WorldObject.Name, Name);
+                            }
+                        }
+                    }
+                }
+
+                // handle items with BondedStatus.Slippery: always drop on death
+                var slipperyItems = GetSlipperyItems();
+
+                foreach (var item in slipperyItems)
+                {
+                    if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                        dropItems.Add(item);
+                }
             }
 
             var destroyCoins = PropertyManager.GetBool("corpse_destroy_pyreals").Item;
@@ -678,16 +704,21 @@ namespace ACE.Server.WorldObjects
             return numItemsDropped;
         }
 
-        public int GetNumCoinsDropped()
+        public int GetNumCoinsDropped(bool dropAllCoins)
         {
             // if level > 5, lose half coins
             // (trade notes excluded)
             var level = Level ?? 1;
             var coins = CoinValue ?? 0;
 
-            var numCoinsDropped = level > 5 ? coins / 2 : 0;
+            if (dropAllCoins)
+                return coins;
+            else
+            {
+                var numCoinsDropped = level > 5 ? coins / 2 : 0;
 
-            return numCoinsDropped;
+                return numCoinsDropped;
+            }
         }
 
         /// <summary>
@@ -1045,20 +1076,69 @@ namespace ACE.Server.WorldObjects
             return destroyedItems;
         }
 
-        /// <summary>
-        /// Determines the amount of slag to drop on a Player corpse when killed by an OlthoiPlayer
-        /// </summary>
-        public List<WorldObject> CalculateDeathItems_Olthoi(Corpse corpse, bool hadVitae)
+        private static Database.Models.World.TreasureDeath OlthoiDeathTreasureType => Database.DatabaseManager.World.GetCachedDeathTreasure(2222) ?? new()
         {
-            var slag = LootGenerationFactory.RollSlag(this, hadVitae);
+            TreasureType = 2222,
+            Tier = 8,
+            LootQualityMod = 0,
+            UnknownChances = 19,
+            ItemChance = 100,
+            ItemMinAmount = 1,
+            ItemMaxAmount = 2,
+            ItemTreasureTypeSelectionChances = 8,
+            MagicItemChance = 100,
+            MagicItemMinAmount = 2,
+            MagicItemMaxAmount = 3,
+            MagicItemTreasureTypeSelectionChances = 8,
+            MundaneItemChance = 100,
+            MundaneItemMinAmount = 0,
+            MundaneItemMaxAmount = 1,
+            MundaneItemTypeSelectionChances = 7
+        };
 
-            if (slag == null)
-                return new List<WorldObject>();
+        /// <summary>
+        /// Determines the amount of slag to drop on a Player corpse when killed by an OlthoiPlayer or the loot to drop when an OlthoiPlayer is killed by a Player Killer
+        /// </summary>
+        public List<WorldObject> CalculateDeathItems_Olthoi(Corpse corpse, bool hadVitae, bool killerIsOlthoiPlayer, bool killerIsPkPlayer)
+        {
+            if (killerIsOlthoiPlayer)
+            {
+                var slag = LootGenerationFactory.RollSlag(this, hadVitae);
 
-            if (!corpse.TryAddToInventory(slag))
-                log.Warn($"Player_Death: couldn't add item to {Name}'s corpse: {slag.Name}");
+                if (slag == null)
+                    return new();
 
-            return new List<WorldObject>() { slag };
+                if (!corpse.TryAddToInventory(slag))
+                    log.Warn($"CalculateDeathItems_Olthoi: couldn't add item to {Name}'s corpse: {slag.Name}");
+
+                return new() { slag };
+            }
+            else if (killerIsPkPlayer)
+            {
+                if (hadVitae)
+                    return new();
+
+                var items = LootGenerationFactory.CreateRandomLootObjects(OlthoiDeathTreasureType);
+
+                var gland = LootGenerationFactory.RollGland(this, hadVitae);
+
+                if (gland != null)
+                {
+                    items.Add(gland);
+                }
+
+                foreach (WorldObject wo in items)
+                {
+                    if (!corpse.TryAddToInventory(wo))
+                        log.Warn($"CalculateDeathItems_Olthoi: couldn't add item to {Name}'s corpse: {wo.Name}");
+                }
+
+                return items;
+            }
+            else
+            {
+                return new();
+            }
         }
     }
 }

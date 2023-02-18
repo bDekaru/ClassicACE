@@ -1,0 +1,298 @@
+Armor Mutation #1:
+
+Tier chances: 1, 0, 0, 0, 0, 0
+
+    - Chance: 30%:
+        ManaConversionMod = 0
+
+    - Chance: 40%:
+        ManaConversionMod = 0.01
+
+    - Chance: 30%:
+        ManaConversionMod = 0.02
+
+Armor Mutation #2:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance: 10%:
+        ManaConversionMod = 0
+
+    - Chance: 20%:
+        ManaConversionMod = 0.01
+
+    - Chance: 40%:
+        ManaConversionMod = 0.02
+
+    - Chance: 20%:
+        ManaConversionMod = 0.03
+
+    - Chance: 10%:
+        ManaConversionMod = 0.04
+
+    - Chance 100%:
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 5
+
+Armor Mutation #3:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance: 5%:
+        ManaConversionMod = 0
+
+    - Chance: 10%:
+        ManaConversionMod = 0.01
+
+    - Chance: 20%:
+        ManaConversionMod = 0.02
+
+    - Chance: 30%:
+        ManaConversionMod = 0.03
+
+    - Chance: 20%:
+        ManaConversionMod = 0.04
+
+    - Chance: 10%:
+        ManaConversionMod = 0.05
+
+    - Chance: 5%:
+        ManaConversionMod = 0.06
+
+    - Chance 100%:
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 20
+
+Armor Mutation #4:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance: 5%:
+        ManaConversionMod = 0.02
+
+    - Chance: 10%:
+        ManaConversionMod = 0.03
+
+    - Chance: 20%:
+        ManaConversionMod = 0.04
+
+    - Chance: 30%:
+        ManaConversionMod = 0.05
+
+    - Chance: 20%:
+        ManaConversionMod = 0.06
+
+    - Chance: 10%:
+        ManaConversionMod = 0.07
+
+    - Chance: 5%:
+        ManaConversionMod = 0.08
+
+    - Chance 100%:
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 40
+
+Armor Mutation #5:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance: 5%:
+        ManaConversionMod = 0.04
+
+    - Chance: 10%:
+        ManaConversionMod = 0.05
+
+    - Chance: 20%:
+        ManaConversionMod = 0.06
+
+    - Chance: 30%:
+        ManaConversionMod = 0.07
+
+    - Chance: 20%:
+        ManaConversionMod = 0.08
+
+    - Chance: 10%:
+        ManaConversionMod = 0.09
+
+    - Chance: 5%:
+        ManaConversionMod = 0.1
+
+    - Chance 100%:
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+Armor Mutation #6:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance: 5%:
+        ManaConversionMod = 0.05
+
+    - Chance: 15%:
+        ManaConversionMod = 0.06
+
+    - Chance: 20%:
+        ManaConversionMod = 0.07
+
+    - Chance: 30%:
+        ManaConversionMod = 0.08
+
+    - Chance: 20%:
+        ManaConversionMod = 0.09
+
+    - Chance: 10%:
+        ManaConversionMod = 0.1
+
+    - Chance 100%:
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 60
+
+Armor Mutation #7:
+
+Tier chances: 0.5, 0.5, 0.5, 0.6, 0.8, 1
+
+    - Chance 25%:
+        EncumbranceVal *= Random(1.05, 1.15)
+
+    - Chance 50%:
+        EncumbranceVal *= Random(0.95, 1.05)
+
+    - Chance 25%:
+        EncumbranceVal *= Random(0.85, 0.95)
+
+Armor Mutation #8:
+
+Tier chances: 1, 0, 0, 0, 0, 0
+
+    - Chance: 30%:
+        ComponentBurnRateMod = -0.00
+
+    - Chance: 40%:
+        ComponentBurnRateMod = -0.10
+
+    - Chance: 30%:
+        ComponentBurnRateMod = -0.15
+
+Armor Mutation #9:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.00
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.10
+
+    - Chance: 40%:
+        ComponentBurnRateMod = -0.15
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.20
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.25
+
+
+Armor Mutation #10:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance: 5%:
+        ComponentBurnRateMod = -0.00
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.10
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.15
+
+    - Chance: 30%:
+        ComponentBurnRateMod = -0.20
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.25
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.30
+
+    - Chance: 5%:
+        ComponentBurnRateMod = -0.35
+
+
+Armor Mutation #11:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance: 5%:
+        ComponentBurnRateMod = -0.10
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.15
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.20
+
+    - Chance: 30%:
+        ComponentBurnRateMod = -0.25
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.30
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.35
+
+    - Chance: 5%:
+        ComponentBurnRateMod = -0.40
+
+
+Armor Mutation #12:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance: 5%:
+        ComponentBurnRateMod = -0.15
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.20
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.25
+
+    - Chance: 30%:
+        ComponentBurnRateMod = -0.30
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.35
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.40
+
+    - Chance: 5%:
+        ComponentBurnRateMod = -0.45
+
+Armor Mutation #13:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance: 5%:
+        ComponentBurnRateMod = -0.25
+
+    - Chance: 15%:
+        ComponentBurnRateMod = -0.30
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.35
+
+    - Chance: 30%:
+        ComponentBurnRateMod = -0.40
+
+    - Chance: 20%:
+        ComponentBurnRateMod = -0.45
+
+    - Chance: 10%:
+        ComponentBurnRateMod = -0.50

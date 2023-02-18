@@ -21,6 +21,7 @@ using ACE.Server.Factories;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
+using Weenie = ACE.Entity.Models.Weenie;
 
 namespace ACE.Server.Managers
 {
@@ -44,6 +45,14 @@ namespace ACE.Server.Managers
             if (player.IsBusy)
             {
                 player.SendUseDoneEvent(WeenieError.YoureTooBusy);
+                return;
+            }
+
+            var allowCraftInCombat = PropertyManager.GetBool("allow_combat_mode_crafting").Item;
+
+            if (!allowCraftInCombat && player.CombatMode != CombatMode.NonCombat)
+            {
+                player.SendUseDoneEvent(WeenieError.YouMustBeInPeaceModeToTrade);
                 return;
             }
 
@@ -72,7 +81,7 @@ namespace ACE.Server.Managers
             }
 
             if (recipe.IsTinkering())
-                log.Debug($"[TINKERING] {player.Name}.HandleTinkering({source.NameWithMaterial}, {target.NameWithMaterial}) | Status: {(confirmed ? "" : "un")}confirmed");
+                log.Debug($"[TINKERING] {player.Name}.UseObjectOnTarget({source.NameWithMaterial}, {target.NameWithMaterial}) | Status: {(confirmed ? "" : "un")}confirmed");
 
             var percentSuccess = GetRecipeChance(player, source, target, recipe);
 
@@ -87,43 +96,60 @@ namespace ACE.Server.Managers
             if (!confirmed && player.LumAugSkilledCraft > 0)
                 player.SendMessage($"Your Aura of the Craftman augmentation increased your skill by {player.LumAugSkilledCraft}!");
 
-            if (showDialog && !confirmed)
-            {
-                ShowDialog(player, source, target, recipe, percentSuccess.Value);
-                return;
-            }
+            var motionCommand = MotionCommand.ClapHands;
 
             var actionChain = new ActionChain();
-
-            var animTime = 0.0f;
+            var nextUseTime = 0.0f;
 
             player.IsBusy = true;
 
-            if (player.CombatMode != CombatMode.NonCombat)
+            if (allowCraftInCombat && player.CombatMode != CombatMode.NonCombat)
             {
+                // Drop out of combat mode.  This depends on the server property "allow_combat_mode_craft" being True.
+                // If not, this action would have aborted due to not being in NonCombat mode.
                 var stanceTime = player.SetCombatMode(CombatMode.NonCombat);
                 actionChain.AddDelaySeconds(stanceTime);
 
-                animTime += stanceTime;
+                nextUseTime += stanceTime;
             }
 
-            animTime += player.EnqueueMotion(actionChain, MotionCommand.ClapHands);
+            var motion = new Motion(player, motionCommand);
+            var currentStance = player.CurrentMotionState.Stance; // expected to be MotionStance.NonCombat
+            var clapTime = !confirmed ? Physics.Animation.MotionTable.GetAnimationLength(player.MotionTableId, currentStance, motionCommand) : 0.0f;
 
-            actionChain.AddAction(player, () => HandleRecipe(player, source, target, recipe, percentSuccess.Value));
-
-            player.EnqueueMotion(actionChain, MotionCommand.Ready);
-
-            actionChain.AddAction(player, () =>
+            if (!confirmed)
             {
-                if (!showDialog)
-                    player.SendUseDoneEvent();
+                actionChain.AddAction(player, () => player.SendMotionAsCommands(motionCommand, currentStance));
+                actionChain.AddDelaySeconds(clapTime);
 
-                player.IsBusy = false;
-            });
+                nextUseTime += clapTime;
+            }
+
+            if (showDialog && !confirmed)
+            {
+                actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, percentSuccess.Value));
+                actionChain.AddAction(player, () => player.IsBusy = false);
+                
+                log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance on conformation dialog: {percentSuccess.Value}");
+            }
+            else
+            {
+                actionChain.AddAction(player, () => HandleRecipe(player, source, target, recipe, percentSuccess.Value));
+
+                actionChain.AddAction(player, () =>
+                {
+                    if (!showDialog)
+                        player.SendUseDoneEvent();
+
+                    player.IsBusy = false;
+                });
+                
+                log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance after conformation dialog: {percentSuccess.Value}");
+            }
 
             actionChain.EnqueueChain();
 
-            player.NextUseTime = DateTime.UtcNow.AddSeconds(animTime);
+            player.NextUseTime = DateTime.UtcNow.AddSeconds(nextUseTime);
         }
 
         public static bool HasDifficulty(Recipe recipe)
@@ -185,31 +211,48 @@ namespace ACE.Server.Managers
             var tinkeredCount = target.NumTimesTinkered;
 
             var materialType = tool.MaterialType ?? MaterialType.Unknown;
-            var salvageMod = GetMaterialMod(materialType);
-
-            var workmanshipMod = 1.0f;
-            if (toolWorkmanship >= itemWorkmanship)
-                workmanshipMod = 2.0f;
-
-            var recipeSkill = (Skill)recipe.Skill;
-
-            var skill = player.GetCreatureSkill(recipeSkill);
-
-            // tinkering skill must be trained
-            if (skill.AdvancementClass < SkillAdvancementClass.Trained)
-            {
-                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You are not trained in {skill.Skill.ToSentence()}.", ChatMessageType.Broadcast));
-                return null;
-            }
 
             // thanks to Endy's Tinkering Calculator for this formula!
             var attemptMod = TinkeringDifficulty[tinkeredCount];
 
-            var difficulty = (int)Math.Floor(((salvageMod * 5.0f) + (itemWorkmanship * salvageMod * 2.0f) - (toolWorkmanship * workmanshipMod * salvageMod / 5.0f)) * attemptMod);
+            double successChance;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                var recipeSkill = (Skill)recipe.Skill;
 
-            var playerCurrentPlusLumAugSkilledCraft = skill.Current + (uint)player.LumAugSkilledCraft;
+                var skill = player.GetCreatureSkill(recipeSkill);
 
-            var successChance = SkillCheck.GetSkillChance((int)playerCurrentPlusLumAugSkilledCraft, difficulty);
+                // tinkering skill must be trained
+                if (skill.AdvancementClass < SkillAdvancementClass.Trained && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You are not trained in {skill.Skill.ToSentence()}.", ChatMessageType.Broadcast));
+                    return null;
+                }
+
+                var salvageMod = GetMaterialMod(materialType);
+
+                var workmanshipMod = 1.0f;
+                if (toolWorkmanship >= itemWorkmanship)
+                    workmanshipMod = 2.0f;
+
+                var playerCurrentPlusLumAugSkilledCraft = skill.Current + (uint)player.LumAugSkilledCraft;
+
+                var difficulty = (int)Math.Floor(((salvageMod * 5.0f) + (itemWorkmanship * salvageMod * 2.0f) - (toolWorkmanship * workmanshipMod * salvageMod / 5.0f)) * attemptMod);
+
+                successChance = SkillCheck.GetSkillChance((int)playerCurrentPlusLumAugSkilledCraft, difficulty);
+            }
+            else
+            {
+                var salvageMod = 10.0f;
+
+                var difficulty = (int)Math.Floor(((salvageMod * 5.0f) + ((itemWorkmanship * salvageMod * 0.8f) - (toolWorkmanship * salvageMod * 1.0f))) * attemptMod * 3.0f);
+
+                log.Info($"Tinker Info: Player = {player.Name}; Tool = {tool.Name}; Target = {target.Name}; SalvageMod={salvageMod}; ItemWS={itemWorkmanship}; ToolWS={toolWorkmanship}; AttemptMod={attemptMod}");
+                
+                successChance = SkillCheck.GetSkillChance(250, difficulty);
+                
+                log.Info($"Success Chance: Player = {player.Name}; Tool = {tool.Name}; Target = {target.Name}; SuccessChance = {successChance}");
+            }
 
             // imbue: divide success by 3
             if (recipe.IsImbuing())
@@ -338,7 +381,9 @@ namespace ACE.Server.Managers
                 return;
             }
 
-            var success = ThreadSafeRandom.Next(0.0f, 1.0f) < successChance;
+            var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+            var success = roll < successChance;
+            log.Info($"Player = { player.Name}; Tool = { source.Name}; Target = { target.Name}; Chance = {successChance}; Roll = {roll}");
 
             if (recipe.IsImbuing())
             {
@@ -406,7 +451,7 @@ namespace ACE.Server.Managers
 
                  // mutations apparently didn't cap to 2.0 here, clamps are applied in damage calculations though
 
-                case 0x38000017:    // Alabaster    
+                case 0x38000017:    // Alabaster
                     //target.ArmorModVsPierce = Math.Min((target.ArmorModVsPierce ?? 0) + 0.2f, 2.0f);
                     target.ArmorModVsPierce += 0.2f;
                     break;
@@ -643,7 +688,7 @@ namespace ACE.Server.Managers
                 case 0x38000046:    // Fetish of the Dark Idols
 
                     // shouldn't exist on player items, but just recreating original script here
-                    if (target.ImbuedEffect >= ImbuedEffectType.IgnoreAllArmor)  
+                    if (target.ImbuedEffect >= ImbuedEffectType.IgnoreAllArmor)
                         target.ImbuedEffect = ImbuedEffectType.Undef;
 
                     target.ImbuedEffect |= ImbuedEffectType.IgnoreSomeMagicProjectileDamage;
@@ -771,7 +816,7 @@ namespace ACE.Server.Managers
             return true;
         }
 
-        public static bool VerifyUse(Player player, WorldObject source, WorldObject target)
+        public static bool VerifyUse(Player player, WorldObject source, WorldObject target, bool blockWielded = false)
         {
             var usable = source.ItemUseable ?? Usable.Undef;
 
@@ -784,7 +829,9 @@ namespace ACE.Server.Managers
                     return false;
 
                 // almost always MyInventory, but sometimes can be applied to equipped
-                if (player.FindObject(target.Guid.Full, Player.SearchLocations.MyInventory | Player.SearchLocations.MyEquippedItems) == null)
+                if (!blockWielded && player.FindObject(target.Guid.Full, Player.SearchLocations.MyInventory | Player.SearchLocations.MyEquippedItems) == null)
+                    return false;
+                else if (blockWielded && player.FindObject(target.Guid.Full, Player.SearchLocations.MyInventory) == null)
                     return false;
 
                 return true;
@@ -793,17 +840,21 @@ namespace ACE.Server.Managers
             var sourceUse = usable.GetSourceFlags();
             var targetUse = usable.GetTargetFlags();
 
-            return VerifyUse(player, source, sourceUse) && VerifyUse(player, target, targetUse);
+            return VerifyUse(player, source, sourceUse, blockWielded) && VerifyUse(player, target, targetUse, blockWielded);
         }
 
-        public static bool VerifyUse(Player player, WorldObject obj, Usable usable)
+        public static bool VerifyUse(Player player, WorldObject obj, Usable usable, bool blockWielded = false)
         {
             var searchLocations = Player.SearchLocations.None;
 
             // TODO: figure out other Usable flags
             if (usable.HasFlag(Usable.Contained))
-                searchLocations |= Player.SearchLocations.MyInventory | Player.SearchLocations.MyEquippedItems;
-            if (usable.HasFlag(Usable.Wielded))
+            {
+                searchLocations |= Player.SearchLocations.MyInventory;
+                if (!blockWielded)
+                    searchLocations |= Player.SearchLocations.MyEquippedItems;
+            }
+            if (!blockWielded && usable.HasFlag(Usable.Wielded))
                 searchLocations |= Player.SearchLocations.MyEquippedItems;
             if (usable.HasFlag(Usable.Remote))
                 searchLocations |= Player.SearchLocations.LocationsICanMove;    // TODO: moveto for this type
@@ -1034,6 +1085,9 @@ namespace ACE.Server.Managers
                 var destroyTargetAmount = success ? recipe.SuccessDestroyTargetAmount : recipe.FailDestroyTargetAmount;
                 var destroyTargetMessage = success ? recipe.SuccessDestroyTargetMessage : recipe.FailDestroyTargetMessage;
 
+                if (recipe.IsTinkering() && target.WeenieType == WeenieType.Missile)
+                    destroyTargetAmount = (uint)(target.StackSize ?? 1); // Thrown weapons tinkering should destroy the whole stack on failure.
+
                 DestroyItem(player, recipe, target, destroyTargetAmount, destroyTargetMessage);
             }
 
@@ -1194,6 +1248,9 @@ namespace ACE.Server.Managers
 
                 foreach (var didMod in mod.RecipeModsDID)
                     ModifyDataID(player, didMod, source, target, result, modified);
+
+                if (mod.WeenieClassId != 0)
+                    ModifyWeenieClassId(target, (uint)mod.WeenieClassId, modified);
 
                 // run mutation script, if applicable
                 if (mod.DataId != 0)
@@ -1452,6 +1509,76 @@ namespace ACE.Server.Managers
                     log.Warn($"RecipeManager.ModifyDataID({source.Name}, {target.Name}): unhandled operation {op}");
                     break;
             }
+        }
+
+        private static void ModifyWeenieClassId(WorldObject target, uint weenieClassId, HashSet<uint> modified)
+        {
+            var newWeenie = DatabaseManager.World.GetCachedWeenie(weenieClassId);
+            var oldWeenie = DatabaseManager.World.GetCachedWeenie(target.Biota.WeenieClassId);
+
+            switch (target.ItemType)
+            {
+                case ItemType.MeleeWeapon:
+                case ItemType.MissileWeapon:
+                case ItemType.Caster:
+                    ModifyWeenieWeapon(target, newWeenie);
+                    break;
+                default:
+                    log.Error($"RecipeManager.ModifyWeenieClassId({target.Guid}, {weenieClassId}) Unsupported ItemType: {target.ItemType}");
+                    return;
+            }
+
+            target.Biota.WeenieClassId = weenieClassId;
+            ModifyWeenieName(target, oldWeenie, newWeenie);
+            ModifyWeenieDescription(target, oldWeenie, newWeenie);
+
+            modified.Add(target.Guid.Full);
+        }
+
+        private static void ModifyWeenieName(WorldObject target, Weenie oldWeenie, Weenie newWeenie)
+        {
+            var previousWeenieName = oldWeenie.GetProperty(PropertyString.Name);
+            var newWeenieName = newWeenie.GetProperty(PropertyString.Name);
+
+            var previousTargetName = target.GetProperty(PropertyString.Name);
+            var newTargetName = previousTargetName.Replace(previousWeenieName, newWeenieName);
+
+            target.SetProperty(PropertyString.Name, newTargetName);
+        }
+
+        private static void ModifyWeenieDescription(WorldObject target, Weenie oldWeenie, Weenie newWeenie)
+        {
+            var previousWeenieName = oldWeenie.GetProperty(PropertyString.Name);
+            var newWeenieName = newWeenie.GetProperty(PropertyString.Name);
+
+            var previousTargetDesc = target.GetProperty(PropertyString.LongDesc);
+            var newTargetDesc = previousTargetDesc.Replace(previousWeenieName, newWeenieName);
+
+            target.SetProperty(PropertyString.LongDesc, newTargetDesc);
+        }
+
+        private static void ModifyWeenieWeapon(WorldObject target, Weenie newWeenie)
+        {
+            var newDamageType = newWeenie.GetProperty(PropertyInt.DamageType);
+            var newUiEffects = newWeenie.GetProperty(PropertyInt.UiEffects);
+            var newSetup = newWeenie.GetProperty(PropertyDataId.Setup);
+
+            if (newDamageType != null)
+                target.SetProperty(PropertyInt.DamageType, (int) newDamageType);
+            else
+                target.RemoveProperty(PropertyInt.DamageType);
+
+            if (newUiEffects != null)
+                target.SetProperty(PropertyInt.UiEffects, (int) newUiEffects);
+            else if (target.ProcSpell != null || target.Biota.HasKnownSpell(target.BiotaDatabaseLock))
+                target.SetProperty(PropertyInt.UiEffects, (int) UiEffects.Magical);
+            else
+                target.RemoveProperty(PropertyInt.UiEffects);
+
+            if (newSetup != null)
+                target.SetProperty(PropertyDataId.Setup, (uint) newSetup);
+            else
+                target.RemoveProperty(PropertyDataId.Setup);
         }
 
         /// <summary>

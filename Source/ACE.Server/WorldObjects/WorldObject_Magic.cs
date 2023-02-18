@@ -24,6 +24,7 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Physics;
 using ACE.Server.Physics.Extensions;
 using ACE.Server.WorldObjects.Managers;
+using ACE.Server.Factories.Tables;
 
 namespace ACE.Server.WorldObjects
 {
@@ -101,15 +102,17 @@ namespace ACE.Server.WorldObjects
         /// based upon the caster's magic skill vs target's magic defense skill
         /// </summary>
         /// <returns>TRUE if spell is resisted</returns>
-        public static bool MagicDefenseCheck(uint casterMagicSkill, uint targetMagicDefenseSkill, out float resistChance, float chanceMod = 1.0f)
+        public static bool MagicDefenseCheck(uint casterMagicSkill, uint targetMagicDefenseSkill, out float resistChance, float chanceMod = 1.0f, float magicDefenseCapBonus = 0.0f)
         {
             // uses regular 0.03 factor, and not magic casting 0.07 factor
-            var chance = SkillCheck.GetSkillChance((int)casterMagicSkill, (int)targetMagicDefenseSkill);
+            var chance = 1.0 - (SkillCheck.GetSkillChance((int)casterMagicSkill, (int)targetMagicDefenseSkill) * chanceMod);
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
 
-            resistChance = (float)(1.0f - (chance * chanceMod));
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                chance = Math.Min(chance, 0.95f + (magicDefenseCapBonus * 0.01f));
 
-            return chance <= rng;
+            resistChance = (float)chance;
+            return chance > rng;
         }
 
         /// <summary>
@@ -138,16 +141,42 @@ namespace ACE.Server.WorldObjects
 
             var casterCreature = caster as Creature;
 
+            LeyLineAmulet amulet = null;
+
             if (casterCreature != null)
             {
                 // Retrieve caster's skill level in the Magic School
-                magicSkill = casterCreature.GetCreatureSkill(spell.School).Current;
+                var magicSchool = spell.School;
 
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    amulet = casterCreature.GetEquippedLeyLineAmulet();
+                    if (amulet != null && amulet.LeyLineEffectId == (uint)LeyLineEffect.GrantCastableSpell && LeyLineAmulet.PossibleAcquireSpells.Contains(SpellLevelProgression.GetLevel1SpellId((SpellId)spell.Id)))
+                        magicSchool = (MagicSchool)amulet.LeyLineSchool;
+                }
+
+                magicSkill = casterCreature.GetCreatureSkill(magicSchool).Current;
             }
-            else if (caster.ItemSpellcraft != null)
+            else if (caster.ItemSpellcraft != null || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 // Retrieve casting item's spellcraft
-                magicSkill = (uint)caster.ItemSpellcraft;
+                magicSkill = (uint)(caster.ItemSpellcraft ?? 0);
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && caster.Wielder is Creature wielder)
+                {
+                    var weaponSkill = caster.WeaponSkill == Skill.None ? 0 : wielder.GetCreatureSkill(ConvertToMoASkill(caster.WeaponSkill)).Current;
+                    if (caster.WeaponSkill == Skill.Axe || caster.WeaponSkill == Skill.Staff || caster.WeaponSkill == Skill.Dagger || caster.WeaponSkill == Skill.Sword || caster.WeaponSkill == Skill.UnarmedCombat)
+                        weaponSkill = (uint)(weaponSkill * 0.75f); // Convert skill value to match lower value from magic school formulas.
+
+                    var schoolSkill = wielder.GetCreatureSkill(spell.School).Current;
+
+                    var arcaneLore = wielder.GetCreatureSkill(Skill.ArcaneLore).Current;
+                    var arcaneLoreMod = Math.Max(1.0f + (arcaneLore - 55) * 0.002f, 1.0f);
+                    var ArcaneLoreModifiedSpellcraft = (uint)(magicSkill * arcaneLoreMod);
+
+                    magicSkill = Math.Max(weaponSkill, schoolSkill);
+                    magicSkill = Math.Max(magicSkill, ArcaneLoreModifiedSpellcraft);
+                }
             }
             else if (caster.Wielder is Creature wielder)
             {
@@ -165,9 +194,8 @@ namespace ACE.Server.WorldObjects
             var difficulty = targetCreature.GetEffectiveMagicDefense();
 
             float resistChanceMod = 1.0f;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && casterCreature != null)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                var amulet = casterCreature.GetEquippedLeyLineAmulet();
                 if (amulet != null && (amulet.LeyLineTriggerChance ?? 0) > 0 && (amulet.LeyLineEffectId == (uint)LeyLineEffect.LowerResistChance))
                 {
                     SpellId triggerSpellLevel1Id = (SpellId)(amulet.LeyLineTriggerSpellId ?? 0);
@@ -182,11 +210,11 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            //Console.WriteLine($"{target.Name}.ResistSpell({Name}, {spell.Name}): magicSkill: {magicSkill}, difficulty: {difficulty}");
-            bool resisted = MagicDefenseCheck(magicSkill, difficulty, out float resistChance, resistChanceMod);
-
             var player = this as Player;
             var targetPlayer = target as Player;
+
+            //Console.WriteLine($"{target.Name}.ResistSpell({Name}, {spell.Name}): magicSkill: {magicSkill}, difficulty: {difficulty}");
+            bool resisted = MagicDefenseCheck(magicSkill, difficulty, out float resistChance, resistChanceMod, targetPlayer != null ? (float)targetPlayer.CachedMagicDefenseCapBonus : 5.0f);
 
             if (targetPlayer != null)
             {
@@ -508,6 +536,17 @@ namespace ACE.Server.WorldObjects
             var resistanceType = minBoostValue > 0 ? GetBoostResistanceType(spell.VitalDamageType) : GetDrainResistanceType(spell.VitalDamageType);
 
             int tryBoost = ThreadSafeRandom.Next(minBoostValue, maxBoostValue);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && targetCreature != this && tryBoost < 0)
+            {
+                var damageRating = creature?.GetDamageRating() ?? 0;
+                var damageRatingMod = Creature.AdditiveCombine(Creature.GetPositiveRatingMod(damageRating));
+
+                var absorbMod = SpellProjectile.GetAbsorbMod(this, targetCreature);
+
+                tryBoost = (int)(tryBoost * damageRatingMod * absorbMod);
+            }
+
             tryBoost = (int)Math.Round(tryBoost * targetCreature.GetResistanceMod(resistanceType));
 
             int boost = tryBoost;
@@ -747,6 +786,16 @@ namespace ACE.Server.WorldObjects
 
             if (spell.TransferCap != 0 && srcVitalChange > spell.TransferCap)
                 srcVitalChange = (uint)spell.TransferCap;
+
+            if (isDrain && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var damageRating = creature?.GetDamageRating() ?? 0;
+                var damageRatingMod = Creature.AdditiveCombine(Creature.GetPositiveRatingMod(damageRating));
+
+                var absorbMod = SpellProjectile.GetAbsorbMod(this, targetCreature);
+
+                srcVitalChange = (uint)(srcVitalChange * damageRatingMod * absorbMod);
+            }
 
             // should healing resistances be applied here?
             var boostMod = isDrain ? (float)destination.GetResistanceMod(GetBoostResistanceType(spell.Destination)) : 1.0f;
@@ -1379,7 +1428,7 @@ namespace ACE.Server.WorldObjects
 
             var distanceToTarget = creature.GetDistance(targetPlayer);
             var skill = creature.GetCreatureSkill(spell.School);
-            var magicSkill = skill.InitLevel + skill.Ranks;     // ?? - this probably isn't right, should be either base or current
+            var magicSkill = skill.InitLevel + skill.Ranks;     // synced with acclient DetermineSpellRange -> InqSkillLevel
 
             var maxRange = spell.BaseRangeConstant + magicSkill * spell.BaseRangeMod;
             if (maxRange == 0.0f)

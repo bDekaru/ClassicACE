@@ -20,7 +20,7 @@ namespace ACE.Server.Network.Enum
         /// <summary>
         /// Determines if there is a highlight for each armor protection vs. damage type
         /// </summary>
-        public static ArmorMask GetHighlightMask(WorldObject armor, bool isArmorCapped = false)
+        public static ArmorMask GetHighlightMask(WorldObject armor, bool isArmorCappedOrBuffed = false)
         {
             ArmorMask highlightMask = 0;
 
@@ -28,7 +28,7 @@ namespace ACE.Server.Network.Enum
                 return highlightMask;
 
             // item enchanments are currently being cast on wielder
-            if (armor.EnchantmentManager.GetArmorMod() != 0 || isArmorCapped)
+            if (armor.EnchantmentManager.GetArmorMod() != 0 || isArmorCappedOrBuffed)
                 highlightMask |= ArmorMask.ArmorLevel;
             if (armor.EnchantmentManager.GetArmorModVsType(DamageType.Slash) != 0)
                 highlightMask |= ArmorMask.SlashingProtection;
@@ -51,14 +51,14 @@ namespace ACE.Server.Network.Enum
         /// <summary>
         /// Determines the red/green color for each armor protection vs. damage type
         /// </summary>
-        public static ArmorMask GetColorMask(WorldObject armor)
+        public static ArmorMask GetColorMask(WorldObject armor, bool isArmorBuffed = false)
         {
             ArmorMask colorMask = 0;
 
             if (armor == null)
                 return colorMask;
 
-            if (armor.EnchantmentManager.GetArmorMod() > 0)
+            if (armor.EnchantmentManager.GetArmorMod() > 0 || isArmorBuffed)
                 colorMask |= ArmorMask.ArmorLevel;
             if (armor.EnchantmentManager.GetArmorModVsType(DamageType.Slash) > 0)
                 colorMask |= ArmorMask.SlashingProtection;

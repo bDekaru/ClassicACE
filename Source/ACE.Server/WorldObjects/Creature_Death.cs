@@ -188,33 +188,21 @@ namespace ACE.Server.WorldObjects
                 if (playerDamager == null)
                     continue;
 
+                if (playerDamager == this)
+                    continue;
+
                 var totalDamage = kvp.Value.TotalDamage;
 
                 var damagePercent = totalDamage / totalHealth;
 
                 float totalXP;
 
-                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                    totalXP = (XpOverride ?? 0) * damagePercent;
-                else
-                {
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !UseXpOverride)
                     totalXP = GetCreatureDeathXP(Level ?? 0, (int)Health.MaxValue, Biota.PropertiesSpellBook?.Count ?? 0) * damagePercent;
+                else
+                    totalXP = (XpOverride ?? 0) * damagePercent;
 
-                    float typeCampBonus;
-                    float areaCampBonus;
-                    float restCampBonus;
-                    playerDamager.CampManager.HandleCampInteraction(this, out typeCampBonus, out areaCampBonus, out restCampBonus);
-
-                    float thirdXP = totalXP / 3.0f;
-                    totalXP = (thirdXP * typeCampBonus) + (thirdXP * areaCampBonus) + (thirdXP * restCampBonus);
-
-                    if (!CurrentLandblock.IsDungeon)
-                        totalXP *= 1.25f; // Surface provides 25% xp bonus to account for lower creature density.
-
-                    playerDamager.Session.Network.EnqueueSend(new GameEventKillerNotification(playerDamager.Session, $"You've earned {((long)Math.Round(totalXP)):N0} experience! T: {(typeCampBonus * 100).ToString("0")}% A: {(areaCampBonus * 100).ToString("0")}% R: {(restCampBonus * 100).ToString("0")}%"));
-                }
-
-                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill, Level);
+                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill, Level, (uint)CreatureType, ShareType.All);
 
                 // handle luminance
                 if (LuminanceAward != null)
@@ -251,7 +239,7 @@ namespace ACE.Server.WorldObjects
 
             double hitpointsXp = hitpoints / 10 * baseXp / 35;
 
-            double casterXp = baseXp * ((float)numSpellInSpellbook / 20);
+            double casterXp = baseXp * ((float)numSpellInSpellbook / 100);
 
             double xp = baseXp + hitpointsXp + casterXp;
 
@@ -585,58 +573,82 @@ namespace ACE.Server.WorldObjects
             if (player != null)
             {
                 corpse.SetPosition(PositionType.Location, corpse.Location);
-                var dropped = killer != null && killer.IsOlthoiPlayer ? player.CalculateDeathItems_Olthoi(corpse, hadVitae) : player.CalculateDeathItems(corpse);
-                corpse.RecalculateDecayTime(player);
 
-                if (dropped.Count > 0)
-                    saveCorpse = true;
+                var killerIsOlthoiPlayer = killer != null && killer.IsOlthoiPlayer;
+                var killerIsPkPlayer = killer != null && killer.IsPlayer && killer.Guid != Guid;
 
-                if ((player.Location.Cell & 0xFFFF) < 0x100)
+                //var dropped = killer != null && killer.IsOlthoiPlayer ? player.CalculateDeathItems_Olthoi(corpse, hadVitae) : player.CalculateDeathItems(corpse);
+
+                if (killerIsOlthoiPlayer || player.IsOlthoiPlayer)
                 {
-                    player.SetPosition(PositionType.LastOutsideDeath, new Position(corpse.Location));
-                    player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePosition(player, PositionType.LastOutsideDeath, corpse.Location));
+                    var dropped = player.CalculateDeathItems_Olthoi(corpse, hadVitae, killerIsOlthoiPlayer, killerIsPkPlayer);
+
+                    foreach (var wo in dropped)
+                        DoCantripLogging(killer, wo);
+
+                    corpse.RecalculateDecayTime(player);
 
                     if (dropped.Count > 0)
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your corpse is located at ({corpse.Location.GetMapCoordStr()}).", ChatMessageType.Broadcast));
-                }
+                        saveCorpse = true;
 
-                var isPKdeath = player.IsPKDeath(killer);
-                var isPKLdeath = player.IsPKLiteDeath(killer);
-
-                if (isPKdeath)
-                {
                     corpse.PkLevel = PKLevel.PK;
-
-                    if(corpse != null && corpse.VictimId != null)
-                    {
-                        uint? victimMonarchId = null;
-                        uint? killerMonarchId = null;
-                        var killerAllegiance = AllegianceManager.GetAllegiance(PlayerManager.FindByGuid(killer.Guid));
-                        var victimAllegiance = AllegianceManager.GetAllegiance(PlayerManager.FindByGuid(new ObjectGuid(corpse.VictimId.Value)));
-
-                        if(killerAllegiance != null)
-                        {
-                            killerMonarchId = killerAllegiance.MonarchId;
-                        }
-
-                        if (victimAllegiance != null)
-                        {
-                            victimMonarchId = victimAllegiance.MonarchId;
-                        }
-
-                        DatabaseManager.Shard.CreatePKKill((uint)corpse.VictimId, (uint)killer.Guid.Full, victimMonarchId, killerMonarchId);
-                    }
                 }
-
-                if (!isPKdeath && !isPKLdeath)
+                else
                 {
-                    var miserAug = player.AugmentationLessDeathItemLoss * 5;
-                    if (miserAug > 0)
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your augmentation has reduced the number of items you can lose by {miserAug}!", ChatMessageType.Broadcast));
-                }
+                    var dropped = player.CalculateDeathItems(corpse);
 
-                if (dropped.Count == 0 && !isPKLdeath)
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have retained all your items. You do not need to recover your corpse!", ChatMessageType.Broadcast));
+                    corpse.RecalculateDecayTime(player);
+
+                    if (dropped.Count > 0)
+                        saveCorpse = true;
+
+                    if ((player.Location.Cell & 0xFFFF) < 0x100)
+                    {
+                        player.SetPosition(PositionType.LastOutsideDeath, new Position(corpse.Location));
+                        player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePosition(player, PositionType.LastOutsideDeath, corpse.Location));
+
+                        if (dropped.Count > 0)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your corpse is located at ({corpse.Location.GetMapCoordStr()}).", ChatMessageType.Broadcast));
+                    }
+
+                    var isPKdeath = player.IsPKDeath(killer);
+                    var isPKLdeath = player.IsPKLiteDeath(killer);
+
+	                if (isPKdeath)
+	                {
+	                    corpse.PkLevel = PKLevel.PK;
+	
+	                    if(corpse != null && corpse.VictimId != null)
+	                    {
+	                        uint? victimMonarchId = null;
+	                        uint? killerMonarchId = null;
+	                        var killerAllegiance = AllegianceManager.GetAllegiance(PlayerManager.FindByGuid(killer.Guid));
+	                        var victimAllegiance = AllegianceManager.GetAllegiance(PlayerManager.FindByGuid(new ObjectGuid(corpse.VictimId.Value)));
+	
+	                        if(killerAllegiance != null)
+	                        {
+	                            killerMonarchId = killerAllegiance.MonarchId;
+	                        }
+	
+	                        if (victimAllegiance != null)
+	                        {
+	                            victimMonarchId = victimAllegiance.MonarchId;
+	                        }
+	
+	                        DatabaseManager.Shard.CreatePKKill((uint)corpse.VictimId, (uint)killer.Guid.Full, victimMonarchId, killerMonarchId);
+	                    }
+	                }
+
+                    if (!isPKdeath && !isPKLdeath)
+                    {
+                        var miserAug = player.AugmentationLessDeathItemLoss * 5;
+                        if (miserAug > 0)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your augmentation has reduced the number of items you can lose by {miserAug}!", ChatMessageType.Broadcast));
+                    }
+
+                    if (dropped.Count == 0 && !isPKLdeath)
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have retained all your items. You do not need to recover your corpse!", ChatMessageType.Broadcast));
+                }
             }
             else
             {
@@ -736,6 +748,8 @@ namespace ACE.Server.WorldObjects
 
                 if (TryDequipObjectWithBroadcasting(item.Guid, out var wo, out var wieldedLocation))
                     EnqueueBroadcast(new GameMessagePublicUpdateInstanceID(item, PropertyInstanceId.Wielder, ObjectGuid.Invalid));
+                else
+                    TryRemoveFromInventory(item.Guid);
 
                 if (corpse != null)
                 {

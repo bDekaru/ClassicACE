@@ -134,12 +134,12 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                var stack = FindObject(item.Guid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out var stackFoundInContainer, out var stackRootOwner, out _);
+                var stack = FindObject(item.Guid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out var stackFoundInContainer, out var stackRootOwner, out var wasEquipped);
 
                 if (stack == null || stackRootOwner == null)
                     return false;
 
-                if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner))
+                if (!AdjustStack(stack, -amount, stackFoundInContainer, stackRootOwner, wasEquipped))
                     return false;
 
                 Session.Network.EnqueueSend(new GameMessageSetStackSize(stack));
@@ -466,8 +466,11 @@ namespace ACE.Server.WorldObjects
                 case EquipMask.MeleeWeapon:
                 case EquipMask.MissileWeapon:
                 case EquipMask.Held:
-                case EquipMask.Shield:
                 case EquipMask.TwoHanded:
+                    return true;
+                case EquipMask.Shield:
+                    if (CombatMode == CombatMode.Magic || CombatMode == CombatMode.Missile)
+                        return false;
                     return true;
             }
 
@@ -923,6 +926,44 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            //if (item is Container)
+            //{
+            //    // Blocking all attempts to put containers in things that aren't Players and Storage. This may not be retail, but at this time appears to be best catch all solution to Quest stamp bypass issue.
+            //    if (container is not Player && container is not Storage)
+            //    {
+            //        //Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"You cannot put {item.Name} in that.")); // Custom error message
+            //        Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid));
+            //        return false;
+            //    }
+            //}
+
+            //if (container is Storage storage)
+            //{
+            //    if (!storage.IsOpen || storage.Viewer != Guid.Full)
+            //    {
+            //        Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.TheContainerIsClosed));
+            //        return false;
+            //    }
+            //}
+
+            //if (container is Chest chest)
+            //{
+            //    if (!chest.IsOpen || chest.Viewer != Guid.Full)
+            //    {
+            //        Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.TheContainerIsClosed));
+            //        return false;
+            //    }
+            //}
+
+            if (containerRootOwner == null) // container is on landscape, so you must have it open
+            {
+                if (!container.IsOpen || container.Viewer != Guid.Full)
+                {
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.TheContainerIsClosed));
+                    return false;
+                }
+            }
+
             return true;
         }
 
@@ -1108,6 +1149,8 @@ namespace ACE.Server.WorldObjects
                             }
                             else if (containerRootOwner == this)
                             {
+                                EndSneaking();
+
                                 if (itemAsContainer != null) // We're picking up a pack
                                 {
                                     Session.Network.EnqueueSend(new GameEventViewContents(Session, itemAsContainer));
@@ -1568,6 +1611,8 @@ namespace ACE.Server.WorldObjects
 
                         if (DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation))
                         {
+                            EndSneaking();
+
                             Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
 
                             EnqueueBroadcast(new GameMessageSound(Guid, Sound.PickUpItem));
@@ -1869,22 +1914,48 @@ namespace ACE.Server.WorldObjects
                         }
 
                         mainhand = GetEquippedMainHand();
-                        // Remove any Two Handed, Caster (magic), or Missile Weapons
-                        if (mainhand != null && (mainhand.IsTwoHanded || mainhand.IsCaster || mainhand.IsAmmoLauncher))
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{mainhand.Name}'");
-                            return false;
+                            if (mainhand != null)
+                            {
+                                if(mainhand.IsCaster || mainhand.IsAmmoLauncher)
+                                {
+                                    if (item.Mass > 140)
+                                        return false;
+                                }
+                                else if (mainhand.IsTwoHanded)
+                                    return false;
+                            }
+                        }
+                        else
+                        {
+                            // Remove any Two Handed, Caster (magic), or Missile Weapons
+                            if (mainhand != null && (mainhand.IsTwoHanded || mainhand.IsCaster || mainhand.IsAmmoLauncher))
+                            {
+                                log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{mainhand.Name}'");
+                                return false;
+                            }
                         }
 
                         break;
                     case EquipMask.MissileWeapon:
-                        // Should not have any items in either hand for ammo launchers (bows, atlatls)
-                        // Thrown weapons (ie. phials) can have a shield
                         offhand = GetEquippedOffHand();
-                        if (offhand != null && item.IsAmmoLauncher)
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{offhand.Name}'");
-                            return false;
+                            // Only light shields allowed in the offhand for ammo launchers (bows, atlatls)
+                            // Thrown weapons (ie. phials) can have a shield
+                            if (offhand != null && item.IsAmmoLauncher && (offhand.CombatUse != ACE.Entity.Enum.CombatUse.Shield || offhand.Mass > 140))
+                                return false;
+                        }
+                        else
+                        {
+                            // Should not have any items in either hand for ammo launchers (bows, atlatls)
+                            // Thrown weapons (ie. phials) can have a shield
+                            if (offhand != null && item.IsAmmoLauncher)
+                            {
+                                log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{offhand.Name}'");
+                                return false;
+                            }
                         }
 
                         mainhand = GetEquippedMainHand();
@@ -1948,14 +2019,23 @@ namespace ACE.Server.WorldObjects
                         break;
 
                     case EquipMask.Held:
-                        // Should not have any items in offhand slot for casters only
                         if (item.IsCaster)
                         {
                             offhand = GetEquippedOffHand();
-                            if (offhand != null)
+                            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                             {
-                                log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{offhand.Name}'");
-                                return false;
+                                // Only light shields allowed in the offhand
+                                if (offhand != null && (offhand.CombatUse != ACE.Entity.Enum.CombatUse.Shield || offhand.Mass > 140))
+                                    return false;
+                            }
+                            else
+                            {
+                                // Should not have any items in offhand slot for casters only
+                                if (offhand != null)
+                                {
+                                    log.Warn($"'{Name}' tried to wield '{item.Name}' ({item.Guid}) in slot {wieldedLocation}, which conflicts with '{offhand.Name}'");
+                                    return false;
+                                }
                             }
                         }
 
@@ -1990,11 +2070,33 @@ namespace ACE.Server.WorldObjects
                 {
                     if (offhand != null)
                     {
-                        // Can't wield these with anything else!
-                        if (mainhand.IsTwoHanded || mainhand.IsAmmoLauncher || mainhand.IsCaster)
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            log.Warn($"'{Name}' is illegally wielding '{mainhand.Name}' ({mainhand.Guid}) and {offhand.Name}' ({offhand.Guid})");
-                            return false;
+                            if (mainhand != null)
+                            {
+                                if (mainhand.IsCaster || mainhand.IsAmmoLauncher)
+                                {
+                                    if (offhand.Mass > 140)
+                                    {
+                                        log.Warn($"'{Name}' is illegally wielding '{mainhand.Name}' ({mainhand.Guid}) and {offhand.Name}' ({offhand.Guid})");
+                                        return false;
+                                    }
+                                }
+                                else if (mainhand.IsTwoHanded)
+                                {
+                                    log.Warn($"'{Name}' is illegally wielding '{mainhand.Name}' ({mainhand.Guid}) and {offhand.Name}' ({offhand.Guid})");
+                                    return false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // Can't wield these with anything else!
+                            if (mainhand.IsTwoHanded || mainhand.IsAmmoLauncher || mainhand.IsCaster)
+                            {
+                                log.Warn($"'{Name}' is illegally wielding '{mainhand.Name}' ({mainhand.Guid}) and {offhand.Name}' ({offhand.Guid})");
+                                return false;
+                            }
                         }
                     }
 
@@ -3001,6 +3103,8 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.ActionCancelled));
                     return;
                 }
+
+                EndSneaking();
 
                 if (target is Player targetAsPlayer)
                     GiveObjectToPlayer(targetAsPlayer, item, itemFoundInContainer, itemRootOwner, itemWasEquipped, amount);

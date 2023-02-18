@@ -284,27 +284,13 @@ Tier chances: 1, 1, 1, 1, 1, 1
 
 Covenant Shield Mutation #10:
 
-Tier chances: 0.5, 0.5, 0.5, 0.6, 0.8, 0
+Tier chances: 0.5, 0.5, 0.5, 0.6, 0.8, 1
 
     - Chance 25%:
-        EncumbranceVal *= Random(0.65, 0.75)
+        EncumbranceVal *= Random(1.05, 1.15)
 
     - Chance 50%:
-        EncumbranceVal *= Random(0.55, 0.65)
+        EncumbranceVal *= Random(0.95, 1.05)
 
     - Chance 25%:
-        EncumbranceVal *= Random(0.45, 0.55)
-
-Covenant Shield Mutation #11:
-
-Tier chances: 0, 0, 0, 0, 0, 1
-
-    - Chance 25%:
-        EncumbranceVal *= Random(0.55, 0.65)
-
-    - Chance 50%:
-        EncumbranceVal *= Random(0.45, 0.55)
-
-    - Chance 25%:
-        EncumbranceVal *= Random(0.35, 0.45)
-
+        EncumbranceVal *= Random(0.85, 0.95)

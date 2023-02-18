@@ -287,7 +287,7 @@ namespace ACE.Server.Factories.Tables.Wcids
                     ( WeenieClassName.tungi,             3.0f ),
                     ( WeenieClassName.silifi,            0.5f ),
                     ( WeenieClassName.warhammer,         0.5f ),
-                    ( WeenieClassName.ace41052_greataxe, 0.25f ),
+                    ( WeenieClassName.ace41052_greataxe, 0.5f ),
                 };
 
                 AxeWcids_Gharundim = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)

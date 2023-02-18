@@ -875,6 +875,17 @@ namespace ACE.Server.WorldObjects
             {
                 foreach (var item in creature.EquippedObjects.Values)
                     item.Destroy();
+
+                foreach (var objInfo in creature.DeployedObjects)
+                {
+                    var obj = objInfo.TryGetWorldObject();
+                    if (obj != null)
+                    {
+                        obj.Generator = null;
+                        if (obj is Container contObj)
+                            contObj.StartContainerDecay();
+                    }
+                }
             }
 
             if (this is Pet pet && pet.P_PetOwner?.CurrentActivePet == this)
@@ -1122,7 +1133,7 @@ namespace ACE.Server.WorldObjects
 
                 var structureUnitValue = weenieValue / weenieMaxStructure;
 
-                return Math.Max(1, structureUnitValue);
+                return Math.Max(0, structureUnitValue);
             }
         }
     }

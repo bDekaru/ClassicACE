@@ -26,6 +26,19 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public WorldObject AttackTarget;
 
+        private WorldObject _LastAttackTarget;
+        public WorldObject LastAttackTarget
+        {
+            get
+            {
+                if (_LastAttackTarget != null && _LastAttackTarget.IsDestroyed)
+                    _LastAttackTarget = null;
+
+                return _LastAttackTarget;
+            }
+            set { _LastAttackTarget = value; }
+        }
+
         /// <summary>
         /// A monster chooses 1 attack height
         /// </summary>

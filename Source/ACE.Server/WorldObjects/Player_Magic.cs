@@ -73,51 +73,61 @@ namespace ACE.Server.WorldObjects
                     return Skill.VoidMagic;
             }
         }
+        public void SendSpellCastingDoneEvent(WeenieError errorType = WeenieError.None, bool isCombatCasting = false)
+        {
+            if (isCombatCasting || MagicState.IsCombatCasting)
+                Session.Network.EnqueueSend(new GameEventWeenieError(Session, errorType));
+            else
+                Session.Network.EnqueueSend(new GameEventUseDone(Session, errorType));
+        }
 
         /// <summary>
         /// Handles player targeted casting message
         /// </summary>
         /// <param name="builtInSpell">If TRUE, casting a built-in spell from a weapon</param>
-        public void HandleActionCastTargetedSpell(uint targetGuid, uint spellId, WorldObject casterItem = null)
+        public void HandleActionCastTargetedSpell(uint targetGuid, uint spellId, WorldObject casterItem = null, bool isCombatCasting = false)
         {
             //Console.WriteLine($"{Name}.HandleActionCastTargetedSpell({targetGuid:X8}, {spellId}, {builtInSpell})");
 
-            if (CombatMode != CombatMode.Magic)
+            if (!isCombatCasting)
             {
-                log.Error($"{Name}.HandleActionCastTargetedSpell({targetGuid:X8}, {spellId}, {casterItem?.Name}) - CombatMode mismatch {CombatMode}, LastCombatMode: {LastCombatMode}");
-
-                if (LastCombatMode == CombatMode.Magic)
-                    CombatMode = CombatMode.Magic;
-                else
+                if (CombatMode != CombatMode.Magic)
                 {
-                    SendUseDoneEvent();
+                    log.Error($"{Name}.HandleActionCastTargetedSpell({targetGuid:X8}, {spellId}, {casterItem?.Name}) - CombatMode mismatch {CombatMode}, LastCombatMode: {LastCombatMode}");
+
+                    if (LastCombatMode == CombatMode.Magic)
+                        CombatMode = CombatMode.Magic;
+                    else
+                    {
+                        SendSpellCastingDoneEvent(WeenieError.None, isCombatCasting);
+                        return;
+                    }
+                }
+
+                if (FastTick && PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.CurrentStyle != (uint)MotionStance.Magic)
+                {
+                    log.Warn($"{Name} CombatMode: {CombatMode}, CurrentMotionState: {CurrentMotionState.Stance}.{CurrentMotionState.MotionState.ForwardCommand}, Physics: {(MotionStance)PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.CurrentStyle}.{(MotionCommand)PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.ForwardCommand}");
+                    ApplyPhysicsMotion(new Motion(MotionStance.Magic));
+                    SendSpellCastingDoneEvent(WeenieError.YoureTooBusy, isCombatCasting);
                     return;
                 }
             }
 
-            if (FastTick && PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.CurrentStyle != (uint)MotionStance.Magic)
-            {
-                log.Warn($"{Name} CombatMode: {CombatMode}, CurrentMotionState: {CurrentMotionState.Stance}.{CurrentMotionState.MotionState.ForwardCommand}, Physics: {(MotionStance)PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.CurrentStyle}.{(MotionCommand)PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.ForwardCommand}");
-                ApplyPhysicsMotion(new Motion(MotionStance.Magic));
-                SendUseDoneEvent(WeenieError.YoureTooBusy);
-                return;
-            }
-
             if (IsJumping)
             {
-                SendUseDoneEvent(WeenieError.YouCantDoThatWhileInTheAir);
+                SendSpellCastingDoneEvent(WeenieError.YouCantDoThatWhileInTheAir, isCombatCasting);
                 return;
             }
 
             if (PKLogout)
             {
-                SendUseDoneEvent(WeenieError.YouHaveBeenInPKBattleTooRecently);
+                SendSpellCastingDoneEvent(WeenieError.YouHaveBeenInPKBattleTooRecently, isCombatCasting);
                 return;
             }
 
             if (IsBusy && MagicState.CanQueue)
             {
-                MagicState.CastQueue = new CastQueue(CastQueueType.Targeted, targetGuid, spellId, casterItem);
+                MagicState.CastQueue = new CastQueue(CastQueueType.Targeted, targetGuid, spellId, casterItem, isCombatCasting);
                 MagicState.CanQueue = false;
                 return;
             }
@@ -127,9 +137,9 @@ namespace ACE.Server.WorldObjects
 
             // verify spell is contained in player's spellbook,
             // or in the weapon's spellbook in the case of built-in spells
-            if (!VerifySpell(spellId, casterItem))
+            if (!VerifySpell(spellId, isCombatCasting ? null : casterItem))
             {
-                SendUseDoneEvent(WeenieError.MagicInvalidSpellType);
+                SendSpellCastingDoneEvent(WeenieError.YouDontKnowThatSpell, isCombatCasting);
                 return;
             }
 
@@ -137,11 +147,14 @@ namespace ACE.Server.WorldObjects
 
             if (target == null || target.Teleporting)
             {
-                SendUseDoneEvent(WeenieError.TargetNotAcquired);
+                SendSpellCastingDoneEvent(WeenieError.TargetNotAcquired, isCombatCasting);
                 return;
             }
 
-            MagicState.OnCastStart();
+            if (!isCombatCasting)
+                LastAttackTarget = target;
+
+            MagicState.OnCastStart(isCombatCasting);
             MagicState.SetWindupParams(targetGuid, spellId, casterItem);
 
             StartPos = new Physics.Common.Position(PhysicsObj.Position);
@@ -175,7 +188,7 @@ namespace ACE.Server.WorldObjects
 
                     if (target == null)
                     {
-                        SendUseDoneEvent(WeenieError.TargetNotAcquired);
+                        SendSpellCastingDoneEvent(WeenieError.TargetNotAcquired);
                         MagicState.OnCastDone();
                         return;
                     }
@@ -199,7 +212,7 @@ namespace ACE.Server.WorldObjects
 
             if (target == null)
             {
-                SendUseDoneEvent(WeenieError.TargetNotAcquired);
+                SendSpellCastingDoneEvent(WeenieError.TargetNotAcquired);
                 MagicState.OnCastDone();
                 return;
             }
@@ -269,46 +282,49 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Handles player untargeted casting message
         /// </summary>
-        public void HandleActionMagicCastUnTargetedSpell(uint spellId)
+        public void HandleActionMagicCastUnTargetedSpell(uint spellId, WorldObject casterItem = null, bool isCombatCasting = false)
         {
             //Console.WriteLine($"{Name}.HandleActionCastUnTargetedSpell({spellId})");
 
-            if (CombatMode != CombatMode.Magic)
+            if (!isCombatCasting)
             {
-                log.Error($"{Name}.HandleActionMagicCastUnTargetedSpell({spellId}) - CombatMode mismatch {CombatMode}, LastCombatMode {LastCombatMode}");
-
-                if (LastCombatMode == CombatMode.Magic)
-                    CombatMode = CombatMode.Magic;
-                else
+                if (CombatMode != CombatMode.Magic)
                 {
-                    SendUseDoneEvent();
+                    log.Error($"{Name}.HandleActionMagicCastUnTargetedSpell({spellId}, {casterItem?.Name}) - CombatMode mismatch {CombatMode}, LastCombatMode: {LastCombatMode}");
+
+                    if (LastCombatMode == CombatMode.Magic)
+                        CombatMode = CombatMode.Magic;
+                    else
+                    {
+                        SendSpellCastingDoneEvent(WeenieError.None, isCombatCasting);
+                        return;
+                    }
+                }
+
+                if (FastTick && PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.CurrentStyle != (uint)MotionStance.Magic)
+                {
+                    log.Warn($"{Name} CombatMode: {CombatMode}, CurrentMotionState: {CurrentMotionState.Stance}.{CurrentMotionState.MotionState.ForwardCommand}, Physics: {(MotionStance)PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.CurrentStyle}.{(MotionCommand)PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.ForwardCommand}");
+                    ApplyPhysicsMotion(new Motion(MotionStance.Magic));
+                    SendSpellCastingDoneEvent(WeenieError.YoureTooBusy, isCombatCasting);
                     return;
                 }
             }
 
-            if (FastTick && PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.CurrentStyle != (uint)MotionStance.Magic)
-            {
-                log.Warn($"{Name} CombatMode: {CombatMode}, CurrentMotionState: {CurrentMotionState.Stance}.{CurrentMotionState.MotionState.ForwardCommand}, Physics: {(MotionStance)PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.CurrentStyle}.{(MotionCommand)PhysicsObj.MovementManager.MotionInterpreter.InterpretedState.ForwardCommand}");
-                ApplyPhysicsMotion(new Motion(MotionStance.Magic));
-                SendUseDoneEvent(WeenieError.YoureTooBusy);
-                return;
-            }
-
             if (IsJumping)
             {
-                SendUseDoneEvent(WeenieError.YouCantDoThatWhileInTheAir);
+                SendSpellCastingDoneEvent(WeenieError.YouCantDoThatWhileInTheAir, isCombatCasting);
                 return;
             }
 
             if (PKLogout)
             {
-                SendUseDoneEvent(WeenieError.YouHaveBeenInPKBattleTooRecently);
+                SendSpellCastingDoneEvent(WeenieError.YouHaveBeenInPKBattleTooRecently, isCombatCasting);
                 return;
             }
 
             if (IsBusy && MagicState.CanQueue)
             {
-                MagicState.CastQueue = new CastQueue(CastQueueType.Untargeted, 0, spellId, null);
+                MagicState.CastQueue = new CastQueue(CastQueueType.Untargeted, 0, spellId, casterItem, isCombatCasting);
                 MagicState.CanQueue = false;
                 return;
             }
@@ -318,17 +334,17 @@ namespace ACE.Server.WorldObjects
 
             // verify spell is contained in player's spellbook,
             // or in the weapon's spellbook in the case of built-in spells
-            if (!VerifySpell(spellId))
+            if (!VerifySpell(spellId, isCombatCasting ? null : casterItem))
                 return;
 
             if (RecordCast.Enabled)
                 RecordCast.OnCastUntargetedSpell(new Spell(spellId));
 
-            MagicState.OnCastStart();
+            MagicState.OnCastStart(isCombatCasting);
 
             StartPos = new Physics.Common.Position(PhysicsObj.Position);
 
-            if (!CreatePlayerSpell(spellId))
+            if (!CreatePlayerSpell(spellId, casterItem))
                 MagicState.OnCastDone();
         }
 
@@ -378,7 +394,7 @@ namespace ACE.Server.WorldObjects
         {
             if (IsBusy || Teleporting || suicideInProgress)
             {
-                SendUseDoneEvent(WeenieError.YoureTooBusy);
+                SendSpellCastingDoneEvent(WeenieError.YoureTooBusy);
                 return false;
             }
             return true;
@@ -393,18 +409,18 @@ namespace ACE.Server.WorldObjects
                 if (spell._spellBase == null)
                 {
                     Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"SpellId {spell.Id} Invalid."));
-                    SendUseDoneEvent(WeenieError.None);
+                    SendSpellCastingDoneEvent(WeenieError.None);
                 }
                 else
                 {
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} spell not implemented, yet!", ChatMessageType.System));
-                    SendUseDoneEvent(WeenieError.MagicInvalidSpellType);
+                    SendSpellCastingDoneEvent(WeenieError.MagicInvalidSpellType);
                 }
                 return null;
             }
             if (!isWeaponSpell && !HasComponentsForSpell(spell))
             {
-                SendUseDoneEvent(WeenieError.YouDontHaveAllTheComponents);
+                SendSpellCastingDoneEvent(WeenieError.YouDontHaveAllTheComponents);
                 return null;
             }
 
@@ -416,7 +432,7 @@ namespace ACE.Server.WorldObjects
             if (IsInvalidTarget(spell, target))
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"{spell.Name} cannot be cast on {target.Name}."));
-                SendUseDoneEvent(WeenieError.None);
+                SendSpellCastingDoneEvent(WeenieError.None);
                 return false;
             }
             return true;
@@ -479,7 +495,7 @@ namespace ACE.Server.WorldObjects
             return false;
         }
 
-        public bool VerifySpellRange(WorldObject target, TargetCategory targetCategory, Spell spell, uint magicSkill)
+        public bool VerifySpellRange(WorldObject target, TargetCategory targetCategory, Spell spell, WorldObject casterItem, uint magicSkill)
         {
             if (targetCategory != TargetCategory.WorldObject && targetCategory != TargetCategory.Wielded || target.Guid == Guid)
                 return true;
@@ -490,11 +506,27 @@ namespace ACE.Server.WorldObjects
 
             float distanceTo = Location.Distance2D(targetLoc.Location);
 
+            if (casterItem == null)
+            {
+                // use init + ranks, same as acclient DetermineSpellRange -> InqSkillLevel
+                // this is much lower than base, and omits things like attribute formula + base augs + enlightenment
+                var magicSchool = spell.School;
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    var amulet = GetEquippedLeyLineAmulet();
+                    if (amulet != null && amulet.LeyLineEffectId == (uint)LeyLineEffect.GrantCastableSpell && LeyLineAmulet.PossibleAcquireSpells.Contains(SpellLevelProgression.GetLevel1SpellId((SpellId)spell.Id)))
+                        magicSchool = (MagicSchool)amulet.LeyLineSchool;
+                }
+
+                var playerSkill = GetCreatureSkill(magicSchool);
+                magicSkill = playerSkill.InitLevel + playerSkill.Ranks;
+            }
+
             var maxRange = Math.Min(spell.BaseRangeConstant + magicSkill * spell.BaseRangeMod, MaxRadarRange_Outdoors);
 
             if (distanceTo > maxRange)
             {
-                SendUseDoneEvent(WeenieError.MissileOutOfRange);
+                SendSpellCastingDoneEvent(WeenieError.MissileOutOfRange);
                 return false;
             }
 
@@ -503,7 +535,7 @@ namespace ACE.Server.WorldObjects
             {
                 if (Location.Indoors || target != null && target.Location.Indoors)
                 {
-                    SendUseDoneEvent(WeenieError.YourSpellCannotBeCastInside);
+                    SendSpellCastingDoneEvent(WeenieError.YourSpellCannotBeCastInside);
                     return false;
                 }
             }
@@ -511,7 +543,7 @@ namespace ACE.Server.WorldObjects
             {
                 if (!Location.Indoors || target != null && !target.Location.Indoors)
                 {
-                    SendUseDoneEvent(WeenieError.YourSpellCannotBeCastOutside);
+                    SendSpellCastingDoneEvent(WeenieError.YourSpellCannotBeCastOutside);
                     return false;
                 }
             }
@@ -521,6 +553,11 @@ namespace ACE.Server.WorldObjects
         public CastingPreCheckStatus GetCastingPreCheckStatus(Spell spell, uint magicSkill, bool isWeaponSpell)
         {
             var difficulty = spell.Power;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                difficulty += 50;
+
+            if (MagicState.IsCombatCasting)
+                difficulty += 10; // Combat casting is a bit more difficult than regular casting.
 
             var castingPreCheckStatus = CastingPreCheckStatus.CastFailed;
 
@@ -591,7 +628,7 @@ namespace ACE.Server.WorldObjects
 
             if (manaUsed > currentMana)
             {
-                SendUseDoneEvent(WeenieError.YouDontHaveEnoughManaToCast);
+                SendSpellCastingDoneEvent(WeenieError.YouDontHaveEnoughManaToCast);
                 return false;
             }
 
@@ -613,7 +650,7 @@ namespace ACE.Server.WorldObjects
 
         public void DoWindupGestures(Spell spell, bool isWeaponSpell, ActionChain castChain)
         {
-            if (spell.Flags.HasFlag(SpellFlags.FastCast) || isWeaponSpell)
+            if (spell.Flags.HasFlag(SpellFlags.FastCast) || isWeaponSpell || MagicState.IsCombatCasting)
                 return;
 
             if (FastTick)
@@ -651,7 +688,7 @@ namespace ACE.Server.WorldObjects
             }
 
             if (FastTick)
-                windupTime = EnqueueMotionAction(castChain, spell.Formula.WindupGestures, CastSpeed, MotionStance.Magic);
+                windupTime = EnqueueMotionAction(castChain, spell.Formula.WindupGestures, CastSpeed, MotionStance.Magic, checkCasting: true);
         }
 
         public void DoCastGesture(Spell spell, WorldObject casterItem, ActionChain castChain)
@@ -664,6 +701,8 @@ namespace ACE.Server.WorldObjects
                 if (casterItem.UseUserAnimation != 0)
                     MagicState.CastGesture = casterItem.UseUserAnimation;
             }
+            else if (MagicState.IsCombatCasting)
+                MagicState.CastGesture = MotionCommand.CastSpell;
 
             if (RecordCast.Enabled)
             {
@@ -676,6 +715,8 @@ namespace ACE.Server.WorldObjects
 
             castChain.AddAction(this, () =>
             {
+                if (!MagicState.IsCasting) return;
+
                 MagicState.CastGestureStartTime = DateTime.UtcNow;
 
                 if (FastTick)
@@ -687,7 +728,7 @@ namespace ACE.Server.WorldObjects
 
             var castTime = 0.0f;
             if (FastTick)
-                castTime = EnqueueMotion(castChain, MagicState.CastGesture, CastSpeed, true, null, true);
+                castTime = EnqueueMotion(castChain, MagicState.CastGesture, CastSpeed, true, null, !MagicState.IsCombatCasting);
             else
                 castTime = EnqueueMotionMagic(castChain, MagicState.CastGesture, CastSpeed);
 
@@ -715,12 +756,12 @@ namespace ACE.Server.WorldObjects
                 log.Warn(_state);
 
                 // send UseDone?
-                SendUseDoneEvent(WeenieError.BadCast);
+                SendSpellCastingDoneEvent(WeenieError.BadCast);
 
                 return;
             }
 
-            DoCastSpell(state.Spell, state.Caster, state.MagicSkill, state.ManaUsed, state.Target, state.Status, checkAngle);
+            DoCastSpell(state.Spell, state.CasterItem, state.MagicSkill, state.ManaUsed, state.Target, state.Status, checkAngle);
         }
 
         public bool IsWithinAngle(WorldObject target)
@@ -752,7 +793,7 @@ namespace ACE.Server.WorldObjects
             return angle <= maxAngle;
         }
 
-        public void DoCastSpell(Spell spell, WorldObject caster, uint magicSkill, uint manaUsed, WorldObject target, CastingPreCheckStatus castingPreCheckStatus, bool checkAngle = true)
+        public void DoCastSpell(Spell spell, WorldObject casterItem, uint magicSkill, uint manaUsed, WorldObject target, CastingPreCheckStatus castingPreCheckStatus, bool checkAngle = true)
         {
             if (target != null)
             {
@@ -776,7 +817,7 @@ namespace ACE.Server.WorldObjects
 
                         var actionChain = new ActionChain();
                         actionChain.AddDelaySeconds(rotateTime);
-                        actionChain.AddAction(this, () => DoCastSpell(spell, caster, magicSkill, manaUsed, target, castingPreCheckStatus, false));
+                        actionChain.AddAction(this, () => DoCastSpell(spell, casterItem, magicSkill, manaUsed, target, castingPreCheckStatus, false));
                         actionChain.EnqueueChain();
                     }
                     else
@@ -791,7 +832,7 @@ namespace ACE.Server.WorldObjects
                 }
 
                 // verify spell range
-                if (!VerifySpellRange(target, targetCategory, spell, magicSkill))
+                if (!VerifySpellRange(target, targetCategory, spell, casterItem, magicSkill))
                 {
                     FinishCast();
                     return;
@@ -804,7 +845,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            DoCastSpell_Inner(spell, caster, manaUsed, target, castingPreCheckStatus);
+            DoCastSpell_Inner(spell, casterItem, manaUsed, target, castingPreCheckStatus);
         }
 
         public WorldObject TurnTarget;
@@ -1015,7 +1056,7 @@ namespace ACE.Server.WorldObjects
 
         public void FinishCast()
         {
-            var hasWindupGestures = MagicState.CastSpellParams?.HasWindupGestures ?? true;
+            var hasWindupGestures = !MagicState.IsCombatCasting && (MagicState.CastSpellParams?.HasWindupGestures ?? true);
             var castGesture = MagicState.CastGesture;
 
             if (FastTick)
@@ -1023,6 +1064,7 @@ namespace ACE.Server.WorldObjects
 
             var selfTarget = !hasWindupGestures && MagicState.CastSpellParams.Target == this;
 
+            bool wasCombatCasting = MagicState.IsCombatCasting;
             MagicState.OnCastDone();
 
             IsBusy = true;
@@ -1042,7 +1084,9 @@ namespace ACE.Server.WorldObjects
                 actionChain.AddAction(this, () =>
                 {
                     IsBusy = false;
-                    SendUseDoneEvent();
+
+                    if (!wasCombatCasting)
+                        SendSpellCastingDoneEvent();
 
                     if (queue)
                         HandleCastQueue();
@@ -1064,7 +1108,7 @@ namespace ACE.Server.WorldObjects
                 actionChain.AddAction(this, () => {
 
                     IsBusy = false;
-                    SendUseDoneEvent();
+                    SendSpellCastingDoneEvent();
 
                     if (queue)
                         HandleCastQueue();
@@ -1080,6 +1124,13 @@ namespace ACE.Server.WorldObjects
         /// <param name="builtInSpell">If TRUE, casting a built-in spell from a weapon</param>
         public bool CreatePlayerSpell(WorldObject target, TargetCategory targetCategory, uint spellId, WorldObject casterItem)
         {
+            SpellConduit spellConduit = null;
+            if (MagicState.IsCombatCasting)
+            {
+                spellConduit = casterItem as SpellConduit;
+                casterItem = null;
+            }
+
             var creatureTarget = target as Creature;
 
             var spell = ValidateSpell(spellId, casterItem != null);
@@ -1094,13 +1145,21 @@ namespace ACE.Server.WorldObjects
             var caster = casterItem ?? GetEquippedWand();
             var isWeaponSpell = casterItem != null && IsWeaponSpell(spell.Id, casterItem);
 
+            var magicSchool = spell.School;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var amulet = GetEquippedLeyLineAmulet();
+                if (amulet != null && amulet.LeyLineEffectId == (uint)LeyLineEffect.GrantCastableSpell && LeyLineAmulet.PossibleAcquireSpells.Contains(SpellLevelProgression.GetLevel1SpellId((SpellId)spell.Id)))
+                    magicSchool = (MagicSchool)amulet.LeyLineSchool;
+            }
+
             // Grab player's skill level in the spell's Magic School
-            var magicSkill = GetCreatureSkill(spell.School).Current;
+            var magicSkill = GetCreatureSkill(magicSchool).Current;
             if (isWeaponSpell && caster.ItemSpellcraft != null)
                 magicSkill = (uint)caster.ItemSpellcraft;
 
             // verify spell range
-            if (!VerifySpellRange(target, targetCategory, spell, magicSkill))
+            if (!VerifySpellRange(target, targetCategory, spell, casterItem, magicSkill))
                 return false;
 
             // get casting pre-check status
@@ -1109,6 +1168,13 @@ namespace ACE.Server.WorldObjects
             // calculate mana usage
             if (!CalculateManaUsage(castingPreCheckStatus, spell, target, casterItem, out var manaUsed))
                 return false;
+
+            // We're past all the basic checks, start cooldowns if present.
+            if (spellConduit != null)
+                spellConduit.StartCooldown(this);
+            else if(casterItem != null)
+                EnchantmentManager.StartCooldown(casterItem);
+
 
             // spell words
             DoSpellWords(spell, isWeaponSpell);
@@ -1156,6 +1222,9 @@ namespace ACE.Server.WorldObjects
             if (spell.MetaSpellType == SpellType.Dispel && !VerifyDispelPKStatus(this, target))
                 return;
 
+            if (SpellConduitToAttune != null && !isWeaponSpell)
+                SpellConduitToAttune.AttuneSpell(this, spell);
+
             switch (spell.School)
             {
                 case MagicSchool.ItemEnchantment:
@@ -1184,7 +1253,13 @@ namespace ACE.Server.WorldObjects
                             OnAttackMonster(targetCreature);
 
                         if (TryResistSpell(target, spell, itemCaster))
+                        {
+                            if (spell.IsHarmful && targetCreature != null && targetCreature != this)
+                                targetCreature.OnAttackReceived(this, CombatType.Magic, false, true);
                             break;
+                        }
+                        else if (spell.IsHarmful && targetCreature != null && targetCreature != this)
+                            targetCreature.OnAttackReceived(this, CombatType.Magic, false, false);
 
                         if (targetCreature != null && targetCreature.NonProjectileMagicImmune)
                         {
@@ -1220,20 +1295,48 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Method used for handling player untargeted spell casts
         /// </summary>
-        public bool CreatePlayerSpell(uint spellId)
+        public bool CreatePlayerSpell(uint spellId, WorldObject casterItem = null)
         {
-            var spell = ValidateSpell(spellId);
+            SpellConduit spellConduit = null;
+            if (MagicState.IsCombatCasting)
+            {
+                spellConduit = casterItem as SpellConduit;
+                casterItem = null;
+            }
+
+            var spell = ValidateSpell(spellId, casterItem != null);
             if (spell == null)
                 return false;
 
+            // if casting implement has spell built in,
+            // use spellcraft from the item, instead of player's magic skill?
+            var caster = casterItem ?? GetEquippedWand();
+            var isWeaponSpell = casterItem != null && IsWeaponSpell(spell.Id, casterItem);
+
+            var magicSchool = spell.School;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var amulet = GetEquippedLeyLineAmulet();
+                if (amulet != null && amulet.LeyLineEffectId == (uint)LeyLineEffect.GrantCastableSpell && LeyLineAmulet.PossibleAcquireSpells.Contains(SpellLevelProgression.GetLevel1SpellId((SpellId)spell.Id)))
+                    magicSchool = (MagicSchool)amulet.LeyLineSchool;
+            }
+
             // get player's current magic skill
-            var magicSkill = GetCreatureSkill(spell.School).Current;
+            var magicSkill = GetCreatureSkill(magicSchool).Current;
+            if (isWeaponSpell && caster.ItemSpellcraft != null)
+                magicSkill = (uint)caster.ItemSpellcraft;
 
             var castingPreCheckStatus = GetCastingPreCheckStatus(spell, magicSkill, false);
 
             // calculate mana usage
-            if (!CalculateManaUsage(castingPreCheckStatus, spell, null, null, out var manaUsed))
+            if (!CalculateManaUsage(castingPreCheckStatus, spell, null, casterItem, out var manaUsed))
                 return false;
+
+            // We're past all the basic checks, start cooldowns if present.
+            if (spellConduit != null)
+                spellConduit.StartCooldown(this);
+            else if (casterItem != null)
+                EnchantmentManager.StartCooldown(casterItem);
 
             // begin spellcasting
             DoSpellWords(spell, false);
@@ -1246,10 +1349,10 @@ namespace ACE.Server.WorldObjects
             DoWindupGestures(spell, false, spellChain);
 
             // do cast gesture
-            DoCastGesture(spell, null, spellChain);
+            DoCastGesture(spell, casterItem, spellChain);
 
             // cast untargeted spell
-            MagicState.SetCastParams(spell, null, magicSkill, manaUsed, null, castingPreCheckStatus);
+            MagicState.SetCastParams(spell, casterItem, magicSkill, manaUsed, null, castingPreCheckStatus);
 
             if (!FastTick)
                 spellChain.AddAction(this, () => DoCastSpell(MagicState));
@@ -1395,11 +1498,11 @@ namespace ACE.Server.WorldObjects
 
             if (parms != null && tryFizzle)
             {
-                DoCastSpell_Inner(parms.Spell, parms.Caster, parms.ManaUsed, parms.Target, CastingPreCheckStatus.CastFailed, false);
+                DoCastSpell_Inner(parms.Spell, parms.CasterItem, parms.ManaUsed, parms.Target, CastingPreCheckStatus.CastFailed, false);
 
                 werror = WeenieError.YourSpellFizzled;
             }
-            SendUseDoneEvent(werror);
+            SendSpellCastingDoneEvent(werror);
 
             MagicState.OnCastDone();
         }
@@ -1451,9 +1554,9 @@ namespace ACE.Server.WorldObjects
             if (MagicState.CastQueue != null)
             {
                 if (MagicState.CastQueue.Type == CastQueueType.Targeted)
-                    HandleActionCastTargetedSpell(MagicState.CastQueue.TargetGuid, MagicState.CastQueue.SpellId, MagicState.CastQueue.CasterItem);
+                    HandleActionCastTargetedSpell(MagicState.CastQueue.TargetGuid, MagicState.CastQueue.SpellId, MagicState.CastQueue.CasterItem, MagicState.CastQueue.IsCombatCasting);
                 else
-                    HandleActionMagicCastUnTargetedSpell(MagicState.CastQueue.SpellId);
+                    HandleActionMagicCastUnTargetedSpell(MagicState.CastQueue.SpellId, MagicState.CastQueue.CasterItem, MagicState.CastQueue.IsCombatCasting);
             }
         }
 

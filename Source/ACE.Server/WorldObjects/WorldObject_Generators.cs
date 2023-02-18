@@ -498,7 +498,7 @@ namespace ACE.Server.WorldObjects
 
         private double GetNextRegenerationTime(double generatorInitialDelay)
         {
-            if (RegenerationTimestamp == 0)
+            if (RegenerationTimestamp != 0)
                 return Time.GetUnixTime();
 
             return Time.GetUnixTime() + generatorInitialDelay;
@@ -542,6 +542,7 @@ namespace ACE.Server.WorldObjects
                     foreach (var generator in GeneratorProfiles)
                     {
                         generator.KillAll();
+                        generator.StartAllContainersDecay();
                     }
                     break;
                 case GeneratorDestruct.Destroy:
@@ -552,6 +553,10 @@ namespace ACE.Server.WorldObjects
                     break;
                 case GeneratorDestruct.Nothing:
                 default:
+                    foreach (var generator in GeneratorProfiles)
+                    {
+                        generator.StartAllContainersDecay();
+                    }
                     break;
             }
         }
@@ -601,13 +606,24 @@ namespace ACE.Server.WorldObjects
                             // All we have left are stuck items, let's destroy the generator and schedule the rot of all remaining items.
                             foreach (var entry in stuckList)
                             {
-                                // Stop generating new items and do not relock ourselves, in 5 minutes we decay.
+                                // Enable decay.
+                                entry.TimeToRot = entry.DefaultTimeToRot.TotalSeconds;
                                 entry.Generator = null;
                                 entry.GeneratorId = null;
-                                entry.GeneratorProfiles.Clear();
-                                entry.TimeToRot = 300;
-                                if(entry.GetProperty(PropertyBool.DefaultLocked).HasValue)
-                                    entry.DefaultLocked = false;
+                                entry.RotProof = false;
+
+                                if (entry is Container)
+                                {
+                                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                                    {
+                                        // Also stop relocking and generating container contents.
+                                        entry.GeneratorDisabled = true;
+                                        if (entry.GetProperty(PropertyBool.DefaultLocked).HasValue)
+                                            entry.DefaultLocked = false;
+                                    }
+                                }
+                                else
+                                    entry.GeneratorDisabled = true;
                             }
                             Generator.Destroy();
                         }
@@ -643,13 +659,24 @@ namespace ACE.Server.WorldObjects
                         // All we have left are stuck items, let's destroy the generator and schedule the rot of all remaining items.
                         foreach (var entry in stuckList)
                         {
-                            // Stop generating new items and do not relock ourselves, in 5 minutes we decay.
+                            // Enable decay.
+                            entry.TimeToRot = entry.DefaultTimeToRot.TotalSeconds;
                             entry.Generator = null;
                             entry.GeneratorId = null;
-                            entry.GeneratorProfiles.Clear();
-                            entry.TimeToRot = 300;
-                            if (entry.GetProperty(PropertyBool.DefaultLocked).HasValue)
-                                entry.DefaultLocked = false;
+                            entry.RotProof = false;
+
+                            if (entry is Container)
+                            {
+                                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                                {
+                                    // Also stop relocking and generating container contents.
+                                    entry.GeneratorDisabled = true;
+                                    if (entry.GetProperty(PropertyBool.DefaultLocked).HasValue)
+                                        entry.DefaultLocked = false;
+                                }
+                            }
+                            else
+                                entry.GeneratorDisabled = true;
                         }
                         Generator.Destroy();
                     }

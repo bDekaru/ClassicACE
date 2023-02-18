@@ -31,7 +31,7 @@ namespace ACE.Server.WorldObjects
                 CycleTime = 1;
         }
 
-        private Dictionary<ObjectGuid, bool> Creatures = new Dictionary<ObjectGuid, bool>();
+        private HashSet<ObjectGuid> Creatures = new HashSet<ObjectGuid>();
 
         private ActionChain ActionLoop = null;
 
@@ -43,12 +43,13 @@ namespace ACE.Server.WorldObjects
             if (!AffectsAis && !(wo is Player))
                 return;
 
-            if (!Creatures.ContainsKey(creature.Guid))
+            if (!Creatures.Contains(creature.Guid))
             {
                 //Console.WriteLine($"{Name} ({Guid}).OnCollideObject({creature.Name})");
 
-                Creatures.Add(creature.Guid, true); // true means this was added this cycle.
-                Activate(wo as Creature); // Antecipate first activation to the moment of contact, much better feedback this way.
+                Creatures.Add(creature.Guid);
+                if (wo.HotspotImmunityTimestamp <= Time.GetUnixTime())
+                    Activate(wo as Creature); // Antecipate first activation to the moment of contact, much better feedback this way.
             }
 
             if (ActionLoop == null)
@@ -147,11 +148,8 @@ namespace ACE.Server.WorldObjects
 
         private void Activate()
         {
-            foreach (var entry in Creatures)
+            foreach (var creatureGuid in Creatures)
             {
-                var creatureGuid = entry.Key;
-                var firstCycle = entry.Value;
-
                 var creature = CurrentLandblock.GetObject(creatureGuid) as Creature;
 
                 // verify current state of collision here
@@ -162,10 +160,7 @@ namespace ACE.Server.WorldObjects
                     continue;
                 }
 
-                if (!firstCycle) // If it's our first cycle it means we've already activated at the moment of contact.
-                    Activate(creature);
-                else
-                    Creatures[creatureGuid] = false;
+                Activate(creature);
             }
         }
 
@@ -177,6 +172,16 @@ namespace ACE.Server.WorldObjects
             var iAmount = (int)Math.Round(amount);
 
             var player = creature as Player;
+
+            var currentTime = Time.GetUnixTime();
+
+            if (creature.HotspotImmunityTimestamp > currentTime)
+                return;
+            else
+            {
+                var immunityTime = (CycleTime ?? 0) * (1.0f - CycleTimeVariance ?? 0.0f) * 0.9f; // Multiplying the minimum possible CycleTime by 0.9 just to be extra sure that we wont be immune for the next tick.
+                creature.HotspotImmunityTimestamp = currentTime + immunityTime;
+            }
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && WeenieClassId == 8127) // Menhir Mana Field
             {
@@ -197,7 +202,7 @@ namespace ACE.Server.WorldObjects
                     else
                         iAmount = (int)creature.TakeDamage(this, DamageType, amount);
 
-                    if (creature.IsDead && Creatures.ContainsKey(creature.Guid))
+                    if (creature.IsDead && Creatures.Contains(creature.Guid))
                         Creatures.Remove(creature.Guid);
 
                     break;

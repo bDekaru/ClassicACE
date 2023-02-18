@@ -179,6 +179,9 @@ namespace ACE.Server.WorldObjects
                 remainingMsg = UsesLeft > 0 ? $" Your {Name} has {UsesLeft} use{s} left." : $" Your {Name} is used up.";
 
                 Value -= StructureUnitValue;
+
+                if (Value < 0) // fix negative value
+                    Value = 0;
             }
 
             var stackSize = new GameMessagePublicUpdatePropertyInt(this, PropertyInt.Structure, UsesLeft.Value);
@@ -214,8 +217,12 @@ namespace ACE.Server.WorldObjects
             var healingSkill = healer.GetCreatureSkill(Skill.Healing);
             Proficiency.OnSuccessUse(healer, healingSkill, difficulty);
 
+            var pkLoweredMessage = "";
+            //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && healer.PKTimerActive)
+            //    pkLoweredMessage = " Your recent PvP activity lowers the effectiveness of this action.";
+
             var crit = critical ? "expertly " : "";
-            var message = new GameMessageSystemChat($"You {crit}heal {targetName} for {healAmount} {BoosterEnum.ToString()} points.{remainingMsg}", ChatMessageType.Broadcast);
+            var message = new GameMessageSystemChat($"You {crit}heal {targetName} for {healAmount} {BoosterEnum.ToString()} points.{pkLoweredMessage}{remainingMsg}", ChatMessageType.Broadcast);
 
             healer.Session.Network.EnqueueSend(message, stackSize);
 

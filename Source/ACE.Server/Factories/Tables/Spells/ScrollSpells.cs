@@ -401,6 +401,9 @@ namespace ACE.Server.Factories.Tables
 
                     SpellId.DispelLifeBadSelf1,
                     SpellId.DispelLifeBadOther1,
+
+                    //SpellId.ArmorSelf1,
+                    //SpellId.ArmorOther1,
                 };
 
                 NumSpells = lifeSpells.Count + warSpells.Count;

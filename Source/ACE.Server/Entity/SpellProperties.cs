@@ -488,5 +488,26 @@ namespace ACE.Server.Entity
         /// Number * NumberVariance = the minimum # of spells to dispel
         /// </summary>
         public float NumberVariance { get => _spell.NumberVariance ?? 0; }
+
+        private static readonly List<SpellCategory> cantripCategories = new List<SpellCategory>()
+        {
+            SpellCategory.GreatVitalityRaising,
+            SpellCategory.PoorVitalityLowering,
+            SpellCategory.GreatVigorRaising,
+            SpellCategory.PoorVigorLowering,
+            SpellCategory.GreaterIntellectRaising,
+            SpellCategory.LessorIntellectLowering,
+        };
+
+        public bool IsCantrip
+        {
+            get
+            {
+                if (cantripCategories.Contains(_spellBase.Category))
+                    return true;
+                return _spellBase.Desc.Contains("Additional spells can be layered over this.");
+            }
+        }
+
     }
 }

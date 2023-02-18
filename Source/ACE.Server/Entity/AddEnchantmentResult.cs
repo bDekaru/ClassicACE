@@ -172,7 +172,7 @@ namespace ACE.Server.Entity
 
             foreach (var refresh in Refresh)
             {
-                if (refresh.CasterObjectId == caster.Guid.Full)
+                if (refresh.CasterObjectId == caster?.Guid.Full)
                     RefreshCaster = refresh;
             }
         }

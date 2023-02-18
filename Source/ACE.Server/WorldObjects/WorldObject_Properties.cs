@@ -910,7 +910,9 @@ namespace ACE.Server.WorldObjects
             var material = RecipeManager.GetMaterialName(MaterialType ?? 0);
 
             if (name.Contains(material))
-                name = name.Replace(material, "");
+            {
+                name = name.Replace(material, "").Trim();
+            }
 
             return $"{material} {name}";
         }
@@ -1824,6 +1826,12 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.CheckpointTimestamp); else SetProperty(PropertyFloat.CheckpointTimestamp, value.Value); }
         }
 
+        public double HotspotImmunityTimestamp
+        {
+            get => GetProperty(PropertyFloat.HotspotImmunityTimestamp) ?? 0.0;
+            set { if (value == 0.0) RemoveProperty(PropertyFloat.HotspotImmunityTimestamp); else SetProperty(PropertyFloat.HotspotImmunityTimestamp, value); }
+        }
+
         public bool UseBackpackSlot => WeenieType == WeenieType.Container || RequiresPackSlot;
 
         public int? PlacementPosition
@@ -1893,6 +1901,12 @@ namespace ACE.Server.WorldObjects
         {
             get => GetProperty(PropertyInt.EncumbranceVal);
             set { if (!value.HasValue) RemoveProperty(PropertyInt.EncumbranceVal); else SetProperty(PropertyInt.EncumbranceVal, value.Value); }
+        }
+
+        public int? Mass
+        {
+            get => GetProperty(PropertyInt.Mass);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Mass); else SetProperty(PropertyInt.Mass, value.Value); }
         }
 
         public double? BulkMod
@@ -2539,6 +2553,15 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.TimeToRot); else SetProperty(PropertyFloat.TimeToRot, value.Value); }
         }
 
+        /// <summary>
+        /// If set to true will prevent an object from being able to rot even if it otherwise would. If set to false will force an object to be rottable.
+        /// </summary>
+        public bool? RotProof
+        {
+            get => GetProperty(PropertyBool.RotProof);
+            set { if (!value.HasValue) RemoveProperty(PropertyBool.RotProof); else SetProperty(PropertyBool.RotProof, value.Value); }
+        }
+
         public uint? AllowedActivator
         {
             get => GetProperty(PropertyInstanceId.AllowedActivator);
@@ -3127,5 +3150,29 @@ namespace ACE.Server.WorldObjects
         /// If not unlimited, client will only allow you to buy or add to buy list up this number of items for a single transaction.
         /// </summary>
         public int? VendorShopCreateListStackSize;
+
+        public double? MeleeDefenseCap
+        {
+            get => GetProperty(PropertyFloat.MeleeDefenseCap);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.MeleeDefenseCap); else SetProperty(PropertyFloat.MeleeDefenseCap, value.Value); }
+        }
+
+        public double? MissileDefenseCap
+        {
+            get => GetProperty(PropertyFloat.MissileDefenseCap);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.MissileDefenseCap); else SetProperty(PropertyFloat.MissileDefenseCap, value.Value); }
+        }
+
+        public double? MagicDefenseCap
+        {
+            get => GetProperty(PropertyFloat.MagicDefenseCap);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.MagicDefenseCap); else SetProperty(PropertyFloat.MagicDefenseCap, value.Value); }
+        }
+
+        public double? ComponentBurnRateMod
+        {
+            get => GetProperty(PropertyFloat.ComponentBurnRateMod);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ComponentBurnRateMod); else SetProperty(PropertyFloat.ComponentBurnRateMod, value.Value); }
+        }
     }
 }

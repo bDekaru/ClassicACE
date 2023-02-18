@@ -178,26 +178,22 @@
                 {
                     "weenieId": "627",
                     "name": "Alder Talisman",
-                    "stacksize": "3"
+                    "stacksize": "3",
+                    "specializedOnly": "true"
                 },
-                {
-                    "weenieId": "763",
-                    "name": "Verdigris",
-                    "stacksize": "10"
-                },
-                {
-                    "weenieId": "760",
-                    "name": "Realgar",
-                    "stacksize": "10"
-                },
+                //{
+                //    "weenieId": "743",
+                //    "name": "Cedar Talisman",
+                //    "stacksize": "3"
+                //},
+                //{
+                //    "weenieId": "744",
+                //    "name": "Ebony Talisman",
+                //    "stacksize": "3"
+                //},
                 {
                     "weenieId": "759",
                     "name": "Quicksilver",
-                    "stacksize": "10"
-                },
-                {
-                    "weenieId": "758",
-                    "name": "Gypsum",
                     "stacksize": "10"
                 },
                 {
@@ -205,24 +201,14 @@
                     "name": "Colcothar",
                     "stacksize": "10"
                 },
-                {
-                    "weenieId": "756",
-                    "name": "Cobalt",
-                    "stacksize": "10"
-                },
+                //{
+                //    "weenieId": "756",
+                //    "name": "Cobalt",
+                //    "stacksize": "10"
+                //},
                 {
                     "weenieId": "755",
                     "name": "Cinnabar",
-                    "stacksize": "10"
-                },
-                {
-                    "weenieId": "754",
-                    "name": "Cadmia",
-                    "stacksize": "10"
-                },
-                {
-                    "weenieId": "753",
-                    "name": "Brimstone",
                     "stacksize": "10"
                 },
                 {
@@ -230,14 +216,14 @@
                     "name": "Powdered Amber",
                     "stacksize": "10"
                 },
+                //{
+                //    "weenieId": "790",
+                //    "name": "Powdered Onyx",
+                //    "stacksize": "10"
+                //},
                 {
                     "weenieId": "778",
                     "name": "Saffron",
-                    "stacksize": "10"
-                },
-                {
-                    "weenieId": "776",
-                    "name": "Mugwort",
                     "stacksize": "10"
                 },
                 {
@@ -257,12 +243,11 @@
                     "stacksize": "10",
                     "specializedOnly": "true"
                 },
-                {
-                    "weenieId": "766",
-                    "name": "Bistort",
-                    "stacksize": "10",
-                    "specializedOnly": "true"
-                },
+                //{
+                //    "weenieId": "780",
+                //    "name": "Wormwood",
+                //    "stacksize": "10"
+                //},
                 {
                     "weenieId": "691",
                     "name": "Lead Scarab",
@@ -305,6 +290,16 @@
                 }
             ],
             "spells": [
+                //{
+                //    "spellId": "23",
+                //    "name": "Armor Other I",
+                //    "specializedOnly": "false"
+                //},
+                //{
+                //    "spellId": "24",
+                //    "name": "Armor Self I",
+                //    "specializedOnly": "false"
+                //},
                 {
                     "spellId": "5",
                     "name": "Heal Other I",
@@ -326,89 +321,9 @@
                     "specializedOnly": "false"
                 },
                 {
-                    "spellId": "206",
-                    "name": "Mana Renewal Other I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "212",
-                    "name": "Mana Renewal Self I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "159",
-                    "name": "Regenerate Other I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "165",
-                    "name": "Regenerate Self I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "53",
-                    "name": "Rejuvenate Other I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "54",
-                    "name": "Rejuvenate Self I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "1278",
-                    "name": "Health to Mana I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "1272",
-                    "name": "Health to Stamina I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "1290",
-                    "name": "Mana to Health I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "1296",
-                    "name": "Mana to Stamina I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "1664",
-                    "name": "Stamina to Health I",
-                    "specializedOnly": "false"
-                },
-                {
                     "spellId": "1676",
                     "name": "Stamina to Mana I",
                     "specializedOnly": "false"
-                },
-                {
-                    "spellId": "1225",
-                    "name": "Infuse Health I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "9",
-                    "name": "Infuse Mana I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "1243",
-                    "name": "Infuse Stamina I",
-                    "specializedOnly": "false"
-                },
-                {
-                    "spellId": "1195",
-                    "name": "Enfeeble Other I",
-                    "specializedOnly": "true"
-                },
-                {
-                    "spellId": "1219",
-                    "name": "Mana Drain Other I",
-                    "specializedOnly": "true"
                 },
                 {
                     "spellId": "7",
@@ -416,43 +331,8 @@
                     "specializedOnly": "true"
                 },
                 {
-                    "spellId": "194",
-                    "name": "Exhaustion Other I",
-                    "specializedOnly": "true"
-                },
-                {
-                    "spellId": "171",
-                    "name": "Fester Other I",
-                    "specializedOnly": "true"
-                },
-                {
-                    "spellId": "218",
-                    "name": "Mana Depletion Other I",
-                    "specializedOnly": "true"
-                },
-                {
                     "spellId": "1237",
                     "name": "Drain Health Other I",
-                    "specializedOnly": "true"
-                },
-                {
-                    "spellId": "1260",
-                    "name": "Drain Mana I",
-                    "specializedOnly": "true"
-                },
-                {
-                    "spellId": "1249",
-                    "name": "Drain Stamina I",
-                    "specializedOnly": "true"
-                },
-                {
-                    "spellId": "2774",
-                    "name": "Martyr's Blight I",
-                    "specializedOnly": "true"
-                },
-                {
-                    "spellId": "2767",
-                    "name": "Martyr's Tenacity I",
                     "specializedOnly": "true"
                 },
                 {

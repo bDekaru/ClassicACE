@@ -142,7 +142,7 @@ namespace ACE.Server.WorldObjects.Managers
                 case EmoteType.AwardNoShareXP:
 
                     if (player != null)
-                        player.EarnXP(emote.Amount64 ?? emote.Amount ?? 0, XpType.Quest, player.Level, ShareType.None);
+                        player.EarnXP(emote.Amount64 ?? emote.Amount ?? 0, XpType.Quest, player.Level, emoteSet.WeenieClassId, ShareType.None);
 
                     break;
 
@@ -174,7 +174,7 @@ namespace ACE.Server.WorldObjects.Managers
                         var amt = emote.Amount64 ?? emote.Amount ?? 0;
                         if (amt > 0 || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            player.EarnXP(amt, XpType.Quest, player.Level, ShareType.All);
+                            player.EarnXP(amt, XpType.Quest, player.Level, emoteSet.WeenieClassId, ShareType.All);
                         }
                         else if (amt < 0)
                         {
@@ -1335,6 +1335,29 @@ namespace ACE.Server.WorldObjects.Managers
 
                     //if (WorldObject is Player)
                     //(WorldObject as Player).Teleport(emote.Position);
+                    if (creature != null)
+                    {
+                        if (emote.ObjCellId.HasValue && emote.OriginX.HasValue && emote.OriginY.HasValue && emote.OriginZ.HasValue && emote.AnglesX.HasValue && emote.AnglesY.HasValue && emote.AnglesZ.HasValue && emote.AnglesW.HasValue)
+                        {
+                            if (emote.ObjCellId.Value > 0)
+                            {
+                                // ensure same landblock
+                                if ((emote.ObjCellId.Value >> 16) == (creature.Location.Cell >> 16))
+                                    creature.FakeTeleport(new Position(emote.ObjCellId.Value, emote.OriginX.Value, emote.OriginY.Value, emote.OriginZ.Value, emote.AnglesX.Value, emote.AnglesY.Value, emote.AnglesZ.Value, emote.AnglesW.Value));
+                            }
+                            else // position is relative to creature's current location
+                            {
+                                var relativeDestination = new Position(creature.Location);
+                                relativeDestination.Pos += new Vector3(emote.OriginX.Value, emote.OriginY.Value, emote.OriginZ.Value);
+                                relativeDestination.Rotation = new Quaternion(emote.AnglesX.Value, emote.AnglesY.Value, emote.AnglesZ.Value, emote.AnglesW.Value);
+                                relativeDestination.LandblockId = new LandblockId(relativeDestination.GetCell());
+
+                                // ensure same landblock
+                                if ((relativeDestination.Cell >> 16) == (creature.Location.Cell >> 16))
+                                    creature.FakeTeleport(relativeDestination);
+                            }
+                        }
+                    }
                     break;
 
                 case EmoteType.TeleportTarget:
@@ -1494,6 +1517,19 @@ namespace ACE.Server.WorldObjects.Managers
 
                     break;
 
+                case EmoteType.VendorBroadcastStockLocal:
+                    {
+                        if (creature is Vendor vendor)
+                            vendor.BroadcastStock(false);
+                        break;
+                    }
+
+                case EmoteType.VendorBroadcastStockWorld:
+                    {
+                        if (creature is Vendor vendor)
+                            vendor.BroadcastStock(true);
+                        break;
+                    }
                 default:
                     log.Debug($"EmoteManager.Execute - Encountered Unhandled EmoteType {(EmoteType)emote.Type} for {WorldObject.Name} ({WorldObject.WeenieClassId})");
                     break;

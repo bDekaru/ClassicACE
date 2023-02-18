@@ -1,8 +1,7 @@
-using System;
-
 using ACE.Database;
 using ACE.Entity.Models;
 using ACE.Server.WorldObjects;
+using System;
 
 namespace ACE.Server.Network.GameEvent.Events
 {
@@ -57,7 +56,19 @@ namespace ACE.Server.Network.GameEvent.Events
                 // pwdType: flag indicating whether the new or old PublicWeenieDesc is used; -1 = PublicWeenieDesc, 1 = OldPublicWeenieDesc; -1 always used.
                 Writer.Write(stackSize & 0xFFFFFF | -1 << 24);
 
+                // Work-around for the client not showing tinkering materials for sale on vendors: Temporarily change it's category to Misc.
+                var originalItemType = obj.ItemType;
+                bool isSalvage = originalItemType == ACE.Entity.Enum.ItemType.TinkeringMaterial;
+                if (isSalvage)
+                {
+                    obj.ItemType = ACE.Entity.Enum.ItemType.Misc;
+                    obj.CalculateObjDesc(); // We have to calculate this or the icon will be wrong.
+                }
+
                 obj.SerializeGameDataOnly(Writer);
+
+                if(isSalvage)
+                    obj.ItemType = originalItemType; // Rollback the ItemType
             });
 
             Writer.Align();

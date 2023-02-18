@@ -197,6 +197,14 @@ namespace ACE.Entity.Enum.Properties
         IsPseudoRandomGenerator          = 9011,
         [ServerOnly]
         IsModified                       = 9012,
+        [ServerOnly]
+        VendorSellsSalvage               = 9013,
+        [ServerOnly]
+        VendorSellsSpecialItems          = 9014,
+        [ServerOnly]
+        VendorPKOnly                     = 9015,
+        [ServerOnly]
+        UseXpOverride                    = 9016,
     }
 
     public static class PropertyBoolExtensions

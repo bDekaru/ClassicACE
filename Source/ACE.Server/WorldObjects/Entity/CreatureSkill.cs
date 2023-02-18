@@ -123,7 +123,7 @@ namespace ACE.Server.WorldObjects.Entity
                     foreach (var entry in creature.Skills)
                     {
                         if (entry.Value.SecondaryTo == Skill)
-                            entry.Value.UpdateSecondarySkill(value);
+                            entry.Value.UpdateSecondarySkill(value, PropertiesSkill.InitLevel);
                     }
                 }
             }
@@ -220,11 +220,11 @@ namespace ACE.Server.WorldObjects.Entity
             }
         }
 
-        private void UpdateSecondarySkill()
+        public void UpdateSecondarySkill()
         {
-            if (SecondaryTo == 0 || creature == null)
+            if (SecondaryTo == 0 || creature == null || !DatManager.PortalDat.SkillTable.SkillBaseHash.ContainsKey((uint)SecondaryTo))
             {
-                UpdateSecondarySkill(0);
+                UpdateSecondarySkill(0, 0);
                 return;
             }
 
@@ -232,19 +232,30 @@ namespace ACE.Server.WorldObjects.Entity
             if (primary == null)
                 return;
 
-            UpdateSecondarySkill(primary.Ranks);
+            UpdateSecondarySkill(primary.Ranks, primary.InitLevel);
         }
 
-        private void UpdateSecondarySkill(ushort primaryRanks)
+        private void UpdateSecondarySkill(ushort primaryRanks, uint primaryInitLevel)
         {
+            if (Skill == Skill.None)
+                return;
+
             var oldValue = Ranks;
 
             if (SecondaryTo == 0 || creature == null)
             {
                 Ranks = 0;
+                if (AdvancementClass == SkillAdvancementClass.Specialized)
+                    InitLevel = 10;
+                else if (AdvancementClass == SkillAdvancementClass.Trained)
+                    InitLevel = 5;
+                else
+                    InitLevel = 0;
             }
             else
             {
+                InitLevel = primaryInitLevel;
+
                 if (AdvancementClass == SkillAdvancementClass.Specialized)
                     Ranks = (ushort)(primaryRanks > 10 ? primaryRanks - 10 : 0);
                 else
@@ -253,12 +264,12 @@ namespace ACE.Server.WorldObjects.Entity
 
             if (Ranks != oldValue && creature is Player player)
             {
-                creature.ChangesDetected = true;
-
                 if(Ranks != 0)
                     ExperienceSpent = (uint)player.GetXPBetweenSkillLevels(AdvancementClass, 0, Ranks);
                 else
                     ExperienceSpent = 0;
+
+                player.ChangesDetected = true;
 
                 // Delay sending theses message for one tick so they appear after the original skill message.
                 if (SecondaryTo != 0)

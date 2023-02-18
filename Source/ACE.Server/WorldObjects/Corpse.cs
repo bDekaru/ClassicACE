@@ -51,6 +51,74 @@ namespace ACE.Server.WorldObjects
             BumpVelocity = true;
         }
 
+        static Corpse()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                Corpse.NoDrop_Landblocks = new HashSet<ushort>()
+                {
+                    0x005F,     // Tanada House of Pancakes (Seasonal)
+                    0x00AF,     // Colosseum Staging Area and Secret Mini-Bosses
+                    0x00B0,     // Colosseum Arena One
+                    0x00B1,     // Colosseum Arena Two
+                    0x00B2,     // Colosseum Arena Three
+                    0x00B3,     // Colosseum Arena Four
+                    0x00B4,     // Colosseum Arena Five
+                    0x00B6,     // Colosseum Arena Mini-Bosses
+                    0x00EA,     // Mhoire Armory
+                    0x33F4,     // Frozen Cave
+                    0x5960,     // Gauntlet Arena One (Celestial Hand)
+                    0x5961,     // Gauntlet Arena Two (Celestial Hand)
+                    0x5962,     // Gauntlet Arena One (Eldritch Web)
+                    0x5963,     // Gauntlet Arena Two (Eldritch Web)
+                    0x5964,     // Gauntlet Arena One (Radiant Blood)
+                    0x5965,     // Gauntlet Arena Two (Radiant Blood)
+                    0x596B,     // Gauntlet Staging Area (All Societies)
+                    0x8A04,     // Night Club (Seasonal Anniversary)
+                    0xB5F0,     // Aerfalle's Sanctum
+                    // CustomDM
+                    // Smuggler's Den
+                    0xAF96,
+                    0xAF94,
+                    0xAF95,
+                    0xB094,
+                    0xB095,
+                    0xB096,
+                    0xB194,
+                    0xB195,
+                    0xB196,
+                };
+
+                DropAllPyreals_Landblocks = new HashSet<ushort>()
+                {
+                    // Smuggler's Den
+                    0xAF96,
+                    0xAF94,
+                    0xAF95,
+                    0xB094,
+                    0xB095,
+                    0xB096,
+                    0xB194,
+                    0xB195,
+                    0xB196,
+                };
+
+                DropRecentlyPurchasedItems_Landblocks = new HashSet<ushort>()
+                {
+                    // Smuggler's Den
+                    0xAF96,
+                    0xAF94,
+                    0xAF95,
+                    0xB094,
+                    0xB095,
+                    0xB096,
+                    0xB194,
+                    0xB195,
+                    0xB196,
+                };
+            }
+        }
+
         private void SetEphemeralValues()
         {
             ObjectDescriptionFlags |= ObjectDescriptionFlag.Corpse;
@@ -239,6 +307,10 @@ namespace ACE.Server.WorldObjects
 
         public bool IsOnNoDropLandblock => Location != null ? NoDrop_Landblocks.Contains(Location.LandblockId.Landblock) : false;
 
+        public bool IsOnDropAllPyrealsLandblock => Location != null ? DropAllPyreals_Landblocks.Contains(Location.LandblockId.Landblock) : false;
+
+        public bool IsOnDropRecentlyPurchasedLandblock => Location != null ? DropRecentlyPurchasedItems_Landblocks.Contains(Location.LandblockId.Landblock) : false;
+
         public override bool EnterWorld()
         {
             var actionChain = new ActionChain();
@@ -420,6 +492,20 @@ namespace ACE.Server.WorldObjects
             0x596B,     // Gauntlet Staging Area (All Societies)
             0x8A04,     // Night Club (Seasonal Anniversary)
             0xB5F0,     // Aerfalle's Sanctum
+        };
+
+        /// <summary>
+        /// A list of landblocks the player will drop all pyreals on corpse on death 
+        /// </summary>
+        public static HashSet<ushort> DropAllPyreals_Landblocks = new HashSet<ushort>()
+        {
+        };
+
+        /// <summary>
+        /// A list of landblocks the player will drop items that were recently purchased on corpse on death 
+        /// </summary>
+        public static HashSet<ushort> DropRecentlyPurchasedItems_Landblocks = new HashSet<ushort>()
+        {
         };
     }
 }

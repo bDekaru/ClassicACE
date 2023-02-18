@@ -329,7 +329,7 @@ namespace ACE.Server.WorldObjects
                             var techniqueTrinket = player.GetEquippedTrinket();
                             if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Opportunist)
                             {
-                                var chance = 0.225f;
+                                var chance = 0.3f;
                                 if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                 {
                                     // Chance of inflicting self damage while using the Opportunist technique.
@@ -453,13 +453,22 @@ namespace ACE.Server.WorldObjects
             if (sourceCreature != null)
                 attackSkill = sourceCreature.GetCreatureSkill(Spell.School);
 
+            TacticAndTechniqueType techniqueId = TacticAndTechniqueType.None;
+            WorldObject techniqueTrinket = null;
+
+            if (sourcePlayer != null && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                techniqueTrinket = sourcePlayer.GetEquippedTrinket();
+                if (techniqueTrinket != null)
+                    techniqueId = (TacticAndTechniqueType)techniqueTrinket.TacticAndTechniqueId;
+            }
+
             // critical hit
             var criticalChance = GetWeaponMagicCritFrequency(weapon, sourceCreature, attackSkill, target);
 
             if (sourcePlayer != null && source != target)
             {
-                var techniqueTrinket = sourcePlayer.GetEquippedTrinket();
-                if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Opportunist)
+                if (techniqueId == TacticAndTechniqueType.Opportunist)
                     criticalChance += 0.10f;
             }
 
@@ -478,12 +487,12 @@ namespace ACE.Server.WorldObjects
                     criticalHit = true;
             }
 
-            var absorbMod = GetAbsorbMod(target);
+            var absorbMod = GetAbsorbMod(this, target);
 
             bool isPVP = sourcePlayer != null && targetPlayer != null;
 
             //http://acpedia.org/wiki/Announcements_-_2014/01_-_Forces_of_Nature - Aegis is 72% effective in PvP
-            if (isPVP && (target.CombatMode == CombatMode.Melee || target.CombatMode == CombatMode.Missile))
+            if (isPVP && (target.CombatMode == CombatMode.Melee || target.CombatMode == CombatMode.Missile) && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 absorbMod = 1 - absorbMod;
                 absorbMod *= 0.72f;
@@ -576,6 +585,8 @@ namespace ACE.Server.WorldObjects
                 {
                     if (sourcePlayer == null)
                         baseDamage /= 2; // Monsters do half projectile spell damage.
+                    else if(isPVP && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        baseDamage = (int)(baseDamage * 0.75f);
                 }
 
                 weaponResistanceMod = GetWeaponResistanceModifier(weapon, sourceCreature, attackSkill, Spell.DamageType);
@@ -611,91 +622,131 @@ namespace ACE.Server.WorldObjects
             return finalDamage;
         }
 
-        public float GetAbsorbMod(Creature target)
+        public static float GetAbsorbMod(WorldObject source, Creature target)
         {
-            switch (target.CombatMode)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
-                case CombatMode.Melee:
+                switch (target.CombatMode)
+                {
+                    case CombatMode.Melee:
 
-                    // does target have shield equipped?
-                    var shield = target.GetEquippedShield();
-                    if (shield != null && shield.GetAbsorbMagicDamage() != null)
-                 	{
-                        if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.Infiltration)
-                            return GetShieldMod(target, shield);
-                        else
-                            return AbsorbMagic(target, shield);
-                    }
+                        // does target have shield equipped?
+                        var shield = target.GetEquippedShield();
+                        if (shield != null && shield.GetAbsorbMagicDamage() != null)
+                        {
+                            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.Infiltration)
+                                return GetShieldMod(source, target, shield);
+                            else
+                                return AbsorbMagic(target, shield);
+                        }
 
-                    break;
+                        break;
 
-                case CombatMode.Missile:
+                    case CombatMode.Missile:
 
-                    var missileLauncherOrShield = target.GetEquippedMissileLauncher() ?? target.GetEquippedShield();
-                    if (missileLauncherOrShield != null && missileLauncherOrShield.GetAbsorbMagicDamage() != null)
-                        return AbsorbMagic(target, missileLauncherOrShield);
+                        var missileLauncherOrShield = target.GetEquippedMissileLauncher() ?? target.GetEquippedShield();
+                        if (missileLauncherOrShield != null && missileLauncherOrShield.GetAbsorbMagicDamage() != null)
+                            return AbsorbMagic(target, missileLauncherOrShield);
 
-                    break;
+                        break;
 
-                case CombatMode.Magic:
+                    case CombatMode.Magic:
 
-                    var caster = target.GetEquippedWand();
-                    if (caster != null && caster.GetAbsorbMagicDamage() != null)
-                        return AbsorbMagic(target, caster);
+                        var caster = target.GetEquippedWand();
+                        if (caster != null && caster.GetAbsorbMagicDamage() != null)
+                            return AbsorbMagic(target, caster);
 
-                    break;
+                        break;
+                }
+                return 1.0f;
             }
-            return 1.0f;
+            else
+            {
+                float shieldMagicAbsorb = 1.0f;
+                float casterMagicAbsorb = 1.0f;
+                float missileLauncherMagicAbsorb = 1.0f;
+
+                var shield = target.GetEquippedShield();
+                if (shield != null && shield.GetAbsorbMagicDamage() != null)
+                    shieldMagicAbsorb = GetShieldMod(source, target, shield);
+
+                var caster = target.GetEquippedWand();
+                if (caster != null && caster.GetAbsorbMagicDamage() != null)
+                    casterMagicAbsorb = AbsorbMagic(target, caster);
+
+                var missileLauncher = target.GetEquippedMissileLauncher();
+                if (missileLauncher != null && missileLauncher.GetAbsorbMagicDamage() != null)
+                    missileLauncherMagicAbsorb = AbsorbMagic(target, missileLauncher);
+
+                var casterOrMissileAbsorb = Math.Min(casterMagicAbsorb, missileLauncherMagicAbsorb);
+                return Math.Min(shieldMagicAbsorb, casterOrMissileAbsorb);
+            }
         }
 
         /// <summary>
         /// Calculates the amount of damage a shield absorbs from magic projectile
         /// </summary>
-        public float GetShieldMod(Creature target, WorldObject shield)
+        public static float GetShieldMod(WorldObject source, Creature target, WorldObject shield)
         {
-            // is spell projectile in front of creature target,
-            // within shield effectiveness area?
-            var effectiveAngle = 180.0f;
-            var angle = target.GetAngle(this);
-            if (Math.Abs(angle) > effectiveAngle / 2.0f)
-                return 1.0f;
+            bool bypassShieldAngleCheck = false;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var techniqueTrinket = target.GetEquippedTrinket();
+                if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Defensive)
+                    bypassShieldAngleCheck = true; // Shields cover all angles while using the Defensive technique.
+            }
 
-            // https://asheron.fandom.com/wiki/Shield
-            // The formula to determine magic absorption for shields is:
-            // Reduction Percent = (cap * specMod * baseSkill * 0.003f) - (cap * specMod * 0.3f)
-            // Cap = Maximum reduction
-            // SpecMod = 1.0 for spec, 0.8 for trained
-            // BaseSkill = 100 to 433 (above 433 base shield you always achieve the maximum %)
+            if (!bypassShieldAngleCheck)
+            {
+                // is spell projectile in front of creature target,
+                // within shield effectiveness area?
+                var effectiveAngle = 180.0f;
+                var angle = target.GetAngle(source);
+                if (Math.Abs(angle) > effectiveAngle / 2.0f)
+                    return 1.0f;
+            }
 
-            var shieldSkill = target.GetCreatureSkill(Skill.Shield);
-            // ensure trained?
-            if (shieldSkill.AdvancementClass < SkillAdvancementClass.Trained || shieldSkill.Base < 100)
-                return 1.0f;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                // https://asheron.fandom.com/wiki/Shield
+                // The formula to determine magic absorption for shields is:
+                // Reduction Percent = (cap * specMod * baseSkill * 0.003f) - (cap * specMod * 0.3f)
+                // Cap = Maximum reduction
+                // SpecMod = 1.0 for spec, 0.8 for trained
+                // BaseSkill = 100 to 433 (above 433 base shield you always achieve the maximum %)
 
-            var baseSkill = Math.Min(shieldSkill.Base, 433);
-            var specMod = shieldSkill.AdvancementClass == SkillAdvancementClass.Specialized ? 1.0f : 0.8f;
-            var cap = (float)(shield.GetAbsorbMagicDamage() ?? 0.0f);
+                var shieldSkill = target.GetCreatureSkill(Skill.Shield);
+                // ensure trained?
+                if (shieldSkill.AdvancementClass < SkillAdvancementClass.Trained || shieldSkill.Base < 100)
+                    return 1.0f;
 
-            // speced, 100 skill = 0%
-            // trained, 100 skill = 0%
-            // speced, 200 skill = 30%
-            // trained, 200 skill = 24%
-            // speced, 300 skill = 60%
-            // trained, 300 skill = 48%
-            // speced, 433 skill = 100%
-            // trained, 433 skill = 80%
+                var baseSkill = Math.Min(shieldSkill.Base, 433);
+                var specMod = shieldSkill.AdvancementClass == SkillAdvancementClass.Specialized ? 1.0f : 0.8f;
+                var cap = (float)(shield.GetAbsorbMagicDamage() ?? 0.0f);
 
-            var reduction = (cap * specMod * baseSkill * 0.003f) - (cap * specMod * 0.3f);
+                // speced, 100 skill = 0%
+                // trained, 100 skill = 0%
+                // speced, 200 skill = 30%
+                // trained, 200 skill = 24%
+                // speced, 300 skill = 60%
+                // trained, 300 skill = 48%
+                // speced, 433 skill = 100%
+                // trained, 433 skill = 80%
 
-            var shieldMod = Math.Min(1.0f, 1.0f - reduction);
-            return shieldMod;
+                var reduction = (cap * specMod * baseSkill * 0.003f) - (cap * specMod * 0.3f);
+
+                var shieldMod = Math.Min(1.0f, 1.0f - reduction);
+                return shieldMod;
+            }
+            else
+                return Math.Min(1.0f, 1.0f - (float)(shield.GetAbsorbMagicDamage() ?? 0.0f));
         }
 
         /// <summary>
         /// Calculates the damage reduction modifier for bows and casters
         /// with 'Magic Absorbing' property
         /// </summary>
-        public float AbsorbMagic(Creature target, WorldObject item)
+        public static float AbsorbMagic(Creature target, WorldObject item)
         {
             // https://asheron.fandom.com/wiki/Category:Magic_Absorbing
 

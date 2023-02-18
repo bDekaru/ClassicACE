@@ -23,7 +23,7 @@ using ACE.Server.Physics;
 
 namespace ACE.Server.WorldObjects
 {
-    partial class WorldObject 
+    partial class WorldObject
     {
         public virtual void SerializeUpdateObject(BinaryWriter writer, bool adminvision = false, bool changenodraw = false)
         {
@@ -916,7 +916,7 @@ namespace ACE.Server.WorldObjects
 
                 // If there are no ClothingSubPalEffects, or this item has no Shade and no PaletteTemplate set, we will not apply any Palette changes
                 if (item.ClothingSubPalEffects.Count > 0 && (Shade.HasValue || PaletteTemplate.HasValue))
-                { 
+                {
                     CloSubPalEffect itemSubPal;
                     int palOption = 0;
                     if (PaletteTemplate.HasValue)
@@ -1206,7 +1206,7 @@ namespace ACE.Server.WorldObjects
             return animLength;
         }
 
-        public float EnqueueMotionAction(ActionChain actionChain, List<MotionCommand> motionCommands, float speed = 1.0f, MotionStance? useStance = null, bool usePrevCommand = false)
+        public float EnqueueMotionAction(ActionChain actionChain, List<MotionCommand> motionCommands, float speed = 1.0f, MotionStance? useStance = null, bool usePrevCommand = false, bool checkCasting = false)
         {
             var stance = useStance ?? CurrentMotionState.Stance;
 
@@ -1233,6 +1233,9 @@ namespace ACE.Server.WorldObjects
 
             actionChain.AddAction(this, () =>
             {
+                if (checkCasting && this is Player player && player.MagicState != null && !player.MagicState.IsCasting)
+                    return;
+
                 CurrentMotionState = motion;
                 EnqueueBroadcastMotion(motion, null, false);
 

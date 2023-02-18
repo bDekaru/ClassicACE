@@ -36,8 +36,6 @@ namespace ACE.Server.WorldObjects
 
             StopExistingMoveToChains();
 
-            EndSneaking();
-
             // source item is always in our possession
             var sourceItem = FindObject(sourceObjectGuid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out _, out _, out var sourceItemIsEquipped);
 
@@ -47,6 +45,9 @@ namespace ACE.Server.WorldObjects
                 SendUseDoneEvent();
                 return;
             }
+
+            if ((sourceItem.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Sneak)
+                EndSneaking();
 
             // Resolve the guid to an object that is either in our possession or on the Landblock
             var target = FindObject(targetObjectGuid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems | SearchLocations.Landblock);
@@ -59,7 +60,7 @@ namespace ACE.Server.WorldObjects
             }
 
             // handle objects with built-in spells
-            if (sourceItem.SpellDID != null && sourceItem.WeenieType != WeenieType.Gem)
+            if (sourceItem.SpellDID != null && sourceItem.WeenieType != WeenieType.Gem && sourceItem.WeenieType != WeenieType.SpellTransferScroll)
             {
                 if (!RecipeManager.VerifyUse(this, sourceItem, target))
                 {
@@ -185,20 +186,21 @@ namespace ACE.Server.WorldObjects
 
             StopExistingMoveToChains();
 
-            EndSneaking();
-
             var item = FindObject(itemGuid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems | SearchLocations.Landblock);
-
-            if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
-            {
-                SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
-                //SendWeenieError(WeenieError.TradeItemBeingTraded);
-                return;
-            }
 
             if (item != null)
             {
-                if (item.CurrentLandblock != null && !item.Visibility && item.Guid != LastOpenedContainerId)
+                if ((item.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Sneak && item.WeenieType != WeenieType.Corpse)
+                    EndSneaking();
+
+                if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
+                {
+                    SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
+                    //SendWeenieError(WeenieError.TradeItemBeingTraded);
+                    return;
+                }
+
+                if (item.CurrentLandblock != null && (!item.Visibility || IsAware(item)) && item.Guid != LastOpenedContainerId)
                 {
                     if (IsBusy)
                     {

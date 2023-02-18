@@ -48,9 +48,7 @@ namespace ACE.Server.Factories
             var spells = new List<SpellId>();
 
             // crowns, which are classified as TreasureItemType.Jewelry, should also be getting item spells
-            // perhaps replace this with wo.ArmorLevel check?
-            //if (roll.IsArmor || roll.IsArmorClothing(wo) || roll.IsWeapon)
-            if (roll.HasArmorLevel(wo) || roll.IsWeapon)
+            if (roll.HasArmorLevel(wo) || roll.IsClothArmor || roll.IsWeapon)
             {
                 var itemSpells = RollItemSpells(wo, profile, roll);
 
@@ -124,10 +122,15 @@ namespace ACE.Server.Factories
         {
             List<SpellId> spells = null;
 
-            //if (roll.IsArmor || roll.IsArmorClothing(wo))
-            if (roll.HasArmorLevel(wo))
+
+            if (roll.IsClothArmor)
             {
-                spells = ArmorSpells.Roll(profile);
+                spells = ClothArmorSpells.Roll(profile);
+            }
+            else if (roll.HasArmorLevel(wo))
+            {
+                if(roll.ArmorType != TreasureArmorType.Covenant || Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    spells = ArmorSpells.Roll(profile);
             }
             else if (roll.IsMeleeWeapon)
             {
@@ -147,7 +150,10 @@ namespace ACE.Server.Factories
                 return null;
             }
 
-            return RollSpellLevels(wo, profile, spells);
+            if(spells != null)
+                return RollSpellLevels(wo, profile, spells);
+            else
+                return null;
         }
 
         private static List<SpellId> RollSpellLevels(WorldObject wo, TreasureDeath profile, IEnumerable<SpellId> spells)
@@ -286,7 +292,7 @@ namespace ACE.Server.Factories
                 return 3;
         }
 
-        private static float RollEnchantmentDifficulty(List<SpellId> spellIds)
+        public static float RollEnchantmentDifficulty(List<SpellId> spellIds)
         {
             var spells = new List<Server.Entity.Spell>();
 
@@ -300,15 +306,15 @@ namespace ACE.Server.Factories
 
             var itemDifficulty = 0.0f;
 
-            // exclude highest spell
-            for (var i = 0; i < spells.Count - 1; i++)
-            {
-                var spell = spells[i];
+                // exclude highest spell
+                for (var i = 0; i < spells.Count - 1; i++)
+                {
+                    var spell = spells[i];
 
-                var rng = (float)ThreadSafeRandom.Next(0.5f, 1.5f);
+                    var rng = (float)ThreadSafeRandom.Next(0.5f, 1.5f);
 
-                itemDifficulty += spell.Formula.Level * 5.0f * rng;
-            }
+                    itemDifficulty += spell.Formula.Level * 5.0f * rng;
+                }
 
             return itemDifficulty;
         }
@@ -389,13 +395,18 @@ namespace ACE.Server.Factories
 
         private static SpellId RollCantrip(WorldObject wo, TreasureDeath profile, TreasureRoll roll)
         {
-            if (roll.HasArmorLevel(wo) || roll.IsClothing)
+            if (roll.IsClothArmor)
+            {
+                // robes
+                return ClothArmorCantrips.Roll();
+            }
+            else if (roll.HasArmorLevel(wo) || roll.IsClothing)
             {
                 // armor / clothing cantrip
                 // this table also applies to crowns (treasureitemtype.jewelry w/ al)
                 return ArmorCantrips.Roll();
             }
-            if (roll.IsMeleeWeapon)
+            else if (roll.IsMeleeWeapon)
             {
                 // melee cantrip
                 var meleeCantrip = MeleeCantrips.Roll();
@@ -439,7 +450,7 @@ namespace ACE.Server.Factories
             }
         }
 
-        private static float RollCantripDifficulty(List<SpellId> cantripIds)
+        public static float RollCantripDifficulty(List<SpellId> cantripIds)
         {
             var itemDifficulty = 0.0f;
 
@@ -614,6 +625,9 @@ namespace ACE.Server.Factories
                 case Enum.WeenieClassName.capleather:
                     return 20;
             }
+
+            if (roll.IsClothArmor)
+                return 21;
 
             var coverageMask = wo.ClothingPriority ?? 0;
             var isArmor = roll.IsArmor;

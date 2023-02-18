@@ -12,7 +12,6 @@ using ACE.Server.Entity;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
-using Google.Protobuf.WellKnownTypes;
 
 namespace ACE.Server.WorldObjects
 {
@@ -20,11 +19,12 @@ namespace ACE.Server.WorldObjects
     {
         public enum SkillAlterationType
         {
-            Undef           = 0,
-            Specialize      = 1,
-            Lower           = 2,
-            SetPrimary      = 3,
-            SetSecondary    = 4
+            Undef               = 0,
+            Specialize          = 1,
+            Lower               = 2,
+            SetPrimary          = 3,
+            SetSecondary        = 4,
+            ResetLeyLineSeed    = 5,
         }
 
         public SkillAlterationType TypeOfAlteration
@@ -69,17 +69,24 @@ namespace ACE.Server.WorldObjects
             if (!(activator is Player player))
                 return;
 
+            CreatureSkill skill = null;
+            SkillBase skillBase = null;
+
             // verify skill
-            var skill = player.GetCreatureSkill(SkillToBeAltered);
+            skill = player.GetCreatureSkill(SkillToBeAltered);
 
-            if (skill == null)
+            if (TypeOfAlteration != SkillAlterationType.ResetLeyLineSeed)
             {
-                player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouFailToAlterSkill));
-                return;
-            }
 
-            // get skill training / specialization costs
-            var skillBase = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skill.Skill];
+                if (skill == null || !DatManager.PortalDat.SkillTable.SkillBaseHash.ContainsKey((uint)skill.Skill))
+                {
+                    player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouFailToAlterSkill));
+                    return;
+                }
+
+                // get skill training / specialization costs
+                skillBase = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skill.Skill];
+            }
 
             if (!VerifyRequirements(player, skill, skillBase))
                 return;
@@ -100,6 +107,9 @@ namespace ACE.Server.WorldObjects
                         break;
                     case SkillAlterationType.SetSecondary:
                         msg += $"set your {skill.Skill.ToSentence()} skill as a secondary of {GetHighestValidPrimarySkill(player).Skill.ToSentence()} and refund the experience invested in this skill.";
+                        break;
+                    case SkillAlterationType.ResetLeyLineSeed:
+                        msg += $"reset your ley line alignment so menhir rings will attune different spells.";
                         break;
                 }
 
@@ -364,6 +374,14 @@ namespace ACE.Server.WorldObjects
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {skill.Skill.ToSentence()} skill is now set as secondary of {primarySkill.Skill.ToSentence()} skill!", ChatMessageType.WorldBroadcast));
                     player.TryConsumeFromInventoryWithNetworking(this, 1);
                     break;
+
+                case SkillAlterationType.ResetLeyLineSeed:
+
+                    player.LeyLineSeed = 0;
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your ley line attunement has changed!", ChatMessageType.WorldBroadcast));
+                    player.TryConsumeFromInventoryWithNetworking(this, 1);
+                    break;
+
             }
         }
 
@@ -376,6 +394,9 @@ namespace ACE.Server.WorldObjects
 
             foreach (var kvp in player.Skills)
             {
+                if (!DatManager.PortalDat.SkillTable.SkillBaseHash.ContainsKey((uint)kvp.Key))
+                    continue;
+
                 if (kvp.Value.AdvancementClass == SkillAdvancementClass.Specialized)
                 {
                     switch (kvp.Key)

@@ -105,28 +105,36 @@ namespace ACE.Server.Factories.Tables
             ( SpellId.HeartSeekerSelf1,  0.25f ),
         };
 
-        private static ChanceTable<SpellId> meleeProcs = new ChanceTable<SpellId>(ChanceTableType.Weight)
+        public static ChanceTable<SpellId> meleeProcs = new ChanceTable<SpellId>(ChanceTableType.Weight)
         {
-            ( SpellId.Undef,               10.0f ),
+            ( SpellId.Undef,              150.0f ),
 
-            ( SpellId.HealSelf1,            1.0f ),
-            ( SpellId.RevitalizeSelf1,      1.0f ),
-
+            ( SpellId.StaminaToManaSelf1,   2.0f ),
             ( SpellId.ManaToStaminaSelf1,   2.0f ),
             ( SpellId.ManaToHealthSelf1,    2.0f ),
-            ( SpellId.DrainHealth1,         2.0f ),
+
+            ( SpellId.DrainMana1,           2.0f ),
             ( SpellId.DrainStamina1,        2.0f ),
+            ( SpellId.DrainHealth1,         2.0f ),
+
+            ( SpellId.ManaBoostSelf1,       1.0f ),
+            ( SpellId.RevitalizeSelf1,      1.0f ),
+            ( SpellId.HealSelf1,            1.0f ),
         };
 
         private static ChanceTable<SpellId> meleeProcsCertain = new ChanceTable<SpellId>(ChanceTableType.Weight)
         {
-            ( SpellId.HealSelf1,            1.0f ),
-            ( SpellId.RevitalizeSelf1,      1.0f ),
-
+            ( SpellId.StaminaToManaSelf1,   2.0f ),
             ( SpellId.ManaToStaminaSelf1,   2.0f ),
             ( SpellId.ManaToHealthSelf1,    2.0f ),
-            ( SpellId.DrainHealth1,         2.0f ),
+
+            ( SpellId.DrainMana1,           2.0f ),
             ( SpellId.DrainStamina1,        2.0f ),
+            ( SpellId.DrainHealth1,         2.0f ),
+
+            ( SpellId.ManaBoostSelf1,       1.0f ),
+            ( SpellId.RevitalizeSelf1,      1.0f ),
+            ( SpellId.HealSelf1,            1.0f ),
         };
 
         public static List<SpellId> Roll(TreasureDeath treasureDeath)

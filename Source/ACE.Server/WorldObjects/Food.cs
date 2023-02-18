@@ -101,19 +101,22 @@ namespace ACE.Server.WorldObjects
             var soundEvent = new GameMessageSound(player.Guid, GetUseSound(), 1.0f);
             player.EnqueueBroadcast(soundEvent);
 
-            player.TryConsumeFromInventoryWithNetworking(this, 1);
-
-            if (EmptyId != 0)
-            {
-                // We have an empty version.
-                var wo = WorldObjectFactory.CreateNewWorldObject((uint)EmptyId);
-
-                if (wo != null)
-                {
-                    if (!player.TryCreateInInventoryWithNetworking(wo, out _, true))
-                        wo.Destroy();
-                }
-            }
+            if (!UnlimitedUse)
+			{
+	            player.TryConsumeFromInventoryWithNetworking(this, 1);
+	
+	            if (EmptyId != 0)
+	            {
+	                // We have an empty version.
+	                var wo = WorldObjectFactory.CreateNewWorldObject((uint)EmptyId);
+	
+	                if (wo != null)
+	                {
+	                    if (!player.TryCreateInInventoryWithNetworking(wo, out _, true))
+	                        wo.Destroy();
+	                }
+	            }
+        	}
         }
 
         public void BoostVital(Player player)
@@ -141,9 +144,13 @@ namespace ACE.Server.WorldObjects
                     player.DamageHistory.Add(this, DamageType.Health, vitalChange);
             }
 
+            var pkLoweredMessage = "";
+            //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && BoostValue >= 0 && player.PKTimerActive)
+            //    pkLoweredMessage = " Your recent PvP activity lowers the effectiveness of this action.";
+
             var verb = BoostValue >= 0 ? "restores" : "takes";
 
-            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {Name} {verb} {vitalChange} points of your {BoosterEnum}.", ChatMessageType.Broadcast));
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {Name} {verb} {vitalChange} points of your {BoosterEnum}.{pkLoweredMessage}", ChatMessageType.Broadcast));
         }
 
         public void CastSpell(Player player)

@@ -126,81 +126,69 @@ namespace ACE.Server.Factories.Tables
             {
                 T1_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
                 {
-                    ( TreasureArmorType.Leather,        4.0f ),
-                    ( TreasureArmorType.StuddedLeather, 1.0f ),
+                    ( TreasureArmorType.Cloth,          1.0f ),
+                    ( TreasureArmorType.Leather,        2.0f ),
+                    ( TreasureArmorType.StuddedLeather, 2.0f ),
                 };
 
                 T2_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
                 {
-                    ( TreasureArmorType.Leather,        1.0f ),
+                    ( TreasureArmorType.Cloth,          1.0f ),
+                    ( TreasureArmorType.Leather,        2.0f ),
                     ( TreasureArmorType.StuddedLeather, 2.0f ),
-                    ( TreasureArmorType.Chainmail,      1.0f ),
+                    ( TreasureArmorType.Chainmail,      2.0f ),
                 };
 
                 T3_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
                 {
-                    ( TreasureArmorType.Chainmail,      4.0f ),
-                    ( TreasureArmorType.Leather,        1.0f ),
-                    ( TreasureArmorType.StuddedLeather, 1.0f ),
+                    ( TreasureArmorType.Cloth,          1.0f ),
+                    ( TreasureArmorType.Leather,        2.0f ),
+                    ( TreasureArmorType.StuddedLeather, 2.0f ),
+                    ( TreasureArmorType.Chainmail,      2.0f ),
                 };
 
                 T4_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
                 {
-                    ( TreasureArmorType.Chainmail,      4.0f ),
-
-                    ( TreasureArmorType.Leather,        1.0f ),
-                    ( TreasureArmorType.StuddedLeather, 1.0f ),
-                    ( TreasureArmorType.Platemail,      1.0f ),
-                    ( TreasureArmorType.HeritageLow,    1.0f ),
+                    ( TreasureArmorType.Cloth,          1.0f ),
+                    ( TreasureArmorType.Chainmail,      2.0f ),
+                    ( TreasureArmorType.Platemail,      2.0f ),
                     ( TreasureArmorType.Covenant,       1.0f ),
                 };
 
                 T5_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
                 {
-                    ( TreasureArmorType.Chainmail,      4.0f ),
-                    ( TreasureArmorType.Platemail,      4.0f ),
-                    ( TreasureArmorType.HeritageLow,    4.0f ),
-                    ( TreasureArmorType.Covenant,       4.0f ),
-
-                    ( TreasureArmorType.Leather,        1.0f ),
-                    ( TreasureArmorType.StuddedLeather, 1.0f ),
-                    ( TreasureArmorType.HeritageHigh,   1.0f ),
+                    ( TreasureArmorType.Cloth,          1.0f ),
+                    ( TreasureArmorType.Chainmail,      1.0f ),
+                    ( TreasureArmorType.Platemail,      2.0f ),
+                    ( TreasureArmorType.Covenant,       1.0f ),
+                    ( TreasureArmorType.HeritageLow,    2.0f ),
                 };
 
                 T6_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
                 {
-                    ( TreasureArmorType.Chainmail,      4.0f ),
-                    ( TreasureArmorType.Platemail,      4.0f ),
-                    ( TreasureArmorType.HeritageLow,    4.0f ),
-                    ( TreasureArmorType.Covenant,       4.0f ),
-
-                    ( TreasureArmorType.Leather,        1.0f ),
-                    ( TreasureArmorType.StuddedLeather, 1.0f ),
-                    ( TreasureArmorType.HeritageHigh,   1.0f ),
+                    ( TreasureArmorType.Cloth,          1.0f ),
+                    ( TreasureArmorType.Platemail,      2.0f ),
+                    ( TreasureArmorType.Covenant,       1.0f ),
+                    ( TreasureArmorType.HeritageLow,    2.0f ),
+                    ( TreasureArmorType.HeritageHigh,   2.0f ),
                 };
 
-                T7_Chances = new ChanceTable<TreasureArmorType>()
+                T7_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
                 {
-                    ( TreasureArmorType.Chainmail,      4.0f ),
-                    ( TreasureArmorType.Platemail,      4.0f ),
-                    ( TreasureArmorType.HeritageLow,    4.0f ),
-                    ( TreasureArmorType.Covenant,       4.0f ),
+                    ( TreasureArmorType.Cloth,          1.0f ),
+                    ( TreasureArmorType.Platemail,      2.0f ),
+                    ( TreasureArmorType.Covenant,       1.0f ),
+                    ( TreasureArmorType.HeritageLow,    2.0f ),
                     ( TreasureArmorType.HeritageHigh,   2.0f ),
-
-                    ( TreasureArmorType.Leather,        1.0f ),
-                    ( TreasureArmorType.StuddedLeather, 1.0f ),
                 };
 
-                T8_Chances = new ChanceTable<TreasureArmorType>()
+                T8_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
                 {
-                    ( TreasureArmorType.Chainmail,      4.0f ),
-                    ( TreasureArmorType.Platemail,      4.0f ),
-                    ( TreasureArmorType.HeritageLow,    4.0f ),
-                    ( TreasureArmorType.Covenant,       4.0f ),
+                    ( TreasureArmorType.Cloth,          1.0f ),
+                    ( TreasureArmorType.Platemail,      2.0f ),
+                    ( TreasureArmorType.Covenant,       1.0f ),
+                    ( TreasureArmorType.HeritageLow,    2.0f ),
                     ( TreasureArmorType.HeritageHigh,   2.0f ),
-
-                    ( TreasureArmorType.Leather,        1.0f ),
-                    ( TreasureArmorType.StuddedLeather, 1.0f ),
                 };
 
                 // we have to refresh this list or it will still contain the previous values.

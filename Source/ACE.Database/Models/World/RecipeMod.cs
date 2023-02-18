@@ -27,6 +27,7 @@ namespace ACE.Database.Models.World
         public int DataId { get; set; }
         public int Unknown9 { get; set; }
         public int InstanceId { get; set; }
+        public int WeenieClassId { get; set; }
 
         public virtual Recipe Recipe { get; set; }
         public virtual ICollection<RecipeModsBool> RecipeModsBool { get; set; }

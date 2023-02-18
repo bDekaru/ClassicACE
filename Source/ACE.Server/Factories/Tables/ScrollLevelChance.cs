@@ -67,7 +67,7 @@ namespace ACE.Server.Factories.Tables
 
         static ScrollLevelChance()
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
             {
                 T1_ScrollLevelChances = new ChanceTable<int>()
                 {
@@ -101,6 +101,57 @@ namespace ACE.Server.Factories.Tables
                 {
                     ( 5, 0.20f ),
                     ( 6, 0.80f ),
+                };
+
+                T6_ScrollLevelChances = new ChanceTable<int>()
+                {
+                    ( 6, 1.00f ),
+                };
+
+                // we have to refresh this list or it will still contain the previous values.
+                scrollLevelChances = new List<ChanceTable<int>>()
+                {
+                    T1_ScrollLevelChances,
+                    T2_ScrollLevelChances,
+                    T3_ScrollLevelChances,
+                    T4_ScrollLevelChances,
+                    T5_ScrollLevelChances,
+                    T6_ScrollLevelChances,
+                    T6_ScrollLevelChances,
+                    T6_ScrollLevelChances,
+                };
+            }
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                T1_ScrollLevelChances = new ChanceTable<int>()
+                {
+                    ( 1, 0.88f ),
+                    ( 2, 0.10f ),
+                    ( 3, 0.02f ),
+                };
+
+                T2_ScrollLevelChances = new ChanceTable<int>()
+                {
+                    ( 2, 0.90f ),
+                    ( 3, 0.10f ),
+                };
+
+                T3_ScrollLevelChances = new ChanceTable<int>()
+                {
+                    ( 3, 0.90f ),
+                    ( 4, 0.10f ),
+                };
+
+                T4_ScrollLevelChances = new ChanceTable<int>()
+                {
+                    ( 4, 0.90f ),
+                    ( 5, 0.10f ),
+                };
+
+                T5_ScrollLevelChances = new ChanceTable<int>()
+                {
+                    ( 5, 0.90f ),
+                    ( 6, 0.10f ),
                 };
 
                 T6_ScrollLevelChances = new ChanceTable<int>()

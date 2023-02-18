@@ -178,6 +178,8 @@ namespace ACE.Server.WorldObjects
 
             // send network message
             Session.Network.EnqueueSend(new GameEventFriendsListUpdate(Session, GameEventFriendsListUpdate.FriendsUpdateTypeFlag.FriendAdded, newFriend));
+
+            ChatPacket.SendServerMessage(Session, $"{friend.Name} has been added to your friends list.", ChatMessageType.Broadcast);
         }
 
         /// <summary>
@@ -196,6 +198,14 @@ namespace ACE.Server.WorldObjects
 
             // send network message
             Session.Network.EnqueueSend(new GameEventFriendsListUpdate(Session, GameEventFriendsListUpdate.FriendsUpdateTypeFlag.FriendRemoved, friendToRemove));
+
+            // get friend player info
+            var friend = PlayerManager.FindByGuid(friendToRemove.FriendId);
+
+            if (friend == null) // shouldn't happen
+                ChatPacket.SendServerMessage(Session, "Friend has been removed from your friends list.", ChatMessageType.Broadcast);
+            else
+                ChatPacket.SendServerMessage(Session, $"{friend.Name} has been removed from your friends list.", ChatMessageType.Broadcast);
         }
 
         /// <summary>
@@ -204,7 +214,11 @@ namespace ACE.Server.WorldObjects
         public void HandleActionRemoveAllFriends()
         {
             // Remove all from DB
-            log.Warn("HandleActionRemoveAllFriends is not implemented.");
+            if (Character.ClearAllFriends(CharacterDatabaseLock))
+            {
+                //ChatPacket.SendServerMessage(Session, "Your friends list has been cleared.", ChatMessageType.Broadcast);
+                CharacterChangesDetected = true;
+            }
         }
 
         public bool GetAppearOffline()

@@ -62,5 +62,10 @@ namespace ACE.Server.Factories.Enum
         // introduced 02-2013 - balance of power
         PetDevice,
         EncapsulatedSpirit,
+
+        // CustomDM
+        Salvage,
+        SpecialItem,
+        SpecialItem_Unmutated
     }
 }

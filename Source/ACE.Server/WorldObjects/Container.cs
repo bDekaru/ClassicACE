@@ -514,6 +514,11 @@ namespace ACE.Server.WorldObjects
             { SpellId.BloodDrinkerSelf6, 0 },
             { SpellId.BloodDrinkerSelf7, 0 },
             { SpellId.BloodDrinkerSelf8, 0 },
+            { SpellId.LightbringersWay, 0 },
+
+            { SpellId.Discipline, 0 },
+            { SpellId.WoundTwister, 0 },
+            { SpellId.MurderousThirst, 0 },
 
             { SpellId.BloodDrinkerOther1, 0 },
             { SpellId.BloodDrinkerOther2, 0 },
@@ -532,6 +537,9 @@ namespace ACE.Server.WorldObjects
             { SpellId.SwiftKillerSelf6, 0 },
             { SpellId.SwiftKillerSelf7, 0 },
             { SpellId.SwiftKillerSelf8, 0 },
+
+            { SpellId.Alacrity, 0 },
+            { SpellId.SpeedHunter, 0 },
 
             { SpellId.SwiftKillerOther1, 0 },
             { SpellId.SwiftKillerOther2, 0 },
@@ -604,6 +612,11 @@ namespace ACE.Server.WorldObjects
             { SpellId.Impenetrability6, 0 },
             { SpellId.Impenetrability7, 0 },
             { SpellId.Impenetrability8, 0 },
+
+            { SpellId.AerfallesWard, 0 },
+            { SpellId.LesserSkinFiazhat, 0 },
+            { SpellId.MinorSkinFiazhat, 0 },
+            { SpellId.SkinFiazhat, 0 },
         };
 
         /// <summary>
@@ -1079,6 +1092,24 @@ namespace ACE.Server.WorldObjects
                 player.Session.Network.EnqueueSend(itemsToSend.ToArray());*/
             }
 
+            if (!(this is Chest) && Generator != null && GeneratorId != null) // Chests will handle this themselves.
+                StartContainerDecay(); // If we're a generated container start our decay timer once we've been opened and closed.
+
+        }
+        public void StartContainerDecay()
+        {
+            TimeToRot = DefaultTimeToRot.TotalSeconds;
+            Generator = null;
+            GeneratorId = null;
+            RotProof = false;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                // Also stop relocking and generating container contents.
+                GeneratorDisabled = true;
+                if (GetProperty(PropertyBool.DefaultLocked).HasValue)
+                    DefaultLocked = false;
+            }
         }
 
         public virtual void Reset()

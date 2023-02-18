@@ -55,6 +55,8 @@ namespace ACE.Server.Factories.Entity
         /// </summary>
         public bool IsArmor => ArmorType != TreasureArmorType.Undef;
 
+        public bool IsClothArmor => ArmorType == TreasureArmorType.Cloth;
+
         public bool IsClothing => ItemType == TreasureItemType_Orig.Clothing;
 
         public bool IsCloak => ItemType == TreasureItemType_Orig.Cloak;
@@ -72,5 +74,7 @@ namespace ACE.Server.Factories.Entity
         public bool IsJewelry => ItemType == TreasureItemType_Orig.Jewelry;
 
         public bool IsDinnerware => ItemType == TreasureItemType_Orig.ArtObject;
+
+        public bool IsSalvage => ItemType == TreasureItemType_Orig.Salvage;
     }
 }

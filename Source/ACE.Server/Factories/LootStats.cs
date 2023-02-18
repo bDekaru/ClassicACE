@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Factories
@@ -10,6 +11,7 @@ namespace ACE.Server.Factories
     {
         // Counters
         public float ArmorCount { get; set; }
+        public float ShieldCount { get; set; }
         public float MeleeWeaponCount { get; set; }
         public float CasterCount { get; set; }
         public float MissileWeaponCount { get; set; }
@@ -19,7 +21,7 @@ namespace ACE.Server.Factories
         public float JewelryRingCount { get; set; }
         public float JewelryTrinketCount { get; set; }
         public float GemCount { get; set; }
-        public float AetheriaCount { get; set; }        
+        public float AetheriaCount { get; set; }
         public float ClothingCount { get; set; }
         public float CloakCount { get; set; }
         public float OtherCount { get; set; }
@@ -43,6 +45,13 @@ namespace ACE.Server.Factories
         public float MajorCantripCount { get; set; }
         public float EpicCantripCount { get; set; }
         public float LegendaryCantripCount { get; set; }
+        public float CrushingBlowCount { get; set;  }
+        public float BitingStrikeCount { get; set;  }
+        public float SlayerCount { get; set;  }
+        public float HollowCount { get; set;  }
+        public float ArmorCleavingCount { get; set;  }
+        public float ShieldCleavingCount { get; set;  }
+        public float AbsorbMagicCount { get; set;  }
 
 
         // Tables
@@ -66,7 +75,7 @@ namespace ACE.Server.Factories
         public int MaxAL { get; set; }
         public string MinALItem { get; set; }
         public string MaxALItem { get; set; }
-        
+
 
         // Pet Stats
         public int PetsTotalRatings { get; set; }
@@ -117,7 +126,7 @@ namespace ACE.Server.Factories
 
         public void AddItem(WorldObject wo, bool logStats)
         {
-            // Weapon Properties 
+            // Weapon Properties
             double missileDefMod = 0.00f;
             double magicDefMod = 0.00f;
             double wield = 0.00f;
@@ -187,7 +196,11 @@ namespace ACE.Server.Factories
                         }
                         break;
                     case ItemType.Armor:
-                        ArmorCount++;
+                        if (testItem.IsShield)
+                            ShieldCount++;
+                        else
+                            ArmorCount++;
+
                         string equipmentSet = "None    ";
                         cantrip = false;
                         // float cantripSpells = 0;
@@ -259,7 +272,7 @@ namespace ACE.Server.Factories
                                 jewelrySlot = "Trink";
                                 break;
                             default:
-                                // Console.WriteLine(testItem.Name);                            
+                                // Console.WriteLine(testItem.Name);
                                 break;
                         }
                         if (logStats)
@@ -631,6 +644,21 @@ namespace ACE.Server.Factories
                 {
                     LegendaryCantripCount++;
                 }
+
+                if (testItem.GetProperty(PropertyFloat.CriticalMultiplier) > 0)
+                    CrushingBlowCount++;
+                if (testItem.CriticalFrequency > 0)
+                    BitingStrikeCount++;
+                if (testItem.SlayerDamageBonus > 0)
+                    SlayerCount++;
+                if (testItem.IgnoreArmor > 0)
+                    ArmorCleavingCount++;
+                if (testItem.IgnoreShield > 0)
+                    ShieldCleavingCount++;
+                if (testItem.IgnoreMagicArmor == true)
+                    HollowCount++;
+                if (testItem.AbsorbMagicDamage > 0)
+                    AbsorbMagicCount++;
             }
         }
     }

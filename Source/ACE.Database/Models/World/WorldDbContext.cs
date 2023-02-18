@@ -520,6 +520,8 @@ namespace ACE.Database.Models.World
 
                 entity.Property(e => e.Unknown9).HasColumnName("unknown_9");
 
+                entity.Property(e => e.WeenieClassId).HasColumnName("weenie_Class_Id");
+
                 entity.HasOne(d => d.Recipe)
                     .WithMany(p => p.RecipeMod)
                     .HasForeignKey(d => d.RecipeId)

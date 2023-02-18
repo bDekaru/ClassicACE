@@ -69,6 +69,8 @@ namespace ACE.Server.Factories
 
             // long desc
             wo.LongDesc = GetLongDesc(wo);
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && isMagical && wo.LongDesc != wo.Name)
+                wo.Name = wo.LongDesc;
         }
 
         private static void AssignMagic_Gem(WorldObject wo, TreasureDeath profile)

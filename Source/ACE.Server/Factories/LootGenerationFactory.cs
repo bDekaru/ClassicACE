@@ -47,6 +47,18 @@ namespace ACE.Server.Factories
                     (2000, 5000), // T7
                     (2000, 5000), // T8
                 };
+
+                ItemValue_TierMod = new List<int>()
+                {
+                    25,     // T1
+                    50,     // T2
+                    100,    // T3
+                    250,    // T4
+                    500,    // T5
+                    1000,   // T6
+                    2000,   // T7
+                    3000,   // T8
+                };
             }
             else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
@@ -54,12 +66,24 @@ namespace ACE.Server.Factories
                 {
                     ( 300,  600), // T1
                     ( 800, 2000), // T2
-                    (1200, 4000), // T3
-                    (2000, 5000), // T4
-                    (2000, 5000), // T5
-                    (2000, 5000), // T6
-                    (2000, 5000), // T7
-                    (2000, 5000), // T8
+                    (1000, 2200), // T3
+                    (1200, 2400), // T4
+                    (1400, 2600), // T5
+                    (1600, 2800), // T6
+                    (1800, 3000), // T7
+                    (2000, 3200), // T8
+                };
+
+                ItemValue_TierMod = new List<int>()
+                {
+                    25,    // T1
+                    50,    // T2
+                    65,    // T3
+                    80,    // T4
+                    95,    // T5
+                    110,   // T6
+                    125,   // T7
+                    140,   // T8
                 };
             }
         }
@@ -196,11 +220,13 @@ namespace ACE.Server.Factories
                 if (deathTreasure == null)
                     return deathTreasure;
 
-                if (tweakedFor is Container)
+                if (tweakedFor is Container container)
                 {
                     // Some overrides to make chests more interesting, ideally this should be done in the data but as a quick tweak this will do.
                     tweakedDeathTreasure = new Database.Models.World.TreasureDeath(deathTreasure);
-                    if (tweakedDeathTreasure.LootQualityMod < 0.2f)
+                    if (container.ResistAwareness.HasValue && tweakedDeathTreasure.LootQualityMod < 0.4f)
+                        tweakedDeathTreasure.LootQualityMod = 0.4f;
+                    else if (tweakedDeathTreasure.LootQualityMod < 0.2f)
                         tweakedDeathTreasure.LootQualityMod = 0.2f;
 
                     tweakedDeathTreasure.MundaneItemChance = 0;
@@ -213,25 +239,25 @@ namespace ACE.Server.Factories
                         tweakedDeathTreasure.MagicItemMaxAmount = 3;
                     tweakedDeathTreasure.MagicItemMaxAmount = (int)Math.Ceiling(tweakedDeathTreasure.MagicItemMaxAmount * 1.5);
 
-                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                    {
-                        // Add some scrolls to chest loot.
-                        var treasureRoll = new TreasureRoll(TreasureItemType_Orig.Scroll);
-                        Container container = tweakedFor as Container;
-                        int numScrolls = 0;
-                        if (ThreadSafeRandom.Next(1, 10) > 8)
-                            numScrolls = 1;
-                        for (var i = 0; i < numScrolls; i++)
-                        {
-                            treasureRoll.Wcid = ScrollWcids.Roll();
-                            var scroll = CreateAndMutateWcid(tweakedDeathTreasure, treasureRoll, true);
-                            if (scroll != null)
-                            {
-                                if (!container.TryAddToInventory(scroll))
-                                    scroll.Destroy();
-                            }
-                        }
-                    }
+                    //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    //{
+                    //    // Add some scrolls to chest loot.
+                    //    var treasureRoll = new TreasureRoll(TreasureItemType_Orig.Scroll);
+                    //    Container container = tweakedFor as Container;
+                    //    int numScrolls = 0;
+                    //    if (ThreadSafeRandom.Next(1, 10) > 8)
+                    //        numScrolls = 1;
+                    //    for (var i = 0; i < numScrolls; i++)
+                    //    {
+                    //        treasureRoll.Wcid = ScrollWcids.Roll();
+                    //        var scroll = CreateAndMutateWcid(tweakedDeathTreasure, treasureRoll, true);
+                    //        if (scroll != null)
+                    //        {
+                    //            if (!container.TryAddToInventory(scroll))
+                    //                scroll.Destroy();
+                    //        }
+                    //    }
+                    //}
 
                     return tweakedDeathTreasure;
                 }
@@ -1433,6 +1459,16 @@ namespace ACE.Server.Factories
 
                     treasureRoll.Wcid = WeenieClassName.ace49485_encapsulatedspirit;
                     break;
+
+                case TreasureItemType_Orig.Salvage:
+
+                    treasureRoll.Wcid = SalvageWcids.Roll(treasureDeath);
+                    break;
+
+                case TreasureItemType_Orig.SpecialItem:
+
+                    treasureRoll.Wcid = SpecialItemsWcids.Roll(treasureDeath, treasureRoll);
+                    break;
             }
             return treasureRoll;
         }
@@ -1507,7 +1543,7 @@ namespace ACE.Server.Factories
         public static WorldObject CreateAndMutateWcid(TreasureDeath treasureDeath, TreasureRoll treasureRoll, bool isMagical)
         {
             WorldObject wo = null;
-              
+
             if (treasureRoll.ItemType != TreasureItemType_Orig.Scroll)
             {
                 wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
@@ -1519,17 +1555,25 @@ namespace ACE.Server.Factories
                     return null;
                 }
 
-                if ((treasureRoll.ItemType == TreasureItemType_Orig.ArtObject || treasureRoll.WeaponType == TreasureWeaponType.Thrown) && wo.MaxStackSize > 1)
-                    wo.SetStackSize(Math.Min(30, (int)(wo.MaxStackSize ?? 1)));
-                else if (treasureRoll.ItemType == TreasureItemType_Orig.Consumable && wo.MaxStackSize > 1)
-                    wo.SetStackSize(Math.Min(5, (int)(wo.MaxStackSize ?? 1)));
-                else if (wo.ItemType == ItemType.SpellComponents && wo.MaxStackSize > 1)
+
+                if (wo.MaxStackSize > 1)
                 {
-                    uint componentId = wo.GetProperty(PropertyDataId.SpellComponent) ?? 0;
-                    if ((componentId > 6 && componentId < 49) || (componentId > 62 && componentId < 75)) // herbs, powders, potions and tapers
-                        wo.SetStackSize(Math.Min(2 * treasureDeath.Tier, wo.MaxStackSize ?? 1));
-                    else if((wo.GetProperty(PropertyDataId.SpellComponent) ?? 0) < 63) // scarabs and talismans
-                        wo.SetStackSize(Math.Min(treasureDeath.Tier, wo.MaxStackSize ?? 1));
+                    if (treasureRoll.ItemType == TreasureItemType_Orig.SpecialItem_Unmutated)
+                        wo.SetStackSize(SpecialItemsWcids.GetAmount(wo.WeenieClassId));
+                    else if (treasureRoll.WeaponType == TreasureWeaponType.Thrown)
+                        wo.SetStackSize(Math.Min(30, (int)(wo.MaxStackSize ?? 1)));
+                    else if (treasureRoll.ItemType == TreasureItemType_Orig.ArtObject)
+                        wo.SetStackSize(Math.Min(10, (int)(wo.MaxStackSize ?? 1)));
+                    else if (treasureRoll.ItemType == TreasureItemType_Orig.Consumable)
+                        wo.SetStackSize(Math.Min(5, (int)(wo.MaxStackSize ?? 1)));
+                    else if (wo.ItemType == ItemType.SpellComponents)
+                    {
+                        uint componentId = wo.GetProperty(PropertyDataId.SpellComponent) ?? 0;
+                        if ((componentId > 6 && componentId < 49) || (componentId > 62 && componentId < 75)) // herbs, powders, potions and tapers
+                            wo.SetStackSize(Math.Min(2 * treasureDeath.Tier, wo.MaxStackSize ?? 1));
+                        else if ((wo.GetProperty(PropertyDataId.SpellComponent) ?? 0) < 63) // scarabs and talismans
+                            wo.SetStackSize(Math.Min(treasureDeath.Tier, wo.MaxStackSize ?? 1));
+                    }
                 }
 
                 treasureRoll.BaseArmorLevel = wo.ArmorLevel ?? 0;
@@ -1632,7 +1676,11 @@ namespace ACE.Server.Factories
                     MutatePetDevice(wo, treasureDeath.Tier);
                     break;
 
-                // other mundane items (mana stones, food/drink, healing kits, lockpicks, and spell components/peas) don't get mutated
+                case TreasureItemType_Orig.Salvage:
+                    MutateSalvage(wo, treasureDeath.Tier);
+                    break;
+
+                    // other mundane items (mana stones, food/drink, healing kits, lockpicks, and spell components/peas) don't get mutated
             }
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)

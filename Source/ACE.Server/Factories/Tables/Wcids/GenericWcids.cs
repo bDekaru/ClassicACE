@@ -106,7 +106,6 @@ namespace ACE.Server.Factories.Tables.Wcids
                     ( WeenieClassName.metalpress,          5.0f ),
                     ( WeenieClassName.noodlecutter,        5.0f ),
                     ( WeenieClassName.skewer,              5.0f ),
-                    ( WeenieClassName.toolfletchingbarbed, 5.0f ),
 
                     ( WeenieClassName.longsticks,         15.0f ),
                     ( WeenieClassName.shortsticks,        15.0f ),
@@ -164,7 +163,6 @@ namespace ACE.Server.Factories.Tables.Wcids
                     ( WeenieClassName.metalpress,          5.0f ),
                     ( WeenieClassName.noodlecutter,        5.0f ),
                     ( WeenieClassName.skewer,              5.0f ),
-                    ( WeenieClassName.toolfletchingbarbed, 5.0f ),
 
                     ( WeenieClassName.longsticks,         15.0f ),
                     ( WeenieClassName.shortsticks,        15.0f ),
@@ -216,7 +214,6 @@ namespace ACE.Server.Factories.Tables.Wcids
                     ( WeenieClassName.metalpress,          5.0f ),
                     ( WeenieClassName.noodlecutter,        5.0f ),
                     ( WeenieClassName.skewer,              5.0f ),
-                    ( WeenieClassName.toolfletchingbarbed, 5.0f ),
 
                     ( WeenieClassName.longsticks,         15.0f ),
                     ( WeenieClassName.shortsticks,        15.0f ),

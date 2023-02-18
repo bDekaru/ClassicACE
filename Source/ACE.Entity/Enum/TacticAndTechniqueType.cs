@@ -8,6 +8,7 @@ namespace ACE.Entity.Enum
         Defensive,
         Opportunist,
         Riposte,
-        Sneak
+        Sneak,
+        PowerShot
     }
 }

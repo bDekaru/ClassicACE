@@ -147,6 +147,13 @@ namespace ACE.Server.Factories
                 wo.ItemCurMana = null;
                 wo.ItemSpellcraft = null;
                 wo.ItemDifficulty = null;
+
+                if (roll.IsClothArmor) // Non-magical robes do not need level requirements
+                {
+                    wo.RemoveProperty(PropertyInt.WieldRequirements);
+                    wo.RemoveProperty(PropertyInt.WieldSkillType);
+                    wo.RemoveProperty(PropertyInt.WieldDifficulty);
+                }
             }
 
             if (profile.Tier > 6 && armorType != LootTables.ArmorType.SocietyArmor)
@@ -158,6 +165,12 @@ namespace ACE.Server.Factories
             // item value
             //if (wo.HasMutateFilter(MutateFilter.Value))   // fixme: data
                 MutateValue(wo, profile.Tier, roll);
+
+            if (wo.IsShield)
+            {
+                if (RollAbsorbMagic(profile, wo))
+                    wo.ArmorLevel /= 2;
+            }
 
             wo.LongDesc = GetLongDesc(wo);
         }
@@ -172,7 +185,7 @@ namespace ACE.Server.Factories
 
             // only exceptions found: covenant armor, olthoi armor, metal cap
 
-            if (!roll.HasArmorLevel(wo))
+            if (!roll.HasArmorLevel(wo) && !roll.IsClothArmor)
                 return false;
 
             var scriptName = GetMutationScript_ArmorLevel(wo, roll);
@@ -219,6 +232,8 @@ namespace ACE.Server.Factories
                 {
                     if (wo.IsShield)
                         return $"ArmorLevel.{ruleset}.shield_level.txt";
+                    else if(roll.IsClothArmor)
+                        return $"ArmorLevel.{ruleset}.cloth_armor_level.txt";
                     return $"ArmorLevel.{ruleset}.armor_level.txt";
                 }
             }

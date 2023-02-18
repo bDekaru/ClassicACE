@@ -647,6 +647,8 @@ namespace ACE.Entity.Enum.Properties
         ResistAwareness                          = 10008,
         [ServerOnly]
         EmptyId                                  = 10009,
+        [ServerOnly]
+        VendorStockMaxAmount                     = 10010,
     }
 
     public static class PropertyIntExtensions

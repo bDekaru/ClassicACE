@@ -268,7 +268,7 @@ namespace ACE.Adapter.GDLE
                 result.Id = id;
 
                 result.Name = input.Name;
-                
+
                 if (input.MetaSpell.Spell.StatMod != null)
                 {
                     result.StatModType = input.MetaSpell.Spell.StatMod.Type;
@@ -629,6 +629,7 @@ namespace ACE.Adapter.GDLE
 
                     mod.Unknown9 = recipeMod.Unknown9;
                     mod.Unknown10 = recipeMod.InstanceId;
+                    mod.WeenieClassId = recipeMod.WeenieClassId;
 
                     // type mods
                     foreach (var intMod in recipeMod.RecipeModsInt)
@@ -988,9 +989,10 @@ namespace ACE.Adapter.GDLE
 
                     recipeMod.Unknown9 = value.Unknown9;
                     recipeMod.InstanceId = value.Unknown10;
+                    recipeMod.WeenieClassId = value.WeenieClassId;
 
                     bool add = (recipeMod.Health > 0 || recipeMod.Stamina > 0 || recipeMod.Mana > 0);
-                    add = (add || recipeMod.Unknown7 || recipeMod.DataId > 0 || recipeMod.Unknown9 > 0 || recipeMod.InstanceId > 0);
+                    add = (add || recipeMod.Unknown7 || recipeMod.DataId > 0 || recipeMod.Unknown9 > 0 || recipeMod.InstanceId > 0 || recipeMod.WeenieClassId > 0);
                     add = (add || recipeMod.RecipeModsBool.Count > 0 || recipeMod.RecipeModsDID.Count > 0 || recipeMod.RecipeModsFloat.Count > 0 || recipeMod.RecipeModsIID.Count > 0 || recipeMod.RecipeModsInt.Count > 0 || recipeMod.RecipeModsString.Count > 0);
 
                     if (add)

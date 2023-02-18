@@ -326,6 +326,7 @@ namespace ACE.Server.WorldObjects
             if (IsDead) return;
 
             var weapon = GetEquippedMeleeWeapon();
+            var shield = GetEquippedShield();
 
             var actionChain = new ActionChain();
 
@@ -342,6 +343,13 @@ namespace ACE.Server.WorldObjects
                     TryUnwieldObjectWithBroadcasting(weapon.Guid, out _, out _);
                     if (!TryAddToInventory(weapon, 0, false, false))
                         weapon.Destroy();
+                }
+
+                if (shield != null)
+                {
+                    TryUnwieldObjectWithBroadcasting(shield.Guid, out _, out _);
+                    if (!TryAddToInventory(shield, 0, false, false))
+                        shield.Destroy();
                 }
 
                 EquipInventoryItems(true, false, true, false);

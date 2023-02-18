@@ -149,6 +149,7 @@ namespace ACE.Server.Factories
             displayStats += ($" \n Treasure Items \n " +
                     $"---- \n " +
                     $"Armor={ls.ArmorCount} \n " +
+                    $"Shield={ls.ShieldCount} \n " +
                     $"MeleeWeapon={ls.MeleeWeaponCount} \n " +
                     $"Caster={ls.CasterCount} \n " +
                     $"MissileWeapon={ls.MissileWeaponCount} \n " +
@@ -178,6 +179,7 @@ namespace ACE.Server.Factories
 
             displayStats += $"\n Drop Rates \n ----\n " +
                                 $"Armor= {ls.ArmorCount / ls.TotalItems * 100}% \n " +
+                                $"Shield= {ls.ShieldCount / ls.TotalItems * 100}% \n " +
                                 $"MeleeWeapon= {ls.MeleeWeaponCount / ls.TotalItems * 100}% \n " +
                                 $"Caster= {ls.CasterCount / ls.TotalItems * 100}% \n " +
                                 $"MissileWeapon= {ls.MissileWeaponCount / ls.TotalItems * 100}% \n " +
@@ -226,10 +228,20 @@ namespace ACE.Server.Factories
                                 $"  Trinket = {ls.JewelryTrinketCount}\t Droprate = {ls.JewelryTrinketCount / ls.JewelryCount * 100}%\n");
             // Cantrip Counts
             displayStats += ($"\n Cantip Counts Stats \n ----\n" +
-                    //$"     Minor = {ls.MinorCantripCount}\t Droprate = {ls.MinorCantripCount / ls.TotalItems * 100}%\n" +
-                    //$"     Major = {ls.MajorCantripCount}\t Droprate = {ls.MajorCantripCount / ls.TotalItems * 100}%\n" +
+                    $"     Minor = {ls.MinorCantripCount}\t Droprate = {ls.MinorCantripCount / ls.TotalItems * 100}%\n" +
+                    $"     Major = {ls.MajorCantripCount}\t Droprate = {ls.MajorCantripCount / ls.TotalItems * 100}%\n" +
                     $"      Epic = {ls.EpicCantripCount}\t Droprate = {ls.EpicCantripCount / ls.TotalItems * 100}%\n" +
                     $" Legendary = {ls.LegendaryCantripCount}\t Droprate = {ls.LegendaryCantripCount / ls.TotalItems * 100}%\n");
+            // Mutation Counts
+            var weaponOrCasterCount = ls.MeleeWeaponCount + ls.MissileWeaponCount + ls.CasterCount;
+            displayStats += ($"\n Mutation Counts Stats \n ----\n" +
+                             $"    CrushingBlow = {ls.CrushingBlowCount}\t Droprate = {ls.CrushingBlowCount / weaponOrCasterCount * 100}%\n" +
+                             $"    BitingStrike = {ls.BitingStrikeCount}\t Droprate = {ls.BitingStrikeCount / weaponOrCasterCount * 100}%\n" +
+                             $"    Slayer = {ls.SlayerCount}\t \t Droprate = {ls.SlayerCount / weaponOrCasterCount * 100}%\n" +
+                             $"    Hollow = {ls.HollowCount}\t \t Droprate = {ls.HollowCount / weaponOrCasterCount * 100}%\n" +
+                             $"    ArmorCleaving = {ls.ArmorCleavingCount}\t Droprate = {ls.ArmorCleavingCount / weaponOrCasterCount * 100}%\n" +
+                             $"    ShieldCleaving = {ls.ShieldCleavingCount}\t Droprate = {ls.ShieldCleavingCount / weaponOrCasterCount * 100}%\n" +
+                             $"    AbsorbMagic = {ls.AbsorbMagicCount}\t Droprate = {ls.AbsorbMagicCount / ls.ShieldCount * 100}%\n");
 
             if (ls.HasManaCount == 0)
             {

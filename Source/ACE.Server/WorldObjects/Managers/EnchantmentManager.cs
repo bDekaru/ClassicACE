@@ -182,7 +182,7 @@ namespace ACE.Server.WorldObjects.Managers
                 // should be update the StatModVal here?
 
                 var duration = spell.Duration;
-                if (caster is Player player && player.AugmentationIncreasedSpellDuration > 0 && !spell.IsDamageOverTime)
+                if (caster is Player player && player.AugmentationIncreasedSpellDuration > 0 && spell.DotDuration == 0)
                     duration *= 1.0f + player.AugmentationIncreasedSpellDuration * 0.2f;
 
                 var timeRemaining = refreshSpell.Duration + refreshSpell.StartTime;
@@ -219,7 +219,7 @@ namespace ACE.Server.WorldObjects.Managers
             {
                 entry.Duration = spell.Duration;
 
-                if (caster is Player player && player.AugmentationIncreasedSpellDuration > 0 && !spell.IsDamageOverTime)
+                if (caster is Player player && player.AugmentationIncreasedSpellDuration > 0 && spell.DotDuration == 0)
                     entry.Duration *= 1.0f + player.AugmentationIncreasedSpellDuration * 0.2f;
             }
             else
@@ -727,7 +727,7 @@ namespace ACE.Server.WorldObjects.Managers
             // should be additive in database, update when everything is in sync
             var modifier = 0.0f;
 
-            foreach (var enchantment in enchantments)
+            foreach (var enchantment in enchantments.OrderByDescending(i => i.PowerLevel).Take(1))
             {
                 if (enchantment.StatModType.HasFlag(EnchantmentTypeFlags.Multiplicative))
                     modifier += enchantment.StatModValue - 1.0f;
@@ -1218,16 +1218,20 @@ namespace ACE.Server.WorldObjects.Managers
         /// <summary>
         /// Called every ~5 seconds for active object
         /// </summary>
-        public void HeartBeat(double heartbeatInterval)
+        public void HeartBeat(double heartbeatInterval, bool processDoTs = true, bool decayTimers = true)
         {
             var topLayerEnchantments = WorldObject.Biota.PropertiesEnchantmentRegistry.GetEnchantmentsTopLayer(WorldObject.BiotaDatabaseLock, SpellSet.SetSpells);
 
-            HeartBeat_DamageOverTime(topLayerEnchantments);
+            if(processDoTs)
+                HeartBeat_DamageOverTime(topLayerEnchantments);
 
-            var expired = WorldObject.Biota.PropertiesEnchantmentRegistry.HeartBeatEnchantmentsAndReturnExpired(heartbeatInterval, WorldObject.BiotaDatabaseLock);
+            if (decayTimers)
+            {
+                var expired = WorldObject.Biota.PropertiesEnchantmentRegistry.HeartBeatEnchantmentsAndReturnExpired(heartbeatInterval, WorldObject.BiotaDatabaseLock);
 
-            foreach (var enchantment in expired)
-                Remove(enchantment);
+                foreach (var enchantment in expired)
+                    Remove(enchantment);
+            }
         }
 
         /// <summary>

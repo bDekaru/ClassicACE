@@ -35,7 +35,8 @@ namespace ACE.Server.Factories.Enum
         Haebrean,
         KnorrAcademy,
         Sedgemail,
-        Overrobe
+        Overrobe,
+        Cloth
     }
 
     public static class TreasureArmorTypeHelper
@@ -99,6 +100,8 @@ namespace ACE.Server.Factories.Enum
                     return LootTables.ArmorType.SedgemailLeatherArmor;
                 case TreasureArmorType.Overrobe:
                     return LootTables.ArmorType.OverRobes;
+                case TreasureArmorType.Cloth:
+                    return LootTables.ArmorType.MiscClothing;
             }
             return LootTables.ArmorType.Undef;
         }

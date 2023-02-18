@@ -293,7 +293,7 @@ namespace ACE.Server.Command.Handlers
 
                     if (sac != SkillAdvancementClass.Specialized)
                     {
-                        if (skill.Value.InitLevel > 0)
+                        if ((Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM && skill.Value.InitLevel > 0) || (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && skill.Value.InitLevel > 5))
                         {
                             Console.WriteLine($"{player.Name} has {sac} skill {skill.Key} with {skill.Value.InitLevel:N0} InitLevel{fixStr}");
                             foundIssues = true;
@@ -904,6 +904,9 @@ namespace ACE.Server.Command.Handlers
 
             foreach (var player in players)
             {
+                if (player.GetProperty(PropertyString.GodState) != null)
+                    continue; // Ignore god characters
+
                 var totalXP = player.GetProperty(PropertyInt64.TotalExperience) ?? 0;
                 var unassignedXP = player.GetProperty(PropertyInt64.AvailableExperience) ?? 0;
 
@@ -922,7 +925,13 @@ namespace ACE.Server.Command.Handlers
                     vitalXP += vital.Value.CPSpent;
 
                 foreach (var skill in player.Biota.PropertiesSkill)
-                    skillXP += skill.Value.PP;
+                {
+                    if (!DatManager.PortalDat.SkillTable.SkillBaseHash.TryGetValue((uint)skill.Key, out var skillInfo))
+                        continue; // invalid skill, skip
+
+                    if (skill.Value.SecondaryTo == Skill.None)
+                        skillXP += skill.Value.PP;
+                }
 
                 // find any xp spent on augs
                 var heritage = (HeritageGroup?)player.GetProperty(PropertyInt.HeritageGroup);
@@ -1025,6 +1034,272 @@ namespace ACE.Server.Command.Handlers
                 Console.WriteLine($"Verified XP for {players.Count:N0} players");
         }
 
+        [CommandHandler("verify-xp-excess", AccessLevel.Admin, CommandHandlerFlag.ConsoleInvoke, "Verifies for excess xp and optionally removes it")]
+        public static void HandleVerifyExperienceExcess(Session session, params string[] parameters)
+        {
+            var players = PlayerManager.GetAllOffline();
+
+            var fix = parameters.Length > 0 && parameters[0].Equals("fix");
+            var fixStr = fix ? " -- fixed" : "";
+            var foundIssues = false;
+
+            var results = new List<VerifyXpResult>();
+
+            HashSet<uint> lesserBenediction = null;
+
+            using (var ctx = new ShardDbContext())
+            {
+                // Asheron's Lesser Benediction augmentation operates differently than all other augs
+                lesserBenediction = ctx.CharacterPropertiesQuestRegistry.Where(i => i.QuestName.Equals("LesserBenedictionAug")).Select(i => i.CharacterId).ToHashSet();
+            }
+
+            foreach (var player in players)
+            {
+                if (player.GetProperty(PropertyString.GodState) != null)
+                    continue; // Ignore god characters
+
+                var totalXP = player.GetProperty(PropertyInt64.TotalExperience) ?? 0;
+                var unassignedXP = player.GetProperty(PropertyInt64.AvailableExperience) ?? 0;
+
+                // loop through all attributes/vitals/skills, add up assigned xp
+                long attributeXP = 0;
+                long vitalXP = 0;
+                long skillXP = 0;
+                long augXP = 0;
+
+                long diffXP = Math.Min(0, player.GetProperty(PropertyInt64.VerifyXp) ?? 0);
+
+                foreach (var attribute in player.Biota.PropertiesAttribute)
+                    attributeXP += attribute.Value.CPSpent;
+
+                foreach (var vital in player.Biota.PropertiesAttribute2nd)
+                    vitalXP += vital.Value.CPSpent;
+
+                foreach (var skill in player.Biota.PropertiesSkill)
+                {
+                    if (!DatManager.PortalDat.SkillTable.SkillBaseHash.TryGetValue((uint)skill.Key, out var skillInfo))
+                        continue; // invalid skill, skip
+
+                    if (skill.Value.SecondaryTo == Skill.None)
+                        skillXP += skill.Value.PP;
+                }
+
+                // find any xp spent on augs
+                var heritage = (HeritageGroup?)player.GetProperty(PropertyInt.HeritageGroup);
+                if (heritage == null)
+                    continue;       // ignore admins who have morphed into asheron / bael'zharon
+
+                var heritageAug = GetHeritageAug(heritage.Value);
+
+                foreach (var kvp in AugmentationDevices)
+                {
+                    var augProperty = kvp.Key;
+
+                    var numAugs = player.GetProperty(augProperty) ?? 0;
+                    if (augProperty == heritageAug)
+                        numAugs--;
+
+                    if (numAugs <= 0)
+                        continue;
+
+                    var aug = DatabaseManager.World.GetCachedWeenie(kvp.Value);
+                    aug.PropertiesInt64.TryGetValue(PropertyInt64.AugmentationCost, out var costPer);
+
+                    augXP += costPer * numAugs;
+                }
+
+                if (lesserBenediction.Contains(player.Guid.Full))
+                    augXP += 2000000000;
+
+                var calculatedSpent = attributeXP + vitalXP + skillXP + augXP + diffXP;
+
+                var currentSpent = totalXP - unassignedXP;
+
+                var bonusXp = (currentSpent - calculatedSpent) % 526;
+
+                if (calculatedSpent != currentSpent && bonusXp != 0)
+                {
+                    // the results for this data set can be large,
+                    // especially due to an earlier ace bug where it wasn't calculating the Proficiency Points correctly
+
+                    // instead of displaying the results in random order,
+                    // we going to sort them all by diff
+
+                    foundIssues = true;
+                    results.Add(new VerifyXpResult(player, calculatedSpent, currentSpent));
+                }
+            }
+
+            var xpList = DatManager.PortalDat.XpTable.CharacterLevelXPList;
+            var maxTotalXp = (long)xpList[xpList.Count - 1];
+
+            foreach (var result in results.OrderBy(i => i.Player.Name).OrderBy(i => i.Diff))
+            {
+                var player = result.Player;
+                var diff = result.Diff;
+
+                if (diff >= 0)
+                    continue;
+
+                var percent = -diff * 100 / result.Calculated;
+
+                Console.WriteLine($"{player.Name} is calculated to have spent {result.Calculated:N0} experience, {-diff:N0} xp above their total xp, an excess of {percent}%{fixStr}");
+
+                if (!fix)
+                    continue;
+
+                var xpToRemove = -diff;
+                var unassignedXP = player.GetProperty(PropertyInt64.AvailableExperience) ?? 0;
+
+                if (xpToRemove <= unassignedXP)
+                {
+                    player.SetProperty(PropertyInt64.AvailableExperience, unassignedXP - xpToRemove);
+                    xpToRemove = 0;
+                }
+                else
+                {
+                    if (unassignedXP > 0)
+                    {
+                        xpToRemove -= unassignedXP;
+                        player.SetProperty(PropertyInt64.AvailableExperience, 0);
+                    }
+
+                    foreach (var attributeEntry in new Dictionary<PropertyAttribute, PropertiesAttribute>(player.Biota.PropertiesAttribute))
+                    {
+                        var attribute = attributeEntry.Value;
+
+                        var currentInvested = attribute.CPSpent;
+
+                        if (currentInvested == 0)
+                            continue;
+
+                        if (currentInvested >= xpToRemove)
+                        {
+                            attribute.CPSpent -= (uint)xpToRemove;
+                            xpToRemove = 0;
+                        }
+                        else
+                        {
+                            xpToRemove -= attribute.CPSpent;
+                            attribute.CPSpent = 0;
+                        }
+
+                        attribute.LevelFromCP = (uint)Player.CalcAttributeRank(attribute.CPSpent);
+
+                        if (xpToRemove == 0)
+                            break;
+                    }
+
+                    if (xpToRemove > 0)
+                    {
+                        foreach (var skillEntry in new Dictionary<Skill, PropertiesSkill>(player.Biota.PropertiesSkill))
+                        {
+                            if (!DatManager.PortalDat.SkillTable.SkillBaseHash.TryGetValue((uint)skillEntry.Key, out var skillInfo))
+                                continue; // invalid skill, skip
+
+                            var skill = skillEntry.Value;
+
+                            if (skill.SAC < SkillAdvancementClass.Trained || skill.SecondaryTo != Skill.None)
+                                continue;
+
+                            var currentInvested = skill.PP;
+
+                            if (currentInvested == 0)
+                                continue;
+
+                            if (currentInvested >= xpToRemove)
+                            {
+                                skill.PP -= (uint)xpToRemove;
+                                xpToRemove = 0;
+                            }
+                            else
+                            {
+                                xpToRemove -= skill.PP;
+                                skill.PP = 0;
+                            }
+
+                            skill.LevelFromPP = (ushort)Player.CalcSkillRank(skill.SAC, skill.PP);
+
+                            if (xpToRemove == 0)
+                                break;
+                        }
+
+                        foreach (var skillEntry in new Dictionary<Skill, PropertiesSkill>(player.Biota.PropertiesSkill))
+                        {
+                            if (!DatManager.PortalDat.SkillTable.SkillBaseHash.TryGetValue((uint)skillEntry.Key, out var skillInfo))
+                                continue; // invalid skill, skip
+
+                            var skill = skillEntry.Value;
+
+                            if (skill.SAC < SkillAdvancementClass.Trained || skill.SecondaryTo == Skill.None)
+                                continue;
+
+                            if (player.Biota.PropertiesSkill.TryGetValue(skill.SecondaryTo, out var primarySkill))
+                            {
+                                skill.InitLevel = primarySkill.InitLevel;
+
+                                if (skill.SAC == SkillAdvancementClass.Specialized)
+                                    skill.LevelFromPP  = (ushort)(primarySkill.LevelFromPP > 10 ? primarySkill.LevelFromPP - 10 : 0);
+                                else
+                                    skill.LevelFromPP = (ushort)(primarySkill.LevelFromPP > 20 ? primarySkill.LevelFromPP - 20 : 0);
+
+                                if (skill.LevelFromPP != 0)
+                                {
+                                    var skillXPTable = Player.GetSkillXPTable(skill.SAC);
+                                    if (skillXPTable != null)
+                                        skill.PP = skillXPTable[skill.LevelFromPP] - skillXPTable[0];
+                                }
+                                else
+                                    skill.PP = 0;
+                            }
+                        }
+                    }
+
+                    if (xpToRemove > 0)
+                    {
+                        foreach (var vitalEntry in new Dictionary<PropertyAttribute2nd, PropertiesAttribute2nd>(player.Biota.PropertiesAttribute2nd))
+                        {
+                            var vital = vitalEntry.Value;
+
+                            var currentInvested = vital.CPSpent;
+
+                            if (currentInvested == 0)
+                                continue;
+
+                            if (currentInvested >= xpToRemove)
+                            {
+                                vital.CPSpent -= (uint)xpToRemove;
+                                xpToRemove = 0;
+                            }
+                            else
+                            {
+                                xpToRemove -= vital.CPSpent;
+                                vital.CPSpent = 0;
+                            }
+
+                            vital.LevelFromCP = (uint)Player.CalcVitalRank(vital.CPSpent);
+
+                            if (xpToRemove == 0)
+                                break;
+                        }
+                    }
+
+                    if (xpToRemove > 0)
+                        Console.WriteLine($"ERROR: couldn't remove enough xp!");
+                }
+                player.SaveBiotaToDatabase();
+            }
+
+            if (foundIssues)
+            {
+                Console.WriteLine($"{(fix ? "Fixed" : "Found")} issues for {results.Count:N0} players");
+
+                if (!fix)
+                    Console.WriteLine($"Dry run completed. Type 'verify-xp-remove fix' to fix any issues.");
+            }
+            else
+                Console.WriteLine($"Verified XP for {players.Count:N0} players");
+        }
 
         [CommandHandler("fix-biota-emote-delay", AccessLevel.Admin, CommandHandlerFlag.ConsoleInvoke, 0, "Fixes biota emotes with incorrect default delays")]
         public static void HandleFixBiotaEmoteDelay(Session session, params string[] parameters)
@@ -1674,6 +1949,155 @@ namespace ACE.Server.Command.Handlers
 
                 if (!foundIssues)
                     Console.WriteLine($"Verified {results.Count:N0} shields");
+            }
+        }
+
+        [CommandHandler("verify-character-version", AccessLevel.Admin, CommandHandlerFlag.ConsoleInvoke, "Verifies and optionally migrates character versions")]
+        public static void HandleVerifyCharacterVersion(Session session, params string[] parameters)
+        {
+            var players = PlayerManager.GetAllOffline();
+
+            var fix = parameters.Length > 0 && parameters[0].Equals("fix");
+            var foundIssues = false;
+
+            foreach (var player in players)
+            {
+                var version = player.GetProperty(PropertyInt.Version) ?? 0;
+
+                switch (version)
+                {
+                    case Player.LatestVersion:
+                        // Latest version: no changes required.
+                        break;
+                    case 0:
+                        MigrateCharacterFromVersion0to1(player, fix, ref foundIssues);
+                        break;
+                    default:
+                        foundIssues = true;
+                        Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Invalid character version: {version}. Can't fix.");
+                        break;
+                }
+            }
+
+            if (!fix && foundIssues)
+                Console.WriteLine($"Dry run completed. Type 'verify-character-version fix' to fix any issues.");
+
+            if (!foundIssues)
+                Console.WriteLine($"Verified character version for {players.Count:N0} players");
+        }
+
+        public static void MigrateCharacterFromVersion0to1(OfflinePlayer player, bool fix, ref bool foundIssues)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                Console.WriteLine($"This command is only intended for the CustomDM ruleset.");
+                return;
+            }
+
+            var fixStr = fix ? " -- fixed" : "";
+
+            var skillCreditsToRefund = 0;
+            uint xpToRefund = 0;
+            var skillsToRemove = new List<Skill>();
+
+            var skills = new Dictionary<Skill, PropertiesSkill>(player.Biota.PropertiesSkill);
+            if (skills.TryGetValue(Skill.Alchemy, out var alchemySkill))
+            {
+                if (alchemySkill.SAC == SkillAdvancementClass.Specialized)
+                {
+                    Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Alchemy Specialized - Refund 8 skill points.{fixStr}");
+                    skillCreditsToRefund += 8;
+                    xpToRefund += alchemySkill.PP;
+                    foundIssues = true;
+                }
+                else if (alchemySkill.SAC == SkillAdvancementClass.Trained)
+                {
+                    Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Alchemy Trained - Refund 4 skill points.{fixStr}");
+                    skillCreditsToRefund += 4;
+                    xpToRefund += alchemySkill.PP;
+                    foundIssues = true;
+                }
+            }
+
+            if (skills.TryGetValue(Skill.ArmorTinkering, out var armorTinkeringSkill))
+            {
+                foundIssues = true;
+
+                if (armorTinkeringSkill.SAC == SkillAdvancementClass.Trained)
+                {
+                    Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Armor Tinkering Trained - Refund 4 skill points.{fixStr}");
+                    skillCreditsToRefund += 4;
+                    xpToRefund += armorTinkeringSkill.PP;
+                }
+
+                Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Armor Tinkering Exists - Remove.{fixStr}");
+                skillsToRemove.Add(Skill.ArmorTinkering);
+            }
+
+            if (skills.TryGetValue(Skill.WeaponTinkering, out var weaponTinkering))
+            {
+                foundIssues = true;
+
+                if (weaponTinkering.SAC == SkillAdvancementClass.Trained)
+                {
+                    Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Weapon Tinkering Trained - Refund 4 skill points.{fixStr}");
+                    skillCreditsToRefund += 4;
+                    xpToRefund += weaponTinkering.PP;
+                }
+
+                Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Weapon Tinkering Exists - Remove.{fixStr}");
+                skillsToRemove.Add(Skill.WeaponTinkering);
+            }
+
+            if (skills.TryGetValue(Skill.MagicItemTinkering, out var magicItemTinkeringSkill))
+            {
+                foundIssues = true;
+
+                if (magicItemTinkeringSkill.SAC == SkillAdvancementClass.Trained)
+                {
+                    Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Magic Item Tinkering Trained - Refund 4 skill points.{fixStr}");
+                    skillCreditsToRefund += 4;
+                    xpToRefund += magicItemTinkeringSkill.PP;
+                }
+
+                Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Magic Item Tinkering Exists - Remove.{fixStr}");
+                skillsToRemove.Add(Skill.MagicItemTinkering);
+            }
+
+            if (skills.TryGetValue(Skill.ItemTinkering, out var itemTinkering))
+            {
+                foundIssues = true;
+
+                if (itemTinkering.SAC == SkillAdvancementClass.Trained)
+                {
+                    Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Item Tinkering Trained - Refund 2 skill points.{fixStr}");
+                    skillCreditsToRefund += 2;
+                    xpToRefund += itemTinkering.PP;
+                }
+
+                Console.WriteLine($"{player.Name}:0x{player.Guid}.HandleVerifyCharacterVersion() - Version 0 -> 1: Item Tinkering Exists - Remove.{fixStr}");
+                skillsToRemove.Add(Skill.ItemTinkering);
+            }
+
+            if (fix)
+            {
+                var availableExperience = player.GetProperty(PropertyInt64.AvailableExperience) ?? 0;
+                var availableSkillCredits = player.GetProperty(PropertyInt.AvailableSkillCredits) ?? 0;
+
+                foreach (var skill in skillsToRemove)
+                {
+                    player.Biota.PropertiesSkill.Remove(skill);
+                }
+
+                player.SetProperty(PropertyInt64.AvailableExperience, availableExperience + xpToRefund);
+
+                player.SetProperty(PropertyInt.AvailableSkillCredits, availableSkillCredits + skillCreditsToRefund);
+
+                player.SetProperty(PropertyBool.SkillTemplesTimerReset, true);
+
+                player.SetProperty(PropertyInt.Version, 1);
+
+                player.SaveBiotaToDatabase();
             }
         }
     }

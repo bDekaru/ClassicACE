@@ -85,7 +85,7 @@ namespace ACE.Server.WorldObjects
         public double NextTechniqueActivationTime = 0;
         public double NextTechniqueNegativeActivationTime = 0;
 
-        public static double TechniqueActivationInterval = 5;
+        public static double TechniqueActivationInterval = 2.5;
         public static double TechniqueNegativeActivationInterval = 10;
 
         private bool? CachedAttemptToTaunt = null;
@@ -108,6 +108,7 @@ namespace ACE.Server.WorldObjects
         public static readonly float MaxRadarRange_Outdoors = 75.0f;
 
         public DateTime PrevObjSend;
+        public DateTime PrevWho;
 
         public float CurrentRadarRange => Location.Indoors ? MaxRadarRange_Indoors : MaxRadarRange_Outdoors;
 
@@ -565,6 +566,8 @@ namespace ACE.Server.WorldObjects
             IsBusy = true;
             IsLoggingOut = true;
 
+            EndSneaking();
+
             if (Fellowship != null)
                 FellowshipQuit(false);
 
@@ -627,14 +630,15 @@ namespace ACE.Server.WorldObjects
 
                     EnqueueBroadcastPhysicsState();
 
-                    var logout = new Motion(MotionStance.NonCombat, MotionCommand.LogOut);
-                    EnqueueBroadcastMotion(logout);                    
+                    var motionCommand = MotionCommand.LogOut;
+                    var motion = new Motion(this, motionCommand);
+                    var stanceNonCombat = MotionStance.NonCombat;
+                    var animLength = Physics.Animation.MotionTable.GetAnimationLength(MotionTableId, stanceNonCombat, motionCommand);
 
                     var logoutChain = new ActionChain();
 
-                    var motionTable = DatManager.PortalDat.ReadFromDat<MotionTable>((uint) MotionTableId);
-                    float logoutAnimationLength = motionTable.GetAnimationLength(MotionCommand.LogOut);
-                    logoutChain.AddDelaySeconds(logoutAnimationLength);
+                    logoutChain.AddAction(this, () => SendMotionAsCommands(motionCommand, stanceNonCombat));
+                    logoutChain.AddDelaySeconds(animLength);
 
                     // remove the player from landblock management -- after the animation has run
                     logoutChain.AddAction(WorldManager.ActionQueue, () =>
@@ -1007,9 +1011,17 @@ namespace ACE.Server.WorldObjects
                 PhysicsObj.calc_acceleration();
                 PhysicsObj.set_on_walkable(false);
                 PhysicsObj.set_local_velocity(jump.Velocity, false);
+                PhysicsObj.RemoveLinkAnimations();      // matches MotionInterp.LeaveGround more closely
+                PhysicsObj.MovementManager.MotionInterpreter.PendingMotions.Clear();        //hack
+                PhysicsObj.IsAnimating = false;
 
                 if (CombatMode == CombatMode.Magic && MagicState.IsCasting)
+                {
+                    // clear possible CastMotion out of InterpretedMotionState.ForwardCommand
+                    PhysicsObj.MovementManager.MotionInterpreter.StopCompletely();
+
                     FailCast();
+                }
             }
             else
             {
@@ -1020,10 +1032,13 @@ namespace ACE.Server.WorldObjects
                 //PhysicsObj.set_velocity(glob_velocity, true);
 
                 // perform jump in physics engine
-                PhysicsObj.TransientState &= ~(Physics.TransientStateFlags.Contact | Physics.TransientStateFlags.WaterContact);
+                PhysicsObj.TransientState &= ~(TransientStateFlags.Contact | TransientStateFlags.WaterContact);
                 PhysicsObj.calc_acceleration();
                 PhysicsObj.set_on_walkable(false);
                 PhysicsObj.set_local_velocity(jump.Velocity, false);
+                PhysicsObj.RemoveLinkAnimations();      // matches MotionInterp.LeaveGround more closely
+                PhysicsObj.MovementManager.MotionInterpreter.PendingMotions.Clear();        //hack
+                PhysicsObj.IsAnimating = false;
             }
 
             // this shouldn't be needed, but without sending this update motion / simulated movement event beforehand,

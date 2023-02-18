@@ -8,6 +8,7 @@ namespace ACE.Entity.Enum
         Close       = 2,
         Sell        = 3,
         Buy         = 4,
-        Heartbeat   = 5
+        Heartbeat   = 5,
+        SoldOut     = 6,
     }
 }

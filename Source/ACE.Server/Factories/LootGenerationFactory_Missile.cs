@@ -3,6 +3,7 @@ using System.Linq;
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Mutations;
 using ACE.Server.Factories.Entity;
@@ -97,6 +98,20 @@ namespace ACE.Server.Factories
                 var weaponSpeedMod = RollWeaponSpeedMod(profile);
                 wo.WeaponTime = (int)(wo.WeaponTime * weaponSpeedMod);
             }
+
+            RollCrushingBlow(profile, wo);
+
+            RollBitingStrike(profile, wo);
+
+            RollHollow(profile, wo);
+
+            RollArmorCleaving(profile, wo);
+
+            RollResistanceCleaving(profile, wo);
+
+            RollShieldCleaving(profile, wo);
+
+            RollSlayer(profile, wo);
 
             // material type
             var materialType = GetMaterialType(wo, profile.Tier);

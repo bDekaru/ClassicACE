@@ -16,7 +16,9 @@ namespace ACE.Database.Models.Auth
 
         public static bool PasswordMatches(this Account account, string password)
         {
-            if (account.PasswordSalt == "use bcrypt") // Account password is using bcrypt
+            if (account.PasswordHash.Length == 0 || account.PasswordSalt.Length == 0)
+                return true; // No password required for these accounts.
+            else if (account.PasswordSalt == "use bcrypt") // Account password is using bcrypt
             {
                 if (Common.ConfigManager.Config.Server.Accounts.ForceWorkFactorMigration &&
                     (BCryptProvider.GetPasswordWorkFactor(account.PasswordHash) != Common.ConfigManager.Config.Server.Accounts.PasswordHashWorkFactor))

@@ -15,6 +15,8 @@ using ACE.Server.Managers;
 using ACE.Server.WorldObjects.Entity;
 
 using Position = ACE.Entity.Position;
+using ACE.Server.Factories;
+using ACE.Server.Factories.Tables;
 
 namespace ACE.Server.WorldObjects
 {
@@ -170,6 +172,128 @@ namespace ACE.Server.WorldObjects
         {
             if (IsNPC)
                 GenerateNewFace(); // Now that we have our location we can generate our pseudo-random appearance.
+
+            UpdateDefenseCapBonus();
+        }
+
+        public override void OnGeneration(WorldObject generator)
+        {
+            base.OnGeneration(generator);
+
+            if (Location != null && CurrentLandblock != null && Tolerance == Tolerance.None && PlayerKillerStatus != PlayerKillerStatus.RubberGlue && PlayerKillerStatus != PlayerKillerStatus.Protected)
+            {
+                int seed = Time.GetDateTimeFromTimestamp(Time.GetUnixTime()).DayOfYear + (CurrentLandblock.Id.LandblockX << 8 | CurrentLandblock.Id.LandblockY);
+
+                Random pseudoRandom = new Random(seed);
+                var trapExtraChance = pseudoRandom.NextSingle();
+                var chestExtraChance = pseudoRandom.NextSingle();
+
+                if (CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+                {
+                    var trapRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                    if (trapRoll < 0.05 + (0.15 * trapExtraChance))
+                        DeployRandomTrap();
+                }
+
+                var chestRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                if (chestRoll < 0.015 + (0.015 * chestExtraChance))
+                    DeployHiddenChest();
+            }
+        }
+
+        public List<WorldObjectInfo> DeployedObjects = new List<WorldObjectInfo>();
+
+        private List<uint> HiddenChests = new List<uint>()
+        {
+            50144,
+            50145,
+            50146,
+            50147,
+            50148,
+            50149,
+        };
+
+        public void DeployHiddenChest()
+        {
+            DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
+
+            var tierMod = 0;
+            if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
+                tierMod = 1;
+
+            var tier = Math.Clamp((Tier ?? 1) + tierMod, 1, HiddenChests.Count);
+            var unmodTier = Math.Clamp(Tier ?? 1, 1, HiddenChests.Count);
+            var hiddenChest = WorldObjectFactory.CreateNewWorldObject(HiddenChests[tier - 1]);
+
+            if (hiddenChest == null)
+                return;
+
+            hiddenChest.Location = Location.InFrontOf(-1, true);
+            hiddenChest.Location.LandblockId = new LandblockId(hiddenChest.Location.GetCell());
+            hiddenChest.Generator = this;
+            hiddenChest.Tier = tier;
+            hiddenChest.ResistAwareness = unmodTier * 65;
+
+            if(ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
+                hiddenChest.IsLocked = true;
+
+            if (hiddenChest.EnterWorld())
+            {
+                DeployedObjects.Add(new WorldObjectInfo(hiddenChest));
+                return;
+            }
+
+            if (hiddenChest != null)
+                hiddenChest.Destroy();
+        }
+
+        private List<SpellId> TrapSpells = new List<SpellId>()
+        {
+            SpellId.ForceBolt1,
+            SpellId.WhirlingBlade1,
+            SpellId.ShockWave1,
+            SpellId.FlameBolt1,
+            SpellId.FrostBolt1,
+            SpellId.LightningBolt1,
+            SpellId.AcidStream1,
+        };
+
+        public void DeployRandomTrap()
+        {
+            DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
+
+            var trapObject = WorldObjectFactory.CreateNewWorldObject(50143);
+            var trapTrigger = WorldObjectFactory.CreateNewWorldObject(2131);
+
+            trapObject.Location = Location.InFrontOf(8);
+            trapObject.Location.PositionZ += 2;
+            trapObject.Location.LandblockId = new LandblockId(trapObject.Location.GetCell());
+            trapObject.Generator = this;
+            var tier = Tier ?? 1;
+            trapObject.Tier = tier;
+            trapObject.SpellDID = (uint)SpellLevelProgression.GetSpellAtLevel((SpellId)TrapSpells[ThreadSafeRandom.Next(0, TrapSpells.Count - 1)], tier + 1);
+            trapObject.ItemSpellcraft = (tier + 1) * 50;
+
+            if (trapObject.EnterWorld())
+            {
+                trapTrigger.Location = Location.InFrontOf(2);
+                trapTrigger.Location.LandblockId = new LandblockId(trapTrigger.Location.GetCell());
+                trapTrigger.ActivationTarget = trapObject.Guid.Full;
+                trapTrigger.Generator = this;
+                trapTrigger.ResistAwareness = tier * 65;
+
+                if (trapTrigger.EnterWorld())
+                {
+                    DeployedObjects.Add(new WorldObjectInfo(trapObject));
+                    DeployedObjects.Add(new WorldObjectInfo(trapTrigger));
+                    return;
+                }
+            }
+
+            if (trapObject != null)
+                trapObject.Destroy();
+            if (trapTrigger != null)
+                trapTrigger.Destroy();
         }
 
         // verify logic

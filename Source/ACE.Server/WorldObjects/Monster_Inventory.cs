@@ -220,10 +220,18 @@ namespace ACE.Server.WorldObjects
 
             var allWeapons = new List<WorldObject>();
             var ammo = new List<WorldObject>();
+            var equippedWeapons = new List<WorldObject>();
 
             GetMonsterInventory(allWeapons, ammo, allowMelee, allowRanged, allowCaster);
 
-            if (allWeapons.Count == 0) return new List<WorldObject>();
+            var wieldedShield = SelectWieldedShield();
+
+            if (allWeapons.Count == 0)
+            {
+                if (wieldedShield != null)
+                    equippedWeapons.Add(wieldedShield);
+                return equippedWeapons;
+            }
 
             //DebugTreasure();
 
@@ -236,7 +244,8 @@ namespace ACE.Server.WorldObjects
             while (true)
             {
                 var weapon = FindInventoryWeapon(allWeapons);
-                if (weapon == null) return new List<WorldObject>();
+                if (weapon == null)
+                    return equippedWeapons;
 
                 // does this weapon require ammo?
                 if (weapon.IsAmmoLauncher)
@@ -249,7 +258,10 @@ namespace ACE.Server.WorldObjects
                     {
                         // npcs don't require ammo
                         if (IsNPC)
-                            return new List<WorldObject> { weapon };
+                        {
+                            equippedWeapons.Add(weapon);
+                            return equippedWeapons;
+                        }
 
                         allWeapons.Remove(weapon);  // remove from possible selections
                         continue;   // find next best weapon
@@ -257,21 +269,30 @@ namespace ACE.Server.WorldObjects
 
                     //Console.WriteLine("Ammo type: " + (AmmoType)(weapon.AmmoType ?? 0));
 
-                    return new List<WorldObject>() { weapon, curAmmo };
+                    equippedWeapons.Add(weapon);
+                    equippedWeapons.Add(curAmmo);
+                    return equippedWeapons;
                 }
-
-                // CombatUse / DefaultCombatStyle / ValidLocations?
-                if (AiAllowedCombatStyle.HasFlag(CombatStyle.DualWield))
+                else
                 {
-                    if (weapon.WeenieType == WeenieType.MeleeWeapon && !weapon.IsTwoHanded)
-                    {
-                        var dualWield = allWeapons.FirstOrDefault(i => i.AutoWieldLeft);
-                        if (dualWield != null)
-                            return new List<WorldObject> { weapon, dualWield };
-                    }
-                }
+                    equippedWeapons.Add(weapon);
 
-                return new List<WorldObject>() { weapon };
+                    // CombatUse / DefaultCombatStyle / ValidLocations?
+                    if (AiAllowedCombatStyle.HasFlag(CombatStyle.DualWield))
+                    {
+                        if (weapon.WeenieType == WeenieType.MeleeWeapon && !weapon.IsTwoHanded)
+                        {
+                            var dualWield = allWeapons.FirstOrDefault(i => i.AutoWieldLeft);
+                            if (dualWield != null)
+                                equippedWeapons.Add(dualWield);
+                        }
+                    }
+
+                    if (wieldedShield != null && equippedWeapons.Count < 2)
+                        equippedWeapons.Add(wieldedShield);
+
+                    return equippedWeapons;
+                }
             }
         }
 

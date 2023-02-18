@@ -111,8 +111,8 @@ namespace ACE.Server.Managers
                     log.Info(shutdownText);
 
                     // special text
-                    foreach (var player in PlayerManager.GetAllOnline())
-                        player.Session.WorldBroadcast($"Broadcast from System> ATTENTION - This Asheron's Call Server shut down has been cancelled.");
+                    var worldBroadcastMessage = new GameMessageSystemChat($"Broadcast from System> ATTENTION - This Asheron's Call Server shut down has been cancelled.", ChatMessageType.WorldBroadcast);
+                    PlayerManager.BroadcastToAll(worldBroadcastMessage);
 
                     // break function
                     return;
@@ -267,11 +267,14 @@ namespace ACE.Server.Managers
 
             if (notify && (DateTime.UtcNow - lastNoticeTime).TotalSeconds > 2)
             {
-                foreach (var player in PlayerManager.GetAllOnline())
-                    if (sdt.TotalSeconds > 10)
-                        player.Session.WorldBroadcast($"Broadcast from System> {(sdt.TotalMinutes > 1.5 ? "ATTENTION" : "WARNING")} - This Asheron's Call Server is shutting down in {time}.{(sdt.TotalMinutes <= 3 ?  " Please log out." : "")}");
-                    else
-                        player.Session.WorldBroadcast($"Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!");
+                string text;
+                if (sdt.TotalSeconds > 10)
+                    text = $"Broadcast from System> {(sdt.TotalMinutes > 1.5 ? "ATTENTION" : "WARNING")} - This Asheron's Call Server is shutting down in {time}.{(sdt.TotalMinutes <= 3 ? " Please log out." : "")}";
+                else
+                    text = $"Broadcast from System> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!";
+
+                var worldBroadcastMessage = new GameMessageSystemChat(text, ChatMessageType.WorldBroadcast);
+                PlayerManager.BroadcastToAll(worldBroadcastMessage);
 
                 return DateTime.UtcNow;
             }

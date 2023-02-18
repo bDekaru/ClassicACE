@@ -170,9 +170,9 @@ namespace ACE.Server.Factories.Tables.Wcids
             {
                 T1_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
                 {
-                    ( WeenieClassName.jambiya,        3.0f ),
-                    ( WeenieClassName.khanjar,        3.0f ),
-                    ( WeenieClassName.dirk,           0.5f ),
+                    ( WeenieClassName.jambiya,        1.0f ),
+                    ( WeenieClassName.khanjar,        1.0f ),
+                    ( WeenieClassName.dirk,           1.0f ),
                 };
 
                 T1_T3_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)

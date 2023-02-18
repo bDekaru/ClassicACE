@@ -7,6 +7,7 @@ using ACE.Common;
 using ACE.Database.Models.Shard;
 using ACE.Server.WorldObjects;
 using ACE.Entity.Enum;
+using ACE.Server.Entity;
 
 namespace ACE.Server.Managers
 {
@@ -257,6 +258,7 @@ namespace ACE.Server.Managers
         public static uint MaxInteractionsRestCamp = 500;
         public static uint MaxInteractionsAreaCamp = 750;
         public static uint MaxInteractionsTypeCamp = 2000;
+        public static uint MaxInteractionsTurninTypeCamp = 10;
 
         // When changing these values remember to also update the values in ShardDatabaseOfflineTools.cs
         public static float DelayBeforeDecayStart = 120.0f;
@@ -270,6 +272,8 @@ namespace ACE.Server.Managers
         {
             if (campId == 0) // Rest camp
                 return MaxInteractionsRestCamp;
+            else if (campId > 0xFFFF0000) // Turn-in Type Camp
+                return MaxInteractionsTurninTypeCamp;
             else if (campId > 0x0000FFFF) // Area Camp
                 return MaxInteractionsAreaCamp;
             else
@@ -346,10 +350,14 @@ namespace ACE.Server.Managers
             }
 
             uint areaCampId;
-            if (Player.CurrentLandblock.IsDungeon)
+            if (Player.CurrentLandblock.IsDungeon || (Player.CurrentLandblock.HasDungeon && Player.Location.Indoors))
                 areaCampId = Player.CurrentLandblock.Id.Raw & 0xFFFF0000;
             else
+            {
                 areaCampId = Player.CurrentLandblock.Id.Raw & 0xF0F00000;
+                if (areaCampId == 0) // Fix conflict with restCamp for the lower left area of the map(Caul)
+                    areaCampId = 0x0F0F0000;
+            }
             if (areaCampId != 0)
             {
                 var areaCamp = GetOrCreateCamp(areaCampId, out _);
@@ -370,19 +378,12 @@ namespace ACE.Server.Managers
             }
         }
 
-        public void HandleCampInteraction(Creature creature, out float typeCampBonus, out float areaCampBonus, out float restCampBonus)
+        public void HandleCampInteraction(uint typeCampId, Landblock landblock, out float typeCampBonus, out float areaCampBonus, out float restCampBonus)
         {
-            typeCampBonus = 0;
-            areaCampBonus = 0;
-            restCampBonus = 0;
+            typeCampBonus = 1.0f;
+            areaCampBonus = 1.0f;
+            restCampBonus = 1.0f;
 
-            if (creature == null)
-            {
-                log.Error($"{Name}.CampManager.HandleCampInteraction: input creature is null!");
-                return;
-            }
-
-            uint typeCampId = (uint)creature.CreatureType;
             if (typeCampId != 0)
             {
                 var typeCamp = GetOrCreateCamp(typeCampId, out _);
@@ -394,19 +395,29 @@ namespace ACE.Server.Managers
                 }
             }
 
-            uint areaCampId;
-            if (creature.CurrentLandblock.IsDungeon)
-                areaCampId = creature.CurrentLandblock.Id.Raw & 0xFFFF0000;
-            else
-                areaCampId = creature.CurrentLandblock.Id.Raw & 0xF0F00000;
-            if (areaCampId != 0)
+            if (typeCampId > 0xFFFF0000) // Turn-in Type Camp
+                return;
+
+            if (landblock != null)
             {
-                var areaCamp = GetOrCreateCamp(areaCampId, out _);
-                if (areaCamp != null)
+                uint areaCampId;
+                if (Player.CurrentLandblock.IsDungeon || (Player.CurrentLandblock.HasDungeon && Player.Location.Indoors))
+                    areaCampId = landblock.Id.Raw & 0xFFFF0000;
+                else
                 {
-                    CheckDecay(areaCamp, true);
-                    areaCampBonus = 1.0f - ((float)areaCamp.NumInteractions / GetMaxInteractions(areaCamp.CampId));
-                    Increment(areaCamp);
+                    areaCampId = landblock.Id.Raw & 0xF0F00000;
+                    if (areaCampId == 0) // Fix conflict with restCamp for the lower left area of the map(Caul)
+                        areaCampId = 0x0F0F0000;
+                }
+                if (areaCampId != 0)
+                {
+                    var areaCamp = GetOrCreateCamp(areaCampId, out _);
+                    if (areaCamp != null)
+                    {
+                        CheckDecay(areaCamp, true);
+                        areaCampBonus = 1.0f - ((float)areaCamp.NumInteractions / GetMaxInteractions(areaCamp.CampId));
+                        Increment(areaCamp);
+                    }
                 }
             }
 

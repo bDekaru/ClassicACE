@@ -268,10 +268,9 @@ namespace ACE.Server.Factories.Tables.Wcids
                 {
                     ( WeenieClassName.spear,               3.0f ),
 
-                    ( WeenieClassName.trident,             0.50f ),
-                    ( WeenieClassName.swordstaff,          0.50f ),
-
-                    ( WeenieClassName.ace41046_pike,       0.50f ),
+                    ( WeenieClassName.trident,             0.5f ),
+                    ( WeenieClassName.swordstaff,          0.5f ),
+                    ( WeenieClassName.ace41046_pike,       0.5f ),
                 };
 
                 SpearWcids_Aluvian = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
@@ -303,12 +302,11 @@ namespace ACE.Server.Factories.Tables.Wcids
 
                 SpearWcids_Gharundim_T1 = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
                 {
-                    ( WeenieClassName.budiaq,              3.00f ),
+                    ( WeenieClassName.budiaq,              3.0f ),
 
-                    ( WeenieClassName.trident,             0.50f ),
-                    ( WeenieClassName.swordstaff,          0.50f ),
-
-                    ( WeenieClassName.ace41036_assagai,    0.50f ),
+                    ( WeenieClassName.trident,             0.5f ),
+                    ( WeenieClassName.swordstaff,          0.5f ),
+                    ( WeenieClassName.ace41036_assagai,    0.5f ),
                 };
 
                 SpearWcids_Gharundim = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
@@ -340,12 +338,11 @@ namespace ACE.Server.Factories.Tables.Wcids
 
                 SpearWcids_Sho_T1 = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
                 {
-                    ( WeenieClassName.yari,                3.00f ),
+                    ( WeenieClassName.yari,                3.0f ),
 
-                    ( WeenieClassName.trident,             0.50f ),
-                    ( WeenieClassName.swordstaff,          0.50f ),
-
-                    ( WeenieClassName.ace41041_magariyari, 0.50f ),
+                    ( WeenieClassName.trident,             0.5f ),
+                    ( WeenieClassName.swordstaff,          0.5f ),
+                    ( WeenieClassName.ace41041_magariyari, 0.5f ),
                 };
 
                 SpearWcids_Sho = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)

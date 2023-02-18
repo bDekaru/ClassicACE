@@ -18,6 +18,8 @@ namespace ACE.Server
         {
             var exeLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             var configJsExample = Path.Combine(exeLocation, "Config.js.example");
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                configJsExample = Path.Combine(exeLocation, "Config.js.CustomDM.example");
             var exampleFile = new FileInfo(configJsExample);
             if (!exampleFile.Exists)
             {

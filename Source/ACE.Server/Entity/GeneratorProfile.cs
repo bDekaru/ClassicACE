@@ -108,7 +108,7 @@ namespace ACE.Server.Entity
         {
             get
             {
-                if (Generator is Chest)
+                if (Generator is Chest && (Generator.ActivationResponse == ActivationResponse.Use || FirstSpawn))
                     return 0;
 
                 return Biota.Delay ?? Generator.GeneratorProfiles[0].Biota.Delay ?? 0.0f;
@@ -637,6 +637,17 @@ namespace ACE.Server.Entity
             }
 
             CleanupProfile();
+        }
+
+        public void StartAllContainersDecay()
+        {
+            foreach (var rNode in Spawned.Values)
+            {
+                var wo = rNode.TryGetWorldObject();
+
+                if (wo != null && wo is Container container)
+                    container.StartContainerDecay();
+            }
         }
 
         private void CleanupProfile()

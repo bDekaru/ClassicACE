@@ -266,8 +266,7 @@ namespace ACE.Server.Entity
                         CreatureSkill attackerMeleeDef = playerAttacker.GetCreatureSkill(Skill.MeleeDefense);
                         CreatureSkill defenderMeleeDef = defender.GetCreatureSkill(Skill.MeleeDefense);
 
-                        var activationChance = SkillCheck.GetSkillChance(attackerMeleeDef.Current, defenderMeleeDef.Current);
-                        activationChance += playerAttacker.ScaleWithPowerAccuracyBar((float)activationChance);
+                        var activationChance = SkillCheck.GetSkillChance(attackerMeleeDef.Current, (uint)(defenderMeleeDef.Current * 0.75f));
                         if (activationChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                             RecklessnessMod = 1.20f; // Extra damage dealt while attacking with the Reckless technique.
                     }
@@ -290,48 +289,46 @@ namespace ACE.Server.Entity
 
             var attackSkill = attacker.GetCreatureSkill(attacker.GetCurrentWeaponSkill());
 
-            if (attackerTechniqueId != TacticAndTechniqueType.Defensive)
+            // critical hit?
+            CriticalChance = WorldObject.GetWeaponCriticalChance(Weapon, attacker, attackSkill, defender);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                // critical hit?
-                CriticalChance = WorldObject.GetWeaponCriticalChance(Weapon, attacker, attackSkill, defender);
-
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM )
+                if (playerAttacker != null)
                 {
-                    if (playerAttacker != null)
+                    if (CombatType != CombatType.Magic)
                     {
-                        if (isAttackFromSneaking)
-                            CriticalChance = 1.0f;
-                        else if (attackerTechniqueId == TacticAndTechniqueType.Opportunist)
-                        {
-                            if(attacker != defender)
-                                CriticalChance += 0.10f + playerAttacker.ScaleWithPowerAccuracyBar(0.10f); // Extra critical chance while using the Opportunist technique.
-
-                            var currentTime = Time.GetUnixTime();
-                            var chance = 0.15f + playerAttacker.ScaleWithPowerAccuracyBar(0.15f);
-                            if (attacker != defender && playerAttacker.NextTechniqueNegativeActivationTime <= currentTime && chance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                            {
-                                // Chance of inflicting self damage while using the Opportunist technique.
-                                playerAttacker.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
-                                playerAttacker.DamageTarget(playerAttacker, damageSource);
-                            }
-                        }
-
-                        if (CombatType != CombatType.Magic)
-                        {
-                            // A full power/accuracy bar doubles critical chance
-                            CriticalChance += playerAttacker.ScaleWithPowerAccuracyBar(CriticalChance);
-                        }
+                        // critical chance scales with power/accuracy bar
+                        CriticalChance += playerAttacker.ScaleWithPowerAccuracyBar(CriticalChance);
                     }
 
-                    if(playerDefender != null)
+                    if (isAttackFromSneaking)
                     {
-                        if (defenderTechniqueId == TacticAndTechniqueType.Riposte)
-                            CriticalChance += 0.10f; // Extra chance of receiving critical hits while using the Riposte technique.
+                        CriticalChance = 1.0f;
+                        if (playerDefender == null)
+                            SneakAttackMod = 3.0f;
+                    }
+                    else if (attackerTechniqueId == TacticAndTechniqueType.Opportunist)
+                    {
+                        CriticalChance += 0.10f + playerAttacker.ScaleWithPowerAccuracyBar(0.10f); // Extra critical chance while using the Opportunist technique.
+
+                        var currentTime = Time.GetUnixTime();
+                        var chance = 0.2f + playerAttacker.ScaleWithPowerAccuracyBar(0.2f);
+                        if (attacker != defender && playerAttacker.NextTechniqueNegativeActivationTime <= currentTime && chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                        {
+                            // Chance of inflicting self damage while using the Opportunist technique.
+                            playerAttacker.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
+                            playerAttacker.DamageTarget(playerAttacker, damageSource);
+                        }
                     }
                 }
+
+                if (playerDefender != null)
+                {
+                    if (defenderTechniqueId == TacticAndTechniqueType.Riposte)
+                        CriticalChance += 0.10f; // Extra chance of receiving critical hits while using the Riposte technique.
+                }
             }
-            else
-                CriticalChance = 0.0f; // Defensive technique never crits.
 
             // https://asheron.fandom.com/wiki/Announcements_-_2002/08_-_Atonement
             // It should be noted that any time a character is logging off, PK or not, all physical attacks against them become automatically critical.
@@ -380,6 +377,9 @@ namespace ACE.Server.Entity
             var armorCleavingMod = attacker.GetArmorCleavingMod(Weapon);
 
             var ignoreArmorMod = Math.Min(armorRendingMod, armorCleavingMod);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && pkBattle)
+                ignoreArmorMod *= 0.7f; // Armor is reduced during PvP.
 
             // get body part / armor pieces / armor modifier
             if (playerDefender != null)
@@ -469,25 +469,26 @@ namespace ACE.Server.Entity
         /// </summary>
         public float GetEvadeChance(Creature attacker, Creature defender)
         {
+            Player playerAttacker = attacker as Player;
+            Player playerDefender = defender as Player;
+            bool isPvP = playerAttacker != null && playerDefender != null;
+
             AccuracyMod = attacker.GetAccuracyMod(Weapon);
 
             EffectiveAttackSkill = attacker.GetEffectiveAttackSkill();
 
             //var attackType = attacker.GetCombatType();
 
-            EffectiveDefenseSkill = defender.GetEffectiveDefenseSkill(CombatType);
+            EffectiveDefenseSkill = defender.GetEffectiveDefenseSkill(CombatType, isPvP);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                Player playerAttacker = attacker as Player;
-
                 if (playerAttacker != null)
                 {
                     if (playerAttacker.AttackHeight == AttackHeight.Medium) // Medium height attacks gives players 10% extra attack skill.
                         EffectiveAttackSkill = (uint)Math.Round(EffectiveAttackSkill * 1.10f);
                 }
 
-                Player playerDefender = defender as Player;
                 if (playerDefender != null)
                 {
                     var defenderTechnique = playerDefender.GetEquippedTrinket();
@@ -504,6 +505,10 @@ namespace ACE.Server.Entity
             }
 
             var evadeChance = 1.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveDefenseSkill);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && playerDefender != null)
+                evadeChance = Math.Min(evadeChance, 0.95f + ((CombatType == CombatType.Missile ? playerDefender.CachedMissileDefenseCapBonus : playerDefender.CachedMeleeDefenseCapBonus)) * 0.01);
+
             return (float)evadeChance;
         }
 

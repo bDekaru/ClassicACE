@@ -209,13 +209,18 @@ namespace ACE.Server.WorldObjects
             // only applies to players
             if ((this as Player) == null) return 1.0f;
 
-            // does not apply for mana?
-            if (vital.Vital == PropertyAttribute2nd.MaxMana) return 1.0f;
-
             var forwardCommand = CurrentMovementData.MovementType == MovementType.Invalid && CurrentMovementData.Invalid != null ? CurrentMovementData.Invalid.State.ForwardCommand : MotionCommand.Invalid;
 
+            if (vital.Vital == PropertyAttribute2nd.MaxMana)
+            {
+                if(forwardCommand == MotionCommand.MeditateState && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    return 2.0f;
+                else
+                    return 1.0f;
+            }
+
             // combat mode / running
-            if (CombatMode != CombatMode.NonCombat || forwardCommand == MotionCommand.RunForward)
+            if (CombatMode != CombatMode.NonCombat || (forwardCommand == MotionCommand.RunForward && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM))
                 return 0.5f;
 
             switch (forwardCommand)

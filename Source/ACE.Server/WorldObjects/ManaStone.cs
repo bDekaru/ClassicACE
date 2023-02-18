@@ -189,6 +189,83 @@ namespace ACE.Server.WorldObjects
                             ItemCurMana = ItemMaxMana;
                     }
                 }
+                else if (target.WeenieType == WeenieType.Container && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    var container = target as Container;
+                    if (container == null)
+                        useResult = WeenieError.ActionCancelled;
+                    else
+                    {
+                        // dump mana into contained items
+                        var origItemsNeedingMana = container.Inventory.Values.Where(k => k.ItemCurMana.HasValue && k.ItemMaxMana.HasValue && k.ItemCurMana < k.ItemMaxMana).ToList();
+                        var itemsGivenMana = new Dictionary<WorldObject, int>();
+
+                        while (ItemCurMana > 0)
+                        {
+                            var itemsNeedingMana = origItemsNeedingMana.Where(k => k.ItemCurMana < k.ItemMaxMana).ToList();
+                            if (itemsNeedingMana.Count < 1)
+                                break;
+
+                            var ration = Math.Max(ItemCurMana.Value / itemsNeedingMana.Count, 1);
+
+                            foreach (var item in itemsNeedingMana)
+                            {
+                                var manaNeededForTopoff = (int)(item.ItemMaxMana - item.ItemCurMana);
+                                var adjustedRation = Math.Min(ration, manaNeededForTopoff);
+
+                                ItemCurMana -= adjustedRation;
+
+                                if (player.LumAugItemManaGain != 0)
+                                {
+                                    adjustedRation = (int)Math.Round(adjustedRation * Creature.GetPositiveRatingMod(player.LumAugItemManaGain * 5));
+                                    if (adjustedRation > manaNeededForTopoff)
+                                    {
+                                        var diff = adjustedRation - manaNeededForTopoff;
+                                        adjustedRation = manaNeededForTopoff;
+                                        ItemCurMana += diff;
+                                    }
+                                }
+
+                                item.ItemCurMana += adjustedRation;
+                                if (!itemsGivenMana.ContainsKey(item))
+                                    itemsGivenMana[item] = adjustedRation;
+                                else
+                                    itemsGivenMana[item] += adjustedRation;
+
+                                if (ItemCurMana <= 0)
+                                    break;
+                            }
+                        }
+
+                        if (itemsGivenMana.Count < 1)
+                        {
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat("You have no items in this container that need mana.", ChatMessageType.Broadcast));
+                            useResult = WeenieError.ActionCancelled;
+                        }
+                        else
+                        {
+                            //The Mana Stone gives 4,496 points of mana to the following items: Fire Compound Crossbow, Qafiya, Celdon Sleeves, Amuli Leggings, Messenger's Collar, Heavy Bracelet, Scalemail Bracers, Olthoi Alduressa Gauntlets, Studded Leather Girth, Shoes, Chainmail Greaves, Loose Pants, Mechanical Scarab, Ring, Ring, Heavy Bracelet
+                            //Your items are fully charged.
+
+                            //The Mana Stone gives 1,921 points of mana to the following items: Haebrean Girth, Chiran Helm, Ring, Baggy Breeches, Scalemail Greaves, Alduressa Boots, Heavy Bracelet, Heavy Bracelet, Lorica Breastplate, Pocket Watch, Heavy Necklace
+                            //You need 2,232 more mana to fully charge your items.
+
+                            var additionalManaNeeded = origItemsNeedingMana.Sum(k => k.ItemMaxMana.Value - k.ItemCurMana.Value);
+                            var additionalManaText = (additionalManaNeeded > 0) ? $"\nYou need {additionalManaNeeded:N0} more mana to fully charge your items." : "\nYour items are fully charged.";
+                            var msg = $"The Mana Stone gives {itemsGivenMana.Values.Sum():N0} points of mana to the following items: {itemsGivenMana.Select(c => c.Key.Name).Aggregate((a, b) => a + ", " + b)}.{additionalManaText}";
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
+
+                            if (!DoDestroyDiceRoll(player) && !UnlimitedUse)
+                            {
+                                ItemCurMana = null;
+                                SetUiEffect(player, ACE.Entity.Enum.UiEffects.Undef);
+                            }
+
+                            if (UnlimitedUse && ItemMaxMana.HasValue)
+                                ItemCurMana = ItemMaxMana;
+                        }
+                    }
+                }
                 else if (target.ItemMaxMana.HasValue && target.ItemMaxMana.Value > 0)
                 {
                     var targetItemCurMana = target.ItemCurMana ?? 0;

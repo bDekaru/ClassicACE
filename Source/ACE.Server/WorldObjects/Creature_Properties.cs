@@ -361,5 +361,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyBool.IsModified) ?? false;
             set { if (!value) RemoveProperty(PropertyBool.IsModified); else SetProperty(PropertyBool.IsModified, value); }
         }
+
+        public bool UseXpOverride
+        {
+            get => GetProperty(PropertyBool.UseXpOverride) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.UseXpOverride); else SetProperty(PropertyBool.UseXpOverride, value); }
+        }
     }
 }

@@ -101,7 +101,12 @@ namespace ACE.Server.WorldObjects
                 AwarenessHeartbeat(currentUnixTime);
 
             if (EnchantmentManager.HasEnchantments)
-                EnchantmentManager.HeartBeat(CachedHeartbeatInterval);
+            {
+                if(this is Player)
+                    EnchantmentManager.HeartBeat(CachedHeartbeatInterval, true, false);
+                else
+                    EnchantmentManager.HeartBeat(CachedHeartbeatInterval);
+            }
 
             if (IsLifespanSpent)
                 DeleteObject();

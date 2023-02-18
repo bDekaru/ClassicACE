@@ -4,6 +4,8 @@ using ACE.Common;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
+using ACE.Server.Factories.Tables;
+using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
 
@@ -373,7 +375,7 @@ namespace ACE.Server.WorldObjects
             {
                 var cripplingBlowMod = GetCripplingBlowMod(skill);
 
-                critDamageMod = Math.Max(critDamageMod, cripplingBlowMod); 
+                critDamageMod = Math.Max(critDamageMod, cripplingBlowMod);
             }
             return critDamageMod;
         }
@@ -474,7 +476,12 @@ namespace ACE.Server.WorldObjects
 
             // handle quest weapon fixed resistance cleaving
             if (weapon.ResistanceModifierType != null && weapon.ResistanceModifierType == damageType)
-                resistMod = 1.0f + (float)(weapon.ResistanceModifier ?? defaultModifier);       // 1.0 in the data, equivalent to a level 5 vuln
+            {
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    resistMod = 1.0f + (float)(weapon.ResistanceModifier ?? defaultModifier);       // 1.0 in the data, equivalent to a level 5 vuln
+                else
+                    resistMod = (float)(weapon.ResistanceModifier ?? 1.5f); // Equivalent to level III Elemental Vulnerability.
+            }
 
             // handle elemental resistance rending
             var rendDamageType = GetRendDamageType(damageType);
@@ -624,32 +631,45 @@ namespace ACE.Server.WorldObjects
 
             var baseSkill = GetBaseSkillImbued(skill);
 
-            switch (skillType)
+            var defaultCritFrequency = skillType == ImbuedSkillType.Magic ? defaultMagicCritFrequency : defaultPhysicalCritFrequency;
+
+            float criticalStrikeMod;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                case ImbuedSkillType.Melee:
-
-                    baseMod = Math.Max(0, baseSkill - 100) / 600.0f;
-                    break;
-
-                case ImbuedSkillType.Missile:
-                case ImbuedSkillType.Magic:
-
-                    baseMod = Math.Max(0, baseSkill - 60) / 600.0f;
-                    break;
-
-                default:
-                    return 0.0f;
+                return 0.2f;
             }
+            else
+            {
+                switch (skillType)
+                {
+                    case ImbuedSkillType.Melee:
 
-            // http://acpedia.org/wiki/Announcements_-_2004/07_-_Treaties_in_Stone#Letter_to_the_Players
+                        baseMod = Math.Max(0, baseSkill - 100) / 600.0f;
+                        break;
 
-            // For PvE only:
+                    case ImbuedSkillType.Missile:
+                    case ImbuedSkillType.Magic:
 
-            // Critical Strike for War Magic currently scales from 5% critical hit chance to 25% critical hit chance at maximum effectiveness.
-            // In July, the maximum effectiveness will be increased to 50% chance.
+                        baseMod = Math.Max(0, baseSkill - 60) / 600.0f;
+                        break;
 
-            if (skillType == ImbuedSkillType.Magic && isPvP)
-                baseMod *= 0.5f;
+                    default:
+                        return 0.0f;
+                }
+
+                // http://acpedia.org/wiki/Announcements_-_2004/07_-_Treaties_in_Stone#Letter_to_the_Players
+
+                // For PvE only:
+
+                // Critical Strike for War Magic currently scales from 5% critical hit chance to 25% critical hit chance at maximum effectiveness.
+                // In July, the maximum effectiveness will be increased to 50% chance.
+
+                if (skillType == ImbuedSkillType.Magic && isPvP)
+                    baseMod *= 0.5f;
+
+                criticalStrikeMod = Math.Clamp(baseMod, defaultCritFrequency, MaxCriticalStrikeMod);
+            }
 
             // In the original formula for CS Magic pre-July 2004, (BS - 60) / 1200.0f, the minimum 5% crit rate would have been achieved at BS 120,
             // which is exactly equal to the minimum base skill for CS Missile becoming effective.
@@ -669,10 +689,6 @@ namespace ACE.Server.WorldObjects
 
             if (baseMod >= minEffective)
                 criticalStrikeMod = baseMod;*/
-
-            var defaultCritFrequency = skillType == ImbuedSkillType.Magic ? defaultMagicCritFrequency : defaultPhysicalCritFrequency;
-
-            var criticalStrikeMod = Math.Max(defaultCritFrequency, baseMod);
 
             //Console.WriteLine($"CriticalStrikeMod: {criticalStrikeMod}");
 
@@ -698,20 +714,32 @@ namespace ACE.Server.WorldObjects
 
             var baseMod = 1.0f;
 
-            switch(GetImbuedSkillType(skill))
+            float cripplingBlowMod;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                case ImbuedSkillType.Melee:
-                    baseMod = Math.Max(0, baseSkill - 40) / 60.0f;
-                    break;
-
-                case ImbuedSkillType.Missile:
-                case ImbuedSkillType.Magic:
-
-                    baseMod = baseSkill / 60.0f;
-                    break;
+                if (GetImbuedSkillType(skill) == ImbuedSkillType.Magic)
+                    return 2.0f;
+                else
+                    return 2.5f;
             }
+            else
+            {
+                switch (GetImbuedSkillType(skill))
+                {
+                    case ImbuedSkillType.Melee:
+                        baseMod = Math.Max(0, baseSkill - 40) / 60.0f;
+                        break;
 
-            var cripplingBlowMod = Math.Max(1.0f, baseMod);
+                    case ImbuedSkillType.Missile:
+                    case ImbuedSkillType.Magic:
+
+                        baseMod = baseSkill / 60.0f;
+                        break;
+                }
+
+                cripplingBlowMod = Math.Clamp(baseMod, 1.0f, MaxCripplingBlowMod);
+            }
 
             //Console.WriteLine($"CripplingBlowMod: {cripplingBlowMod}");
 
@@ -727,19 +755,26 @@ namespace ACE.Server.WorldObjects
 
             var rendingMod = 1.0f;
 
-            switch (GetImbuedSkillType(skill))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                case ImbuedSkillType.Melee:
-                    rendingMod = baseSkill / 160.0f;
-                    break;
-
-                case ImbuedSkillType.Missile:
-                case ImbuedSkillType.Magic:
-                    rendingMod = baseSkill / 144.0f;
-                    break;
+                rendingMod = 1.75f; // Equivalent to level IV Elemental Vulnerability.
             }
+            else
+            {
+                switch (GetImbuedSkillType(skill))
+                {
+                    case ImbuedSkillType.Melee:
+                        rendingMod = baseSkill / 160.0f;
+                        break;
 
-            rendingMod = Math.Clamp(rendingMod, 1.0f, MaxRendingMod);
+                    case ImbuedSkillType.Missile:
+                    case ImbuedSkillType.Magic:
+                        rendingMod = baseSkill / 144.0f;
+                        break;
+                }
+
+                rendingMod = Math.Clamp(rendingMod, 1.0f, MaxRendingMod);
+            }
 
             //Console.WriteLine($"RendingMod: {rendingMod}");
 
@@ -750,21 +785,25 @@ namespace ACE.Server.WorldObjects
 
         public static float GetArmorRendingMod(CreatureSkill skill)
         {
-            // % of armor ignored, min 0%, max 60%
-
-            var baseSkill = GetBaseSkillImbued(skill);
-
             var armorRendingMod = 1.0f;
 
-            switch (GetImbuedSkillType(skill))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                armorRendingMod -= 1.0f/3.0f; // Equivalent to Imperil IV for 300 AL armor.
+            else
             {
-                case ImbuedSkillType.Melee:
-                    armorRendingMod -= Math.Max(0, baseSkill - 160) / 400.0f;
-                    break;
+                // % of armor ignored, min 0%, max 60%
+                var baseSkill = GetBaseSkillImbued(skill);
 
-                case ImbuedSkillType.Missile:
-                    armorRendingMod -= Math.Max(0, baseSkill - 144) / 360.0f;
-                    break;
+                switch (GetImbuedSkillType(skill))
+                {
+                    case ImbuedSkillType.Melee:
+                        armorRendingMod -= Math.Clamp(Math.Max(0, baseSkill - 160) / 400.0f, 0.0f, MaxArmorRendingMod);
+                        break;
+
+                    case ImbuedSkillType.Missile:
+                        armorRendingMod -= Math.Clamp(Math.Max(0, baseSkill - 144) / 360.0f, 0.0f, MaxArmorRendingMod);
+                        break;
+                }
             }
 
             //Console.WriteLine($"ArmorRendingMod: {armorRendingMod}");
@@ -795,11 +834,16 @@ namespace ACE.Server.WorldObjects
             if (IgnoreArmor == null)
                 return 1.0f;
 
-            // FIXME: data
-            var maxSpellLevel = GetMaxSpellLevel();
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                return (float)IgnoreArmor;
+            else
+            {
+                // FIXME: data
+                var maxSpellLevel = GetMaxSpellLevel();
 
-            // thanks to moro for this formula
-            return 1.0f - (0.1f + maxSpellLevel * 0.05f);
+                // thanks to moro for this formula
+                return 1.0f - (0.1f + maxSpellLevel * 0.05f);
+            }
         }
 
         public double? IgnoreShield
@@ -811,7 +855,11 @@ namespace ACE.Server.WorldObjects
         public float GetIgnoreShieldMod(WorldObject weapon)
         {
             var creatureMod = IgnoreShield ?? 0.0f;
-            var weaponMod = weapon?.IgnoreShield ?? 0.0f;
+            double weaponMod;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && weapon != null && weapon.IsTwoHanded)
+                weaponMod = 0.5f;
+            else
+                weaponMod = weapon?.IgnoreShield ?? 0.0f;
 
             return 1.0f - (float)Math.Max(creatureMod, weaponMod);
         }
@@ -961,39 +1009,40 @@ namespace ACE.Server.WorldObjects
             return HasProc && ProcSpell == spellID;
         }
 
-        public void TryProcItem(WorldObject attacker, Creature target)
+        private double NextProcAttemptTime = 0;
+        private static double ProcAttemptInterval = 10;
+        public void TryProcItem(WorldObject attacker, Creature target, bool selfTarget)
         {
+            if (target.IsDead)
+                return; // Target is already dead, abort!
+
             var currentTime = Time.GetUnixTime();
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            // roll for a chance of casting spell
+            var chance = ProcSpellRate ?? 0.0f;
+
+            var creatureAttacker = attacker as Creature;
+            var playerAttacker = attacker as Player;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && creatureAttacker != null)
             {
                 if (ItemMaxMana > 0 && !IsAffecting)
                     return; // The item spells must be active for the item to proc.
 
                 if (NextProcAttemptTime > currentTime)
                     return;
-            }
 
-            // roll for a chance of casting spell
-            var chance = ProcSpellRate ?? 0.0f;
-
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-            {
-                Player playerWielder = Wielder as Player;
-                if(playerWielder != null)
-                    chance += playerWielder.ScaleWithPowerAccuracyBar((float)chance);
+                if (playerAttacker != null)
+                    chance += playerAttacker.ScaleWithPowerAccuracyBar((float)chance);
             }
 
             // special handling for aetheria
-            if (Aetheria.IsAetheria(WeenieClassId) && attacker is Creature wielder)
-                chance = Aetheria.CalcProcRate(this, wielder);
+            if (Aetheria.IsAetheria(WeenieClassId) && creatureAttacker != null)
+                chance = Aetheria.CalcProcRate(this, creatureAttacker);
 
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
             if (rng >= chance)
                 return;
-
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                NextProcAttemptTime = currentTime + ProcAttemptInterval;
 
             var spell = new Spell(ProcSpell.Value);
 
@@ -1020,12 +1069,181 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && creatureAttacker != null)
+            {
+                NextProcAttemptTime = currentTime + ProcAttemptInterval;
+
+                var manaCost = spell.BaseMana / 4;
+                var manaConvDiff = spell.Level * 25;
+
+                var manaConversion = creatureAttacker.GetCreatureSkill(Skill.ManaConversion);
+                if (manaConversion.AdvancementClass >= SkillAdvancementClass.Trained)
+                    manaCost = Creature.GetManaCost(manaConvDiff, manaCost, manaConversion.Current, manaConversion.AdvancementClass);
+
+                if (creatureAttacker.Mana.Current >= manaCost)
+                    creatureAttacker.UpdateVitalDelta(creatureAttacker.Mana, -(int)manaCost);
+                else
+                {
+                    if(playerAttacker != null)
+                        playerAttacker.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(playerAttacker.Session, $"You don't have enough mana so your {NameWithMaterial} cannot cast {spell.Name}!"));
+                    return;
+                }
+            }
+
             var itemCaster = this is Creature ? null : this;
 
             if (spell.NonComponentTargetType == ItemType.None)
                 attacker.TryCastSpell(spell, null, itemCaster, itemCaster, true, true);
+            else if (spell.NonComponentTargetType == ItemType.Vestements)
+            {
+                // TODO: spell.NonComponentTargetType should probably always go through TryCastSpell_WithItemRedirects,
+                // however i don't feel like testing every possible known type of item procspell in the current db to ensure there are no regressions
+                // current test case: 33990 Composite Bow casting Tattercoat
+                attacker.TryCastSpell_WithRedirects(spell, target, itemCaster, itemCaster, true, true);
+            }
             else
                 attacker.TryCastSpell(spell, target, itemCaster, itemCaster, true, true);
+        }
+
+        private double NextInnateProcAttemptTime = 0;
+        private static double InnateProcAttemptInterval = 8;
+        public void TryProcInnate(WorldObject attacker, Creature target, bool selfTarget)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            if (target.IsDead)
+                return; // Target is already dead, abort!
+
+            var procSpellId = SpellId.Undef;
+            var creature = attacker as Creature;
+            if (creature == null)
+                return;
+
+            bool showCastMessage = false;
+            if (WeaponSkill == Skill.Dagger)
+            {
+                showCastMessage = true;
+
+                var skill = creature.GetCreatureSkill(Skill.Dagger);
+                if (skill.AdvancementClass >= SkillAdvancementClass.Trained)
+                {
+                    if (skill.Current < 200)
+                        procSpellId = SpellId.DF_Trained_Bleed; // Bleeding Blow
+                    else
+                        procSpellId = SpellId.DF_Specialized_Bleed; // Bleeding Assault
+                }
+            }
+            else if (WeaponSkill == Skill.UnarmedCombat)
+            {
+                showCastMessage = true;
+
+                var skill = creature.GetCreatureSkill(Skill.UnarmedCombat);
+                if (skill.AdvancementClass >= SkillAdvancementClass.Trained)
+                {
+                    int spellLevel;
+                    if (skill.Current < 200)
+                        spellLevel = 1;
+                    else if (skill.Current < 250)
+                        spellLevel = 2;
+                    else if (skill.Current < 300)
+                        spellLevel = 3;
+                    else
+                        spellLevel = 4;
+
+                    switch (creature.GetDamageType(false, CombatType.Melee))
+                    {
+                        case DamageType.Pierce: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.ForceBolt1, spellLevel); break;
+                        case DamageType.Slash: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.WhirlingBlade1, spellLevel); break;
+                        case DamageType.Bludgeon: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.ShockWave1, spellLevel); break;
+                        case DamageType.Fire: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.FlameBolt1, spellLevel); break;
+                        case DamageType.Cold: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.FrostBolt1, spellLevel); break;
+                        case DamageType.Electric: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.LightningBolt1, spellLevel); break;
+                        case DamageType.Acid: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.AcidStream1, spellLevel); break;
+                    }
+                }
+            }
+
+            if (procSpellId == SpellId.Undef)
+                return;
+
+            var creatureAttacker = attacker as Creature;
+            var playerAttacker = attacker as Player;
+
+            var currentTime = Time.GetUnixTime();
+            if (NextInnateProcAttemptTime > currentTime)
+                return;
+
+            var chance = 0.25f;
+            if (playerAttacker != null)
+                chance += playerAttacker.ScaleWithPowerAccuracyBar((float)chance);
+
+            var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
+            if (rng >= chance)
+                return;
+
+            var spell = new Spell(procSpellId);
+
+            if (spell.NotFound)
+            {
+                if (attacker is Player player)
+                {
+                    if (spell._spellBase == null)
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"SpellId {ProcSpell.Value} Invalid.", ChatMessageType.System));
+                    else
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} spell not implemented, yet!", ChatMessageType.System));
+                }
+                return;
+            }
+
+            // not sure if this should go before or after the resist check
+            // after would match Player_Magic, but would require changing the signature of TryCastSpell yet again
+            // starting with the simpler check here
+            if (!selfTarget && target != null && target.NonProjectileMagicImmune && !spell.IsProjectile)
+            {
+                if (attacker is Player player)
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You fail to affect {target.Name} with {spell.Name}", ChatMessageType.Magic));
+
+                return;
+            }
+
+            if (creatureAttacker != null)
+            {
+                NextInnateProcAttemptTime = currentTime + InnateProcAttemptInterval;
+
+                if (WeaponSkill == Skill.UnarmedCombat)
+                {
+                    var manaCost = spell.BaseMana;
+                    var manaConvDiff = spell.Level * 25;
+
+                    var manaConversion = creatureAttacker.GetCreatureSkill(Skill.ManaConversion);
+                    if (manaConversion.AdvancementClass >= SkillAdvancementClass.Trained)
+                        manaCost = Creature.GetManaCost(manaConvDiff, manaCost, manaConversion.Current, manaConversion.AdvancementClass);
+
+                    if (creatureAttacker.Mana.Current >= manaCost)
+                        creatureAttacker.UpdateVitalDelta(creatureAttacker.Mana, -(int)manaCost);
+                    else
+                    {
+                        if (playerAttacker != null)
+                            playerAttacker.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(playerAttacker.Session, $"You don't have enough mana so your {NameWithMaterial} cannot cast {spell.Name}!"));
+                        return;
+                    }
+                }
+            }
+
+            var itemCaster = this is Creature ? null : this;
+
+            if (spell.NonComponentTargetType == ItemType.None)
+                attacker.TryCastSpell(spell, null, itemCaster, itemCaster, true, true, true, showCastMessage);
+            else if (spell.NonComponentTargetType == ItemType.Vestements)
+            {
+                // TODO: spell.NonComponentTargetType should probably always go through TryCastSpell_WithItemRedirects,
+                // however i don't feel like testing every possible known type of item procspell in the current db to ensure there are no regressions
+                // current test case: 33990 Composite Bow casting Tattercoat
+                attacker.TryCastSpell_WithRedirects(spell, target, itemCaster, itemCaster, true, true);
+            }
+            else
+                attacker.TryCastSpell(spell, target, itemCaster, itemCaster, true, true, true, showCastMessage);
         }
 
         private bool? isMasterable;

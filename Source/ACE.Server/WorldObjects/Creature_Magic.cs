@@ -39,50 +39,99 @@ namespace ACE.Server.WorldObjects
             if (manaConversion.AdvancementClass < SkillAdvancementClass.Trained || spell.Flags.HasFlag(SpellFlags.IgnoresManaConversion))
                 return baseCost;
 
-            var difficulty = spell.PowerMod;   // modified power difficulty
+            uint difficulty;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+                difficulty = spell.PowerMod;   // modified power difficulty
+            else
+                difficulty = spell.Level * 25;
 
-            var mana_conversion_skill = (uint)Math.Round(manaConversion.Current * GetWeaponManaConversionModifier(caster));
+            var robeManaConversionMod = 0.0;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var robe = EquippedObjects.Values.FirstOrDefault(e => e.CurrentWieldedLocation == EquipMask.Armor);
+                if (robe != null)
+                    robeManaConversionMod = robe.ManaConversionMod ?? 0;
+            }
 
-            var manaCost = GetManaCost(difficulty, baseCost, mana_conversion_skill);
+            var mana_conversion_skill = (uint)Math.Round(manaConversion.Current * (GetWeaponManaConversionModifier(caster) + robeManaConversionMod));
+
+            var manaCost = GetManaCost(difficulty, baseCost, mana_conversion_skill, manaConversion.AdvancementClass);
 
             return manaCost;
         }
 
-        public static uint GetManaCost(uint difficulty, uint manaCost, uint manaConv)
+        public static uint GetManaCost(uint difficulty, uint manaCost, uint manaConv, SkillAdvancementClass advancementClass)
         {
-            // thanks to GDLE for this function!
-            if (manaConv == 0)
-                return manaCost;
-
-            // Dropping diff by half as Specced ManaC is only 48 with starter Aug so 50 at level 1 means no bonus
-            //   easiest change without having to create two different formulas to try to emulate retail
-            var successChance = SkillCheck.GetSkillChance(manaConv, difficulty / 2);
-            var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
-
-            // Luck lowers the roll value to give better outcome
-            // e.g. successChance = 0.83 & roll = 0.71 would still provide some savings.
-            //   but a luck roll of 0.19 will lower that 0.71 to 0.13 so the caster would
-            //   receive a 60% reduction in mana cost.  without the luck roll, 12%
-            //   so players will always have a level of "luck" in manacost if they make skill checks
-            var luck = ThreadSafeRandom.Next(0.0f, 1.0f);
-
-            if (roll < successChance)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
             {
-                manaCost = (uint)Math.Round(manaCost * (1.0f - (successChance - (roll * luck))));
-            }
+                // thanks to GDLE for this function!
+                if (manaConv == 0)
+                    return manaCost;
 
-            // above seems to give a good middle of the range
-            // seen in pcaps for mana usage for low level chars
-            // bug still need a way to give a better reduction for the "lucky"
+                // Dropping diff by half as Specced ManaC is only 48 with starter Aug so 50 at level 1 means no bonus
+                //   easiest change without having to create two different formulas to try to emulate retail
+                var successChance = SkillCheck.GetSkillChance(manaConv, difficulty / 2);
+                var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
 
-            // save some calc time if already at 1 mana cost
-            if (manaCost > 1)
-            {
-                successChance = SkillCheck.GetSkillChance(manaConv, difficulty);
-                roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                // Luck lowers the roll value to give better outcome
+                // e.g. successChance = 0.83 & roll = 0.71 would still provide some savings.
+                //   but a luck roll of 0.19 will lower that 0.71 to 0.13 so the caster would
+                //   receive a 60% reduction in mana cost.  without the luck roll, 12%
+                //   so players will always have a level of "luck" in manacost if they make skill checks
+                var luck = ThreadSafeRandom.Next(0.0f, 1.0f);
 
                 if (roll < successChance)
+                {
                     manaCost = (uint)Math.Round(manaCost * (1.0f - (successChance - (roll * luck))));
+                }
+
+                // above seems to give a good middle of the range
+                // seen in pcaps for mana usage for low level chars
+                // bug still need a way to give a better reduction for the "lucky"
+
+                // save some calc time if already at 1 mana cost
+                if (manaCost > 1)
+                {
+                    successChance = SkillCheck.GetSkillChance(manaConv, difficulty);
+                    roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+
+                    if (roll < successChance)
+                        manaCost = (uint)Math.Round(manaCost * (1.0f - (successChance - (roll * luck))));
+                }
+            }
+            else
+            {
+                // From an AC Q&A:
+                //	A mana conversion skill check is made at 25 diff per level of
+                //	spell, and the cost of the spell is reduced if the skill check is
+                //	successful.The reduction is a random percentage from 0 to the
+                //	chance of your mana conversion skill check success rate.In other
+                //	words, if you have an 80 % chance of your mana conversion working
+                //	on a spell, then 20 % of the time you will save nothing, and the
+                //	other 80 % you will save between 0 and 80 % of the mana.Obviously,
+                //	lower level spells will succeed much better, because you will have
+                //	nearly a 100 % chance of conversion success.
+
+                if (manaConv == 0 || manaCost <= 1)
+                    return manaCost;
+
+                var successChance = SkillCheck.GetSkillChance(manaConv, difficulty);
+                var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+
+                if (roll < successChance)
+                {
+                    var reductionMinAmount = 0.0f;
+                    var reductionMaxAmount = (float)successChance;
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        if(advancementClass == SkillAdvancementClass.Specialized)
+                            reductionMinAmount = (float)successChance / 2.0f;
+                        else
+                            reductionMinAmount = (float)successChance / 4.0f;
+                    }
+                    var reductionRoll = ThreadSafeRandom.Next(reductionMinAmount, reductionMaxAmount);
+                    manaCost = (uint)Math.Round(manaCost * (1.0f - reductionRoll));
+                }
             }
 
             return Math.Max(manaCost, 1);

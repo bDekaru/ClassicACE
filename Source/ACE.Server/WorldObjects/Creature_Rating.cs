@@ -201,9 +201,6 @@ namespace ACE.Server.WorldObjects
 
         public int GetDamageRating()
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
-                return 0;
-
             // get from base properties (monsters)?
             var damageRating = DamageRating ?? 0;
 
@@ -390,7 +387,7 @@ namespace ACE.Server.WorldObjects
 
         public int GetHealingBoostRating()
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
                 return 0;
 
             // get from base properties (monsters)?
@@ -402,16 +399,22 @@ namespace ACE.Server.WorldObjects
             // equipment ratings
             var equipment = GetEquippedItemsRatingSum(PropertyInt.GearHealingBoost);
 
+            var pvpPenalty = 0;
             var lumAugBonus = 0;
             if (this is Player player)
+            {
                 lumAugBonus = player.LumAugHealingRating;
 
-            return healBoostRating + equipment + enchantments + lumAugBonus;
+                //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && player.PKTimerActive)
+                //    pvpPenalty = -100;
+            }
+
+            return healBoostRating + equipment + enchantments + lumAugBonus + pvpPenalty;
         }
 
         public int GetHealingResistRating()
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
                 return 0;
 
             // debuff?
@@ -425,7 +428,7 @@ namespace ACE.Server.WorldObjects
 
         public float GetHealingRatingMod()
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
                 return 1;
 
             var boostMod = GetPositiveRatingMod(GetHealingBoostRating());

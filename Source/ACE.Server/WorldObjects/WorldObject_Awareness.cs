@@ -22,6 +22,7 @@ namespace ACE.Server.WorldObjects
 
         private static int AwarenessCheckInterval = 15;
         private static int RangeSquared = 50 * 50;
+        private static int VanishRangeSquared = 20 * 20;
 
         public void AwarenessHeartbeat(double currentUnixTime)
         {
@@ -40,7 +41,13 @@ namespace ACE.Server.WorldObjects
                         {
                             var player = CurrentLandblock.GetObject(entry.Key) as Player;
                             if (player != null)
-                                player.RemoveTrackedObject(this, false);
+                            {
+                                var distSquared = Location.SquaredDistanceTo(player.Location);
+                                if (distSquared > VanishRangeSquared)
+                                    player.RemoveTrackedObject(this, false);
+                                else
+                                    newList.Add(entry.Key, entry.Value);
+                            }
                         }
                         else
                             newList.Add(entry.Key, entry.Value);
@@ -91,9 +98,10 @@ namespace ACE.Server.WorldObjects
             if (AwareList.ContainsKey(player.Guid))
                 AwareList[player.Guid] = expireTime;
             else
+            {
                 AwareList.Add(player.Guid, expireTime);
-
-            player.PhysicsObj.enqueue_obj(PhysicsObj);
+                player.PhysicsObj.enqueue_obj(PhysicsObj);
+            }
         }
     }
 }

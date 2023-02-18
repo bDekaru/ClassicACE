@@ -93,7 +93,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (player != null)
+            if (player != null && WeenieType != WeenieType.SpellConduit)
                 player.EnchantmentManager.StartCooldown(this);
 
             // perform motion animation - rarely used (only 4 instances in PY16 db)

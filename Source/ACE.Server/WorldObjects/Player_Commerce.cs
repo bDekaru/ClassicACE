@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using ACE.Common;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
@@ -88,9 +88,19 @@ namespace ACE.Server.WorldObjects
                 {
                     vendor.UniqueItemsForSale.Remove(item.Guid);
 
-                    // this was only for when the unique item was sold to the vendor,
-                    // to determine when the item should rot on the vendor. it gets removed now
-                    item.SoldTimestamp = null;
+
+                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    {
+                        // this was only for when the unique item was sold to the vendor,
+                        // to determine when the item should rot on the vendor. it gets removed now
+                        item.SoldTimestamp = null;
+                    }
+                    else
+                    {
+                        // this is used to determine if an item is a recently purchased item when a player dies on a drop recently purchased items landblock.
+                        item.SoldTimestamp = Time.GetUnixTime();
+                    }
+
 
                     vendor.NumItemsSold++;
                 }
@@ -154,7 +164,7 @@ namespace ACE.Server.WorldObjects
             }
 
             // calculate pyreals to receive
-            var payoutCoinAmount = vendor.CalculatePayoutCoinAmount(sellList);
+            var payoutCoinAmount = vendor.CalculatePayoutCoinAmount(sellList, this, false);
 
             if (payoutCoinAmount < 0)
             {
@@ -166,6 +176,14 @@ namespace ACE.Server.WorldObjects
                 SendUseDoneEvent();
 
                 return;
+            }
+
+            var payoutCoinAmountAfterHaggling = payoutCoinAmount;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var appraisalSkill = GetCreatureSkill(Skill.Appraise);
+                if (appraisalSkill.AdvancementClass >= SkillAdvancementClass.Trained)
+                    payoutCoinAmountAfterHaggling = vendor.CalculatePayoutCoinAmount(sellList, this, true);
             }
 
             // verify player has enough pack slots / burden to receive these pyreals
@@ -215,6 +233,8 @@ namespace ACE.Server.WorldObjects
             // UpdateCoinValue removed -- already handled in TryCreateInInventoryWithNetworking
 
             Session.Network.EnqueueSend(new GameMessageSound(Guid, Sound.PickUpItem));
+            if(payoutCoinAmount != payoutCoinAmountAfterHaggling)
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your appraisal skill allows you to haggle for an extra {payoutCoinAmountAfterHaggling - payoutCoinAmount:N0} Pyreals!", ChatMessageType.Broadcast));
 
             SendUseDoneEvent();
         }
@@ -270,6 +290,21 @@ namespace ACE.Server.WorldObjects
                 {
                     var itemName = (wo.StackSize ?? 1) > 1 ? wo.GetPluralName() : wo.Name;
                     Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {itemName} has no value and cannot be sold.")); // retail message did not include item name, leaving in that for now.
+                    continue;
+                }
+
+                var value = wo.StackUnitValue.HasValue ? wo.StackUnitValue : wo.Value;
+                if (wo.ItemType != ItemType.PromissoryNote && value < vendor.MerchandiseMinValue)
+                {
+                    var itemName = (wo.StackSize ?? 1) > 1 ? wo.GetPluralName() : wo.Name;
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"You cannot sell that! The {itemName} is of too little value to be sold here.")); // custom message?
+                    continue;
+                }
+
+                if (wo.ItemType != ItemType.PromissoryNote && value > vendor.MerchandiseMaxValue)
+                {
+                    var itemName = (wo.StackSize ?? 1) > 1 ? wo.GetPluralName() : wo.Name;
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"You cannot sell that! The {itemName} is too valuable to sell here.")); // custom message?
                     continue;
                 }
 

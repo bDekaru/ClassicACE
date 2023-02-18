@@ -474,22 +474,47 @@ namespace ACE.Server.Entity
             if (leader == null)
                 return;
 
-            var maxLevelDiff = fellows.Values.Max(f => Math.Abs((leader.Level ?? 1) - (f.Level ?? 1)));
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                var maxLevelDiff = fellows.Values.Max(f => Math.Abs((leader.Level ?? 1) - (f.Level ?? 1)));
 
-            if (maxLevelDiff <= 5)
-            {
-                ShareXP = DesiredShareXP;
-                EvenShare = true;
-            }
-            else if (maxLevelDiff <= 10)
-            {
-                ShareXP = DesiredShareXP;
-                EvenShare = false;
+                if (maxLevelDiff <= 5)
+                {
+                    ShareXP = DesiredShareXP;
+                    EvenShare = true;
+                }
+                else if (maxLevelDiff <= 10)
+                {
+                    ShareXP = DesiredShareXP;
+                    EvenShare = false;
+                }
+                else
+                {
+                    ShareXP = false;
+                    EvenShare = false;
+                }
             }
             else
             {
-                ShareXP = false;
-                EvenShare = false;
+                var highestLevel = fellows.Values.Max(f => f.Level ?? 1);
+                var lowestLevel = fellows.Values.Min(f => f.Level ?? 1);
+                var maxLevelDiff = highestLevel - lowestLevel;
+
+                if (maxLevelDiff <= 10)
+                {
+                    ShareXP = DesiredShareXP;
+                    EvenShare = true;
+                }
+                else if (maxLevelDiff <= 20)
+                {
+                    ShareXP = DesiredShareXP;
+                    EvenShare = false;
+                }
+                else
+                {
+                    ShareXP = false;
+                    EvenShare = false;
+                }
             }
         }
 
@@ -499,7 +524,7 @@ namespace ACE.Server.Entity
         /// <param name="amount">The input amount of XP</param>
         /// <param name="xpType">The type of XP (quest XP is handled differently)</param>
         /// <param name="player">The fellowship member who originated the XP</param>
-        public void SplitXp(ulong amount, XpType xpType, ShareType shareType, Player player)
+        public void SplitXp(ulong amount, XpType xpType, ShareType shareType, Player player, string xpMessage = "")
         {
             // https://asheron.fandom.com/wiki/Announcements_-_2002/02_-_Fever_Dreams#Letter_to_the_Players_1
 
@@ -516,7 +541,7 @@ namespace ACE.Server.Entity
                 {
                     var fellowXpType = player == member ? XpType.Quest : XpType.Fellowship;
 
-                    member.GrantXP(perAmount, fellowXpType, shareType);
+                    member.GrantXP(perAmount, fellowXpType, shareType, player == member ? xpMessage : "");
                 }
             }
 
@@ -532,7 +557,7 @@ namespace ACE.Server.Entity
 
                     var fellowXpType = player == member ? xpType : XpType.Fellowship;
 
-                    member.GrantXP((long)shareAmount, fellowXpType, shareType);
+                    member.GrantXP((long)shareAmount, fellowXpType, shareType, player == member ? xpMessage : "");
                 }
 
                 return;
@@ -552,7 +577,7 @@ namespace ACE.Server.Entity
 
                     var fellowXpType = player == member ? xpType : XpType.Fellowship;
 
-                    member.GrantXP((long)playerTotal, fellowXpType, shareType);
+                    member.GrantXP((long)playerTotal, fellowXpType, shareType, player == member ? xpMessage : "");
                 }
             }
         }

@@ -21,6 +21,8 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 
 using Biota = ACE.Entity.Models.Biota;
+using ACE.Server.Network.Handlers;
+using ACE.Server.Entity.Actions;
 
 namespace ACE.Server.Managers
 {
@@ -555,8 +557,36 @@ namespace ACE.Server.Managers
         /// </summary>
         public static void BroadcastToAll(GameMessage msg)
         {
+            bool isWorldBroadcast = false;
+            if (msg.Opcode == GameMessageOpcode.ServerMessage && msg is GameMessageSystemChat systemChat)
+            {
+                if (systemChat.Message != null && systemChat.ChatMessageType == ChatMessageType.WorldBroadcast)
+                {
+                    _ = TurbineChatHandler.SendWebhookedChat("", systemChat.Message, null, "World Broadcast");
+                    isWorldBroadcast = true;
+                }
+            }
+
             foreach (var player in GetAllOnline())
+            {
                 player.Session.Network.EnqueueSend(msg);
+                if (isWorldBroadcast && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    var actionChain = new ActionChain();
+                    actionChain.AddAction(player, () => player.ApplyVisualEffects(PlayScript.VisionUpWhite));
+                    actionChain.AddDelaySeconds(1);
+                    actionChain.AddAction(player, () => player.ApplyVisualEffects(PlayScript.VisionDownBlack));
+                    actionChain.AddDelaySeconds(1);
+                    actionChain.AddAction(player, () => player.ApplyVisualEffects(PlayScript.VisionUpWhite));
+                    actionChain.AddDelaySeconds(1);
+                    actionChain.AddAction(player, () => player.ApplyVisualEffects(PlayScript.VisionDownBlack));
+                    actionChain.AddDelaySeconds(1);
+                    actionChain.AddAction(player, () => player.ApplyVisualEffects(PlayScript.VisionUpWhite));
+                    actionChain.AddDelaySeconds(1);
+                    actionChain.AddAction(player, () => player.ApplyVisualEffects(PlayScript.VisionDownBlack));
+                    actionChain.EnqueueChain();
+                }
+            }
         }
 
         public static void BroadcastToAuditChannel(Player issuer, string message)

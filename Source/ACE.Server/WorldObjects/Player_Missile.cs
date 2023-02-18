@@ -116,6 +116,7 @@ namespace ACE.Server.WorldObjects
 
             AttackTarget = target;
             MissileTarget = target;
+            LastAttackTarget = target;
 
             var attackSequence = ++AttackSequence;
 

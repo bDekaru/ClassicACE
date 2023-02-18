@@ -153,13 +153,17 @@ namespace ACE.Server.WorldObjects
                 {
                     // Not enough mana, stop taunting, remove from targetDistances to incentivize the monster to switch targets.
                     target.Session.Network.EnqueueSend(new GameMessageSystemChat($"You falter in your attempt at taunting {Name}.", ChatMessageType.CombatSelf));
-                    targetDistances.Remove(targetDistances.Single(r => r.Target == AttackTarget));
+                    var entry = targetDistances.FirstOrDefault(r => r.Target == AttackTarget);
+                    if (entry != default(TargetDistance))
+                        targetDistances.Remove(entry);
                 }
-                else if (target.attacksReceivedPerSecond >= skill.Current / 50.0f)
+                else if (target.attacksReceivedPerSecond >= Math.Ceiling(skill.Current / 50.0f))
                 {
                     // We're too busy to keep this taunt going, remove from targetDistances to incentivize the monster to switch targets.
                     target.Session.Network.EnqueueSend(new GameMessageSystemChat($"You're too busy to keep taunting {Name}!", ChatMessageType.CombatSelf));
-                    targetDistances.Remove(targetDistances.Single(r => r.Target == AttackTarget));
+                    var entry = targetDistances.FirstOrDefault(r => r.Target == AttackTarget);
+                    if (entry != default(TargetDistance))
+                        targetDistances.Remove(entry);
                 }
                 else
                 {
@@ -170,7 +174,9 @@ namespace ACE.Server.WorldObjects
                     {
                         // The current taunter has lost the taunt! Give other taunters a shot, remove from targetDistances to incentivize the monster to switch targets.
                         target.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your taunt loses its effect on {Name}!", ChatMessageType.CombatSelf));
-                        targetDistances.Remove(targetDistances.Single(r => r.Target == AttackTarget));
+                        var entry = targetDistances.FirstOrDefault(r => r.Target == AttackTarget);
+                        if (entry != default(TargetDistance))
+                            targetDistances.Remove(entry);
                     }
                     else
                     {
@@ -334,7 +340,7 @@ namespace ACE.Server.WorldObjects
                 //Console.WriteLine($"{Name}.FindNextTarget = {AttackTarget.Name}");
 
                 Player player = AttackTarget as Player;
-                if (player != null && player.AddTrackedObject(this))
+                if (player != null && !Visibility && player.AddTrackedObject(this))
                     log.Error($"Fixed invisible attacker on player {player.Name}. (Landblock:{CurrentLandblock.Id} - {Name} ({Guid})");
 
                 if (AttackTarget != null && AttackTarget != prevAttackTarget)
@@ -480,7 +486,7 @@ namespace ACE.Server.WorldObjects
 
                 //var distSq = Location.SquaredDistanceTo(creature.Location);
                 var distSq = PhysicsObj.get_distance_sq_to_object(creature.PhysicsObj, true);
-                if (player != null && player.TestSneaking(creature, distSq, $"{creature.Name} sees you! You stop sneaking."))
+                if (player != null && player.TestSneaking(this, distSq, $"{creature.Name} sees you! You stop sneaking."))
                     continue;
 
                 if (distSq < closestDistSq)

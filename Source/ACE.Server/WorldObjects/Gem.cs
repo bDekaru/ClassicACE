@@ -160,7 +160,7 @@ namespace ACE.Server.WorldObjects
                     if (manaConversion.AdvancementClass < SkillAdvancementClass.Trained)
                         manaCost = (int)ItemManaCost;
                     else
-                        manaCost = (int)Player.GetManaCost((uint)ItemSpellcraft, (uint)ItemManaCost, manaConversion.Current);
+                        manaCost = (int)Player.GetManaCost((uint)ItemSpellcraft, (uint)ItemManaCost, manaConversion.Current, manaConversion.AdvancementClass);
 
                     if (ItemCurMana >= manaCost)
                     {
@@ -169,9 +169,27 @@ namespace ACE.Server.WorldObjects
                     }
                     else
                     {
-                        player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"The {Name} doesn't have enough mana!"));
+                        player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"The {NameWithMaterial} doesn't have enough mana!"));
                         return;
                     }
+                }
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (spell.IsImpenBaneType || spell.IsOtherRedirectable))
+                {
+                    // Temporary fix for unintended spells on gems.
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {NameWithMaterial} has an invalid spell, converting to a spell transfer scroll...", ChatMessageType.Craft));
+                    if (Workmanship.HasValue)
+                    {
+                        if (player.TryConsumeFromInventoryWithNetworking(this, 1)) // Consume the gem
+                        {
+                            var newScroll = WorldObjectFactory.CreateNewWorldObject(50130); // Spell Transfer Scroll
+                            newScroll.SpellDID = SpellDID;
+                            newScroll.Name += spell.Name;
+                            if (!player.TryCreateInInventoryWithNetworking(newScroll)) // Create the transfer scroll
+                                newScroll.Destroy(); // Clean up on creation failure
+                        }
+                    }
+                    return;
                 }
 
                 // should be 'You cast', instead of 'Item cast'

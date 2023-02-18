@@ -109,7 +109,7 @@ namespace ACE.Server.WorldObjects
                         Creature creatureAttacker = attacker as Creature;
                         if (creatureAttacker != null)
                         {
-                            var chance = 0.3f;
+                            var chance = 0.4f;
                             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
                             {
                                 // Chance of striking back at the target when successfully evading an attack while using the Riposte technique.
@@ -459,13 +459,32 @@ namespace ACE.Server.WorldObjects
             if (weapon == null || !weapon.IsRanged)
                 return PowerLevel + 0.5f;
             else
+            {
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    if (weapon != null && weapon.IsRanged)
+                    {
+                        var techniqueTrinket = GetEquippedTrinket();
+                        if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.PowerShot)
+                            return 1.0f + (AccuracyLevel * 0.5f);
+                    }
+                }
                 return 1.0f;
+            }
         }
 
         public override float GetAccuracyMod(WorldObject weapon)
         {
             if (weapon != null && weapon.IsRanged)
+            {
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    var techniqueTrinket = GetEquippedTrinket();
+                    if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.PowerShot)
+                        return 0.6f;
+                }
                 return AccuracyLevel + 0.6f;
+            }
             else
                 return 1.0f;
         }

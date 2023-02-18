@@ -194,11 +194,17 @@ namespace ACE.Server.WorldObjects
         public virtual void OnWield(Creature creature)
         {
             EmoteManager.OnWield(creature);
+
+            if(creature != null)
+                creature.UpdateDefenseCapBonus();
         }
 
         public virtual void OnUnWield(Creature creature)
         {
             EmoteManager.OnUnwield(creature);
+
+            if (creature != null)
+                creature.UpdateDefenseCapBonus();
         }
     }
 }

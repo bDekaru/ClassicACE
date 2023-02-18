@@ -220,7 +220,17 @@ namespace ACE.Entity.Enum.Properties
 
         // CustomDM
         [ServerOnly]
-        LeyLineTriggerChance           = 10001
+        LeyLineTriggerChance           = 10001,
+        [ServerOnly]
+        HotspotImmunityTimestamp       = 10002,
+        MeleeDefenseCap                = 10003,
+        MissileDefenseCap              = 10004,
+        MagicDefenseCap                = 10005,
+        [ServerOnly]
+        VendorRestockInterval          = 10006,
+        [ServerOnly]
+        VendorStockTimeToRot           = 10007,
+        ComponentBurnRateMod           = 10008,
     }
 
     public static class PropertyFloatExtensions

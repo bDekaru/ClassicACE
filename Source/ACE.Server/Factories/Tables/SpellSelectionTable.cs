@@ -15,303 +15,303 @@ namespace ACE.Server.Factories.Tables
         // gems
         private static ChanceTable<SpellId> spellSelectionGroup1 = new ChanceTable<SpellId>()
         {
-            ( SpellId.StrengthSelf1,            0.06f ),
-            ( SpellId.EnduranceSelf1,           0.06f ),
-            ( SpellId.CoordinationSelf1,        0.06f ),
-            ( SpellId.QuicknessSelf1,           0.06f ),
-            ( SpellId.FocusSelf1,               0.06f ),
-            ( SpellId.WillpowerSelf1,           0.06f ),
-            ( SpellId.RegenerationSelf1,        0.11f ),
-            ( SpellId.RejuvenationSelf1,        0.11f ),
-            ( SpellId.ManaRenewalSelf1,         0.11f ),
-            ( SpellId.AcidProtectionSelf1,      0.03f ),
-            ( SpellId.BludgeonProtectionSelf1,  0.03f ),
-            ( SpellId.ColdProtectionSelf1,      0.03f ),
-            ( SpellId.LightningProtectionSelf1, 0.03f ),
-            ( SpellId.FireProtectionSelf1,      0.03f ),
-            ( SpellId.BladeProtectionSelf1,     0.03f ),
-            ( SpellId.PiercingProtectionSelf1,  0.03f ),
-            ( SpellId.ArmorSelf1,               0.10f ),
+            ( SpellId.StrengthOther1,            0.06f ),
+            ( SpellId.EnduranceOther1,           0.06f ),
+            ( SpellId.CoordinationOther1,        0.06f ),
+            ( SpellId.QuicknessOther1,           0.06f ),
+            ( SpellId.FocusOther1,               0.06f ),
+            ( SpellId.WillpowerOther1,           0.06f ),
+            ( SpellId.RegenerationOther1,        0.11f ),
+            ( SpellId.RejuvenationOther1,        0.11f ),
+            ( SpellId.ManaRenewalOther1,         0.11f ),
+            ( SpellId.AcidProtectionOther1,      0.03f ),
+            ( SpellId.BludgeonProtectionOther1,  0.03f ),
+            ( SpellId.ColdProtectionOther1,      0.03f ),
+            ( SpellId.LightningProtectionOther1, 0.03f ),
+            ( SpellId.FireProtectionOther1,      0.03f ),
+            ( SpellId.BladeProtectionOther1,     0.03f ),
+            ( SpellId.PiercingProtectionOther1,  0.03f ),
+            ( SpellId.ArmorOther1,               0.10f ),
         };
 
         // jewelry
         private static ChanceTable<SpellId> spellSelectionGroup2 = new ChanceTable<SpellId>()
         {
-            ( SpellId.MagicResistanceSelf1,     0.08f ),
-            ( SpellId.ArmorSelf1,               0.05f ),
-            ( SpellId.AcidProtectionSelf1,      0.05f ),
-            ( SpellId.BludgeonProtectionSelf1,  0.05f ),
-            ( SpellId.ColdProtectionSelf1,      0.05f ),
-            ( SpellId.LightningProtectionSelf1, 0.05f ),
-            ( SpellId.FireProtectionSelf1,      0.05f ),
-            ( SpellId.BladeProtectionSelf1,     0.05f ),
-            ( SpellId.PiercingProtectionSelf1,  0.05f ),
-            ( SpellId.StrengthSelf1,            0.04f ),
-            ( SpellId.EnduranceSelf1,           0.04f ),
-            ( SpellId.CoordinationSelf1,        0.04f ),
-            ( SpellId.QuicknessSelf1,           0.04f ),
-            ( SpellId.FocusSelf1,               0.04f ),
-            ( SpellId.WillpowerSelf1,           0.04f ),
-            ( SpellId.ManaRenewalSelf1,         0.04f ),
-            ( SpellId.ManaMasterySelf1,         0.04f ),
-            ( SpellId.RegenerationSelf1,        0.03f ),
-            ( SpellId.RejuvenationSelf1,        0.03f ),
-            ( SpellId.ItemExpertiseSelf1,       0.03f ),
-            ( SpellId.ArmorExpertiseSelf1,      0.02f ),
-            ( SpellId.ArcaneEnlightenmentSelf1, 0.02f ),
-            ( SpellId.DeceptionMasterySelf1,    0.01f ),
-            ( SpellId.FealtySelf1,              0.01f ),
-            ( SpellId.MonsterAttunementSelf1,   0.01f ),
-            ( SpellId.PersonAttunementSelf1,    0.01f ),
-            ( SpellId.ArcanumSalvagingSelf1,    0.01f ),
-            ( SpellId.MagicItemExpertiseSelf1,  0.01f ),
-            ( SpellId.WeaponExpertiseSelf1,     0.01f ),
+            ( SpellId.MagicResistanceOther1,     0.08f ),
+            ( SpellId.ArmorOther1,               0.05f ),
+            ( SpellId.AcidProtectionOther1,      0.05f ),
+            ( SpellId.BludgeonProtectionOther1,  0.05f ),
+            ( SpellId.ColdProtectionOther1,      0.05f ),
+            ( SpellId.LightningProtectionOther1, 0.05f ),
+            ( SpellId.FireProtectionOther1,      0.05f ),
+            ( SpellId.BladeProtectionOther1,     0.05f ),
+            ( SpellId.PiercingProtectionOther1,  0.05f ),
+            ( SpellId.StrengthOther1,            0.04f ),
+            ( SpellId.EnduranceOther1,           0.04f ),
+            ( SpellId.CoordinationOther1,        0.04f ),
+            ( SpellId.QuicknessOther1,           0.04f ),
+            ( SpellId.FocusOther1,               0.04f ),
+            ( SpellId.WillpowerOther1,           0.04f ),
+            ( SpellId.ManaRenewalOther1,         0.04f ),
+            ( SpellId.ManaMasteryOther1,         0.04f ),
+            ( SpellId.RegenerationOther1,        0.03f ),
+            ( SpellId.RejuvenationOther1,        0.03f ),
+            ( SpellId.ItemExpertiseOther1,       0.03f ),
+            ( SpellId.ArmorExpertiseOther1,      0.02f ),
+            ( SpellId.ArcaneEnlightenmentOther1, 0.02f ),
+            ( SpellId.DeceptionMasteryOther1,    0.01f ),
+            ( SpellId.FealtyOther1,              0.01f ),
+            ( SpellId.MonsterAttunementOther1,   0.01f ),
+            ( SpellId.PersonAttunementOther1,    0.01f ),
+            ( SpellId.ArcanumSalvagingOther1,    0.01f ),
+            ( SpellId.MagicItemExpertiseOther1,  0.01f ),
+            ( SpellId.WeaponExpertiseOther1,     0.01f ),
         };
 
         // crowns
         private static ChanceTable<SpellId> spellSelectionGroup3 = new ChanceTable<SpellId>()
         {
-            ( SpellId.LeadershipMasterySelf1,   0.10f ),
-            ( SpellId.ImpregnabilitySelf1,      0.10f ),
-            ( SpellId.InvulnerabilitySelf1,     0.10f ),
-            ( SpellId.MagicResistanceSelf1,     0.10f ),
-            ( SpellId.FocusSelf1,               0.05f ),
-            ( SpellId.WillpowerSelf1,           0.05f ),
-            ( SpellId.ArmorSelf1,               0.05f ),
-            ( SpellId.RegenerationSelf1,        0.05f ),
-            ( SpellId.RejuvenationSelf1,        0.05f ),
-            ( SpellId.ManaRenewalSelf1,         0.05f ),
-            ( SpellId.ManaMasterySelf1,         0.05f ),
-            ( SpellId.ArcaneEnlightenmentSelf1, 0.05f ),
-            ( SpellId.HealingMasterySelf1,      0.05f ),
-            ( SpellId.DeceptionMasterySelf1,    0.05f ),
-            ( SpellId.MonsterAttunementSelf1,   0.05f ),
-            ( SpellId.PersonAttunementSelf1,    0.05f ),
+            ( SpellId.LeadershipMasteryOther1,   0.10f ),
+            ( SpellId.ImpregnabilityOther1,      0.10f ),
+            ( SpellId.InvulnerabilityOther1,     0.10f ),
+            ( SpellId.MagicResistanceOther1,     0.10f ),
+            ( SpellId.FocusOther1,               0.05f ),
+            ( SpellId.WillpowerOther1,           0.05f ),
+            ( SpellId.ArmorOther1,               0.05f ),
+            ( SpellId.RegenerationOther1,        0.05f ),
+            ( SpellId.RejuvenationOther1,        0.05f ),
+            ( SpellId.ManaRenewalOther1,         0.05f ),
+            ( SpellId.ManaMasteryOther1,         0.05f ),
+            ( SpellId.ArcaneEnlightenmentOther1, 0.05f ),
+            ( SpellId.HealingMasteryOther1,      0.05f ),
+            ( SpellId.DeceptionMasteryOther1,    0.05f ),
+            ( SpellId.MonsterAttunementOther1,   0.05f ),
+            ( SpellId.PersonAttunementOther1,    0.05f ),
         };
 
         // orbs
         private static ChanceTable<SpellId> spellSelectionGroup4 = new ChanceTable<SpellId>()
         {
-            ( SpellId.LifeMagicMasterySelf1,           0.20f ),
-            ( SpellId.CreatureEnchantmentMasterySelf1, 0.15f ),
-            ( SpellId.ItemEnchantmentMasterySelf1,     0.10f ),
-            ( SpellId.ArcaneEnlightenmentSelf1,        0.10f ),
-            ( SpellId.FocusSelf1,                      0.09f ),
-            ( SpellId.WillpowerSelf1,                  0.09f ),
-            ( SpellId.WarMagicMasterySelf1,            0.09f ),
-            ( SpellId.SneakAttackMasterySelf1,         0.09f ),
-            ( SpellId.ManaMasterySelf1,                0.09f ),
+            ( SpellId.LifeMagicMasteryOther1,           0.20f ),
+            ( SpellId.CreatureEnchantmentMasteryOther1, 0.15f ),
+            ( SpellId.ItemEnchantmentMasteryOther1,     0.10f ),
+            ( SpellId.ArcaneEnlightenmentOther1,        0.10f ),
+            ( SpellId.FocusOther1,                      0.09f ),
+            ( SpellId.WillpowerOther1,                  0.09f ),
+            ( SpellId.WarMagicMasteryOther1,            0.09f ),
+            ( SpellId.SneakAttackMasteryOther1,         0.09f ),
+            ( SpellId.ManaMasteryOther1,                0.09f ),
         };
 
         // wands, staffs, sceptres, batons
         private static ChanceTable<SpellId> spellSelectionGroup5 = new ChanceTable<SpellId>()
         {
-            ( SpellId.WarMagicMasterySelf1,            0.25f ),
-            ( SpellId.WillpowerSelf1,                  0.15f ),
-            ( SpellId.CreatureEnchantmentMasterySelf1, 0.10f ),
-            ( SpellId.ItemEnchantmentMasterySelf1,     0.10f ),
-            ( SpellId.LifeMagicMasterySelf1,           0.08f ),
-            ( SpellId.FocusSelf1,                      0.08f ),
-            ( SpellId.ArcaneEnlightenmentSelf1,        0.08f ),
-            ( SpellId.ManaMasterySelf1,                0.08f ),
-            ( SpellId.SneakAttackMasterySelf1,         0.08f ),
+            ( SpellId.WarMagicMasteryOther1,            0.25f ),
+            ( SpellId.WillpowerOther1,                  0.15f ),
+            ( SpellId.CreatureEnchantmentMasteryOther1, 0.10f ),
+            ( SpellId.ItemEnchantmentMasteryOther1,     0.10f ),
+            ( SpellId.LifeMagicMasteryOther1,           0.08f ),
+            ( SpellId.FocusOther1,                      0.08f ),
+            ( SpellId.ArcaneEnlightenmentOther1,        0.08f ),
+            ( SpellId.ManaMasteryOther1,                0.08f ),
+            ( SpellId.SneakAttackMasteryOther1,         0.08f ),
         };
 
         // one-handed melee weapons
         private static ChanceTable<SpellId> spellSelectionGroup6 = new ChanceTable<SpellId>()
         {
-            ( SpellId.QuicknessSelf1,            0.25f ),
-            ( SpellId.StrengthSelf1,             0.15f ),
-            ( SpellId.EnduranceSelf1,            0.15f ),
-            ( SpellId.CoordinationSelf1,         0.15f ),
-            ( SpellId.DualWieldMasterySelf1,     0.10f ),
-            ( SpellId.DirtyFightingMasterySelf1, 0.10f ),
-            ( SpellId.SneakAttackMasterySelf1,   0.10f ),
+            ( SpellId.QuicknessOther1,            0.25f ),
+            ( SpellId.StrengthOther1,             0.15f ),
+            ( SpellId.EnduranceOther1,            0.15f ),
+            ( SpellId.CoordinationOther1,         0.15f ),
+            ( SpellId.DualWieldMasteryOther1,     0.10f ),
+            ( SpellId.DirtyFightingMasteryOther1, 0.10f ),
+            ( SpellId.SneakAttackMasteryOther1,   0.10f ),
         };
 
         // bracers, breastplates, coats, cuirasses, girths, hauberks, pauldrons, chest armor, sleeves
         private static ChanceTable<SpellId> spellSelectionGroup7 = new ChanceTable<SpellId>()
         {
-            ( SpellId.StrengthSelf1,         0.25f ),
-            ( SpellId.EnduranceSelf1,        0.25f ),
-            ( SpellId.MagicResistanceSelf1,  0.15f ),
-            ( SpellId.RejuvenationSelf1,     0.10f ),
-            ( SpellId.RegenerationSelf1,     0.10f ),
-            ( SpellId.SummoningMasterySelf1, 0.10f ),
-            ( SpellId.FealtySelf1,           0.05f ),
+            ( SpellId.StrengthOther1,         0.25f ),
+            ( SpellId.EnduranceOther1,        0.25f ),
+            ( SpellId.MagicResistanceOther1,  0.15f ),
+            ( SpellId.RejuvenationOther1,     0.10f ),
+            ( SpellId.RegenerationOther1,     0.10f ),
+            ( SpellId.SummoningMasteryOther1, 0.10f ),
+            ( SpellId.FealtyOther1,           0.05f ),
         };
 
         // shields
         private static ChanceTable<SpellId> spellSelectionGroup8 = new ChanceTable<SpellId>()
         {
-            ( SpellId.ImpregnabilitySelf1,  0.15f ),
-            ( SpellId.InvulnerabilitySelf1, 0.15f ),
-            ( SpellId.FealtySelf1,          0.15f ),
-            ( SpellId.RejuvenationSelf1,    0.15f ),
-            ( SpellId.StrengthSelf1,        0.10f ),
-            ( SpellId.EnduranceSelf1,       0.10f ),
-            ( SpellId.MagicResistanceSelf1, 0.10f ),
-            ( SpellId.ShieldMasterySelf1,   0.10f ),
+            ( SpellId.ImpregnabilityOther1,  0.15f ),
+            ( SpellId.InvulnerabilityOther1, 0.15f ),
+            ( SpellId.FealtyOther1,          0.15f ),
+            ( SpellId.RejuvenationOther1,    0.15f ),
+            ( SpellId.StrengthOther1,        0.10f ),
+            ( SpellId.EnduranceOther1,       0.10f ),
+            ( SpellId.MagicResistanceOther1, 0.10f ),
+            ( SpellId.ShieldMasteryOther1,   0.10f ),
         };
 
         // gauntlets
         private static ChanceTable<SpellId> spellSelectionGroup9 = new ChanceTable<SpellId>()
         {
-            ( SpellId.CoordinationSelf1,          0.22f ),
-            ( SpellId.ShieldMasterySelf1,         0.12f ),
-            ( SpellId.HeavyWeaponsMasterySelf1,   0.11f ),
-            ( SpellId.LightWeaponsMasterySelf1,   0.11f ),
-            ( SpellId.FinesseWeaponsMasterySelf1, 0.11f ),
-            ( SpellId.MissileWeaponsMasterySelf1, 0.11f ),
-            ( SpellId.TwoHandedMasterySelf1,      0.11f ),
-            ( SpellId.HealingMasterySelf1,        0.11f ),
+            ( SpellId.CoordinationOther1,          0.22f ),
+            ( SpellId.ShieldMasteryOther1,         0.12f ),
+            ( SpellId.HeavyWeaponsMasteryOther1,   0.11f ),
+            ( SpellId.LightWeaponsMasteryOther1,   0.11f ),
+            ( SpellId.FinesseWeaponsMasteryOther1, 0.11f ),
+            ( SpellId.MissileWeaponsMasteryOther1, 0.11f ),
+            ( SpellId.TwoHandedMasteryOther1,      0.11f ),
+            ( SpellId.HealingMasteryOther1,        0.11f ),
         };
 
         // helms, basinets, helmets, coifs, cowls, heaumes, kabutons
         private static ChanceTable<SpellId> spellSelectionGroup10 = new ChanceTable<SpellId>()
         {
-            ( SpellId.MagicResistanceSelf1,      0.15f ),
-            ( SpellId.ImpregnabilitySelf1,       0.10f ),
-            ( SpellId.InvulnerabilitySelf1,      0.10f ),
-            ( SpellId.ArmorExpertiseSelf1,       0.05f ),
-            ( SpellId.ItemExpertiseSelf1,        0.05f ),
-            ( SpellId.WeaponExpertiseSelf1,      0.05f ),
-            ( SpellId.MonsterAttunementSelf1,    0.05f ),
-            ( SpellId.HealingMasterySelf1,       0.05f ),
-            ( SpellId.RegenerationSelf1,         0.05f ),
-            ( SpellId.RejuvenationSelf1,         0.05f ),
-            ( SpellId.ManaRenewalSelf1,          0.05f ),
-            ( SpellId.DualWieldMasterySelf1,     0.05f ),
-            ( SpellId.DirtyFightingMasterySelf1, 0.05f ),
-            ( SpellId.RecklessnessMasterySelf1,  0.05f ),
-            ( SpellId.SneakAttackMasterySelf1,   0.05f ),
-            ( SpellId.FealtySelf1,               0.05f ),
+            ( SpellId.MagicResistanceOther1,      0.15f ),
+            ( SpellId.ImpregnabilityOther1,       0.10f ),
+            ( SpellId.InvulnerabilityOther1,      0.10f ),
+            ( SpellId.ArmorExpertiseOther1,       0.05f ),
+            ( SpellId.ItemExpertiseOther1,        0.05f ),
+            ( SpellId.WeaponExpertiseOther1,      0.05f ),
+            ( SpellId.MonsterAttunementOther1,    0.05f ),
+            ( SpellId.HealingMasteryOther1,       0.05f ),
+            ( SpellId.RegenerationOther1,         0.05f ),
+            ( SpellId.RejuvenationOther1,         0.05f ),
+            ( SpellId.ManaRenewalOther1,          0.05f ),
+            ( SpellId.DualWieldMasteryOther1,     0.05f ),
+            ( SpellId.DirtyFightingMasteryOther1, 0.05f ),
+            ( SpellId.RecklessnessMasteryOther1,  0.05f ),
+            ( SpellId.SneakAttackMasteryOther1,   0.05f ),
+            ( SpellId.FealtyOther1,               0.05f ),
         };
 
         // boots, chiran sandals, sollerets
         private static ChanceTable<SpellId> spellSelectionGroup11 = new ChanceTable<SpellId>()
         {
-            ( SpellId.QuicknessSelf1,             0.23f ),
-            ( SpellId.HeavyWeaponsMasterySelf1,   0.10f ),
-            ( SpellId.FinesseWeaponsMasterySelf1, 0.10f ),
-            ( SpellId.MissileWeaponsMasterySelf1, 0.10f ),
-            ( SpellId.HealingMasterySelf1,        0.10f ),
-            ( SpellId.LightWeaponsMasterySelf1,   0.09f ),
-            ( SpellId.TwoHandedMasterySelf1,      0.09f ),
-            ( SpellId.CoordinationSelf1,          0.09f ),
-            ( SpellId.JumpingMasterySelf1,        0.05f ),
-            ( SpellId.SprintSelf1,                0.05f ),
+            ( SpellId.QuicknessOther1,             0.23f ),
+            ( SpellId.HeavyWeaponsMasteryOther1,   0.10f ),
+            ( SpellId.FinesseWeaponsMasteryOther1, 0.10f ),
+            ( SpellId.MissileWeaponsMasteryOther1, 0.10f ),
+            ( SpellId.HealingMasteryOther1,        0.10f ),
+            ( SpellId.LightWeaponsMasteryOther1,   0.09f ),
+            ( SpellId.TwoHandedMasteryOther1,      0.09f ),
+            ( SpellId.CoordinationOther1,          0.09f ),
+            ( SpellId.JumpingMasteryOther1,        0.05f ),
+            ( SpellId.SprintOther1,                0.05f ),
         };
 
         // breeches, jerkins, shirts, pants, tunics, doublets, trousers, pantaloons
         private static ChanceTable<SpellId> spellSelectionGroup12 = new ChanceTable<SpellId>()
         {
-            ( SpellId.ArmorSelf1,               0.30f ),
-            ( SpellId.AcidProtectionSelf1,      0.10f ),
-            ( SpellId.BludgeonProtectionSelf1,  0.10f ),
-            ( SpellId.ColdProtectionSelf1,      0.10f ),
-            ( SpellId.LightningProtectionSelf1, 0.10f ),
-            ( SpellId.FireProtectionSelf1,      0.10f ),
-            ( SpellId.BladeProtectionSelf1,     0.10f ),
-            ( SpellId.PiercingProtectionSelf1,  0.10f ),
+            ( SpellId.ArmorOther1,               0.30f ),
+            ( SpellId.AcidProtectionOther1,      0.10f ),
+            ( SpellId.BludgeonProtectionOther1,  0.10f ),
+            ( SpellId.ColdProtectionOther1,      0.10f ),
+            ( SpellId.LightningProtectionOther1, 0.10f ),
+            ( SpellId.FireProtectionOther1,      0.10f ),
+            ( SpellId.BladeProtectionOther1,     0.10f ),
+            ( SpellId.PiercingProtectionOther1,  0.10f ),
         };
 
         // caps, qafiyas, turbans, fezs, berets
         private static ChanceTable<SpellId> spellSelectionGroup13 = new ChanceTable<SpellId>()
         {
-            ( SpellId.FocusSelf1,                      0.04f ),
-            ( SpellId.WillpowerSelf1,                  0.04f ),
-            ( SpellId.RejuvenationSelf1,               0.04f ),
-            ( SpellId.RegenerationSelf1,               0.04f ),
-            ( SpellId.ArmorSelf1,                      0.03f ),
-            ( SpellId.CreatureEnchantmentMasterySelf1, 0.03f ),
-            ( SpellId.ItemEnchantmentMasterySelf1,     0.03f ),
-            ( SpellId.LifeMagicMasterySelf1,           0.03f ),
-            ( SpellId.WarMagicMasterySelf1,            0.03f ),
-            ( SpellId.VoidMagicMasterySelf1,           0.03f ),
-            ( SpellId.DualWieldMasterySelf1,           0.03f ),
-            ( SpellId.DirtyFightingMasterySelf1,       0.03f ),
-            ( SpellId.RecklessnessMasterySelf1,        0.03f ),
-            ( SpellId.SneakAttackMasterySelf1,         0.03f ),
-            ( SpellId.MagicResistanceSelf1,            0.03f ),
-            ( SpellId.ManaRenewalSelf1,                0.03f ),
-            ( SpellId.AlchemyMasterySelf1,             0.03f ),
-            ( SpellId.CookingMasterySelf1,             0.03f ),
-            ( SpellId.FletchingMasterySelf1,           0.03f ),
-            ( SpellId.HealingMasterySelf1,             0.03f ),
-            ( SpellId.LockpickMasterySelf1,            0.03f ),
-            ( SpellId.ArcaneEnlightenmentSelf1,        0.03f ),
-            ( SpellId.DeceptionMasterySelf1,           0.03f ),
-            ( SpellId.FealtySelf1,                     0.03f ),
-            ( SpellId.ManaMasterySelf1,                0.03f ),
-            ( SpellId.ArcanumSalvagingSelf1,           0.03f ),
-            ( SpellId.ArmorExpertiseSelf1,             0.03f ),
-            ( SpellId.MagicItemExpertiseSelf1,         0.03f ),
-            ( SpellId.ItemExpertiseSelf1,              0.03f ),
-            ( SpellId.WeaponExpertiseSelf1,            0.03f ),
-            ( SpellId.MonsterAttunementSelf1,          0.03f ),
-            ( SpellId.PersonAttunementSelf1,           0.03f ),
+            ( SpellId.FocusOther1,                      0.04f ),
+            ( SpellId.WillpowerOther1,                  0.04f ),
+            ( SpellId.RejuvenationOther1,               0.04f ),
+            ( SpellId.RegenerationOther1,               0.04f ),
+            ( SpellId.ArmorOther1,                      0.03f ),
+            ( SpellId.CreatureEnchantmentMasteryOther1, 0.03f ),
+            ( SpellId.ItemEnchantmentMasteryOther1,     0.03f ),
+            ( SpellId.LifeMagicMasteryOther1,           0.03f ),
+            ( SpellId.WarMagicMasteryOther1,            0.03f ),
+            ( SpellId.VoidMagicMasteryOther1,           0.03f ),
+            ( SpellId.DualWieldMasteryOther1,           0.03f ),
+            ( SpellId.DirtyFightingMasteryOther1,       0.03f ),
+            ( SpellId.RecklessnessMasteryOther1,        0.03f ),
+            ( SpellId.SneakAttackMasteryOther1,         0.03f ),
+            ( SpellId.MagicResistanceOther1,            0.03f ),
+            ( SpellId.ManaRenewalOther1,                0.03f ),
+            ( SpellId.AlchemyMasteryOther1,             0.03f ),
+            ( SpellId.CookingMasteryOther1,             0.03f ),
+            ( SpellId.FletchingMasteryOther1,           0.03f ),
+            ( SpellId.HealingMasteryOther1,             0.03f ),
+            ( SpellId.LockpickMasteryOther1,            0.03f ),
+            ( SpellId.ArcaneEnlightenmentOther1,        0.03f ),
+            ( SpellId.DeceptionMasteryOther1,           0.03f ),
+            ( SpellId.FealtyOther1,                     0.03f ),
+            ( SpellId.ManaMasteryOther1,                0.03f ),
+            ( SpellId.ArcanumSalvagingOther1,           0.03f ),
+            ( SpellId.ArmorExpertiseOther1,             0.03f ),
+            ( SpellId.MagicItemExpertiseOther1,         0.03f ),
+            ( SpellId.ItemExpertiseOther1,              0.03f ),
+            ( SpellId.WeaponExpertiseOther1,            0.03f ),
+            ( SpellId.MonsterAttunementOther1,          0.03f ),
+            ( SpellId.PersonAttunementOther1,           0.03f ),
         };
 
         // cloth gloves (1 entry?)
         private static ChanceTable<SpellId> spellSelectionGroup14 = new ChanceTable<SpellId>()
         {
-            ( SpellId.CoordinationSelf1,               0.04f ),
-            ( SpellId.QuicknessSelf1,                  0.04f ),
-            ( SpellId.CreatureEnchantmentMasterySelf1, 0.04f ),
-            ( SpellId.ItemEnchantmentMasterySelf1,     0.04f ),
-            ( SpellId.LifeMagicMasterySelf1,           0.04f ),
-            ( SpellId.WarMagicMasterySelf1,            0.04f ),
-            ( SpellId.VoidMagicMasterySelf1,           0.04f ),
-            ( SpellId.ManaMasterySelf1,                0.04f ),
-            ( SpellId.ArcaneEnlightenmentSelf1,        0.04f ),
-            ( SpellId.ArcanumSalvagingSelf1,           0.04f ),
-            ( SpellId.ArmorExpertiseSelf1,             0.04f ),
-            ( SpellId.ItemExpertiseSelf1,              0.04f ),
-            ( SpellId.MagicItemExpertiseSelf1,         0.04f ),
-            ( SpellId.WeaponExpertiseSelf1,            0.04f ),
-            ( SpellId.HeavyWeaponsMasterySelf1,        0.04f ),
-            ( SpellId.LightWeaponsMasterySelf1,        0.04f ),
-            ( SpellId.FinesseWeaponsMasterySelf1,      0.04f ),
-            ( SpellId.MissileWeaponsMasterySelf1,      0.04f ),
-            ( SpellId.TwoHandedMasterySelf1,           0.04f ),
-            ( SpellId.ShieldMasterySelf1,              0.04f ),
-            ( SpellId.AlchemyMasterySelf1,             0.04f ),
-            ( SpellId.CookingMasterySelf1,             0.04f ),
-            ( SpellId.FletchingMasterySelf1,           0.04f ),
-            ( SpellId.HealingMasterySelf1,             0.04f ),
-            ( SpellId.LockpickMasterySelf1,            0.04f ),
+            ( SpellId.CoordinationOther1,               0.04f ),
+            ( SpellId.QuicknessOther1,                  0.04f ),
+            ( SpellId.CreatureEnchantmentMasteryOther1, 0.04f ),
+            ( SpellId.ItemEnchantmentMasteryOther1,     0.04f ),
+            ( SpellId.LifeMagicMasteryOther1,           0.04f ),
+            ( SpellId.WarMagicMasteryOther1,            0.04f ),
+            ( SpellId.VoidMagicMasteryOther1,           0.04f ),
+            ( SpellId.ManaMasteryOther1,                0.04f ),
+            ( SpellId.ArcaneEnlightenmentOther1,        0.04f ),
+            ( SpellId.ArcanumSalvagingOther1,           0.04f ),
+            ( SpellId.ArmorExpertiseOther1,             0.04f ),
+            ( SpellId.ItemExpertiseOther1,              0.04f ),
+            ( SpellId.MagicItemExpertiseOther1,         0.04f ),
+            ( SpellId.WeaponExpertiseOther1,            0.04f ),
+            ( SpellId.HeavyWeaponsMasteryOther1,        0.04f ),
+            ( SpellId.LightWeaponsMasteryOther1,        0.04f ),
+            ( SpellId.FinesseWeaponsMasteryOther1,      0.04f ),
+            ( SpellId.MissileWeaponsMasteryOther1,      0.04f ),
+            ( SpellId.TwoHandedMasteryOther1,           0.04f ),
+            ( SpellId.ShieldMasteryOther1,              0.04f ),
+            ( SpellId.AlchemyMasteryOther1,             0.04f ),
+            ( SpellId.CookingMasteryOther1,             0.04f ),
+            ( SpellId.FletchingMasteryOther1,           0.04f ),
+            ( SpellId.HealingMasteryOther1,             0.04f ),
+            ( SpellId.LockpickMasteryOther1,            0.04f ),
         };
 
         // greaves, leggings, tassets, leather pants
         private static ChanceTable<SpellId> spellSelectionGroup15 = new ChanceTable<SpellId>()
         {
-            ( SpellId.StrengthSelf1,         0.25f ),
-            ( SpellId.QuicknessSelf1,        0.25f ),
-            ( SpellId.SummoningMasterySelf1, 0.20f ),
-            ( SpellId.JumpingMasterySelf1,   0.10f ),
-            ( SpellId.SprintSelf1,           0.10f ),
-            ( SpellId.EnduranceSelf1,        0.10f ),
+            ( SpellId.StrengthOther1,         0.25f ),
+            ( SpellId.QuicknessOther1,        0.25f ),
+            ( SpellId.SummoningMasteryOther1, 0.20f ),
+            ( SpellId.JumpingMasteryOther1,   0.10f ),
+            ( SpellId.SprintOther1,           0.10f ),
+            ( SpellId.EnduranceOther1,        0.10f ),
         };
 
         // dinnerware
         private static ChanceTable<SpellId> spellSelectionGroup16 = new ChanceTable<SpellId>()
         {
-            ( SpellId.AlchemyMasterySelf1,     0.09f ),
-            ( SpellId.CookingMasterySelf1,     0.09f ),
-            ( SpellId.FletchingMasterySelf1,   0.09f ),
-            ( SpellId.LockpickMasterySelf1,    0.08f ),
-            ( SpellId.ArcanumSalvagingSelf1,   0.08f ),
-            ( SpellId.ArmorExpertiseSelf1,     0.08f ),
-            ( SpellId.ItemExpertiseSelf1,      0.08f ),
-            ( SpellId.MagicItemExpertiseSelf1, 0.08f ),
-            ( SpellId.WeaponExpertiseSelf1,    0.08f ),
-            ( SpellId.WillpowerSelf1,          0.05f ),
-            ( SpellId.StrengthSelf1,           0.04f ),
-            ( SpellId.EnduranceSelf1,          0.04f ),
-            ( SpellId.CoordinationSelf1,       0.04f ),
-            ( SpellId.QuicknessSelf1,          0.04f ),
-            ( SpellId.FocusSelf1,              0.04f ),
+            ( SpellId.AlchemyMasteryOther1,     0.09f ),
+            ( SpellId.CookingMasteryOther1,     0.09f ),
+            ( SpellId.FletchingMasteryOther1,   0.09f ),
+            ( SpellId.LockpickMasteryOther1,    0.08f ),
+            ( SpellId.ArcanumSalvagingOther1,   0.08f ),
+            ( SpellId.ArmorExpertiseOther1,     0.08f ),
+            ( SpellId.ItemExpertiseOther1,      0.08f ),
+            ( SpellId.MagicItemExpertiseOther1, 0.08f ),
+            ( SpellId.WeaponExpertiseOther1,    0.08f ),
+            ( SpellId.WillpowerOther1,          0.05f ),
+            ( SpellId.StrengthOther1,           0.04f ),
+            ( SpellId.EnduranceOther1,          0.04f ),
+            ( SpellId.CoordinationOther1,       0.04f ),
+            ( SpellId.QuicknessOther1,          0.04f ),
+            ( SpellId.FocusOther1,              0.04f ),
         };
 
         // added
@@ -319,85 +319,89 @@ namespace ACE.Server.Factories.Tables
         // missile weapons, two-handed weapons
         private static ChanceTable<SpellId> spellSelectionGroup17 = new ChanceTable<SpellId>()
         {
-            ( SpellId.StrengthSelf1,             0.16f ),
-            ( SpellId.EnduranceSelf1,            0.15f ),
-            ( SpellId.CoordinationSelf1,         0.15f ),
-            ( SpellId.QuicknessSelf1,            0.15f ),
-            ( SpellId.DirtyFightingMasterySelf1, 0.13f ),
-            ( SpellId.RecklessnessMasterySelf1,  0.13f ),
-            ( SpellId.SneakAttackMasterySelf1,   0.13f ),
+            ( SpellId.StrengthOther1,             0.16f ),
+            ( SpellId.EnduranceOther1,            0.15f ),
+            ( SpellId.CoordinationOther1,         0.15f ),
+            ( SpellId.QuicknessOther1,            0.15f ),
+            ( SpellId.DirtyFightingMasteryOther1, 0.13f ),
+            ( SpellId.RecklessnessMasteryOther1,  0.13f ),
+            ( SpellId.SneakAttackMasteryOther1,   0.13f ),
         };
 
         // shoes, loafers, slippers, sandals
         private static ChanceTable<SpellId> spellSelectionGroup18 = new ChanceTable<SpellId>()
         {
-            ( SpellId.StrengthSelf1,              0.06f ),
-            ( SpellId.QuicknessSelf1,             0.06f ),
-            ( SpellId.ImpregnabilitySelf1,        0.06f ),
-            ( SpellId.InvulnerabilitySelf1,       0.06f ),
-            ( SpellId.MagicResistanceSelf1,       0.06f ),
-            ( SpellId.ArcaneEnlightenmentSelf1,   0.06f ),
-            ( SpellId.ManaMasterySelf1,           0.06f ),
-            ( SpellId.HealingMasterySelf1,        0.06f ),
-            ( SpellId.JumpingMasterySelf1,        0.06f ),
-            ( SpellId.SprintSelf1,                0.06f ),
-            ( SpellId.HeavyWeaponsMasterySelf1,   0.06f ),
-            ( SpellId.LightWeaponsMasterySelf1,   0.06f ),
-            ( SpellId.FinesseWeaponsMasterySelf1, 0.06f ),
-            ( SpellId.MissileWeaponsMasterySelf1, 0.06f ),
-            ( SpellId.TwoHandedMasteryOther1,     0.06f ),
-            ( SpellId.EnduranceSelf1,             0.05f ),
-            ( SpellId.CoordinationSelf1,          0.05f ),
+            ( SpellId.StrengthOther1,              0.06f ),
+            ( SpellId.QuicknessOther1,             0.06f ),
+            ( SpellId.ImpregnabilityOther1,        0.06f ),
+            ( SpellId.InvulnerabilityOther1,       0.06f ),
+            ( SpellId.MagicResistanceOther1,       0.06f ),
+            ( SpellId.ArcaneEnlightenmentOther1,   0.06f ),
+            ( SpellId.ManaMasteryOther1,           0.06f ),
+            ( SpellId.HealingMasteryOther1,        0.06f ),
+            ( SpellId.JumpingMasteryOther1,        0.06f ),
+            ( SpellId.SprintOther1,                0.06f ),
+            ( SpellId.HeavyWeaponsMasteryOther1,   0.06f ),
+            ( SpellId.LightWeaponsMasteryOther1,   0.06f ),
+            ( SpellId.FinesseWeaponsMasteryOther1, 0.06f ),
+            ( SpellId.MissileWeaponsMasteryOther1, 0.06f ),
+            ( SpellId.TwoHandedMasteryOther1,      0.06f ),
+            ( SpellId.EnduranceOther1,             0.05f ),
+            ( SpellId.CoordinationOther1,          0.05f ),
         };
 
         // nether caster
         private static ChanceTable<SpellId> spellSelectionGroup19 = new ChanceTable<SpellId>()
         {
-            ( SpellId.VoidMagicMasterySelf1,           0.25f ),
-            ( SpellId.WillpowerSelf1,                  0.15f ),
-            ( SpellId.ManaMasterySelf1,                0.10f ),
-            ( SpellId.LifeMagicMasterySelf1,           0.10f ),
-            ( SpellId.ArcaneEnlightenmentSelf1,        0.10f ),
-            ( SpellId.FocusSelf1,                      0.09f ),
-            ( SpellId.CreatureEnchantmentMasterySelf1, 0.09f ),
-            ( SpellId.ItemEnchantmentMasterySelf1,     0.06f ),
-            ( SpellId.SneakAttackMasterySelf1,         0.06f ),
+            ( SpellId.VoidMagicMasteryOther1,           0.25f ),
+            ( SpellId.WillpowerOther1,                  0.15f ),
+            ( SpellId.ManaMasteryOther1,                0.10f ),
+            ( SpellId.LifeMagicMasteryOther1,           0.10f ),
+            ( SpellId.ArcaneEnlightenmentOther1,        0.10f ),
+            ( SpellId.FocusOther1,                      0.09f ),
+            ( SpellId.CreatureEnchantmentMasteryOther1, 0.09f ),
+            ( SpellId.ItemEnchantmentMasteryOther1,     0.06f ),
+            ( SpellId.SneakAttackMasteryOther1,         0.06f ),
         };
 
         // leather cap (1 entry?)
         private static ChanceTable<SpellId> spellSelectionGroup20 = new ChanceTable<SpellId>()
         {
-            ( SpellId.RecklessnessMasterySelf1,        0.075f ),
-            ( SpellId.LockpickMasterySelf1,            0.075f ),
-            ( SpellId.CookingMasterySelf1,             0.05f ),
-            ( SpellId.FletchingMasterySelf1,           0.05f ),
-            ( SpellId.ItemEnchantmentMasterySelf1,     0.05f ),
-            ( SpellId.CreatureEnchantmentMasterySelf1, 0.04f ),
-            ( SpellId.FealtySelf1,                     0.04f ),
-            ( SpellId.ManaMasterySelf1,                0.04f ),
-            ( SpellId.SneakAttackMasterySelf1,         0.04f ),
-            ( SpellId.WillpowerSelf1,                  0.04f ),
-            ( SpellId.ItemExpertiseSelf1,              0.03f ),
-            ( SpellId.PersonAttunementSelf1,           0.03f ),
-            ( SpellId.RegenerationSelf1,               0.03f ),
-            ( SpellId.VoidMagicMasterySelf1,           0.03f ),
-            ( SpellId.WarMagicMasterySelf1,            0.03f ),
-            ( SpellId.WeaponExpertiseSelf1,            0.03f ),
-            ( SpellId.AlchemyMasterySelf1,             0.025f ),
-            ( SpellId.ArcaneEnlightenmentSelf1,        0.025f ),
-            ( SpellId.ArcanumSalvagingSelf1,           0.025f ),
-            ( SpellId.DeceptionMasterySelf1,           0.025f ),
-            ( SpellId.DualWieldMasterySelf1,           0.025f ),
-            ( SpellId.MonsterAttunementSelf1,          0.025f ),
-            ( SpellId.ArmorExpertiseSelf1,             0.02f ),
-            ( SpellId.DirtyFightingMasterySelf1,       0.02f ),
-            ( SpellId.FocusSelf1,                      0.02f ),
-            ( SpellId.HealingMasterySelf1,             0.02f ),
-            ( SpellId.MagicItemExpertiseSelf1,         0.02f ),
-            ( SpellId.MagicResistanceSelf1,            0.02f ),
-            ( SpellId.ManaRenewalSelf1,                0.02f ),
-            ( SpellId.RejuvenationSelf1,               0.02f ),
-            ( SpellId.LifeMagicMasterySelf1,           0.01f ),
+            ( SpellId.RecklessnessMasteryOther1,        0.075f ),
+            ( SpellId.LockpickMasteryOther1,            0.075f ),
+            ( SpellId.CookingMasteryOther1,             0.05f ),
+            ( SpellId.FletchingMasteryOther1,           0.05f ),
+            ( SpellId.ItemEnchantmentMasteryOther1,     0.05f ),
+            ( SpellId.CreatureEnchantmentMasteryOther1, 0.04f ),
+            ( SpellId.FealtyOther1,                     0.04f ),
+            ( SpellId.ManaMasteryOther1,                0.04f ),
+            ( SpellId.SneakAttackMasteryOther1,         0.04f ),
+            ( SpellId.WillpowerOther1,                  0.04f ),
+            ( SpellId.ItemExpertiseOther1,              0.03f ),
+            ( SpellId.PersonAttunementOther1,           0.03f ),
+            ( SpellId.RegenerationOther1,               0.03f ),
+            ( SpellId.VoidMagicMasteryOther1,           0.03f ),
+            ( SpellId.WarMagicMasteryOther1,            0.03f ),
+            ( SpellId.WeaponExpertiseOther1,            0.03f ),
+            ( SpellId.AlchemyMasteryOther1,             0.025f ),
+            ( SpellId.ArcaneEnlightenmentOther1,        0.025f ),
+            ( SpellId.ArcanumSalvagingOther1,           0.025f ),
+            ( SpellId.DeceptionMasteryOther1,           0.025f ),
+            ( SpellId.DualWieldMasteryOther1,           0.025f ),
+            ( SpellId.MonsterAttunementOther1,          0.025f ),
+            ( SpellId.ArmorExpertiseOther1,             0.02f ),
+            ( SpellId.DirtyFightingMasteryOther1,       0.02f ),
+            ( SpellId.FocusOther1,                      0.02f ),
+            ( SpellId.HealingMasteryOther1,             0.02f ),
+            ( SpellId.MagicItemExpertiseOther1,         0.02f ),
+            ( SpellId.MagicResistanceOther1,            0.02f ),
+            ( SpellId.ManaRenewalOther1,                0.02f ),
+            ( SpellId.RejuvenationOther1,               0.02f ),
+            ( SpellId.LifeMagicMasteryOther1,           0.01f ),
+        };
+
+        private static ChanceTable<SpellId> spellSelectionGroup21 = new ChanceTable<SpellId>()
+        {
         };
 
         /// <summary>
@@ -431,370 +435,395 @@ namespace ACE.Server.Factories.Tables
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
+                // gems
                 spellSelectionGroup1 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.StrengthSelf1,               5.0f ),
-                    ( SpellId.EnduranceSelf1,              5.0f ),
-                    ( SpellId.CoordinationSelf1,           5.0f ),
-                    ( SpellId.QuicknessSelf1,              5.0f ),
-                    ( SpellId.FocusSelf1,                  5.0f ),
-                    ( SpellId.WillpowerSelf1,              5.0f ),
+                    ( SpellId.StrengthOther1,               5.0f ),
+                    ( SpellId.EnduranceOther1,              5.0f ),
+                    ( SpellId.CoordinationOther1,           5.0f ),
+                    ( SpellId.QuicknessOther1,              5.0f ),
+                    ( SpellId.FocusOther1,                  5.0f ),
+                    ( SpellId.WillpowerOther1,              5.0f ),
 
-                    ( SpellId.ArcaneEnlightenmentSelf1,    3.0f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,    3.0f ),
 
-                    ( SpellId.MagicResistanceSelf1,        2.0f ),
-                    ( SpellId.ImpregnabilitySelf1,         2.0f ),
-                    ( SpellId.InvulnerabilitySelf1,        2.0f ),
-                    ( SpellId.DeceptionMasterySelf1,       2.0f ),
-                    ( SpellId.MonsterAttunementSelf1,      2.0f ),
-                    ( SpellId.JumpingMasterySelf1,         2.0f ),
-                    ( SpellId.SprintSelf1,                 2.0f ),
-                    ( SpellId.HealingMasterySelf1,         2.0f ),
-                    ( SpellId.LeadershipMasterySelf1,      2.0f ),
-                    ( SpellId.FealtySelf1,                 2.0f ),
+                    ( SpellId.MagicResistanceOther1,        2.0f ),
+                    ( SpellId.ImpregnabilityOther1,         2.0f ),
+                    ( SpellId.InvulnerabilityOther1,        2.0f ),
+                    ( SpellId.DeceptionMasteryOther1,       2.0f ),
+                    ( SpellId.MonsterAttunementOther1,      2.0f ),
+                    ( SpellId.JumpingMasteryOther1,         2.0f ),
+                    ( SpellId.SprintOther1,                 2.0f ),
+                    ( SpellId.HealingMasteryOther1,         2.0f ),
+                    ( SpellId.LeadershipMasteryOther1,      2.0f ),
+                    ( SpellId.FealtyOther1,                 2.0f ),
 
-                    ( SpellId.AlchemyMasterySelf1,         1.0f ),
-                    ( SpellId.CookingMasterySelf1,         1.0f ),
-                    ( SpellId.FletchingMasterySelf1,       1.0f ),
-                    ( SpellId.LockpickMasterySelf1,        1.0f ),
-                    ( SpellId.ItemExpertiseSelf1,          1.0f ),
-                    ( SpellId.ArmorExpertiseSelf1,         1.0f ),
-                    ( SpellId.MagicItemExpertiseSelf1,     1.0f ),
-                    ( SpellId.WeaponExpertiseSelf1,        1.0f ),
-                    ( SpellId.ArcanumSalvagingSelf1,       1.0f ),
+                    ( SpellId.AlchemyMasteryOther1,         1.0f ),
+                    ( SpellId.CookingMasteryOther1,         1.0f ),
+                    ( SpellId.FletchingMasteryOther1,       1.0f ),
+                    ( SpellId.LockpickMasteryOther1,        1.0f ),
+                    ( SpellId.ArcanumSalvagingOther1,       1.0f ),
 
-                    ( SpellId.LightWeaponsMasterySelf1,    0.5f ), // AxeMasterySelf1
-                    ( SpellId.FinesseWeaponsMasterySelf1,  0.5f ), // DaggerMasterySelf1
-                    ( SpellId.MaceMasterySelf1,            0.5f ),
-                    ( SpellId.SpearMasterySelf1,           0.5f ),
-                    ( SpellId.StaffMasterySelf1,           0.5f ),
-                    ( SpellId.HeavyWeaponsMasterySelf1,    0.5f ), // SwordMasterySelf1
-                    ( SpellId.UnarmedCombatMasterySelf1,   0.5f ),
-                    ( SpellId.MissileWeaponsMasterySelf1,  0.5f ), // BowMasterySelf1
-                    ( SpellId.CrossbowMasterySelf1,        0.5f ),
-                    ( SpellId.ThrownWeaponMasterySelf1,    0.5f ),
-                    ( SpellId.ShieldMasterySelf1,          0.5f ),
-                    ( SpellId.DualWieldMasterySelf1,       0.5f ),
-                    ( SpellId.WarMagicMasterySelf1,        0.5f ),
-                    ( SpellId.LifeMagicMasterySelf1,       0.5f ),
+                    ( SpellId.ArmorMasteryOther1,           1.0f ),
+                    ( SpellId.AwarenessMasteryOther1,       1.0f ),
+                    ( SpellId.AppraiseMasteryOther1,        1.0f ),
+                    ( SpellId.SneakingMasteryOther1,        1.0f ),
+
+                    ( SpellId.LightWeaponsMasteryOther1,    0.5f ), // AxeMasteryOther1
+                    ( SpellId.FinesseWeaponsMasteryOther1,  0.5f ), // DaggerMasteryOther1
+                    //( SpellId.MaceMasteryOther1,            0.5f ),
+                    ( SpellId.SpearMasteryOther1,           0.5f ),
+                    //( SpellId.StaffMasteryOther1,           0.5f ),
+                    ( SpellId.HeavyWeaponsMasteryOther1,    0.5f ), // SwordMasteryOther1
+                    ( SpellId.UnarmedCombatMasteryOther1,   0.5f ),
+                    ( SpellId.MissileWeaponsMasteryOther1,  0.5f ), // BowMasteryOther1
+                    //( SpellId.CrossbowMasteryOther1,        0.5f ),
+                    ( SpellId.ThrownWeaponMasteryOther1,    0.5f ),
+                    ( SpellId.ShieldMasteryOther1,          0.5f ),
+                    ( SpellId.DualWieldMasteryOther1,       0.5f ),
+                    ( SpellId.WarMagicMasteryOther1,        0.5f ),
+                    ( SpellId.LifeMagicMasteryOther1,       0.5f ),
                 };
 
                 // jewelry
                 spellSelectionGroup2 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.ArcaneEnlightenmentSelf1, 5.0f ),
-                    ( SpellId.MagicResistanceSelf1,     5.0f ),
-                    ( SpellId.ArmorSelf1,               5.0f ),
-                    ( SpellId.AcidProtectionSelf1,      5.0f ),
-                    ( SpellId.BludgeonProtectionSelf1,  5.0f ),
-                    ( SpellId.ColdProtectionSelf1,      5.0f ),
-                    ( SpellId.LightningProtectionSelf1, 5.0f ),
-                    ( SpellId.FireProtectionSelf1,      5.0f ),
-                    ( SpellId.BladeProtectionSelf1,     5.0f ),
-                    ( SpellId.PiercingProtectionSelf1,  5.0f ),
-                    ( SpellId.StrengthSelf1,            4.0f ),
-                    ( SpellId.EnduranceSelf1,           4.0f ),
-                    ( SpellId.CoordinationSelf1,        4.0f ),
-                    ( SpellId.QuicknessSelf1,           4.0f ),
-                    ( SpellId.FocusSelf1,               4.0f ),
-                    ( SpellId.WillpowerSelf1,           4.0f ),
-                    ( SpellId.ManaRenewalSelf1,         4.0f ),
-                    ( SpellId.ManaMasterySelf1,         4.0f ),
-                    ( SpellId.RegenerationSelf1,        3.0f ),
-                    ( SpellId.RejuvenationSelf1,        3.0f ),
-                    ( SpellId.ItemExpertiseSelf1,       3.0f ),
-                    ( SpellId.ArmorExpertiseSelf1,      2.0f ),
-                    ( SpellId.DeceptionMasterySelf1,    1.0f ),
-                    ( SpellId.FealtySelf1,              1.0f ),
-                    ( SpellId.MonsterAttunementSelf1,   1.0f ),
-                    ( SpellId.ArcanumSalvagingSelf1,    1.0f ),
-                    ( SpellId.MagicItemExpertiseSelf1,  1.0f ),
-                    ( SpellId.WeaponExpertiseSelf1,     1.0f ),
+                    ( SpellId.ArcaneEnlightenmentOther1, 5.0f ),
+                    ( SpellId.MagicResistanceOther1,     5.0f ),
+                    ( SpellId.ArmorOther1,               5.0f ),
+                    ( SpellId.AcidProtectionOther1,      5.0f ),
+                    ( SpellId.BludgeonProtectionOther1,  5.0f ),
+                    ( SpellId.ColdProtectionOther1,      5.0f ),
+                    ( SpellId.LightningProtectionOther1, 5.0f ),
+                    ( SpellId.FireProtectionOther1,      5.0f ),
+                    ( SpellId.BladeProtectionOther1,     5.0f ),
+                    ( SpellId.PiercingProtectionOther1,  5.0f ),
+                    ( SpellId.StrengthOther1,            4.0f ),
+                    ( SpellId.EnduranceOther1,           4.0f ),
+                    ( SpellId.CoordinationOther1,        4.0f ),
+                    ( SpellId.QuicknessOther1,           4.0f ),
+                    ( SpellId.FocusOther1,               4.0f ),
+                    ( SpellId.WillpowerOther1,           4.0f ),
+                    ( SpellId.ManaRenewalOther1,         4.0f ),
+                    ( SpellId.ManaMasteryOther1,         4.0f ),
+                    ( SpellId.RegenerationOther1,        3.0f ),
+                    ( SpellId.RejuvenationOther1,        3.0f ),
+                    ( SpellId.DeceptionMasteryOther1,    1.0f ),
+                    ( SpellId.FealtyOther1,              1.0f ),
+                    ( SpellId.MonsterAttunementOther1,   1.0f ),
+                    ( SpellId.ArcanumSalvagingOther1,    1.0f ),
+                    ( SpellId.ArmorMasteryOther1,        1.0f ),
+                    ( SpellId.AwarenessMasteryOther1,    1.0f ),
+                    ( SpellId.AppraiseMasteryOther1,     1.0f ),
+                    ( SpellId.SneakingMasteryOther1,     1.0f ),
                 };
 
                 // crowns
                 spellSelectionGroup3 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.LeadershipMasterySelf1,    2.0f),
-                    ( SpellId.ImpregnabilitySelf1,       2.0f),
-                    ( SpellId.InvulnerabilitySelf1,      2.0f),
-                    ( SpellId.MagicResistanceSelf1,      2.0f),
-                    ( SpellId.FocusSelf1,                1.0f),
-                    ( SpellId.WillpowerSelf1,            1.0f),
-                    ( SpellId.ArmorSelf1,                1.0f),
-                    ( SpellId.RegenerationSelf1,         1.0f),
-                    ( SpellId.RejuvenationSelf1,         1.0f),
-                    ( SpellId.ManaRenewalSelf1,          1.0f),
-                    ( SpellId.ManaMasterySelf1,          1.0f),
-                    ( SpellId.ArcaneEnlightenmentSelf1,  1.0f),
-                    ( SpellId.HealingMasterySelf1,       1.0f),
-                    ( SpellId.DeceptionMasterySelf1,     1.0f),
-                    ( SpellId.MonsterAttunementSelf1,    1.0f),
+                    ( SpellId.LeadershipMasteryOther1,    2.0f),
+                    ( SpellId.ImpregnabilityOther1,       2.0f),
+                    ( SpellId.InvulnerabilityOther1,      2.0f),
+                    ( SpellId.MagicResistanceOther1,      2.0f),
+                    ( SpellId.FocusOther1,                1.0f),
+                    ( SpellId.WillpowerOther1,            1.0f),
+                    ( SpellId.ArmorOther1,                1.0f),
+                    ( SpellId.RegenerationOther1,         1.0f),
+                    ( SpellId.RejuvenationOther1,         1.0f),
+                    ( SpellId.ManaRenewalOther1,          1.0f),
+                    ( SpellId.ManaMasteryOther1,          1.0f),
+                    ( SpellId.ArcaneEnlightenmentOther1,  1.0f),
+                    ( SpellId.HealingMasteryOther1,       1.0f),
+                    ( SpellId.DeceptionMasteryOther1,     1.0f),
+                    ( SpellId.MonsterAttunementOther1,    1.0f),
                 };
 
                 // orbs
                 spellSelectionGroup4 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.LifeMagicMasterySelf1,           2.0f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        1.5f ),
-                    ( SpellId.FocusSelf1,                      1.0f ),
-                    ( SpellId.WillpowerSelf1,                  1.0f ),
-                    ( SpellId.WarMagicMasterySelf1,            1.0f ),
-                    ( SpellId.ManaMasterySelf1,                1.0f ),
+                    ( SpellId.LifeMagicMasteryOther1,           2.0f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        1.5f ),
+                    ( SpellId.FocusOther1,                      1.0f ),
+                    ( SpellId.WillpowerOther1,                  1.0f ),
+                    ( SpellId.WarMagicMasteryOther1,            1.0f ),
+                    ( SpellId.ManaMasteryOther1,                1.0f ),
                 };
 
                 // wands, staffs, sceptres, batons
                 spellSelectionGroup5 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.WarMagicMasterySelf1,            2.0f ),
-                    ( SpellId.WillpowerSelf1,                  1.5f ),
-                    ( SpellId.LifeMagicMasterySelf1,           1.0f ),
-                    ( SpellId.FocusSelf1,                      1.0f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        1.0f ),
-                    ( SpellId.ManaMasterySelf1,                1.0f ),
+                    ( SpellId.WarMagicMasteryOther1,            2.0f ),
+                    ( SpellId.WillpowerOther1,                  1.5f ),
+                    ( SpellId.LifeMagicMasteryOther1,           1.0f ),
+                    ( SpellId.FocusOther1,                      1.0f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        1.0f ),
+                    ( SpellId.ManaMasteryOther1,                1.0f ),
                 };
 
                 // one-handed melee weapons
                 spellSelectionGroup6 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.QuicknessSelf1,            0.225f ),
-                    ( SpellId.StrengthSelf1,             0.225f ),
-                    ( SpellId.EnduranceSelf1,            0.225f ),
-                    ( SpellId.CoordinationSelf1,         0.225f ),
-                    ( SpellId.DualWieldMasterySelf1,     0.100f ),
+                    ( SpellId.QuicknessOther1,            0.225f ),
+                    ( SpellId.StrengthOther1,             0.225f ),
+                    ( SpellId.EnduranceOther1,            0.225f ),
+                    ( SpellId.CoordinationOther1,         0.225f ),
+                    ( SpellId.DualWieldMasteryOther1,     0.100f ),
                 };
 
                 // bracers, breastplates, coats, cuirasses, girths, hauberks, pauldrons, chest armor, sleeves
                 spellSelectionGroup7 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.StrengthSelf1,         0.30f ),
-                    ( SpellId.EnduranceSelf1,        0.30f ),
+                    ( SpellId.StrengthOther1,         0.30f ),
+                    ( SpellId.EnduranceOther1,        0.30f ),
 
-                    ( SpellId.MagicResistanceSelf1,  0.15f ),
+                    ( SpellId.MagicResistanceOther1,  0.15f ),
 
-                    ( SpellId.RejuvenationSelf1,     0.10f ),
-                    ( SpellId.RegenerationSelf1,     0.10f ),
+                    ( SpellId.RejuvenationOther1,     0.10f ),
+                    ( SpellId.RegenerationOther1,     0.10f ),
 
-                    ( SpellId.FealtySelf1,           0.05f ),
+                    ( SpellId.FealtyOther1,           0.05f ),
                 };
 
                 // shields
                 spellSelectionGroup8 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.ImpregnabilitySelf1,  0.15f ),
-                    ( SpellId.InvulnerabilitySelf1, 0.15f ),
+                    ( SpellId.ImpregnabilityOther1,  0.15f ),
+                    ( SpellId.InvulnerabilityOther1, 0.15f ),
 
-                    ( SpellId.StrengthSelf1,        0.10f ),
-                    ( SpellId.EnduranceSelf1,       0.10f ),
+                    ( SpellId.StrengthOther1,        0.10f ),
+                    ( SpellId.EnduranceOther1,       0.10f ),
 
-                    ( SpellId.RejuvenationSelf1,    0.15f ),
+                    ( SpellId.RejuvenationOther1,    0.15f ),
 
-                    ( SpellId.FealtySelf1,          0.15f ),
-                    ( SpellId.MagicResistanceSelf1, 0.10f ),
+                    ( SpellId.FealtyOther1,          0.15f ),
+                    ( SpellId.MagicResistanceOther1, 0.10f ),
 
-                    ( SpellId.ShieldMasterySelf1,   0.10f ),
+                    ( SpellId.ShieldMasteryOther1,   0.10f ),
                 };
 
                 // gauntlets
-                spellSelectionGroup9 = new ChanceTable<SpellId>()
+                spellSelectionGroup9 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.CoordinationSelf1,          0.13f ),
+                    ( SpellId.CoordinationOther1,          2.0f ),
 
-                    ( SpellId.HealingMasterySelf1,        0.10f ),
+                    ( SpellId.HealingMasteryOther1,        1.5f ),
 
-                    ( SpellId.LightWeaponsMasterySelf1,   0.07f ), // AxeMasterySelf1
-                    ( SpellId.FinesseWeaponsMasterySelf1, 0.07f ), // DaggerMasterySelf1
-                    ( SpellId.MaceMasterySelf1,           0.07f ),
-                    ( SpellId.SpearMasterySelf1,          0.07f ),
-                    ( SpellId.StaffMasterySelf1,          0.07f ),
-                    ( SpellId.HeavyWeaponsMasterySelf1,   0.07f ), // SwordMasterySelf1
-                    ( SpellId.UnarmedCombatMasterySelf1,  0.07f ),
-                    ( SpellId.MissileWeaponsMasterySelf1, 0.07f ), // BowMasterySelf1
-                    ( SpellId.CrossbowMasterySelf1,       0.07f ),
-                    ( SpellId.ThrownWeaponMasterySelf1,   0.07f ),
-                    ( SpellId.ShieldMasterySelf1,         0.07f ),
+                    ( SpellId.LightWeaponsMasteryOther1,      1.0f ), // AxeMasteryOther1
+                    ( SpellId.FinesseWeaponsMasteryOther1,    1.0f ), // DaggerMasteryOther1
+                    //( SpellId.MaceMasteryOther1,              1.0f ),
+                    ( SpellId.SpearMasteryOther1,             1.0f ),
+                    //( SpellId.StaffMasteryOther1,             1.0f ),
+                    ( SpellId.HeavyWeaponsMasteryOther1,      1.0f ), // SwordMasteryOther1
+                    ( SpellId.UnarmedCombatMasteryOther1,     1.0f ),
+                    ( SpellId.MissileWeaponsMasteryOther1,    1.0f ), // BowMasteryOther1
+                    //( SpellId.CrossbowMasteryOther1,          1.0f ),
+                    ( SpellId.ThrownWeaponMasteryOther1,      1.0f ),
+                    ( SpellId.ShieldMasteryOther1,            1.0f ),
                 };
 
                 // helms, basinets, helmets, coifs, cowls, heaumes, kabutons
-                spellSelectionGroup10 = new ChanceTable<SpellId>()
+                spellSelectionGroup10 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.MagicResistanceSelf1,      0.16f ),
-                    ( SpellId.ImpregnabilitySelf1,       0.12f ),
-                    ( SpellId.InvulnerabilitySelf1,      0.12f ),
+                    ( SpellId.MagicResistanceOther1,         2.5f ),
+                    ( SpellId.ImpregnabilityOther1,          2.0f ),
+                    ( SpellId.InvulnerabilityOther1,         2.0f ),
 
-                    ( SpellId.ArmorExpertiseSelf1,       0.06f ),
-                    ( SpellId.ItemExpertiseSelf1,        0.06f ),
-                    ( SpellId.WeaponExpertiseSelf1,      0.06f ),
-                    ( SpellId.MonsterAttunementSelf1,    0.06f ),
-                    ( SpellId.HealingMasterySelf1,       0.06f ),
-                    ( SpellId.RegenerationSelf1,         0.06f ),
-                    ( SpellId.RejuvenationSelf1,         0.06f ),
-                    ( SpellId.ManaRenewalSelf1,          0.06f ),
-                    ( SpellId.FealtySelf1,               0.06f ),
+                    ( SpellId.MonsterAttunementOther1,       1.0f ),
+                    ( SpellId.HealingMasteryOther1,          1.0f ),
+                    ( SpellId.RegenerationOther1,            1.0f ),
+                    ( SpellId.RejuvenationOther1,            1.0f ),
+                    ( SpellId.ManaRenewalOther1,             1.0f ),
+                    ( SpellId.FealtyOther1,                  1.0f ),
 
-                    ( SpellId.DualWieldMasterySelf1,     0.06f ),
+                    ( SpellId.DualWieldMasteryOther1,        1.0f ),
+                    ( SpellId.ArmorMasteryOther1,            1.0f ),
+                    ( SpellId.AwarenessMasteryOther1,        1.0f ),
+                    ( SpellId.AppraiseMasteryOther1,         1.0f ),
                 };
 
                 // boots, chiran sandals, sollerets
-                spellSelectionGroup11 = new ChanceTable<SpellId>()
+                spellSelectionGroup11 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.QuicknessSelf1,             0.20f ),
-                    ( SpellId.CoordinationSelf1,          0.10f ),
+                    ( SpellId.QuicknessOther1,             8.0f ),
+                    ( SpellId.CoordinationOther1,          4.0f ),
 
-                    ( SpellId.HealingMasterySelf1,        0.10f ),
+                    ( SpellId.HealingMasteryOther1,        4.0f ),
 
-                    ( SpellId.JumpingMasterySelf1,        0.05f ),
-                    ( SpellId.SprintSelf1,                0.05f ),
+                    ( SpellId.JumpingMasteryOther1,        2.0f ),
+                    ( SpellId.SprintOther1,                2.0f ),
 
-                    ( SpellId.LightWeaponsMasterySelf1,   0.05f ), // AxeMasterySelf1
-                    ( SpellId.FinesseWeaponsMasterySelf1, 0.05f ), // DaggerMasterySelf1
-                    ( SpellId.MaceMasterySelf1,           0.05f ),
-                    ( SpellId.SpearMasterySelf1,          0.05f ),
-                    ( SpellId.StaffMasterySelf1,          0.05f ),
-                    ( SpellId.HeavyWeaponsMasterySelf1,   0.05f ), // SwordMasterySelf1
-                    ( SpellId.UnarmedCombatMasterySelf1,  0.05f ),
-                    ( SpellId.MissileWeaponsMasterySelf1, 0.05f ), // BowMasterySelf1
-                    ( SpellId.CrossbowMasterySelf1,       0.05f ),
-                    ( SpellId.ThrownWeaponMasterySelf1,   0.05f ),
+                    ( SpellId.LightWeaponsMasteryOther1,   1.0f ), // AxeMasteryOther1
+                    ( SpellId.FinesseWeaponsMasteryOther1, 1.0f ), // DaggerMasteryOther1
+                    //( SpellId.MaceMasteryOther1,           1.0f ),
+                    ( SpellId.SpearMasteryOther1,          1.0f ),
+                    //( SpellId.StaffMasteryOther1,          1.0f ),
+                    ( SpellId.HeavyWeaponsMasteryOther1,   1.0f ), // SwordMasteryOther1
+                    ( SpellId.UnarmedCombatMasteryOther1,  1.0f ),
+                    ( SpellId.MissileWeaponsMasteryOther1, 1.0f ), // BowMasteryOther1
+                    //( SpellId.CrossbowMasteryOther1,       1.0f ),
+                    ( SpellId.ThrownWeaponMasteryOther1,   1.0f ),
+                    ( SpellId.SneakingMasteryOther1,       1.0f ),
                 };
 
                 // caps, qafiyas, turbans, fezs, berets
                 spellSelectionGroup13 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.FocusSelf1,                      1.0f ),
-                    ( SpellId.WillpowerSelf1,                  1.0f ),
-                    ( SpellId.RejuvenationSelf1,               1.0f ),
-                    ( SpellId.RegenerationSelf1,               1.0f ),
+                    ( SpellId.FocusOther1,                      1.0f ),
+                    ( SpellId.WillpowerOther1,                  1.0f ),
+                    ( SpellId.RejuvenationOther1,               1.0f ),
+                    ( SpellId.RegenerationOther1,               1.0f ),
 
-                    ( SpellId.ArmorSelf1,                      0.9f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.9f ),
-                    ( SpellId.WarMagicMasterySelf1,            0.9f ),
-                    ( SpellId.MagicResistanceSelf1,            0.9f ),
-                    ( SpellId.ManaRenewalSelf1,                0.9f ),
-                    ( SpellId.HealingMasterySelf1,             0.9f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.9f ),
-                    ( SpellId.FealtySelf1,                     0.9f ),
-                    ( SpellId.ManaMasterySelf1,                0.9f ),
+                    ( SpellId.ArmorOther1,                      0.9f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.9f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.9f ),
+                    ( SpellId.MagicResistanceOther1,            0.9f ),
+                    ( SpellId.ManaRenewalOther1,                0.9f ),
+                    ( SpellId.HealingMasteryOther1,             0.9f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.9f ),
+                    ( SpellId.FealtyOther1,                     0.9f ),
+                    ( SpellId.ManaMasteryOther1,                0.9f ),
 
-                    ( SpellId.AlchemyMasterySelf1,             0.8f ),
-                    ( SpellId.CookingMasterySelf1,             0.8f ),
-                    ( SpellId.FletchingMasterySelf1,           0.8f ),
-                    ( SpellId.LockpickMasterySelf1,            0.8f ),
-                    ( SpellId.DeceptionMasterySelf1,           0.8f ),
-                    ( SpellId.ArcanumSalvagingSelf1,           0.8f ),
-                    ( SpellId.ArmorExpertiseSelf1,             0.8f ),
-                    ( SpellId.MagicItemExpertiseSelf1,         0.8f ),
-                    ( SpellId.ItemExpertiseSelf1,              0.8f ),
-                    ( SpellId.WeaponExpertiseSelf1,            0.8f ),
-                    ( SpellId.MonsterAttunementSelf1,          0.8f ),
+                    ( SpellId.AlchemyMasteryOther1,             0.8f ),
+                    ( SpellId.CookingMasteryOther1,             0.8f ),
+                    ( SpellId.FletchingMasteryOther1,           0.8f ),
+                    ( SpellId.LockpickMasteryOther1,            0.8f ),
+                    ( SpellId.DeceptionMasteryOther1,           0.8f ),
+                    ( SpellId.ArcanumSalvagingOther1,           0.8f ),
+                    ( SpellId.MonsterAttunementOther1,          0.8f ),
                 };
 
                 // cloth gloves (1 entry?)
                 spellSelectionGroup14 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.CoordinationSelf1,               1.0f ),
-                    ( SpellId.QuicknessSelf1,                  1.0f ),
+                    ( SpellId.CoordinationOther1,               1.0f ),
+                    ( SpellId.QuicknessOther1,                  1.0f ),
 
-                    ( SpellId.AlchemyMasterySelf1,             0.9f ),
-                    ( SpellId.CookingMasterySelf1,             0.9f ),
-                    ( SpellId.FletchingMasterySelf1,           0.9f ),
-                    ( SpellId.HealingMasterySelf1,             0.9f ),
-                    ( SpellId.LockpickMasterySelf1,            0.9f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.9f ),
-                    ( SpellId.WarMagicMasterySelf1,            0.9f ),
-                    ( SpellId.ManaMasterySelf1,                0.9f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.9f ),
-                    ( SpellId.ArcanumSalvagingSelf1,           0.9f ),
-
-                    ( SpellId.ArmorExpertiseSelf1,             0.8f ),
-                    ( SpellId.ItemExpertiseSelf1,              0.8f ),
-                    ( SpellId.MagicItemExpertiseSelf1,         0.8f ),
-                    ( SpellId.WeaponExpertiseSelf1,            0.8f ),
+                    ( SpellId.AlchemyMasteryOther1,             0.9f ),
+                    ( SpellId.CookingMasteryOther1,             0.9f ),
+                    ( SpellId.FletchingMasteryOther1,           0.9f ),
+                    ( SpellId.HealingMasteryOther1,             0.9f ),
+                    ( SpellId.LockpickMasteryOther1,            0.9f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.9f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.9f ),
+                    ( SpellId.ManaMasteryOther1,                0.9f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.9f ),
+                    ( SpellId.ArcanumSalvagingOther1,           0.9f ),
                 };
 
                 // greaves, leggings, tassets, leather pants
-                spellSelectionGroup15 = new ChanceTable<SpellId>()
+                spellSelectionGroup15 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.StrengthSelf1,         0.29f ),
-                    ( SpellId.QuicknessSelf1,        0.29f ),
-                    ( SpellId.JumpingMasterySelf1,   0.14f ),
-                    ( SpellId.SprintSelf1,           0.14f ),
-                    ( SpellId.EnduranceSelf1,        0.14f ),
+                    ( SpellId.StrengthOther1,         1.0f ),
+                    ( SpellId.QuicknessOther1,        1.0f ),
+                    ( SpellId.JumpingMasteryOther1,   0.5f ),
+                    ( SpellId.SprintOther1,           0.5f ),
+                    ( SpellId.EnduranceOther1,        0.5f ),
+                };
+
+                // dinnerware
+                spellSelectionGroup16 = new ChanceTable<SpellId>(ChanceTableType.Weight)
+                {
+                    ( SpellId.AlchemyMasteryOther1,        2.0f ),
+                    ( SpellId.CookingMasteryOther1,        2.0f ),
+                    ( SpellId.FletchingMasteryOther1,      2.0f ),
+                    ( SpellId.LockpickMasteryOther1,       2.0f ),
+                    ( SpellId.ArcanumSalvagingOther1,      2.0f ),
+                    ( SpellId.StrengthOther1,              1.0f ),
+                    ( SpellId.EnduranceOther1,             1.0f ),
+                    ( SpellId.CoordinationOther1,          1.0f ),
+                    ( SpellId.QuicknessOther1,             1.0f ),
+                    ( SpellId.FocusOther1,                 1.0f ),
+                    ( SpellId.WillpowerOther1,             1.0f ),
                 };
 
                 // missile weapons, two-handed weapons
-                spellSelectionGroup17 = new ChanceTable<SpellId>()
+                spellSelectionGroup17 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.StrengthSelf1,             0.25f ),
-                    ( SpellId.EnduranceSelf1,            0.25f ),
-                    ( SpellId.CoordinationSelf1,         0.25f ),
-                    ( SpellId.QuicknessSelf1,            0.25f ),
+                    ( SpellId.StrengthOther1,             1.0f ),
+                    ( SpellId.EnduranceOther1,            1.0f ),
+                    ( SpellId.CoordinationOther1,         1.0f ),
+                    ( SpellId.QuicknessOther1,            1.0f ),
                 };
 
                 // shoes, loafers, slippers, sandals
                 spellSelectionGroup18 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.StrengthSelf1,              1.0f ),
-                    ( SpellId.QuicknessSelf1,             1.0f ),
-                    ( SpellId.EnduranceSelf1,             1.0f ),
-                    ( SpellId.CoordinationSelf1,          1.0f ),
+                    ( SpellId.StrengthOther1,              1.0f ),
+                    ( SpellId.QuicknessOther1,             1.0f ),
+                    ( SpellId.EnduranceOther1,             1.0f ),
+                    ( SpellId.CoordinationOther1,          1.0f ),
 
-                    ( SpellId.ImpregnabilitySelf1,        0.5f ),
-                    ( SpellId.InvulnerabilitySelf1,       0.5f ),
-                    ( SpellId.MagicResistanceSelf1,       0.5f ),
+                    ( SpellId.ImpregnabilityOther1,        0.5f ),
+                    ( SpellId.InvulnerabilityOther1,       0.5f ),
+                    ( SpellId.MagicResistanceOther1,       0.5f ),
 
-                    ( SpellId.ArcaneEnlightenmentSelf1,   0.5f ),
-                    ( SpellId.ManaMasterySelf1,           0.5f ),
-                    ( SpellId.HealingMasterySelf1,        0.5f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,   0.5f ),
+                    ( SpellId.ManaMasteryOther1,           0.5f ),
+                    ( SpellId.HealingMasteryOther1,        0.5f ),
 
-                    ( SpellId.JumpingMasterySelf1,        0.5f ),
-                    ( SpellId.SprintSelf1,                0.5f ),
+                    ( SpellId.JumpingMasteryOther1,        0.5f ),
+                    ( SpellId.SprintOther1,                0.5f ),
+                    ( SpellId.SneakingMasteryOther1,       0.5f ),
                 };
 
                 // nether caster - should never be used with Infiltration data but here for completioness.
                 spellSelectionGroup19 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.WarMagicMasterySelf1,            1.0f ),
+                    ( SpellId.WarMagicMasteryOther1,            1.0f ),
 
-                    ( SpellId.WillpowerSelf1,                  0.8f ),
+                    ( SpellId.WillpowerOther1,                  0.8f ),
 
-                    ( SpellId.ManaMasterySelf1,                0.4f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.4f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.4f ),
-                    ( SpellId.FocusSelf1,                      0.4f ),
+                    ( SpellId.ManaMasteryOther1,                0.4f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.4f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.4f ),
+                    ( SpellId.FocusOther1,                      0.4f ),
                 };
 
                 // leather cap (1 entry?)
                 spellSelectionGroup20 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.LockpickMasterySelf1,            1.0f ),
+                    ( SpellId.LockpickMasteryOther1,            1.0f ),
 
-                    ( SpellId.CookingMasterySelf1,             0.8f ),
-                    ( SpellId.FletchingMasterySelf1,           0.8f ),
-                    ( SpellId.AlchemyMasterySelf1,             0.8f ),
+                    ( SpellId.CookingMasteryOther1,             0.8f ),
+                    ( SpellId.FletchingMasteryOther1,           0.8f ),
+                    ( SpellId.AlchemyMasteryOther1,             0.8f ),
 
-                    ( SpellId.ItemExpertiseSelf1,              0.7f ),
-                    ( SpellId.WeaponExpertiseSelf1,            0.7f ),
-                    ( SpellId.ArmorExpertiseSelf1,             0.7f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.6f ),
+                    ( SpellId.FealtyOther1,                     0.6f ),
+                    ( SpellId.ManaMasteryOther1,                0.6f ),
 
-                    ( SpellId.WarMagicMasterySelf1,            0.6f ),
-                    ( SpellId.FealtySelf1,                     0.6f ),
-                    ( SpellId.ManaMasterySelf1,                0.6f ),
+                    ( SpellId.WillpowerOther1,                  0.5f ),
+                    ( SpellId.FocusOther1,                      0.5f ),
+                    ( SpellId.RegenerationOther1,               0.5f ),
 
-                    ( SpellId.WillpowerSelf1,                  0.5f ),
-                    ( SpellId.FocusSelf1,                      0.5f ),
-                    ( SpellId.RegenerationSelf1,               0.5f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.4f ),
+                    ( SpellId.ArcanumSalvagingOther1,           0.4f ),
+                    ( SpellId.DeceptionMasteryOther1,           0.4f ),
+                    ( SpellId.MonsterAttunementOther1,          0.4f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.4f ),
+                    ( SpellId.HealingMasteryOther1,             0.4f ),
+                    ( SpellId.MagicResistanceOther1,            0.4f ),
+                    ( SpellId.ManaRenewalOther1,                0.4f ),
+                    ( SpellId.RejuvenationOther1,               0.4f ),
+                };
 
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.4f ),
-                    ( SpellId.ArcanumSalvagingSelf1,           0.4f ),
-                    ( SpellId.DeceptionMasterySelf1,           0.4f ),
-                    ( SpellId.MonsterAttunementSelf1,          0.4f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.4f ),
-                    ( SpellId.HealingMasterySelf1,             0.4f ),
-                    ( SpellId.MagicItemExpertiseSelf1,         0.4f ),
-                    ( SpellId.MagicResistanceSelf1,            0.4f ),
-                    ( SpellId.ManaRenewalSelf1,                0.4f ),
-                    ( SpellId.RejuvenationSelf1,               0.4f ),
+                // robes
+                spellSelectionGroup21 = new ChanceTable<SpellId>(ChanceTableType.Weight)
+                {
+                    ( SpellId.WillpowerOther1,                  2.0f ),
+                    ( SpellId.FocusOther1,                      2.0f ),
+                    ( SpellId.ManaMasteryOther1,                2.0f ),
+                    ( SpellId.RejuvenationOther1,               1.5f ),
+                    ( SpellId.RegenerationOther1,               1.5f ),
+                    ( SpellId.ManaRenewalOther1,                1.5f ),
+                    ( SpellId.MagicResistanceOther1,            1.5f ),
+                    ( SpellId.ImpregnabilityOther1,             1.5f ),
+                    ( SpellId.InvulnerabilityOther1,            1.5f ),
+                    ( SpellId.MagicResistanceOther1,            1.5f ),
+                    ( SpellId.MonsterAttunementOther1,          1.0f ),
+                    ( SpellId.WarMagicMasteryOther1,            1.0f ),
+                    ( SpellId.LifeMagicMasteryOther1,           1.0f ),
+                    ( SpellId.AlchemyMasteryOther1,             1.0f ),
                 };
 
                 spellSelectionGroup = new List<ChanceTable<SpellId>>()
@@ -819,6 +848,7 @@ namespace ACE.Server.Factories.Tables
                     spellSelectionGroup18,
                     spellSelectionGroup19,
                     spellSelectionGroup20,
+                    spellSelectionGroup21,
                 };
             }
             else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
@@ -826,269 +856,269 @@ namespace ACE.Server.Factories.Tables
                 // orbs
                 spellSelectionGroup4 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.LifeMagicMasterySelf1,           0.20f ),
-                    ( SpellId.CreatureEnchantmentMasterySelf1, 0.16f ),
-                    ( SpellId.ItemEnchantmentMasterySelf1,     0.12f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.12f ),
-                    ( SpellId.FocusSelf1,                      0.10f ),
-                    ( SpellId.WillpowerSelf1,                  0.10f ),
-                    ( SpellId.WarMagicMasterySelf1,            0.10f ),
-                    ( SpellId.ManaMasterySelf1,                0.10f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.20f ),
+                    ( SpellId.CreatureEnchantmentMasteryOther1, 0.16f ),
+                    ( SpellId.ItemEnchantmentMasteryOther1,     0.12f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.12f ),
+                    ( SpellId.FocusOther1,                      0.10f ),
+                    ( SpellId.WillpowerOther1,                  0.10f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.10f ),
+                    ( SpellId.ManaMasteryOther1,                0.10f ),
                 };
 
                 // wands, staffs, sceptres, batons
                 spellSelectionGroup5 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.WarMagicMasterySelf1,            0.26f ),
-                    ( SpellId.WillpowerSelf1,                  0.16f ),
-                    ( SpellId.CreatureEnchantmentMasterySelf1, 0.11f ),
-                    ( SpellId.ItemEnchantmentMasterySelf1,     0.11f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.09f ),
-                    ( SpellId.FocusSelf1,                      0.09f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.09f ),
-                    ( SpellId.ManaMasterySelf1,                0.09f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.26f ),
+                    ( SpellId.WillpowerOther1,                  0.16f ),
+                    ( SpellId.CreatureEnchantmentMasteryOther1, 0.11f ),
+                    ( SpellId.ItemEnchantmentMasteryOther1,     0.11f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.09f ),
+                    ( SpellId.FocusOther1,                      0.09f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.09f ),
+                    ( SpellId.ManaMasteryOther1,                0.09f ),
                 };
 
                 // one-handed melee weapons
                 spellSelectionGroup6 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.QuicknessSelf1,            0.325f ),
-                    ( SpellId.StrengthSelf1,             0.225f ),
-                    ( SpellId.EnduranceSelf1,            0.225f ),
-                    ( SpellId.CoordinationSelf1,         0.225f ),
+                    ( SpellId.QuicknessOther1,            0.325f ),
+                    ( SpellId.StrengthOther1,             0.225f ),
+                    ( SpellId.EnduranceOther1,            0.225f ),
+                    ( SpellId.CoordinationOther1,         0.225f ),
                 };
 
                 // bracers, breastplates, coats, cuirasses, girths, hauberks, pauldrons, chest armor, sleeves
                 spellSelectionGroup7 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.StrengthSelf1,         0.30f ),
-                    ( SpellId.EnduranceSelf1,        0.30f ),
-                    ( SpellId.MagicResistanceSelf1,  0.15f ),
-                    ( SpellId.RejuvenationSelf1,     0.10f ),
-                    ( SpellId.RegenerationSelf1,     0.10f ),
-                    ( SpellId.FealtySelf1,           0.05f ),
+                    ( SpellId.StrengthOther1,         0.30f ),
+                    ( SpellId.EnduranceOther1,        0.30f ),
+                    ( SpellId.MagicResistanceOther1,  0.15f ),
+                    ( SpellId.RejuvenationOther1,     0.10f ),
+                    ( SpellId.RegenerationOther1,     0.10f ),
+                    ( SpellId.FealtyOther1,           0.05f ),
                 };
 
                 // shields
                 spellSelectionGroup8 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.ImpregnabilitySelf1,  0.17f ),
-                    ( SpellId.InvulnerabilitySelf1, 0.17f ),
-                    ( SpellId.FealtySelf1,          0.17f ),
-                    ( SpellId.RejuvenationSelf1,    0.16f ),
-                    ( SpellId.StrengthSelf1,        0.11f ),
-                    ( SpellId.EnduranceSelf1,       0.11f ),
-                    ( SpellId.MagicResistanceSelf1, 0.11f ),
+                    ( SpellId.ImpregnabilityOther1,  0.17f ),
+                    ( SpellId.InvulnerabilityOther1, 0.17f ),
+                    ( SpellId.FealtyOther1,          0.17f ),
+                    ( SpellId.RejuvenationOther1,    0.16f ),
+                    ( SpellId.StrengthOther1,        0.11f ),
+                    ( SpellId.EnduranceOther1,       0.11f ),
+                    ( SpellId.MagicResistanceOther1, 0.11f ),
                 };
 
                 // gauntlets
                 spellSelectionGroup9 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.CoordinationSelf1,          0.20f ),
-                    ( SpellId.HealingMasterySelf1,        0.10f ),
-                    ( SpellId.LightWeaponsMasterySelf1,   0.07f ), // AxeMasterySelf1
-                    ( SpellId.FinesseWeaponsMasterySelf1, 0.07f ), // DaggerMasterySelf1
-                    ( SpellId.MaceMasterySelf1,           0.07f ),
-                    ( SpellId.SpearMasterySelf1,          0.07f ),
-                    ( SpellId.StaffMasterySelf1,          0.07f ),
-                    ( SpellId.HeavyWeaponsMasterySelf1,   0.07f ), // SwordMasterySelf1
-                    ( SpellId.UnarmedCombatMasterySelf1,  0.07f ),
-                    ( SpellId.MissileWeaponsMasterySelf1, 0.07f ), // BowMasterySelf1
-                    ( SpellId.CrossbowMasterySelf1,       0.07f ),
-                    ( SpellId.ThrownWeaponMasterySelf1,   0.07f ),
+                    ( SpellId.CoordinationOther1,          0.20f ),
+                    ( SpellId.HealingMasteryOther1,        0.10f ),
+                    ( SpellId.LightWeaponsMasteryOther1,   0.07f ), // AxeMasteryOther1
+                    ( SpellId.FinesseWeaponsMasteryOther1, 0.07f ), // DaggerMasteryOther1
+                    ( SpellId.MaceMasteryOther1,           0.07f ),
+                    ( SpellId.SpearMasteryOther1,          0.07f ),
+                    ( SpellId.StaffMasteryOther1,          0.07f ),
+                    ( SpellId.HeavyWeaponsMasteryOther1,   0.07f ), // SwordMasteryOther1
+                    ( SpellId.UnarmedCombatMasteryOther1,  0.07f ),
+                    ( SpellId.MissileWeaponsMasteryOther1, 0.07f ), // BowMasteryOther1
+                    ( SpellId.CrossbowMasteryOther1,       0.07f ),
+                    ( SpellId.ThrownWeaponMasteryOther1,   0.07f ),
                 };
 
                 // helms, basinets, helmets, coifs, cowls, heaumes, kabutons
                 spellSelectionGroup10 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.MagicResistanceSelf1,      0.15f ),
-                    ( SpellId.ImpregnabilitySelf1,       0.11f ),
-                    ( SpellId.InvulnerabilitySelf1,      0.11f ),
+                    ( SpellId.MagicResistanceOther1,      0.15f ),
+                    ( SpellId.ImpregnabilityOther1,       0.11f ),
+                    ( SpellId.InvulnerabilityOther1,      0.11f ),
 
-                    ( SpellId.ArmorExpertiseSelf1,       0.07f ),
-                    ( SpellId.ItemExpertiseSelf1,        0.07f ),
-                    ( SpellId.WeaponExpertiseSelf1,      0.07f ),
-                    ( SpellId.MonsterAttunementSelf1,    0.07f ),
-                    ( SpellId.HealingMasterySelf1,       0.07f ),
-                    ( SpellId.RegenerationSelf1,         0.07f ),
-                    ( SpellId.RejuvenationSelf1,         0.07f ),
-                    ( SpellId.ManaRenewalSelf1,          0.07f ),
-                    ( SpellId.FealtySelf1,               0.07f ),
+                    ( SpellId.ArmorExpertiseOther1,       0.07f ),
+                    ( SpellId.ItemExpertiseOther1,        0.07f ),
+                    ( SpellId.WeaponExpertiseOther1,      0.07f ),
+                    ( SpellId.MonsterAttunementOther1,    0.07f ),
+                    ( SpellId.HealingMasteryOther1,       0.07f ),
+                    ( SpellId.RegenerationOther1,         0.07f ),
+                    ( SpellId.RejuvenationOther1,         0.07f ),
+                    ( SpellId.ManaRenewalOther1,          0.07f ),
+                    ( SpellId.FealtyOther1,               0.07f ),
                 };
 
                 // boots, chiran sandals, sollerets
                 spellSelectionGroup11 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.QuicknessSelf1,             0.20f ),
-                    ( SpellId.HealingMasterySelf1,        0.10f ),
-                    ( SpellId.CoordinationSelf1,          0.10f ),
-                    ( SpellId.JumpingMasterySelf1,        0.05f ),
-                    ( SpellId.SprintSelf1,                0.05f ),
-                    ( SpellId.LightWeaponsMasterySelf1,   0.05f ), // AxeMasterySelf1
-                    ( SpellId.FinesseWeaponsMasterySelf1, 0.05f ), // DaggerMasterySelf1
-                    ( SpellId.MaceMasterySelf1,           0.05f ),
-                    ( SpellId.SpearMasterySelf1,          0.05f ),
-                    ( SpellId.StaffMasterySelf1,          0.05f ),
-                    ( SpellId.HeavyWeaponsMasterySelf1,   0.05f ), // SwordMasterySelf1
-                    ( SpellId.UnarmedCombatMasterySelf1,  0.05f ),
-                    ( SpellId.MissileWeaponsMasterySelf1, 0.05f ), // BowMasterySelf1
-                    ( SpellId.CrossbowMasterySelf1,       0.05f ),
-                    ( SpellId.ThrownWeaponMasterySelf1,   0.05f ),
+                    ( SpellId.QuicknessOther1,             0.20f ),
+                    ( SpellId.HealingMasteryOther1,        0.10f ),
+                    ( SpellId.CoordinationOther1,          0.10f ),
+                    ( SpellId.JumpingMasteryOther1,        0.05f ),
+                    ( SpellId.SprintOther1,                0.05f ),
+                    ( SpellId.LightWeaponsMasteryOther1,   0.05f ), // AxeMasteryOther1
+                    ( SpellId.FinesseWeaponsMasteryOther1, 0.05f ), // DaggerMasteryOther1
+                    ( SpellId.MaceMasteryOther1,           0.05f ),
+                    ( SpellId.SpearMasteryOther1,          0.05f ),
+                    ( SpellId.StaffMasteryOther1,          0.05f ),
+                    ( SpellId.HeavyWeaponsMasteryOther1,   0.05f ), // SwordMasteryOther1
+                    ( SpellId.UnarmedCombatMasteryOther1,  0.05f ),
+                    ( SpellId.MissileWeaponsMasteryOther1, 0.05f ), // BowMasteryOther1
+                    ( SpellId.CrossbowMasteryOther1,       0.05f ),
+                    ( SpellId.ThrownWeaponMasteryOther1,   0.05f ),
                 };
 
                 // caps, qafiyas, turbans, fezs, berets
                 spellSelectionGroup13 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.FocusSelf1,                      0.05f ),
-                    ( SpellId.WillpowerSelf1,                  0.05f ),
-                    ( SpellId.RejuvenationSelf1,               0.05f ),
-                    ( SpellId.RegenerationSelf1,               0.05f ),
-                    ( SpellId.ArmorSelf1,                      0.04f ),
-                    ( SpellId.CreatureEnchantmentMasterySelf1, 0.04f ),
-                    ( SpellId.ItemEnchantmentMasterySelf1,     0.04f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.04f ),
-                    ( SpellId.WarMagicMasterySelf1,            0.04f ),
-                    ( SpellId.MagicResistanceSelf1,            0.04f ),
-                    ( SpellId.ManaRenewalSelf1,                0.04f ),
-                    ( SpellId.HealingMasterySelf1,             0.04f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.04f ),
-                    ( SpellId.FealtySelf1,                     0.04f ),
-                    ( SpellId.ManaMasterySelf1,                0.04f ),
-                    ( SpellId.AlchemyMasterySelf1,             0.03f ),
-                    ( SpellId.CookingMasterySelf1,             0.03f ),
-                    ( SpellId.FletchingMasterySelf1,           0.03f ),
-                    ( SpellId.LockpickMasterySelf1,            0.03f ),
-                    ( SpellId.DeceptionMasterySelf1,           0.03f ),
-                    ( SpellId.ArcanumSalvagingSelf1,           0.03f ),
-                    ( SpellId.ArmorExpertiseSelf1,             0.03f ),
-                    ( SpellId.MagicItemExpertiseSelf1,         0.03f ),
-                    ( SpellId.ItemExpertiseSelf1,              0.03f ),
-                    ( SpellId.WeaponExpertiseSelf1,            0.03f ),
-                    ( SpellId.MonsterAttunementSelf1,          0.03f ),
-                    ( SpellId.PersonAttunementSelf1,           0.03f ),
+                    ( SpellId.FocusOther1,                      0.05f ),
+                    ( SpellId.WillpowerOther1,                  0.05f ),
+                    ( SpellId.RejuvenationOther1,               0.05f ),
+                    ( SpellId.RegenerationOther1,               0.05f ),
+                    ( SpellId.ArmorOther1,                      0.04f ),
+                    ( SpellId.CreatureEnchantmentMasteryOther1, 0.04f ),
+                    ( SpellId.ItemEnchantmentMasteryOther1,     0.04f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.04f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.04f ),
+                    ( SpellId.MagicResistanceOther1,            0.04f ),
+                    ( SpellId.ManaRenewalOther1,                0.04f ),
+                    ( SpellId.HealingMasteryOther1,             0.04f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.04f ),
+                    ( SpellId.FealtyOther1,                     0.04f ),
+                    ( SpellId.ManaMasteryOther1,                0.04f ),
+                    ( SpellId.AlchemyMasteryOther1,             0.03f ),
+                    ( SpellId.CookingMasteryOther1,             0.03f ),
+                    ( SpellId.FletchingMasteryOther1,           0.03f ),
+                    ( SpellId.LockpickMasteryOther1,            0.03f ),
+                    ( SpellId.DeceptionMasteryOther1,           0.03f ),
+                    ( SpellId.ArcanumSalvagingOther1,           0.03f ),
+                    ( SpellId.ArmorExpertiseOther1,             0.03f ),
+                    ( SpellId.MagicItemExpertiseOther1,         0.03f ),
+                    ( SpellId.ItemExpertiseOther1,              0.03f ),
+                    ( SpellId.WeaponExpertiseOther1,            0.03f ),
+                    ( SpellId.MonsterAttunementOther1,          0.03f ),
+                    ( SpellId.PersonAttunementOther1,           0.03f ),
                 };
 
                 // cloth gloves (1 entry?)
                 spellSelectionGroup14 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.CoordinationSelf1,               0.05f ),
-                    ( SpellId.QuicknessSelf1,                  0.05f ),
-                    ( SpellId.AlchemyMasterySelf1,             0.04f ),
-                    ( SpellId.CookingMasterySelf1,             0.04f ),
-                    ( SpellId.FletchingMasterySelf1,           0.04f ),
-                    ( SpellId.HealingMasterySelf1,             0.04f ),
-                    ( SpellId.LockpickMasterySelf1,            0.04f ),
-                    ( SpellId.CreatureEnchantmentMasterySelf1, 0.04f ),
-                    ( SpellId.ItemEnchantmentMasterySelf1,     0.04f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.04f ),
-                    ( SpellId.WarMagicMasterySelf1,            0.04f ),
-                    ( SpellId.ManaMasterySelf1,                0.04f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.04f ),
-                    ( SpellId.ArcanumSalvagingSelf1,           0.04f ),
-                    ( SpellId.ArmorExpertiseSelf1,             0.03f ),
-                    ( SpellId.ItemExpertiseSelf1,              0.03f ),
-                    ( SpellId.MagicItemExpertiseSelf1,         0.03f ),
-                    ( SpellId.WeaponExpertiseSelf1,            0.03f ),
-                    ( SpellId.LightWeaponsMasterySelf1,        0.03f ), // AxeMasterySelf1
-                    ( SpellId.FinesseWeaponsMasterySelf1,      0.03f ), // DaggerMasterySelf1
-                    ( SpellId.MaceMasterySelf1,                0.03f ),
-                    ( SpellId.SpearMasterySelf1,               0.03f ),
-                    ( SpellId.StaffMasterySelf1,               0.03f ),
-                    ( SpellId.HeavyWeaponsMasterySelf1,        0.03f ), // SwordMasterySelf1
-                    ( SpellId.UnarmedCombatMasterySelf1,       0.03f ),
-                    ( SpellId.MissileWeaponsMasterySelf1,      0.03f ), // BowMasterySelf1
-                    ( SpellId.CrossbowMasterySelf1,            0.03f ),
-                    ( SpellId.ThrownWeaponMasterySelf1,        0.03f ),
+                    ( SpellId.CoordinationOther1,               0.05f ),
+                    ( SpellId.QuicknessOther1,                  0.05f ),
+                    ( SpellId.AlchemyMasteryOther1,             0.04f ),
+                    ( SpellId.CookingMasteryOther1,             0.04f ),
+                    ( SpellId.FletchingMasteryOther1,           0.04f ),
+                    ( SpellId.HealingMasteryOther1,             0.04f ),
+                    ( SpellId.LockpickMasteryOther1,            0.04f ),
+                    ( SpellId.CreatureEnchantmentMasteryOther1, 0.04f ),
+                    ( SpellId.ItemEnchantmentMasteryOther1,     0.04f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.04f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.04f ),
+                    ( SpellId.ManaMasteryOther1,                0.04f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.04f ),
+                    ( SpellId.ArcanumSalvagingOther1,           0.04f ),
+                    ( SpellId.ArmorExpertiseOther1,             0.03f ),
+                    ( SpellId.ItemExpertiseOther1,              0.03f ),
+                    ( SpellId.MagicItemExpertiseOther1,         0.03f ),
+                    ( SpellId.WeaponExpertiseOther1,            0.03f ),
+                    ( SpellId.LightWeaponsMasteryOther1,        0.03f ), // AxeMasteryOther1
+                    ( SpellId.FinesseWeaponsMasteryOther1,      0.03f ), // DaggerMasteryOther1
+                    ( SpellId.MaceMasteryOther1,                0.03f ),
+                    ( SpellId.SpearMasteryOther1,               0.03f ),
+                    ( SpellId.StaffMasteryOther1,               0.03f ),
+                    ( SpellId.HeavyWeaponsMasteryOther1,        0.03f ), // SwordMasteryOther1
+                    ( SpellId.UnarmedCombatMasteryOther1,       0.03f ),
+                    ( SpellId.MissileWeaponsMasteryOther1,      0.03f ), // BowMasteryOther1
+                    ( SpellId.CrossbowMasteryOther1,            0.03f ),
+                    ( SpellId.ThrownWeaponMasteryOther1,        0.03f ),
                 };
 
                 // greaves, leggings, tassets, leather pants
                 spellSelectionGroup15 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.StrengthSelf1,         0.29f ),
-                    ( SpellId.QuicknessSelf1,        0.29f ),
-                    ( SpellId.JumpingMasterySelf1,   0.14f ),
-                    ( SpellId.SprintSelf1,           0.14f ),
-                    ( SpellId.EnduranceSelf1,        0.14f ),
+                    ( SpellId.StrengthOther1,         0.29f ),
+                    ( SpellId.QuicknessOther1,        0.29f ),
+                    ( SpellId.JumpingMasteryOther1,   0.14f ),
+                    ( SpellId.SprintOther1,           0.14f ),
+                    ( SpellId.EnduranceOther1,        0.14f ),
                 };
 
                 // missile weapons, two-handed weapons
                 spellSelectionGroup17 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.StrengthSelf1,             0.25f ),
-                    ( SpellId.EnduranceSelf1,            0.25f ),
-                    ( SpellId.CoordinationSelf1,         0.25f ),
-                    ( SpellId.QuicknessSelf1,            0.25f ),
+                    ( SpellId.StrengthOther1,             0.25f ),
+                    ( SpellId.EnduranceOther1,            0.25f ),
+                    ( SpellId.CoordinationOther1,         0.25f ),
+                    ( SpellId.QuicknessOther1,            0.25f ),
                 };
 
                 // shoes, loafers, slippers, sandals
                 spellSelectionGroup18 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.StrengthSelf1,              0.06f ),
-                    ( SpellId.QuicknessSelf1,             0.06f ),
-                    ( SpellId.EnduranceSelf1,             0.06f ),
-                    ( SpellId.CoordinationSelf1,          0.06f ),
-                    ( SpellId.ImpregnabilitySelf1,        0.05f ),
-                    ( SpellId.InvulnerabilitySelf1,       0.05f ),
-                    ( SpellId.MagicResistanceSelf1,       0.05f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,   0.05f ),
-                    ( SpellId.ManaMasterySelf1,           0.04f ),
-                    ( SpellId.HealingMasterySelf1,        0.04f ),
-                    ( SpellId.JumpingMasterySelf1,        0.04f ),
-                    ( SpellId.SprintSelf1,                0.04f ),
-                    ( SpellId.LightWeaponsMasterySelf1,   0.04f ), // AxeMasterySelf1
-                    ( SpellId.FinesseWeaponsMasterySelf1, 0.04f ), // DaggerMasterySelf1
-                    ( SpellId.MaceMasterySelf1,           0.04f ),
-                    ( SpellId.SpearMasterySelf1,          0.04f ),
-                    ( SpellId.StaffMasterySelf1,          0.04f ),
-                    ( SpellId.HeavyWeaponsMasterySelf1,   0.04f ), // SwordMasterySelf1
-                    ( SpellId.UnarmedCombatMasterySelf1,  0.04f ),
-                    ( SpellId.MissileWeaponsMasterySelf1, 0.04f ), // BowMasterySelf1
-                    ( SpellId.CrossbowMasterySelf1,       0.04f ),
-                    ( SpellId.ThrownWeaponMasterySelf1,   0.04f ),
+                    ( SpellId.StrengthOther1,              0.06f ),
+                    ( SpellId.QuicknessOther1,             0.06f ),
+                    ( SpellId.EnduranceOther1,             0.06f ),
+                    ( SpellId.CoordinationOther1,          0.06f ),
+                    ( SpellId.ImpregnabilityOther1,        0.05f ),
+                    ( SpellId.InvulnerabilityOther1,       0.05f ),
+                    ( SpellId.MagicResistanceOther1,       0.05f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,   0.05f ),
+                    ( SpellId.ManaMasteryOther1,           0.04f ),
+                    ( SpellId.HealingMasteryOther1,        0.04f ),
+                    ( SpellId.JumpingMasteryOther1,        0.04f ),
+                    ( SpellId.SprintOther1,                0.04f ),
+                    ( SpellId.LightWeaponsMasteryOther1,   0.04f ), // AxeMasteryOther1
+                    ( SpellId.FinesseWeaponsMasteryOther1, 0.04f ), // DaggerMasteryOther1
+                    ( SpellId.MaceMasteryOther1,           0.04f ),
+                    ( SpellId.SpearMasteryOther1,          0.04f ),
+                    ( SpellId.StaffMasteryOther1,          0.04f ),
+                    ( SpellId.HeavyWeaponsMasteryOther1,   0.04f ), // SwordMasteryOther1
+                    ( SpellId.UnarmedCombatMasteryOther1,  0.04f ),
+                    ( SpellId.MissileWeaponsMasteryOther1, 0.04f ), // BowMasteryOther1
+                    ( SpellId.CrossbowMasteryOther1,       0.04f ),
+                    ( SpellId.ThrownWeaponMasteryOther1,   0.04f ),
                 };
 
                 // nether caster - should never be used with Infiltration data but here for completioness.
                 spellSelectionGroup19 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.WarMagicMasterySelf1,            0.28f ),
-                    ( SpellId.WillpowerSelf1,                  0.18f ),
-                    ( SpellId.ManaMasterySelf1,                0.10f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.10f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.10f ),
-                    ( SpellId.FocusSelf1,                      0.09f ),
-                    ( SpellId.CreatureEnchantmentMasterySelf1, 0.09f ),
-                    ( SpellId.ItemEnchantmentMasterySelf1,     0.06f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.28f ),
+                    ( SpellId.WillpowerOther1,                  0.18f ),
+                    ( SpellId.ManaMasteryOther1,                0.10f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.10f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.10f ),
+                    ( SpellId.FocusOther1,                      0.09f ),
+                    ( SpellId.CreatureEnchantmentMasteryOther1, 0.09f ),
+                    ( SpellId.ItemEnchantmentMasteryOther1,     0.06f ),
                 };
 
                 // leather cap (1 entry?)
                 spellSelectionGroup20 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.LockpickMasterySelf1,            0.08f ),
-                    ( SpellId.CookingMasterySelf1,             0.06f ),
-                    ( SpellId.FletchingMasterySelf1,           0.06f ),
-                    ( SpellId.AlchemyMasterySelf1,             0.06f ),
-                    ( SpellId.ItemEnchantmentMasterySelf1,     0.06f ),
-                    ( SpellId.CreatureEnchantmentMasterySelf1, 0.05f ),
-                    ( SpellId.ItemExpertiseSelf1,              0.05f ),
-                    ( SpellId.PersonAttunementSelf1,           0.05f ),
-                    ( SpellId.WeaponExpertiseSelf1,            0.05f ),
-                    ( SpellId.ArmorExpertiseSelf1,             0.05f ),
-                    ( SpellId.WarMagicMasterySelf1,            0.04f ),
-                    ( SpellId.FealtySelf1,                     0.04f ),
-                    ( SpellId.ManaMasterySelf1,                0.04f ),
-                    ( SpellId.WillpowerSelf1,                  0.03f ),
-                    ( SpellId.FocusSelf1,                      0.03f ),
-                    ( SpellId.RegenerationSelf1,               0.03f ),
-                    ( SpellId.ArcaneEnlightenmentSelf1,        0.025f ),
-                    ( SpellId.ArcanumSalvagingSelf1,           0.025f ),
-                    ( SpellId.DeceptionMasterySelf1,           0.025f ),
-                    ( SpellId.MonsterAttunementSelf1,          0.025f ),
-                    ( SpellId.LifeMagicMasterySelf1,           0.02f ),                
-                    ( SpellId.HealingMasterySelf1,             0.02f ),
-                    ( SpellId.MagicItemExpertiseSelf1,         0.02f ),
-                    ( SpellId.MagicResistanceSelf1,            0.02f ),
-                    ( SpellId.ManaRenewalSelf1,                0.02f ),
-                    ( SpellId.RejuvenationSelf1,               0.02f ),
+                    ( SpellId.LockpickMasteryOther1,            0.08f ),
+                    ( SpellId.CookingMasteryOther1,             0.06f ),
+                    ( SpellId.FletchingMasteryOther1,           0.06f ),
+                    ( SpellId.AlchemyMasteryOther1,             0.06f ),
+                    ( SpellId.ItemEnchantmentMasteryOther1,     0.06f ),
+                    ( SpellId.CreatureEnchantmentMasteryOther1, 0.05f ),
+                    ( SpellId.ItemExpertiseOther1,              0.05f ),
+                    ( SpellId.PersonAttunementOther1,           0.05f ),
+                    ( SpellId.WeaponExpertiseOther1,            0.05f ),
+                    ( SpellId.ArmorExpertiseOther1,             0.05f ),
+                    ( SpellId.WarMagicMasteryOther1,            0.04f ),
+                    ( SpellId.FealtyOther1,                     0.04f ),
+                    ( SpellId.ManaMasteryOther1,                0.04f ),
+                    ( SpellId.WillpowerOther1,                  0.03f ),
+                    ( SpellId.FocusOther1,                      0.03f ),
+                    ( SpellId.RegenerationOther1,               0.03f ),
+                    ( SpellId.ArcaneEnlightenmentOther1,        0.025f ),
+                    ( SpellId.ArcanumSalvagingOther1,           0.025f ),
+                    ( SpellId.DeceptionMasteryOther1,           0.025f ),
+                    ( SpellId.MonsterAttunementOther1,          0.025f ),
+                    ( SpellId.LifeMagicMasteryOther1,           0.02f ),                
+                    ( SpellId.HealingMasteryOther1,             0.02f ),
+                    ( SpellId.MagicItemExpertiseOther1,         0.02f ),
+                    ( SpellId.MagicResistanceOther1,            0.02f ),
+                    ( SpellId.ManaRenewalOther1,                0.02f ),
+                    ( SpellId.RejuvenationOther1,               0.02f ),
                 };
 
                 spellSelectionGroup = new List<ChanceTable<SpellId>>()

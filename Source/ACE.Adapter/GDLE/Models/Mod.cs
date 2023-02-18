@@ -23,5 +23,6 @@ namespace ACE.Adapter.GDLE.Models
         public int ModificationScriptId { get; set; }
         public int Unknown9 { get; set; }
         public int Unknown10 { get; set; }
+        public int WeenieClassId { get; set; }
     }
 }

@@ -49,6 +49,7 @@ namespace ACE.Server.Network.Structure
         public ArmorLevel ArmorLevels;
 
         public bool IsArmorCapped = false;
+        public bool IsArmorBuffed = false;
 
         // This helps ensure the item will identify properly. Some "items" are technically "Creatures".
         private bool NPCLooksLikeObject;
@@ -125,6 +126,10 @@ namespace ACE.Server.Network.Structure
                 PropertiesFloat[PropertyFloat.WeaponMagicDefense] += 1;
             if (wo.WeaponMissileDefense.HasValue && wo.WeaponMissileDefense.Value > 0 && wo.WeaponMissileDefense.Value < 1 && ((wo.GetProperty(PropertyInt.ImbueStackingBits) ?? 0) & 1) != 0)
                 PropertiesFloat[PropertyFloat.WeaponMissileDefense] += 1;
+
+            // Mask real value of AbsorbMagicDamage and/or Add AbsorbMagicDamage for ImbuedEffectType.IgnoreSomeMagicProjectileDamage
+            if (PropertiesFloat.ContainsKey(PropertyFloat.AbsorbMagicDamage) || wo.HasImbuedEffect(ImbuedEffectType.IgnoreSomeMagicProjectileDamage))
+                PropertiesFloat[PropertyFloat.AbsorbMagicDamage] = 1;
 
             if (wo is PressurePlate)
             {
@@ -416,19 +421,26 @@ namespace ACE.Server.Network.Structure
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
+                    var baseArmor = PropertiesInt[PropertyInt.ArmorLevel];
+
                     var wielder = wo.Wielder as Player;
-                    if (wielder != null)
+                    if (wielder != null && ((wo.ClothingPriority ?? 0) & (CoverageMask)CoverageMaskHelper.Underwear) == 0)
                     {
                         int armor;
                         if (wo.IsShield)
-                            armor = (int)wielder.CapShield(PropertiesInt[PropertyInt.ArmorLevel]);
+                            armor = (int)wielder.GetSkillModifiedShieldLevel(baseArmor);
                         else
-                            armor = (int)wielder.CapArmor(PropertiesInt[PropertyInt.ArmorLevel]);
+                            armor = (int)wielder.GetSkillModifiedArmorLevel(baseArmor);
 
-                        if (armor != PropertiesInt[PropertyInt.ArmorLevel])
+                        if (armor < baseArmor)
                         {
                             PropertiesInt[PropertyInt.ArmorLevel] = armor;
                             IsArmorCapped = true;
+                        }
+                        else if (armor > baseArmor)
+                        {
+                            PropertiesInt[PropertyInt.ArmorLevel] = armor;
+                            IsArmorBuffed = true;
                         }
                     }
                 }
@@ -439,7 +451,7 @@ namespace ACE.Server.Network.Structure
             else
                 PropertiesInt.Remove(PropertyInt.AppraisalItemSkill);
 
-            if (PropertiesFloat.ContainsKey(PropertyFloat.WeaponDefense) && !(wo is Missile) && !(wo is Ammunition))
+            if (PropertiesFloat.ContainsKey(PropertyFloat.WeaponDefense) && !(wo is Ammunition))
             {
                 var defenseMod = wo.EnchantmentManager.GetDefenseMod();
                 var auraDefenseMod = wo.Wielder != null && wo.IsEnchantable ? wo.Wielder.EnchantmentManager.GetDefenseMod() : 0.0f;
@@ -494,6 +506,61 @@ namespace ACE.Server.Network.Structure
                 PropertiesInt[PropertyInt.AppraisalLongDescDecoration] = (int)appraisalLongDescDecoration;
             else
                 PropertiesInt.Remove(PropertyInt.AppraisalLongDescDecoration);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                string extraPropertiesText;
+                if (PropertiesString.TryGetValue(PropertyString.Use, out var useText) && useText.Length > 0)
+                    extraPropertiesText = $"{useText}\n\n";
+                else
+                    extraPropertiesText = "";
+
+                bool hasExtraPropertiesText = false;
+                if (PropertiesFloat.TryGetValue(PropertyFloat.MeleeDefenseCap, out var meleeDefenseCap) && meleeDefenseCap != 0)
+                {
+                    if (PropertiesFloat.TryGetValue(PropertyFloat.MissileDefenseCap, out var missileDefenseCap) && missileDefenseCap == meleeDefenseCap)
+                    {
+                        // We have both melee and missile entries and they are the same value, group them up into "Evasion"
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Max Evasion Chance: {(meleeDefenseCap > 0 ? "+" : "")}{meleeDefenseCap.ToString("0.0")}%.";
+                        hasExtraPropertiesText = true;
+                    }
+                    else
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Max Melee Evasion Chance: {(meleeDefenseCap > 0 ? "+" : "")}{meleeDefenseCap.ToString("0.0")}%.";
+                        hasExtraPropertiesText = true;
+                    }
+                }
+                else if (PropertiesFloat.TryGetValue(PropertyFloat.MissileDefenseCap, out var missileDefenseCap) && missileDefenseCap != 0)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"Max Missile Evasion Chance: {(missileDefenseCap > 0 ? "+" : "")}{missileDefenseCap.ToString("0.0")}%.";
+                    hasExtraPropertiesText = true;
+                }
+
+                if (PropertiesFloat.TryGetValue(PropertyFloat.MagicDefenseCap, out var magicDefenseCap) && magicDefenseCap != 0)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"Max Magic Resistance Chance: {(magicDefenseCap > 0 ? "+" : "")}{magicDefenseCap.ToString("0.0")}%.";
+                    hasExtraPropertiesText = true;
+                }
+
+                if (PropertiesFloat.TryGetValue(PropertyFloat.ComponentBurnRateMod, out var componentBurnRateMod) && componentBurnRateMod != 0)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"Bonus to Component Burn Rate: {(componentBurnRateMod > 0 ? "+" : "")}{(componentBurnRateMod * 100).ToString("0.0")}%.";
+                    hasExtraPropertiesText = true;
+                }
+
+                if (hasExtraPropertiesText)
+                    PropertiesString[PropertyString.Use] = extraPropertiesText;
+            }
         }
 
         private void BuildSpells(WorldObject wo)
@@ -584,8 +651,8 @@ namespace ACE.Server.Network.Structure
                 return;
 
             ArmorProfile = new ArmorProfile(wo);
-            ArmorHighlight = ArmorMaskHelper.GetHighlightMask(wo, IsArmorCapped);
-            ArmorColor = ArmorMaskHelper.GetColorMask(wo);
+            ArmorHighlight = ArmorMaskHelper.GetHighlightMask(wo, IsArmorCapped || IsArmorBuffed);
+            ArmorColor = ArmorMaskHelper.GetColorMask(wo, IsArmorBuffed);
 
             AddEnchantments(wo);
         }

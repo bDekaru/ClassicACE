@@ -2975,7 +2975,7 @@ namespace ACE.Server.Command.Handlers
 
                 int correctLength = 240;
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                    correctLength = 230;
+                    correctLength = 210;
                 else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
                     correctLength = 230;
 
@@ -3074,7 +3074,7 @@ namespace ACE.Server.Command.Handlers
 
                     int correctLength = 240;
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                        correctLength = 230;
+                        correctLength = 210;
                     else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
                         correctLength = 230;
 

@@ -51,7 +51,9 @@ namespace ACE.Server.Managers
 
         static WorldManager()
         {
-            Physics = new PhysicsEngine(new ObjectMaint(), new SmartBox());
+            if (PhysicsEngine.Instance == null)
+                PhysicsEngine.Initialize(true);
+            Physics = PhysicsEngine.Instance;
             Physics.Server = true;
         }
 
@@ -77,6 +79,7 @@ namespace ACE.Server.Managers
         {
             WorldStatus = WorldStatusState.Open;
             PlayerManager.BroadcastToAuditChannel(player, "World is now open");
+            PlayerManager.BroadcastToAll(new GameMessageSystemChat("World is now open", ChatMessageType.WorldBroadcast));
         }
 
         internal static void Close(Player player, bool bootPlayers = false)
@@ -87,6 +90,7 @@ namespace ACE.Server.Managers
                 msg += ", and booting all online players.";
 
             PlayerManager.BroadcastToAuditChannel(player, msg);
+            PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
 
             if (bootPlayers)
                 PlayerManager.BootAllPlayers();
@@ -288,13 +292,13 @@ namespace ACE.Server.Managers
                 motdChain.AddAction(player, () =>
                 {
                     if (!string.IsNullOrEmpty(server_motd))
-                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd, ChatMessageType.Broadcast));
+                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd.Replace("\r",""), ChatMessageType.Broadcast));
                     if (!string.IsNullOrEmpty(server_motd2))
-                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd2, ChatMessageType.Broadcast));
+                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd2.Replace("\r", ""), ChatMessageType.Broadcast));
                     if (!string.IsNullOrEmpty(server_motd3))
-                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd3, ChatMessageType.Broadcast));
+                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd3.Replace("\r", ""), ChatMessageType.Broadcast));
                     if (!string.IsNullOrEmpty(server_motd4))
-                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd4, ChatMessageType.Broadcast));
+                        session.Network.EnqueueSend(new GameMessageSystemChat(server_motd4.Replace("\r", ""), ChatMessageType.Broadcast));
                 });
                 motdChain.EnqueueChain();
             }

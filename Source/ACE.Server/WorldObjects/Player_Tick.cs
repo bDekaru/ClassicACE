@@ -35,9 +35,11 @@ namespace ACE.Server.WorldObjects
         private double houseRentWarnTimestamp;
         private const double houseRentWarnInterval = 3600;
 
-        private double LeyLineAmuletsTickTimestamp;
+        private double leyLineAmuletsTickTimestamp;
         private const double leyLineAmuletsTickInterval = 1800;
 
+        private double enchantmentTickTimestamp;
+        private const double enchantmentTickInterval = 0.5;
         public void Player_Tick(double currentUnixTime)
         {
             if (CharacterSaveFailed)
@@ -108,11 +110,18 @@ namespace ACE.Server.WorldObjects
                     houseRentWarnTimestamp = Time.GetFutureUnixTime(houseRentWarnInterval);
             }
 
-            if (LeyLineAmuletsTickTimestamp == 0 || currentUnixTime > LeyLineAmuletsTickTimestamp)
+            if (leyLineAmuletsTickTimestamp == 0 || currentUnixTime > leyLineAmuletsTickTimestamp)
             {
                 LeyLineAmuletsTick(currentUnixTime);
 
-                LeyLineAmuletsTickTimestamp = Time.GetFutureUnixTime(leyLineAmuletsTickInterval);
+                leyLineAmuletsTickTimestamp = Time.GetFutureUnixTime(leyLineAmuletsTickInterval);
+            }
+
+            if (enchantmentTickTimestamp == 0 || currentUnixTime > enchantmentTickTimestamp)
+            {
+                if (EnchantmentManager.HasEnchantments)
+                    EnchantmentManager.HeartBeat(enchantmentTickInterval, false);
+                enchantmentTickTimestamp = Time.GetFutureUnixTime(enchantmentTickInterval);
             }
         }
 
@@ -677,7 +686,6 @@ namespace ACE.Server.WorldObjects
                                 }
                             }
 
-                            CheckSneaking(deltaTime);
                             CheckMonsters();
                         }
                     }

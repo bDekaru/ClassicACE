@@ -354,7 +354,11 @@ namespace ACE.Server.WorldObjects
                     combatStance = MotionStance.SwordShieldCombat;
                     break;
                 case MotionStance.ThrownWeaponCombat:
-                    combatStance = MotionStance.ThrownShieldCombat;
+                    GetCombatTable();
+                    if (CombatTable.Stances.ContainsKey(MotionStance.ThrownShieldCombat))
+                        combatStance = MotionStance.ThrownShieldCombat;
+                    else
+                        combatStance = MotionStance.ThrownWeaponCombat;
                     break;
             }
             return combatStance;
@@ -523,7 +527,10 @@ namespace ACE.Server.WorldObjects
             {
                 var skill = GetCreatureSkill(Skill.UnarmedCombat).Current;
 
-                return (int)skill / 20;
+                if(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    return (int)skill / 6;
+                else
+                    return (int)skill / 20;
             }
             else
                 return 0;
@@ -598,7 +605,7 @@ namespace ACE.Server.WorldObjects
         /// Returns the effective defense skill for a player or creature,
         /// ie. with Defender bonus and imbues
         /// </summary>
-        public uint GetEffectiveDefenseSkill(CombatType combatType)
+        public uint GetEffectiveDefenseSkill(CombatType combatType, bool isPvP)
         {
             var defenseSkill = combatType == CombatType.Missile ? Skill.MissileDefense : Skill.MeleeDefense;
             var defenseMod = defenseSkill == Skill.MissileDefense ? GetWeaponMissileDefenseModifier(this) : GetWeaponMeleeDefenseModifier(this);
@@ -610,9 +617,13 @@ namespace ACE.Server.WorldObjects
             var stanceMod = this is Player player ? player.GetDefenseStanceMod() : 1.0f;
 
             //if (this is Player)
-                //Console.WriteLine($"StanceMod: {stanceMod}");
+            //Console.WriteLine($"StanceMod: {stanceMod}");
 
-            var effectiveDefense = (uint)Math.Round(GetCreatureSkill(defenseSkill).Current * defenseMod * burdenMod * stanceMod + defenseImbues);
+            uint effectiveDefense;
+            if (!isPvP && ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && this is Player)
+                effectiveDefense = (uint)Math.Round(GetCreatureSkill(defenseSkill).Current * 1.25f * defenseMod * burdenMod * stanceMod + defenseImbues);
+            else
+                effectiveDefense = (uint)Math.Round(GetCreatureSkill(defenseSkill).Current * defenseMod * burdenMod * stanceMod + defenseImbues);
 
             if (IsExhausted) effectiveDefense = 0;
 
@@ -630,6 +641,8 @@ namespace ACE.Server.WorldObjects
         public float GetAnimSpeed()
         {
             var quickness = Quickness.Current;
+            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsHumanoid && GetCurrentWeaponSkill() == Skill.UnarmedCombat)
+                quickness = (uint)(GetCreatureSkill(Skill.UnarmedCombat).Current * 0.66f);
             var weaponSpeed = GetWeaponSpeed(this);
 
             var divisor = 1.0 - (quickness / 300.0) + (weaponSpeed / 150.0);
@@ -663,7 +676,7 @@ namespace ACE.Server.WorldObjects
         public virtual void OnAttackReceived(WorldObject attacker, CombatType attackType, bool critical, bool avoided)
         {
             var attackerAsCreature = attacker as Creature;
-            if (!avoided && attackerAsCreature != null)
+            if (attackerAsCreature != null)
                 attackerAsCreature.TryCastAssessDebuff(this, attackType);
 
             numRecentAttacksReceived++;
@@ -780,13 +793,18 @@ namespace ACE.Server.WorldObjects
 
             // does the player have a shield equipped?
             var shield = GetEquippedShield();
-            if (shield == null) return 1.0f;
+            if (shield == null)
+                return 1.0f;
 
             var player = this as Player;
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 if (player != null && GetCreatureSkill(Skill.Shield).AdvancementClass < SkillAdvancementClass.Trained)
-                    return 0.0f;
+                    return 1.0f;
+
+                // we cant block our own attacks
+                if (attacker == this)
+                    return 1.0f;
             }
 
             // phantom weapons ignore all armor and shields
@@ -794,7 +812,7 @@ namespace ACE.Server.WorldObjects
                 return 1.0f;
 
             bool bypassShieldAngleCheck = false;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (weapon == null || ((weapon.IgnoreShield ?? 0) == 0 && !weapon.IsTwoHanded)))
             {
                 var techniqueTrinket = GetEquippedTrinket();
                 if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Defensive)
@@ -846,10 +864,14 @@ namespace ACE.Server.WorldObjects
 
             var effectiveLevel = effectiveSL * effectiveRL;
 
-            effectiveLevel = CapShield(effectiveLevel);
+            effectiveLevel = GetSkillModifiedShieldLevel(effectiveLevel);
 
             var ignoreShieldMod = attacker.GetIgnoreShieldMod(weapon);
             //Console.WriteLine($"IgnoreShieldMod: {ignoreShieldMod}");
+
+            var pkBattle = player != null && attacker is Player;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && pkBattle)
+                ignoreShieldMod *= 0.7f; // Armor is reduced during PvP.
 
             effectiveLevel *= ignoreShieldMod;
 
@@ -1047,6 +1069,9 @@ namespace ACE.Server.WorldObjects
             //   "Dirty Fighting! <Player> delivers a Bleeding Assault to <target>!"
             //   "Dirty Fighting! <Player> delivers a Traumatic Assault to <target>!"
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                return;
+
             // dirty fighting skill must be at least trained
             var dirtySkill = GetCreatureSkill(Skill.DirtyFighting);
             if (dirtySkill.AdvancementClass < SkillAdvancementClass.Trained)
@@ -1196,6 +1221,9 @@ namespace ACE.Server.WorldObjects
             if (this == target)
                 return; // We don't want to find vulnerabilities on ourselves!
 
+            if (target.IsDead)
+                return; // Target is already dead, abort!
+
             var currentTime = Time.GetUnixTime();
 
             if (NextAssessDebuffActivationTime > currentTime)
@@ -1237,9 +1265,9 @@ namespace ACE.Server.WorldObjects
                 Proficiency.OnSuccessUse(sourceAsPlayer, skill, defenseSkill.Current);
 
             string spellType;
-            // 2/3 chance of the vulnerability being explicity of the type of attack that was used, otherwise random 1/3 for each type
+            // 1/5 chance of the vulnerability being explicity of the type of attack that was used, otherwise random 1/3 for each type
             SpellId spellId;
-            if (ThreadSafeRandom.Next(1, 3) != 3)
+            if (ThreadSafeRandom.Next(1, 5) != 5)
             {
                 switch (combatType)
                 {

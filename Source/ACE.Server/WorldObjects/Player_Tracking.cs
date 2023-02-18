@@ -80,18 +80,16 @@ namespace ACE.Server.WorldObjects
 
         public bool AddTrackedObject(WorldObject worldObject)
         {
-            // does this work for equipped objects?
-            if (ObjMaint.KnownObjectsContainsValue(worldObject.PhysicsObj))
+            bool addedKnownObj = ObjMaint.AddKnownObject(worldObject.PhysicsObj);
+            bool addedVisibleObj = ObjMaint.AddVisibleObject(worldObject.PhysicsObj);
+
+            if (addedKnownObj || addedVisibleObj)
             {
-                //Console.WriteLine($"Player {Name} - AddTrackedObject({worldObject.Name}) skipped, already tracked");
-                return false;
+                TrackObject(worldObject);
+                return true;
             }
-
-            ObjMaint.AddKnownObject(worldObject.PhysicsObj);
-            ObjMaint.AddVisibleObject(worldObject.PhysicsObj);
-
-            TrackObject(worldObject);
-            return true;
+            else
+                return false;
         }
 
         public void RemoveTrackedObject(WorldObject wo, bool fromPickup)

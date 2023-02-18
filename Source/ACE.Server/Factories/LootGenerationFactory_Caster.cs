@@ -1,6 +1,7 @@
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity.Mutations;
 using ACE.Server.Factories.Entity;
 using ACE.Server.Factories.Enum;
@@ -143,6 +144,14 @@ namespace ACE.Server.Factories
                 mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
             }
 
+            RollCrushingBlow(profile, wo);
+
+            RollBitingStrike(profile, wo);
+
+            RollResistanceCleaving(profile, wo);
+
+            RollSlayer(profile, wo);
+
             // material type
             var materialType = GetMaterialType(wo, profile.Tier);
             if (materialType > 0)
@@ -225,6 +234,12 @@ namespace ACE.Server.Factories
             wo.ItemManaCost = (int)(spell.BaseMana * castableMod);
 
             wo.ItemUseable = Usable.SourceWieldedTargetRemoteNeverWalk;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                wo.CooldownId = 1001;
+                wo.CooldownDuration = 10;
+            }
         }
 
         private static string GetCasterScript(bool isElemental = false)

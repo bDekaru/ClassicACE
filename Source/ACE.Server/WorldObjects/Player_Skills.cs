@@ -6,6 +6,7 @@ using ACE.Database;
 using ACE.DatLoader;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
+using ACE.Entity.Models;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
@@ -234,6 +235,9 @@ namespace ACE.Server.WorldObjects
             if (creatureSkill.AdvancementClass != SkillAdvancementClass.Trained || creditsSpent > AvailableSkillCredits)
                 return false;
 
+            creatureSkill.InitLevel = 10;
+            creatureSkill.AdvancementClass = SkillAdvancementClass.Specialized;
+
             if (resetSkill)
             {
                 // this path only during char creation
@@ -246,8 +250,8 @@ namespace ACE.Server.WorldObjects
                 creatureSkill.Ranks = (ushort)CalcSkillRank(SkillAdvancementClass.Specialized, creatureSkill.ExperienceSpent);
             }
 
-            creatureSkill.InitLevel = 10;
-            creatureSkill.AdvancementClass = SkillAdvancementClass.Specialized;
+            if(creatureSkill.IsSecondary)
+                creatureSkill.UpdateSecondarySkill();
 
             AvailableSkillCredits -= creditsSpent;
 
@@ -276,9 +280,23 @@ namespace ACE.Server.WorldObjects
             {
                 // refund xp and skill credits
                 if (!creatureSkill.IsSecondary)
+                {
                     RefundXP(creatureSkill.ExperienceSpent);
+
+                    foreach (var entry in Skills)
+                    {
+                        if (entry.Value.SecondaryTo == creatureSkill.Skill)
+                        {
+                            entry.Value.SecondaryTo = Skill.None;
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {entry.Value.Skill.ToSentence()} skill is no longer set as a secondary skill!", ChatMessageType.WorldBroadcast));
+                        }
+                    }
+                }
                 else
+                {
                     creatureSkill.SecondaryTo = Skill.None;
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {creatureSkill.Skill.ToSentence()} skill is no longer set as a secondary skill!", ChatMessageType.WorldBroadcast));
+                }
 
                 // temple untraining 'always trained' skills:
                 // cannot be untrained, but skill XP can be recovered
@@ -307,19 +325,26 @@ namespace ACE.Server.WorldObjects
                 return false;
 
             // refund xp and skill credits
-            RefundXP(creatureSkill.ExperienceSpent);
+            if (!creatureSkill.IsSecondary)
+                RefundXP(creatureSkill.ExperienceSpent);
 
             // salvaging / tinkering skills specialized through augmentation only
             // cannot be unspecialized here, only refund xp
             if (!IsSkillSpecializedViaAugmentation(skill, out var playerHasAugmentation) || !playerHasAugmentation)
             {
                 creatureSkill.AdvancementClass = SkillAdvancementClass.Trained;
-                creatureSkill.InitLevel = 0;
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    creatureSkill.InitLevel = 5;
+                else
+                    creatureSkill.InitLevel = 0;
                 AvailableSkillCredits += creditsSpent;
             }
 
             creatureSkill.Ranks = 0;
             creatureSkill.ExperienceSpent = 0;
+
+            if (creatureSkill.IsSecondary)
+                creatureSkill.UpdateSecondarySkill();
 
             return true;
         }
@@ -636,8 +661,8 @@ namespace ACE.Server.WorldObjects
                 return !AlwaysTrained.Contains(skill);
             else
             {
-                if (!AlwaysTrained.Contains(skill))
-                    return true; // this gets the easy ones out of the way.
+                if (AlwaysTrained.Contains(skill))
+                    return false;
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
@@ -898,13 +923,31 @@ namespace ACE.Server.WorldObjects
 
                 RemoveProperty(PropertyBool.SkillTemplesTimerReset);
 
-                QuestManager.Erase("ForgetfulnessGems1");
-                QuestManager.Erase("ForgetfulnessGems2");
-                QuestManager.Erase("ForgetfulnessGems3");
-                QuestManager.Erase("ForgetfulnessGems4");
-                QuestManager.Erase("Forgetfulness6days");
-                QuestManager.Erase("Forgetfulness13days");
-                QuestManager.Erase("Forgetfulness20days");
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+                {
+                    QuestManager.Erase("ForgetfulnessGems1");
+                    QuestManager.Erase("ForgetfulnessGems2");
+                    QuestManager.Erase("ForgetfulnessGems3");
+                    QuestManager.Erase("ForgetfulnessGems4");
+                    QuestManager.Erase("Forgetfulness6days");
+                    QuestManager.Erase("Forgetfulness13days");
+                    QuestManager.Erase("Forgetfulness20days");
+                }
+                else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    QuestManager.Erase("AttributeLoweringGemPickedUp");
+                    QuestManager.Erase("AttributeRaisingGemPickedUp");
+                    QuestManager.Erase("SkillEnlightenmentGemPickedUp");
+                    QuestManager.Erase("SkillForgetfulnessGemPickedUp");
+                    QuestManager.Erase("SkillPrimaryGemPickedUp");
+                    QuestManager.Erase("SkillSecondaryGemPickedUp");
+                }
+                else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                {
+                    QuestManager.Erase("AttributeLoweringGemPickedUp");
+                    QuestManager.Erase("AttributeRaisingGemPickedUp");
+                    QuestManager.Erase("SkillAlterationGemPickedUp");
+                }
             });
             actionChain.EnqueueChain();
         }
@@ -1057,6 +1100,13 @@ namespace ACE.Server.WorldObjects
                 PlayerSkills.Remove(Skill.Crossbow);
                 PlayerSkills.Remove(Skill.Mace);
                 PlayerSkills.Remove(Skill.Staff);
+
+                PlayerSkills.Remove(Skill.WeaponTinkering);
+                PlayerSkills.Remove(Skill.ArmorTinkering);
+                PlayerSkills.Remove(Skill.MagicItemTinkering);
+                PlayerSkills.Remove(Skill.ItemTinkering);
+
+                NoLog_Landblocks.Add(0xB095); // Smuggler's Den
             }
         }
 

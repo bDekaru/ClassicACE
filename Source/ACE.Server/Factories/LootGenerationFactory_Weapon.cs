@@ -1,5 +1,7 @@
 using ACE.Common;
 using ACE.Database.Models.World;
+using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Server.Factories.Tables;
 using ACE.Server.WorldObjects;
 
@@ -39,6 +41,190 @@ namespace ACE.Server.Factories
             //Console.WriteLine($"WeaponSpeedMod: {weaponSpeedMod}");
 
             return weaponSpeedMod;
+        }
+
+        private static float ApplyQualityModToExtraMutationChance(float chance, float lootQualityMod)
+        {
+            return chance * (1 + lootQualityMod);
+        }
+
+        private static bool RollCrushingBlow(TreasureDeath treasureDeath, WorldObject wo)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return false;
+
+            var chance = ExtraMutationEffects.GetCrushingBlowChanceForTier(treasureDeath.Tier);
+            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
+            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                float amount;
+                if (wo.IsCaster)
+                    amount = 1.5f;
+                else
+                    amount = 2.0f;
+
+                wo.SetProperty(PropertyFloat.CriticalMultiplier, amount);
+                wo.IconOverlayId = 0x06005EBC;
+                return true;
+            }
+            else
+                return false;
+        }
+
+        private static bool RollBitingStrike(TreasureDeath treasureDeath, WorldObject wo)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return false;
+
+            var chance = ExtraMutationEffects.GetBitingStrikeChanceForTier(treasureDeath.Tier);
+            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
+            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                float amount;
+                if (wo.IsCaster)
+                    amount = 0.10f;
+                else
+                    amount = 0.15f;
+                wo.CriticalFrequency = amount;
+                wo.IconOverlayId = 0x06005EBD;
+                return true;
+            }
+            else
+                return false;
+        }
+
+        private static bool RollSlayer(TreasureDeath treasureDeath, WorldObject wo)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return false;
+
+            var chance = SlayerTypeChance.GetSlayerChanceForTier(treasureDeath.Tier);
+            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
+            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                wo.SlayerCreatureType = SlayerTypeChance.Roll(treasureDeath);
+                wo.SlayerDamageBonus = 1.5f;
+                wo.IconOverlayId = 0x06005EC0;
+                return true;
+            }
+            return false;
+        }
+
+        private static bool RollHollow(TreasureDeath treasureDeath, WorldObject wo)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return false;
+
+            var chance = ExtraMutationEffects.GetHollowChanceForTier(treasureDeath.Tier);
+            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
+            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                wo.IgnoreMagicArmor = true;
+                wo.IgnoreMagicResist = true;
+                wo.Translucency = 0.7f;
+                wo.Name = $"Hollow {wo.Name}";
+                wo.IconOverlayId = 0x06005EBE;
+                return true;
+            }
+            return false;
+        }
+
+        private static bool RollArmorCleaving(TreasureDeath treasureDeath, WorldObject wo)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return false;
+
+            var chance = ExtraMutationEffects.GetArmorCleavingChanceForTier(treasureDeath.Tier);
+            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
+            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                // 0.0 = ignore 100% of all armor.
+                wo.IgnoreArmor = 0.75f; // Equivalent of Imperil III for 300 AL armor.
+                wo.IconOverlayId = 0x06005EBF;
+                return true;
+            }
+            return false;
+        }
+
+        private static bool RollShieldCleaving(TreasureDeath treasureDeath, WorldObject wo)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return false;
+
+            if (wo.IsTwoHanded)
+                return false; // Two-handed weapons area always shield cleaving so this is unnecessary.
+
+            var chance = ExtraMutationEffects.GetShieldCleavingChanceForTier(treasureDeath.Tier);
+            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
+            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                // 1.0 = ignore 100% of the armor from shields.
+                wo.IgnoreShield = 0.50f; // Equivalent of Brittlemail V for 300 AL shields.
+                wo.IconOverlayId = 0x06005EC2;
+                wo.Name = $"{wo.Name} of Shield Cleaving";
+                return true;
+            }
+            return false;
+        }
+
+        private static bool RollAbsorbMagic(TreasureDeath treasureDeath, WorldObject wo)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return false;
+
+            var chance = ExtraMutationEffects.GetAbsorbMagicChanceForTier(treasureDeath.Tier);
+            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
+            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                wo.AbsorbMagicDamage = 0.25f;
+                wo.Translucency = 0.7f;
+                wo.Name = $"Hollow {wo.Name}";
+                wo.IconOverlayId = 0x06005EBE;
+                return true;
+            }
+            return false;
+        }
+
+        private static bool RollResistanceCleaving(TreasureDeath treasureDeath, WorldObject wo)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return false;
+
+            var chance = ExtraMutationEffects.GetResistanceCleavingChanceForTier(treasureDeath.Tier);
+            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
+            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                var damageType = wo.W_DamageType;
+                if (damageType == DamageType.Undef)
+                {
+                    var roll = ThreadSafeRandom.Next(0, 6);
+                    switch (roll)
+                    {
+                        case 0: damageType = DamageType.Slash; break;
+                        case 1: damageType = DamageType.Pierce; break;
+                        case 2: damageType = DamageType.Bludgeon; break;
+                        case 3: damageType = DamageType.Fire; break;
+                        case 4: damageType = DamageType.Cold; break;
+                        case 5: damageType = DamageType.Electric; break;
+                        case 6: damageType = DamageType.Acid; break;
+                    }
+                }
+                if (damageType == (DamageType.Slash | DamageType.Pierce))
+                {
+                    var roll = ThreadSafeRandom.Next(0, 1);
+                    switch (roll)
+                    {
+                        case 0: damageType = DamageType.Slash; break;
+                        case 1: damageType = DamageType.Pierce; break;
+                    }
+                }
+
+                wo.ResistanceModifierType = damageType;
+                wo.ResistanceModifier = 1.5f; // Equivalent to level III Elemental Vulnerability.
+                wo.IconOverlayId = 0x06005EC1;
+                return true;
+            }
+            return false;
         }
     }
 }

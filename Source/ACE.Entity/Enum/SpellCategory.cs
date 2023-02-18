@@ -731,5 +731,22 @@ namespace ACE.Entity.Enum
         GauntletVitalityRaising = 731,
         GauntletCriticalDamageRatingRaising = 732,
         GauntletCriticalDamageReductionRatingRaising = 733,
+        //CustomDM
+        ArmorSkillRaising = 734,
+        ArmorSkillLowering = 735,
+        ExtraArmorSkillRaising = 736,
+        ExtraArmorSkillLowering = 737,
+        AwarenessSkillRaising = 738,
+        AwarenessSkillLowering = 739,
+        ExtraAwarenessSkillRaising = 740,
+        ExtraAwarenessSkillLowering = 741,
+        AppraiseSkillRaising = 742,
+        AppraiseSkillLowering = 743,
+        ExtraAppraiseSkillRaising = 744,
+        ExtraAppraiseSkillLowering = 745,
+        SneakingSkillRaising = 746,
+        SneakingSkillLowering = 747,
+        ExtraSneakingSkillRaising = 748,
+        ExtraSneakingSkillLowering = 749,
     }
 }

@@ -115,6 +115,8 @@ namespace ACE.Server.Entity
         /// </summary>
         public bool AlwaysTurn;
 
+        public bool IsCombatCasting;
+
         public MagicState(Player player)
         {
             Player = player;
@@ -123,7 +125,7 @@ namespace ACE.Server.Entity
         /// <summary>
         /// Called when the player begins casting a spell
         /// </summary>
-        public void OnCastStart()
+        public void OnCastStart(bool isCombatCasting)
         {
             Player.IsBusy = true;
             IsCasting = true;
@@ -134,6 +136,7 @@ namespace ACE.Server.Entity
             CanQueue = false;
             CastQueue = null;
             AlwaysTurn = false;
+            IsCombatCasting = isCombatCasting;
 
             StartTime = DateTime.UtcNow;
             CastGestureStartTime = DateTime.MinValue;
@@ -166,6 +169,7 @@ namespace ACE.Server.Entity
             CanQueue = false;
             CastQueue = null;
             AlwaysTurn = false;
+            IsCombatCasting = false;
 
             CastGesture = MotionCommand.Invalid;
             CastGestureStartTime = DateTime.MinValue;
@@ -184,9 +188,9 @@ namespace ACE.Server.Entity
             WindupParams = null;
         }
 
-        public void SetCastParams(Spell spell, WorldObject caster, uint magicSkill, uint manaUsed, WorldObject target, Player.CastingPreCheckStatus status)
+        public void SetCastParams(Spell spell, WorldObject casterItem, uint magicSkill, uint manaUsed, WorldObject target, Player.CastingPreCheckStatus status)
         {
-            CastSpellParams = new CastSpellParams(spell, caster, magicSkill, manaUsed, target, status);
+            CastSpellParams = new CastSpellParams(spell, casterItem, magicSkill, manaUsed, target, status);
 
             if (Player.RecordCast.Enabled && CastSpellParams.Target != null)
                 Player.RecordCast.Log($"Target Location: {CastSpellParams.Target.Location.ToLOCString()}");

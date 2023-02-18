@@ -15,6 +15,7 @@ using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 using System.Linq;
+using System.Text;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -556,10 +557,10 @@ namespace ACE.Server.Command.Handlers
 
             new ActivityRecommendation(2, 8, "HeaToneawaCompleted", "XP: Deliver a love letter for Hea Toneawa at 43.7N 66.9W near Greenspire."),
 
-            new ActivityRecommendation(5, 10, "OlthoiHunting1", "XP: Kill Olthois in the Abandoned Tumerok Site near Redspire at 42.0N, 82.2W and bring a Harvester Pincer to Behdo Yii in Redspire."),
+            new ActivityRecommendation(8, 15, "OlthoiHunting1", "XP: Kill Olthois in the Abandoned Tumerok Site near Redspire at 42.0N, 82.2W and bring a Harvester Pincer to Behdo Yii in Redspire."),
             new ActivityRecommendation(12, 20, "OlthoiHunting2", "XP: Kill Olthois in the Dark Lair near Greenspire at 43.8N, 68.4W and bring a Gardener Pincer to Behdo Yii in Redspire."),
 
-            new ActivityRecommendation(5, 10, Skill.Lockpick, "Equipment: Explore Eastham Sewer near Eastham at 18.7N, 63.4E for the Metal Round Shield. Bring lockpicks!"),
+            new ActivityRecommendation(5, 10, Skill.Shield, "Equipment: Explore Eastham Sewer near Eastham at 18.7N, 63.4E for the Metal Round Shield."),
 
             new ActivityRecommendation(10, 20, Skill.Axe, new HashSet<string>{"BanderlingMaceShaft", "BanderlingMaceHead"}, "Equipment: Explore Banderling Conquest near Sawato at 29.0S, 50.5E for the Banderling Mace Shaft and Mosswart Maze near Al-Arqas at 25.2S, 19.4E for Banderling Mace Head and bring them to Olivier Rognath in Eastham for the Mace of the Explorer."),
             new ActivityRecommendation(10, 20, Skill.Axe, "CrimsonBrokenHaft", "Equipment: Reclaim the Silifi of Crimson Stars, start by exploring Leikotha's Crypt at 10.1S 31.3E and then visit Kayna bint Iswas at 1.7S, 36.6E."),
@@ -572,7 +573,7 @@ namespace ACE.Server.Command.Handlers
 
             new ActivityRecommendation(5, 20, "IceTachiTurnedIn", "XP/Equipment: Retrieve the fabled Ice Tachi from the mosswart camp at 27.5S, 71.0E near Shoushi, keep it or deliver it to an Ivory Crafter for an experience reward."),
             new ActivityRecommendation(10, 20, "AcidAxeTurnedIn", "XP/Equipment: Explore Suntik Village near Zaikhal at 16.2N 4.3E for the Acid Axe, keep it or deliver it to an Ivory Crafter for an experience reward."),
-            new ActivityRecommendation(10, 20, "GivenTibriSpear", "XP/Equipment: Explore a Cave near Cragstone at 23.2N, 44.0E for Tibri's Fire Spear, keep it or deliver it to Tibri also in the cave for an experience reward."),
+            new ActivityRecommendation(10, 20, "GivenTibriSpear", "XP/Equipment: Explore a Cave near Cragstone at 24.2N, 43.2E for Tibri's Fire Spear, keep it or deliver it to Tibri also in the cave for an experience reward."),
             new ActivityRecommendation(10, 20, "LilithasBowGiven", "XP/Equipment: Explore Hunter's Leap near Holtburg at 35.7N, 32.6E for Lilitha's Bow, keep it or deliver it to Eldrista at 35.7N, 33.4E for an experience reward."),
 
             new ActivityRecommendation(10, 20, Skill.Armor, "Equipment: Explore the Glenden Wood Dungeon near Glenden Wood at 29.9N, 26.4E for the Platemail Hauberk of the Ogre."),
@@ -586,9 +587,9 @@ namespace ACE.Server.Command.Handlers
             // T2
             new ActivityRecommendation(15, 30, "PalenqualCompleted", "Equipment: Hunt Hea Warriors north of Greenspire to get Totems, once you have a totem take it to Aun Shimauri at 46.7N, 70.6W for more information on how to acquire your Palenqual weapon."),
             new ActivityRecommendation(20, 30, "OlthoiHunting3", "XP: Kill Olthois in the Crumbling Empyrean Mansion near Greenspire at 46.8N, 67.8W and bring a Worker Pincer to Behdo Yii in Redspire."),
-            new ActivityRecommendation(14, 25, "TuskFemalePickup", "XP: Kill Tuskers in the Tusker Burrow in Alphus Lassel at 2.0N, 97.9E and bring a Female Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(18, 30, "TuskMalePickup", "XP: Kill Tuskers in the Tusker Lodge in Alphus Lassel at 0.1N, 98.1E and bring a Male Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(25, 35, "TuskCrimsonbackPickup", "XP: Kill Tuskers in the Tusker Cave in Alphus Lassel at 0.4N, 97.4E and bring a Tusker Crimsonback Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(14, 25, "TuskFemalePickup", "XP: Kill Tuskers in the Tusker Burrow in Alphus Lassel at 2.0N, 97.9E and bring a Female Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(18, 30, "TuskMalePickup", "XP: Kill Tuskers in the Tusker Lodge in Alphus Lassel at 0.1N, 98.1E and bring a Male Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(25, 35, "TuskCrimsonbackPickup", "XP: Kill Tuskers in the Tusker Cave in Alphus Lassel at 0.4N, 97.4E and bring a Tusker Crimsonback Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
 
             new ActivityRecommendation(15, 30, Skill.Lockpick, "Hunting Grounds: Halls of Metos - North of Tufa at 4.4S, 0.6W - Hunt Undeads for Mnemosynes, and golems for Motes and Hearts. Use a Intricate Carving Tool and the Lockpick skill to turn the Hearts into keys for the Mnemosynes."),
             new ActivityRecommendation(15, 30, "Hunting Grounds: Halls of Metos - North of Tufa at 4.4S, 0.6W - Hunt Undeads for Mnemosynes, and golems for Motes."),
@@ -610,17 +611,17 @@ namespace ACE.Server.Command.Handlers
             new ActivityRecommendation(50, 999, "OlthoiHunting6", "XP: Kill Olthois in the Lair of the Eviscerators in the Marescent Plateau at 53.7N, 76.6W and bring an Eviscerator Pincer to Behdo Yii in Redspire."),
             new ActivityRecommendation(70, 999, "OlthoiHunting7", "XP: Kill Olthois in the Olthoi Warrior Nest in the Marescent Plateau at 46.9N, 81.2W and bring a Warrior Pincer to Behdo Yii in Redspire."),
             new ActivityRecommendation(80, 999, "OlthoiHunting8", "XP: Kill Olthois in the Mutilator Tunnels in the Marescent Plateau at 52.8N, 78.1W and bring a Mutilator Pincer to Behdo Yii in Redspire."),
-            new ActivityRecommendation(30, 999, "TuskGoldenbackPickup", "XP: Kill Tuskers in the Tusker Cavern in Alphus Lassel at 1.0N, 96.9E and bring a Goldenback Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(35, 999, "TuskRedeemerPickup", "XP: Kill Tuskers in the Tusker Abode in Alphus Lassel at 3.2S, 94.9E and bring a Tusker Redeemer Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(40, 999, "TuskLiberatorPickup", "XP: Kill Tuskers in the Tusker Habitat in Alphus Lassel at 0.5S, 95.9E and bring a Tusker Liberator Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(45, 999, "TuskSlavePickup", "XP: Kill Tuskers in the Tusker Quarters in Alphus Lassel at 2.3S, 95.6E and bring a Tusker Slave Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(50, 999, "TuskGuardPickup", "XP: Kill Tuskers in the Tusker Barracks in Alphus Lassel at 0.3S, 90.8E and bring a Tusker Guard Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(55, 999, "TuskSilverPickup", "XP: Kill Tuskers in the Tusker Pits in Alphus Lassel at 1.3N, 91.8E and bring a Silver Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(60, 999, "TuskArmoredPickup", "XP: Kill Tuskers in the Tusker Armory in Alphus Lassel at 0.0N, 89.4E and bring a Armored Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(65, 999, "TuskRampagerPickup", "XP: Kill Tuskers in the Tusker Holding in Alphus Lassel at 3.5S, 85.3E and bring a Rampager Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(70, 999, "TuskPlatedPickup", "XP: Kill Tuskers in the Tusker Tunnels in Alphus Lassel at 0.4N, 86.4E and bring a Plated Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(80, 999, "TuskAssailerPickup", "XP: Kill Tuskers in the Tusker Honeycombs in Alphus Lassel at 1.3S, 86.9E and bring a Assailer Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
-            new ActivityRecommendation(100, 999, "TuskDevastatorPickup", "XP: Kill Tuskers in the Tusker Lacuna in Alphus Lassel at 9.9S, 90.7E and bring a Devastator Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-20, 59.8N 28.4E for levels 20-40 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(30, 999, "TuskGoldenbackPickup", "XP: Kill Tuskers in the Tusker Cavern in Alphus Lassel at 1.0N, 96.9E and bring a Goldenback Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(35, 999, "TuskRedeemerPickup", "XP: Kill Tuskers in the Tusker Abode in Alphus Lassel at 3.2S, 94.9E and bring a Tusker Redeemer Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(40, 999, "TuskLiberatorPickup", "XP: Kill Tuskers in the Tusker Habitat in Alphus Lassel at 0.5S, 95.9E and bring a Tusker Liberator Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(45, 999, "TuskSlavePickup", "XP: Kill Tuskers in the Tusker Quarters in Alphus Lassel at 2.3S, 95.6E and bring a Tusker Slave Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(50, 999, "TuskGuardPickup", "XP: Kill Tuskers in the Tusker Barracks in Alphus Lassel at 0.3S, 90.8E and bring a Tusker Guard Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(55, 999, "TuskSilverPickup", "XP: Kill Tuskers in the Tusker Pits in Alphus Lassel at 1.3N, 91.8E and bring a Silver Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(60, 999, "TuskArmoredPickup", "XP: Kill Tuskers in the Tusker Armory in Alphus Lassel at 0.0N, 89.4E and bring a Armored Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(65, 999, "TuskRampagerPickup", "XP: Kill Tuskers in the Tusker Holding in Alphus Lassel at 3.5S, 85.3E and bring a Rampager Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(70, 999, "TuskPlatedPickup", "XP: Kill Tuskers in the Tusker Tunnels in Alphus Lassel at 0.4N, 86.4E and bring a Plated Tusker Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(80, 999, "TuskAssailerPickup", "XP: Kill Tuskers in the Tusker Honeycombs in Alphus Lassel at 1.3S, 86.9E and bring a Assailer Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
+            new ActivityRecommendation(100, 999, "TuskDevastatorPickup", "XP: Kill Tuskers in the Tusker Lacuna in Alphus Lassel at 9.9S, 90.7E and bring a Devastator Tusk to Brighteyes in Oolutanga's Refuge. You can get to Alphus lassel via the Tusker Temples: 10.5S 65.6E for levels 1-30, 59.8N 28.4E for levels 20-50 and 0.7N 68.1W for levels 40+."),
         };
 
         [CommandHandler("recs", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Recommend activities appropriate to the character.")]
@@ -729,6 +730,51 @@ namespace ACE.Server.Command.Handlers
                 session.Player.CampManager.GetCurrentCampBonus(CreatureType.Invalid, out _, out var areaCampBonus, out var restCampBonus, out var typeRecovery, out var areaRecovery, out var restRecovery);
                 CommandHandlerHelper.WriteOutputInfo(session, $"Current T.A.R. experience multipliers:\n   Area: {(areaCampBonus * 100).ToString("0")}%{(areaCampBonus != 1 ? $" - Estimated recovery time: {FormatTimespan(areaRecovery)}" : "")}\n   Rest: {(restCampBonus * 100).ToString("0")}%{(restCampBonus != 1 ? $" - Estimated recovery time: {FormatTimespan(restRecovery)}" : "")}");
             }
+        }
+
+        /// <summary>
+        /// List online players within the character's allegiance.
+        /// </summary>
+        [CommandHandler("who", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "List online players within the character's allegiance.")]
+        public static void HandleWho(Session session, params string[] parameters)
+        {
+            if (!PropertyManager.GetBool("command_who_enabled").Item)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("The command \"who\" is not currently enabled on this server.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            if (session.Player.MonarchId == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("You must be in an allegiance to use this command.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            if (DateTime.UtcNow - session.Player.PrevWho < TimeSpan.FromMinutes(1))
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                return;
+            }
+
+            session.Player.PrevWho = DateTime.UtcNow;
+
+            StringBuilder message = new StringBuilder();
+            message.Append("Allegiance Members: \n");
+
+
+            uint playerCounter = 0;
+            foreach (var player in PlayerManager.GetAllOnline().OrderBy(p => p.Name))
+            {
+                if (player.MonarchId == session.Player.MonarchId)
+                {
+                    message.Append($"{player.Name} - Level {player.Level}\n");
+                    playerCounter++;
+                }
+            }
+
+            message.Append("Total: " + playerCounter + "\n");
+
+            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
         }
 
         public static string FormatTimespan(TimeSpan timespan)
@@ -843,6 +889,16 @@ namespace ACE.Server.Command.Handlers
                 }
 
                 return false;
+            }
+        }
+
+        [CommandHandler("fixinvisible", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Resends all visible items and creatures to the client")]
+        public static void HandleFixInvisible(Session session, params string[] parameters)
+        {
+            var knownObjects = session.Player.GetKnownObjects();
+            foreach (var entry in knownObjects)
+            {
+                session.Player.TrackObject(entry, true);
             }
         }
     }

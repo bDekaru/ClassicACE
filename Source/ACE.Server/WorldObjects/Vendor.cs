@@ -16,6 +16,8 @@ using ACE.Server.Factories;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Managers;
 using ACE.Server.Factories.Enum;
+using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.WorldObjects.Entity;
 
 namespace ACE.Server.WorldObjects
 {
@@ -126,7 +128,7 @@ namespace ACE.Server.WorldObjects
                 GeneratorProfiles.RemoveAll(p => p.Biota.WhereCreate.HasFlag(RegenLocationType.Shop));
             }
 
-            LastRestockTime = DateTime.UtcNow.Subtract(TimeSpan.FromSeconds(PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item));
+            LastRestockTime = DateTime.UnixEpoch;
             OpenForBusiness = ValidateVendorRequirements();
         }
 
@@ -366,6 +368,12 @@ namespace ACE.Server.WorldObjects
         /// <param name="action">The action performed by the player</param>
         public void ApproachVendor(Player player, VendorType action = VendorType.Undef, uint altCurrencySpent = 0)
         {
+            if(VendorPKOnly && player.PlayerKillerStatus != PlayerKillerStatus.PK)
+            {
+                player.Session.Network.EnqueueSend(new GameEventTell(this, "Come back when you're not under Asheron's protection or Bael'Zharon's respite.", player, ChatMessageType.Tell));
+                return;
+            }
+
             RotUniques();
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
@@ -391,6 +399,8 @@ namespace ACE.Server.WorldObjects
 
                 case VendorType.Buy:    // player buys item from vendor
                     EmoteManager.DoVendorEmote(vendorType, player);
+                    if (DefaultItemsForSale.Count == 0 && UniqueItemsForSale.Count == 0)
+                        EmoteManager.ExecuteEmoteSet(EmoteManager.GetEmoteSet(EmoteCategory.Vendor, null, VendorType.SoldOut), player, true);
                     break;
 
                 case VendorType.Sell:   // player sells item to vendor
@@ -597,6 +607,7 @@ namespace ACE.Server.WorldObjects
 
             // calculate price
             uint totalPrice = 0;
+            uint totalPriceAfterHaggling = 0;
 
             foreach (var item in purchaseItems)
             {
@@ -604,6 +615,58 @@ namespace ACE.Server.WorldObjects
 
                 // detect rollover?
                 totalPrice += cost;
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    CreatureSkill appraisalSkill = player.GetCreatureSkill(Skill.Appraise);
+                    if (appraisalSkill.AdvancementClass >= SkillAdvancementClass.Trained)
+                    {
+                        if (item.ItemType != ItemType.PromissoryNote)
+                        {
+                            var unitCost = cost / item.StackSize ?? 1;
+                            var diff1 = 50 + (uint)Math.Sqrt(Math.Min(unitCost, 250000));
+                            var diff2 = diff1 + 50;
+                            var diff3 = diff2 + 50;
+                            var chance1 = SkillCheck.GetSkillChance(appraisalSkill.Current, diff1);
+                            var chance2 = SkillCheck.GetSkillChance(appraisalSkill.Current, diff2);
+                            var chance3 = SkillCheck.GetSkillChance(appraisalSkill.Current, diff3);
+                            var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+
+                            if (chance3 > roll)
+                            {
+                                Proficiency.OnSuccessUse(player, appraisalSkill, diff3);
+
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.85f), 1);
+                            }
+                            else if (chance2 > roll)
+                            {
+                                Proficiency.OnSuccessUse(player, appraisalSkill, diff2);
+
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.90f), 1);
+                            }
+                            else if (chance1 > roll)
+                            {
+                                Proficiency.OnSuccessUse(player, appraisalSkill, diff1);
+
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.95f), 1);
+                            }
+                            else
+                                totalPriceAfterHaggling += cost;
+                        }
+                        else
+                            totalPriceAfterHaggling += cost;
+                    }
+                    else
+                        totalPriceAfterHaggling += cost;
+                }
+                else
+                    totalPriceAfterHaggling += cost;
+            }
+
+            if(totalPriceAfterHaggling != totalPrice)
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your appraisal skill allows you to haggle for a discount of {totalPrice - totalPriceAfterHaggling:N0} Pyreals!", ChatMessageType.Broadcast));
+                totalPrice = totalPriceAfterHaggling;
             }
 
             // verify player has enough currency
@@ -662,12 +725,16 @@ namespace ACE.Server.WorldObjects
             return cost;
         }
 
-        public int CalculatePayoutCoinAmount(Dictionary<uint, WorldObject> items)
+        public int CalculatePayoutCoinAmount(Dictionary<uint, WorldObject> items, Player player, bool performAppraisal)
         {
             var payout = 0;
 
             foreach (WorldObject item in items.Values)
+            {
+                if (performAppraisal && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    MagnifyingGlass.PerformAppraisal(player, item, true);
                 payout += GetBuyCost(item);
+            }
 
             return payout;
         }
@@ -769,12 +836,16 @@ namespace ACE.Server.WorldObjects
         private bool sellsRandomJewelry;
         private bool sellsRandomGems;
         private bool sellsRandomScrolls;
+        private bool sellsSalvage;
+        private bool sellsSpecialItems;
 
         private TreasureHeritageGroup ShopHeritage;
 
         private void SetupRandomItemShop()
         {
             RandomItemGenerationInitialized = true;
+
+            ShopTier = Tier ?? 0;
 
             string townName = GetProperty(PropertyString.TownName);
             switch (townName)
@@ -797,7 +868,8 @@ namespace ACE.Server.WorldObjects
                 case "Northwest Samsur Outpost":
                 case "East Yaraq Outpost":
                 case "North Yaraq Outpost":
-                    ShopTier = 1;
+                    if(ShopTier == 0)
+                        ShopTier = 1;
                     ShopQualityMod = -0.5f;
                     IsStarterOutpostVendor = true;
                     break;
@@ -821,7 +893,8 @@ namespace ACE.Server.WorldObjects
                 case "East Glenden Wood Outpost":
                 case "West Glenden Wood Outpost":
                 case "Southwest Yanshi Outpost":
-                    ShopTier = 1;
+                    if (ShopTier == 0)
+                        ShopTier = 1;
                     ShopQualityMod = 0.0f;
                     break;
                 case "Al-Jalima":
@@ -831,7 +904,7 @@ namespace ACE.Server.WorldObjects
                 case "Cragstone":
                 case "Eastham":
                 case "Glenden Wood":
-                case "Hebian-To":
+                case "Hebian-to":
                 case "Khayyaban":
                 case "Kryst":
                 case "Lin":
@@ -841,7 +914,8 @@ namespace ACE.Server.WorldObjects
                 case "Tou-Tou":
                 case "Uziz":
                 case "Zaikhal":
-                    ShopTier = 2;
+                    if (ShopTier == 0)
+                        ShopTier = 2;
                     ShopQualityMod = 0.0f;
                     break;
                 case "Bandit Castle":
@@ -852,21 +926,20 @@ namespace ACE.Server.WorldObjects
                 case "Linvak Tukal":
                 case "MacNiall's Freehold":
                 case "Neydisa Castle":
-                case "Plateau Village":
+                case "Plateau":
                 case "Qalaba'r":
                 case "Timaru":
-                    ShopTier = 3;
+                    if (ShopTier == 0)
+                        ShopTier = 3;
                     ShopQualityMod = 0.0f;
                     break;
                 case "Candeth Keep":
                 case "Fort Tethana":
-                case "Stonehold":
-                    ShopTier = 4;
-                    ShopQualityMod = 0.0f;
-                    break;
                 case "Ayan Baqur":
-                case "Wai Jhou":
-                    ShopTier = 5;
+                case "WaiJhou":
+                case "Stonehold":
+                    if (ShopTier == 0)
+                        ShopTier = 4;
                     ShopQualityMod = 0.0f;
                     break;
             }
@@ -875,6 +948,9 @@ namespace ACE.Server.WorldObjects
             sellsRandomMeleeWeapons = ((ItemType)MerchandiseItemTypes & ItemType.MeleeWeapon) == ItemType.MeleeWeapon;
             sellsRandomMissileWeapons = ((ItemType)MerchandiseItemTypes & ItemType.MissileWeapon) == ItemType.MissileWeapon;
             sellsRandomCasters = ((ItemType)MerchandiseItemTypes & ItemType.Caster) == ItemType.Caster;
+            sellsSalvage = VendorSellsSalvage;
+            sellsSpecialItems = VendorSellsSpecialItems;
+
             if (!IsStarterOutpostVendor)
             {
                 sellsRandomClothing = ((ItemType)MerchandiseItemTypes & ItemType.Clothing) == ItemType.Clothing;
@@ -882,9 +958,6 @@ namespace ACE.Server.WorldObjects
                 sellsRandomGems = ((ItemType)MerchandiseItemTypes & ItemType.Gem) == ItemType.Gem;
                 sellsRandomScrolls = ((ItemType)MerchandiseItemTypes & ItemType.Writable) == ItemType.Writable && sellsRandomCasters; // Check if we also sell casters to prevent scribes from carrying scrolls
             }
-
-            if (!sellsRandomArmor && !sellsRandomMeleeWeapons && !sellsRandomMissileWeapons && !sellsRandomCasters && !sellsRandomClothing && !sellsRandomJewelry && !sellsRandomGems && !sellsRandomScrolls)
-                return;
 
             int categoriesSold = 0;
             if (sellsRandomArmor)
@@ -903,15 +976,22 @@ namespace ACE.Server.WorldObjects
                 categoriesSold++;
             if (sellsRandomScrolls)
                 categoriesSold++;
+            if (sellsSalvage)
+                categoriesSold++;
+            if (sellsSpecialItems)
+                categoriesSold++;
 
-            ShopRandomItemStockAmount = categoriesSold * ThreadSafeRandom.Next(5, 10);
+            if (VendorStockMaxAmount == 0)
+                ShopRandomItemStockAmount = categoriesSold * ThreadSafeRandom.Next(5, 10);
+            else
+                ShopRandomItemStockAmount = categoriesSold * VendorStockMaxAmount;
 
             ShopHeritage = (TreasureHeritageGroup)(Heritage ?? 0);
 
             if (ShopHeritage > TreasureHeritageGroup.Sho)
                 ShopHeritage = TreasureHeritageGroup.Invalid;
 
-            if (ShopTier == 0) // We're not in a town! See what's around us.
+            if (ShopTier == 0) // We're not in a town and no defined shop tier! See what's around us.
             {
                 ShopTier = 1; // Fallback to tier 1 if there's nothing around us.
 
@@ -949,10 +1029,10 @@ namespace ACE.Server.WorldObjects
                     MerchandiseMaxValue = 18000;
                     break;
                 case 4:
-                    MerchandiseMaxValue = 24000;
+                    MerchandiseMaxValue = 30000;
                     break;
                 case 5:
-                    MerchandiseMaxValue = 30000;
+                    MerchandiseMaxValue = 40000;
                     break;
                 case 6:
                     MerchandiseMaxValue = 50000;
@@ -968,8 +1048,12 @@ namespace ACE.Server.WorldObjects
             if (ShopTier == 0)
                 return;
 
-            if ((DateTime.UtcNow - LastRestockTime).TotalSeconds < PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item)
+            if (VendorRestockInterval == 0 && (DateTime.UtcNow - LastRestockTime).TotalSeconds < PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item)
                 return;
+            else if ((DateTime.UtcNow - LastRestockTime).TotalSeconds < VendorRestockInterval)
+                return;
+
+            RotUniques();
 
             // Decay our recent income and outflow so prices can change accordingly.
             int minutesSinceLastRestock = (int)(DateTime.UtcNow - LastRestockTime).TotalMinutes;
@@ -1016,6 +1100,11 @@ namespace ACE.Server.WorldObjects
                 {
                     AddRandomItem(TreasureItemType_Orig.Clothing, TreasureArmorType.Undef, TreasureWeaponType.Undef);
                     added++;
+                    if (added < itemsToGenerate)
+                    {
+                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Cloth, TreasureWeaponType.Undef);
+                        added++;
+                    }
                 }
                 if (sellsRandomJewelry && added < itemsToGenerate)
                 {
@@ -1032,22 +1121,103 @@ namespace ACE.Server.WorldObjects
                     AddRandomItem(TreasureItemType_Orig.Scroll, TreasureArmorType.Undef, TreasureWeaponType.Undef);
                     added++;
                 }
+                if (sellsSalvage && added < itemsToGenerate)
+                {
+                    AddRandomItem(TreasureItemType_Orig.Salvage, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    added++;
+                }
+                if (sellsSpecialItems && added < itemsToGenerate)
+                {
+                    AddRandomItem(TreasureItemType_Orig.SpecialItem, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    added++;
+                }
             }
             
             UniqueItemsForSale = new Dictionary<ObjectGuid, WorldObject>(UniqueItemsForSale.OrderBy(key => key.Value, VendorItemComparer));
+        }
+        public void BroadcastStock(bool world = false)
+        {
+            RestockRandomItems();
 
+            if (UniqueItemsForSale.Count == 0)
+                return;
+
+            var message = GetProperty(PropertyString.VendorBroadcastPrepend) ?? "";
+            if (message.Length == 0)
+                message = $"{Name} is now selling";
+
+            var itemsForSale = new Dictionary<uint, WorldObject>();
+
+            // Concatenate non mutated entries.
+            foreach(var itemEntry in UniqueItemsForSale)
+            {
+                var item = itemEntry.Value;
+                if (item.Workmanship.HasValue || !itemsForSale.ContainsKey(item.WeenieClassId))
+                    itemsForSale.Add(item.WeenieClassId, item);
+            }
+
+            for (int i = 0; i < itemsForSale.Count; i++)
+            {
+                var item = itemsForSale.Values.ElementAt(i);
+                int value;
+                if (item.MaxStackSize > 1)
+                    value = item.StackUnitValue ?? 0;
+                else
+                    value = item.Value ?? 0;
+
+                if (i == 0)
+                    message = $"{message} {item.NameWithMaterial}{(item.ItemType == ItemType.TinkeringMaterial ? $" (Workmanship {(item.Workmanship ?? 0):#.00})" : "")} for {(int)Math.Round(value * SellPrice ?? 0):N0} Pyreals";
+                else if (i == itemsForSale.Count - 1)
+                    message = $"{message} and {item.NameWithMaterial}{(item.ItemType == ItemType.TinkeringMaterial ? $" (Workmanship {(item.Workmanship ?? 0):#.00})" : "")} for {(int)Math.Round(value * SellPrice ?? 0):N0} Pyreals";
+                else
+                    message = $"{message}, {item.NameWithMaterial}{(item.ItemType == ItemType.TinkeringMaterial ? $" (Workmanship {(item.Workmanship ?? 0):#.00})" : "")} for {(int)Math.Round(value * SellPrice ?? 0):N0} Pyreals";
+            }
+            var append = GetProperty(PropertyString.VendorBroadcastAppend) ?? "";
+            if(append.Length > 0)
+                message += append;
+            else
+                message += ".";
+
+            if (world)
+            {
+                PlayerManager.BroadcastToAll(new GameMessageSystemChat(message, ChatMessageType.WorldBroadcast));
+                PlayerManager.LogBroadcastChat(Channel.AllBroadcast, this, message);
+            }
+            else
+            {
+                EnqueueBroadcast(new GameMessageSystemChat(message, ChatMessageType.Broadcast));
+            }
         }
 
         private void AddRandomItem(TreasureItemType_Orig treasureItemType, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef)
         {
             var item = LootGenerationFactory.CreateRandomLootObjects_New(ShopTier, ShopQualityMod, (DealMagicalItems ?? false) ? TreasureItemCategory.MagicItem : TreasureItemCategory.Item, treasureItemType, armorType, weaponType, ShopHeritage);
 
-            item.ContainerId = Guid.Full;
+            var amount = item.StackSize ?? 1;
+            if (amount > 1 && !item.Workmanship.HasValue) // Split stackable uniques.
+            {
+                for (int i = 0; i < amount; i++)
+                {
+                    var newItem = WorldObjectFactory.CreateNewWorldObject(item.WeenieClassId);
+                    newItem.ContainerId = Guid.Full;
 
-            UniqueItemsForSale.Add(item.Guid, item);
+                    UniqueItemsForSale.Add(newItem.Guid, newItem);
 
-            item.SoldTimestamp = Time.GetUnixTime();
-            item.RemoveBiotaFromDatabase();
+                    newItem.SoldTimestamp = Time.GetUnixTime();
+                    newItem.RemoveBiotaFromDatabase();
+                }
+                item.Destroy();
+            }
+            else
+            {
+                item.ContainerId = Guid.Full;
+
+                UniqueItemsForSale.Add(item.Guid, item);
+
+                item.SoldTimestamp = Time.GetUnixTime();
+
+                item.RemoveBiotaFromDatabase();
+            }
         }
 
         /// <summary>
@@ -1070,7 +1240,10 @@ namespace ACE.Server.WorldObjects
 
                 var rotTime = Time.GetDateTimeFromTimestamp(soldTime.Value);
 
-                rotTime = rotTime.AddSeconds(PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item);
+                if (VendorStockTimeToRot != 0)
+                    rotTime = rotTime.AddSeconds(VendorStockTimeToRot);
+                else
+                    rotTime = rotTime.AddSeconds(PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item);
 
                 if (DateTime.UtcNow >= rotTime)
                 {
@@ -1214,6 +1387,42 @@ namespace ACE.Server.WorldObjects
         {
             get => GetProperty(PropertyInt.RecentMoneyOutflow) ?? 0;
             set { if (value == 0) RemoveProperty(PropertyInt.RecentMoneyOutflow); else SetProperty(PropertyInt.RecentMoneyOutflow, value); }
+        }
+
+        public bool VendorSellsSalvage
+        {
+            get => GetProperty(PropertyBool.VendorSellsSalvage) ?? false;
+            set { if (value == false) RemoveProperty(PropertyBool.VendorSellsSalvage); else SetProperty(PropertyBool.VendorSellsSalvage, value); }
+        }
+
+        public bool VendorSellsSpecialItems
+        {
+            get => GetProperty(PropertyBool.VendorSellsSpecialItems) ?? false;
+            set { if (value == false) RemoveProperty(PropertyBool.VendorSellsSpecialItems); else SetProperty(PropertyBool.VendorSellsSpecialItems, value); }
+        }
+
+        public bool VendorPKOnly
+        {
+            get => GetProperty(PropertyBool.VendorPKOnly) ?? false;
+            set { if (value == false) RemoveProperty(PropertyBool.VendorPKOnly); else SetProperty(PropertyBool.VendorPKOnly, value); }
+        }
+
+        protected double VendorRestockInterval
+        {
+            get => GetProperty(PropertyFloat.VendorRestockInterval) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyFloat.VendorRestockInterval); else SetProperty(PropertyFloat.VendorRestockInterval, value); }
+        }
+
+        protected double VendorStockTimeToRot
+        {
+            get => GetProperty(PropertyFloat.VendorStockTimeToRot) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyFloat.VendorStockTimeToRot); else SetProperty(PropertyFloat.VendorStockTimeToRot, value); }
+        }
+
+        protected int VendorStockMaxAmount
+        {
+            get => GetProperty(PropertyInt.VendorStockMaxAmount) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.VendorStockMaxAmount); else SetProperty(PropertyInt.VendorStockMaxAmount, value); }
         }
     }
 }
