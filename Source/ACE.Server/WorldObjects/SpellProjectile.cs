@@ -514,14 +514,14 @@ namespace ACE.Server.WorldObjects
 
                 // could life magic projectiles crit?
                 // if so, did they use the same 1.5x formula as war magic, instead of 2.0x?
-                if (criticalHit)
-                {
-                    // verify: CriticalMultiplier only applied to the additional crit damage,
-                    // whereas CD/CDR applied to the total damage (base damage + additional crit damage)
-                    weaponCritDamageMod = GetWeaponCritDamageMod(weapon, sourceCreature, attackSkill, target);
+                //if (criticalHit)
+               // {
+               //     // verify: CriticalMultiplier only applied to the additional crit damage,
+               //     // whereas CD/CDR applied to the total damage (base damage + additional crit damage)
+               //     weaponCritDamageMod = GetWeaponCritDamageMod(weapon, sourceCreature, attackSkill, target);
 
-                    critDamageBonus = lifeMagicDamage * 0.5f * weaponCritDamageMod;
-                }
+               //     critDamageBonus = lifeMagicDamage * 0.5f * weaponCritDamageMod;
+               // }
 
                 weaponResistanceMod = GetWeaponResistanceModifier(weapon, sourceCreature, attackSkill, Spell.DamageType);
 
