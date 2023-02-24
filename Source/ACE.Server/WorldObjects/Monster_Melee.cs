@@ -460,7 +460,8 @@ namespace ACE.Server.WorldObjects
                 effectiveAL += bodyArmorMod;
             else
             {
-                effectiveAL += defender.EnchantmentManager.GetBodyArmorMod(false); // Take into account armor debuffs.
+                if (!ignoreMagicResist)
+                    effectiveAL += defender.EnchantmentManager.GetBodyArmorMod(false); // Take into account armor debuffs.
                 if (bodyArmorMod > effectiveAL)
                     effectiveAL = bodyArmorMod; // Body armor doesn't stack with equipment armor, use whichever is highest.
             }
