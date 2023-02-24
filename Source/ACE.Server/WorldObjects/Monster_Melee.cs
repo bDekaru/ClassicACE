@@ -614,7 +614,7 @@ namespace ACE.Server.WorldObjects
             Console.WriteLine("Effective RL: " + effectiveRL);
             Console.WriteLine();*/
 
-            return GetSkillModifiedArmorLevel(effectiveAL * effectiveRL);
+            return GetSkillModifiedArmorLevel(effectiveAL) * effectiveRL;
         }
 
         /// <summary>
