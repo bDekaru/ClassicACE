@@ -942,7 +942,7 @@ namespace ACE.Server.WorldObjects
                 if (creatureTarget == null)
                     return 1.0f;
 
-                 var angle = creatureTarget.GetAngle(this);
+                var angle = creatureTarget.GetAngle(this);
                 var behind = Math.Abs(angle) > 90.0f;
 
                 var weapon = GetEquippedMeleeWeapon();
