@@ -871,7 +871,7 @@ namespace ACE.Server.Command.Handlers
         }
 
         // telepoi location
-        [CommandHandler("telepoi", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1,
+        [CommandHandler("telepoi", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 1,
             "Teleport yourself to a named Point of Interest",
             "[POI|list]\n" +
             "@telepoi Arwic\n" +
@@ -879,6 +879,13 @@ namespace ACE.Server.Command.Handlers
             "@telepoi list")]
         public static void HandleTeleportPoi(Session session, params string[] parameters)
         {
+            if (!Common.ConfigManager.Config.Server.TestWorld && session.AccessLevel < AccessLevel.Developer)
+            {
+                ChatPacket.SendServerMessage(session, "You dont have access to this command",
+                    ChatMessageType.Broadcast);
+                return;
+            }
+
             var poi = String.Join(" ", parameters);
 
             if (poi.ToLower() == "list")
@@ -4584,9 +4591,16 @@ namespace ACE.Server.Command.Handlers
             HandleCISalvage(session, parameters);
         }
 
-        [CommandHandler("cisalvage", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create a salvage bag in your inventory", "<material_type>, optional: <structure> <workmanship> <num_items>")]
+        [CommandHandler("cisalvage", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 1, "Create a salvage bag in your inventory", "<material_type>, optional: <structure> <workmanship> <num_items>")]
         public static void HandleCISalvage(Session session, params string[] parameters)
         {
+            if (!Common.ConfigManager.Config.Server.TestWorld && session.AccessLevel < AccessLevel.Developer)
+            {
+                ChatPacket.SendServerMessage(session, "You dont have access to this command",
+                    ChatMessageType.Broadcast);
+                return;
+            }
+
             if (!Enum.TryParse(parameters[0], true, out MaterialType materialType))
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find material type {parameters[0]}", ChatMessageType.Broadcast));

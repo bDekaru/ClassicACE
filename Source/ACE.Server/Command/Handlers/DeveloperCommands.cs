@@ -782,9 +782,16 @@ namespace ACE.Server.Command.Handlers
         // Experience
         // ==================================
 
-        [CommandHandler("grantxp", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Give XP to yourself (or the specified character).", "ulong\n" + "@grantxp [name] 191226310247 is max level 275")]
+        [CommandHandler("grantxp", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 1, "Give XP to yourself (or the specified character).", "ulong\n" + "@grantxp [name] 191226310247 is max level 275")]
         public static void HandleGrantXp(Session session, params string[] parameters)
         {
+            if(!Common.ConfigManager.Config.Server.TestWorld && session.AccessLevel < AccessLevel.Developer)
+            {
+                ChatPacket.SendServerMessage(session, "You dont have access to this command",
+                    ChatMessageType.Broadcast);
+                return;
+            }
+
             if (parameters?.Length > 0)
             {
                 List<CommandParameterHelpers.ACECommandParameter> aceParams = new List<CommandParameterHelpers.ACECommandParameter>()
@@ -2962,9 +2969,16 @@ namespace ACE.Server.Command.Handlers
             session.Network.EnqueueSend(new GameMessageSystemChat(session.Player.DamageHistory.ToString(), ChatMessageType.Broadcast));
         }
 
-        [CommandHandler("remove-vitae", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Removes vitae from last appraised player")]
+        [CommandHandler("remove-vitae", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Removes vitae from last appraised player")]
         public static void HandleRemoveVitae(Session session, params string[] parameters)
         {
+            if (!Common.ConfigManager.Config.Server.TestWorld && session.AccessLevel < AccessLevel.Developer)
+            {
+                ChatPacket.SendServerMessage(session, "You dont have access to this command",
+                    ChatMessageType.Broadcast);
+                return;
+            }
+
             var player = CommandHandlerHelper.GetLastAppraisedObject(session) as Player;
 
             if (player == null)

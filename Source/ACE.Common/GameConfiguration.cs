@@ -65,6 +65,11 @@ namespace ACE.Common
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
         public bool LandblockPreloading { get; set; }
 
+        [System.ComponentModel.DefaultValue(false)]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        public bool TestWorld { get; set; }
+
+
         public List<PreloadedLandblocks> PreloadedLandblocks { get; set; }
 
         /// <summary>
