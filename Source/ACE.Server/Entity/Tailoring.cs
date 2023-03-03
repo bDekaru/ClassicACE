@@ -212,6 +212,12 @@ namespace ACE.Server.Entity
 
             var wo = WorldObjectFactory.CreateNewWorldObject(wcid.Value);
 
+            if(wo == null)
+            {
+                player.SendUseDoneEvent(WeenieError.ActionCancelled);
+                return;
+            }
+
             SetArmorProperties(target, wo);
 
             player.Session.Network.EnqueueSend(new GameMessageSystemChat("You tailor the appearance off an existing piece of armor.", ChatMessageType.Broadcast));
@@ -221,6 +227,10 @@ namespace ACE.Server.Entity
 
         public static void SetCommonProperties(WorldObject source, WorldObject target)
         {
+
+            if (target == null)
+                return;
+
             // a lot of this was probably done with recipes and mutations in the original
             // here a lot is done directly in code..
 
@@ -257,6 +267,9 @@ namespace ACE.Server.Entity
 
         public static void SetArmorProperties(WorldObject source, WorldObject target)
         {
+            if (target == null)
+                return;
+
             SetCommonProperties(source, target);
 
             // ensure armor/clothing that covers head/hands/feet are cross-compatible
@@ -280,6 +293,9 @@ namespace ACE.Server.Entity
         /// </summary>
         public static void SetWeaponProperties(WorldObject source, WorldObject target)
         {
+            if(target == null)
+                return;
+
             SetCommonProperties(source, target);
 
             target.TargetType = source.ItemType;
@@ -372,6 +388,13 @@ namespace ACE.Server.Entity
 
             // create intermediate weapon tailoring kit
             var wo = WorldObjectFactory.CreateNewWorldObject(DarkHeart);
+
+            if (wo == null)
+            {
+                player.SendUseDoneEvent(WeenieError.ActionCancelled);
+                return;
+            }
+
             SetWeaponProperties(target, wo);
 
             player.Session.Network.EnqueueSend(new GameMessageSystemChat("You tailor the appearance off the weapon.", ChatMessageType.Broadcast));
