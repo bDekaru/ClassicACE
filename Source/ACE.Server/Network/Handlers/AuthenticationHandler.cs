@@ -223,7 +223,16 @@ namespace ACE.Server.Network.Handlers
                 }
 
                 //Disallow VPN connections
-                if (PropertyManager.GetBool("block_vpn_connections").Item)
+                bool isAccountVpnWhitelisted = false;
+                var whitelist = PropertyManager.GetString("vpn_account_whitelist").Item.Split(",");
+                if(whitelist != null && whitelist.Length > 0)
+                {
+                    var match = whitelist.FirstOrDefault(account.AccountName);
+                    if (match != null)
+                        isAccountVpnWhitelisted = true;
+                }
+
+                if (PropertyManager.GetBool("block_vpn_connections").Item && !isAccountVpnWhitelisted)
                 {
                     try
                     {
