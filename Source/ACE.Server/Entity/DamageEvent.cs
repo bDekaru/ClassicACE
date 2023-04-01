@@ -500,23 +500,16 @@ namespace ACE.Server.Entity
                                 break;
                             case Skill.Dagger:
                                 config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger").Item;
+                                break;                          
+                            case Skill.Bow:
+                                config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow").Item;
                                 break;
-                            case Skill.MissileWeapons:
-                                if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Bow)
-                                {
-                                    config_mod = (float)PropertyManager.GetDouble("pvp_dmg_mod_bow").Item;
-                                }
-                                else if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Crossbow)
-                                {
-                                    config_mod = (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow").Item;
-                                }
-                                else if (Weapon.IsThrownWeapon || Weapon.IsAtlatl)
-                                {
-                                    config_mod = (float)PropertyManager.GetDouble("pvp_dmg_mod_tw").Item;
-                                }
-
+                            case Skill.Crossbow:
+                                config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow").Item;
                                 break;
-
+                            case Skill.ThrownWeapon:
+                                config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw").Item;
+                                break;
                         }
 
                         if (Weapon.HasImbuedEffect(ImbuedEffectType.ArmorRending))
@@ -545,21 +538,16 @@ namespace ACE.Server.Entity
                                 case Skill.Dagger:
                                     config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_ar").Item;
                                     break;
-                                case Skill.MissileWeapons:
-                                    if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Bow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_ar").Item;
-                                    }
-                                    else if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Crossbow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_ar").Item;
-                                    }
-                                    else if (Weapon.IsThrownWeapon || Weapon.IsAtlatl)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_ar").Item;
-                                    }
-
+                                case Skill.Bow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_ar").Item;
                                     break;
+                                case Skill.Crossbow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_ar").Item;
+                                    break;
+                                case Skill.ThrownWeapon:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_ar").Item;
+                                    break;
+
 
                             }
                         }
@@ -589,19 +577,14 @@ namespace ACE.Server.Entity
                                 case Skill.Dagger:
                                     config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_cb").Item;
                                     break;
-                                case Skill.MissileWeapons:
-                                    if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Bow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_cb").Item;
-                                    }
-                                    else if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Crossbow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_cb").Item;
-                                    }
-                                    else if (Weapon.IsThrownWeapon || Weapon.IsAtlatl)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_cb").Item;
-                                    }
+                                case Skill.Bow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_cb").Item;
+                                    break;
+                                case Skill.Crossbow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_cb").Item;
+                                    break;
+                                case Skill.ThrownWeapon:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_cb").Item;
                                     break;
 
                             }
@@ -631,19 +614,14 @@ namespace ACE.Server.Entity
                                     case Skill.Dagger:
                                         config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_cb_crit").Item;
                                         break;
-                                    case Skill.MissileWeapons:
-                                        if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Bow)
-                                        {
-                                            config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_cb_crit").Item;
-                                        }
-                                        else if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Crossbow)
-                                        {
-                                            config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_cb_crit").Item;
-                                        }
-                                        else if (Weapon.IsThrownWeapon || Weapon.IsAtlatl)
-                                        {
-                                            config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_cb_crit").Item;
-                                        }
+                                    case Skill.Bow:
+                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_cb_crit").Item;
+                                        break;
+                                    case Skill.Crossbow:
+                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_cb_crit").Item;
+                                        break;
+                                    case Skill.ThrownWeapon:
+                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_cb_crit").Item;
                                         break;
 
                                 }
@@ -675,19 +653,14 @@ namespace ACE.Server.Entity
                                 case Skill.Dagger:
                                     config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_cs").Item;
                                     break;
-                                case Skill.MissileWeapons:
-                                    if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Bow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_cs").Item;
-                                    }
-                                    else if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Crossbow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_cs").Item;
-                                    }
-                                    else if (Weapon.IsThrownWeapon || Weapon.IsAtlatl)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_cs").Item;
-                                    }
+                                case Skill.Bow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_cs").Item;
+                                    break;
+                                case Skill.Crossbow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_cs").Item;
+                                    break;
+                                case Skill.ThrownWeapon:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_cs").Item;
                                     break;
 
                             }
@@ -718,19 +691,14 @@ namespace ACE.Server.Entity
                                 case Skill.Dagger:
                                     config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_hollow").Item;
                                     break;
-                                case Skill.MissileWeapons:
-                                    if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Bow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_hollow").Item;
-                                    }
-                                    else if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Crossbow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_hollow").Item;
-                                    }
-                                    else if (Weapon.IsThrownWeapon || Weapon.IsAtlatl)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_hollow").Item;
-                                    }
+                                case Skill.Bow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_hollow").Item;
+                                    break;
+                                case Skill.Crossbow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_hollow").Item;
+                                    break;
+                                case Skill.ThrownWeapon:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_hollow").Item;
                                     break;
 
                             }
@@ -760,20 +728,15 @@ namespace ACE.Server.Entity
                                     break;
                                 case Skill.Dagger:
                                     config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_phantom").Item;
-                                    break;                                
-                                case Skill.MissileWeapons:
-                                    if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Bow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_phantom").Item;
-                                    }
-                                    else if (Weapon.DefaultCombatStyle != null && Weapon.DefaultCombatStyle == CombatStyle.Crossbow)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_phantom").Item;
-                                    }
-                                    else if (Weapon.IsThrownWeapon || Weapon.IsAtlatl)
-                                    {
-                                        config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_phantom").Item;
-                                    }
+                                    break;
+                                case Skill.Bow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_phantom").Item;
+                                    break;
+                                case Skill.Crossbow:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_xbow_phantom").Item;
+                                    break;
+                                case Skill.ThrownWeapon:
+                                    config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_tw_phantom").Item;
                                     break;
                             }
                         }
