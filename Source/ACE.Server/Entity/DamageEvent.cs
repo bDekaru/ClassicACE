@@ -389,6 +389,13 @@ namespace ACE.Server.Entity
 
             var ignoreArmorMod = Math.Min(armorRendingMod, armorCleavingMod);
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && pkBattle)
+            {
+                ignoreArmorMod *= (float)PropertyManager.GetDouble("pvp_dmg_armor_base_reduction").Item;
+            }
+
+            
+
             // get body part / armor pieces / armor modifier
             if (playerDefender != null)
             {
@@ -740,6 +747,9 @@ namespace ACE.Server.Entity
                                     break;
                             }
                         }
+
+                        if(SneakAttackMod > 1.0)
+                            config_mod *= (float)PropertyManager.GetDouble("pvp_dmg_sneak_mod").Item;
 
                         Damage = Damage * config_mod;
                     }

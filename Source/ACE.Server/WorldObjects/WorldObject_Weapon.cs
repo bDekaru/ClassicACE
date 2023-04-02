@@ -5,6 +5,7 @@ using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
 using ACE.Server.Factories.Tables;
+using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
@@ -856,8 +857,19 @@ namespace ACE.Server.WorldObjects
         {
             var creatureMod = IgnoreShield ?? 0.0f;
             double weaponMod;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && weapon != null && weapon.IsTwoHanded)
-                weaponMod = 0.5f;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && weapon != null )
+            {
+                if (weapon.IsTwoHanded)
+                {
+                    weaponMod = 0.5f;
+                    weaponMod *= (float)PropertyManager.GetDouble("pvp_dmg_2h_shieldcleave_mod").Item;
+                }
+                else
+                {
+                    weaponMod = 0.5f;
+                    weaponMod *= (float)PropertyManager.GetDouble("pvp_dmg_shieldcleave_mod").Item;
+                }
+            }
             else
                 weaponMod = weapon?.IgnoreShield ?? 0.0f;
 

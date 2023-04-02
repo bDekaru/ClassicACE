@@ -812,9 +812,14 @@ namespace ACE.Server.Managers
                 ("pvp_dmg_mod_dagger_hollow", new Property<double>(1.0, "Scales the amount of damage for dagger Hollow.")),
                 ("pvp_dmg_mod_dagger_phantom", new Property<double>(1.0, "Scales the amount of damage for dagger Phantom.")),
                 ("cast_radius", new Property<double>(6.0, "the distance in meters a player can travel from their starting cast position. if they exceed this distance, they fizzle the spell.")),
-                ("pvp_cs_critrate_mod", new Property<double>(1.0, "Scales the crit rate for CS"))
+                ("pvp_cs_critrate_mod", new Property<double>(1.0, "Scales the crit rate for CS")),
+                ("pvp_dmg_shieldcleave_mod", new Property<double>(1.0, "Scales the ShieldCleave amount")),
+                ("pvp_dmg_sneak_mod", new Property<double>(1.0, "Scales the sneak attack rating")),
+                ("pvp_dmg_2h_shieldcleave_mod", new Property<double>(1.0, "Scales the ShieldCleave amount from 2handed")),
+                ("pvp_dmg_armor_base_reduction", new Property<double>(1.0, "Scales the base armor value in pvp (dekaru defaulted to 0.7)")),
+                ("pvp_dmg_shield_base_reduction", new Property<double>(1.0, "Scales the base shield value in pvp (dekaru defaulted to 0.7)"))
                 );
-
+        
         public static readonly ReadOnlyDictionary<string, Property<string>> DefaultStringProperties =
             DictOf(
                 ("content_folder", new Property<string>("Content", "for content creators to live edit weenies. defaults to Content folder found in same directory as ACE.Server.dll")),

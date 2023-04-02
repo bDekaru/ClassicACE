@@ -8,6 +8,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories.Tables;
+using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Structure;
@@ -868,6 +869,12 @@ namespace ACE.Server.WorldObjects
 
             var ignoreShieldMod = attacker.GetIgnoreShieldMod(weapon);
             //Console.WriteLine($"IgnoreShieldMod: {ignoreShieldMod}");
+
+            var pkBattle = player != null && attacker is Player;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && pkBattle)
+            {
+                ignoreShieldMod *= (float)PropertyManager.GetDouble("pvp_dmg_shield_base_reduction").Item;
+            }
 
             effectiveLevel *= ignoreShieldMod;
 
