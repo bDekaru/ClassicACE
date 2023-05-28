@@ -154,7 +154,7 @@ namespace ACE.Server.Managers
 
         public static bool HasDifficulty(Recipe recipe)
         {
-            if (recipe.IsTinkering())
+            if (recipe.IsTinkering() && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return true;
 
             return recipe.Skill > 0 && recipe.Difficulty > 0;
@@ -204,20 +204,19 @@ namespace ACE.Server.Managers
         public static double? GetTinkerChance(Player player, WorldObject tool, WorldObject target, Recipe recipe)
         {
             // calculate % success chance
-
-            var toolWorkmanship = tool.Workmanship ?? 0;
-            var itemWorkmanship = target.Workmanship ?? 0;
-
-            var tinkeredCount = target.NumTimesTinkered;
-
-            var materialType = tool.MaterialType ?? MaterialType.Unknown;
-
-            // thanks to Endy's Tinkering Calculator for this formula!
-            var attemptMod = TinkeringDifficulty[tinkeredCount];
-
-            double successChance;
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
+                var toolWorkmanship = tool.Workmanship ?? 0;
+                var itemWorkmanship = target.Workmanship ?? 0;
+
+                var tinkeredCount = target.NumTimesTinkered;
+
+                var materialType = tool.MaterialType ?? MaterialType.Unknown;
+
+                // thanks to Endy's Tinkering Calculator for this formula!
+                var attemptMod = TinkeringDifficulty[tinkeredCount];
+
+                double successChance;
                 var recipeSkill = (Skill)recipe.Skill;
 
                 var skill = player.GetCreatureSkill(recipeSkill);
@@ -240,34 +239,26 @@ namespace ACE.Server.Managers
                 var difficulty = (int)Math.Floor(((salvageMod * 5.0f) + (itemWorkmanship * salvageMod * 2.0f) - (toolWorkmanship * workmanshipMod * salvageMod / 5.0f)) * attemptMod);
 
                 successChance = SkillCheck.GetSkillChance((int)playerCurrentPlusLumAugSkilledCraft, difficulty);
+
+                // imbue: divide success by 3
+                if (recipe.IsImbuing())
+                {
+                    successChance /= 3.0f;
+
+                    if (player.AugmentationBonusImbueChance > 0)
+                        successChance += player.AugmentationBonusImbueChance * 0.05f;
+                }
+
+                // todo: remove this once foolproof salvage recipes are updated
+                if (foolproofTinkers.Contains((WeenieClassName)tool.WeenieClassId))
+                    successChance = 1.0;
+
+                return successChance;
             }
             else
             {
-                var salvageMod = 10.0f;
-
-                var difficulty = (int)Math.Floor(((salvageMod * 5.0f) + ((itemWorkmanship * salvageMod * 0.8f) - (toolWorkmanship * salvageMod * 1.0f))) * attemptMod * 3.0f);
-
-                log.Info($"Tinker Info: Player = {player.Name}; Tool = {tool.Name}; Target = {target.Name}; SalvageMod={salvageMod}; ItemWS={itemWorkmanship}; ToolWS={toolWorkmanship}; AttemptMod={attemptMod}");
-                
-                successChance = SkillCheck.GetSkillChance(250, difficulty);
-                
-                log.Info($"Success Chance: Player = {player.Name}; Tool = {tool.Name}; Target = {target.Name}; SuccessChance = {successChance}");
+                return 1.0f;
             }
-
-            // imbue: divide success by 3
-            if (recipe.IsImbuing())
-            {
-                successChance /= 3.0f;
-
-                if (player.AugmentationBonusImbueChance > 0)
-                    successChance += player.AugmentationBonusImbueChance * 0.05f;
-            }
-
-            // todo: remove this once foolproof salvage recipes are updated
-            if (foolproofTinkers.Contains((WeenieClassName)tool.WeenieClassId))
-                successChance = 1.0;
-
-            return successChance;
         }
 
         /// <summary>
@@ -391,6 +382,7 @@ namespace ACE.Server.Managers
                 if (success) player.ImbueSuccesses++;
             }
 
+            var originalNumTinkers = target.NumTimesTinkered;
             var modified = CreateDestroyItems(player, recipe, source, target, successChance, success);
 
             if (modified != null)
@@ -399,7 +391,12 @@ namespace ACE.Server.Managers
                     UpdateObj(player, source);
 
                 if (modified.Contains(target.Guid.Full))
+                {
                     UpdateObj(player, target);
+
+                    if (recipe.IsImbuing() && originalNumTinkers != target.NumTimesTinkered && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        target.NumTimesTinkered = originalNumTinkers; // Rollback the num of tinkers for imbues as imbues do not count towards the max tinker amount on CustomDM.
+                }
             }
 
             if (success && recipe.Skill > 0 && recipe.Difficulty > 0)
@@ -812,6 +809,34 @@ namespace ACE.Server.Managers
             if (!VerifyRequirements(recipe, player, source, RequirementType.Source)) return false;
 
             if (!VerifyRequirements(recipe, player, player, RequirementType.Player)) return false;
+
+            if (recipe.IsTinkering() && !recipe.IsImbuing() && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if (target.NumTimesTinkered >= 3)
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot be tinkered any further.", ChatMessageType.Broadcast));
+                    return false;
+                }
+
+                if (target.TinkerLog != null)
+                {
+                    var tinkerType = (uint?)source.MaterialType ?? source.WeenieClassId;
+                    var tinkers = target.TinkerLog.Split(",");
+                    var tinkerCount = tinkers.Count(s => s == tinkerType.ToString());
+
+                    if (tinkerCount > 0)
+                    {
+                        var material = "";
+                        if (source.MaterialType == null)
+                            material = source.NameWithMaterial;
+                        else
+                            material = GetMaterialName(source.MaterialType ?? 0);
+
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} has already been tinkered with {material}.", ChatMessageType.Broadcast));
+                        return false;
+                    }
+                }
+            }
 
             return true;
         }

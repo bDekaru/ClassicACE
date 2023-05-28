@@ -558,6 +558,31 @@ namespace ACE.Server.Network.Structure
                     hasExtraPropertiesText = true;
                 }
 
+                if (wo.TinkerLog != null)
+                {
+                    var tinkers = wo.TinkerLog.Split(",");
+                    if (tinkers.Length > 0)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Tinkered with: ";
+
+                        bool first = true;
+                        foreach (var tinker in tinkers)
+                        {
+                            if (!first)
+                                extraPropertiesText += ", ";
+                            if (int.TryParse(tinker, out var materialId))
+                            {
+                                extraPropertiesText += RecipeManager.GetMaterialName((MaterialType)materialId);
+                                first = false;
+                            }
+                        }
+                        extraPropertiesText += $".";
+
+                        hasExtraPropertiesText = true;
+                    }
+                }
                 if (hasExtraPropertiesText)
                     PropertiesString[PropertyString.Use] = extraPropertiesText;
             }
