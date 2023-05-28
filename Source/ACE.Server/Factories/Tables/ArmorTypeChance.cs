@@ -152,7 +152,6 @@ namespace ACE.Server.Factories.Tables
                     ( TreasureArmorType.Cloth,          1.0f ),
                     ( TreasureArmorType.Chainmail,      2.0f ),
                     ( TreasureArmorType.Platemail,      2.0f ),
-                    ( TreasureArmorType.Covenant,       1.0f ),
                 };
 
                 T5_Chances = new ChanceTable<TreasureArmorType>(ChanceTableType.Weight)
@@ -160,7 +159,6 @@ namespace ACE.Server.Factories.Tables
                     ( TreasureArmorType.Cloth,          1.0f ),
                     ( TreasureArmorType.Chainmail,      1.0f ),
                     ( TreasureArmorType.Platemail,      2.0f ),
-                    ( TreasureArmorType.Covenant,       1.0f ),
                     ( TreasureArmorType.HeritageLow,    2.0f ),
                 };
 
@@ -168,7 +166,6 @@ namespace ACE.Server.Factories.Tables
                 {
                     ( TreasureArmorType.Cloth,          1.0f ),
                     ( TreasureArmorType.Platemail,      2.0f ),
-                    ( TreasureArmorType.Covenant,       1.0f ),
                     ( TreasureArmorType.HeritageLow,    2.0f ),
                     ( TreasureArmorType.HeritageHigh,   2.0f ),
                 };
@@ -177,7 +174,6 @@ namespace ACE.Server.Factories.Tables
                 {
                     ( TreasureArmorType.Cloth,          1.0f ),
                     ( TreasureArmorType.Platemail,      2.0f ),
-                    ( TreasureArmorType.Covenant,       1.0f ),
                     ( TreasureArmorType.HeritageLow,    2.0f ),
                     ( TreasureArmorType.HeritageHigh,   2.0f ),
                 };
@@ -186,7 +182,6 @@ namespace ACE.Server.Factories.Tables
                 {
                     ( TreasureArmorType.Cloth,          1.0f ),
                     ( TreasureArmorType.Platemail,      2.0f ),
-                    ( TreasureArmorType.Covenant,       1.0f ),
                     ( TreasureArmorType.HeritageLow,    2.0f ),
                     ( TreasureArmorType.HeritageHigh,   2.0f ),
                 };
