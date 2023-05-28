@@ -29896,99 +29896,6 @@
     <tod_req>0</tod_req>
   </location>
   <location>
-    <id>1878</id>
-    <latitude>86.7</latitude>
-    <longitude>-78.2</longitude>
-    <name>Vile Sanctuary</name>
-    <type>Dungeon</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>Contains Withered Lugians guarding the Anemic Atlatl. &lt;I&gt;-- Chupon 1/17/2005&lt;/i&gt;</description>
-    <date_added>2005-01-17T18:22:36.6800000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>0017</dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>1879</id>
-    <latitude>87</latitude>
-    <longitude>-79.6</longitude>
-    <name>Banished Assembly</name>
-    <type>Dungeon</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>Full of Withered Drudge Seraphs and Seraph Mystics guarding the Sterile Sword. &lt;I&gt;-- Chupon 1/17/2005&lt;/i&gt;</description>
-    <date_added>2005-01-17T18:23:59.2130000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>0015</dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>1880</id>
-    <latitude>86.2</latitude>
-    <longitude>-79</longitude>
-    <name>Ravaged Cathedral</name>
-    <type>Dungeon</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>Contains Withered Banderlings and Tumeroks guarding the Insensate Axe. &lt;I&gt;-- Chupon 1/17/2005&lt;/i&gt;</description>
-    <date_added>2005-01-17T18:24:55.9930000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>0016</dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>1881</id>
-    <latitude>85.7</latitude>
-    <longitude>-78</longitude>
-    <name>3 Empyrean Heads</name>
-    <type>Landmark</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>3 Empyrean heads in a row facing NW. They mark the boundary of the Withered Area to the SW. This marker marks the location of the center Head. &lt;I&gt;-- Chupon 1/17/2005&lt;/i&gt;</description>
-    <date_added>2005-01-17T18:26:35.5130000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>1882</id>
-    <latitude>85</latitude>
-    <longitude>-78.7</longitude>
-    <name>3 Empyrean Heads</name>
-    <type>Landmark</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>3 Empyrean heads in a row facing NW. They mark the boundary of the Withered Area to the SW. This marker marks the location of the center Head. &lt;I&gt;-- Chupon 1/17/2005&lt;/i&gt;</description>
-    <date_added>2005-01-17T18:27:02.6070000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>1883</id>
-    <latitude>86.4</latitude>
-    <longitude>-80.4</longitude>
-    <name>Withered Banderling Island</name>
-    <type>Landmark</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>This marks the location of an island in the Withered Area full of Withered Banderlings guarding the book The Withering. In addition, one of the Hierophants  near the center drops the Barren Bow. &lt;I&gt;-- Chupon 1/17/2005&lt;/i&gt;</description>
-    <date_added>2005-01-17T18:28:33.2630000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
     <id>1884</id>
     <latitude>5.3</latitude>
     <longitude>-91.8</longitude>
@@ -46550,23 +46457,6 @@ This tree grows atop the large cataracts overlooking the Chapel on Xi Ru's Islan
     <latitude>11.9</latitude>
     <longitude>-92.9</longitude>
     <name>Castle</name>
-    <type>Landmark</type>
-    <arrival_latitude>0.000</arrival_latitude>
-    <arrival_longitude>0.000</arrival_longitude>
-    <description>
-    </description>
-    <date_added>2005-01-13 00:00:00</date_added>
-    <last_update>0000-00-00 00:00:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>2789</id>
-    <latitude>85.7</latitude>
-    <longitude>-78</longitude>
-    <name>3 Heads</name>
     <type>Landmark</type>
     <arrival_latitude>0.000</arrival_latitude>
     <arrival_longitude>0.000</arrival_longitude>
