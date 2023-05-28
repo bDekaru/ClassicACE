@@ -1136,5 +1136,15 @@ namespace ACE.Server.WorldObjects
                 return Math.Max(0, structureUnitValue);
             }
         }
+
+        public int GetMaxExtraSpellsCount()
+        {
+            return Math.Max((int)Math.Ceiling(((ItemWorkmanship ?? 0) - 1) / 2f), 0);
+        }
+
+        public bool CanHaveExtraSpells()
+        {
+            return ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0;
+        }
     }
 }

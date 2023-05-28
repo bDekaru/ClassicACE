@@ -649,6 +649,7 @@ namespace ACE.Entity.Enum.Properties
         EmptyId                                  = 10009,
         [ServerOnly]
         VendorStockMaxAmount                     = 10010,
+        ExtraSpellsCount                         = 10011,
     }
 
     public static class PropertyIntExtensions

@@ -3174,5 +3174,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyFloat.ComponentBurnRateMod);
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.ComponentBurnRateMod); else SetProperty(PropertyFloat.ComponentBurnRateMod, value.Value); }
         }
+
+        public int? ExtraSpellsCount
+        {
+            get => GetProperty(PropertyInt.ExtraSpellsCount);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.ExtraSpellsCount); else SetProperty(PropertyInt.ExtraSpellsCount, value.Value); }
+        }
     }
 }

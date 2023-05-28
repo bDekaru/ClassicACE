@@ -583,6 +583,15 @@ namespace ACE.Server.Network.Structure
                         hasExtraPropertiesText = true;
                     }
                 }
+
+                if (wo.CanHaveExtraSpells())
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"Extra Spells Count: {wo.ExtraSpellsCount ?? 0}/{wo.GetMaxExtraSpellsCount()}.";
+                    hasExtraPropertiesText = true;
+                }
+
                 if (hasExtraPropertiesText)
                     PropertiesString[PropertyString.Use] = extraPropertiesText;
             }
