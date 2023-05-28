@@ -1547,13 +1547,14 @@ namespace ACE.Server.Factories
             if (treasureRoll.ItemType != TreasureItemType_Orig.Scroll)
             {
                 wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
-                wo.Tier = treasureDeath.Tier;
 
                 if (wo == null)
                 {
                     log.Error($"CreateAndMutateWcid({treasureDeath.TreasureType}, {(int)treasureRoll.Wcid} - {treasureRoll.Wcid}, {treasureRoll.GetItemType()}, {isMagical}) - failed to create item");
                     return null;
                 }
+
+                wo.Tier = treasureDeath.Tier;
 
 
                 if (wo.MaxStackSize > 1)

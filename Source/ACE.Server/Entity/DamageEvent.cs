@@ -65,7 +65,11 @@ namespace ACE.Server.Entity
         public uint EffectiveDefenseSkill;
         public float AccuracyMod;
 
+        public float BlockChance;
+        public uint EffectiveBlockSkill;
+
         public bool Evaded;
+        public bool Blocked;
 
         public BaseDamageMod BaseDamageMod;
         public float BaseDamage { get; set; }
@@ -102,6 +106,7 @@ namespace ACE.Server.Entity
         public float PkDamageResistanceMod;
 
         public float DamageMitigated;
+        public float DamageBlocked;
 
         // creature attacker
         public MotionCommand? AttackMotion;
@@ -302,6 +307,9 @@ namespace ACE.Server.Entity
                         CriticalChance += playerAttacker.ScaleWithPowerAccuracyBar(CriticalChance);
                     }
 
+                    if (Weapon.IsTwoHanded)
+                        CriticalChance += 0.05f + playerAttacker.ScaleWithPowerAccuracyBar(0.05f);
+
                     if (isAttackFromSneaking)
                     {
                         CriticalChance = 1.0f;
@@ -317,7 +325,10 @@ namespace ACE.Server.Entity
                         if (attacker != defender && playerAttacker.NextTechniqueNegativeActivationTime <= currentTime && chance > ThreadSafeRandom.Next(0.0f, 1.0f))
                         {
                             // Chance of inflicting self damage while using the Opportunist technique.
-                            playerAttacker.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
+                            var modifiedInterval = Player.TechniqueNegativeActivationInterval;
+                            if (Weapon.IsTwoHanded)
+                                modifiedInterval /= 2;
+                            playerAttacker.NextTechniqueNegativeActivationTime = currentTime + modifiedInterval;
                             playerAttacker.DamageTarget(playerAttacker, damageSource);
                         }
                     }
@@ -445,10 +456,26 @@ namespace ACE.Server.Entity
             // get shield modifier
             ShieldMod = defender.GetShieldMod(attacker, DamageType, Weapon);
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && ShieldMod < 1.0f)
+            {
+                BlockChance = GetBlockChance(attacker, defender);
+                if (attacker != defender && BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                    Blocked = true;
+                else
+                {
+                    Blocked = false;
+                    ShieldMod = 1.0f;
+                }
+            }
+
+            var damageBeforeShieldMod = DamageBeforeMitigation * ArmorMod * ResistanceMod * DamageResistanceRatingMod;
+
             // calculate final output damage
-            Damage = DamageBeforeMitigation * ArmorMod * ShieldMod * ResistanceMod * DamageResistanceRatingMod;
+            Damage = damageBeforeShieldMod * ShieldMod;
 
             DamageMitigated = DamageBeforeMitigation - Damage;
+            if(Blocked)
+                DamageBlocked = damageBeforeShieldMod - Damage;
 
             return Damage;
         }
@@ -510,6 +537,25 @@ namespace ACE.Server.Entity
                 evadeChance = Math.Min(evadeChance, 0.95f + ((CombatType == CombatType.Missile ? playerDefender.CachedMissileDefenseCapBonus : playerDefender.CachedMeleeDefenseCapBonus)) * 0.01);
 
             return (float)evadeChance;
+        }
+
+        public float GetBlockChance(Creature attacker, Creature defender)
+        {
+            var playerDefender = defender as Player;
+            if (playerDefender == null)
+                return 1.0f; // Creatures with shields always block.
+            else
+            {
+                var shieldSkill = defender.GetCreatureSkill(Skill.Shield);
+                if (shieldSkill.AdvancementClass > SkillAdvancementClass.Untrained)
+                    EffectiveBlockSkill = shieldSkill.Current;
+                else
+                    EffectiveBlockSkill = 0;
+
+                var blockChance = 1.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
+
+                return (float)blockChance;
+            }
         }
 
         /// <summary>
@@ -776,6 +822,10 @@ namespace ACE.Server.Entity
             info += $"DamageBeforeMitigation: {DamageBeforeMitigation}\n";
             info += $"DamageMitigated: {DamageMitigated}\n";
             info += $"Damage: {Damage}\n";
+
+            info += $"Block Chance: {BlockChance}\n";
+            info += $"Blocked: {Blocked}\n";
+            info += $"Damage Blocked: {DamageBlocked}\n";
 
             info += "----";
 

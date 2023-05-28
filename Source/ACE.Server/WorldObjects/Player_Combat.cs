@@ -98,10 +98,10 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public override void OnAttackReceived(WorldObject attacker, CombatType attackType, bool critical, bool avoided)
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CombatMode == CombatMode.Melee && avoided && AttackTarget == attacker)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CombatMode == CombatMode.Melee && AttackTarget == attacker)
             {
                 var currentTime = Time.GetUnixTime();
-                if (NextTechniqueActivationTime <= currentTime)
+                if (avoided && NextTechniqueActivationTime <= currentTime)
                 {
                     var techniqueTrinket = GetEquippedTrinket();
                     if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Riposte)
@@ -117,6 +117,22 @@ namespace ACE.Server.WorldObjects
                                 DamageTarget(creatureAttacker, GetEquippedMeleeWeapon());
                                 NextTechniqueActivationTime = currentTime + TechniqueActivationInterval;
                             }
+                        }
+                    }
+                }
+
+                if(IsDualWieldAttack && NextDualWieldRiposteActivationTime <= currentTime)
+                {
+                    Creature creatureAttacker = attacker as Creature;
+                    if (creatureAttacker != null)
+                    {
+                        var chance = 0.4f;
+                        if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                        {
+                            // Chance of striking back at the target while dual wielding when receiving an attack.
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name} with your offhand!", ChatMessageType.CombatSelf));
+                            DamageTarget(creatureAttacker, GetDualWieldWeapon());
+                            NextDualWieldRiposteActivationTime = currentTime + DualWieldRiposteActivationInterval;
                         }
                     }
                 }
@@ -570,13 +586,13 @@ namespace ACE.Server.WorldObjects
 
         public int TakeDamage(WorldObject source, DamageEvent damageEvent)
         {
-            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.AttackConditions);
+            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.AttackConditions, (int)Math.Floor(damageEvent.DamageBlocked));
         }
 
         /// <summary>
         /// Applies damages to a player from a physical damage source
         /// </summary>
-        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, AttackConditions attackConditions = AttackConditions.None)
+        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, AttackConditions attackConditions = AttackConditions.None, int damageBlocked = 0)
         {
             if (Invincible || IsDead) return 0;
 
@@ -646,7 +662,11 @@ namespace ACE.Server.WorldObjects
             if (source is Creature creature)
             {
                 if (!SquelchManager.Squelches.Contains(source, ChatMessageType.CombatEnemy) && this != creature)
+                {
                     Session.Network.EnqueueSend(new GameEventDefenderNotification(Session, creature.Name, damageType, percent, amount, damageLocation, crit, attackConditions));
+                    if(damageBlocked > 0)
+                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.CombatEnemy));
+                }
     
                 var hitSound = new GameMessageSound(Guid, GetHitSound(source, bodyPart), 1.0f);
                 var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creature.GetSplatterHeight() + creature.GetSplatterDir(this)));
