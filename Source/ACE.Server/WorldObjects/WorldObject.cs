@@ -1139,12 +1139,17 @@ namespace ACE.Server.WorldObjects
 
         public int GetMaxExtraSpellsCount()
         {
+            if (ExtraSpellsMaxOverride != null)
+                return Math.Max(ExtraSpellsMaxOverride ?? 0, 0);
             return Math.Max((int)Math.Ceiling(((ItemWorkmanship ?? 0) - 1) / 2f), 0);
         }
 
         public bool CanHaveExtraSpells()
         {
-            return ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0;
+            if (ExtraSpellsMaxOverride != null && ExtraSpellsMaxOverride > 0)
+                return true;
+            else
+                return ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0;
         }
     }
 }

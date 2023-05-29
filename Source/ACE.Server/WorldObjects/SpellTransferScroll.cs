@@ -75,7 +75,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (!RecipeManager.VerifyUse(player, source, target, true) || target.Workmanship == null)
+            if (!RecipeManager.VerifyUse(player, source, target, true) || (target.Workmanship == null && target.ExtraSpellsMaxOverride == null))
             {
                 player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
                 return;
@@ -189,15 +189,8 @@ namespace ACE.Server.WorldObjects
                     }
                 }
 
-                bool isReplacement = isProc || isGem || spellToReplace != null;
-                if (!isReplacement)
+                if (!isGem && target.ProcSpell == null && spellToReplace == null)
                 {
-                    int spellCount = 0;
-                    var spells = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
-                    if (target.ProcSpell != null && target.ProcSpell != 0)
-                        spells.Add((int)target.ProcSpell);
-                    spellCount = spells.Count;
-
                     if ((target.ExtraSpellsCount ?? 0) >= target.GetMaxExtraSpellsCount())
                     {
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain any more spells.", ChatMessageType.Craft));
@@ -209,11 +202,17 @@ namespace ACE.Server.WorldObjects
                 if (!confirmed)
                 {
                     var extraMessage = "";
-                    if (isProc)
-                        extraMessage = "\nThis will replace the current Cast on Strike spell!\n";
-                    else if(isGem)
-                        extraMessage = "\nThis will replace the current gem spell!\n";
-                    else if(spellToReplace != null)
+                    if (isProc && target.ProcSpell != null)
+                    {
+                        var currentProc = new Spell(target.ProcSpell ?? 0);
+                        extraMessage = $"\nThis will replace {currentProc.Name}!\n";
+                    }
+                    else if (isGem && target.SpellDID != null)
+                    {
+                        var currentGemSpell = new Spell(target.SpellDID ?? 0);
+                        extraMessage = $"\nThis will replace {currentGemSpell.Name}!\n";
+                    }
+                    else if (spellToReplace != null)
                         extraMessage = $"\nThis will replace {spellToReplace.Name}!\n";
 
                     if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), $"Transfering {spellToAdd.Name} to {target.NameWithMaterial}.\n{(extraMessage.Length > 0 ? extraMessage : "")}\n"))
@@ -285,7 +284,7 @@ namespace ACE.Server.WorldObjects
                         target.LongDesc = LootGenerationFactory.GetLongDesc(target);
                     }
 
-                    if(!isReplacement)
+                    if (spellToReplace == null || (isProc && target.ProcSpell == null))
                         target.ExtraSpellsCount = (target.ExtraSpellsCount ?? 0) + 1;
 
                     target.ItemMaxMana = newMaxMana;
@@ -316,7 +315,7 @@ namespace ACE.Server.WorldObjects
                 player.NextUseTime = DateTime.UtcNow.AddSeconds(animTime);
             }
             else // Extraction Scroll
-                       {
+            {
                 if (target.Retained == true)
                 {
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} is Retained!.", ChatMessageType.Craft));

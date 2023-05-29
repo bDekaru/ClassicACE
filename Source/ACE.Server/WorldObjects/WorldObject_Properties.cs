@@ -3180,5 +3180,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyInt.ExtraSpellsCount);
             set { if (!value.HasValue) RemoveProperty(PropertyInt.ExtraSpellsCount); else SetProperty(PropertyInt.ExtraSpellsCount, value.Value); }
         }
+
+        public int? ExtraSpellsMaxOverride
+        {
+            get => GetProperty(PropertyInt.ExtraSpellsMaxOverride);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.ExtraSpellsMaxOverride); else SetProperty(PropertyInt.ExtraSpellsMaxOverride, value.Value); }
+        }
     }
 }
