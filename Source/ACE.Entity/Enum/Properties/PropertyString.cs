@@ -100,6 +100,8 @@ namespace ACE.Entity.Enum.Properties
         VendorBroadcastPrepend          = 9008,
         [ServerOnly]
         VendorBroadcastAppend           = 9009,
+        [ServerOnly]
+        ExtraSpellsList                 = 9010,
     }
 
     public static class PropertyStringExtensions

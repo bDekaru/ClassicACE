@@ -1127,7 +1127,23 @@ namespace ACE.Server.Managers
             WorldObject result = null;
 
             if (createItem > 0)
+            {
                 result = CreateItem(player, createItem, createAmount);
+
+                if (destroyTarget && result != null && target.ExtraSpellsList != null)
+                {
+                    // Transfer spells to the new item.
+                    var spells = target.ExtraSpellsList.Split(",");
+
+                    foreach (string spellString in spells)
+                    {
+                        if (uint.TryParse(spellString.Replace("-", ""), out var spellId))
+                            SpellTransferScroll.InjectSpell(spellId, result);
+                    }
+
+                    player.EnqueueBroadcast(new GameMessageUpdateObject(result));
+                }
+            }
 
             var modified = ModifyItem(player, recipe, source, target, result, success);
 
