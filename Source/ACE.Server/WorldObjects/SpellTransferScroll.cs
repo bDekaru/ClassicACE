@@ -103,6 +103,12 @@ namespace ACE.Server.WorldObjects
                 var isGem = false;
                 if(target.ItemType == ItemType.Gem)
                 {
+                    if (!PropertyManager.GetBool("useable_gems").Item)
+                    {
+                        player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
+                        return;
+                    }
+
                     isGem = true;
                     if(spellToAdd.IsCantrip)
                     {
@@ -358,11 +364,15 @@ namespace ACE.Server.WorldObjects
                 }
 
                 var chance = Math.Clamp(0.25 + ((spellCount - 1) * 0.1), 0.25, 1.0);
+
+                if (target.ItemType == ItemType.Gem && target.ItemUseable == Usable.No)
+                    chance = 1; // Non-useable gems have 100% extraction chance.
+
                 var percent = chance * 100;
                 var showDialog = player.GetCharacterOption(CharacterOption.UseCraftingChanceOfSuccessDialog);
                 if (showDialog && !confirmed)
                 {
-                    if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), $"Extracting a spell from {target.NameWithMaterial}.\nIt will be destroyed in the process.\nYou determine that you have a {percent.Round()} percent chance to succeed.\n\n"))
+                    if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), $"Extracting a spell from {target.NameWithMaterial}.\nIt will be destroyed in the process.\n\nYou determine that you have a {percent.Round()} percent chance to succeed.\n\n"))
                         player.SendUseDoneEvent(WeenieError.ConfirmationInProgress);
                     else
                         player.SendUseDoneEvent();

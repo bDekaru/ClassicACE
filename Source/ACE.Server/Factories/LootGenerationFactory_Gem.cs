@@ -7,6 +7,7 @@ using ACE.Entity.Enum;
 using ACE.Server.Entity;
 using ACE.Server.Factories.Entity;
 using ACE.Server.Factories.Tables;
+using ACE.Server.Managers;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Factories
@@ -60,7 +61,11 @@ namespace ACE.Server.Factories
                     AssignMagic_Gem_New(wo, profile, roll);
 
                 wo.UiEffects = UiEffects.Magical;
-                wo.ItemUseable = Usable.Contained;
+
+                if (PropertyManager.GetBool("useable_gems").Item)
+                    wo.ItemUseable = Usable.Contained;
+                else
+                    wo.ItemUseable = Usable.No;
             }
 
             // item value
@@ -120,8 +125,12 @@ namespace ACE.Server.Factories
 
             var _spell = new Server.Entity.Spell(finalSpellId);
 
-            // retail spellcraft was capped at 370
-            wo.ItemSpellcraft = Math.Min(GetSpellPower(_spell), 370);
+            bool useableGem = PropertyManager.GetBool("useable_gems").Item;
+            if (useableGem)
+            {
+                // retail spellcraft was capped at 370
+                wo.ItemSpellcraft = Math.Min(GetSpellPower(_spell), 370);
+            }
 
             var castableMana = (int)_spell.BaseMana * 5;
 
@@ -130,14 +139,22 @@ namespace ACE.Server.Factories
 
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
-                // verified
-                wo.ItemManaCost = castableMana;
+                if (useableGem)
+                {
+                    // verified
+                    wo.ItemManaCost = castableMana;
+                }
             }
             else
             {
-                wo.ItemManaCost = (int)_spell.BaseMana;
+                if (useableGem)
+                {
+                    wo.ItemManaCost = (int)_spell.BaseMana;
 
-                AddActivationRequirements(wo, profile, roll);
+                    AddActivationRequirements(wo, profile, roll);
+                }
+                else
+                    wo.Use = "Use a Spell Extaction Scroll to extract this gem's spell without chance of failure.\n";
             }
 
             return true;

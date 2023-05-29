@@ -517,6 +517,8 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyString("dat_warning_msg", "The location you are attempting to enter is not present in your data files.");
 
                 PropertyManager.ModifyDouble("vendor_unique_rot_time", 1800);
+
+                PropertyManager.ModifyBool("useable_gems", false);
             }
         }
 
@@ -644,7 +646,8 @@ namespace ACE.Server.Managers
                 ("command_who_enabled", new Property<bool>(true, "disable this to prevent players from listing online players in their allegiance")),
                 ("enforce_player_movement", new Property<bool>(false, "enable this to enforce server side verification of player movement")),
                 ("enforce_player_movement_speed", new Property<bool>(false, "enable this to enforce server side verification of player movement speed")),
-                ("enforce_player_movement_kick", new Property<bool>(false, "enable this to kick players that fail movement verification too frenquently"))
+                ("enforce_player_movement_kick", new Property<bool>(false, "enable this to kick players that fail movement verification too frenquently")),
+                ("useable_gems", new Property<bool>(true, "Allows loot generated gems to be used to cast their spells."))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
