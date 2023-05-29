@@ -617,6 +617,42 @@ namespace ACE.Server.WorldObjects
             { SpellId.LesserSkinFiazhat, 0 },
             { SpellId.MinorSkinFiazhat, 0 },
             { SpellId.SkinFiazhat, 0 },
+
+            { SpellId.ItemEnchantmentMasterySelf1, 0 },
+            { SpellId.ItemEnchantmentMasterySelf2, 0 },
+            { SpellId.ItemEnchantmentMasterySelf3, 0 },
+            { SpellId.ItemEnchantmentMasterySelf4, 0 },
+            { SpellId.ItemEnchantmentMasterySelf5, 0 },
+            { SpellId.ItemEnchantmentMasterySelf6, 0 },
+            { SpellId.ItemEnchantmentMasterySelf7, 0 },
+            { SpellId.ItemEnchantmentMasterySelf8, 0 },
+
+            { SpellId.ItemEnchantmentMasteryOther1, 0 },
+            { SpellId.ItemEnchantmentMasteryOther2, 0 },
+            { SpellId.ItemEnchantmentMasteryOther3, 0 },
+            { SpellId.ItemEnchantmentMasteryOther4, 0 },
+            { SpellId.ItemEnchantmentMasteryOther5, 0 },
+            { SpellId.ItemEnchantmentMasteryOther6, 0 },
+            { SpellId.ItemEnchantmentMasteryOther7, 0 },
+            { SpellId.ItemEnchantmentMasteryOther8, 0 },
+
+            { SpellId.CreatureEnchantmentMasterySelf1, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf2, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf3, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf4, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf5, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf6, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf7, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf8, 0 },
+
+            { SpellId.CreatureEnchantmentMasteryOther1, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther2, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther3, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther4, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther5, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther6, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther7, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther8, 0 },
         };
 
         /// <summary>
