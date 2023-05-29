@@ -618,7 +618,15 @@ namespace ACE.Server.WorldObjects
             {
                 uint playerSkillLevel = player.GetCreatureSkill(((LeyLineSchool ?? 0) == (int)MagicSchool.WarMagic) ? Skill.WarMagic : Skill.LifeMagic).Current;
 
-                for (int level = 1; level <= 6; level++)
+                var maxLevel = 6;
+                Spell level1Spell = new Spell(level1SpellId);
+                if (!level1Spell.IsBeneficial)
+                {
+                    maxLevel = 4;
+                    playerSkillLevel = (uint)(playerSkillLevel * 0.5f);
+                }
+
+                for (int level = 1; level <= maxLevel; level++)
                 {
                     SpellId grantedSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel((SpellId)level1SpellId, level, true);
                     Spell grantedSpellAttempt = new Spell(grantedSpellIdAttempt);
