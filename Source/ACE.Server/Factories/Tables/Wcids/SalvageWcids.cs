@@ -9,20 +9,20 @@ namespace ACE.Server.Factories.Tables.Wcids
     {
         private static ChanceTable<WeenieClassName> salvageWcids = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
         {
-            ( WeenieClassName.materialleather,          6.00f ), // Add Retained Status
-            ( WeenieClassName.materialsilk,             6.00f ), // Remove Allegiance Requirement
-            ( WeenieClassName.materialivory,            6.00f ), // Remove Attuned Status
-            ( WeenieClassName.materialsandstone,        6.00f ), // Remove Retained Status
-            ( WeenieClassName.materialsilver,           6.00f ), // Switch Melee to Missile
-            ( WeenieClassName.materialcopper,           6.00f ), // Switch Missile to Melee
-            ( WeenieClassName.materialteak,             6.00f ), // Switch to Aluvian
-            ( WeenieClassName.materialebony,            6.00f ), // Switch to Gharundim
-            ( WeenieClassName.materialporcelain,        6.00f ), // Switch to Sho
+            ( WeenieClassName.materialleather,          5.00f ), // Add Retained Status
+            ( WeenieClassName.materialsilk,             5.00f ), // Remove Allegiance Requirement
+            ( WeenieClassName.materialivory,            5.00f ), // Remove Attuned Status
+            ( WeenieClassName.materialsandstone,        5.00f ), // Remove Retained Status
+            ( WeenieClassName.materialsilver,           5.00f ), // Switch Melee to Missile
+            ( WeenieClassName.materialcopper,           5.00f ), // Switch Missile to Melee
+            ( WeenieClassName.materialteak,             5.00f ), // Switch to Aluvian
+            ( WeenieClassName.materialebony,            5.00f ), // Switch to Gharundim
+            ( WeenieClassName.materialporcelain,        5.00f ), // Switch to Sho
 
-            ( WeenieClassName.materialgold,             6.00f ), // Value + 25%
-            ( WeenieClassName.materialpine,             6.00f ), // Value - 25%
-            ( WeenieClassName.materiallinen,            6.00f ), // Burden - 25%
-            ( WeenieClassName.materialmoonstone,        6.00f ), // Max Mana + 500
+            ( WeenieClassName.materialgold,             5.00f ), // Value + 25%
+            ( WeenieClassName.materialpine,             5.00f ), // Value - 25%
+            ( WeenieClassName.materiallinen,            5.00f ), // Burden - 25%
+            ( WeenieClassName.materialmoonstone,        5.00f ), // Max Mana + 500
 
             ( WeenieClassName.materialsteel,            2.00f ), // AL + 20
             ( WeenieClassName.materialalabaster,        3.00f ), // Armor Piercing Resist + 0.2

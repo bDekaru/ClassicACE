@@ -99,7 +99,7 @@ namespace ACE.Server.Factories
 
                 // Tweaks to make the loot system more akin to Infiltration Era and CustomDM
                 TreasureDeath deathTreasure;
-                TreasureDeath tweakedDeathTreasure;
+                TreasureDeathExtended tweakedDeathTreasure;
 
                 Creature creature = tweakedFor as Creature;
                 if (creature != null)
@@ -108,7 +108,7 @@ namespace ACE.Server.Factories
                     if (deathTreasure == null)
                         return deathTreasure;
 
-                    tweakedDeathTreasure = new Database.Models.World.TreasureDeath(deathTreasure);
+                    tweakedDeathTreasure = new TreasureDeathExtended(deathTreasure);
 
                     float itemLootChance = 1.0f;
                     float magicItemLootChance = 1.0f;
@@ -223,7 +223,9 @@ namespace ACE.Server.Factories
                 if (tweakedFor is Container container)
                 {
                     // Some overrides to make chests more interesting, ideally this should be done in the data but as a quick tweak this will do.
-                    tweakedDeathTreasure = new Database.Models.World.TreasureDeath(deathTreasure);
+                    tweakedDeathTreasure = new TreasureDeathExtended(deathTreasure);
+                    tweakedDeathTreasure.ForContainer = true;
+
                     if (container.ResistAwareness.HasValue && tweakedDeathTreasure.LootQualityMod < 0.4f)
                         tweakedDeathTreasure.LootQualityMod = 0.4f;
                     else if (tweakedDeathTreasure.LootQualityMod < 0.2f)
@@ -239,31 +241,11 @@ namespace ACE.Server.Factories
                         tweakedDeathTreasure.MagicItemMaxAmount = 3;
                     tweakedDeathTreasure.MagicItemMaxAmount = (int)Math.Ceiling(tweakedDeathTreasure.MagicItemMaxAmount * 1.5);
 
-                    //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                    //{
-                    //    // Add some scrolls to chest loot.
-                    //    var treasureRoll = new TreasureRoll(TreasureItemType_Orig.Scroll);
-                    //    Container container = tweakedFor as Container;
-                    //    int numScrolls = 0;
-                    //    if (ThreadSafeRandom.Next(1, 10) > 8)
-                    //        numScrolls = 1;
-                    //    for (var i = 0; i < numScrolls; i++)
-                    //    {
-                    //        treasureRoll.Wcid = ScrollWcids.Roll();
-                    //        var scroll = CreateAndMutateWcid(tweakedDeathTreasure, treasureRoll, true);
-                    //        if (scroll != null)
-                    //        {
-                    //            if (!container.TryAddToInventory(scroll))
-                    //                scroll.Destroy();
-                    //        }
-                    //    }
-                    //}
-
                     return tweakedDeathTreasure;
                 }
                 else if (tweakedFor is GenericObject generic && generic.GeneratorProfiles != null) // Ground item spawners
                 {
-                    tweakedDeathTreasure = new Database.Models.World.TreasureDeath(deathTreasure);
+                    tweakedDeathTreasure = new TreasureDeathExtended(deathTreasure);
                     if (tweakedDeathTreasure.LootQualityMod < 0.2f)
                         tweakedDeathTreasure.LootQualityMod = 0.2f;
 
@@ -601,6 +583,19 @@ namespace ACE.Server.Factories
 
                             if (lootWorldObject != null)
                                 loot.Add(lootWorldObject);
+                        }
+                    }
+
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && profile is TreasureDeathExtended treasureDeathExtended && treasureDeathExtended.ForContainer)
+                    {
+                        // All containers have a chance of having some salvage.
+                        double salvageChance = ThreadSafeRandom.NextInterval(profile.LootQualityMod);
+
+                        if (salvageChance < 0.1)
+                        {
+                            var salvage = CreateRandomLootObjects_New(profile.Tier, profile.LootQualityMod, TreasureItemCategory.MundaneItem, TreasureItemType_Orig.Salvage);
+                            if (salvage != null)
+                                loot.Add(salvage);
                         }
                     }
                 }
