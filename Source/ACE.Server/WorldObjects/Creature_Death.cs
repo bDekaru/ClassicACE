@@ -202,7 +202,8 @@ namespace ACE.Server.WorldObjects
                 else
                     totalXP = (XpOverride ?? 0) * damagePercent;
 
-                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill, Level, (uint)CreatureType, ShareType.All);
+                var campValue = (uint)Math.Floor(1f + (totalHealth / 1000f));
+                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill, Level, (uint)CreatureType, campValue, ShareType.All);
 
                 // handle luminance
                 if (LuminanceAward != null)

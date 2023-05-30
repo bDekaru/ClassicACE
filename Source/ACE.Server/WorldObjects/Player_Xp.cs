@@ -20,7 +20,7 @@ namespace ACE.Server.WorldObjects
         /// <param name="amount">The amount of XP being added</param>
         /// <param name="xpType">The source of XP being added</param>
         /// <param name="shareable">True if this XP can be shared with Fellowship</param>
-        public void EarnXP(long amount, XpType xpType, int? xpSourceLevel, uint? xpSourceId, ShareType shareType = ShareType.All)
+        public void EarnXP(long amount, XpType xpType, int? xpSourceLevel, uint? xpSourceId, uint xpSourceCampValue = 1, ShareType shareType = ShareType.All)
         {
             //Console.WriteLine($"{Name}.EarnXP({amount}, {sharable}, {fixedAmount})");
 
@@ -75,7 +75,7 @@ namespace ACE.Server.WorldObjects
                 if (xpSourceId != null && xpSourceId != 0)
                 {
                     float typeCampBonus;
-                    CampManager.HandleCampInteraction(xpSourceId.Value ^ 0xFFFF0000, null, out typeCampBonus, out _, out _);
+                    CampManager.HandleCampInteraction(xpSourceId.Value ^ 0xFFFF0000, null, xpSourceCampValue, out typeCampBonus, out _, out _);
 
                     totalXP = totalXP * typeCampBonus;
 
@@ -99,7 +99,7 @@ namespace ACE.Server.WorldObjects
 
                 if (xpSourceId != null && xpSourceId != 0)
                 {
-                    CampManager.HandleCampInteraction(xpSourceId.Value, CurrentLandblock, out typeCampBonus, out areaCampBonus, out restCampBonus);
+                    CampManager.HandleCampInteraction(xpSourceId.Value, CurrentLandblock, xpSourceCampValue, out typeCampBonus, out areaCampBonus, out restCampBonus);
 
                     float thirdXP = totalXP / 3.0f;
                     totalXP = (thirdXP * typeCampBonus) + (thirdXP * areaCampBonus) + (thirdXP * restCampBonus);
@@ -642,7 +642,7 @@ namespace ACE.Server.WorldObjects
                 scaledXP = Math.Max(scaledXP, min);
 
             // apply xp modifiers?
-            EarnXP(scaledXP, XpType.Quest, Level, null, ShareType.Allegiance);
+            EarnXP(scaledXP, XpType.Quest, Level, null, 1, ShareType.Allegiance);
         }
 
         /// <summary>

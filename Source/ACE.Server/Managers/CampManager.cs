@@ -378,7 +378,7 @@ namespace ACE.Server.Managers
             }
         }
 
-        public void HandleCampInteraction(uint typeCampId, Landblock landblock, out float typeCampBonus, out float areaCampBonus, out float restCampBonus)
+        public void HandleCampInteraction(uint typeCampId, Landblock landblock, uint incrementAmount, out float typeCampBonus, out float areaCampBonus, out float restCampBonus)
         {
             typeCampBonus = 1.0f;
             areaCampBonus = 1.0f;
@@ -391,7 +391,7 @@ namespace ACE.Server.Managers
                 {
                     CheckDecay(typeCamp, true);
                     typeCampBonus = 1.0f - ((float)typeCamp.NumInteractions / GetMaxInteractions(typeCamp.CampId));
-                    Increment(typeCamp);
+                    Increment(typeCamp, incrementAmount);
                 }
             }
 
@@ -416,7 +416,7 @@ namespace ACE.Server.Managers
                     {
                         CheckDecay(areaCamp, true);
                         areaCampBonus = 1.0f - ((float)areaCamp.NumInteractions / GetMaxInteractions(areaCamp.CampId));
-                        Increment(areaCamp);
+                        Increment(areaCamp, incrementAmount);
                     }
                 }
             }
@@ -426,7 +426,7 @@ namespace ACE.Server.Managers
             {
                 CheckDecay(restCamp, true);
                 restCampBonus = 1.0f - ((float)restCamp.NumInteractions / GetMaxInteractions(restCamp.CampId));
-                Increment(restCamp);
+                Increment(restCamp, incrementAmount);
             }
         }
     }
