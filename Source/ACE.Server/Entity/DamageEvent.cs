@@ -307,7 +307,7 @@ namespace ACE.Server.Entity
                         CriticalChance += playerAttacker.ScaleWithPowerAccuracyBar(CriticalChance);
                     }
 
-                    if (Weapon.IsTwoHanded)
+                    if (Weapon!= null && Weapon.IsTwoHanded)
                         CriticalChance += 0.05f + playerAttacker.ScaleWithPowerAccuracyBar(0.05f);
 
                     if (isAttackFromSneaking)
@@ -326,7 +326,7 @@ namespace ACE.Server.Entity
                         {
                             // Chance of inflicting self damage while using the Opportunist technique.
                             var modifiedInterval = Player.TechniqueNegativeActivationInterval;
-                            if (Weapon.IsTwoHanded)
+                            if (Weapon != null && Weapon.IsTwoHanded)
                                 modifiedInterval /= 2;
                             playerAttacker.NextTechniqueNegativeActivationTime = currentTime + modifiedInterval;
                             playerAttacker.DamageTarget(playerAttacker, damageSource);
