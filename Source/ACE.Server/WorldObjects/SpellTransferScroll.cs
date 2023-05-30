@@ -650,16 +650,31 @@ namespace ACE.Server.WorldObjects
 
         private static void HandleExtraSpellList(WorldObject target, uint newSpellId, uint replacementForSpellId = 0)
         {
+            var spellList = new List<uint>();
+
             if (target.ExtraSpellsList != null)
-                target.ExtraSpellsList += ",";
+            {
+                var entries = target.ExtraSpellsList.Split(',');
+                foreach (var entry in entries)
+                {
+                    if (uint.TryParse(entry, out var value))
+                        spellList.Add(value);
+                    else
+                    {
+                        log.Error($"HandleExtraSpellList() - Could not parse spellId \"{entry}\" in {target.Name}({target.Guid}) ExtraSpellList");
+                        continue;
+                    }
+                }
+            }
 
-            string newSpellIdString = $"-{newSpellId}-";
-            string replacementForSpellIdString = $"-{replacementForSpellId}-";
+            if (replacementForSpellId != 0)
+                spellList.Remove(replacementForSpellId);
+            spellList.Add(newSpellId);
 
-            if (replacementForSpellId != 0 && target.ExtraSpellsList.Contains(replacementForSpellIdString))
-                target.ExtraSpellsList = target.ExtraSpellsList.Replace(replacementForSpellIdString, newSpellIdString);
+            if (spellList.Count > 0)
+                target.ExtraSpellsList = string.Join(",", spellList);
             else
-                target.ExtraSpellsList += newSpellIdString;
+                target.ExtraSpellsList = null;
         }
     }
 }
