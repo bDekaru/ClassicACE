@@ -585,6 +585,10 @@ namespace ACE.Server.Factories.Tables
                     { SpellId.AppraiseMasteryOther1,            "Appraisal" },
                     { SpellId.SneakingMasterySelf1,             "Sneaking" },
                     { SpellId.SneakingMasteryOther1,            "Sneaking" },
+                    { SpellId.Resurrect1,                       "Resurrection" },
+                    { SpellId.FellowHeal1,                      "Fellowship Healing" },
+                    { SpellId.HoTSelf1,                         "Constant Healing" },
+                    { SpellId.HoTOther1,                        "Constant Healing" },
                 };
             }
         }

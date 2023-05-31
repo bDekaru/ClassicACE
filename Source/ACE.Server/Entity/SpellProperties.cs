@@ -4,6 +4,7 @@ using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using System.Numerics;
+using ACE.Server.Factories.Tables;
 
 namespace ACE.Server.Entity
 {
@@ -506,6 +507,14 @@ namespace ACE.Server.Entity
                 if (cantripCategories.Contains(_spellBase.Category))
                     return true;
                 return _spellBase.Desc.Contains("Additional spells can be layered over this.");
+            }
+        }
+
+        public bool IsResurrectionSpell
+        {
+            get
+            {
+                return SpellLevelProgression.Resurrect.Contains((SpellId)Id);
             }
         }
 

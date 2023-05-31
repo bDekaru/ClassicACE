@@ -309,7 +309,13 @@ namespace ACE.Server.WorldObjects
             if (this is Gem || this is Food || this is Hook)
                 targetCreature = target as Creature;
 
-            if (spell.School == MagicSchool.LifeMagic || spell.MetaSpellType == SpellType.Dispel)
+            var targetCorpse = target as Corpse;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && spell.IsResurrectionSpell)
+            {
+                if (targetCorpse == null || targetCorpse.IsMonster)
+                    return false;
+            }
+            else if (spell.School == MagicSchool.LifeMagic || spell.MetaSpellType == SpellType.Dispel)
             {
                 // NonComponentTargetType should be 0 for untargeted spells.
                 // Return if the spell type is targeted with no target defined or the target is already dead.
@@ -336,7 +342,10 @@ namespace ACE.Server.WorldObjects
                 case SpellType.Boost:
                 case SpellType.FellowBoost:
 
-                    HandleCastSpell_Boost(spell, targetCreature, showMsg);
+                    if (spell.IsResurrectionSpell)
+                        HandleCastSpell_Ress(spell, targetCorpse, showMsg);
+                    else
+                        HandleCastSpell_Boost(spell, targetCreature, showMsg);
                     break;
 
                 case SpellType.Transfer:
@@ -632,7 +641,7 @@ namespace ACE.Server.WorldObjects
                 }
 
                 if(showMsg)
-                    targetPlayer.SendChatMessage(player, targetMessage, ChatMessageType.Magic);
+                    targetPlayer.SendChatMessage(this, targetMessage, ChatMessageType.Magic);
             }
 
             if (targetCreature != this && targetCreature.IsAlive && spell.VitalDamageType == DamageType.Health && boost < 0)
@@ -659,6 +668,91 @@ namespace ACE.Server.WorldObjects
             }
 
             HandleBoostTransferDeath(creature, targetCreature);
+        }
+
+        private void HandleCastSpell_Ress(Spell spell, Corpse targetCorpse, bool showMsg = true, bool confirmed = false)
+        {
+            if (targetCorpse == null)
+                return;
+
+            var player = this as Player;
+            var creature = this as Creature;
+
+            if (targetCorpse.HasBeenResurrected)
+            {
+                if (player != null && showMsg)
+                    player.SendChatMessage(player, $"This corpse has already been resurrected.", ChatMessageType.Magic);
+                return;
+            }
+
+            var targetPlayer  = PlayerManager.GetOnlinePlayer(targetCorpse.VictimId ?? 0);
+            if (targetPlayer == null)
+            {
+                if (player != null && showMsg)
+                    player.SendChatMessage(player, "This player is not online at the moment.", ChatMessageType.Magic);
+                return;
+            }
+            else if (!confirmed)
+            {
+                if(!targetPlayer.GetCharacterOption(CharacterOption.AllowRessAttempts))
+                {
+                    if (player != null && showMsg)
+                        player.SendChatMessage(player, $"{targetPlayer.Name} is not allowing resurrection attempts.", ChatMessageType.Magic);
+                    return;
+                }
+
+                var currentTime = Time.GetUnixTime();
+                if (targetPlayer.NextRessOfferTime <= currentTime)
+                {
+                    targetPlayer.NextRessOfferTime = currentTime + Player.RessOfferInterval;
+
+                    if (player != null && showMsg)
+                        player.SendChatMessage(player, $"{targetPlayer.Name} is considering your resurrection attempt.", ChatMessageType.Magic);
+
+                    var msg = $"{Name} is attempting to resurrect one of your corpses, accept?";
+                    var confirm = new Confirmation_Resurrect(targetPlayer.Guid, Guid, () => HandleCastSpell_Ress(spell, targetCorpse, showMsg, true));
+                    if (!targetPlayer.ConfirmationManager.EnqueueSend(confirm, msg))
+                        targetPlayer.SendWeenieError(WeenieError.ConfirmationInProgress);
+                    return;
+                }
+                else if (player != null && showMsg)
+                {
+                    player.SendChatMessage(player, $"{targetPlayer.Name} has already received a resurrection attempt recently.", ChatMessageType.Magic);
+                    return;
+                }
+            }
+
+            var currentPos = new Position(creature.Location);
+            targetPlayer.Teleport(creature.Location);
+            targetPlayer.SetPosition(PositionType.TeleportedCharacter, currentPos);
+            targetCorpse.HasBeenResurrected = true;
+
+            int minBoostValue = Math.Min(spell.Boost, spell.MaxBoost);
+            int maxBoostValue = Math.Max(spell.Boost, spell.MaxBoost);
+            int boost = ThreadSafeRandom.Next(minBoostValue, maxBoostValue);
+            targetPlayer.UpdateVital(targetPlayer.Health, boost);
+            targetPlayer.UpdateVital(targetPlayer.Stamina, boost);
+            targetPlayer.UpdateVital(targetPlayer.Mana, boost);
+
+            if (player != null)
+            {
+                string casterMessage;
+
+                casterMessage = $"With {spell.Name} you resurrect {targetPlayer.Name}.";
+
+                if (showMsg)
+                    player.SendChatMessage(player, casterMessage, ChatMessageType.Magic);
+            }
+
+            if (targetPlayer != null)
+            {
+                string targetMessage;
+
+                targetMessage = $"{Name} casts {spell.Name} and resurrects you.";
+
+                if (showMsg)
+                    targetPlayer.SendChatMessage(this, targetMessage, ChatMessageType.Magic);
+            }
         }
 
         /// <summary>

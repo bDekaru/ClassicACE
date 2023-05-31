@@ -453,8 +453,14 @@ namespace ACE.Server.WorldObjects
             if (spell.Flags.HasFlag(SpellFlags.SelfTargeted) && target != this)
                 return true;
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && spell.IsResurrectionSpell)
+            {
+                var targetCorpse = target as Corpse;
+                if (targetCorpse == null || targetCorpse.VictimId.Value == Guid.Full || targetCorpse.IsMonster)
+                    return true;
+            }
             // Invalidate non Item Enchantment spells cast against non Creatures or Players
-            if (spell.School != MagicSchool.ItemEnchantment && targetCreature == null)
+            else if (spell.School != MagicSchool.ItemEnchantment && targetCreature == null)
                 return true;
 
             // Invalidate beneficial spells against Creature/Non-player targets

@@ -91,6 +91,9 @@ namespace ACE.Server.WorldObjects
         public double NextDualWieldRiposteActivationTime = 0;
         public static double DualWieldRiposteActivationInterval = 2.5;
 
+        public double NextRessOfferTime = 0;
+        public static double RessOfferInterval = 60;
+
         private bool? CachedAttemptToTaunt = null;
         public bool IsAttemptingToTaunt
         {

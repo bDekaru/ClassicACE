@@ -467,6 +467,11 @@ namespace ACE.Server.WorldObjects
             else
                 log.Error($"[RARE] failed to add to corpse inventory");
         }
+        public bool HasBeenResurrected
+        {
+            get => GetProperty(PropertyBool.HasBeenResurrected) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.HasBeenResurrected); else SetProperty(PropertyBool.HasBeenResurrected, value); }
+        }
 
         /// <summary>
         /// A list of landblocks the player cannot drop items on corpse on death 

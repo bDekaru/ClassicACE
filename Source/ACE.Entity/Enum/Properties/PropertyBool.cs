@@ -205,6 +205,8 @@ namespace ACE.Entity.Enum.Properties
         VendorPKOnly                     = 9015,
         [ServerOnly]
         UseXpOverride                    = 9016,
+        [ServerOnly]
+        HasBeenResurrected               = 9017,
     }
 
     public static class PropertyBoolExtensions

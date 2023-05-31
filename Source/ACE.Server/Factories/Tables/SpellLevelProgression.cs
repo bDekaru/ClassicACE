@@ -7864,6 +7864,54 @@ namespace ACE.Server.Factories.Tables
             SpellId.WizardsUltimateIntellect,
         };
 
+        public static readonly List<SpellId> Resurrect = new List<SpellId>()
+        {
+            SpellId.Resurrect1,
+            SpellId.Resurrect2,
+            SpellId.Resurrect3,
+            SpellId.Resurrect4,
+            SpellId.Resurrect5,
+            SpellId.Resurrect6,
+            SpellId.Resurrect7,
+            SpellId.Resurrect8,
+        };
+
+        public static readonly List<SpellId> FellowshipHeal = new List<SpellId>()
+        {
+            SpellId.FellowHeal1,
+            SpellId.FellowHeal2,
+            SpellId.FellowHeal3,
+            SpellId.FellowHeal4,
+            SpellId.FellowHeal5,
+            SpellId.FellowHeal6,
+            SpellId.FellowHeal7,
+            SpellId.FellowHeal8,
+        };
+
+        public static readonly List<SpellId> HotSelf = new List<SpellId>()
+        {
+            SpellId.HoTSelf1,
+            SpellId.HoTSelf2,
+            SpellId.HoTSelf3,
+            SpellId.HoTSelf4,
+            SpellId.HoTSelf5,
+            SpellId.HoTSelf6,
+            SpellId.HoTSelf7,
+            SpellId.HoTSelf8,
+        };
+
+        public static readonly List<SpellId> HotOther = new List<SpellId>()
+        {
+            SpellId.HoTOther1,
+            SpellId.HoTOther2,
+            SpellId.HoTOther3,
+            SpellId.HoTOther4,
+            SpellId.HoTOther5,
+            SpellId.HoTOther6,
+            SpellId.HoTOther7,
+            SpellId.HoTOther8,
+        };
+
         static SpellLevelProgression()
         {
             // takes ~5ms
@@ -8612,23 +8660,30 @@ namespace ACE.Server.Factories.Tables
             AddSpells(CantripWarriorVitality);
             AddSpells(CantripWarriorVigor);
             AddSpells(CantripWizardIntelect);
-            //CustomDM
-            AddSpells(ArmorMasterySelf);
-            AddSpells(ArmorMasteryOther);
-            AddSpells(ArmorIneptitudeOther);
-            AddSpells(CantripArmorAptitude);
-            AddSpells(AwarenessMasterySelf);
-            AddSpells(AwarenessMasteryOther);
-            AddSpells(AwarenessIneptitudeOther);
-            AddSpells(CantripAwarenessAptitude);
-            AddSpells(AppraiseMasterySelf);
-            AddSpells(AppraiseMasteryOther);
-            AddSpells(AppraiseIneptitudeOther);
-            AddSpells(CantripAppraiseAptitude);
-            AddSpells(SneakingMasterySelf);
-            AddSpells(SneakingMasteryOther);
-            AddSpells(SneakingIneptitudeOther);
-            AddSpells(CantripSneakingAptitude);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                AddSpells(ArmorMasterySelf);
+                AddSpells(ArmorMasteryOther);
+                AddSpells(ArmorIneptitudeOther);
+                AddSpells(CantripArmorAptitude);
+                AddSpells(AwarenessMasterySelf);
+                AddSpells(AwarenessMasteryOther);
+                AddSpells(AwarenessIneptitudeOther);
+                AddSpells(CantripAwarenessAptitude);
+                AddSpells(AppraiseMasterySelf);
+                AddSpells(AppraiseMasteryOther);
+                AddSpells(AppraiseIneptitudeOther);
+                AddSpells(CantripAppraiseAptitude);
+                AddSpells(SneakingMasterySelf);
+                AddSpells(SneakingMasteryOther);
+                AddSpells(SneakingIneptitudeOther);
+                AddSpells(CantripSneakingAptitude);
+                AddSpells(Resurrect);
+                AddSpells(FellowshipHeal);
+                AddSpells(HotSelf);
+                AddSpells(HotOther);
+            }
         }
 
         private static void AddSpells(List<SpellId> spells)

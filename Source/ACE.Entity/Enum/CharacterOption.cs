@@ -178,7 +178,10 @@ namespace ACE.Entity.Enum
         CharacterOptions2Default                = 0x36,
 
         [CharacterOptions2(CharacterOptions2.NotUsed1)]
-        AttemptToTaunt                          = 0x37 // CustomDM
+        AttemptToTaunt                          = 0x37, // CustomDM
+
+        [CharacterOptions2(CharacterOptions2.NotUsed2)]
+        AllowRessAttempts                       = 0x38 // CustomDM
     }
 
     public static class CharacterOptionExtensions

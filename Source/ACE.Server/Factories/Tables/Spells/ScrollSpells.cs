@@ -404,6 +404,11 @@ namespace ACE.Server.Factories.Tables
 
                     //SpellId.ArmorSelf1,
                     //SpellId.ArmorOther1,
+
+                    SpellId.Resurrect1,
+                    SpellId.FellowHeal1,
+                    SpellId.HoTSelf1,
+                    SpellId.HoTOther1,
                 };
 
                 NumSpells = lifeSpells.Count + warSpells.Count;

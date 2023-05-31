@@ -37,7 +37,7 @@ namespace ACE.Entity.Enum
         LockUI                                  = 0x01000000,
         HearPKDeath                             = 0x02000000,
         NotUsed1                                = 0x04000000, // CustomDM: AttemptToTaunt
-        NotUsed2                                = 0x08000000,
+        NotUsed2                                = 0x08000000, // CustomDM: AllowRessAttempts
         NotUsed3                                = 0x10000000,
         NotUsed4                                = 0x20000000,
         NotUsed5                                = 0x40000000,

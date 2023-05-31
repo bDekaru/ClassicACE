@@ -901,5 +901,18 @@ namespace ACE.Server.Command.Handlers
                 session.Player.TrackObject(entry, true);
             }
         }
+
+        [CommandHandler("allowres", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Toggles allowing resurrection attempts.")]
+        [CommandHandler("allowress", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Toggles allowing resurrection attempts.")]
+        public static void HandleAllowRess(Session session, params string[] parameters)
+        {
+            var newSetting = !session.Player.GetCharacterOption(CharacterOption.AllowRessAttempts);
+            session.Player.SetCharacterOption(CharacterOption.AllowRessAttempts, newSetting);
+
+            if(newSetting)
+                CommandHandlerHelper.WriteOutputInfo(session, $"You are now accepting resurrection attempts.", ChatMessageType.Broadcast);
+            else
+                CommandHandlerHelper.WriteOutputInfo(session, $"You are no longer accepting resurrection attempts.", ChatMessageType.Broadcast);
+        }
     }
 }

@@ -246,4 +246,37 @@ namespace ACE.Server.Entity
             Action();
         }
     }
+
+    public class Confirmation_Resurrect : Confirmation
+    {
+        ObjectGuid CasterGuid;
+        string PlayerName;
+        public Action Action;
+
+        public Confirmation_Resurrect(ObjectGuid playerGuid, ObjectGuid casterGuid, Action action)
+            : base(playerGuid, ConfirmationType.Yes_No)
+        {
+            CasterGuid = casterGuid;
+            Action = action;
+
+            var player = Player;
+            if (player != null)
+                PlayerName = player.Name;
+        }
+
+        public override void ProcessConfirmation(bool response, bool timeout = false)
+        {
+            var caster = PlayerManager.GetOnlinePlayer(CasterGuid);
+            if (!response)
+            {
+                caster?.SendMessage($"{PlayerName} {(timeout ? "did not respond to" : "has declined")} your offer of resurrection.");
+                return;
+            }
+
+            var player = Player;
+            if (player == null) return;
+
+            Action();
+        }
+    }
 }
