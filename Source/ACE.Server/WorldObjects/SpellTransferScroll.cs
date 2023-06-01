@@ -75,7 +75,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (!RecipeManager.VerifyUse(player, source, target, true) || (target.Workmanship == null && target.ExtraSpellsMaxOverride == null))
+            if (!RecipeManager.VerifyUse(player, source, target, true))
             {
                 player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
                 return;
@@ -83,6 +83,12 @@ namespace ACE.Server.WorldObjects
 
             if (source.SpellDID.HasValue) // Transfer Scroll
             {
+                if(target.Workmanship == null && target.ExtraSpellsMaxOverride == null)
+                {
+                    player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
+                    return;
+                }
+
                 var spellToAddId = (uint)source.SpellDID;
                 var spellToAddlevel1Id = SpellLevelProgression.GetLevel1SpellId((SpellId)spellToAddId);
                 Spell spellToAdd = new Spell(spellToAddId);
@@ -333,6 +339,12 @@ namespace ACE.Server.WorldObjects
             }
             else // Extraction Scroll
             {
+                if (target.Workmanship == null)
+                {
+                    player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
+                    return;
+                }
+
                 if (target.Retained == true)
                 {
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} is Retained!.", ChatMessageType.Craft));
