@@ -496,40 +496,67 @@ namespace ACE.Server.Factories
                     return SpellId.CantripDualWieldAptitude1;
             }
 
-            switch (wo.WeaponSkill)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
-                case Skill.TwoHandedCombat:
-                    return SpellId.CANTRIPTWOHANDEDAPTITUDE1;
-                case Skill.HeavyWeapons:
-                    return SpellId.CANTRIPHEAVYWEAPONSAPTITUDE1;
-                case Skill.LightWeapons:
-                    return SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1;
-                case Skill.FinesseWeapons:
-                    return SpellId.CANTRIPFINESSEWEAPONSAPTITUDE1;
-                case Skill.MissileWeapons:
-                    return SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1;
-                case Skill.Axe:
-                    return SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1; // CANTRIPAXEAPTITUDE1
-                case Skill.Dagger:
-                    return SpellId.CANTRIPFINESSEWEAPONSAPTITUDE1; // CANTRIPDAGGERAPTITUDE1
-                case Skill.Mace:
-                    return SpellId.CANTRIPMACEAPTITUDE1;
-                case Skill.Spear:
-                    return SpellId.CANTRIPSPEARAPTITUDE1;
-                case Skill.Staff:
-                    return SpellId.CANTRIPSTAFFAPTITUDE1;
-                case Skill.Sword:
-                    return SpellId.CANTRIPHEAVYWEAPONSAPTITUDE1; // CANTRIPSWORDAPTITUDE1
-                case Skill.UnarmedCombat:
-                    return SpellId.CANTRIPUNARMEDAPTITUDE1;
-                case Skill.Bow:
-                    return SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1; // CANTRIPBOWAPTITUDE1
-                case Skill.Crossbow:
-                    return SpellId.CANTRIPCROSSBOWAPTITUDE1;
-                case Skill.ThrownWeapon:
-                    return SpellId.CANTRIPTHROWNAPTITUDE1;
+                switch (wo.WeaponSkill)
+                {
+                    case Skill.TwoHandedCombat:
+                        return SpellId.CANTRIPTWOHANDEDAPTITUDE1;
+                    case Skill.HeavyWeapons:
+                        return SpellId.CANTRIPHEAVYWEAPONSAPTITUDE1;
+                    case Skill.LightWeapons:
+                        return SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1;
+                    case Skill.FinesseWeapons:
+                        return SpellId.CANTRIPFINESSEWEAPONSAPTITUDE1;
+                    case Skill.MissileWeapons:
+                        return SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1;
+                    case Skill.Axe:
+                        return SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1; // CANTRIPAXEAPTITUDE1
+                    case Skill.Dagger:
+                        return SpellId.CANTRIPFINESSEWEAPONSAPTITUDE1; // CANTRIPDAGGERAPTITUDE1
+                    case Skill.Mace:
+                        return SpellId.CANTRIPMACEAPTITUDE1;
+                    case Skill.Spear:
+                        return SpellId.CANTRIPSPEARAPTITUDE1;
+                    case Skill.Staff:
+                        return SpellId.CANTRIPSTAFFAPTITUDE1;
+                    case Skill.Sword:
+                        return SpellId.CANTRIPHEAVYWEAPONSAPTITUDE1; // CANTRIPSWORDAPTITUDE1
+                    case Skill.UnarmedCombat:
+                        return SpellId.CANTRIPUNARMEDAPTITUDE1;
+                    case Skill.Bow:
+                        return SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1; // CANTRIPBOWAPTITUDE1
+                    case Skill.Crossbow:
+                        return SpellId.CANTRIPCROSSBOWAPTITUDE1;
+                    case Skill.ThrownWeapon:
+                        return SpellId.CANTRIPTHROWNAPTITUDE1;
+                }
+                return SpellId.Undef;
             }
-            return SpellId.Undef;
+            else
+            {
+                switch (wo.WeaponSkill)
+                {
+                    case Skill.Axe:
+                    case Skill.Mace:
+                        return SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1; // CANTRIPAXEAPTITUDE1
+                    case Skill.Dagger:
+                        return SpellId.CANTRIPFINESSEWEAPONSAPTITUDE1; // CANTRIPDAGGERAPTITUDE1
+                    case Skill.Spear:
+                    case Skill.Staff:
+                        return SpellId.CANTRIPSPEARAPTITUDE1;
+                    case Skill.Sword:
+                        return SpellId.CANTRIPHEAVYWEAPONSAPTITUDE1; // CANTRIPSWORDAPTITUDE1
+                    case Skill.UnarmedCombat:
+                        return SpellId.CANTRIPUNARMEDAPTITUDE1;
+                    case Skill.Bow:
+                    case Skill.Crossbow:
+                        return SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1; // CANTRIPBOWAPTITUDE1
+                    case Skill.ThrownWeapon:
+                        return SpellId.CANTRIPTHROWNAPTITUDE1;
+                }
+                return SpellId.Undef;
+            }
         }
 
         private static SpellId AdjustForDamageType(WorldObject wo, SpellId spell)
