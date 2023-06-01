@@ -8695,8 +8695,74 @@ namespace ACE.Server.Factories.Tables
             }
         }
 
+        public static SpellId TranslateLevel1SpellIdForCustomDM(SpellId spellId)
+        {
+            switch(spellId)
+            {
+                case SpellId.MaceMasterySelf1:
+                    return SpellId.LightWeaponsMasterySelf1;
+                case SpellId.CrossbowMasterySelf1:
+                    return SpellId.MissileWeaponsMasterySelf1;
+                case SpellId.StaffMasterySelf1:
+                    return SpellId.SpearMasterySelf1;
+
+                case SpellId.MaceMasteryOther1:
+                    return SpellId.LightWeaponsMasteryOther1;
+                case SpellId.CrossbowMasteryOther1:
+                    return SpellId.MissileWeaponsMasteryOther1;
+                case SpellId.StaffMasteryOther1:
+                    return SpellId.SpearMasteryOther1;
+
+                case SpellId.MaceIneptitudeSelf1:
+                    return SpellId.LightWeaponsIneptitudeSelf1;
+                case SpellId.CrossbowIneptitudeSelf1:
+                    return SpellId.MissileWeaponsIneptitudeSelf1;
+                case SpellId.StaffIneptitudeSelf1:
+                    return SpellId.SpearIneptitudeSelf1;
+
+                case SpellId.MaceIneptitudeOther1:
+                    return SpellId.LightWeaponsIneptitudeOther1;
+                case SpellId.CrossbowIneptitudeOther1:
+                    return SpellId.MissileWeaponsIneptitudeOther1;
+                case SpellId.StaffIneptitudeOther1:
+                    return SpellId.SpearIneptitudeOther1;
+
+                case SpellId.CANTRIPMACEAPTITUDE1:
+                    return SpellId.CANTRIPLIGHTWEAPONSAPTITUDE1;
+                case SpellId.CANTRIPCROSSBOWAPTITUDE1:
+                    return SpellId.CANTRIPMISSILEWEAPONSAPTITUDE1;
+                case SpellId.CANTRIPSTAFFAPTITUDE1:
+                    return SpellId.CANTRIPSPEARAPTITUDE1;
+
+                case SpellId.MacersBoon:
+                    return SpellId.AxemansBoon;
+                case SpellId.CrossbowmansBoon:
+                    return SpellId.BowmansBoon;
+                case SpellId.StafferBoon:
+                    return SpellId.SpearmansBoon;
+
+                case SpellId.SetMaceAptitude1:
+                    return SpellId.SetAxeAptitude1;
+                case SpellId.SetCrossbowAptitude1:
+                    return SpellId.SetBowAptitude1;
+                case SpellId.SetStaffAptitude1:
+                    return SpellId.SetSpearAptitude1;
+
+                case SpellId.CloakMaceMastery1:
+                    return SpellId.CloakAxeMastery1;
+                case SpellId.CloakCrossbowMastery1:
+                    return SpellId.CloakBowMastery1;
+                case SpellId.CloakStaffMastery1:
+                    return SpellId.CloakSpearMastery1;
+            }
+            return spellId;
+        }
+
         public static List<SpellId> GetSpellLevels(SpellId spellId)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                spellId = GetLevel1SpellId(spellId); // For CustomDM we first switch the spell to level 1 so any translations are applied.
+
             return spellProgression.TryGetValue(spellId, out var progression) ? progression : null;
         }
 
@@ -8707,7 +8773,12 @@ namespace ACE.Server.Factories.Tables
                 foreach(var entry in spellProgressionEntry.Value)
                 {
                     if (spellId == entry)
-                        return spellProgressionEntry.Key;
+                    {
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                            return TranslateLevel1SpellIdForCustomDM(spellProgressionEntry.Key);
+                        else
+                            return spellProgressionEntry.Key;
+                    }
                 }
             }
 
