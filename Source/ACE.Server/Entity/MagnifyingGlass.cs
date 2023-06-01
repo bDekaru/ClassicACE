@@ -156,7 +156,8 @@ namespace ACE.Server.Entity
                         {
                             successCount++;
                             item.SetProperty(PropertyInt.Value, trueValue);
-                            player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(item, PropertyInt.Value, trueValue));
+                            //player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(item, PropertyInt.Value, trueValue));
+                            player.EnqueueBroadcast(new GameMessageUpdateObject(item)); // The line above won't update the sell value at vendors until a relog, so for now update everything instead.
 
                             item.SaveBiotaToDatabase();
                         }
@@ -221,7 +222,8 @@ namespace ACE.Server.Entity
                     if (currValue != trueValue)
                     {
                         target.SetProperty(PropertyInt.Value, trueValue);
-                        player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(target, PropertyInt.Value, trueValue));
+                        //player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(target, PropertyInt.Value, trueValue));
+                        player.EnqueueBroadcast(new GameMessageUpdateObject(target)); // The live above won't update the sell value at vendors until a relog, so for now update everything instead.
 
                         target.SaveBiotaToDatabase();
                     }
