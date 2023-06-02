@@ -329,6 +329,18 @@ namespace ACE.Server.WorldObjects
             lastPlayerInfo = new WorldObjectInfo(player);
         }
 
+        private void PrepareResetToHome()
+        {
+            // Reset to Home position
+            var resetInterval = ResetInterval ?? 300;
+            ResetTimestamp = Time.GetFutureUnixTime(resetInterval);
+
+            var autoResetTimer = new ActionChain();
+            autoResetTimer.AddDelaySeconds(resetInterval);
+            autoResetTimer.AddAction(this, () => CheckResetToHome());
+            autoResetTimer.EnqueueChain();
+        }
+
         private double BuyPriceMod;
         private double SellPriceMod;
 
@@ -387,6 +399,8 @@ namespace ACE.Server.WorldObjects
                 DoVendorEmote(action, player);
 
             player.LastOpenedContainerId = Guid;
+
+            PrepareResetToHome();
         }
 
         public void DoVendorEmote(VendorType vendorType, WorldObject player)
@@ -458,6 +472,26 @@ namespace ACE.Server.WorldObjects
             closeChain.AddDelaySeconds(closeInterval);
             closeChain.AddAction(this, CheckClose);
             closeChain.EnqueueChain();
+        }
+
+        public void CheckResetToHome()
+        {
+            if (Time.GetUnixTime() >= ResetTimestamp)
+            {
+                // are we already at home origin?
+                if (Location.Pos.Equals(Home.Pos))
+                {
+                    // just turnto if required?
+                    if (!Location.Rotation.Equals(Home.Rotation))
+                    {
+                        TurnTo(Home);
+                    }
+                }
+                else
+                {
+                    MoveTo(Home, GetRunRate(), true, null, 1);
+                }
+            }
         }
 
         /// <summary>

@@ -15,6 +15,7 @@ using ACE.Server.Command;
 using ACE.Server.Managers;
 using ACE.Server.Network.Managers;
 using ACE.Server.Physics;
+using ACE.Server.Mods;
 
 namespace ACE.Server
 {
@@ -324,6 +325,9 @@ namespace ACE.Server
             // This should be last
             log.Info("Initializing CommandManager...");
             CommandManager.Initialize();
+
+            log.Info("Initializing ModManager...");
+            ModManager.Initialize();
 
             if (!PropertyManager.GetBool("world_closed", false).Item)
             {

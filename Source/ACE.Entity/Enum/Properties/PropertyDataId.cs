@@ -209,6 +209,8 @@ namespace ACE.Entity.Enum.Properties
                     return System.Enum.GetName(typeof(Sound), value);
                 case PropertyDataId.WieldedTreasureType:
                 case PropertyDataId.DeathTreasureType:
+                case PropertyDataId.InventoryTreasureType:
+                case PropertyDataId.ShopTreasureType:
                     // todo
                     break;
                 case PropertyDataId.Spell:                
@@ -247,6 +249,7 @@ namespace ACE.Entity.Enum.Properties
                 case PropertyDataId.HouseId:
                 case PropertyDataId.ItemSkillLimit:
                 case PropertyDataId.ItemSpecializedOnly:
+                case PropertyDataId.InventoryTreasureType:
                 case PropertyDataId.LastPortal:
                 case PropertyDataId.LinkedPortalOne:
                 case PropertyDataId.LinkedPortalTwo:
@@ -256,6 +259,7 @@ namespace ACE.Entity.Enum.Properties
                 case PropertyDataId.ProcSpell:
                 case PropertyDataId.RedSurgeSpell:
                 case PropertyDataId.RestrictionEffect:
+                case PropertyDataId.ShopTreasureType:
                 case PropertyDataId.Spell:
                 case PropertyDataId.SpellComponent:
                 case PropertyDataId.UseCreateItem:
