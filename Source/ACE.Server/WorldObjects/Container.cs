@@ -762,7 +762,7 @@ namespace ACE.Server.WorldObjects
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
 
                 // Add default ExtraSpellsMaxOverride value to quest items.
-                if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0)
+                if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
                     worldObject.ExtraSpellsMaxOverride = 2;
 
                 // Convert weapon skills to merged ones

@@ -1141,7 +1141,7 @@ namespace ACE.Server.WorldObjects
         {
             if (ExtraSpellsMaxOverride != null)
                 return Math.Max(ExtraSpellsMaxOverride ?? 0, 0);
-            return Math.Max((int)Math.Ceiling(((ItemWorkmanship ?? 0) - 1) / 2f), 0);
+            return (int)Math.Floor((ItemWorkmanship ?? 0) / 2f);
         }
 
         public bool CanHaveExtraSpells()
@@ -1150,6 +1150,19 @@ namespace ACE.Server.WorldObjects
                 return true;
             else
                 return ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0;
+        }
+
+        public int GetMaxTinkerCount()
+        {
+            if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Armor)) != 0)
+                return (int)Math.Floor((ItemWorkmanship ?? 0) / 3.1f) + 1;
+            else
+                return 0;
+        }
+
+        public int GetMinSalvageQualityForTinkering()
+        {
+            return (int)Math.Floor((ItemWorkmanship ?? 0) / 3.5f) * 4;
         }
     }
 }

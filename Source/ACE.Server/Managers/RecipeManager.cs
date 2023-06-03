@@ -127,7 +127,11 @@ namespace ACE.Server.Managers
 
             if (showDialog && !confirmed)
             {
-                actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, percentSuccess.Value));
+                var showChance = true;
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && recipe.IsTinkering())
+                    showChance = false;
+
+                actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, percentSuccess.Value, showChance));
                 actionChain.AddAction(player, () => player.IsBusy = false);
                 
                 log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance on conformation dialog: {percentSuccess.Value}");
@@ -154,7 +158,7 @@ namespace ACE.Server.Managers
 
         public static bool HasDifficulty(Recipe recipe)
         {
-            if (recipe.IsTinkering() && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            if (recipe.IsTinkering())
                 return true;
 
             return recipe.Skill > 0 && recipe.Difficulty > 0;
@@ -331,8 +335,20 @@ namespace ACE.Server.Managers
             4.5f    // 10
         };
 
-        public static void ShowDialog(Player player, WorldObject source, WorldObject target, Recipe recipe, double successChance)
+        public static void ShowDialog(Player player, WorldObject source, WorldObject target, Recipe recipe, double successChance, bool showChance = true)
         {
+            if(!showChance)
+            {
+                var message = $"Applying {source.NameWithMaterial} to {target.NameWithMaterial}.";
+                if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), message))
+                {
+                    player.SendUseDoneEvent(WeenieError.ConfirmationInProgress);
+                    return;
+                }
+                player.SendUseDoneEvent();
+                return;
+            }
+
             var percent = successChance * 100;
 
             // retail messages:
@@ -382,7 +398,6 @@ namespace ACE.Server.Managers
                 if (success) player.ImbueSuccesses++;
             }
 
-            var originalNumTinkers = target.NumTimesTinkered;
             var modified = CreateDestroyItems(player, recipe, source, target, successChance, success);
 
             if (modified != null)
@@ -391,12 +406,7 @@ namespace ACE.Server.Managers
                     UpdateObj(player, source);
 
                 if (modified.Contains(target.Guid.Full))
-                {
                     UpdateObj(player, target);
-
-                    if (recipe.IsImbuing() && originalNumTinkers != target.NumTimesTinkered && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                        target.NumTimesTinkered = originalNumTinkers; // Rollback the num of tinkers for imbues as imbues do not count towards the max tinker amount on CustomDM.
-                }
             }
 
             if (success && recipe.Skill > 0 && recipe.Difficulty > 0)
@@ -810,11 +820,17 @@ namespace ACE.Server.Managers
 
             if (!VerifyRequirements(recipe, player, player, RequirementType.Player)) return false;
 
-            if (recipe.IsTinkering() && !recipe.IsImbuing() && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (recipe.IsTinkering() && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (target.NumTimesTinkered >= 3)
+                if (target.NumTimesTinkered >= target.GetMaxTinkerCount())
                 {
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot be tinkered any further.", ChatMessageType.Broadcast));
+                    return false;
+                }
+
+                if(Math.Floor(source.Workmanship ?? 0) < target.GetMinSalvageQualityForTinkering())
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {source.NameWithMaterial} cannot be applied to {target.NameWithMaterial} because its workmanship is not high enough.", ChatMessageType.Broadcast));
                     return false;
                 }
 

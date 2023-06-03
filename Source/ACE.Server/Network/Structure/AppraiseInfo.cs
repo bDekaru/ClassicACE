@@ -558,6 +558,16 @@ namespace ACE.Server.Network.Structure
                     hasExtraPropertiesText = true;
                 }
 
+                var maxTinkers = wo.GetMaxTinkerCount();
+                if (maxTinkers > 0)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"Tinkering Count: {wo.NumTimesTinkered}/{maxTinkers}.\n";
+                    extraPropertiesText += $"Minimum Salvage Workmanship: {wo.GetMinSalvageQualityForTinkering()}.";
+                    hasExtraPropertiesText = true;
+                }
+
                 if (wo.TinkerLog != null)
                 {
                     var tinkers = wo.TinkerLog.Split(",");
