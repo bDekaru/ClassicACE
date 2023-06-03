@@ -19,7 +19,7 @@ namespace ACE.DatLoader
         private static int ITERATION_HIRES = 497;
         private static int ITERATION_LANGUAGE = 994;
 
-        public static string INFILTRATION_CLIENT_VERSION_STRING = "i103";
+        public static string INFILTRATION_CLIENT_VERSION_STRING = "i104";
         private static int INFILTRATION_ITERATION_CELL = 10001;
         private static int INFILTRATION_ITERATION_PORTAL = 10006;
         private static int INFILTRATION_ITERATION_HIRES = 497;
