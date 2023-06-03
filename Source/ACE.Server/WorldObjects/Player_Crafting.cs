@@ -225,6 +225,10 @@ namespace ACE.Server.WorldObjects
 
             // add workmanship
             var item_numItems = item.StackSize ?? 1;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && item.WeenieType == WeenieType.Missile)
+                item_numItems = 1; // thrown weapons count just as a single item no matter the stack size.
+
             var workmanship_bag = salvageBag.ItemWorkmanship ?? 0;
             var workmanship_item = item.ItemWorkmanship ?? 0;
 
