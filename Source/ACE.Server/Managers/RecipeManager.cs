@@ -64,6 +64,12 @@ namespace ACE.Server.Managers
                 return;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && source.ItemType == ItemType.TinkeringMaterial && target.ItemType == ItemType.TinkeringMaterial)
+            {
+                AttemptCombineSalvageBags(player, source, target, confirmed);
+                return;
+            }
+
             var recipe = GetRecipe(player, source, target);
 
             if (recipe == null)
@@ -127,11 +133,10 @@ namespace ACE.Server.Managers
 
             if (showDialog && !confirmed)
             {
-                var showChance = true;
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && recipe.IsTinkering())
-                    showChance = false;
-
-                actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, percentSuccess.Value, showChance));
+                    actionChain.AddAction(player, () => ShowDialog(player, source, target, null, percentSuccess.Value));
+                else
+                    actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, percentSuccess.Value));
                 actionChain.AddAction(player, () => player.IsBusy = false);
                 
                 log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance on conformation dialog: {percentSuccess.Value}");
@@ -335,11 +340,22 @@ namespace ACE.Server.Managers
             4.5f    // 10
         };
 
-        public static void ShowDialog(Player player, WorldObject source, WorldObject target, Recipe recipe, double successChance, bool showChance = true)
+        public static void ShowDialog(Player player, WorldObject source, WorldObject target, Recipe recipe, double successChance)
         {
-            if(!showChance)
+            if(recipe == null)
             {
-                var message = $"Applying {source.NameWithMaterial} to {target.NameWithMaterial}.";
+                string message;
+                if (source.ItemType == ItemType.TinkeringMaterial && target.ItemType == ItemType.TinkeringMaterial)
+                {
+                    var materialName = GetMaterialName(source.MaterialType ?? 0);
+                    message = $"Combining\n{source.Structure ?? 0} {materialName} of workmanship {source.Workmanship:0.00}\nand\n{target.Structure ?? 0} {materialName} of workmanship {target.Workmanship:0.00}\n";
+                }
+                else
+                {
+                    var materialName = GetMaterialName(source.MaterialType ?? 0);
+                    message = $"Applying {materialName} of workmanship {source.Workmanship:0.00} to {target.NameWithMaterial}.\n";
+                }
+
                 if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), message))
                 {
                     player.SendUseDoneEvent(WeenieError.ConfirmationInProgress);
@@ -813,6 +829,28 @@ namespace ACE.Server.Managers
         {
             if (!VerifyUse(player, source, target))
                 return false;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && source.ItemType == ItemType.TinkeringMaterial && target.ItemType == ItemType.TinkeringMaterial)
+            {
+                // Salvage Combining
+                if (source.Structure >= 100)
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {source.NameWithMaterial} is already complete and cannot be combined.", ChatMessageType.Broadcast));
+                    return false;
+                }
+                else if (target.Structure >= 100)
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} is already complete and cannot be combined.", ChatMessageType.Broadcast));
+                    return false;
+                }
+                else if (source.MaterialType != target.MaterialType)
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Only bags of the same material can be combined.", ChatMessageType.Broadcast));
+                    return false;
+                }
+
+                return true;
+            }
 
             if (!VerifyRequirements(recipe, player, target, RequirementType.Target)) return false;
 
@@ -1711,6 +1749,91 @@ namespace ACE.Server.Managers
                 return materialType.ToString();
             }
             return materialName.Replace("_", " ");
+        }
+
+        public static void AttemptCombineSalvageBags(Player player, WorldObject source, WorldObject target, bool confirmed = false)
+        {
+            // verify requirements
+            if (!VerifyRequirements(null, player, source, target))
+            {
+                player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
+                return;
+            }
+
+            var showDialog = player.GetCharacterOption(CharacterOption.UseCraftingChanceOfSuccessDialog);
+
+            var motionCommand = MotionCommand.ClapHands;
+
+            var actionChain = new ActionChain();
+            var nextUseTime = 0.0f;
+
+            player.IsBusy = true;
+
+            if (PropertyManager.GetBool("allow_combat_mode_crafting").Item && player.CombatMode != CombatMode.NonCombat)
+            {
+                // Drop out of combat mode.  This depends on the server property "allow_combat_mode_craft" being True.
+                // If not, this action would have aborted due to not being in NonCombat mode.
+                var stanceTime = player.SetCombatMode(CombatMode.NonCombat);
+                actionChain.AddDelaySeconds(stanceTime);
+
+                nextUseTime += stanceTime;
+            }
+
+            var motion = new Motion(player, motionCommand);
+            var currentStance = player.CurrentMotionState.Stance; // expected to be MotionStance.NonCombat
+            var clapTime = !confirmed ? Physics.Animation.MotionTable.GetAnimationLength(player.MotionTableId, currentStance, motionCommand) : 0.0f;
+
+            if (!confirmed)
+            {
+                actionChain.AddAction(player, () => player.SendMotionAsCommands(motionCommand, currentStance));
+                actionChain.AddDelaySeconds(clapTime);
+
+                nextUseTime += clapTime;
+            }
+
+            if (showDialog && !confirmed)
+            {
+                actionChain.AddAction(player, () => ShowDialog(player, source, target, null, 1));
+                actionChain.AddAction(player, () => player.IsBusy = false);
+            }
+            else
+            {
+                actionChain.AddAction(player, () => CombineSalvageBags(player, source, target));
+
+                actionChain.AddAction(player, () =>
+                {
+                    if (!showDialog)
+                        player.SendUseDoneEvent();
+
+                    player.IsBusy = false;
+                });
+            }
+
+            actionChain.EnqueueChain();
+
+            player.NextUseTime = DateTime.UtcNow.AddSeconds(nextUseTime);
+        }
+
+        public static void CombineSalvageBags(Player player, WorldObject source, WorldObject target)
+        {
+            var amount = source.Structure.Value;
+            var added = player.TryAddSalvage(target, source, amount);
+            var remaining = amount - added;
+
+            var valueFactor = (float)added / amount;
+            var addedValue = (int)Math.Round((source.Value ?? 0) * valueFactor);
+            target.Value = Math.Min((target.Value ?? 0) + addedValue, 75000);
+            UpdateObj(player, target);
+
+            if (remaining > 0)
+            {
+                source.Structure = (ushort)remaining;
+                source.Value -= addedValue;
+                source.Name = $"Salvage ({remaining})";
+                UpdateObj(player, source);
+            }
+            else
+                player.TryConsumeFromInventoryWithNetworking(source);
         }
 
         // todo: remove this once foolproof salvage recipes are updated

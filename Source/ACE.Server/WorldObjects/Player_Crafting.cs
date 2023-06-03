@@ -168,6 +168,35 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        public static void GetSalvageWorkmanshipRange(WorldObject item, out float minWorkmanship, out float maxWorkmanship)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                minWorkmanship = float.MinValue;
+                maxWorkmanship = float.MaxValue;
+                return;
+            }
+            else
+            {
+                if (item.Workmanship < 4)
+                {
+                    minWorkmanship = 0f;
+                    maxWorkmanship = 4f - float.Epsilon;
+                }
+                else if (item.Workmanship < 8)
+                {
+                    minWorkmanship = 4f;
+                    maxWorkmanship = 8f - float.Epsilon;
+                }
+                else
+                {
+                    minWorkmanship = 8f;
+                    maxWorkmanship = float.MaxValue;
+                }
+                return;
+            }
+        }
+
         public void AddSalvage(List<WorldObject> salvageBags, WorldObject item, SalvageResults salvageResults)
         {
             var materialType = (MaterialType)item.MaterialType;
@@ -186,7 +215,9 @@ namespace ACE.Server.WorldObjects
                 // or all of the salvage bags for this material type are full,
                 // this will create a new salvage bag, and adds it to salvageBags
 
-                var salvageBag = GetSalvageBag(materialType, salvageBags);
+                GetSalvageWorkmanshipRange(item, out var minWorkmanship, out var maxWormanship);
+
+                var salvageBag = GetSalvageBag(materialType, salvageBags, minWorkmanship, maxWormanship);
 
                 var added = TryAddSalvage(salvageBag, item, remaining);
                 remaining -= added;
@@ -336,10 +367,10 @@ namespace ACE.Server.WorldObjects
             return 1 + (int)Math.Floor(skill / 194.0f * workmanship * (1.0f + 0.25f * numAugs));
         }
 
-        public WorldObject GetSalvageBag(MaterialType materialType, List<WorldObject> salvageBags)
+        public WorldObject GetSalvageBag(MaterialType materialType, List<WorldObject> salvageBags, float minWorkmanship = float.MinValue, float maxWorkmanship = float.MaxValue)
         {
             // first try finding the first non-filled salvage bag, for this material type
-            var existing = salvageBags.FirstOrDefault(i => (i.GetProperty(PropertyInt.MaterialType) ?? 0) == (int)materialType && (i.Structure ?? 0) < (i.MaxStructure ?? 0));
+            var existing = salvageBags.FirstOrDefault(i => (i.GetProperty(PropertyInt.MaterialType) ?? 0) == (int)materialType && (i.Structure ?? 0) < (i.MaxStructure ?? 0) && i.Workmanship >= minWorkmanship && i.Workmanship <= maxWorkmanship);
 
             if (existing != null)
                 return existing;
