@@ -89,7 +89,7 @@ namespace ACE.Server.Factories.Tables
 
             var workmanshipChance = workmanshipChances[tier - 1];
 
-            if(qualityMod >= 0)
+            if(qualityMod >= 0 && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return workmanshipChance.Roll(qualityMod, true);
             else
                 return workmanshipChance.Roll(qualityMod, false);
