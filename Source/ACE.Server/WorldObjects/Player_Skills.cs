@@ -664,25 +664,7 @@ namespace ACE.Server.WorldObjects
                 if (AlwaysTrained.Contains(skill))
                     return false;
 
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                {
-                    switch (heritageGroup)
-                    {
-                        case HeritageGroup.Aluvian:
-                            if (skill == Skill.Armor)
-                                return false;
-                            break;
-                        case HeritageGroup.Gharundim:
-                            if (skill == Skill.Appraise)
-                                return false;
-                            break;
-                        case HeritageGroup.Sho:
-                            if (skill == Skill.AssessCreature)
-                                return false;
-                            break;
-                    }
-                }
-                else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
                 {
                     switch (heritageGroup)
                     {
