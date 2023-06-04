@@ -102,6 +102,8 @@ namespace ACE.Entity.Enum.Properties
         VendorBroadcastAppend           = 9009,
         [ServerOnly]
         ExtraSpellsList                 = 9010,
+        [ServerOnly]
+        SmartSalvageFilter              = 9011,
     }
 
     public static class PropertyStringExtensions

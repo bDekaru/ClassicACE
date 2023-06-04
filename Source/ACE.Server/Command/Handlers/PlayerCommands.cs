@@ -914,5 +914,210 @@ namespace ACE.Server.Command.Handlers
             else
                 CommandHandlerHelper.WriteOutputInfo(session, $"You are no longer accepting resurrection attempts.", ChatMessageType.Broadcast);
         }
+
+        [CommandHandler("smartsalvage", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Configures the smart salvage system.")]
+        public static void HandleSmartSalvage(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: smartsalvage", ChatMessageType.Help));
+                return;
+            }
+
+            var param0 = "help";
+            if(parameters.Length > 0)
+                param0 = parameters[0].ToLower();
+
+            if (param0 == "help")
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage system usage:", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"   /SmartSalvage status to show current settings.", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"   /SmartSalvage <on/off> to enable/disable the smart salvage system.", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"   /SmartSalvage avoidInscripted <on/off> to enable/disable avoiding salvaging inscripted items.", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"   /SmartSalvage mode <whitelist/blacklist> to switch between filter modes: in blacklist mode materials in the filter won't be salvaged, in whitelist mode only materials in the filter will be salvaged.", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"   /SmartSalvage add <material> to add that material to the filter.", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"   /SmartSalvage remove <material> to remove that material from the filter.", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"   /SmartSalvage clear to remove all materials from the filter.", ChatMessageType.Broadcast);
+            }
+            else if (param0 == "status")
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage system status: {(session.Player.UseSmartSalvageSystem ? "enabled" : "disabled")}.", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage avoid inscripted items: {(session.Player.SmartSalvageAvoidInscripted ? "enabled" : "disabled")}.", ChatMessageType.Broadcast);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage filter mode: {(session.Player.SmartSalvageIsWhitelist ? "whitelist" : "blacklist")}.", ChatMessageType.Broadcast);
+                if (session.Player.SmartSalvageFilter == null)
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage filter: empty.", ChatMessageType.Broadcast);
+                else
+                {
+                    var filters = (session.Player.SmartSalvageFilter ?? "").Split(",").ToList();
+                    string filtersText = "";
+                    bool first = true;
+                    foreach (var filter in filters)
+                    {
+                        if (!first)
+                            filtersText += ", ";
+                        if (int.TryParse(filter, out var materialId))
+                        {
+                            filtersText += RecipeManager.GetMaterialName((MaterialType)materialId);
+                            first = false;
+                        }
+                    }
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage filter: {filtersText}", ChatMessageType.Broadcast);
+                }
+            }
+            else if (param0 == "on")
+            {
+                if (!session.Player.UseSmartSalvageSystem)
+                {
+                    session.Player.UseSmartSalvageSystem = true;
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage is now enabled.", ChatMessageType.Broadcast);
+                }
+                else
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage is already enabled.", ChatMessageType.Broadcast);
+            }
+            else if (param0 == "off")
+            {
+                if (!session.Player.UseSmartSalvageSystem)
+                {
+                    session.Player.UseSmartSalvageSystem = true;
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage is now disabled.", ChatMessageType.Broadcast);
+                }
+                else
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage is already disabled.", ChatMessageType.Broadcast);
+            }
+            else if (param0 == "avoidinscripted")
+            {
+                if (parameters.Length < 2)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Could not parse command, check \"/SmartSalvage help\" for usage instructions.", ChatMessageType.Broadcast);
+                    return;
+                }
+
+                var param1 = parameters[1].ToLower();
+                if (param1 == "on")
+                {
+                    if (!session.Player.SmartSalvageAvoidInscripted)
+                    {
+                        session.Player.SmartSalvageAvoidInscripted = true;
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage will now avoid salvaging inscripted items.", ChatMessageType.Broadcast);
+                    }
+                    else
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage is already avoiding salvaging inscripted items.", ChatMessageType.Broadcast);
+                }
+                else if (param1 == "off")
+                {
+                    if (session.Player.UseSmartSalvageSystem)
+                    {
+                        session.Player.UseSmartSalvageSystem = false;
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage will no longer avoid salvaging inscripted items.", ChatMessageType.Broadcast);
+                    }
+                    else
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage is already not avoiding salvaging inscripted items.", ChatMessageType.Broadcast);
+                }
+                else
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Could not parse command, check \"/SmartSalvage help\" for usage instructions.", ChatMessageType.Broadcast);
+                    return;
+                }
+            }
+            else if (param0 == "mode")
+            {
+                if (parameters.Length < 2)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Could not parse command, check \"/SmartSalvage help\" for usage instructions.", ChatMessageType.Broadcast);
+                    return;
+                }
+
+                var param1 = parameters[1].ToLower();
+                if (param1 == "blacklist")
+                {
+                    if (session.Player.SmartSalvageIsWhitelist)
+                    {
+                        session.Player.SmartSalvageIsWhitelist = false;
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage will now avoid salvaging materials in the filter.", ChatMessageType.Broadcast);
+                    }
+                    else
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage is already avoiding salvaging materials in the filter.", ChatMessageType.Broadcast);
+                }
+                else if (param1 == "whitelist")
+                {
+                    if (!session.Player.SmartSalvageIsWhitelist)
+                    {
+                        session.Player.SmartSalvageIsWhitelist = true;
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage will now only salvage materials in the filter.", ChatMessageType.Broadcast);
+                    }
+                    else
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Smart salvage is already salvaging only materials in the filter.", ChatMessageType.Broadcast);
+                }
+                else
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Could not parse command, check \"/SmartSalvage help\" for usage instructions.", ChatMessageType.Broadcast);
+                    return;
+                }
+            }
+            else if (param0 == "add")
+            {
+                if (parameters.Length < 2)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Missing material type to add to the salvage filter", ChatMessageType.Broadcast);
+                    return;
+                }
+
+                if (!Enum.TryParse(parameters[1], true, out MaterialType material))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Unable to add {parameters[1]} to the salvage filter.", ChatMessageType.Broadcast);
+                    return;
+                }
+
+                var filters = (session.Player.SmartSalvageFilter ?? "").Split(",").ToList();
+                var searchString = ((int)material).ToString();
+                var friendlyName = RecipeManager.GetMaterialName(material);
+                if (filters.Contains(searchString))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"{friendlyName} is already included in the salvage filter.", ChatMessageType.Broadcast);
+                    return;
+                }
+
+                filters.Add(searchString);
+                session.Player.SmartSalvageFilter = string.Join(",", filters);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Added {friendlyName} to the salvage filter.", ChatMessageType.Broadcast);
+            }
+            else if (param0 == "remove")
+            {
+                if (parameters.Length < 2)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Missing material type to remove from the salvage filter", ChatMessageType.Broadcast);
+                    return;
+                }
+
+                if (!Enum.TryParse(parameters[1], true, out MaterialType material))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Unable to add {parameters[1]} to the salvage filter.", ChatMessageType.Broadcast);
+                    return;
+                }
+
+                var filters = (session.Player.SmartSalvageFilter ?? "").Split(",").ToList();
+                var searchString = ((int)material).ToString();
+                var friendlyName = RecipeManager.GetMaterialName(material);
+                if (filters.Contains(searchString))
+                {
+                    filters.Remove(searchString);
+                    session.Player.SmartSalvageFilter = string.Join(",", filters);
+
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Removed {friendlyName} from the salvage filter.", ChatMessageType.Broadcast);
+                    return;
+                }
+                CommandHandlerHelper.WriteOutputInfo(session, $"{friendlyName} is not included in the salvage filter.", ChatMessageType.Broadcast);
+            }
+            else if (param0 == "clear")
+            {
+                session.Player.SmartSalvageFilter = null;
+                CommandHandlerHelper.WriteOutputInfo(session, $"All materials removed from the salvage filter.", ChatMessageType.Broadcast);
+            }
+            else
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Could not parse command, check \"/SmartSalvage help\" for usage instructions.", ChatMessageType.Broadcast);
+                return;
+            }
+        }
     }
 }

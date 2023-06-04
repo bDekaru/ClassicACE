@@ -207,6 +207,12 @@ namespace ACE.Entity.Enum.Properties
         UseXpOverride                    = 9016,
         [ServerOnly]
         HasBeenResurrected               = 9017,
+        [ServerOnly]
+        UseSmartSalvageSystem            = 9018,
+        [ServerOnly]
+        SmartSalvageAvoidInscripted      = 9019,
+        [ServerOnly]
+        SmartSalvageIsWhitelist          = 9020,
     }
 
     public static class PropertyBoolExtensions

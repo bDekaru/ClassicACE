@@ -1399,5 +1399,29 @@ namespace ACE.Server.WorldObjects
         }
 
         public SpellConduit SpellConduitToAttune = null;
+
+        public bool UseSmartSalvageSystem
+        {
+            get => GetProperty(PropertyBool.UseSmartSalvageSystem) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.UseSmartSalvageSystem); else SetProperty(PropertyBool.UseSmartSalvageSystem, value); }
+        }
+
+        public bool SmartSalvageAvoidInscripted
+        {
+            get => GetProperty(PropertyBool.SmartSalvageAvoidInscripted) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.SmartSalvageAvoidInscripted); else SetProperty(PropertyBool.SmartSalvageAvoidInscripted, value); }
+        }
+
+        public bool SmartSalvageIsWhitelist
+        {
+            get => GetProperty(PropertyBool.SmartSalvageIsWhitelist) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.SmartSalvageIsWhitelist); else SetProperty(PropertyBool.SmartSalvageIsWhitelist, value); }
+        }
+
+        public string SmartSalvageFilter
+        {
+            get => GetProperty(PropertyString.SmartSalvageFilter);
+            set { if (value == null) RemoveProperty(PropertyString.SmartSalvageFilter); else SetProperty(PropertyString.SmartSalvageFilter, value); }
+        }
     }
 }

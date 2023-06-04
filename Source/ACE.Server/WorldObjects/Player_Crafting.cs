@@ -150,6 +150,22 @@ namespace ACE.Server.WorldObjects
 
                 if (item.Workmanship == null || item.Retained) continue;
 
+                if (UseSmartSalvageSystem)
+                {
+                    if (SmartSalvageAvoidInscripted && item.Inscription != null)
+                        continue;
+
+                    if (SmartSalvageFilter != null)
+                    {
+                        var filters = (SmartSalvageFilter ?? "").Split(",").ToList();
+                        var searchString = ((int)item.MaterialType).ToString();
+                        if (!SmartSalvageIsWhitelist && filters.Contains(searchString)) // blacklist
+                            continue;
+                        else if (SmartSalvageIsWhitelist && !filters.Contains(searchString)) // whitelist
+                            continue;
+                    }
+                }
+
                 AddSalvage(salvageBags, item, salvageResults);
 
                 // can any salvagable items be stacked?
