@@ -100,15 +100,15 @@ namespace ACE.Server.Factories.Tables.Wcids
 
         private static readonly Dictionary<WeenieClassName, float> ValueMod = new Dictionary<WeenieClassName, float>()
         {
-            { WeenieClassName.materialleather,          0.25f }, // Add Retained Status
-            { WeenieClassName.materialsilk,             0.50f }, // Remove Allegiance Requirement
-            { WeenieClassName.materialivory,            0.25f }, // Remove Attuned Status
-            { WeenieClassName.materialsandstone,        0.25f }, // Remove Retained Status
-            { WeenieClassName.materialsilver,           0.50f }, // Switch Melee to Missile
-            { WeenieClassName.materialcopper,           0.50f }, // Switch Missile to Melee
-            { WeenieClassName.materialteak,             0.50f }, // Switch to Aluvian
-            { WeenieClassName.materialebony,            0.50f }, // Switch to Gharundim
-            { WeenieClassName.materialporcelain,        0.50f }, // Switch to Sho
+            { WeenieClassName.materialleather,          0.50f }, // Add Retained Status
+            { WeenieClassName.materialsilk,             1.00f }, // Remove Allegiance Requirement
+            { WeenieClassName.materialivory,            0.50f }, // Remove Attuned Status
+            { WeenieClassName.materialsandstone,        0.50f }, // Remove Retained Status
+            { WeenieClassName.materialsilver,           1.00f }, // Switch Melee to Missile
+            { WeenieClassName.materialcopper,           1.00f }, // Switch Missile to Melee
+            { WeenieClassName.materialteak,             1.00f }, // Switch to Aluvian
+            { WeenieClassName.materialebony,            1.00f }, // Switch to Gharundim
+            { WeenieClassName.materialporcelain,        1.00f }, // Switch to Sho
 
             { WeenieClassName.materialgold,             1.00f }, // Value + 25%
             { WeenieClassName.materialpine,             1.00f }, // Value - 25%
@@ -155,9 +155,9 @@ namespace ACE.Server.Factories.Tables.Wcids
             { WeenieClassName.materialwhitejade,        2.00f }, // Pierce Element
             { WeenieClassName.materialobsidian,         2.00f }, // Bludge Element
 
-            { WeenieClassName.materialmalachite,        3.00f }, // Warrior's Vigor
-            { WeenieClassName.materialhematite,         3.00f }, // Warrior's Vitality
-            { WeenieClassName.materialazurite,          3.00f }, // Wizard's Intellect
+            { WeenieClassName.materialmalachite,        2.50f }, // Warrior's Vigor
+            { WeenieClassName.materialhematite,         2.50f }, // Warrior's Vitality
+            { WeenieClassName.materialazurite,          2.50f }, // Wizard's Intellect
 
             { WeenieClassName.materialsunstone,         3.00f }, // Armor Rending
             { WeenieClassName.materialblackopal,        3.00f }, // Critical Strike
