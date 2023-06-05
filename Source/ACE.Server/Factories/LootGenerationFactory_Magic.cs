@@ -644,6 +644,36 @@ namespace ACE.Server.Factories
             return spellcraft;
         }
 
+        public static int RollSpellcraftForExtraSpells(WorldObject wo)
+        {
+            var maxSpellPower = GetMaxSpellPowerForExtraSpells(wo);
+
+            (float min, float max) range = (1.0f, 1.0f);
+
+            switch (wo.ItemType)
+            {
+                case ItemType.Armor:
+                case ItemType.Clothing:
+                case ItemType.Jewelry:
+
+                case ItemType.MeleeWeapon:
+                case ItemType.MissileWeapon:
+                case ItemType.Caster:
+
+                    range = (0.9f, 1.1f);
+                    break;
+            }
+
+            var rng = ThreadSafeRandom.Next(range.min, range.max);
+
+            var spellcraft = (int)Math.Ceiling(maxSpellPower * rng);
+
+            // retail was capped at 370
+            spellcraft = Math.Min(spellcraft, 370);
+
+            return spellcraft;
+        }
+
         // new method / based on treasure roll
 
         private static int RollSpellcraft(WorldObject wo, TreasureRoll roll)
@@ -741,6 +771,29 @@ namespace ACE.Server.Factories
                 int spellPower = GetSpellPower(spell);
                 if (spellPower > maxSpellPower)
                     maxSpellPower = spellPower;
+            }
+
+            return maxSpellPower;
+        }
+
+        public static int GetMaxSpellPowerForExtraSpells(WorldObject wo)
+        {
+            if (wo.ExtraSpellsList == null)
+                return 0;
+
+            var maxSpellPower = 0;
+
+            var extraSpells = wo.ExtraSpellsList.Split(",");
+            foreach (var spellIdString in extraSpells)
+            {
+                if (int.TryParse(spellIdString, out var spellId))
+                {
+                    var spell = new Server.Entity.Spell(spellId);
+
+                    int spellPower = GetSpellPower(spell);
+                    if (spellPower > maxSpellPower)
+                        maxSpellPower = spellPower;
+                }
             }
 
             return maxSpellPower;

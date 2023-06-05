@@ -476,34 +476,68 @@ namespace ACE.Server.WorldObjects
 
         private static void UpdateArcaneLoreAndSpellCraft(WorldObject wo, float newRollDiff)
         {
-            var newSpellcraft = LootGenerationFactory.RollSpellcraft(wo);
-
-            var itemSkillLevelFactor = 0.0f;
-
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (wo.BaseItemDifficultyOverride == null)
             {
-                if (wo.ItemSkillLevelLimit > 0)
-                    itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 10.0f;
+                var newSpellcraft = LootGenerationFactory.RollSpellcraft(wo);
+
+                var itemSkillLevelFactor = 0.0f;
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    if (wo.ItemSkillLevelLimit > 0)
+                        itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 10.0f;
+                }
+                else
+                {
+                    if (wo.ItemSkillLevelLimit > 0)
+                        itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 2.0f;
+                }
+
+                var fArcane = newSpellcraft - itemSkillLevelFactor;
+
+                if (wo.ItemAllegianceRankLimit > 0)
+                    fArcane -= (float)wo.ItemAllegianceRankLimit * 10.0f;
+
+                if (wo.HeritageGroup != 0)
+                    fArcane -= fArcane * 0.2f;
+
+                if (fArcane < 0)
+                    fArcane = 0;
+
+                wo.ItemDifficulty = (int)Math.Floor(fArcane + newRollDiff);
+                wo.ItemSpellcraft = newSpellcraft;
             }
-            else
+            else // BaseItemDifficultyOverride will be used for base spells, calculate extra requirements of the extra spells.
             {
-                if (wo.ItemSkillLevelLimit > 0)
-                    itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 2.0f;
+                var newSpellcraft = LootGenerationFactory.RollSpellcraftForExtraSpells(wo);
+
+                var itemSkillLevelFactor = 0.0f;
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    if (wo.ItemSkillLevelLimit > 0)
+                        itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 10.0f;
+                }
+                else
+                {
+                    if (wo.ItemSkillLevelLimit > 0)
+                        itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 2.0f;
+                }
+
+                var fArcane = newSpellcraft - itemSkillLevelFactor;
+
+                if (wo.ItemAllegianceRankLimit > 0)
+                    fArcane -= (float)wo.ItemAllegianceRankLimit * 10.0f;
+
+                if (wo.HeritageGroup != 0)
+                    fArcane -= fArcane * 0.2f;
+
+                if (fArcane < 0)
+                    fArcane = 0;
+
+                wo.ItemDifficulty = Math.Max(wo.BaseItemDifficultyOverride ?? 0, (int)Math.Floor(fArcane + newRollDiff));
+                wo.ItemSpellcraft = Math.Max(wo.BaseSpellcraftOverride ?? 0, newSpellcraft);
             }
-
-            var fArcane = newSpellcraft - itemSkillLevelFactor;
-
-            if (wo.ItemAllegianceRankLimit > 0)
-                fArcane -= (float)wo.ItemAllegianceRankLimit * 10.0f;
-
-            if (wo.HeritageGroup != 0)
-                fArcane -= fArcane * 0.2f;
-
-            if (fArcane < 0)
-                fArcane = 0;
-
-            wo.ItemDifficulty = (int)Math.Floor(fArcane + newRollDiff);
-            wo.ItemSpellcraft = newSpellcraft;
         }
 
         public static bool InjectSpell(uint spellToAddId, WorldObject target)
