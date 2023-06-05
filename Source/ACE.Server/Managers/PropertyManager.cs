@@ -496,7 +496,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyBool("item_dispel", true);
                 PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
                 PropertyManager.ModifyBool("allow_xp_at_max_level", true);
-                PropertyManager.ModifyBool("allow_fast_chug", false);
+                PropertyManager.ModifyBool("allow_fast_chug", false); // Having this on causes the drinking potion animation to get stuck mid-drink quite often.
 
                 PropertyManager.ModifyLong("max_level", 126);
 
