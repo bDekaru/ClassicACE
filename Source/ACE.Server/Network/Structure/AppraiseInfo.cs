@@ -516,6 +516,14 @@ namespace ACE.Server.Network.Structure
                     extraPropertiesText = "";
 
                 bool hasExtraPropertiesText = false;
+                if (wo.ArmorLevel != null && wo.CurrentWieldedLocation != null)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"Base Armor Level: {wo.ArmorLevel}.";
+                    hasExtraPropertiesText = true;
+                }
+
                 if (PropertiesFloat.TryGetValue(PropertyFloat.MeleeDefenseCap, out var meleeDefenseCap) && meleeDefenseCap != 0)
                 {
                     if (PropertiesFloat.TryGetValue(PropertyFloat.MissileDefenseCap, out var missileDefenseCap) && missileDefenseCap == meleeDefenseCap)
