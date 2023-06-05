@@ -496,6 +496,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyBool("item_dispel", true);
                 PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
                 PropertyManager.ModifyBool("allow_xp_at_max_level", true);
+                PropertyManager.ModifyBool("allow_fast_chug", false);
 
                 PropertyManager.ModifyLong("max_level", 126);
 
@@ -510,6 +511,10 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyBool("increase_minimum_encounter_spawn_density", true);
                 PropertyManager.ModifyBool("show_dot_messages", true);
                 PropertyManager.ModifyBool("salvage_handle_overages", true);
+                PropertyManager.ModifyBool("allow_fast_chug", false);
+                PropertyManager.ModifyBool("allow_jump_loot", false);
+                PropertyManager.ModifyBool("allow_pkl_bump", false);
+
 
                 PropertyManager.ModifyLong("max_level", 126);
                 PropertyManager.ModifyLong("fellowship_even_share_level", 80);
