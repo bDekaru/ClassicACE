@@ -76,6 +76,79 @@ namespace ACE.Server.Factories.Tables
             T6_Chances,
         };
 
+        static WorkmanshipChance()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                T1_Chances = new ChanceTable<int>()
+                {
+                    ( 1, 0.3f ),
+                    ( 2, 0.4f ),
+                    ( 3, 0.3f ),
+                };
+
+                T2_Chances = new ChanceTable<int>()
+                {
+                    ( 2, 0.05f ),
+                    ( 3, 0.15f ),
+                    ( 4, 0.3f ),
+                    ( 5, 0.3f ),
+                    ( 6, 0.2f ),
+                };
+
+                T3_Chances = new ChanceTable<int>()
+                {
+                    ( 3, 0.05f ),
+                    ( 4, 0.15f ),
+                    ( 5, 0.3f ),
+                    ( 6, 0.3f ),
+                    ( 7, 0.2f ),
+                };
+
+                T4_Chances = new ChanceTable<int>()
+                {
+                    ( 3, 0.01f ),
+                    ( 4, 0.05f ),
+                    ( 5, 0.15f ),
+                    ( 6, 0.3f ),
+                    ( 7, 0.29f ),
+                    ( 8, 0.2f ),
+                };
+
+                T5_Chances = new ChanceTable<int>()
+                {
+                    ( 3, 0.01f ),
+                    ( 4, 0.03f ),
+                    ( 5, 0.05f ),
+                    ( 6, 0.25f ),
+                    ( 7, 0.46f ),
+                    ( 8, 0.15f ),
+                    ( 9, 0.05f ),
+                };
+
+                T6_Chances = new ChanceTable<int>()
+                {
+                    ( 4, 0.01f ),
+                    ( 5, 0.04f ),
+                    ( 6, 0.25f ),
+                    ( 7, 0.25f ),
+                    ( 8, 0.25f ),
+                    ( 9, 0.15f ),
+                    ( 10, 0.05f ),
+                };
+
+                workmanshipChances = new List<ChanceTable<int>>()
+                {
+                    T1_Chances,
+                    T2_Chances,
+                    T3_Chances,
+                    T4_Chances,
+                    T5_Chances,
+                    T6_Chances,
+                };
+            }
+        }
+
         /// <summary>
         /// Rolls for a 1-10 workmanship for an item
         /// </summary>
