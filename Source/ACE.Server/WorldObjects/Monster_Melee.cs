@@ -541,7 +541,7 @@ namespace ACE.Server.WorldObjects
                 else
                 {
                     if (shieldSkill.Current > shieldLevel)
-                        shieldLevel += (shieldSkill.Current - shieldLevel) / 10;
+                        shieldLevel += (shieldSkill.Current - shieldLevel) / 5;
                 }
 
                 return Math.Min(shieldLevel, shieldCap);
@@ -569,7 +569,7 @@ namespace ACE.Server.WorldObjects
                 var armorCap = armorSkill.Current;
 
                 if (armorSkill.Current > armorLevel)
-                    armorLevel += (armorSkill.Current - armorLevel) / 10;
+                    armorLevel += (armorSkill.Current - armorLevel) / 5;
 
                 return Math.Min(armorLevel, armorCap);
             }
