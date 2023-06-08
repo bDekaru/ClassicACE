@@ -389,9 +389,6 @@ namespace ACE.Server.Entity
 
             var ignoreArmorMod = Math.Min(armorRendingMod, armorCleavingMod);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && pkBattle)
-                ignoreArmorMod *= 0.7f; // Armor is reduced during PvP.
-
             // get body part / armor pieces / armor modifier
             if (playerDefender != null)
             {

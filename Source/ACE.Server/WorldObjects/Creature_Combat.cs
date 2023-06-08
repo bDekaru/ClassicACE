@@ -869,10 +869,6 @@ namespace ACE.Server.WorldObjects
             var ignoreShieldMod = attacker.GetIgnoreShieldMod(weapon);
             //Console.WriteLine($"IgnoreShieldMod: {ignoreShieldMod}");
 
-            var pkBattle = player != null && attacker is Player;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && pkBattle)
-                ignoreShieldMod *= 0.7f; // Armor is reduced during PvP.
-
             effectiveLevel *= ignoreShieldMod;
 
             // SL is multiplied by existing AL
