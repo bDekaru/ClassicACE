@@ -167,14 +167,21 @@ namespace ACE.Server.WorldObjects
                 else if (spellToAdd.School == MagicSchool.CreatureEnchantment)
                     enchantments.Add((SpellId)spellToAddId);
 
+                var extraSpells = target.ExtraSpellsList != null ? target.ExtraSpellsList.Split(",").ToList() : new List<string>();
+
                 Spell spellToReplace = null;
                 foreach (var spellOnItemId in spellsOnItem)
                 {
                     Spell spellOnItem = new Spell(spellOnItemId);
-                    if (spellOnItem.IsCantrip)
-                        cantrips.Add((SpellId)spellOnItemId);
-                    else if(spellOnItem.School == MagicSchool.CreatureEnchantment)
-                        enchantments.Add((SpellId)spellOnItemId);
+
+                    if (target.BaseItemDifficultyOverride == null || extraSpells.Contains(spellOnItemId.ToString()))
+                    {
+                        // For items that have a base difficulty override we will only calculate new arcane lore requirements based on the extra spells so filter them here.
+                        if (spellOnItem.IsCantrip)
+                            cantrips.Add((SpellId)spellOnItemId);
+                        else if (spellOnItem.School == MagicSchool.CreatureEnchantment)
+                            enchantments.Add((SpellId)spellOnItemId);
+                    }
 
                     if (spellOnItemId == spellToAddId)
                     {
@@ -199,6 +206,12 @@ namespace ACE.Server.WorldObjects
                         else
                             spellToReplace = spellOnItem;
                     }
+                }
+
+                if(spellToReplace != null)
+                {
+                    enchantments.Remove((SpellId)spellToReplace.Id);
+                    cantrips.Remove((SpellId)spellToReplace.Id);
                 }
 
                 if (!isGem && target.ProcSpell == null && spellToReplace == null)
