@@ -4394,7 +4394,8 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 var weenie = DatabaseManager.World.GetWeenie(entry.Key);
                 var playerKillerStatus = (PlayerKillerStatus?)weenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
-                if (weenie.ClassId != 1 && playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected)
+                var npcLooksLikeObject = weenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
+                if (weenie.ClassId != 1 && playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
                 {
                     var name = weenie.GetProperty(PropertyString.Name);
                     var level = weenie.GetProperty(PropertyInt.Level);
@@ -4409,127 +4410,206 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
-        //[CommandHandler("calculatelevel", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "", "")]
-        //public static void HandleCalculateLevel(Session session, params string[] parameters)
-        //{
-        //    var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
+        [CommandHandler("export-creature-calculated-levels", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        public static void HandleExportCreatureCalculatedLevels(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Exporting creature calculated levels to reports/CreatureCalculatedLevels.txt...");
 
-        //    Creature creature = obj as Creature;
+            var contentFolder = VerifyContentFolder(session, false);
 
-        //    if (creature == null)
-        //    {
-        //        CommandHandlerHelper.WriteOutputInfo(session, "Invalid target.");
-        //        return;
-        //    }
+            var sep = Path.DirectorySeparatorChar;
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}reports{sep}");
 
-        //    var level = CalculateLevel(creature);
+            if (!folder.Exists)
+                folder.Create();
 
-        //    CommandHandlerHelper.WriteOutputInfo(session, $"-- Creature: {creature.Name}({creature.WeenieClassId}) --");
-        //    CommandHandlerHelper.WriteOutputInfo(session, $"Current Level: {creature.Level}");
-        //    CommandHandlerHelper.WriteOutputInfo(session, $"Calculated Level: {level}");
-        //}
+            var filename = $"{folder.FullName}{sep}CreatureCalculatedLevels.txt";
 
-        //public static int CalculateLevel(Creature creature)
-        //{
-        //    if (creature == null)
-        //        return 0;
+            var fileWriter = new StreamWriter(filename);
 
-        //    var xpTable = DatLoader.DatManager.PortalDat.XpTableFull.CharacterLevelXPList;
+            fileWriter.WriteLine("Name\tLevel\tCalculatedLevel\tType\tWeenieClassId\tWeenieClassName");
 
-        //    var attributeTable = DatLoader.DatManager.PortalDat.XpTable.AttributeXpList;
-        //    var vitalTable = DatLoader.DatManager.PortalDat.XpTable.VitalXpList;
-        //    var skillTable = DatLoader.DatManager.PortalDat.XpTable.SpecializedSkillXpList;
+            var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+            foreach (var entry in WeenieTypes)
+            {
+                if (entry.Value != (int)WeenieType.Creature)
+                    continue;
 
-        //    ulong totalXp = 0;
-        //    uint highestCombatSkillValue = 0;
+                var weenie = DatabaseManager.World.GetWeenie(entry.Key);
+                var playerKillerStatus = (PlayerKillerStatus?)weenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
+                var npcLooksLikeObject = weenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
+                if (weenie.ClassId != 1 && playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
+                {
+                    var name = weenie.GetProperty(PropertyString.Name);
+                    var level = weenie.GetProperty(PropertyInt.Level);
+                    var calculatedLevel = 0;
 
-        //    uint health = creature.Health.StartingValue + creature.Health.Base;
-        //    uint stamina = creature.Stamina.StartingValue + creature.Stamina.Ranks;
-        //    uint mana = creature.Mana.StartingValue + creature.Mana.Ranks;
+                    var obj = WorldObjectFactory.CreateNewWorldObject(weenie.ClassId);
+                    if (obj != null)
+                    {
+                        calculatedLevel = CalculateLevel(obj as Creature);
+                        obj.Destroy();
+                    }
 
-        //    uint strength = creature.Strength.Base;
-        //    uint endurance = creature.Endurance.Base;
-        //    uint coordination = creature.Coordination.Base;
-        //    uint quickness = creature.Quickness.Base;
-        //    uint focus = creature.Focus.Base;
-        //    uint self = creature.Self.Base;
+                    var creatureType = (CreatureType?)weenie.GetProperty(PropertyInt.CreatureType);
 
-        //    uint totalAttributes = strength + endurance + coordination + quickness + focus + self;
-        //    uint totalInnate = Math.Min(totalAttributes, 330);
-        //    uint strengthInnate = (uint)Math.Round((float)strength / totalAttributes * totalInnate);
-        //    uint enduranceInnate = (uint)Math.Round((float)endurance / totalAttributes * totalInnate);
-        //    uint coordinationInnate = (uint)Math.Round((float)coordination / totalAttributes * totalInnate);
-        //    uint quicknessInnate = (uint)Math.Round((float)quickness / totalAttributes * totalInnate);
-        //    uint focusInnate = (uint)Math.Round((float)focus / totalAttributes * totalInnate);
-        //    uint selfInnate = (uint)Math.Round((float)self / totalAttributes * totalInnate);
+                    fileWriter.WriteLine($"{name}\t{level}\t{calculatedLevel}\t{creatureType}\t{weenie.ClassId}\t{weenie.ClassName}");
+                    fileWriter.Flush();
+                }
+            }
 
-        //    strength -= strengthInnate;
-        //    endurance -= enduranceInnate;
-        //    coordination -= coordinationInnate;
-        //    quickness -= quicknessInnate;
-        //    focus -= focusInnate;
-        //    self -= selfInnate;
+            fileWriter.Close();
+            CommandHandlerHelper.WriteOutputInfo(session, "Done.");
+        }
 
-        //    health = Math.Min(health, 250);
-        //    stamina = Math.Min(stamina, 500);
-        //    mana = Math.Min(mana, 250);
+        [CommandHandler("calculatelevel", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "", "")]
+        public static void HandleCalculateLevel(Session session, params string[] parameters)
+        {
+            var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
 
-        //    totalXp += GetTotalXP(vitalTable, health);
-        //    totalXp += GetTotalXP(vitalTable, stamina);
-        //    totalXp += GetTotalXP(vitalTable, mana);
+            Creature creature = obj as Creature;
 
-        //    totalXp += GetTotalXP(attributeTable, strength);
-        //    totalXp += GetTotalXP(attributeTable, endurance);
-        //    totalXp += GetTotalXP(attributeTable, coordination);
-        //    totalXp += GetTotalXP(attributeTable, quickness);
-        //    totalXp += GetTotalXP(attributeTable, focus);
-        //    totalXp += GetTotalXP(attributeTable, self);
+            if (creature == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "Invalid target.");
+                return;
+            }
 
-        //    foreach (var skillEntry in creature.Skills)
-        //    {
-        //        var skill = skillEntry.Value;
-        //        switch (skill.Skill)
-        //        {
-        //            case Skill.Axe:
-        //            case Skill.Dagger:
-        //            case Skill.Mace:
-        //            case Skill.Spear:
-        //            case Skill.Staff:
-        //            case Skill.Sword:
-        //            case Skill.UnarmedCombat:
-        //            case Skill.Bow:
-        //            case Skill.Crossbow:
-        //            case Skill.ThrownWeapon:
-        //                if (skill.InitLevel + skill.Ranks > highestCombatSkillValue)
-        //                    highestCombatSkillValue = skill.InitLevel + skill.Ranks;
-        //                break;
-        //            default:
-        //                totalXp += GetTotalXP(skillTable, skill.InitLevel + skill.Ranks);
-        //                break;
-        //        }
-        //    }
+            var level = CalculateLevel(creature);
 
-        //    if (highestCombatSkillValue > 0)
-        //        totalXp += GetTotalXP(skillTable, highestCombatSkillValue);
+            CommandHandlerHelper.WriteOutputInfo(session, $"-- Creature: {creature.Name}({creature.WeenieClassId}) --");
+            CommandHandlerHelper.WriteOutputInfo(session, $"Current Level: {creature.Level}");
+            CommandHandlerHelper.WriteOutputInfo(session, $"Calculated Level: {level}");
+        }
 
-        //    int level = 1;
-        //    while (totalXp >= xpTable[level + 1])
-        //    {
-        //        level++;
+        public static int CalculateLevel(Creature creature)
+        {
+            if (creature == null)
+                return 0;
 
-        //        if (level == xpTable.Count - 1)
-        //        {
-        //            ulong lastLevelTotalXP = xpTable[xpTable.Count - 1];
-        //            ulong lastLevelXpDiff = xpTable[xpTable.Count - 1] - xpTable[xpTable.Count - 2];
-        //            int extraLevels = (int)((totalXp - lastLevelTotalXP) / lastLevelXpDiff);
+            var xpTable = DatLoader.DatManager.PortalDat.XpTableFull.CharacterLevelXPList;
+            var skillTable = DatLoader.DatManager.PortalDat.XpTableFull.SpecializedSkillXpList;
+            var vitalTable = DatLoader.DatManager.PortalDat.XpTableFull.VitalXpList;
 
-        //            level += extraLevels;
-        //            break;
-        //        }
-        //    }
+            ulong totalXp = 0;
 
-        //    return level;
-        //}
+            var melee = creature.GetCreatureSkill(Skill.MeleeDefense);
+            var missile = creature.GetCreatureSkill(Skill.MissileDefense);
+            var magic = creature.GetCreatureSkill(Skill.MagicDefense);
+
+            var lowestDefenseSkillXP = ulong.MaxValue;
+            var meleeXP = GetTotalXP(skillTable, melee.Base);
+            var missileXP = GetTotalXP(skillTable, missile.Base);
+            var magicXP = GetTotalXP(skillTable, magic.Base);
+
+            if (meleeXP < lowestDefenseSkillXP)
+                lowestDefenseSkillXP = meleeXP;
+            if (missileXP < lowestDefenseSkillXP)
+                lowestDefenseSkillXP = missileXP;
+            if (magicXP < lowestDefenseSkillXP)
+                lowestDefenseSkillXP = magicXP;
+
+            if (lowestDefenseSkillXP == uint.MaxValue)
+                lowestDefenseSkillXP = 0;
+
+            totalXp += lowestDefenseSkillXP;
+
+            uint highestCombatSkillValue = 0;
+            uint highestMagicSkillValue = 0;
+            foreach (var skillEntry in creature.Skills)
+            {
+                var skill = skillEntry.Value;
+                switch (skill.Skill)
+                {
+                    case Skill.Axe:
+                    case Skill.Mace:
+                    case Skill.Spear:
+                    case Skill.Staff:
+                    case Skill.Dagger:
+                    case Skill.Sword:
+                    case Skill.UnarmedCombat:
+                    case Skill.Bow:
+                    case Skill.Crossbow:
+                    case Skill.ThrownWeapon:
+                        if (skill.Base > highestCombatSkillValue)
+                            highestCombatSkillValue = skill.Base;
+                        break;
+                    case Skill.CreatureEnchantment:
+                    case Skill.ItemEnchantment:
+                    case Skill.LifeMagic:
+                    case Skill.WarMagic:
+                        if (skill.Base > highestMagicSkillValue)
+                            highestMagicSkillValue = skill.Base;
+                        break;
+                }
+            }
+
+            var combatSkillXP = GetTotalXP(skillTable, highestCombatSkillValue);
+            var magicSkillXP = GetTotalXP(skillTable, highestMagicSkillValue);
+
+            if (combatSkillXP > magicSkillXP)
+                totalXp += combatSkillXP;
+            else
+                totalXp += magicSkillXP;
+
+            int level = 1;
+            while (totalXp >= xpTable[level + 1])
+            {
+                level++;
+
+                if (level == xpTable.Count - 1)
+                {
+                    ulong lastLevelTotalXP = xpTable[xpTable.Count - 1];
+                    ulong lastLevelXpDiff = xpTable[xpTable.Count - 1] - xpTable[xpTable.Count - 2];
+                    int extraLevels = (int)((totalXp - lastLevelTotalXP) / lastLevelXpDiff);
+
+                    level += extraLevels;
+                    break;
+                }
+            }
+
+            if (level > 1)
+            {
+                var bodyPartHighestDmg = 0;
+                foreach (var bodyPart in creature.Biota.PropertiesBodyPart)
+                {
+                    if (bodyPart.Value.DVal > bodyPartHighestDmg)
+                        bodyPartHighestDmg = bodyPart.Value.DVal;
+                }
+
+                var damageXP = (ulong)(level * level * 100 * bodyPartHighestDmg);
+
+                totalXp += damageXP;
+
+                if (level < 10)
+                {
+                    // For the lowest level creatures lets use HP to create more granularity between creature levels.
+                    var healthXP = Math.Min(GetTotalXP(vitalTable, creature.Health.Base), 100);
+
+                    healthXP = (ulong)(2 * healthXP * ((10.0 - level) / 9.0));
+
+                    totalXp += healthXP;
+                }
+
+                level = 1;
+                while (totalXp >= xpTable[level + 1])
+                {
+                    level++;
+
+                    if (level == xpTable.Count - 1)
+                    {
+                        ulong lastLevelTotalXP = xpTable[xpTable.Count - 1];
+                        ulong lastLevelXpDiff = xpTable[xpTable.Count - 1] - xpTable[xpTable.Count - 2];
+                        int extraLevels = (int)((totalXp - lastLevelTotalXP) / lastLevelXpDiff);
+
+                        level += extraLevels;
+                        break;
+                    }
+                }
+            }
+
+            return level;
+        }
 
         [CommandHandler("export-creature-tier-report", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
         public static void HandleExporCreatureTierReport(Session session, params string[] parameters)

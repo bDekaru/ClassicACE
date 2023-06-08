@@ -23707,38 +23707,6 @@
     <tod_req>0</tod_req>
   </location>
   <location>
-    <id>1490</id>
-    <latitude>10.6</latitude>
-    <longitude>65.6</longitude>
-    <name>Static Portal to the Tusker Islands</name>
-    <type>Portal</type>
-    <arrival_latitude>-2.3</arrival_latitude>
-    <arrival_longitude>95.5</arrival_longitude>
-    <description>Exit at 2.3N, 95.5E. The Shrine that will take you to the Tusker Islands is located at the back of the dungeon. &lt;I&gt; -- Doc Feelgood&lt;/i&gt;</description>
-    <date_added>2002-12-17T00:00:00.0000000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>1491</id>
-    <latitude>-59.9</latitude>
-    <longitude>28.4</longitude>
-    <name>Static Portal to the Tusker Islands</name>
-    <type>Portal</type>
-    <arrival_latitude>-2.3</arrival_latitude>
-    <arrival_longitude>95.5</arrival_longitude>
-    <description>Exit at 2.3N, 95.5E. The Tusker Shrine that will take you to Tusker Island is located at the back of the dungeon. &lt;I&gt; -- Doc Feelgood&lt;/i&gt;</description>
-    <date_added>2002-12-17T00:00:00.0000000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
     <id>1492</id>
     <latitude>90.2</latitude>
     <longitude>-64.5</longitude>
@@ -28510,21 +28478,6 @@
     <date_added>2004-09-25T07:39:11.6470000-07:00</date_added>
     <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
     <dungeon_id>02E0</dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>1792</id>
-    <latitude>13</latitude>
-    <longitude>68</longitude>
-    <name>Reedshark Clan Training Camp</name>
-    <type>Dungeon</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>&lt;I&gt;-- Damek 9/29/2004&lt;/i&gt;</description>
-    <date_added>2004-09-29T20:47:45.4400000-07:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>577A</dungeon_id>
     <retired>N</retired>
     <tod_req>0</tod_req>
   </location>
