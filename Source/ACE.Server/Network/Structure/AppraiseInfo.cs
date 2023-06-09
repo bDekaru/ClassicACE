@@ -516,7 +516,7 @@ namespace ACE.Server.Network.Structure
                     extraPropertiesText = "";
 
                 bool hasExtraPropertiesText = false;
-                if (wo.ArmorLevel != null && wo.CurrentWieldedLocation != null)
+                if (wo.ArmorLevel != null && wo.ArmorLevel != 0 && wo.CurrentWieldedLocation != null)
                 {
                     if (hasExtraPropertiesText)
                         extraPropertiesText += "\n";
