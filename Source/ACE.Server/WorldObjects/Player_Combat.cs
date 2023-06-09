@@ -664,8 +664,12 @@ namespace ACE.Server.WorldObjects
                 if (!SquelchManager.Squelches.Contains(source, ChatMessageType.CombatEnemy) && this != creature)
                 {
                     Session.Network.EnqueueSend(new GameEventDefenderNotification(Session, creature.Name, damageType, percent, amount, damageLocation, crit, attackConditions));
-                    if(damageBlocked > 0)
+                    if (damageBlocked > 0)
+                    {
                         Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.CombatEnemy));
+                        var blockSound = new GameMessageSound(Guid, Sound.HitPlate1, 1.0f);
+                        EnqueueBroadcast(blockSound);
+                    }
                 }
     
                 var hitSound = new GameMessageSound(Guid, GetHitSound(source, bodyPart), 1.0f);

@@ -549,9 +549,13 @@ namespace ACE.Server.Entity
                 else
                     EffectiveBlockSkill = 0;
 
+                var combatTypeMod = CombatType == CombatType.Missile ? 1.0f : 0.6f;
+
+                EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 3.0f);
+
                 var blockChance = 1.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
 
-                return (float)blockChance;
+               return (float)blockChance;
             }
         }
 
