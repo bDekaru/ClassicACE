@@ -60,6 +60,8 @@ namespace ACE.Server.Command.Handlers.Processors
                     return FileType.Weenie;
                 else if (fileType.StartsWith("spell"))
                     return FileType.Spell;
+                else if (fileType.StartsWith("encounter"))
+                    return FileType.Encounter;
             }
             return FileType.Undefined;
         }
@@ -2658,17 +2660,32 @@ namespace ACE.Server.Command.Handlers.Processors
                 case FileType.Weenie:
                     ExportSQLWeenie(session, param);
                     break;
+
+                case FileType.Encounter:
+                    ExportSQLEncounter(session, param);
+                    break;
             }
         }
 
         [CommandHandler("export-sql-landblocks", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Exports all landblocks from database to SQL file", "")]
-        public static void HandleExportSqLandblocksl(Session session, params string[] parameters)
+        public static void HandleExportSqlLandblocks(Session session, params string[] parameters)
         {
             for (ushort landblockId = 0x0000; landblockId < 0xFFFF; landblockId++)
             {
                 var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblockId);
                 if(instances != null && instances.Count > 0)
                     ExportSQLLandblock(session, landblockId.ToString("x4"));
+            }
+        }
+
+        [CommandHandler("export-sql-encounters", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Exports all encounters from database to SQL file", "")]
+        public static void HandleExportSqlEncounters(Session session, params string[] parameters)
+        {
+            for (ushort landblockId = 0x0000; landblockId < 0xFFFF; landblockId++)
+            {
+                var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblockId);
+                if (instances != null && instances.Count > 0)
+                    ExportSQLEncounter(session, landblockId.ToString("x4"));
             }
         }
 
@@ -2881,6 +2898,62 @@ namespace ACE.Server.Command.Handlers.Processors
                 LandblockInstanceWriter.CreateSQLINSERTStatement(instances, sqlFile);
 
                 sqlFile.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {sql_folder}{sql_filename}");
+                return;
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Exported {sql_folder}{sql_filename}");
+        }
+
+        public static void ExportSQLEncounter(Session session, string param)
+        {
+            DirectoryInfo di = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+
+            if (!ushort.TryParse(Regex.Match(param, @"[0-9A-F]{4}", RegexOptions.IgnoreCase).Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var landblockId))
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"{param} not a valid landblock");
+                return;
+            }
+
+            var encounters = DatabaseManager.World.GetCachedEncountersByLandblock(landblockId, out _);
+
+            var sql_folder = $"{di.FullName}{sep}sql{sep}encounters{sep}";
+
+            di = new DirectoryInfo(sql_folder);
+
+            if (!di.Exists)
+                di.Create();
+
+            var sql_filename = LandblockInstanceWriter.GetDefaultFileName(landblockId);
+
+            try
+            {
+                if (encounters.Count > 0)
+                {
+                    if (LandblockEncounterWriter == null)
+                    {
+                        LandblockEncounterWriter = new EncounterSQLWriter();
+                        LandblockEncounterWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
+                        LandblockEncounterWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
+                        LandblockEncounterWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
+                        LandblockEncounterWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
+                    }
+
+                    var sqlFile = new StreamWriter(sql_folder + sql_filename);
+
+                    LandblockEncounterWriter.CreateSQLDELETEStatement(encounters, sqlFile);
+                    sqlFile.WriteLine();
+
+                    LandblockEncounterWriter.CreateSQLINSERTStatement(encounters, sqlFile);
+
+                    sqlFile.Close();
+                }
             }
             catch (Exception e)
             {
