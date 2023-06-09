@@ -215,7 +215,7 @@ namespace ACE.Database
         {
             return context.Weenie
                 .Include(r => r.WeeniePropertiesString)
-                .ToDictionary(r => r.ClassId, r => r.WeeniePropertiesString.FirstOrDefault(p => p.Type == (int)PropertyString.Name)?.Value ?? "");
+                .ToDictionary(r => r.ClassId, r => r.WeeniePropertiesString.FirstOrDefault(p => p.Type == (int)PropertyString.Name)?.Value.Replace("\n", "") ?? "");
         }
 
         public Dictionary<uint, string> GetAllWeenieNames()
