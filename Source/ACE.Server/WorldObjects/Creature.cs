@@ -160,7 +160,7 @@ namespace ACE.Server.WorldObjects
             numRecentAttacksReceived = 0;
             attacksReceivedPerSecond = 0.0f;
 
-            if(!Tier.HasValue && WeenieType != WeenieType.Vendor)
+            if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !Tier.HasValue && WeenieType != WeenieType.Vendor)
                 Tier = CalculateExtendedTier();
         }
 

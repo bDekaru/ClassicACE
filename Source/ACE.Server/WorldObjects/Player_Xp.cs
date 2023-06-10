@@ -20,15 +20,16 @@ namespace ACE.Server.WorldObjects
         /// <param name="amount">The amount of XP being added</param>
         /// <param name="xpType">The source of XP being added</param>
         /// <param name="shareable">True if this XP can be shared with Fellowship</param>
-        public void EarnXP(long amount, XpType xpType, int? xpSourceLevel, uint? xpSourceId, uint xpSourceCampValue = 1, ShareType shareType = ShareType.All)
+        public void EarnXP(long amount, XpType xpType, int? xpSourceLevel, uint? xpSourceId, uint xpSourceCampValue, double? xpSourceTier, ShareType shareType = ShareType.All)
         {
             //Console.WriteLine($"{Name}.EarnXP({amount}, {sharable}, {fixedAmount})");
 
             string xpMessage = "";
             bool usesRewardByLevelSystem = false;
-            int formulaVersion = 0;
             if (xpType == XpType.Quest && amount < 0 && amount > -6000) // this range is used to specify the reward by level system.
             {
+                usesRewardByLevelSystem = true;
+                int formulaVersion;
                 // The following comments are just recommendations and vary from quest to quest, but the larger the value the higher the xp sum awarded.
                 if (amount <= -5000) // once per character
                 {
@@ -60,17 +61,15 @@ namespace ACE.Server.WorldObjects
                     xpSourceLevel = -(int)amount;
                     formulaVersion = 0;
                 }
-                usesRewardByLevelSystem = true;
 
                 int modifiedLevel = Math.Max((int)Level, 5);
-
                 if (Level < 100 && modifiedLevel <= xpSourceLevel / 3)
                 {
                     xpSourceLevel = modifiedLevel * 3;
                     Session.Network.EnqueueSend(new GameMessageSystemChat("Your experience reward has been reduced because your level is not high enough!", ChatMessageType.System));
                 }
 
-                float totalXP = Creature.GetCreatureDeathXP(xpSourceLevel.Value, 0, 0, formulaVersion);
+                float totalXP = GetCreatureDeathXP(xpSourceLevel.Value, 0, 0, formulaVersion);
 
                 if (xpSourceId != null && xpSourceId != 0)
                 {
@@ -119,37 +118,106 @@ namespace ACE.Server.WorldObjects
             if (xpType == XpType.Quest)
                 modifier *= questModifier;
 
-            if (xpType == XpType.Kill && xpSourceLevel != null)
+            if (xpType == XpType.Kill)
             {
-                if (xpSourceLevel < 28)
-                    modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier1").Item;
-                else if (xpSourceLevel < 65)
-                    modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier2").Item;
-                else if (xpSourceLevel < 95)
-                    modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier3").Item;
-                else if (xpSourceLevel < 110)
-                    modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier4").Item;
-                else if (xpSourceLevel < 135)
-                    modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier5").Item;
-                else
-                    modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier6").Item;
+                if (xpSourceTier != null)
+                {
+                    var highTier = Math.Ceiling(xpSourceTier ?? 1);
+                    var lowTier = Math.Floor(xpSourceTier ?? 1);
+
+                    double highTierMod;
+                    switch (highTier)
+                    {
+                        case 1: highTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier1").Item; break;
+                        case 2: highTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier2").Item; break;
+                        case 3: highTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier3").Item; break;
+                        case 4: highTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier4").Item; break;
+                        case 5: highTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier5").Item; break;
+                        case 6: highTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier6").Item; break;
+                        default: highTierMod = 1; break;
+                    }
+
+                    double lowTierMod;
+                    switch (lowTier)
+                    {
+                        case 1: lowTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier1").Item; break;
+                        case 2: lowTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier2").Item; break;
+                        case 3: lowTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier3").Item; break;
+                        case 4: lowTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier4").Item; break;
+                        case 5: lowTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier5").Item; break;
+                        case 6: lowTierMod = PropertyManager.GetDouble("xp_modifier_kill_tier6").Item; break;
+                        default: lowTierMod = 1; break;
+                    }
+
+                    if (highTierMod != 1 || lowTierMod != 1)
+                    {
+                        var highTierWeight = (xpSourceTier ?? 1) % 1;
+                        var lowTierWeight = 1 - highTierWeight;
+
+                        var highTierAmount = (long)(amount * highTierWeight * highTierMod);
+                        var lowTierAmount = (long)(amount * lowTierWeight * lowTierMod);
+
+                        amount = lowTierAmount + highTierAmount;
+                    }
+                }
+                else if (xpSourceLevel != null)
+                {
+                    if (xpSourceLevel < 28)
+                        modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier1").Item;
+                    else if (xpSourceLevel < 65)
+                        modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier2").Item;
+                    else if (xpSourceLevel < 95)
+                        modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier3").Item;
+                    else if (xpSourceLevel < 110)
+                        modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier4").Item;
+                    else if (xpSourceLevel < 135)
+                        modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier5").Item;
+                    else
+                        modifier *= PropertyManager.GetDouble("xp_modifier_kill_tier6").Item;
+                }
             }
             else if (xpType == XpType.Quest && xpSourceLevel != null)
             {
                 if (usesRewardByLevelSystem)
                 {
-                    if (xpSourceLevel < 28)
-                        modifier *= PropertyManager.GetDouble("xp_modifier_reward_tier1").Item;
-                    else if (xpSourceLevel < 65)
-                        modifier *= PropertyManager.GetDouble("xp_modifier_reward_tier2").Item;
-                    else if (xpSourceLevel < 95)
-                        modifier *= PropertyManager.GetDouble("xp_modifier_reward_tier3").Item;
-                    else if (xpSourceLevel < 110)
-                        modifier *= PropertyManager.GetDouble("xp_modifier_reward_tier4").Item;
-                    else if (xpSourceLevel < 135)
-                        modifier *= PropertyManager.GetDouble("xp_modifier_reward_tier5").Item;
-                    else
-                        modifier *= PropertyManager.GetDouble("xp_modifier_reward_tier6").Item;
+                    var tier = CalculateExtendedTier(xpSourceLevel ?? 1);
+                    var highTier = Math.Ceiling(tier);
+                    var lowTier = Math.Floor(tier);
+
+                    double highTierMod;
+                    switch (highTier)
+                    {
+                        case 1: highTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier1").Item; break;
+                        case 2: highTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier2").Item; break;
+                        case 3: highTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier3").Item; break;
+                        case 4: highTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier4").Item; break;
+                        case 5: highTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier5").Item; break;
+                        case 6: highTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier6").Item; break;
+                        default: highTierMod = 1; break;
+                    }
+
+                    double lowTierMod;
+                    switch (lowTier)
+                    {
+                        case 1: lowTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier1").Item; break;
+                        case 2: lowTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier2").Item; break;
+                        case 3: lowTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier3").Item; break;
+                        case 4: lowTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier4").Item; break;
+                        case 5: lowTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier5").Item; break;
+                        case 6: lowTierMod = PropertyManager.GetDouble("xp_modifier_reward_tier6").Item; break;
+                        default: lowTierMod = 1; break;
+                    }
+
+                    if (highTierMod != 1 || lowTierMod != 1)
+                    {
+                        var highTierWeight = (xpSourceTier ?? 1) % 1;
+                        var lowTierWeight = 1 - highTierWeight;
+
+                        var highTierAmount = (long)(amount * highTierWeight * highTierMod);
+                        var lowTierAmount = (long)(amount * lowTierWeight * lowTierMod);
+
+                        amount = lowTierAmount + highTierAmount;
+                    }
                 }
                 else
                 {
@@ -645,7 +713,7 @@ namespace ACE.Server.WorldObjects
                 scaledXP = Math.Max(scaledXP, min);
 
             // apply xp modifiers?
-            EarnXP(scaledXP, XpType.Quest, Level, null, 1, ShareType.Allegiance);
+            EarnXP(scaledXP, XpType.Quest, Level, null, 1, null, ShareType.Allegiance);
         }
 
         /// <summary>
