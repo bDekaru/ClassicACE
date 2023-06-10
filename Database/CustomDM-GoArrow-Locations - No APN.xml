@@ -46250,22 +46250,6 @@ Killed by a Red Rat.</description>
     <tod_req>0</tod_req>
   </location>
   <location>
-    <id>2779</id>
-    <latitude>25.8</latitude>
-    <longitude>-46.9</longitude>
-    <name>Dires Great Lighthouse</name>
-    <type>Landmark</type>
-    <arrival_latitude>0.000</arrival_latitude>
-    <arrival_longitude>0.000</arrival_longitude>
-    <description>Updated during the Treaties in Stone event</description>
-    <date_added>2004-07-15 00:00:00</date_added>
-    <last_update>0000-00-00 00:00:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
     <id>2780</id>
     <latitude>51.5</latitude>
     <longitude>-68</longitude>
