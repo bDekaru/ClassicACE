@@ -3412,6 +3412,14 @@ namespace ACE.Server.Command.Handlers
             {
                 var msg = creature.DeathTreasure != null ? $"DeathTreasure {(TreasureDeathDesc)creature.DeathTreasure.TreasureType}({creature.DeathTreasure.TreasureType}) - Tier: {creature.DeathTreasure.Tier} QualityMod: {creature.DeathTreasure.LootQualityMod}" : "doesn't have PropertyDataId.DeathTreasureType";
 
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    var tierMsg = creature.Tier != null ? $"Creature Tier: {Math.Clamp(creature.Tier ?? 1, 1, 6):0.00}" : "Creature Tier: Null";
+
+                    msg = $"{tierMsg} {msg}";
+                }
+
+
                 CommandHandlerHelper.WriteOutputInfo(session, $"{creature.Name} ({creature.Guid}) {msg}");
             }
             else if(obj != null && obj.GeneratorProfiles != null)

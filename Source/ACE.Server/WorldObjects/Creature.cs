@@ -160,12 +160,8 @@ namespace ACE.Server.WorldObjects
             numRecentAttacksReceived = 0;
             attacksReceivedPerSecond = 0.0f;
 
-            if(!Tier.HasValue && DeathTreasureType.HasValue)
-            {
-                var treasure = DeathTreasure;
-                if(treasure != null)
-                    Tier = DeathTreasure.Tier;
-            }
+            if(!Tier.HasValue && WeenieType != WeenieType.Vendor)
+                Tier = CalculateExtendedTier();
         }
 
         public override void BeforeEnterWorld()
@@ -217,11 +213,12 @@ namespace ACE.Server.WorldObjects
         {
             DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
 
+            var baseTier = RollTier();
             var tierMod = 0;
             if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
                 tierMod = 1;
 
-            var tier = Math.Clamp((Tier ?? 1) + tierMod, 1, HiddenChests.Count);
+            var tier = Math.Clamp(baseTier + tierMod, 1, HiddenChests.Count);
             var unmodTier = Math.Clamp(Tier ?? 1, 1, HiddenChests.Count);
             var hiddenChest = WorldObjectFactory.CreateNewWorldObject(HiddenChests[tier - 1]);
 
@@ -232,7 +229,7 @@ namespace ACE.Server.WorldObjects
             hiddenChest.Location.LandblockId = new LandblockId(hiddenChest.Location.GetCell());
             hiddenChest.Generator = this;
             hiddenChest.Tier = tier;
-            hiddenChest.ResistAwareness = unmodTier * 65;
+            hiddenChest.ResistAwareness = (int)(unmodTier * 65);
 
             if(ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
                 hiddenChest.IsLocked = true;
@@ -269,7 +266,7 @@ namespace ACE.Server.WorldObjects
             trapObject.Location.PositionZ += 2;
             trapObject.Location.LandblockId = new LandblockId(trapObject.Location.GetCell());
             trapObject.Generator = this;
-            var tier = Tier ?? 1;
+            var tier = RollTier();
             trapObject.Tier = tier;
             trapObject.SpellDID = (uint)SpellLevelProgression.GetSpellAtLevel((SpellId)TrapSpells[ThreadSafeRandom.Next(0, TrapSpells.Count - 1)], tier + 1);
             trapObject.ItemSpellcraft = (tier + 1) * 50;
@@ -280,7 +277,7 @@ namespace ACE.Server.WorldObjects
                 trapTrigger.Location.LandblockId = new LandblockId(trapTrigger.Location.GetCell());
                 trapTrigger.ActivationTarget = trapObject.Guid.Full;
                 trapTrigger.Generator = this;
-                trapTrigger.ResistAwareness = tier * 65;
+                trapTrigger.ResistAwareness = (int)(Tier * 65);
 
                 if (trapTrigger.EnterWorld())
                 {
@@ -578,6 +575,50 @@ namespace ACE.Server.WorldObjects
                 else
                     selectedTargets.Remove(kvp.Key);
             }
+        }
+
+        public int RollTier()
+        {
+            return RollTier(Tier ?? 1);
+        }
+
+        public static int RollTier(double extendedTier)
+        {
+            var extendedTierClamped = Math.Clamp(extendedTier, 1, 6);
+
+            var tierLevelUpChance = extendedTierClamped % 1;
+            var tierLevelUpRoll = ThreadSafeRandom.NextInterval(0);
+
+            int tier;
+            if (tierLevelUpRoll < tierLevelUpChance)
+                tier = (int)Math.Ceiling(extendedTierClamped);
+            else
+                tier = (int)Math.Floor(extendedTierClamped);
+
+            return tier;
+        }
+
+        public double CalculateExtendedTier()
+        {
+            return CalculateExtendedTier(Level ?? 1);
+        }
+
+        public static double CalculateExtendedTier(int level)
+        {
+            if (level < 10) // Tier 1.0
+                return 1.0f;
+            else if (level < 30) // Tier 1.0 to 2.0
+                return 1f + (float)Math.Pow((level - 10f) / 20f, 2);
+            else if (level < 50) // Tier 2.0 to 3.0
+                return 2f + (float)Math.Pow((level - 30f) / 20f, 2);
+            else if (level < 100) // Tier 3.0 to 4.0
+                return 3f + (float)Math.Pow((level - 50f) / 50f, 2);
+            else if (level < 120) // Tier 4.0 to 5.0
+                return 4f + (float)Math.Pow((level - 100f) / 20f, 2);
+            else if (level < 180) // Tier 5.0 to 6.0
+                return 5f + (float)Math.Pow((level - 120f) / 60f, 2);
+            else // Tier 6.0
+                return 6f;
         }
     }
 }

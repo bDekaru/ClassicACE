@@ -4684,6 +4684,58 @@ namespace ACE.Server.Command.Handlers.Processors
             return level;
         }
 
+        [CommandHandler("export-creature-tiers", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        public static void HandleExporCreatureTiers(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Exporting creature tiers to reports/CreatureTiers.txt...");
+
+            var contentFolder = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}reports{sep}");
+
+            if (!folder.Exists)
+                folder.Create();
+
+            var filename = $"{folder.FullName}{sep}CreatureTiers.txt";
+
+            var fileWriter = new StreamWriter(filename);
+
+            fileWriter.WriteLine("Name\tLevel\tTier\tCalculatedTier\tType\tWeenieClassId\tWeenieClassName\tDeathTreasureId");
+
+            var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+            var treasureDeath = DatabaseManager.World.GetAllTreasureDeath();
+
+            foreach (var weenieTypeEntry in WeenieTypes)
+            {
+                if (weenieTypeEntry.Value != (int)WeenieType.Creature)
+                    continue;
+
+                var weenie = DatabaseManager.World.GetWeenie(weenieTypeEntry.Key);
+
+                var playerKillerStatus = (PlayerKillerStatus?)weenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
+                var npcLooksLikeObject = weenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
+                if (weenie.ClassId != 1 && playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
+                {
+                    var name = weenie.GetProperty(PropertyString.Name);
+                    var level = weenie.GetProperty(PropertyInt.Level);
+                    var creatureType = (CreatureType?)weenie.GetProperty(PropertyInt.CreatureType);
+                    var deathTreasure = weenie.GetProperty(PropertyDataId.DeathTreasureType) ?? 0;
+
+                    if (level != 0 && deathTreasure != 0 && treasureDeath.ContainsKey(deathTreasure))
+                    {
+                        var creatureLootTier = treasureDeath[deathTreasure].Tier;
+
+                        var calculatedTier = Creature.CalculateExtendedTier(level ?? 1);
+                        fileWriter.WriteLine($"{name}\t{level}\t{creatureLootTier}\t{calculatedTier}\t{creatureType}\t{weenie.ClassId}\t{weenie.ClassName}\t{deathTreasure}");
+                    }
+                }
+            }
+
+            fileWriter.Close();
+            CommandHandlerHelper.WriteOutputInfo(session, "Done.");
+        }
+
         [CommandHandler("export-creature-tier-report", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
         public static void HandleExporCreatureTierReport(Session session, params string[] parameters)
         {

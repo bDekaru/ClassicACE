@@ -231,6 +231,8 @@ namespace ACE.Entity.Enum.Properties
         [ServerOnly]
         VendorStockTimeToRot           = 10007,
         ComponentBurnRateMod           = 10008,
+        [ServerOnly]
+        Tier                           = 10009,
     }
 
     public static class PropertyFloatExtensions

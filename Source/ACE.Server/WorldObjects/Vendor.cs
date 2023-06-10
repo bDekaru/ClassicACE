@@ -856,7 +856,6 @@ namespace ACE.Server.WorldObjects
             NumServicesSold++;
         }
 
-        private int ShopTier = 0;
         private int ShopRandomItemStockAmount = 0;
         private float ShopQualityMod = 0.0f;
         private bool RandomItemGenerationInitialized = false;
@@ -879,104 +878,103 @@ namespace ACE.Server.WorldObjects
         {
             RandomItemGenerationInitialized = true;
 
-            ShopTier = Tier ?? 0;
-
-            string townName = GetProperty(PropertyString.TownName);
-            switch (townName)
+            if (!Tier.HasValue)
             {
-                case "South Holtburg Outpost":
-                case "West Holtburg Outpost":
-                case "East Lytelthorpe Outpost":
-                case "West Lytelthorpe Outpost":
-                case "East Rithwic Outpost":
-                case "South Rithwic Outpost":
-                case "East Nanto Outpost":
-                case "North Nanto Outpost":
-                case "Southeast Shoushi Outpost":
-                case "West Shoushi Outpost":
-                case "North Yanshi Outpost":
-                case "South Yanshi Outpost":
-                case "North Al-Arqas Outpost":
-                case "West Al-Arqas Outpost":
-                case "East Samsur Outpost":
-                case "Northwest Samsur Outpost":
-                case "East Yaraq Outpost":
-                case "North Yaraq Outpost":
-                    if(ShopTier == 0)
-                        ShopTier = 1;
-                    ShopQualityMod = -0.5f;
-                    IsStarterOutpostVendor = true;
-                    break;
-                case "Al-Arqas":
-                case "Bluespire":
-                case "Greenspire":
-                case "Holtburg":
-                case "Lytelthorpe":
-                case "Martine's Retreat":
-                case "Nanto":
-                case "Redspire":
-                case "Rithwic":
-                case "Samsur":
-                case "Shoushi":
-                case "Tufa":
-                case "Underground City":
-                case "Xarabydun":
-                case "Yanshi":
-                case "Yaraq":
-                // The following 3 outposts are not starter outposts
-                case "East Glenden Wood Outpost":
-                case "West Glenden Wood Outpost":
-                case "Southwest Yanshi Outpost":
-                    if (ShopTier == 0)
-                        ShopTier = 1;
-                    ShopQualityMod = 0.0f;
-                    break;
-                case "Al-Jalima":
-                case "Ahurenga":
-                case "Arwic":
-                case "Baishi":
-                case "Cragstone":
-                case "Eastham":
-                case "Glenden Wood":
-                case "Hebian-to":
-                case "Khayyaban":
-                case "Kryst":
-                case "Lin":
-                case "Mayoi":
-                case "Oolutanga's Refuge":
-                case "Sawato":
-                case "Tou-Tou":
-                case "Uziz":
-                case "Zaikhal":
-                    if (ShopTier == 0)
-                        ShopTier = 2;
-                    ShopQualityMod = 0.0f;
-                    break;
-                case "Bandit Castle":
-                case "Crater Lake":
-                case "Dryreach":
-                case "Danby's Outpost":
-                case "Kara":
-                case "Linvak Tukal":
-                case "MacNiall's Freehold":
-                case "Neydisa Castle":
-                case "Plateau":
-                case "Qalaba'r":
-                case "Timaru":
-                    if (ShopTier == 0)
-                        ShopTier = 3;
-                    ShopQualityMod = 0.0f;
-                    break;
-                case "Candeth Keep":
-                case "Fort Tethana":
-                case "Ayan Baqur":
-                case "WaiJhou":
-                case "Stonehold":
-                    if (ShopTier == 0)
-                        ShopTier = 4;
-                    ShopQualityMod = 0.0f;
-                    break;
+                string townName = GetProperty(PropertyString.TownName);
+                switch (townName)
+                {
+                    case "South Holtburg Outpost":
+                    case "West Holtburg Outpost":
+                    case "East Lytelthorpe Outpost":
+                    case "West Lytelthorpe Outpost":
+                    case "East Rithwic Outpost":
+                    case "South Rithwic Outpost":
+                    case "East Nanto Outpost":
+                    case "North Nanto Outpost":
+                    case "Southeast Shoushi Outpost":
+                    case "West Shoushi Outpost":
+                    case "North Yanshi Outpost":
+                    case "South Yanshi Outpost":
+                    case "North Al-Arqas Outpost":
+                    case "West Al-Arqas Outpost":
+                    case "East Samsur Outpost":
+                    case "Northwest Samsur Outpost":
+                    case "East Yaraq Outpost":
+                    case "North Yaraq Outpost":
+                        Tier = 1;
+                        ShopQualityMod = -0.5f;
+                        IsStarterOutpostVendor = true;
+                        break;
+                    case "Al-Arqas":
+                    case "Bluespire":
+                    case "Greenspire":
+                    case "Holtburg":
+                    case "Lytelthorpe":
+                    case "Martine's Retreat":
+                    case "Nanto":
+                    case "Redspire":
+                    case "Rithwic":
+                    case "Samsur":
+                    case "Shoushi":
+                    case "Tufa":
+                    case "Underground City":
+                    case "Xarabydun":
+                    case "Yanshi":
+                    case "Yaraq":
+                    // The following 3 outposts are not starter outposts
+                    case "East Glenden Wood Outpost":
+                    case "West Glenden Wood Outpost":
+                    case "Southwest Yanshi Outpost":
+                        Tier = 1;
+                        ShopQualityMod = 0.0f;
+                        break;
+                    case "Al-Jalima":
+                    case "Ahurenga":
+                    case "Arwic":
+                    case "Baishi":
+                    case "Cragstone":
+                    case "Eastham":
+                    case "Glenden Wood":
+                    case "Hebian-to":
+                    case "Khayyaban":
+                    case "Kryst":
+                    case "Lin":
+                    case "Mayoi":
+                    case "Oolutanga's Refuge":
+                    case "Sawato":
+                    case "Tou-Tou":
+                    case "Uziz":
+                    case "Zaikhal":
+                        Tier = 2;
+                        ShopQualityMod = 0.0f;
+                        break;
+                    case "Bandit Castle":
+                    case "Crater Lake":
+                    case "Dryreach":
+                    case "Danby's Outpost":
+                    case "Kara":
+                    case "Linvak Tukal":
+                    case "MacNiall's Freehold":
+                    case "Neydisa Castle":
+                    case "Plateau":
+                    case "Qalaba'r":
+                    case "Timaru":
+                        Tier = 3;
+                        ShopQualityMod = 0.0f;
+                        break;
+                    case "Candeth Keep":
+                    case "Fort Tethana":
+                    case "Ayan Baqur":
+                    case "WaiJhou":
+                    case "Stonehold":
+                        Tier = 4;
+                        ShopQualityMod = 0.0f;
+                        break;
+                }
             }
+
+            if (!Tier.HasValue) // We're not in a town and no defined shop tier! See what's around us.
+                Tier = Math.Max(GetHighestTierAroundObject(50), 1); // Fallback to tier 1 if there's nothing around us.
 
             sellsRandomArmor = ((ItemType)MerchandiseItemTypes & ItemType.Armor) == ItemType.Armor;
             sellsRandomMeleeWeapons = ((ItemType)MerchandiseItemTypes & ItemType.MeleeWeapon) == ItemType.MeleeWeapon;
@@ -1025,52 +1023,34 @@ namespace ACE.Server.WorldObjects
             if (ShopHeritage > TreasureHeritageGroup.Sho)
                 ShopHeritage = TreasureHeritageGroup.Invalid;
 
-            if (ShopTier == 0) // We're not in a town and no defined shop tier! See what's around us.
-            {
-                ShopTier = 1; // Fallback to tier 1 if there's nothing around us.
-
-                foreach (var obj in CurrentLandblock.GetAllWorldObjectsForDiagnostics())
-                {
-                    if(obj.ItemType == ItemType.Creature)
-                    {
-                        PlayerKillerStatus pkStatus = (PlayerKillerStatus)(obj.GetProperty(PropertyInt.PlayerKillerStatus) ?? 0);
-
-                        Creature creature = obj as Creature;
-
-                        if (!(obj.Guid.IsPlayer()) && creature != null && pkStatus != PlayerKillerStatus.RubberGlue)
-                        {
-                            if(creature.DeathTreasure != null && creature.DeathTreasure.Tier > ShopTier)
-                                ShopTier = creature.DeathTreasure.Tier; // Trade in the highest tier we can find around us.
-                        }
-                    }
-                }
-            }
-
             // Let's overwrite the database values for MerchandiseMaxValue depending on our tier.
-            switch (ShopTier)
+            if (IsStarterOutpostVendor)
+                MerchandiseMaxValue = 1000;
+            else
             {
-                default:
-                case 1:
-                    if (IsStarterOutpostVendor)
-                        MerchandiseMaxValue = 1000;
-                    else
-                        MerchandiseMaxValue = 3000;
-                    break;
-                case 2:
-                    MerchandiseMaxValue = 12000;
-                    break;
-                case 3:
-                    MerchandiseMaxValue = 18000;
-                    break;
-                case 4:
-                    MerchandiseMaxValue = 30000;
-                    break;
-                case 5:
-                    MerchandiseMaxValue = 40000;
-                    break;
-                case 6:
-                    MerchandiseMaxValue = 50000;
-                    break;
+                var extraValueMod = Tier % 1;
+                switch (Math.Floor(Tier ?? 1))
+                {
+                    default:
+                    case 1:
+                        MerchandiseMaxValue = 3000 + (int)(extraValueMod * 9000);
+                        break;
+                    case 2:
+                        MerchandiseMaxValue = 12000 + (int)(extraValueMod * 6000);
+                        break;
+                    case 3:
+                        MerchandiseMaxValue = 18000 + (int)(extraValueMod * 12000);
+                        break;
+                    case 4:
+                        MerchandiseMaxValue = 30000 + (int)(extraValueMod * 10000);
+                        break;
+                    case 5:
+                        MerchandiseMaxValue = 40000 + (int)(extraValueMod * 10000);
+                        break;
+                    case 6:
+                        MerchandiseMaxValue = 50000;
+                        break;
+                }
             }
         }
 
@@ -1079,7 +1059,7 @@ namespace ACE.Server.WorldObjects
             if (!RandomItemGenerationInitialized)
                 SetupRandomItemShop();
 
-            if (ShopTier == 0)
+            if ((Tier ?? 0) == 0)
                 return;
 
             if (VendorRestockInterval == 0 && (DateTime.UtcNow - LastRestockTime).TotalSeconds < PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item)
@@ -1225,7 +1205,8 @@ namespace ACE.Server.WorldObjects
 
         private void AddRandomItem(TreasureItemType_Orig treasureItemType, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef)
         {
-            var item = LootGenerationFactory.CreateRandomLootObjects_New(ShopTier, ShopQualityMod, (DealMagicalItems ?? false) ? TreasureItemCategory.MagicItem : TreasureItemCategory.Item, treasureItemType, armorType, weaponType, ShopHeritage);
+            var itemTier = RollTier(Tier ?? 1);
+            var item = LootGenerationFactory.CreateRandomLootObjects_New(itemTier, ShopQualityMod, (DealMagicalItems ?? false) ? TreasureItemCategory.MagicItem : TreasureItemCategory.Item, treasureItemType, armorType, weaponType, ShopHeritage);
 
             var amount = item.StackSize ?? 1;
             if (amount > 1 && !item.Workmanship.HasValue) // Split stackable uniques.

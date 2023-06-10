@@ -94,15 +94,15 @@ namespace ACE.Server.Factories
                 return DatabaseManager.World.GetCachedDeathTreasure(deathTreasureId); // not tweaked.
             else
             {
-                if(deathTreasureId == 338) // Leave Steel Chests alone!
+                // Tweaks to make the loot system more akin to Infiltration Era and CustomDM
+
+                if (deathTreasureId == 338) // Leave Steel Chests alone!
                     return DatabaseManager.World.GetCachedDeathTreasure(deathTreasureId);
 
-                // Tweaks to make the loot system more akin to Infiltration Era and CustomDM
                 TreasureDeath deathTreasure;
                 TreasureDeathExtended tweakedDeathTreasure;
 
-                Creature creature = tweakedFor as Creature;
-                if (creature != null)
+                if (tweakedFor is Creature creature)
                 {
                     deathTreasure = DatabaseManager.World.GetCachedDeathTreasure(deathTreasureId);
                     if (deathTreasure == null)
@@ -110,11 +110,17 @@ namespace ACE.Server.Factories
 
                     tweakedDeathTreasure = new TreasureDeathExtended(deathTreasure);
 
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        tweakedDeathTreasure.ExtendedTier = creature.Tier ?? 1;
+                        tweakedDeathTreasure.Tier = creature.RollTier();
+                    }
+
                     float itemLootChance = 1.0f;
                     float magicItemLootChance = 1.0f;
                     float mundaneItemLootChance = 1.0f;
 
-                    switch (deathTreasure.Tier)
+                    switch (tweakedDeathTreasure.Tier)
                     {
                         case 1:
                             itemLootChance = 0.3f;
@@ -162,34 +168,6 @@ namespace ACE.Server.Factories
                     tweakedDeathTreasure.MagicItemChance = (int)(tweakedDeathTreasure.MagicItemChance * magicItemLootChance);
                     tweakedDeathTreasure.MundaneItemChance = (int)(tweakedDeathTreasure.MundaneItemChance * mundaneItemLootChance);
 
-                    // Let's make the creatures at the top of their tiers drop better loot than their lower leveled kin.
-                    switch (deathTreasure.Tier)
-                    {
-                        case 1:
-                            if(creature.Level >= 15 && tweakedDeathTreasure.LootQualityMod < 0.2f)
-                                tweakedDeathTreasure.LootQualityMod = 0.2f;
-                            break;
-                        case 2:
-                            if (creature.Level >= 60 && tweakedDeathTreasure.LootQualityMod < 0.2f)
-                                tweakedDeathTreasure.LootQualityMod = 0.2f;
-                            break;
-                        case 3:
-                            if (creature.Level >= 90 && tweakedDeathTreasure.LootQualityMod < 0.2f)
-                                tweakedDeathTreasure.LootQualityMod = 0.2f;
-                            break;
-                        case 4:
-                            if (creature.Level >= 110 && tweakedDeathTreasure.LootQualityMod < 0.2f)
-                                tweakedDeathTreasure.LootQualityMod = 0.2f;
-                            break;
-                        case 5:
-                            if (creature.Level >= 130 && tweakedDeathTreasure.LootQualityMod < 0.2f)
-                                tweakedDeathTreasure.LootQualityMod = 0.2f;
-                            break;
-                        case 6:
-                            if (creature.Level >= 160 && tweakedDeathTreasure.LootQualityMod < 0.2f)
-                                tweakedDeathTreasure.LootQualityMod = 0.2f;
-                            break;
-                    }
                     return tweakedDeathTreasure;
                 }
 

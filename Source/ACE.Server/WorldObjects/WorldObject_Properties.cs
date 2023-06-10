@@ -3130,10 +3130,19 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyInt.ResistAwareness); else SetProperty(PropertyInt.ResistAwareness, value.Value); }
         }
 
-        public int? Tier
+        public double? Tier
         {
-            get => GetProperty(PropertyInt.Tier);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Tier); else SetProperty(PropertyInt.Tier, value.Value); }
+            get => GetProperty(PropertyFloat.Tier) ?? GetProperty(PropertyInt.Tier); // float tier overrides int tier as it is more precise.
+            set
+            {
+                if (!value.HasValue)
+                {
+                    RemoveProperty(PropertyFloat.Tier);
+                    RemoveProperty(PropertyInt.Tier);
+                }
+                else
+                    SetProperty(PropertyFloat.Tier, value.Value);
+            }
         }
 
         public int EmptyId
