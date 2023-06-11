@@ -113,7 +113,10 @@ namespace ACE.Server.WorldObjects
             if (CurrentAttack == null)
             {
                 CurrentAttack = GetNextAttackType();
-                MaxRange = GetMaxRange();
+                if (CurrentAttack != CombatType.Missile || !MissileCombatMeleeRangeMode)
+                    MaxRange = GetMaxRange();
+                else
+                    MaxRange = MaxMeleeRange;
 
                 //if (CurrentAttack == AttackType.Magic)
                 //MaxRange = MaxMeleeRange;   // FIXME: server position sync
@@ -126,6 +129,9 @@ namespace ACE.Server.WorldObjects
             var targetDist = GetDistanceToTarget();
             //Console.WriteLine($"{Name} ({Guid}) - Dist: {targetDist}");
 
+            if (PathfindingPending)
+                return;
+
             if (CurrentAttack != CombatType.Missile || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 if (targetDist > MaxRange || (!IsFacing(AttackTarget) && !IsSelfCast()))
@@ -135,8 +141,15 @@ namespace ACE.Server.WorldObjects
                         StartTurn();
                     else
                     {
-                        if (CurrentAttack == CombatType.Melee && targetDist > 20 && HasRangedWeapon && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                            TrySwitchToMissileAttack();
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
+                            if (HasRangedWeapon && CurrentAttack == CombatType.Melee && (targetDist > 20 || PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 10) && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime)
+                                TrySwitchToMissileAttack();
+                            else if (PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 20 && !PathfindingPending && LastPathfindTime + 5 < currentUnixTime)
+                                TryPathfind(100, 260, 3);
+                            else
+                                Movement();
+                        }
                         else
                             Movement();
                     }

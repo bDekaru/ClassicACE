@@ -71,7 +71,7 @@ namespace ACE.Server.WorldObjects
                 SwitchToMeleeAttack();
                 return;
             }*/
-            if (SwitchWeaponsPending)
+            if (SwitchWeaponsPending || PathfindingPending)
             {
                 NextAttackTime = Timers.RunningTime + 1.0f;
                 return;
@@ -123,6 +123,8 @@ namespace ACE.Server.WorldObjects
                     var projectile = LaunchProjectile(launcher, ammo, AttackTarget, origin, orientation, velocity);
                     UpdateAmmoAfterLaunch(ammo);
                 }
+
+                MissileCombatMeleeRangeMode = false; // reset melee range mode.
             });
 
             // will ammo be depleted?
@@ -195,15 +197,47 @@ namespace ACE.Server.WorldObjects
             if (rng == 3)
                 SwitchToMeleeAttack();*/
 
-            if (MonsterProjectile_OnCollideEnvironment_Counter >= 3 && (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || ThreadSafeRandom.Next(1, 3) != 3))
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
-                MonsterProjectile_OnCollideEnvironment_Counter = 0;
-                TrySwitchToMeleeAttack();
+                if (MonsterProjectile_OnCollideEnvironment_Counter >= 3)
+                {
+                    MonsterProjectile_OnCollideEnvironment_Counter = 0;
+                    TrySwitchToMeleeAttack();
+                }
+            }
+            else
+            {
+                if (MonsterProjectile_OnCollideEnvironment_Counter > 1 && ThreadSafeRandom.Next(1, 3) != 3)
+                {
+                    MonsterProjectile_OnCollideEnvironment_Counter = 0;
+
+                    if (HasMeleeWeapon)
+                    {
+                        var roll = ThreadSafeRandom.Next(1, 3);
+                        switch (roll)
+                        {
+                            case 1: TrySwitchToMeleeAttack(); break;
+                            case 2: TryPathfind(-45, 45, 2); break;
+                            case 3: MissileCombatMeleeRangeMode = true; break;
+                        }
+                    }
+                    else
+                    {
+                        var roll = ThreadSafeRandom.Next(1, 3);
+                        switch (roll)
+                        {
+                            case 1:
+                            case 2: TryPathfind(-45, 45, 2); break;
+                            case 3: MissileCombatMeleeRangeMode = true; break;
+                        }
+                    }
+                }
             }
         }
 
         public bool SwitchWeaponsPending;
         public double LastWeaponSwitchTime = 0;
+        public bool MissileCombatMeleeRangeMode = false;
 
         public void TrySwitchToMeleeAttack()
         {

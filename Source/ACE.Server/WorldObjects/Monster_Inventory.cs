@@ -167,18 +167,21 @@ namespace ACE.Server.WorldObjects
         }
 
         bool HasRangedWeapon = false;
+        bool HasMeleeWeapon = false;
 
         public void GetMonsterInventory(List<WorldObject> allWeapons, List<WorldObject> ammo, bool allowMelee = true, bool allowRanged = true, bool allowCaster = true)
         {
             // similar to GetInventoryItemsOfTypeWeenieType, optimized for this particular scenario
 
             HasRangedWeapon = false;
+            HasMeleeWeapon = false;
             foreach (var item in Inventory.Values)
             {
                 switch (item.WeenieType)
                 {
                     case WeenieType.MeleeWeapon:
 
+                        HasMeleeWeapon = true;
                         if (allowMelee)
                             allWeapons.Add(item);
                         break;

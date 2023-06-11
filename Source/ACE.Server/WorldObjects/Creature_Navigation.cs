@@ -188,7 +188,7 @@ namespace ACE.Server.WorldObjects
             var turnSpeed = MotionTable.GetTurnSpeed(MotionTableId);
             if (turnSpeed == 0.0f) return 0.0f;
 
-            var rotateTime = Math.PI / turnSpeed / 180.0f * angle;
+            var rotateTime = Math.PI / turnSpeed / 180.0f * Math.Abs(angle);
             return (float)rotateTime;
         }
 

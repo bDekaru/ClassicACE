@@ -1,4 +1,7 @@
+using ACE.DatLoader;
 using ACE.Entity.Enum;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ACE.Server.WorldObjects
 {
@@ -49,6 +52,24 @@ namespace ACE.Server.WorldObjects
             IsFactionMob = IsMonster && WeenieType != WeenieType.CombatPet && Faction1Bits != null;
 
             HasFoeType = IsMonster && FoeType != null;
+        }
+
+        List<MotionCommand> IdleMotionsList = null;
+        public void BuildIdleMotionsList()
+        {
+            IdleMotionsList = new List<MotionCommand>();
+
+            var motionTable = DatManager.PortalDat.ReadFromDat<DatLoader.FileTypes.MotionTable>(MotionTableId);
+            var heartbeatEmotes = Biota.PropertiesEmote.Where(e => e.Category == EmoteCategory.HeartBeat);
+            foreach (var emote in heartbeatEmotes)
+            {
+                foreach (var emoteAction in emote.PropertiesEmoteAction)
+                {
+                    MotionCommand motion = (MotionCommand)emoteAction.Motion;
+                    if (emoteAction.Type == (int)EmoteType.Motion && !IdleMotionsList.Contains(motion))
+                        IdleMotionsList.Add(motion);
+                }
+            }
         }
     }
 }

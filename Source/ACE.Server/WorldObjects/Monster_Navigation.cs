@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Numerics;
 
 using ACE.Common;
@@ -10,6 +11,7 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
 using ACE.Server.Physics.Animation;
 using ACE.Server.Physics.Common;
+using ACE.Server.Physics.Extensions;
 
 namespace ACE.Server.WorldObjects
 {
@@ -63,6 +65,9 @@ namespace ACE.Server.WorldObjects
 
         public double NextMoveTime;
         public double NextCancelTime;
+
+        public double LastPathfindTime = 0;
+        public bool PathfindingPending = false;
 
         /// <summary>
         /// Starts the process of monster turning towards target
@@ -538,6 +543,56 @@ namespace ACE.Server.WorldObjects
             var actionChain = new ActionChain();
             actionChain.AddDelaySeconds(0.5f);
             actionChain.AddAction(this, Sleep);
+            actionChain.EnqueueChain();
+        }
+
+        public void TryPathfind(float directionMinAngle, float directionMaxAngle, float duration)
+        {
+            PathfindingPending = true;
+
+            if (NextMoveTime > Timers.RunningTime)
+            {
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(NextMoveTime - Timers.RunningTime);
+                actionChain.AddAction(this, () => Pathfind(directionMinAngle, directionMaxAngle, duration));
+                actionChain.EnqueueChain();
+            }
+            else
+                Pathfind(directionMinAngle, directionMaxAngle, duration);
+        }
+
+
+        // VERY rudimentary pathfinding, basically just move in a random direction for a bit and try again.
+        public void Pathfind(float directionMinAngle, float directionMaxAngle, float duration)
+        {
+            if (AttackTarget == null)
+                return;
+
+            LastPathfindTime = Time.GetUnixTime();
+
+            var angle = GetAngle(AttackTarget);
+
+            var offsetPosition = new ACE.Entity.Position(Location);
+            var currDir = offsetPosition.GetCurrentDir();
+            offsetPosition.Rotation = new Quaternion(0, 0, offsetPosition.RotationZ, offsetPosition.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(directionMinAngle.ToRadians(), directionMaxAngle.ToRadians()));
+            offsetPosition = offsetPosition.InFrontOf(25);
+            offsetPosition.SetLandblock();
+
+            var actionChain = new ActionChain();
+
+            if (IdleMotionsList == null)
+                BuildIdleMotionsList();
+
+            if (IdleMotionsList.Count() > 0)
+            {
+                var randomEmote = IdleMotionsList.ElementAt(ThreadSafeRandom.Next(0, IdleMotionsList.Count() - 1));
+                EnqueueMotion(actionChain, MotionStance.NonCombat, randomEmote);
+            }
+
+            actionChain.AddAction(this, () => MoveTo(offsetPosition, GetRunRate()));
+            actionChain.AddDelaySeconds(GetRotateDelay(GetAngle(GetDirection(Location.Pos, offsetPosition.Pos))) + duration);
+            actionChain.AddAction(this, () => PathfindingPending = false);
+            actionChain.AddAction(this, CancelMoveTo);
             actionChain.EnqueueChain();
         }
     }
