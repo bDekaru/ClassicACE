@@ -514,7 +514,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyBool("allow_fast_chug", false);
                 PropertyManager.ModifyBool("allow_jump_loot", false);
                 PropertyManager.ModifyBool("allow_pkl_bump", false);
-
+                PropertyManager.ModifyBool("fix_chest_missing_inventory_window", true);
 
                 PropertyManager.ModifyLong("max_level", 126);
                 PropertyManager.ModifyLong("fellowship_even_share_level", 80);
