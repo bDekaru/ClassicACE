@@ -1,6 +1,6 @@
 {
     "Server": {
-        "WorldName": "ClassicACE-CustomDM",
+        "WorldName": "ClassicACE-Infiltration",
 
         "Network": {
             // Host, default: "0.0.0.0"
@@ -81,7 +81,7 @@
 
         // WorldRuleset, default: "EoR"
         // Available Options: "EoR", "Infiltration", "CustomDM"
-        "WorldRuleset": "CustomDM",
+        "WorldRuleset": "Infiltration",
 
         // ShardPlayerBiotaCacheTime, default: 31
         // The amount of minutes to keep in memory a player object from shard database.
@@ -152,13 +152,6 @@
                 "Permaload": true,
                 "IncludeAdjacents": false,
                 "Enabled": false
-            },
-            {
-                "Id": "B095FFFF",
-                "Description": "Smuggler's Den'",
-                "Permaload": true,
-                "IncludeAdjacents": false,
-                "Enabled": true
             }
         ]
     },
@@ -166,21 +159,21 @@
         "Authentication": {
             "Host": "127.0.0.1",
             "Port": 3306,
-            "Database": "ace_auth_customdm",
+            "Database": "ace_auth_infiltration",
             "Username": "root",
             "Password": ""
         },
         "Shard": {
             "Host": "127.0.0.1",
             "Port": 3306,
-            "Database": "ace_shard_customdm",
+            "Database": "ace_shard_infiltration",
             "Username": "root",
             "Password": ""
         },
         "World": {
             "Host": "127.0.0.1",
             "Port": 3306,
-            "Database": "ace_world_customdm",
+            "Database": "ace_world_infiltration",
             "Username": "root",
             "Password": ""
         }

@@ -17,28 +17,53 @@ namespace ACE.Server
         private static void DoOutOfBoxSetup(string configFile)
         {
             var exeLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            var configJsExample = Path.Combine(exeLocation, "Config.js.example");
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                configJsExample = Path.Combine(exeLocation, "Config.js.CustomDM.example");
-            var exampleFile = new FileInfo(configJsExample);
-            if (!exampleFile.Exists)
+            Ruleset ruleset = Ruleset.Infiltration;
+            if (!IsRunningInContainer)
             {
-                log.Error("config.js.example Configuration file is missing.  Please copy the file config.js.example to config.js and edit it to match your needs before running ACE.");
-                throw new Exception("missing config.js configuration file");
+                Console.WriteLine("config.js Configuration file is missing,  cloning from example file.");
+                Console.WriteLine();
+
+                Console.Write($"Enter the ruletset for your World (options: EoR, Infiltration, CustomDM (default: Infiltration): ");
+                var rulesetString = Console.ReadLine();
+                if (!string.IsNullOrWhiteSpace(rulesetString))
+                {
+                    rulesetString = rulesetString.Trim();
+                    if(!Enum.TryParse(rulesetString, true, out ruleset))
+                        Console.Write($"Invalid ruleset, defaulting to Infiltration.");
+                }
+                else
+                    Console.Write($"Invalid ruleset, defaulting to Infiltration.");
+                Console.WriteLine();
+
+                string configJsExample;
+                switch (ruleset)
+                {
+                    default:
+                    case Ruleset.Infiltration:
+                        configJsExample = Path.Combine(exeLocation, "Config.js.Infiltration.example");
+                        break;
+                    case Ruleset.CustomDM:
+                        configJsExample = Path.Combine(exeLocation, "Config.js.CustomDM.example");
+                        break;
+                    case Ruleset.EoR:
+                        configJsExample = Path.Combine(exeLocation, "Config.js.example");
+                        break;
+                }
+
+                var exampleFile = new FileInfo(configJsExample);
+                if (!exampleFile.Exists)
+                {
+                    log.Error($"{configJsExample} Configuration file is missing.  Please copy the file {configJsExample} to config.js and edit it to match your needs before running ACE.");
+                    throw new Exception("missing config.js configuration file");
+                }
+
+                File.Copy(configJsExample, configFile, true);
             }
             else
             {
-                if (!IsRunningInContainer)
-                {
-                    Console.WriteLine("config.js Configuration file is missing,  cloning from example file.");
-                    File.Copy(configJsExample, configFile, true);
-                }
-                else
-                {
-                    Console.WriteLine("config.js Configuration file is missing, ACEmulator is running in a container,  cloning from docker file.");
-                    var configJsDocker = Path.Combine(exeLocation, "Config.js.docker");
-                    File.Copy(configJsDocker, configFile, true);
-                }
+                Console.WriteLine("config.js Configuration file is missing, ACEmulator is running in a container,  cloning from docker file.");
+                var configJsDocker = Path.Combine(exeLocation, "Config.js.docker");
+                File.Copy(configJsDocker, configFile, true);
             }
 
             var fileText = File.ReadAllText(configFile);
@@ -326,7 +351,35 @@ namespace ACE.Server
                 }
 
                 Console.WriteLine("Searching for base SQL scripts .... ");
-                foreach (var file in new DirectoryInfo($"DatabaseSetupScripts{Path.DirectorySeparatorChar}Base").GetFiles("*.sql").OrderBy(f => f.Name))
+
+                string databaseSetupScriptsPath;
+                string databaseDefaultNameAuth;
+                string databaseDefaultNameShard;
+                string databaseDefaultNameWorld;
+                switch (ruleset)
+                {
+                    default:
+                    case Ruleset.Infiltration:
+                        databaseSetupScriptsPath = $"DatabaseSetupScripts{Path.DirectorySeparatorChar}Base{Path.DirectorySeparatorChar}Infiltration";
+                        databaseDefaultNameAuth = "ace_auth_infiltration";
+                        databaseDefaultNameShard = "ace_shard_infiltration";
+                        databaseDefaultNameWorld = "ace_world_infiltration";
+                        break;
+                    case Ruleset.CustomDM:
+                        databaseSetupScriptsPath = $"DatabaseSetupScripts{Path.DirectorySeparatorChar}Base{Path.DirectorySeparatorChar}CustomDM";
+                        databaseDefaultNameAuth = "ace_auth_customdm";
+                        databaseDefaultNameShard = "ace_shard_customdm";
+                        databaseDefaultNameWorld = "ace_world_customdm";
+                        break;
+                    case Ruleset.EoR:
+                        databaseSetupScriptsPath = $"DatabaseSetupScripts{Path.DirectorySeparatorChar}Base";
+                        databaseDefaultNameAuth = "ace_auth";
+                        databaseDefaultNameShard = "ace_shard";
+                        databaseDefaultNameWorld = "ace_world";
+                        break;
+                }
+
+                foreach (var file in new DirectoryInfo(databaseSetupScriptsPath).GetFiles("*.sql").OrderBy(f => f.Name))
                 {
                     Console.Write($"Found {file.Name} .... ");
                     var sqlDBFile = File.ReadAllText(file.FullName);
@@ -335,16 +388,16 @@ namespace ACE.Server
                     {
                         case "AuthenticationBase.sql":
                             sqlConnectInfo = $"server={config.MySql.Authentication.Host};port={config.MySql.Authentication.Port};user={config.MySql.Authentication.Username};password={config.MySql.Authentication.Password};DefaultCommandTimeout=120";
-                            sqlDBFile = sqlDBFile.Replace("ace_auth", config.MySql.Authentication.Database);
+                            sqlDBFile = sqlDBFile.Replace(databaseDefaultNameAuth, config.MySql.Authentication.Database);
                             break;
                         case "ShardBase.sql":
                             sqlConnectInfo = $"server={config.MySql.Shard.Host};port={config.MySql.Shard.Port};user={config.MySql.Shard.Username};password={config.MySql.Shard.Password};DefaultCommandTimeout=120";
-                            sqlDBFile = sqlDBFile.Replace("ace_shard", config.MySql.Shard.Database);
+                            sqlDBFile = sqlDBFile.Replace(databaseDefaultNameShard, config.MySql.Shard.Database);
                             break;
                         case "WorldBase.sql":
                         default:
                             //sqlConnectInfo = $"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120";
-                            sqlDBFile = sqlDBFile.Replace("ace_world", config.MySql.World.Database);
+                            sqlDBFile = sqlDBFile.Replace(databaseDefaultNameWorld, config.MySql.World.Database);
                             break;
                     }
                     var sqlConnect = new MySql.Data.MySqlClient.MySqlConnection(sqlConnectInfo);
@@ -364,98 +417,127 @@ namespace ACE.Server
                 }
                 Console.WriteLine("Base SQL scripts import complete!");
 
-                Console.WriteLine("Searching for Update SQL scripts .... ");
+                if (ruleset == Ruleset.EoR)
+                {
+                    Console.WriteLine("Searching for Update SQL scripts .... ");
 
-                PatchDatabase("Authentication", config.MySql.Authentication.Host, config.MySql.Authentication.Port, config.MySql.Authentication.Username, config.MySql.Authentication.Password, config.MySql.Authentication.Database, config.MySql.Shard.Database, config.MySql.World.Database);
+                    PatchDatabase("Authentication", config.MySql.Authentication.Host, config.MySql.Authentication.Port, config.MySql.Authentication.Username, config.MySql.Authentication.Password, config.MySql.Authentication.Database, config.MySql.Shard.Database, config.MySql.World.Database);
 
-                PatchDatabase("Shard", config.MySql.Shard.Host, config.MySql.Shard.Port, config.MySql.Shard.Username, config.MySql.Shard.Password, config.MySql.Authentication.Database, config.MySql.Shard.Database, config.MySql.World.Database);
+                    PatchDatabase("Shard", config.MySql.Shard.Host, config.MySql.Shard.Port, config.MySql.Shard.Username, config.MySql.Shard.Password, config.MySql.Authentication.Database, config.MySql.Shard.Database, config.MySql.World.Database);
 
-                PatchDatabase("World", config.MySql.World.Host, config.MySql.World.Port, config.MySql.World.Username, config.MySql.World.Password, config.MySql.Authentication.Database, config.MySql.Shard.Database, config.MySql.World.Database);
+                    PatchDatabase("World", config.MySql.World.Host, config.MySql.World.Port, config.MySql.World.Username, config.MySql.World.Password, config.MySql.Authentication.Database, config.MySql.Shard.Database, config.MySql.World.Database);
+                }
             }
 
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.Write("Do you want to download the latest world database and import it? (Y/n): ");
-            variable = Console.ReadLine();
-            if (IsRunningInContainer) variable = Convert.ToBoolean(Environment.GetEnvironmentVariable("ACE_SQL_DOWNLOAD_LATEST_WORLD_RELEASE")) ? "y" : "n";
-            if (!variable.Equals("n", StringComparison.OrdinalIgnoreCase) && !variable.Equals("no", StringComparison.OrdinalIgnoreCase))
+            if (ruleset == Ruleset.EoR)
             {
                 Console.WriteLine();
-
-                if (IsRunningInContainer)
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.Write("Do you want to download the latest world database and import it? (Y/n): ");
+                variable = Console.ReadLine();
+                if (IsRunningInContainer) variable = Convert.ToBoolean(Environment.GetEnvironmentVariable("ACE_SQL_DOWNLOAD_LATEST_WORLD_RELEASE")) ? "y" : "n";
+                if (!variable.Equals("n", StringComparison.OrdinalIgnoreCase) && !variable.Equals("no", StringComparison.OrdinalIgnoreCase))
                 {
-                    Console.WriteLine(" ");
-                    Console.WriteLine("This process will take a while, depending on many factors, and may look stuck while reading and importing the world database, please be patient! ");
-                    Console.WriteLine(" ");
-                }
+                    Console.WriteLine();
 
-                Console.Write("Looking up latest release from ACEmulator/ACE-World-16PY-Patches .... ");
-
-                var url = "https://api.github.com/repos/ACEmulator/ACE-World-16PY-Patches/releases/latest";
-                using var client = new WebClient();
-                var html = client.GetStringFromURL(url).Result;
-
-                dynamic json = JsonConvert.DeserializeObject(html);
-                string tag = json.tag_name;
-                string dbURL = json.assets[0].browser_download_url;
-                string dbFileName = json.assets[0].name;
-
-                Console.WriteLine($"Found {tag} !");
-
-                Console.Write($"Downloading {dbFileName} .... ");
-                var dlTask = client.DownloadFile(dbURL, dbFileName);
-                dlTask.Wait();
-                Console.WriteLine("download complete!");
-
-                Console.Write($"Extracting {dbFileName} .... ");
-                ZipFile.ExtractToDirectory(dbFileName, ".", true);
-                Console.WriteLine("extraction complete!");
-                Console.Write($"Deleting {dbFileName} .... ");
-                File.Delete(dbFileName);
-                Console.WriteLine("Deleted!");
-
-                var sqlFile = dbFileName.Substring(0, dbFileName.Length - 4);
-                Console.Write($"Importing {sqlFile} into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} (This will take a while, please be patient) .... ");
-                using (var sr = File.OpenText(sqlFile))
-                {
-                    var sqlConnect = new MySql.Data.MySqlClient.MySqlConnection($"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120");
-
-                    var line = string.Empty;
-                    var completeSQLline = string.Empty;
-
-                    var dbname = config.MySql.World.Database;
-
-                    while ((line = sr.ReadLine()) != null)
+                    if (IsRunningInContainer)
                     {
-                        line = line.Replace("ace_world", dbname);
-                        //do minimal amount of work here
-                        if (line.EndsWith(";"))
-                        {
-                            completeSQLline += line + Environment.NewLine;
-
-                            var script = new MySql.Data.MySqlClient.MySqlScript(sqlConnect, completeSQLline);
-                            try
-                            {
-                                script.StatementExecuted += new MySql.Data.MySqlClient.MySqlStatementExecutedEventHandler(OnStatementExecutedOutputDot);
-                                var count = script.Execute();
-                            }
-                            catch (MySql.Data.MySqlClient.MySqlException)
-                            {
-
-                            }
-                            completeSQLline = string.Empty;
-                        }
-                        else
-                            completeSQLline += line + Environment.NewLine;
+                        Console.WriteLine(" ");
+                        Console.WriteLine("This process will take a while, depending on many factors, and may look stuck while reading and importing the world database, please be patient! ");
+                        Console.WriteLine(" ");
                     }
-                }
-                Console.WriteLine(" complete!");
 
-                Console.Write($"Deleting {sqlFile} .... ");
-                File.Delete(sqlFile);
-                Console.WriteLine("Deleted!");
+                    Console.Write("Looking up latest release from ACEmulator/ACE-World-16PY-Patches .... ");
+
+                    var url = "https://api.github.com/repos/ACEmulator/ACE-World-16PY-Patches/releases/latest";
+                    using var client = new WebClient();
+                    var html = client.GetStringFromURL(url).Result;
+
+                    dynamic json = JsonConvert.DeserializeObject(html);
+                    string tag = json.tag_name;
+                    string dbURL = json.assets[0].browser_download_url;
+                    string dbFileName = json.assets[0].name;
+
+                    Console.WriteLine($"Found {tag} !");
+
+                    Console.Write($"Downloading {dbFileName} .... ");
+                    var dlTask = client.DownloadFile(dbURL, dbFileName);
+                    dlTask.Wait();
+                    Console.WriteLine("download complete!");
+
+                    Console.Write($"Extracting {dbFileName} .... ");
+                    ZipFile.ExtractToDirectory(dbFileName, ".", true);
+                    Console.WriteLine("extraction complete!");
+                    Console.Write($"Deleting {dbFileName} .... ");
+                    File.Delete(dbFileName);
+                    Console.WriteLine("Deleted!");
+
+                    var sqlFile = dbFileName.Substring(0, dbFileName.Length - 4);
+                    Console.Write($"Importing {sqlFile} into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} (This will take a while, please be patient) .... ");
+                    using (var sr = File.OpenText(sqlFile))
+                    {
+                        var sqlConnect = new MySql.Data.MySqlClient.MySqlConnection($"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120");
+
+                        var line = string.Empty;
+                        var completeSQLline = string.Empty;
+
+                        var dbname = config.MySql.World.Database;
+
+                        while ((line = sr.ReadLine()) != null)
+                        {
+                            line = line.Replace("ace_world", dbname);
+                            //do minimal amount of work here
+                            if (line.EndsWith(";"))
+                            {
+                                completeSQLline += line + Environment.NewLine;
+
+                                var script = new MySql.Data.MySqlClient.MySqlScript(sqlConnect, completeSQLline);
+                                try
+                                {
+                                    script.StatementExecuted += new MySql.Data.MySqlClient.MySqlStatementExecutedEventHandler(OnStatementExecutedOutputDot);
+                                    var count = script.Execute();
+                                }
+                                catch (MySql.Data.MySqlClient.MySqlException)
+                                {
+
+                                }
+                                completeSQLline = string.Empty;
+                            }
+                            else
+                                completeSQLline += line + Environment.NewLine;
+                        }
+                    }
+                    Console.WriteLine(" complete!");
+
+                    Console.Write($"Deleting {sqlFile} .... ");
+                    File.Delete(sqlFile);
+                    Console.WriteLine("Deleted!");
+                }
+            }
+            else
+            {
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                if (ruleset == Ruleset.CustomDM)
+                {
+                    Console.WriteLine("World database automatic setup and updating is not yet implemented for the CustomDM ruleset.");
+                    Console.WriteLine();
+                    Console.WriteLine("To complete the server setup please manually extract the ACE-World-CE16PY-db-v0.7.18-CustomDM 7zip file from the server source Database folder and import the contained .sql file into your world database.");
+                }
+                else
+                {
+                    Console.WriteLine("World database automatic setup and updating is not yet implemented for the Infiltration ruleset.");
+                    Console.WriteLine();
+                    Console.WriteLine("To complete the server setup please manually extract the ACE-World-CE16PY-db-v0.7.18-Infiltration 7zip file from the server source Database folder and import the contained .sql file into your world database.");
+                }
+                Console.WriteLine();
+                Console.Write("Press enter when you've completed the above steps...");
+                Console.ReadLine();
+                Console.WriteLine();
+                Console.WriteLine();
             }
 
             Console.WriteLine("exiting setup for ACEmulator.");

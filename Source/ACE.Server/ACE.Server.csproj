@@ -436,6 +436,9 @@
     <None Update="Config.js.example">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Config.js.Infiltration.example">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Config.js.CustomDM.example">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
