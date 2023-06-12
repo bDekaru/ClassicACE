@@ -946,7 +946,7 @@ namespace ACE.Server.WorldObjects
 
             // only PKs affected by these caps?
             //if (dist > Windup_MaxMove && PlayerKillerStatus != PlayerKillerStatus.NPK)
-            if (dist > PropertyManager.GetDouble("cast_radius").Item && PlayerKillerStatus != PlayerKillerStatus.NPK)
+            if (dist > PropertyManager.GetDouble("pk_cast_radius").Item && PlayerKillerStatus != PlayerKillerStatus.NPK)
             {
                 //player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouHaveMovedTooFar));
                 Session.Network.EnqueueSend(new GameMessageSystemChat("Your movement disrupted spell casting!", ChatMessageType.Magic));

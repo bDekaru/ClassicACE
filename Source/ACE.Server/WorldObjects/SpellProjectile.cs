@@ -463,8 +463,10 @@ namespace ACE.Server.WorldObjects
                     techniqueId = (TacticAndTechniqueType)techniqueTrinket.TacticAndTechniqueId;
             }
 
+            bool isPvP = sourcePlayer != null && targetPlayer != null;
+
             // critical hit
-            var criticalChance = GetWeaponMagicCritFrequency(weapon, sourceCreature, attackSkill, target);
+            var criticalChance = GetWeaponMagicCritFrequency(weapon, sourceCreature, attackSkill, target, isPvP);
 
             if (sourcePlayer != null && source != target)
             {
@@ -489,17 +491,15 @@ namespace ACE.Server.WorldObjects
 
             var absorbMod = GetAbsorbMod(this, target);
 
-            bool isPVP = sourcePlayer != null && targetPlayer != null;
-
             //http://acpedia.org/wiki/Announcements_-_2014/01_-_Forces_of_Nature - Aegis is 72% effective in PvP
-            if (isPVP && (target.CombatMode == CombatMode.Melee || target.CombatMode == CombatMode.Missile) && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            if (isPvP && (target.CombatMode == CombatMode.Melee || target.CombatMode == CombatMode.Missile) && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 absorbMod = 1 - absorbMod;
                 absorbMod *= 0.72f;
                 absorbMod = 1 - absorbMod;
             }
 
-            if (isPVP && Spell.IsHarmful)
+            if (isPvP && Spell.IsHarmful)
                 Player.UpdatePKTimers(sourcePlayer, targetPlayer);
 
             var elementalDamageMod = GetCasterElementalDamageModifier(weapon, sourceCreature, target, Spell.DamageType);
@@ -512,7 +512,7 @@ namespace ACE.Server.WorldObjects
             {
                 lifeMagicDamage = LifeProjectileDamage * Spell.DamageRatio;
 
-                if (!isPVP || Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                if (!isPvP || Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 {
                     // could life magic projectiles crit?
                     // if so, did they use the same 1.5x formula as war magic, instead of 2.0x?
@@ -520,7 +520,7 @@ namespace ACE.Server.WorldObjects
                     {
                         // verify: CriticalMultiplier only applied to the additional crit damage,
                         // whereas CD/CDR applied to the total damage (base damage + additional crit damage)
-                        weaponCritDamageMod = GetWeaponCritDamageMod(weapon, sourceCreature, attackSkill, target);
+                        weaponCritDamageMod = GetWeaponCritDamageMod(weapon, sourceCreature, attackSkill, target, isPvP);
 
                         critDamageBonus = lifeMagicDamage * 0.5f * weaponCritDamageMod;
                     }
@@ -556,14 +556,14 @@ namespace ACE.Server.WorldObjects
                     // Starting in July, War Magic critical hits will instead add a multiple of the maximum damage of the spell.
                     // No more crits that do less damage than non-crits!
 
-                    if (isPVP) // PvP: 50% of the MIN damage added to normal damage roll
+                    if (isPvP) // PvP: 50% of the MIN damage added to normal damage roll
                         critDamageBonus = Spell.MinDamage * 0.5f;
                     else   // PvE: 50% of the MAX damage added to normal damage roll
                         critDamageBonus = Spell.MaxDamage * 0.5f;
 
                     // verify: CriticalMultiplier only applied to the additional crit damage,
                     // whereas CD/CDR applied to the total damage (base damage + additional crit damage)
-                    weaponCritDamageMod = GetWeaponCritDamageMod(weapon, sourceCreature, attackSkill, target);
+                    weaponCritDamageMod = GetWeaponCritDamageMod(weapon, sourceCreature, attackSkill, target, isPvP);
 
                     critDamageBonus *= weaponCritDamageMod;
                 }
@@ -599,7 +599,7 @@ namespace ACE.Server.WorldObjects
 
                 resistanceMod = (float)Math.Max(0.0f, target.GetResistanceMod(resistanceType, this, null, weaponResistanceMod));
 
-                if (sourcePlayer != null && targetPlayer != null && Spell.DamageType == DamageType.Nether)
+                if (isPvP && Spell.DamageType == DamageType.Nether)
                 {
                     // for direct damage from void spells in pvp,
                     // apply void_pvp_modifier *on top of* the player's natural resistance to nether
@@ -614,37 +614,27 @@ namespace ACE.Server.WorldObjects
             }
 
             //Apply pvp dmg mods for war and void (not including DOTs which are in EnchantmentManager.ApplyDamageTick)
-            float dmgMod = 1;
-            if (sourcePlayer != null && targetPlayer != null)
+            if (isPvP)
             {
+                float pvpMod = (float)PropertyManager.GetDouble("pvp_dmg_mod").Item;
+
                 if (Spell.School == MagicSchool.WarMagic)
                 {
-                    dmgMod = (float)PropertyManager.GetDouble("pvp_dmg_mod_war").Item;
-
                     if (SpellType == ProjectileSpellType.Streak)
-                        dmgMod = (float)PropertyManager.GetDouble("pvp_dmg_mod_war_streak").Item; // scales war streak damages
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_streak").Item;
+                    else
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war").Item;
 
-                    if (criticalHit && weapon.HasImbuedEffect(ImbuedEffectType.CripplingBlow))
-                    {
-                        dmgMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_cb_crit").Item;
-                    }
-
-                    finalDamage = finalDamage * dmgMod;
                 }
                 else if (Spell.DamageType == DamageType.Nether)
                 {
-                    dmgMod = (float)PropertyManager.GetDouble("pvp_dmg_mod_void").Item;
-
                     if (SpellType == ProjectileSpellType.Streak)
-                        dmgMod = (float)PropertyManager.GetDouble("pvp_dmg_mod_void_streak").Item; // scales void streak damages
-
-                    if (criticalHit && weapon.HasImbuedEffect(ImbuedEffectType.CripplingBlow))
-                    {
-                        dmgMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void_cb_crit").Item;
-                    }
-
-                    finalDamage = finalDamage * dmgMod;
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void_streak").Item;
+                    else
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void").Item;
                 }
+
+                finalDamage = finalDamage * pvpMod;
             }
 
             // show debug info

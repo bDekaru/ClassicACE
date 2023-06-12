@@ -433,7 +433,7 @@ namespace ACE.Server.WorldObjects
         /// Returns the percent of damage absorbed by layered armor + clothing
         /// </summary>
         /// <param name="armors">The list of armor/clothing covering the targeted body part</param>
-        public float GetArmorMod(Creature defender, DamageType damageType, List<WorldObject> armors, WorldObject weapon, float armorRendingMod = 1.0f)
+        public float GetArmorMod(Creature defender, DamageType damageType, List<WorldObject> armors, WorldObject weapon, float armorRendingMod = 1.0f, bool isPvP = false)
         {
             var ignoreMagicArmor =  (weapon?.IgnoreMagicArmor ?? false)  || IgnoreMagicArmor;
             var ignoreMagicResist = (weapon?.IgnoreMagicResist ?? false) || IgnoreMagicResist;
@@ -476,6 +476,9 @@ namespace ACE.Server.WorldObjects
             // Armor Rending reduces physical armor too?
             if (effectiveAL > 0)
                 effectiveAL *= armorRendingMod;
+
+            if (isPvP)
+                effectiveAL *= (float)PropertyManager.GetDouble("pvp_dmg_mod_armor_level").Item;
 
             var armorMod = SkillFormula.CalcArmorMod(effectiveAL);
 

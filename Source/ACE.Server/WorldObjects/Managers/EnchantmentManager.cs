@@ -1348,7 +1348,9 @@ namespace ACE.Server.WorldObjects.Managers
 
                 var sourcePlayer = damager as Player;
 
-                if (sourcePlayer != null && targetPlayer != null)
+                bool isPvP = sourcePlayer != null && targetPlayer != null;
+
+                if (isPvP)
                 {
                     // if a PKType with Enduring Enchantment has died, ensure they don't continue to take DoT from PK sources
                     if (!targetPlayer.IsPKType)
@@ -1369,7 +1371,7 @@ namespace ACE.Server.WorldObjects.Managers
 
                 var damageResistRatingMod = creature.GetDamageResistRatingMod(CombatType.Magic, useNetherDotDamageRating);   // df?
 
-                if (sourcePlayer != null && targetPlayer != null)
+                if (isPvP)
                 {
                     var pkDamageResistRatingMod = Creature.GetNegativeRatingMod(targetPlayer.GetPKDamageResistRating());
 
@@ -1383,7 +1385,17 @@ namespace ACE.Server.WorldObjects.Managers
                 //Console.WriteLine("DRR: " + Creature.NegativeModToRating(damageResistRatingMod));
                 //Console.WriteLine("NRR: " + Creature.NegativeModToRating(netherResistRatingMod));
 
-                tickAmount *= resistanceMod * damageResistRatingMod * dotResistRatingMod;
+                var pvpMod = 1.0f;
+                if (isPvP)
+                {
+                    pvpMod = (float)PropertyManager.GetDouble("pvp_dmg_mod").Item;
+                    if (damageType == DamageType.Nether)
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void_dot").Item;
+                    else
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dot").Item;
+                }
+
+                tickAmount *= resistanceMod * damageResistRatingMod * dotResistRatingMod * pvpMod;
 
                 // make sure the target's current health is not exceeded
                 if (tickAmountTotal + tickAmount >= creature.Health.Current)

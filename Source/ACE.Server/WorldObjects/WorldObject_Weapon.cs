@@ -303,13 +303,56 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the critical chance for the attack weapon
         /// </summary>
-        public static float GetWeaponCriticalChance(WorldObject weapon, Creature wielder, CreatureSkill skill, Creature target)
+        public static float GetWeaponCriticalChance(WorldObject weapon, Creature wielder, CreatureSkill skill, Creature target, bool isPvP)
         {
             var critRate = (float)(weapon?.CriticalFrequency ?? defaultPhysicalCritFrequency);
 
+            if (isPvP && critRate > defaultPhysicalCritFrequency)
+            {
+                // Biting Strike
+                critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crit_chance").Item;
+                switch (skill.Skill)
+                {
+                    case Skill.LightWeapons:
+                    case Skill.Axe:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_axe_crit_chance").Item;
+                        break;
+                    case Skill.HeavyWeapons:
+                    case Skill.Sword:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_sword_crit_chance").Item;
+                        break;
+                    case Skill.Mace:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_mace_crit_chance").Item;
+                        break;
+                    case Skill.Spear:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_spear_crit_chance").Item;
+                        break;
+                    case Skill.Staff:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_staff_crit_chance").Item;
+                        break;
+                    case Skill.UnarmedCombat:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_unarmed_crit_chance").Item;
+                        break;
+                    case Skill.FinesseWeapons:
+                    case Skill.Dagger:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_crit_chance").Item;
+                        break;
+                    case Skill.MissileWeapons:
+                    case Skill.Bow:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_crit_chance").Item;
+                        break;
+                    case Skill.Crossbow:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_crit_chance").Item;
+                        break;
+                    case Skill.ThrownWeapon:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_crit_chance").Item;
+                        break;
+                }
+            }
+
             if (weapon != null && weapon.HasImbuedEffect(ImbuedEffectType.CriticalStrike))
             {
-                var criticalStrikeBonus = GetCriticalStrikeMod(skill);
+                var criticalStrikeBonus = GetCriticalStrikeMod(skill, isPvP);
 
                 critRate = Math.Max(critRate, criticalStrikeBonus);
             }
@@ -336,7 +379,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the critical chance for the caster weapon
         /// </summary>
-        public static float GetWeaponMagicCritFrequency(WorldObject weapon, Creature wielder, CreatureSkill skill, Creature target)
+        public static float GetWeaponMagicCritFrequency(WorldObject weapon, Creature wielder, CreatureSkill skill, Creature target, bool isPvP)
         {
             // TODO : merge with above function
 
@@ -345,10 +388,26 @@ namespace ACE.Server.WorldObjects
 
             var critRate = (float)(weapon.GetProperty(PropertyFloat.CriticalFrequency) ?? defaultMagicCritFrequency);
 
+            if (isPvP && critRate > defaultMagicCritFrequency)
+            {
+                // Biting Strike
+                critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crit_chance").Item;
+                switch (skill.Skill)
+                {
+                    case Skill.WarMagic:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_crit_chance").Item;
+                        break;
+                    case Skill.LifeMagic:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_life_crit_chance").Item;
+                        break;
+                    case Skill.VoidMagic:
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void_crit_chance").Item;
+                        break;
+                }
+            }
+
             if (weapon.HasImbuedEffect(ImbuedEffectType.CriticalStrike))
             {
-                var isPvP = wielder is Player && target is Player;
-
                 var criticalStrikeMod = GetCriticalStrikeMod(skill, isPvP);
 
                 critRate = Math.Max(critRate, criticalStrikeMod);
@@ -368,13 +427,65 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the critical damage multiplier for the attack weapon
         /// </summary>
-        public static float GetWeaponCritDamageMod(WorldObject weapon, Creature wielder, CreatureSkill skill, Creature target)
+        public static float GetWeaponCritDamageMod(WorldObject weapon, Creature wielder, CreatureSkill skill, Creature target, bool isPvP)
         {
             var critDamageMod = (float)(weapon?.GetProperty(PropertyFloat.CriticalMultiplier) ?? defaultCritDamageMultiplier);
 
+            if (isPvP && critDamageMod > defaultCritDamageMultiplier)
+            {
+                // Crushing Blow
+                critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crit_dmg").Item;
+                switch (skill.Skill)
+                {
+                    case Skill.LightWeapons:
+                    case Skill.Axe:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_axe_crit_dmg").Item;
+                        break;
+                    case Skill.HeavyWeapons:
+                    case Skill.Sword:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_sword_crit_dmg").Item;
+                        break;
+                    case Skill.Mace:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_mace_crit_dmg").Item;
+                        break;
+                    case Skill.Spear:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_spear_crit_dmg").Item;
+                        break;
+                    case Skill.Staff:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_staff_crit_dmg").Item;
+                        break;
+                    case Skill.UnarmedCombat:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_unarmed_crit_dmg").Item;
+                        break;
+                    case Skill.FinesseWeapons:
+                    case Skill.Dagger:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_crit_dmg").Item;
+                        break;
+                    case Skill.MissileWeapons:
+                    case Skill.Bow:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_crit_dmg").Item;
+                        break;
+                    case Skill.Crossbow:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_crit_dmg").Item;
+                        break;
+                    case Skill.ThrownWeapon:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_crit_dmg").Item;
+                        break;
+                    case Skill.WarMagic:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_crit_dmg").Item;
+                        break;
+                    case Skill.LifeMagic:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_life_crit_dmg").Item;
+                        break;
+                    case Skill.VoidMagic:
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void_crit_dmg").Item;
+                        break;
+                }
+            }
+
             if (weapon != null && weapon.HasImbuedEffect(ImbuedEffectType.CripplingBlow))
             {
-                var cripplingBlowMod = GetCripplingBlowMod(skill);
+                var cripplingBlowMod = GetCripplingBlowMod(skill, isPvP);
 
                 critDamageMod = Math.Max(critDamageMod, cripplingBlowMod);
             }
@@ -626,22 +737,21 @@ namespace ACE.Server.WorldObjects
 
         public static float GetCriticalStrikeMod(CreatureSkill skill, bool isPvP = false)
         {
-            var baseMod = 0.0f;
-
-            var skillType = GetImbuedSkillType(skill);
-
-            var baseSkill = GetBaseSkillImbued(skill);
-
-            var defaultCritFrequency = skillType == ImbuedSkillType.Magic ? defaultMagicCritFrequency : defaultPhysicalCritFrequency;
-
             float criticalStrikeMod;
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-            {
-                return 0.2f;
-            }
+                criticalStrikeMod = 0.2f;
             else
             {
+                var skillType = GetImbuedSkillType(skill);
+
+                var baseSkill = GetBaseSkillImbued(skill);
+
+                var defaultCritFrequency = skillType == ImbuedSkillType.Magic ? defaultMagicCritFrequency : defaultPhysicalCritFrequency;
+
+                
+                var baseMod = 0.0f;
+
                 switch (skillType)
                 {
                     case ImbuedSkillType.Melee:
@@ -670,35 +780,86 @@ namespace ACE.Server.WorldObjects
                     baseMod *= 0.5f;
 
                 criticalStrikeMod = Math.Clamp(baseMod, defaultCritFrequency, MaxCriticalStrikeMod);
+
+                // In the original formula for CS Magic pre-July 2004, (BS - 60) / 1200.0f, the minimum 5% crit rate would have been achieved at BS 120,
+                // which is exactly equal to the minimum base skill for CS Missile becoming effective.
+
+                // CS Magic is slightly different from all the other skill/imbue combinations, in that the MinCriticalStrikeMagicMod
+                // is different from the defaultMagicCritFrequency (5% vs. 2%)
+
+                // If we simply clamp to min. 5% here, then a player will be getting a +3% bonus from from base skill 0-90 in PvE,
+                // and base skill 0-120 in PvP
+
+                // This code is checking if the player has reached the skill threshold for receiving the 5% bonus
+                // (base skill 90 in PvE, base skill 120 in PvP)
+
+                /*var criticalStrikeMod = skillType == ImbuedSkillType.Magic ? defaultMagicCritFrequency : defaultPhysicalCritFrequency;
+
+                var minEffective = skillType == ImbuedSkillType.Magic ? MinCriticalStrikeMagicMod : defaultPhysicalCritFrequency;
+
+                if (baseMod >= minEffective)
+                    criticalStrikeMod = baseMod;*/
+
+                //Console.WriteLine($"CriticalStrikeMod: {criticalStrikeMod}");
+
             }
 
-            // In the original formula for CS Magic pre-July 2004, (BS - 60) / 1200.0f, the minimum 5% crit rate would have been achieved at BS 120,
-            // which is exactly equal to the minimum base skill for CS Missile becoming effective.
-
-            // CS Magic is slightly different from all the other skill/imbue combinations, in that the MinCriticalStrikeMagicMod
-            // is different from the defaultMagicCritFrequency (5% vs. 2%)
-
-            // If we simply clamp to min. 5% here, then a player will be getting a +3% bonus from from base skill 0-90 in PvE,
-            // and base skill 0-120 in PvP
-
-            // This code is checking if the player has reached the skill threshold for receiving the 5% bonus
-            // (base skill 90 in PvE, base skill 120 in PvP)
-
-            /*var criticalStrikeMod = skillType == ImbuedSkillType.Magic ? defaultMagicCritFrequency : defaultPhysicalCritFrequency;
-
-            var minEffective = skillType == ImbuedSkillType.Magic ? MinCriticalStrikeMagicMod : defaultPhysicalCritFrequency;
-
-            if (baseMod >= minEffective)
-                criticalStrikeMod = baseMod;*/
-
-            //Console.WriteLine($"CriticalStrikeMod: {criticalStrikeMod}");
-
+            if (isPvP)
+            {
+                criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crit_chance").Item;
+                switch (skill.Skill)
+                {
+                    case Skill.LightWeapons:
+                    case Skill.Axe:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_axe_crit_chance").Item;
+                        break;
+                    case Skill.HeavyWeapons:
+                    case Skill.Sword:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_sword_crit_chance").Item;
+                        break;
+                    case Skill.Mace:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_mace_crit_chance").Item;
+                        break;
+                    case Skill.Spear:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_spear_crit_chance").Item;
+                        break;
+                    case Skill.Staff:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_staff_crit_chance").Item;
+                        break;
+                    case Skill.UnarmedCombat:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_unarmed_crit_chance").Item;
+                        break;
+                    case Skill.FinesseWeapons:
+                    case Skill.Dagger:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_crit_chance").Item;
+                        break;
+                    case Skill.MissileWeapons:
+                    case Skill.Bow:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_crit_chance").Item;
+                        break;
+                    case Skill.Crossbow:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_crit_chance").Item;
+                        break;
+                    case Skill.ThrownWeapon:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_crit_chance").Item;
+                        break;
+                    case Skill.WarMagic:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_crit_chance").Item;
+                        break;
+                    case Skill.LifeMagic:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_life_crit_chance").Item;
+                        break;
+                    case Skill.VoidMagic:
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void_crit_chance").Item;
+                        break;
+                }
+            }
             return criticalStrikeMod;
         }
 
         public static float MaxCripplingBlowMod = 6.0f;
 
-        public static float GetCripplingBlowMod(CreatureSkill skill)
+        public static float GetCripplingBlowMod(CreatureSkill skill, bool isPvP = false)
         {
             // increases the critical damage multiplier, additive
 
@@ -711,21 +872,29 @@ namespace ACE.Server.WorldObjects
 
             // ( +500% sounds like it would be 6.0 multiplier)
 
-            var baseSkill = GetBaseSkillImbued(skill);
-
-            var baseMod = 1.0f;
-
             float cripplingBlowMod;
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 if (GetImbuedSkillType(skill) == ImbuedSkillType.Magic)
-                    return 2.0f;
+                    cripplingBlowMod = 2.0f;
                 else
-                    return 2.5f;
+                    cripplingBlowMod = 2.5f;
             }
             else
             {
+                var baseSkill = GetBaseSkillImbued(skill);
+
+                var baseMod = 1.0f;
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    if (GetImbuedSkillType(skill) == ImbuedSkillType.Magic)
+                        return 2.0f;
+                    else
+                        return 2.5f;
+                }
+
                 switch (GetImbuedSkillType(skill))
                 {
                     case ImbuedSkillType.Melee:
@@ -740,9 +909,60 @@ namespace ACE.Server.WorldObjects
                 }
 
                 cripplingBlowMod = Math.Clamp(baseMod, 1.0f, MaxCripplingBlowMod);
+
+                //Console.WriteLine($"CripplingBlowMod: {cripplingBlowMod}");
             }
 
-            //Console.WriteLine($"CripplingBlowMod: {cripplingBlowMod}");
+            if (isPvP)
+            {
+                cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crit_dmg").Item;
+                switch (skill.Skill)
+                {
+                    case Skill.LightWeapons:
+                    case Skill.Axe:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_axe_crit_dmg").Item;
+                        break;
+                    case Skill.HeavyWeapons:
+                    case Skill.Sword:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_sword_crit_dmg").Item;
+                        break;
+                    case Skill.Mace:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_mace_crit_dmg").Item;
+                        break;
+                    case Skill.Spear:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_spear_crit_dmg").Item;
+                        break;
+                    case Skill.Staff:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_staff_crit_dmg").Item;
+                        break;
+                    case Skill.UnarmedCombat:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_unarmed_crit_dmg").Item;
+                        break;
+                    case Skill.FinesseWeapons:
+                    case Skill.Dagger:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_crit_dmg").Item;
+                        break;
+                    case Skill.MissileWeapons:
+                    case Skill.Bow:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_crit_dmg").Item;
+                        break;
+                    case Skill.Crossbow:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_crit_dmg").Item;
+                        break;
+                    case Skill.ThrownWeapon:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_crit_dmg").Item;
+                        break;
+                    case Skill.WarMagic:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_crit_dmg").Item;
+                        break;
+                    case Skill.LifeMagic:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_life_crit_dmg").Item;
+                        break;
+                    case Skill.VoidMagic:
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void_crit_dmg").Item;
+                        break;
+                }
+            }
 
             return cripplingBlowMod;
         }
@@ -784,12 +1004,12 @@ namespace ACE.Server.WorldObjects
 
         public static float MaxArmorRendingMod = 0.6f;
 
-        public static float GetArmorRendingMod(CreatureSkill skill)
+        public static float GetArmorRendingMod(CreatureSkill skill, bool isPvP = false)
         {
             var armorRendingMod = 1.0f;
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                armorRendingMod -= 1.0f/3.0f; // Equivalent to Imperil IV for 300 AL armor.
+                armorRendingMod -= 1.0f / 3.0f; // Equivalent to Imperil IV for 300 AL armor.
             else
             {
                 // % of armor ignored, min 0%, max 60%
@@ -807,6 +1027,51 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            if (isPvP && armorRendingMod < 1.0f)
+            {
+                var pvpMod = 1.0f - armorRendingMod;
+                pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_armor_ignore").Item;
+                switch (skill.Skill)
+                {
+                    case Skill.LightWeapons:
+                    case Skill.Axe:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_axe_armor_ignore").Item;
+                        break;
+                    case Skill.HeavyWeapons:
+                    case Skill.Sword:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_sword_armor_ignore").Item;
+                        break;
+                    case Skill.Mace:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_mace_armor_ignore").Item;
+                        break;
+                    case Skill.Spear:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_spear_armor_ignore").Item;
+                        break;
+                    case Skill.Staff:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_staff_armor_ignore").Item;
+                        break;
+                    case Skill.UnarmedCombat:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_unarmed_armor_ignore").Item;
+                        break;
+                    case Skill.FinesseWeapons:
+                    case Skill.Dagger:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_armor_ignore").Item;
+                        break;
+                    case Skill.MissileWeapons:
+                    case Skill.Bow:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_armor_ignore").Item;
+                        break;
+                    case Skill.Crossbow:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_armor_ignore").Item;
+                        break;
+                    case Skill.ThrownWeapon:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_armor_ignore").Item;
+                        break;
+                }
+
+                armorRendingMod = Math.Min(1.0f - pvpMod, 0.0f);
+            }
+
             //Console.WriteLine($"ArmorRendingMod: {armorRendingMod}");
 
             return armorRendingMod;
@@ -821,30 +1086,78 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.IgnoreArmor); else SetProperty(PropertyFloat.IgnoreArmor, value.Value); }
         }
 
-        public float GetArmorCleavingMod(WorldObject weapon)
+        public float GetArmorCleavingMod(WorldObject weapon, CreatureSkill skill, bool isPvP = false)
         {
             // investigate: should this value be on creatures directly?
-            var creatureMod = GetArmorCleavingMod();
-            var weaponMod = weapon != null ? weapon.GetArmorCleavingMod() : 1.0f;
+            var creatureMod = GetArmorCleavingMod(skill, isPvP);
+            var weaponMod = weapon != null ? weapon.GetArmorCleavingMod(skill, isPvP) : 1.0f;
 
             return Math.Min(creatureMod, weaponMod);
         }
 
-        public float GetArmorCleavingMod()
+        public float GetArmorCleavingMod(CreatureSkill skill, bool isPvP = false)
         {
             if (IgnoreArmor == null)
                 return 1.0f;
 
+            float armorCleavingMod;
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                return (float)IgnoreArmor;
+                armorCleavingMod = (float)IgnoreArmor;
             else
             {
                 // FIXME: data
                 var maxSpellLevel = GetMaxSpellLevel();
 
                 // thanks to moro for this formula
-                return 1.0f - (0.1f + maxSpellLevel * 0.05f);
+                armorCleavingMod = 1.0f - (0.1f + maxSpellLevel * 0.05f);
             }
+
+            if (isPvP && armorCleavingMod < 1.0f)
+            {
+                var pvpMod = 1.0f - armorCleavingMod;
+                pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_armor_ignore").Item;
+                switch (skill.Skill)
+                {
+                    case Skill.LightWeapons:
+                    case Skill.Axe:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_axe_armor_ignore").Item;
+                        break;
+                    case Skill.HeavyWeapons:
+                    case Skill.Sword:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_sword_armor_ignore").Item;
+                        break;
+                    case Skill.Mace:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_mace_armor_ignore").Item;
+                        break;
+                    case Skill.Spear:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_spear_armor_ignore").Item;
+                        break;
+                    case Skill.Staff:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_staff_armor_ignore").Item;
+                        break;
+                    case Skill.UnarmedCombat:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_unarmed_armor_ignore").Item;
+                        break;
+                    case Skill.FinesseWeapons:
+                    case Skill.Dagger:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dagger_armor_ignore").Item;
+                        break;
+                    case Skill.MissileWeapons:
+                    case Skill.Bow:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_bow_armor_ignore").Item;
+                        break;
+                    case Skill.Crossbow:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_armor_ignore").Item;
+                        break;
+                    case Skill.ThrownWeapon:
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_armor_ignore").Item;
+                        break;
+                }
+
+                armorCleavingMod = Math.Min(1.0f - pvpMod, 0.0f);
+            }
+
+            return armorCleavingMod;
         }
 
         public double? IgnoreShield
@@ -853,27 +1166,24 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.IgnoreShield); else SetProperty(PropertyFloat.IgnoreShield, value.Value); }
         }
 
-        public float GetIgnoreShieldMod(WorldObject weapon)
+        public float GetIgnoreShieldMod(WorldObject weapon, bool isPvP)
         {
             var creatureMod = IgnoreShield ?? 0.0f;
             double weaponMod;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && weapon != null )
-            {
-                if (weapon.IsTwoHanded)
-                {
-                    weaponMod = 0.5f;
-                    weaponMod *= (float)PropertyManager.GetDouble("pvp_dmg_2h_shieldcleave_mod").Item;
-                }
-                else
-                {
-                    weaponMod = 0.5f;
-                    weaponMod *= (float)PropertyManager.GetDouble("pvp_dmg_shieldcleave_mod").Item;
-                }
-            }
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && weapon != null && weapon.IsTwoHanded)
+                weaponMod = 0.5f;
             else
                 weaponMod = weapon?.IgnoreShield ?? 0.0f;
 
-            return 1.0f - (float)Math.Max(creatureMod, weaponMod);
+            if (isPvP)
+            {
+                if (weapon.IsTwoHanded)
+                    weaponMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_2h_shieldcleave").Item;
+                else
+                    weaponMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_shieldcleave").Item;
+            }
+
+            return Math.Clamp(1.0f - (float)Math.Max(creatureMod, weaponMod), 0.0f, 1.0f);
         }
 
         public static int GetBaseSkillImbued(CreatureSkill skill)
