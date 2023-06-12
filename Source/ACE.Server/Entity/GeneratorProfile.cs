@@ -108,7 +108,7 @@ namespace ACE.Server.Entity
         {
             get
             {
-                if (Generator is Chest && (Generator.ActivationResponse == ActivationResponse.Use || FirstSpawn))
+                if (Generator.ItemType == ItemType.Container && FirstSpawn)
                     return 0;
 
                 return Biota.Delay ?? Generator.GeneratorProfiles[0].Biota.Delay ?? 0.0f;
@@ -164,10 +164,7 @@ namespace ACE.Server.Entity
         /// </summary>
         public DateTime GetSpawnTime()
         {
-            if (Generator.CurrentlyPoweringUp || Generator.CachedRegenerationInterval >= Delay)
-                return DateTime.UtcNow;
-            else
-                return DateTime.UtcNow.AddSeconds(Delay);
+            return DateTime.UtcNow;
         }
 
         /// <summary>
@@ -583,6 +580,15 @@ namespace ACE.Server.Entity
             Spawned.Remove(woi.Guid.Full);
 
             NextAvailable = DateTime.UtcNow.AddSeconds(Delay);
+
+            if(Generator.GetProperty(PropertyBool.IsEncounterGenerator) ?? false)
+            {
+                // Encounter generators have many profiles, and when one profile is killed another can still available to respawn at the next regeneration check, which could be seconds away! This is rather jarring so we reset the regen interval at the moment of the notification.
+                // What this means for a regular encounter generator is that the respawn time will be 10 minutes but it won't be the same spawn as this particular profile won't be available for the next 30 minutes.
+                
+                if (Generator.CachedRegenerationInterval > 0)
+                    Generator.NextGeneratorRegenerationTime = Time.GetUnixTime() + Generator.CachedRegenerationInterval;
+            }
         }
 
         public bool GeneratorResetInProgress = false;

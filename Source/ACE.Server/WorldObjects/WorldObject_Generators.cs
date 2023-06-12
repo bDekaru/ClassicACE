@@ -750,14 +750,14 @@ namespace ACE.Server.WorldObjects
 
                 if (!GeneratorDisabled)
                 {
-                    if (PropertyManager.GetBool("increase_minimum_encounter_spawn_density").Item && (GetProperty(ACE.Entity.Enum.Properties.PropertyBool.IsPseudoRandomGenerator) ?? false == true))
+                    if (PropertyManager.GetBool("increase_minimum_encounter_spawn_density").Item && (GetProperty(PropertyBool.IsEncounterGenerator) ?? false))
                     {
-                        // Disable the landscape pseudo random generators that are too close to lifestones or portals
+                        // Disable the landscape encounter generators that are too close to lifestones or portals
                         if (!Name.ToLower().Contains("harmless")) // Harmless generators can stay enabled
                         {
                             foreach (var obj in CurrentLandblock.GetAllWorldObjectsForDiagnostics())
                             {
-                                PlayerKillerStatus pkStatus = (PlayerKillerStatus)(obj.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) ?? 0);
+                                PlayerKillerStatus pkStatus = (PlayerKillerStatus)(obj.GetProperty(PropertyInt.PlayerKillerStatus) ?? 0);
                                 if ((obj.ItemType == ItemType.LifeStone || obj.ItemType == ItemType.Portal || pkStatus == PlayerKillerStatus.Vendor || pkStatus == PlayerKillerStatus.RubberGlue) && PhysicsObj.get_distance_to_object(obj.PhysicsObj, true) < 50)
                                 {
                                     GeneratorDisabled = true;

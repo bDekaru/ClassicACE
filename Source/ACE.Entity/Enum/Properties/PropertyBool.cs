@@ -194,7 +194,7 @@ namespace ACE.Entity.Enum.Properties
         FreeMasteryResetRenewed          = 9010,
 
         [Ephemeral][ServerOnly]
-        IsPseudoRandomGenerator          = 9011,
+        IsEncounterGenerator          = 9011,
         [ServerOnly]
         IsModified                       = 9012,
         [ServerOnly]

@@ -387,7 +387,7 @@ namespace ACE.Server.Entity
 
                 if (wo == null) continue;
 
-                wo.SetProperty(PropertyBool.IsPseudoRandomGenerator, true);
+                wo.SetProperty(PropertyBool.IsEncounterGenerator, true);
 
                 if (generatedEncounterIdList.Contains(encounter.Id))
                 {
