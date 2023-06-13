@@ -4135,7 +4135,7 @@ namespace ACE.Server.Command.Handlers.Processors
                                 SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, level, true);
                                 Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
 
-                                if (magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power : (int)newSpellAttempt.Power - 50)) // Creatures tend to cast lower level self spells.
+                                if (newMana >= newSpellAttempt.BaseMana && magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power + 50 : (int)newSpellAttempt.Power + 30)) // Creatures tend to cast lower level self spells.
                                 {
                                     newSpellId = newSpellIdAttempt;
                                     newSpellLevel = level;
@@ -4263,7 +4263,7 @@ namespace ACE.Server.Command.Handlers.Processors
                                 SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, level, true);
                                 Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
 
-                                if (magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power : (int)newSpellAttempt.Power - 50)) // Creatures tend to cast lower level self spells.
+                                if (newMana >= newSpellAttempt.BaseMana && magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power + 50 : (int)newSpellAttempt.Power + 30)) // Creatures tend to cast lower level self spells.
                                 {
                                     newSpellId = newSpellIdAttempt;
                                     newSpellLevel = level;
