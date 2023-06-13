@@ -59,15 +59,21 @@ namespace ACE.Server.WorldObjects
         {
             IdleMotionsList = new List<MotionCommand>();
 
-            var motionTable = DatManager.PortalDat.ReadFromDat<DatLoader.FileTypes.MotionTable>(MotionTableId);
-            var heartbeatEmotes = Biota.PropertiesEmote.Where(e => e.Category == EmoteCategory.HeartBeat);
-            foreach (var emote in heartbeatEmotes)
+            if (MotionTableId != 0)
             {
-                foreach (var emoteAction in emote.PropertiesEmoteAction)
+                var motionTable = DatManager.PortalDat.ReadFromDat<DatLoader.FileTypes.MotionTable>(MotionTableId);
+                if (motionTable != null && Biota != null && Biota.PropertiesEmote != null)
                 {
-                    MotionCommand motion = (MotionCommand)emoteAction.Motion;
-                    if (emoteAction.Type == (int)EmoteType.Motion && !IdleMotionsList.Contains(motion))
-                        IdleMotionsList.Add(motion);
+                    var heartbeatEmotes = Biota.PropertiesEmote.Where(e => e.Category == EmoteCategory.HeartBeat);
+                    foreach (var emote in heartbeatEmotes)
+                    {
+                        foreach (var emoteAction in emote.PropertiesEmoteAction)
+                        {
+                            MotionCommand motion = (MotionCommand)emoteAction.Motion;
+                            if (emoteAction.Type == (int)EmoteType.Motion && !IdleMotionsList.Contains(motion))
+                                IdleMotionsList.Add(motion);
+                        }
+                    }
                 }
             }
         }
