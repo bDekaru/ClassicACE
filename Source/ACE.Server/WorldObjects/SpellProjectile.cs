@@ -583,13 +583,16 @@ namespace ACE.Server.WorldObjects
                     }
                 }
                 baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
-                
-                if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    if (sourcePlayer == null && sourceCreature != null)
+                        baseDamage /= 2; // Monsters do reduced projectile spell damage, traps still do full damage.
+                }
+                else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
                 {
                     if (sourcePlayer == null)
                         baseDamage /= 2; // Monsters do half projectile spell damage.
-                    //else if(isPVP && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                        //baseDamage = (int)(baseDamage * 0.75f);
                 }
 
                 weaponResistanceMod = GetWeaponResistanceModifier(weapon, sourceCreature, attackSkill, Spell.DamageType);
