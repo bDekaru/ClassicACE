@@ -189,8 +189,7 @@ namespace ACE.Server.WorldObjects
                 else if (!SquelchManager.Squelches.Contains(target, ChatMessageType.CombatSelf))
                     Session.Network.EnqueueSend(new GameEventEvasionAttackerNotification(Session, target.Name));
 
-                if (targetPlayer != null)
-                    targetPlayer.OnEvade(this, damageEvent.CombatType);
+                target.OnEvade(this, damageEvent.CombatType);
             }
 
             if (damageEvent.HasDamage && target.IsAlive)
@@ -343,58 +342,20 @@ namespace ACE.Server.WorldObjects
             if (UnderLifestoneProtection)
                 return;
 
-            // http://asheron.wikia.com/wiki/Attributes
-
-            // Endurance will also make it less likely that you use a point of stamina to successfully evade a missile or melee attack.
-            // A player is required to have Melee Defense for melee attacks or Missile Defense for missile attacks trained or specialized
-            // in order for this specific ability to work. This benefit is tied to Endurance only, and it caps out at around a 75% chance
-            // to avoid losing a point of stamina per successful evasion.
-
-            var defenseSkillType = attackType == CombatType.Missile ? Skill.MissileDefense : Skill.MeleeDefense;
-            var defenseSkill = GetCreatureSkill(defenseSkillType);
-
-            if (CombatMode != CombatMode.NonCombat)
-            {
-                if (defenseSkill.AdvancementClass >= SkillAdvancementClass.Trained)
-                {
-                    var enduranceBase = (int)Endurance.Base;
-
-                    // TODO: find exact formula / where it caps out at 75%
-
-                    // more literal / linear formula
-                    //var noStaminaUseChance = (enduranceBase - 50) / 320.0f;
-
-                    // gdle curve-based formula, caps at 300 instead of 290
-                    var noStaminaUseChance = (enduranceBase * enduranceBase * 0.000005f) + (enduranceBase * 0.00124f) - 0.07f;
-
-                    noStaminaUseChance = Math.Clamp(noStaminaUseChance, 0.0f, 0.75f);
-
-                    //Console.WriteLine($"NoStaminaUseChance: {noStaminaUseChance}");
-
-                    if (noStaminaUseChance <= ThreadSafeRandom.Next(0.0f, 1.0f))
-                        UpdateVitalDelta(Stamina, -1);
-                }
-                else
-                    UpdateVitalDelta(Stamina, -1);
-            }
-            else
-            {
-                // if the player is in non-combat mode, no stamina is consumed on evade
-                // reference: https://youtu.be/uFoQVgmSggo?t=145
-                // from the dm guide, page 147: "if you are not in Combat mode, you lose no Stamina when an attack is thrown at you"
-
-                //UpdateVitalDelta(Stamina, -1);
-            }
-
             if (!SquelchManager.Squelches.Contains(attacker, ChatMessageType.CombatEnemy))
                 Session.Network.EnqueueSend(new GameEventEvasionDefenderNotification(Session, attacker.Name));
 
             if (creatureAttacker == null)
                 return;
 
+            var defenseSkillType = attackType == CombatType.Missile ? Skill.MissileDefense : Skill.MeleeDefense;
+            var defenseSkill = GetCreatureSkill(defenseSkillType);
+
             var difficulty = creatureAttacker.GetCreatureSkill(creatureAttacker.GetCurrentWeaponSkill()).Current;
             // attackMod?
             Proficiency.OnSuccessUse(this, defenseSkill, difficulty);
+
+            base.OnEvade(attacker, attackType);
         }
 
         public BaseDamageMod GetBaseDamageMod(WorldObject damageSource)
@@ -709,82 +670,6 @@ namespace ACE.Server.WorldObjects
             // Flesh, Leather, Chain, Plate
             // for hit sounds
             return null;
-        }
-
-        /// <summary>
-        /// Returns the total burden of items held in both hands
-        /// (main hand and offhand)
-        /// </summary>
-        public int GetHeldItemBurden()
-        {
-            var mainhand = GetEquippedMainHand();
-            var offhand = GetEquippedOffHand();
-
-            int mainhandBurden;
-            if ((mainhand?.MaxStackSize ?? 0) > 1) // Thrown weapons use the burden of a stack of 30 instead of entire current stack.
-                mainhandBurden = (mainhand?.StackUnitEncumbrance ?? 0) * 30;
-            else
-                mainhandBurden = mainhand?.EncumbranceVal ?? 0;
-            var offhandBurden = offhand?.EncumbranceVal ?? 0;
-
-            return mainhandBurden + offhandBurden;
-        }
-
-        public float GetStaminaMod()
-        {
-            var endurance = (int)Endurance.Base;
-
-            // more literal / linear formula
-            var staminaMod = 1.0f - (endurance - 50) / 480.0f;
-
-            // gdle curve-based formula, caps at 300 instead of 290
-            //var staminaMod = (endurance * endurance * -0.000003175f) - (endurance * 0.0008889f) + 1.052f;
-
-            staminaMod = Math.Clamp(staminaMod, 0.5f, 1.0f);
-
-            // this is also specific to gdle,
-            // additive luck which can send the base stamina way over 1.0
-            /*var luck = ThreadSafeRandom.Next(0.0f, 1.0f);
-            staminaMod += luck;*/
-
-            return staminaMod;
-        }
-
-        /// <summary>
-        /// Calculates the amount of stamina required to perform this attack
-        /// </summary>
-        public int GetAttackStamina(PowerAccuracy powerAccuracy)
-        {
-            // Stamina cost for melee and missile attacks is based on the total burden of what you are holding
-            // in your hands (main hand and offhand), and your power/accuracy bar.
-
-            // Attacking(Low power / accuracy bar)   1 point per 700 burden units
-            //                                       1 point per 1200 burden units
-            //                                       1.5 points per 1600 burden units
-            // Attacking(Mid power / accuracy bar)   1 point per 700 burden units
-            //                                       2 points per 1200 burden units
-            //                                       3 points per 1600 burden units
-            // Attacking(High power / accuracy bar)  2 point per 700 burden units
-            //                                       4 points per 1200 burden units
-            //                                       6 points per 1600 burden units
-
-            // The higher a player's base Endurance, the less stamina one uses while attacking. This benefit is tied to Endurance only,
-            // and caps out at 50% less stamina used per attack. Scaling is similar to other Endurance bonuses. Applies only to players.
-
-            // When stamina drops to 0, your melee and missile defenses also drop to 0 and you will be incapable of attacking.
-            // In addition, you will suffer a 50% penalty to your weapon skill. This applies to players and creatures.
-
-            var burden = GetHeldItemBurden();
-
-            var baseCost = StaminaTable.GetStaminaCost(powerAccuracy, burden);
-
-            var staminaMod = GetStaminaMod();
-
-            var staminaCost = Math.Max(baseCost * staminaMod, 1);
-
-            //Console.WriteLine($"GetAttackStamina({powerAccuracy}) - burden: {burden}, baseCost: {baseCost}, staminaMod: {staminaMod}, staminaCost: {staminaCost}");
-
-            return (int)Math.Round(staminaCost);
         }
 
         /// <summary>

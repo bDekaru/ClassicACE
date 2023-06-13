@@ -70,6 +70,13 @@ namespace ACE.Server.WorldObjects
             if (!AiImmobile)
                 PhysicsObj.stick_to_object(AttackTarget.PhysicsObj.ID);
 
+            var extraStaminaUsage = 0;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && weapon == null)
+                extraStaminaUsage = (int)(Strength.Base / 75f); // Make unarmed creatures have a non-trivial stamina cost.
+
+            var staminaCost = GetAttackStamina(GetPowerRange()) + extraStaminaUsage;
+            UpdateVitalDelta(Stamina, -staminaCost);
+
             var numStrikes = attackFrames.Count;
 
             var actionChain = new ActionChain();

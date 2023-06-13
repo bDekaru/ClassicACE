@@ -116,7 +116,8 @@ namespace ACE.Server.WorldObjects
                 var sound = GetLaunchMissileSound(weapon);
                 EnqueueBroadcast(new GameMessageSound(Guid, sound, 1.0f));
 
-                // TODO: monster stamina usage
+                var staminaCost = GetAttackStamina(GetPowerRange());
+                UpdateVitalDelta(Stamina, -staminaCost);
 
                 if (AttackTarget != null)
                 {
