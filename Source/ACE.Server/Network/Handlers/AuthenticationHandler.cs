@@ -75,7 +75,7 @@ namespace ACE.Server.Network.Handlers
             }
             catch (Exception ex)
             {
-                log.ErrorFormat("Received LoginRequest from {0} that threw an exception.", session.EndPoint);
+                log.ErrorFormat("Received LoginRequest from {0} that threw an exception.", session.EndPointC2S);
                 log.Error(ex);
             }
         }
@@ -108,7 +108,7 @@ namespace ACE.Server.Network.Handlers
                             log.Warn($"Automatically setting account AccessLevel to Admin for account \"{loginRequest.Account}\" because there are no admin accounts in the current database.");
                         }
 
-                        account = DatabaseManager.Authentication.CreateAccount(loginRequest.Account.ToLower(), loginRequest.Password, accessLevel, session.EndPoint.Address);
+                        account = DatabaseManager.Authentication.CreateAccount(loginRequest.Account.ToLower(), loginRequest.Password, accessLevel, session.EndPointC2S.Address);
                     }
                 }
             }
@@ -134,6 +134,27 @@ namespace ACE.Server.Network.Handlers
             {
                 // these are null if ConnectionData.DiscardSeeds() is called because of some other error condition.
                 session.Terminate(SessionTerminationReason.BadHandshake, new GameMessageCharacterError(CharacterError.ServerCrash1));
+                return;
+            }
+
+            string requiredClientVersion;
+            switch (Common.ConfigManager.Config.Server.WorldRuleset)
+            {
+                default:
+                case Common.Ruleset.EoR:
+                    requiredClientVersion = DatLoader.DatManager.CLIENT_VERSION_STRING;
+                    break;
+                case Common.Ruleset.Infiltration:
+                    requiredClientVersion = DatLoader.DatManager.INFILTRATION_CLIENT_VERSION_STRING;
+                    break;
+                case Common.Ruleset.CustomDM:
+                    requiredClientVersion = DatLoader.DatManager.CUSTOMDM_CLIENT_VERSION_STRING;
+                    break;
+            }
+
+            if (loginRequest.ClientVersion == null || !loginRequest.ClientVersion.Equals(requiredClientVersion))
+            {
+                session.Terminate(SessionTerminationReason.ClientVersionIncorrect, new GameMessageBootAccount(" because you are not running the correct executable file version for this server"));
                 return;
             }
 
@@ -184,27 +205,6 @@ namespace ACE.Server.Network.Handlers
                 }
             }
 
-            string requiredClientVersionString;
-            switch (Common.ConfigManager.Config.Server.WorldRuleset)
-            {
-                default:
-                case Common.Ruleset.EoR:
-                    requiredClientVersionString = DatLoader.DatManager.CLIENT_VERSION_STRING;
-                    break;
-                case Common.Ruleset.Infiltration:
-                    requiredClientVersionString = DatLoader.DatManager.INFILTRATION_CLIENT_VERSION_STRING;
-                    break;
-                case Common.Ruleset.CustomDM:
-                    requiredClientVersionString = DatLoader.DatManager.CUSTOMDM_CLIENT_VERSION_STRING;
-                    break;
-            }
-
-            if (loginRequest.ClientVersionString != requiredClientVersionString)
-            {
-                session.Terminate(SessionTerminationReason.ClientOutOfDate, new GameMessageBootAccount(" because you are not running the correct executable file version for this server"));
-                return;
-            }
-
             if (loginRequest.NetAuthType == NetAuthType.AccountPassword)
             {
                 if (!account.PasswordMatches(loginRequest.Password))
@@ -236,7 +236,7 @@ namespace ACE.Server.Network.Handlers
                 {
                     try
                     {
-                        var currIp = session.EndPoint.Address.ToString();
+                        var currIp = session.EndPointC2S.Address.ToString();
                         bool isVpn = false;
                         if (!VpnApprovedIPs.Contains(currIp))
                         {
@@ -320,14 +320,14 @@ namespace ACE.Server.Network.Handlers
                 }
             }
 
-            account.UpdateLastLogin(session.EndPoint.Address);
+            account.UpdateLastLogin(session.EndPointC2S.Address);
 
             session.SetAccount(account.AccountId, account.AccountName, (AccessLevel)account.AccessLevel);
             session.State = SessionState.AuthConnectResponse;
 
             try
             {
-                DatabaseManager.Shard.LogAccountSessionStart(session.AccountId, session.Account, session.EndPoint.Address.ToString());
+                DatabaseManager.Shard.LogAccountSessionStart(session.AccountId, session.Account, session.EndPointC2S.Address.ToString());
             }
             catch(Exception ex)
             {

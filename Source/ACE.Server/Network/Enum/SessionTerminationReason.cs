@@ -29,10 +29,12 @@ namespace ACE.Server.Network.Enum
         AccountLoggedIn,
         ServerShuttingDown,
         AccountBanned,
-        ClientOutOfDate,
+        ClientVersionIncorrect,
         ForcedLogOffRequested,
         CharacterSaveFailed,
         BiotaSaveFailed,
+        DATsPatchingDisabled,
+        DATsNewerThanServer,
         MovementEnforcementFailure
     }
     public static class SessionTerminationReasonHelper
@@ -64,6 +66,8 @@ namespace ACE.Server.Network.Enum
             "Forced log off requested by Admin",
             "Character Save Failed",
             "Biota Save Failed",
+            "Client has older DATs than server and patching is disabled",
+            "Client has newer DATs than server and cannot be downgraded",
             "Forced logoff by the player movement enforcement system"
         };
         public static string GetDescription(this SessionTerminationReason reason)
