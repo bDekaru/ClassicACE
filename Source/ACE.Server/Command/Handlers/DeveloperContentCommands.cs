@@ -4439,6 +4439,47 @@ namespace ACE.Server.Command.Handlers.Processors
             }
         }
 
+        [CommandHandler("export-creature-clothing", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        public static void HandleExportCreatureClothing(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Exporting creature clothing ids to reports/CreatureClothingIdList.txt...");
+
+            var contentFolder = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}reports{sep}");
+
+            if (!folder.Exists)
+                folder.Create();
+
+            var filename = $"{folder.FullName}{sep}CreatureClothingIdList.txt";
+
+            var fileWriter = new StreamWriter(filename);
+
+            fileWriter.WriteLine("ClothingId\tType\tWeenieClassId\tWeenieClassName");
+
+            var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+            var list = new List<uint>();
+            foreach (var entry in WeenieTypes)
+            {
+                if (entry.Value != (int)WeenieType.Creature && entry.Value != (int)WeenieType.Cow)
+                    continue;
+
+                var weenie = DatabaseManager.World.GetWeenie(entry.Key);
+                var clothingId = weenie.GetProperty(PropertyDataId.ClothingBase) ?? 0;
+                var creatureType = (CreatureType?)weenie.GetProperty(PropertyInt.CreatureType);
+                if (clothingId != 0 && !list.Contains(clothingId))
+                {
+                    list.Add(clothingId);
+                    fileWriter.WriteLine($"{clothingId.ToString("x8")}\t{creatureType}\t{weenie.ClassId}\t{weenie.ClassName}");
+                    fileWriter.Flush();
+                }
+            }
+
+            fileWriter.Close();
+            CommandHandlerHelper.WriteOutputInfo(session, "Done.");
+        }
+
         [CommandHandler("export-creature-levels", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
         public static void HandleExportCreatureLevels(Session session, params string[] parameters)
         {
@@ -4462,7 +4503,7 @@ namespace ACE.Server.Command.Handlers.Processors
             var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
             foreach (var entry in WeenieTypes)
             {
-                if (entry.Value != (int)WeenieType.Creature)
+                if (entry.Value != (int)WeenieType.Creature && entry.Value != (int)WeenieType.Cow)
                     continue;
 
                 var weenie = DatabaseManager.World.GetWeenie(entry.Key);
@@ -4505,7 +4546,7 @@ namespace ACE.Server.Command.Handlers.Processors
             var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
             foreach (var entry in WeenieTypes)
             {
-                if (entry.Value != (int)WeenieType.Creature)
+                if (entry.Value != (int)WeenieType.Creature && entry.Value != (int)WeenieType.Cow)
                     continue;
 
                 var weenie = DatabaseManager.World.GetWeenie(entry.Key);
