@@ -8,6 +8,7 @@ using ACE.Server.Entity;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics;
 using ACE.Server.Factories;
+using ACE.Server.WorldObjects.Entity;
 
 namespace ACE.Server.WorldObjects
 {
@@ -98,6 +99,15 @@ namespace ACE.Server.WorldObjects
                 CastSpell(player);
             }
 
+            if ((ExtraHealthRegenPool ?? 0) != 0)
+                AddExtraRegen(player, player.GetCreatureVital(PropertyAttribute2nd.Health));
+
+            if ((ExtraStaminaRegenPool ?? 0) != 0)
+                AddExtraRegen(player, player.GetCreatureVital(PropertyAttribute2nd.Stamina));
+
+            if ((ExtraManaRegenPool ?? 0) != 0)
+                AddExtraRegen(player, player.GetCreatureVital(PropertyAttribute2nd.Mana));
+
             var soundEvent = new GameMessageSound(player.Guid, GetUseSound(), 1.0f);
             player.EnqueueBroadcast(soundEvent);
 
@@ -117,6 +127,57 @@ namespace ACE.Server.WorldObjects
 	                }
 	            }
         	}
+        }
+
+        public void AddExtraRegen(Player player, CreatureVital vital)
+        {
+            var previousPoolValue = 0d;
+            var newPoolvalue = 0d;
+            var vitalString = "";
+            switch (vital.Vital)
+            {
+                case PropertyAttribute2nd.MaxHealth:
+                    previousPoolValue = player.ExtraHealthRegenPool ?? 0;
+                    newPoolvalue = Math.Clamp((player.ExtraHealthRegenPool ?? 0) + (ExtraHealthRegenPool ?? 0), 0, Creature.MaxRegenPoolValue);
+                    player.ExtraHealthRegenPool = newPoolvalue;
+                    vitalString = "Health";
+                    break;
+                case PropertyAttribute2nd.MaxStamina:
+                    previousPoolValue = player.ExtraStaminaRegenPool ?? 0;
+                    newPoolvalue = Math.Clamp((player.ExtraStaminaRegenPool ?? 0) + (ExtraStaminaRegenPool ?? 0), 0, Creature.MaxRegenPoolValue);
+                    player.ExtraStaminaRegenPool = newPoolvalue;
+                    vitalString = "Stamina";
+                    break;
+                case PropertyAttribute2nd.MaxMana:
+                    previousPoolValue = player.ExtraManaRegenPool ?? 0;
+                    newPoolvalue = Math.Clamp((player.ExtraManaRegenPool ?? 0) + (ExtraManaRegenPool ?? 0), 0, Creature.MaxRegenPoolValue);
+                    player.ExtraManaRegenPool = newPoolvalue;
+                    vitalString = "Mana";
+                    break;
+            }
+
+            var amount = newPoolvalue - previousPoolValue;
+            var verb = "adds";
+            var complement = "to";
+            if (amount < 0)
+            {
+                verb = "removes";
+                complement = "from";
+            }
+
+            var fullness = "";
+            if(newPoolvalue >= Creature.MaxRegenPoolValue)
+                fullness = $" You are completely full of {vitalString} food!";
+            else if(newPoolvalue >= Creature.MaxRegenPoolValue * 0.75f)
+                fullness = $" You are pretty full of {vitalString} food.";
+            else if (newPoolvalue >= Creature.MaxRegenPoolValue * 0.5f)
+                fullness = $" You are satiated of {vitalString} food.";
+            else if (newPoolvalue >= Creature.MaxRegenPoolValue * 0.25f)
+                fullness = $" You are still hungry for {vitalString} food.";
+            else
+                fullness = $" You are still very hungry for {vitalString} food!";
+
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {Name} {verb} {amount:N0} points {complement} your {vitalString} extra regeneration pool.{fullness}", ChatMessageType.Broadcast));
         }
 
         public void BoostVital(Player player)

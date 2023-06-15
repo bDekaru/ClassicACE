@@ -3213,5 +3213,23 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyString.ExtraSpellsList);
             set { if (value == null) RemoveProperty(PropertyString.ExtraSpellsList); else SetProperty(PropertyString.ExtraSpellsList, value); }
         }
+
+        public double? ExtraHealthRegenPool
+        {
+            get => GetProperty(PropertyFloat.ExtraHealthRegenPool);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ExtraHealthRegenPool); else SetProperty(PropertyFloat.ExtraHealthRegenPool, value.Value); }
+        }
+
+        public double? ExtraStaminaRegenPool
+        {
+            get => GetProperty(PropertyFloat.ExtraStaminaRegenPool);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ExtraStaminaRegenPool); else SetProperty(PropertyFloat.ExtraStaminaRegenPool, value.Value); }
+        }
+
+        public double? ExtraManaRegenPool
+        {
+            get => GetProperty(PropertyFloat.ExtraManaRegenPool);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ExtraManaRegenPool); else SetProperty(PropertyFloat.ExtraManaRegenPool, value.Value); }
+        }
     }
 }

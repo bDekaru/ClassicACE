@@ -233,6 +233,9 @@ namespace ACE.Entity.Enum.Properties
         ComponentBurnRateMod           = 10008,
         [ServerOnly]
         Tier                           = 10009,
+        ExtraHealthRegenPool           = 10010,
+        ExtraStaminaRegenPool          = 10011,
+        ExtraManaRegenPool             = 10012,
     }
 
     public static class PropertyFloatExtensions

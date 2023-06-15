@@ -610,6 +610,54 @@ namespace ACE.Server.Network.Structure
                     hasExtraPropertiesText = true;
                 }
 
+                if ((wo.ExtraHealthRegenPool ?? 0) != 0)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+
+                    var verb = "Adds";
+                    var complement = "to";
+                    if (wo.ExtraHealthRegenPool < 0)
+                    {
+                        verb = "Removes";
+                        complement = "from";
+                    }
+                    extraPropertiesText += $"{verb} {wo.ExtraHealthRegenPool:N0} {complement} your Extra Health Regeneration pool when consumed.";
+                    hasExtraPropertiesText = true;
+                }
+
+                if ((wo.ExtraStaminaRegenPool ?? 0) != 0)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+
+                    var verb = "Adds";
+                    var complement = "to";
+                    if (wo.ExtraStaminaRegenPool < 0)
+                    {
+                        verb = "Removes";
+                        complement = "from";
+                    }
+                    extraPropertiesText += $"{verb} {wo.ExtraStaminaRegenPool:N0} {complement} your Extra Stamina Regeneration pool when consumed.";
+                    hasExtraPropertiesText = true;
+                }
+
+                if ((wo.ExtraManaRegenPool ?? 0) != 0)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+
+                    var verb = "Adds";
+                    var complement = "to";
+                    if (wo.ExtraManaRegenPool < 0)
+                    {
+                        verb = "Removes";
+                        complement = "from";
+                    }
+                    extraPropertiesText += $"{verb} {wo.ExtraManaRegenPool:N0} {complement} your Extra Mana Regeneration pool when consumed.";
+                    hasExtraPropertiesText = true;
+                }
+
                 if (hasExtraPropertiesText)
                     PropertiesString[PropertyString.Use] = extraPropertiesText;
             }

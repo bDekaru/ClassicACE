@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
+using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
 
 namespace ACE.Server.WorldObjects
@@ -94,6 +95,83 @@ namespace ACE.Server.WorldObjects
             return vitalUpdate;
         }
 
+        public static double MaxRegenPoolValue = 7200d; // 2 hours of extra regeneration
+
+        public double GetExtraRegen(CreatureVital vital)
+        {
+            var regenPool = 0d;
+            var extraRegenAmount = 0d;
+            switch (vital.Vital)
+            {
+                case PropertyAttribute2nd.MaxHealth:
+                    regenPool = ExtraHealthRegenPool ?? 0;
+                    extraRegenAmount = 5;
+                    break;
+                case PropertyAttribute2nd.MaxStamina:
+                    regenPool = ExtraStaminaRegenPool ?? 0;
+                    extraRegenAmount = 5;
+                    break;
+                case PropertyAttribute2nd.MaxMana:
+                    regenPool = ExtraManaRegenPool ?? 0;
+                    extraRegenAmount = 5;
+                    break;
+            }
+
+            if (regenPool <= 0 || vital.Missing == 0)
+                return 0d;
+
+            var previousRegenPool = regenPool;
+
+            var regenValue = Math.Min(extraRegenAmount, regenPool);
+            regenValue = Math.Min(regenValue, (int)vital.Missing);
+            regenPool -= regenValue;
+
+            switch (vital.Vital)
+            {
+                case PropertyAttribute2nd.MaxHealth:
+                    ExtraHealthRegenPool = regenPool;
+                    break;
+                case PropertyAttribute2nd.MaxStamina:
+                    ExtraStaminaRegenPool = regenPool;
+                    break;
+                case PropertyAttribute2nd.MaxMana:
+                    ExtraManaRegenPool = regenPool;
+                    break;
+            }
+
+            if(previousRegenPool != regenPool && this is Player player)
+            {
+                var vitalString = "";
+                switch (vital.Vital)
+                {
+                    case PropertyAttribute2nd.MaxHealth:
+                        vitalString = "Health";
+                        break;
+                    case PropertyAttribute2nd.MaxStamina:
+                        vitalString = "Stamina";
+                        break;
+                    case PropertyAttribute2nd.MaxMana:
+                        vitalString = "Mana";
+                        break;
+                }
+
+                string fullness = null;
+                if (regenPool == 0 && !(previousRegenPool == 0))
+                    fullness = $"You are now very hungy for {vitalString} food!";
+                else if (regenPool <= regenPool * 0.25f && !(previousRegenPool <= regenPool * 0.25f))
+                    fullness = $"You are now hungry for {vitalString} food.";
+                else if (regenPool <= regenPool * 0.5f && !(previousRegenPool <= regenPool * 0.5f))
+                    fullness = $"You are still satiated of {vitalString} food.";
+                else if (regenPool <= regenPool * 0.75f && !(previousRegenPool <= regenPool * 0.75f))
+                    fullness = $"You are still pretty full of {vitalString} food.";
+
+                if(fullness != null)
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat(fullness, ChatMessageType.Broadcast));
+            }
+
+            return regenValue;
+        }
+
         /// <summary>
         /// Updates a particular vital according to regeneration rate
         /// </summary>
@@ -132,6 +210,8 @@ namespace ACE.Server.WorldObjects
 
             // cap rate?
             var currentTick = vital.RegenRate * attributeMod * stanceMod * enchantmentMod * augMod;
+
+            currentTick += GetExtraRegen(vital);
 
             // add in partially accumulated / rounded vitals from previous tick(s)
             var totalTick = currentTick + vital.PartialRegen;
