@@ -95,7 +95,7 @@ namespace ACE.Server.WorldObjects
             return vitalUpdate;
         }
 
-        public static double MaxRegenPoolValue = 7200d; // 2 hours of extra regeneration
+        public static double MaxRegenPoolValue = 3600d; // 2 hours of extra regeneration
 
         public double GetExtraRegen(CreatureVital vital)
         {
@@ -105,15 +105,15 @@ namespace ACE.Server.WorldObjects
             {
                 case PropertyAttribute2nd.MaxHealth:
                     regenPool = ExtraHealthRegenPool ?? 0;
-                    extraRegenAmount = 5;
+                    extraRegenAmount = 2.5;
                     break;
                 case PropertyAttribute2nd.MaxStamina:
                     regenPool = ExtraStaminaRegenPool ?? 0;
-                    extraRegenAmount = 5;
+                    extraRegenAmount = 2.5;
                     break;
                 case PropertyAttribute2nd.MaxMana:
                     regenPool = ExtraManaRegenPool ?? 0;
-                    extraRegenAmount = 5;
+                    extraRegenAmount = 2.5;
                     break;
             }
 
