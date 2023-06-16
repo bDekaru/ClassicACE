@@ -163,6 +163,7 @@ namespace ACE.Server.WorldObjects
             {
                 verb = "removes";
                 complement = "from";
+                amount = Math.Abs(amount);
             }
 
             var fullness = "";
