@@ -474,6 +474,9 @@ namespace ACE.Server.WorldObjects
                     criticalChance += 0.10f;
             }
 
+            if (source == target)
+                criticalChance = 0.0f; // Self-damage never crits.
+
             if (ThreadSafeRandom.Next(0.0f, 1.0f) < criticalChance)
             {
                 if (targetPlayer != null && targetPlayer.AugmentationCriticalDefense > 0)

@@ -299,45 +299,50 @@ namespace ACE.Server.Entity
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (playerAttacker != null)
+                if (attacker == defender)
+                    CriticalChance = 0.0f; // Self-damage never crits.
+                else
                 {
-                    if (CombatType != CombatType.Magic)
+                    if (playerAttacker != null)
                     {
-                        // critical chance scales with power/accuracy bar
-                        CriticalChance += playerAttacker.ScaleWithPowerAccuracyBar(CriticalChance);
-                    }
-
-                    if (Weapon != null && Weapon.IsTwoHanded)
-                        CriticalChance += 0.05f + playerAttacker.ScaleWithPowerAccuracyBar(0.05f);
-
-                    if (isAttackFromSneaking)
-                    {
-                        CriticalChance = 1.0f;
-                        if (playerDefender == null)
-                            SneakAttackMod = 3.0f;
-                    }
-                    else if (attackerTechniqueId == TacticAndTechniqueType.Opportunist)
-                    {
-                        CriticalChance += 0.10f + playerAttacker.ScaleWithPowerAccuracyBar(0.10f); // Extra critical chance while using the Opportunist technique.
-
-                        var currentTime = Time.GetUnixTime();
-                        var chance = 0.2f + playerAttacker.ScaleWithPowerAccuracyBar(0.2f);
-                        if (attacker != defender && playerAttacker.NextTechniqueNegativeActivationTime <= currentTime && chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                        if (CombatType != CombatType.Magic)
                         {
-                            // Chance of inflicting self damage while using the Opportunist technique.
-                            var modifiedInterval = Player.TechniqueNegativeActivationInterval;
-                            if (Weapon != null && Weapon.IsTwoHanded)
-                                modifiedInterval /= 2;
-                            playerAttacker.NextTechniqueNegativeActivationTime = currentTime + modifiedInterval;
-                            playerAttacker.DamageTarget(playerAttacker, damageSource);
+                            // critical chance scales with power/accuracy bar
+                            CriticalChance += playerAttacker.ScaleWithPowerAccuracyBar(CriticalChance);
+                        }
+
+                        if (Weapon != null && Weapon.IsTwoHanded)
+                            CriticalChance += 0.05f + playerAttacker.ScaleWithPowerAccuracyBar(0.05f);
+
+                        if (isAttackFromSneaking)
+                        {
+                            CriticalChance = 1.0f;
+                            if (playerDefender == null)
+                                SneakAttackMod = 3.0f;
+                        }
+                        else if (attackerTechniqueId == TacticAndTechniqueType.Opportunist)
+                        {
+                            CriticalChance += 0.10f + playerAttacker.ScaleWithPowerAccuracyBar(0.10f); // Extra critical chance while using the Opportunist technique.
+
+                            var currentTime = Time.GetUnixTime();
+                            var chance = 0.2f + playerAttacker.ScaleWithPowerAccuracyBar(0.2f);
+                            if (attacker != defender && playerAttacker.NextTechniqueNegativeActivationTime <= currentTime && chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                            {
+                                // Chance of inflicting self damage while using the Opportunist technique.
+                                var modifiedInterval = Player.TechniqueNegativeActivationInterval;
+                                if (Weapon != null && Weapon.IsTwoHanded)
+                                    modifiedInterval /= 2;
+                                playerAttacker.NextTechniqueNegativeActivationTime = currentTime + modifiedInterval;
+                                playerAttacker.DamageTarget(playerAttacker, damageSource);
+                            }
                         }
                     }
-                }
 
-                if (playerDefender != null)
-                {
-                    if (defenderTechniqueId == TacticAndTechniqueType.Riposte)
-                        CriticalChance += 0.10f; // Extra chance of receiving critical hits while using the Riposte technique.
+                    if (playerDefender != null)
+                    {
+                        if (defenderTechniqueId == TacticAndTechniqueType.Riposte)
+                            CriticalChance += 0.10f; // Extra chance of receiving critical hits while using the Riposte technique.
+                    }
                 }
             }
 
@@ -469,6 +474,9 @@ namespace ACE.Server.Entity
 
             // calculate final output damage
             Damage = damageBeforeShieldMod * ShieldMod;
+
+            if (attacker == defender)
+                Damage *= 1.33f; // Self-damage does extra damage.
 
             if (pkBattle)
             {
