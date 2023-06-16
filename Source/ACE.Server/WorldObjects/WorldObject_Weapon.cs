@@ -554,8 +554,24 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public static float GetWeaponCreatureSlayerModifier(WorldObject weapon, Creature wielder, Creature target)
         {
+            var creatureType = target != null ? target.CreatureType : ACE.Entity.Enum.CreatureType.Invalid;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                switch (creatureType)
+                {
+                    case ACE.Entity.Enum.CreatureType.GotrokLugian:
+                        creatureType = ACE.Entity.Enum.CreatureType.Lugian;
+                        break;
+                    case ACE.Entity.Enum.CreatureType.AunTumerok:
+                    case ACE.Entity.Enum.CreatureType.HeaTumerok:
+                        creatureType = ACE.Entity.Enum.CreatureType.Tumerok;
+                        break;
+                }
+            }
+
             if (weapon != null && weapon.SlayerCreatureType != null && weapon.SlayerDamageBonus != null &&
-                target != null && weapon.SlayerCreatureType == target.CreatureType)
+                target != null && weapon.SlayerCreatureType == creatureType)
             {
                 // TODO: scale with base weapon skill?
                 return (float)weapon.SlayerDamageBonus;

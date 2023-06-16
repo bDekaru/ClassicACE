@@ -14,21 +14,21 @@ namespace ACE.Server.Factories.Tables
             {
                 case 1:
                 default:
-                    return 0.005f;
+                    return 0.01f;
                 case 2:
-                    return 0.005f;
+                    return 0.01f;
                 case 3:
-                    return 0.005f;
+                    return 0.01f;
                 case 4:
-                    return 0.005f;
+                    return 0.01f;
                 case 5:
-                    return 0.005f;
+                    return 0.01f;
                 case 6:
-                    return 0.005f;
+                    return 0.01f;
                 case 7:
-                    return 0.005f;
+                    return 0.01f;
                 case 8:
-                    return 0.005f;
+                    return 0.01f;
             }
         }
 
@@ -79,12 +79,9 @@ namespace ACE.Server.Factories.Tables
             ( CreatureType.Marionette, 1.0f ),
             ( CreatureType.Carenzi, 1.0f ),
             ( CreatureType.Siraluun, 1.0f ),
-            ( CreatureType.AunTumerok, 1.0f ),
-            ( CreatureType.HeaTumerok, 1.0f ),
             ( CreatureType.Simulacrum, 1.0f ),
             ( CreatureType.AcidElemental, 1.0f ),
             ( CreatureType.FrostElemental, 1.0f ),
-            ( CreatureType.GotrokLugian, 1.0f ),
         };
 
         private static ChanceTable<CreatureType> T2_SlayerTypeChances = new ChanceTable<CreatureType>(ChanceTableType.Weight)
@@ -134,12 +131,9 @@ namespace ACE.Server.Factories.Tables
             ( CreatureType.Marionette, 1.0f ),
             ( CreatureType.Carenzi, 1.0f ),
             ( CreatureType.Siraluun, 1.0f ),
-            ( CreatureType.AunTumerok, 1.0f ),
-            ( CreatureType.HeaTumerok, 1.0f ),
             ( CreatureType.Simulacrum, 1.0f ),
             ( CreatureType.AcidElemental, 1.0f ),
             ( CreatureType.FrostElemental, 1.0f ),
-            ( CreatureType.GotrokLugian, 1.0f ),
         };
 
         private static ChanceTable<CreatureType> T3_SlayerTypeChances = new ChanceTable<CreatureType>(ChanceTableType.Weight)
@@ -189,12 +183,9 @@ namespace ACE.Server.Factories.Tables
             ( CreatureType.Marionette, 1.0f ),
             ( CreatureType.Carenzi, 1.0f ),
             ( CreatureType.Siraluun, 1.0f ),
-            ( CreatureType.AunTumerok, 1.0f ),
-            ( CreatureType.HeaTumerok, 1.0f ),
             ( CreatureType.Simulacrum, 1.0f ),
             ( CreatureType.AcidElemental, 1.0f ),
             ( CreatureType.FrostElemental, 1.0f ),
-            ( CreatureType.GotrokLugian, 1.0f ),
             ( CreatureType.Margul, 1.0f ),
             ( CreatureType.Burun, 1.0f ),
             ( CreatureType.Ghost, 1.0f ),
@@ -247,12 +238,9 @@ namespace ACE.Server.Factories.Tables
             ( CreatureType.Marionette, 1.0f ),
             ( CreatureType.Carenzi, 1.0f ),
             ( CreatureType.Siraluun, 1.0f ),
-            ( CreatureType.AunTumerok, 1.0f ),
-            ( CreatureType.HeaTumerok, 1.0f ),
             ( CreatureType.Simulacrum, 1.0f ),
             ( CreatureType.AcidElemental, 1.0f ),
             ( CreatureType.FrostElemental, 1.0f ),
-            ( CreatureType.GotrokLugian, 1.0f ),
             ( CreatureType.Margul, 1.0f ),
             ( CreatureType.Burun, 1.0f ),
             ( CreatureType.Ghost, 1.0f ),
@@ -305,12 +293,9 @@ namespace ACE.Server.Factories.Tables
             (CreatureType.Marionette, 1.0f ),
             (CreatureType.Carenzi, 1.0f ),
             (CreatureType.Siraluun, 1.0f ),
-            (CreatureType.AunTumerok, 1.0f ),
-            (CreatureType.HeaTumerok, 1.0f ),
             (CreatureType.Simulacrum, 1.0f ),
             (CreatureType.AcidElemental, 1.0f ),
             (CreatureType.FrostElemental, 1.0f ),
-            (CreatureType.GotrokLugian, 1.0f ),
             (CreatureType.Margul, 1.0f ),
             (CreatureType.Burun, 1.0f ),
             (CreatureType.Ghost, 1.0f ),
@@ -363,12 +348,9 @@ namespace ACE.Server.Factories.Tables
             ( CreatureType.Marionette, 1.0f ),
             ( CreatureType.Carenzi, 1.0f ),
             ( CreatureType.Siraluun, 1.0f ),
-            ( CreatureType.AunTumerok, 1.0f ),
-            ( CreatureType.HeaTumerok, 1.0f ),
             ( CreatureType.Simulacrum, 1.0f ),
             ( CreatureType.AcidElemental, 1.0f ),
             ( CreatureType.FrostElemental, 1.0f ),
-            ( CreatureType.GotrokLugian, 1.0f ),
             ( CreatureType.Margul, 1.0f ),
             ( CreatureType.Burun, 1.0f ),
             ( CreatureType.Ghost, 1.0f ),

@@ -14,21 +14,21 @@ namespace ACE.Server.Factories.Tables
             {
                 case 1:
                 default:
-                    return 0.01f;
+                    return 0.02f;
                 case 2:
-                    return 0.01f;
+                    return 0.02f;
                 case 3:
-                    return 0.01f;
+                    return 0.02f;
                 case 4:
-                    return 0.01f;
+                    return 0.02f;
                 case 5:
-                    return 0.01f;
+                    return 0.02f;
                 case 6:
-                    return 0.01f;
+                    return 0.02f;
                 case 7:
-                    return 0.01f;
+                    return 0.02f;
                 case 8:
-                    return 0.01f;
+                    return 0.02f;
             }
         }
         public static float GetBitingStrikeChanceForTier(int tier)
@@ -37,21 +37,21 @@ namespace ACE.Server.Factories.Tables
             {
                 case 1:
                 default:
-                    return 0.01f;
+                    return 0.02f;
                 case 2:
-                    return 0.01f;
+                    return 0.02f;
                 case 3:
-                    return 0.01f;
+                    return 0.02f;
                 case 4:
-                    return 0.01f;
+                    return 0.02f;
                 case 5:
-                    return 0.01f;
+                    return 0.02f;
                 case 6:
-                    return 0.01f;
+                    return 0.02f;
                 case 7:
-                    return 0.01f;
+                    return 0.02f;
                 case 8:
-                    return 0.01f;
+                    return 0.02f;
             }
         }
 
@@ -61,21 +61,21 @@ namespace ACE.Server.Factories.Tables
             {
                 case 1:
                 default:
-                    return 0.01f;
+                    return 0.02f;
                 case 2:
-                    return 0.01f;
+                    return 0.02f;
                 case 3:
-                    return 0.01f;
+                    return 0.02f;
                 case 4:
-                    return 0.01f;
+                    return 0.02f;
                 case 5:
-                    return 0.01f;
+                    return 0.02f;
                 case 6:
-                    return 0.01f;
+                    return 0.02f;
                 case 7:
-                    return 0.01f;
+                    return 0.02f;
                 case 8:
-                    return 0.01f;
+                    return 0.02f;
             }
         }
 
@@ -85,21 +85,21 @@ namespace ACE.Server.Factories.Tables
             {
                 case 1:
                 default:
-                    return 0.01f;
+                    return 0.02f;
                 case 2:
-                    return 0.01f;
+                    return 0.02f;
                 case 3:
-                    return 0.01f;
+                    return 0.02f;
                 case 4:
-                    return 0.01f;
+                    return 0.02f;
                 case 5:
-                    return 0.01f;
+                    return 0.02f;
                 case 6:
-                    return 0.01f;
+                    return 0.02f;
                 case 7:
-                    return 0.01f;
+                    return 0.02f;
                 case 8:
-                    return 0.01f;
+                    return 0.02f;
             }
         }
 
@@ -109,21 +109,21 @@ namespace ACE.Server.Factories.Tables
             {
                 case 1:
                 default:
-                    return 0.01f;
+                    return 0.02f;
                 case 2:
-                    return 0.01f;
+                    return 0.02f;
                 case 3:
-                    return 0.01f;
+                    return 0.02f;
                 case 4:
-                    return 0.01f;
+                    return 0.02f;
                 case 5:
-                    return 0.01f;
+                    return 0.02f;
                 case 6:
-                    return 0.01f;
+                    return 0.02f;
                 case 7:
-                    return 0.01f;
+                    return 0.02f;
                 case 8:
-                    return 0.01f;
+                    return 0.02f;
             }
         }
 
@@ -133,21 +133,21 @@ namespace ACE.Server.Factories.Tables
             {
                 case 1:
                 default:
-                    return 0.01f;
+                    return 0.02f;
                 case 2:
-                    return 0.01f;
+                    return 0.02f;
                 case 3:
-                    return 0.01f;
+                    return 0.02f;
                 case 4:
-                    return 0.01f;
+                    return 0.02f;
                 case 5:
-                    return 0.01f;
+                    return 0.02f;
                 case 6:
-                    return 0.01f;
+                    return 0.02f;
                 case 7:
-                    return 0.01f;
+                    return 0.02f;
                 case 8:
-                    return 0.01f;
+                    return 0.02f;
             }
         }
 
@@ -157,21 +157,21 @@ namespace ACE.Server.Factories.Tables
             {
                 case 1:
                 default:
-                    return 0.01f;
+                    return 0.02f;
                 case 2:
-                    return 0.01f;
+                    return 0.02f;
                 case 3:
-                    return 0.01f;
+                    return 0.02f;
                 case 4:
-                    return 0.01f;
+                    return 0.02f;
                 case 5:
-                    return 0.01f;
+                    return 0.02f;
                 case 6:
-                    return 0.01f;
+                    return 0.02f;
                 case 7:
-                    return 0.01f;
+                    return 0.02f;
                 case 8:
-                    return 0.01f;
+                    return 0.02f;
             }
         }
     }
