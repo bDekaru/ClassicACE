@@ -337,6 +337,8 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            UsedSpells = true;
+
             var targetCreature = target as Creature;
 
             // TODO: see if this can be coalesced

@@ -69,7 +69,7 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameMessageSystemChat("Your experience reward has been reduced because your level is not high enough!", ChatMessageType.System));
                 }
 
-                float totalXP = GetCreatureDeathXP(xpSourceLevel.Value, 0, 0, formulaVersion);
+                float totalXP = GetCreatureDeathXP(xpSourceLevel.Value, 0, false, false, formulaVersion);
 
                 if (xpSourceId != null && xpSourceId != 0)
                 {

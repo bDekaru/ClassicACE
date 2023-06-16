@@ -12,5 +12,8 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyInt.AiOptions) ?? 0;
             set { if (value == 0) RemoveProperty(PropertyInt.AiOptions); else SetProperty(PropertyInt.AiOptions, value); }
         }
+
+        public bool UsedRangedAttacks = false;
+        public bool UsedSpells = false;
     }
 }

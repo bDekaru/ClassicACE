@@ -198,7 +198,7 @@ namespace ACE.Server.WorldObjects
                 float totalXP;
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !UseXpOverride)
-                    totalXP = GetCreatureDeathXP(Level ?? 0, (int)Health.MaxValue, Biota.PropertiesSpellBook?.Count ?? 0) * damagePercent;
+                    totalXP = GetCreatureDeathXP(Level ?? 0, (int)Health.MaxValue, UsedSpells, UsedRangedAttacks) * damagePercent;
                 else
                     totalXP = (XpOverride ?? 0) * damagePercent;
 
@@ -213,7 +213,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
         }
-        public static int GetCreatureDeathXP(int level, int hitpoints = 0, int numSpellInSpellbook = 0, int formulaVersion = 0)
+        public static int GetCreatureDeathXP(int level, int hitpoints = 0, bool usedSpells = false, bool usedRangedAttacks = false, int formulaVersion = 0)
         {
             double baseXp = Math.Min((1.75 * Math.Pow(level, 2)) + (20 * level), 30000);
 
@@ -240,9 +240,13 @@ namespace ACE.Server.WorldObjects
 
             double hitpointsXp = hitpoints / 10 * baseXp / 35;
 
-            double casterXp = baseXp * ((float)numSpellInSpellbook / 100);
+            double xp = baseXp + hitpointsXp;
 
-            double xp = baseXp + hitpointsXp + casterXp;
+            double casterXp = usedSpells ? xp * 0.15f : 0f;
+
+            double rangedXp = usedRangedAttacks ? xp * 0.15f : 0f;
+
+            xp += casterXp + rangedXp;
 
             return (int)Math.Round(xp);
         }

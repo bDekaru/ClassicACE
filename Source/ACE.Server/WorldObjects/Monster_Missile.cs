@@ -125,6 +125,7 @@ namespace ACE.Server.WorldObjects
                     UpdateAmmoAfterLaunch(ammo);
                 }
 
+                UsedRangedAttacks = true;
                 MissileCombatMeleeRangeMode = false; // reset melee range mode.
             });
 
