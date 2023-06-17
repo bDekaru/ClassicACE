@@ -554,30 +554,53 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public static float GetWeaponCreatureSlayerModifier(WorldObject weapon, Creature wielder, Creature target)
         {
-            var creatureType = target != null ? target.CreatureType : ACE.Entity.Enum.CreatureType.Invalid;
-
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (weapon != null && weapon.SlayerCreatureType != null && weapon.SlayerDamageBonus != null && target != null)
             {
-                switch (creatureType)
+                if (weapon.SlayerCreatureType == target.CreatureType)
+                    return (float)weapon.SlayerDamageBonus; // TODO: scale with base weapon skill?
+                else
                 {
-                    case ACE.Entity.Enum.CreatureType.GotrokLugian:
-                        creatureType = ACE.Entity.Enum.CreatureType.Lugian;
-                        break;
-                    case ACE.Entity.Enum.CreatureType.AunTumerok:
-                    case ACE.Entity.Enum.CreatureType.HeaTumerok:
-                        creatureType = ACE.Entity.Enum.CreatureType.Tumerok;
-                        break;
+                    var creatureFamily = target.CreatureType;
+
+                    switch (creatureFamily)
+                    {
+                        case ACE.Entity.Enum.CreatureType.GotrokLugian:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Lugian;
+                            break;
+                        case ACE.Entity.Enum.CreatureType.AunTumerok:
+                        case ACE.Entity.Enum.CreatureType.HeaTumerok:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Tumerok;
+                            break;
+                        case ACE.Entity.Enum.CreatureType.AcidElemental:
+                        case ACE.Entity.Enum.CreatureType.FireElemental:
+                        case ACE.Entity.Enum.CreatureType.FrostElemental:
+                        case ACE.Entity.Enum.CreatureType.LightningElemental:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Elemental;
+                            break;
+                        case ACE.Entity.Enum.CreatureType.OlthoiLarvae:
+                        case ACE.Entity.Enum.CreatureType.ParadoxOlthoi:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Olthoi;
+                            break;
+                        case ACE.Entity.Enum.CreatureType.AlteredHuman:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Human;
+                            break;
+                        case ACE.Entity.Enum.CreatureType.Bunny:
+                        case ACE.Entity.Enum.CreatureType.BleachedRabbit:
+                        case ACE.Entity.Enum.CreatureType.GrimacingRabbit:
+                        case ACE.Entity.Enum.CreatureType.NastyRabbit:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Rabbit;
+                            break;
+                        case ACE.Entity.Enum.CreatureType.Auroch:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Cow;
+                            break;
+                    }
+
+                    if (weapon.SlayerCreatureType == creatureFamily)
+                        return (float)weapon.SlayerDamageBonus; // TODO: scale with base weapon skill?
                 }
             }
 
-            if (weapon != null && weapon.SlayerCreatureType != null && weapon.SlayerDamageBonus != null &&
-                target != null && weapon.SlayerCreatureType == creatureType)
-            {
-                // TODO: scale with base weapon skill?
-                return (float)weapon.SlayerDamageBonus;
-            }
-            else
-                return defaultModifier;
+            return defaultModifier;
         }
 
         public DamageType? ResistanceModifierType
