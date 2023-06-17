@@ -629,7 +629,7 @@ namespace ACE.Server.Command.Handlers
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: rec", ChatMessageType.Help));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: recs", ChatMessageType.Help));
                 return;
             }
 
@@ -650,6 +650,12 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("rec", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Recommend an activity appropriate to the character.")]
         public static void HandleSingleRecommendation(Session session, params string[] parameters)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: rec", ChatMessageType.Help));
+                return;
+            }
+
             var validRecommendations = BuildRecommendationList(session.Player);
 
             if (validRecommendations.Count > 0)
@@ -1118,6 +1124,64 @@ namespace ACE.Server.Command.Handlers
                 CommandHandlerHelper.WriteOutputInfo(session, $"Could not parse command, check \"/SmartSalvage help\" for usage instructions.", ChatMessageType.Broadcast);
                 return;
             }
+        }
+
+        [CommandHandler("food", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Show the character's current hunger status.")]
+        [CommandHandler("hunger", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Show the character's current hunger status.")]
+        public static void HandleHunger(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: food", ChatMessageType.Help));
+                return;
+            }
+
+            var player = session.Player;
+
+            var health = player.ExtraHealthRegenPool ?? 0;
+            var stamina = player.ExtraStaminaRegenPool ?? 0;
+            var mana = player.ExtraManaRegenPool ?? 0;
+            var max = Creature.MaxRegenPoolValue;
+
+            var healthFullness = "";
+            if (health >= max)
+                healthFullness = $"Completely Full";
+            else if (health >= max * 0.75f)
+                healthFullness = $"Pretty Full";
+            else if (health >= max * 0.5f)
+                healthFullness = $"Satiated";
+            else if (health >= max * 0.25f)
+                healthFullness = $"Hungry";
+            else
+                healthFullness = $"Very hungry";
+
+            var staminaFullness = "";
+            if (stamina >= max)
+                staminaFullness = $"Completely Full";
+            else if (stamina >= max * 0.75f)
+                staminaFullness = $"Pretty Full";
+            else if (stamina >= max * 0.5f)
+                staminaFullness = $"Satiated";
+            else if (stamina >= max * 0.25f)
+                staminaFullness = $"Hungry";
+            else
+                staminaFullness = $"Very hungry";
+
+            var manaFullness = "";
+            if (mana >= max)
+                manaFullness = $"Completely Full";
+            else if (mana >= max * 0.75f)
+                manaFullness = $"Pretty Full";
+            else if (mana >= max * 0.5f)
+                manaFullness = $"Satiated";
+            else if (mana >= max * 0.25f)
+                manaFullness = $"Hungry";
+            else
+                manaFullness = $"Very hungry";
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Health Food: {healthFullness}.", ChatMessageType.Broadcast);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Stamina Food: {staminaFullness}.", ChatMessageType.Broadcast);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Mana Food: {manaFullness}.", ChatMessageType.Broadcast);
         }
     }
 }
