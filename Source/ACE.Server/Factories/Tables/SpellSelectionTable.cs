@@ -480,7 +480,6 @@ namespace ACE.Server.Factories.Tables
                     //( SpellId.CrossbowMasteryOther1,        0.5f ),
                     ( SpellId.ThrownWeaponMasteryOther1,    0.5f ),
                     ( SpellId.ShieldMasteryOther1,          0.5f ),
-                    ( SpellId.DualWieldMasteryOther1,       0.5f ),
                     ( SpellId.WarMagicMasteryOther1,        0.5f ),
                     ( SpellId.LifeMagicMasteryOther1,       0.5f ),
                 };
@@ -563,11 +562,10 @@ namespace ACE.Server.Factories.Tables
                 // one-handed melee weapons
                 spellSelectionGroup6 = new ChanceTable<SpellId>()
                 {
-                    ( SpellId.QuicknessOther1,            0.225f ),
-                    ( SpellId.StrengthOther1,             0.225f ),
-                    ( SpellId.EnduranceOther1,            0.225f ),
-                    ( SpellId.CoordinationOther1,         0.225f ),
-                    ( SpellId.DualWieldMasteryOther1,     0.100f ),
+                    ( SpellId.QuicknessOther1,            0.25f ),
+                    ( SpellId.StrengthOther1,             0.25f ),
+                    ( SpellId.EnduranceOther1,            0.25f ),
+                    ( SpellId.CoordinationOther1,         0.25f ),
                 };
 
                 // bracers, breastplates, coats, cuirasses, girths, hauberks, pauldrons, chest armor, sleeves
@@ -635,7 +633,6 @@ namespace ACE.Server.Factories.Tables
                     ( SpellId.ManaRenewalOther1,             1.0f ),
                     ( SpellId.FealtyOther1,                  1.0f ),
 
-                    ( SpellId.DualWieldMasteryOther1,        1.0f ),
                     ( SpellId.ArmorMasteryOther1,            1.0f ),
                     ( SpellId.AwarenessMasteryOther1,        1.0f ),
                     ( SpellId.AppraiseMasteryOther1,         1.0f ),

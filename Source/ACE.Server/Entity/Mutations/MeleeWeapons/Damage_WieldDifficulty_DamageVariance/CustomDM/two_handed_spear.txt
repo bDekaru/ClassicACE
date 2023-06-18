@@ -1,180 +1,240 @@
-Two-Handed Spear Mutation #1:
+two_handed_spear Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 11%:
+    - Chance: 12%:
         Damage += 0
 
-    - Chance: 23%:
+    - Chance: 21%:
         Damage += 1
 
-    - Chance: 44%:
+    - Chance: 36%:
         Damage += 2
 
-    - Chance: 22%:
+    - Chance: 20%:
         Damage += 3
 
-Two-Handed Spear Mutation #2:
+    - Chance: 11%:
+        Damage += 4
+
+two_handed_spear Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 6.6%:
+    - Chance: 5.6%:
         Damage += 0
 
     - Chance: 11%:
         Damage += 1
 
-    - Chance: 22.1%:
+    - Chance: 18%:
         Damage += 2
 
-    - Chance: 11.1%:
+    - Chance: 10%:
         Damage += 3
-
-    - Chance: 11.1%:
-        Damage += 4
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-    - Chance: 26%:
-        Damage += 5
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-    - Chance: 12.1%:
-        Damage += 6
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-Two-Handed Spear Mutation #3:
-
-Tier Chances: 0, 0, 1, 0, 0, 0
 
     - Chance: 5.7%:
         Damage += 4
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
 
-    - Chance: 13%:
+    - Chance: 5.6%:
         Damage += 5
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 31.1%:
+    - Chance: 11%:
         Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 50.2%:
+    - Chance: 22%:
         Damage += 7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 11.1%:
+        Damage += 8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+two_handed_spear Mutation #3:
+
+Tier Chances: 0, 0, 1, 0, 0, 0
+
+    - Chance: 3.4%:
+        Damage += 5
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 6.6%:
+        Damage += 6
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 14%:
+        Damage += 7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 27%:
+        Damage += 8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 37%:
+        Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-Two-Handed Spear Mutation #4:
+    - Chance: 12%:
+        Damage += 10
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+two_handed_spear Mutation #4:
 
 Tier Chances: 0, 0, 0, 1, 0, 0
 
-    - Chance: 50%:
-        Damage += 7
+    - Chance: 37%:
+        Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 50%:
-        Damage += 8
+    - Chance: 13%:
+        Damage += 10
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 37%:
+        Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-Two-Handed Spear Mutation #5:
+    - Chance: 13%:
+        Damage += 12
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+two_handed_spear Mutation #5:
 
 Tier Chances: 0, 0, 0, 0, 1, 0
 
-    - Chance: 50%:
-        Damage += 8
+    - Chance: 38%:
+        Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 50%:
-        Damage += 9
+    - Chance: 12%:
+        Damage += 12
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance: 37%:
+        Damage += 13
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-Two-Handed Spear Mutation #6:
+    - Chance: 13%:
+        Damage += 14
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+two_handed_spear Mutation #6:
 
 Tier Chances: 0, 0, 0, 0, 0, 1
 
-    - Chance: 33.4%:
-        Damage += 9
+    - Chance: 24.1%:
+        Damage += 13
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 33.2%:
-        Damage += 10
+    - Chance: 8.4%:
+        Damage += 14
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance: 25%:
+        Damage += 15
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 25.1%:
-        Damage += 11
+    - Chance: 8.2%:
+        Damage += 16
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 370
+
+    - Chance: 26%:
+        Damage += 17
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
     - Chance: 8.3%:
-        Damage += 12
+        Damage += 18
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-Two-Handed Spear Mutation #7:
+two_handed_spear Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 3.3%:
-        DamageVariance = 0.5
+    - Chance: 3.4%:
+        DamageVariance = 0.75
 
-    - Chance: 4.2%:
-        DamageVariance = 0.48
+    - Chance: 4.3%:
+        DamageVariance = 0.73
 
-    - Chance: 5.8%:
-        DamageVariance = 0.46
+    - Chance: 5.5%:
+        DamageVariance = 0.71
 
-    - Chance: 7.3%:
-        DamageVariance = 0.44
+    - Chance: 7.2%:
+        DamageVariance = 0.69
 
-    - Chance: 9.3%:
-        DamageVariance = 0.42
+    - Chance: 9.2%:
+        DamageVariance = 0.67
 
     - Chance: 12%:
-        DamageVariance = 0.4
+        DamageVariance = 0.65
 
     - Chance: 16%:
-        DamageVariance = 0.38
+        DamageVariance = 0.62
 
-    - Chance: 12%:
-        DamageVariance = 0.35
+    - Chance: 12.1%:
+        DamageVariance = 0.6
 
-    - Chance: 9.5%:
-        DamageVariance = 0.33
+    - Chance: 9.4%:
+        DamageVariance = 0.58
 
-    - Chance: 7%:
-        DamageVariance = 0.31
+    - Chance: 7.2%:
+        DamageVariance = 0.56
 
-    - Chance: 5.4%:
-        DamageVariance = 0.29
+    - Chance: 5.5%:
+        DamageVariance = 0.54
 
-    - Chance: 4%:
-        DamageVariance = 0.27
+    - Chance: 5%:
+        DamageVariance = 0.52
 
-    - Chance: 4.2%:
-        DamageVariance = 0.25
+    - Chance: 3.2%:
+        DamageVariance = 0.5

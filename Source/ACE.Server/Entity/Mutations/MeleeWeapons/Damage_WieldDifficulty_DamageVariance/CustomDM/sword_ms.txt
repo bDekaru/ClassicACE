@@ -2,77 +2,41 @@ SwordMS Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 5.4%:
+    - Chance: 12%:
         Damage += 0
 
-    - Chance: 7.5%:
+    - Chance: 20%:
         Damage += 1
 
-    - Chance: 10%:
+    - Chance: 36%:
         Damage += 2
 
-    - Chance: 15%:
+    - Chance: 20%:
         Damage += 3
 
-    - Chance: 20%:
+    - Chance: 12%:
         Damage += 4
-
-    - Chance: 14.1%:
-        Damage += 5
-
-    - Chance: 11.1%:
-        Damage += 6
-
-    - Chance: 7.5%:
-        Damage += 7
-
-    - Chance: 5.5%:
-        Damage += 8
-
-    - Chance: 3.9%:
-        Damage += 9
 
 SwordMS Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 2.1%:
+    - Chance: 6.5%:
         Damage += 0
 
-    - Chance: 3.7%:
+    - Chance: 10%:
         Damage += 1
 
-    - Chance: 5.2%:
+    - Chance: 18.2%:
         Damage += 2
 
-    - Chance: 7.3%:
+    - Chance: 10.1%:
         Damage += 3
 
-    - Chance: 10%:
+    - Chance: 5.7%:
         Damage += 4
 
-    - Chance: 7.2%:
-        Damage += 5
-
-    - Chance: 5%:
-        Damage += 6
-
-    - Chance: 4.7%:
-        Damage += 7
-
-    - Chance: 2.7%:
-        Damage += 8
-
-    - Chance: 2%:
-        Damage += 9
-
-    - Chance: 12%:
-        Damage += 4
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-    - Chance: 27.1%:
+    - Chance: 6.4%:
         Damage += 5
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -84,36 +48,54 @@ Tier Chances: 0, 1, 0, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-SwordMS Mutation #3:
-
-Tier Chances: 0, 0, 1, 0, 0, 0
-
-    - Chance: 6.8%:
-        Damage += 4
+    - Chance: 22.1%:
+        Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 13.1%:
+    - Chance: 10%:
+        Damage += 8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+SwordMS Mutation #3:
+
+Tier Chances: 0, 0, 1, 0, 0, 0
+
+    - Chance: 3.3%:
         Damage += 5
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 31%:
+    - Chance: 6.6%:
         Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 37%:
+    - Chance: 14%:
         Damage += 7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 27%:
+        Damage += 8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 37.1%:
+        Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 12.1%:
-        Damage += 8
+    - Chance: 12%:
+        Damage += 10
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
@@ -123,25 +105,25 @@ SwordMS Mutation #4:
 Tier Chances: 0, 0, 0, 1, 0, 0
 
     - Chance: 38%:
-        Damage += 7
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 300
-
-    - Chance: 12%:
-        Damage += 8
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 300
-
-    - Chance: 38%:
         Damage += 9
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 13%:
+        Damage += 10
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 37%:
+        Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
     - Chance: 12%:
-        Damage += 10
+        Damage += 12
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
@@ -150,32 +132,26 @@ SwordMS Mutation #5:
 
 Tier Chances: 0, 0, 0, 0, 1, 0
 
-    - Chance: 37%:
-        Damage += 9
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 325
-
-    - Chance: 13%:
-        Damage += 10
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 325
-
-    - Chance: 31%:
+    - Chance: 39%:
         Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
+        WieldDifficulty = 325
 
-    - Chance: 13.3%:
+    - Chance: 12%:
         Damage += 12
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance: 37%:
+        Damage += 13
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 5.7%:
-        Damage += 13
+    - Chance: 12%:
+        Damage += 14
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
@@ -184,49 +160,37 @@ SwordMS Mutation #6:
 
 Tier Chances: 0, 0, 0, 0, 0, 1
 
-    - Chance: 20%:
-        Damage += 11
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
-
-    - Chance: 8.8%:
-        Damage += 12
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
-
-    - Chance: 3.8%:
+    - Chance: 24%:
         Damage += 13
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 26%:
+    - Chance: 9.3%:
         Damage += 14
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
-        WieldDifficulty = 370
+        WieldDifficulty = 350
 
-    - Chance: 8.6%:
+    - Chance: 24%:
         Damage += 15
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 20%:
+    - Chance: 8.5%:
         Damage += 16
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
-        WieldDifficulty = 400
+        WieldDifficulty = 370
 
-    - Chance: 8.9%:
+    - Chance: 25%:
         Damage += 17
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-    - Chance: 3.9%:
+    - Chance: 9.2%:
         Damage += 18
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -236,17 +200,32 @@ SwordMS Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 11%:
-        DamageVariance = 0.5
+    - Chance: 5.2%:
+        DamageVariance = 0.6
 
-    - Chance: 21%:
-        DamageVariance = 0.48
+    - Chance: 7.4%:
+        DamageVariance = 0.58
 
-    - Chance: 36%:
-        DamageVariance = 0.45
+    - Chance: 10%:
+        DamageVariance = 0.56
 
-    - Chance: 20%:
+    - Chance: 14.2%:
+        DamageVariance = 0.53
+
+    - Chance: 20.2%:
+        DamageVariance = 0.51
+
+    - Chance: 14.2%:
+        DamageVariance = 0.49
+
+    - Chance: 10%:
+        DamageVariance = 0.47
+
+    - Chance: 7.5%:
+        DamageVariance = 0.44
+
+    - Chance: 6.4%:
         DamageVariance = 0.42
 
-    - Chance: 12%:
+    - Chance: 4.9%:
         DamageVariance = 0.4

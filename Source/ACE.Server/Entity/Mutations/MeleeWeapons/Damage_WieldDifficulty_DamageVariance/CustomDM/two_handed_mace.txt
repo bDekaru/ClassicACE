@@ -1,156 +1,150 @@
-Two-Handed Mace Mutation #1:
+two_handed_mace Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 11%:
+    - Chance: 76%:
         Damage += 0
 
-    - Chance: 22%:
+    - Chance: 24%:
         Damage += 1
 
-    - Chance: 44%:
-        Damage += 2
-
-    - Chance: 23%:
-        Damage += 3
-
-Two-Handed Mace Mutation #2:
+two_handed_mace Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 5.7%:
+    - Chance: 37%:
         Damage += 0
 
-    - Chance: 11%:
+    - Chance: 13%:
         Damage += 1
 
-    - Chance: 22.1%:
+    - Chance: 37%:
         Damage += 2
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
 
-    - Chance: 11.1%:
+    - Chance: 13%:
         Damage += 3
-
-    - Chance: 12%:
-        Damage += 4
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 27%:
-        Damage += 5
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-    - Chance: 11.1%:
-        Damage += 6
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-Two-Handed Mace Mutation #3:
+two_handed_mace Mutation #3:
 
 Tier Chances: 0, 0, 1, 0, 0, 0
 
-    - Chance: 5.6%:
+    - Chance: 12%:
+        Damage += 2
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 38%:
+        Damage += 3
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 50%:
         Damage += 4
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-    - Chance: 13.2%:
-        Damage += 5
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-    - Chance: 31.1%:
-        Damage += 6
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-    - Chance: 50.1%:
-        Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-Two-Handed Mace Mutation #4:
+two_handed_mace Mutation #4:
 
 Tier Chances: 0, 0, 0, 1, 0, 0
 
     - Chance: 50%:
-        Damage += 7
+        Damage += 4
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
     - Chance: 50%:
-        Damage += 8
+        Damage += 5
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-Two-Handed Mace Mutation #5:
+two_handed_mace Mutation #5:
 
 Tier Chances: 0, 0, 0, 0, 1, 0
 
     - Chance: 50%:
-        Damage += 8
+        Damage += 5
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
     - Chance: 50%:
-        Damage += 9
+        Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-Two-Handed Mace Mutation #6:
+two_handed_mace Mutation #6:
 
 Tier Chances: 0, 0, 0, 0, 0, 1
 
-    - Chance: 33.2%:
-        Damage += 9
+    - Chance: 33.3%:
+        Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 33.2%:
-        Damage += 10
+    - Chance: 33.3%:
+        Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 25.1%:
-        Damage += 11
+    - Chance: 33.4%:
+        Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-    - Chance: 8.5%:
-        Damage += 12
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 400
-
-Two-Handed Mace Mutation #7:
+two_handed_mace Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 11%:
+    - Chance: 3%:
         DamageVariance = 0.5
 
-    - Chance: 21%:
+    - Chance: 5.3%:
         DamageVariance = 0.48
 
-    - Chance: 37%:
-        DamageVariance = 0.45
+    - Chance: 5.5%:
+        DamageVariance = 0.46
 
-    - Chance: 20%:
+    - Chance: 7.3%:
+        DamageVariance = 0.44
+
+    - Chance: 9.3%:
         DamageVariance = 0.42
 
-    - Chance: 11%:
+    - Chance: 12%:
         DamageVariance = 0.4
+
+    - Chance: 16%:
+        DamageVariance = 0.38
+
+    - Chance: 12%:
+        DamageVariance = 0.35
+
+    - Chance: 9.5%:
+        DamageVariance = 0.33
+
+    - Chance: 7.3%:
+        DamageVariance = 0.31
+
+    - Chance: 5.5%:
+        DamageVariance = 0.29
+
+    - Chance: 4.1%:
+        DamageVariance = 0.27
+
+    - Chance: 3.2%:
+        DamageVariance = 0.25

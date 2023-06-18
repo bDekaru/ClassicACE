@@ -143,6 +143,7 @@ namespace ACE.Entity.Enum
                 ValidSkills.Remove(Skill.LightWeapons);
                 ValidSkills.Remove(Skill.FinesseWeapons);
                 ValidSkills.Remove(Skill.MissileWeapons);
+                ValidSkills.Remove(Skill.DualWield);
                 ValidSkills.Remove(Skill.Recklessness);
                 ValidSkills.Remove(Skill.SneakAttack);
                 ValidSkills.Remove(Skill.DirtyFighting);

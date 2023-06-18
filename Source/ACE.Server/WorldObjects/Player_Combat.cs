@@ -76,7 +76,7 @@ namespace ACE.Server.WorldObjects
 
             var skill = ConvertToMoASkill(weapon.WeaponSkill);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Ruleset.Infiltration)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
             {
                 // DualWieldAlternate will be TRUE if *next* attack is offhand
                 if (IsDualWieldAttack && !DualWieldAlternate)

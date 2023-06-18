@@ -227,11 +227,10 @@ namespace ACE.Server.Factories
                 }
 
                 var isDualWieldTrainedOrSpecialized = false;
-                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.Infiltration)
-                    isDualWieldTrainedOrSpecialized = player.Skills.TryGetValue(Skill.DualWield, out var dualWield) && dualWield.AdvancementClass > SkillAdvancementClass.Untrained;
-
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
                 {
+                    isDualWieldTrainedOrSpecialized = player.Skills.TryGetValue(Skill.DualWield, out var dualWield) && dualWield.AdvancementClass > SkillAdvancementClass.Untrained;
+
                     // Set Heritage based Melee and Ranged Masteries
                     GetMasteries(player.HeritageGroup, out WeaponType meleeMastery, out WeaponType rangedMastery);
 

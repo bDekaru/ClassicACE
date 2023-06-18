@@ -151,8 +151,8 @@ namespace ACE.Server.Factories
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
             {
-                // 0 skill light swords are single strike, higher skill ones are double strike
-                if (roll.WeaponType == TreasureWeaponType.SwordMS && wo.WieldDifficulty > 0)
+                // Add double strike to light swords.
+                if (roll.WeaponType == TreasureWeaponType.SwordMS)
                 {
                     if (wo.W_AttackType == AttackType.Thrust)
                         wo.W_AttackType = AttackType.DoubleThrust;

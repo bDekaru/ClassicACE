@@ -1679,11 +1679,10 @@ namespace ACE.Server.WorldObjects
                     }
                     else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
-                        if (GetCreatureSkill(Skill.DualWield).AdvancementClass < SkillAdvancementClass.Trained)
+                        if(item.WeaponSkill != Skill.Dagger && item.WeaponSkill != Skill.UnarmedCombat && (item.WeaponSkill != Skill.Sword || !item.W_AttackType.IsMultiStrike()))
                         {
                             Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                            //Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "You are not trained in dual wielding weapons!"));
-                            Session.Network.EnqueueSend(new GameMessageSystemChat("You are not trained in dual wielding weapons!", ChatMessageType.Broadcast));
+                            Session.Network.EnqueueSend(new GameMessageSystemChat("Only daggers, punching weapons and light swords can be dual wielded.", ChatMessageType.Broadcast));
                             return false;
                         }
                     }

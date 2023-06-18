@@ -1490,9 +1490,21 @@ namespace ACE.Server.WorldObjects
                 if (skill.AdvancementClass >= SkillAdvancementClass.Trained)
                 {
                     if (skill.Current < 200)
-                        procSpellId = SpellId.DF_Trained_Bleed; // Bleeding Blow
+                        procSpellId = SpellId.DaggerBleed1;
+                    else if (skill.Current < 250)
+                        procSpellId = SpellId.DaggerBleed2;
+                    else if (skill.Current < 300)
+                        procSpellId = SpellId.DaggerBleed3;
+                    else if (skill.Current < 325)
+                        procSpellId = SpellId.DaggerBleed4;
+                    else if (skill.Current < 350)
+                        procSpellId = SpellId.DaggerBleed5;
+                    else if (skill.Current < 370)
+                        procSpellId = SpellId.DaggerBleed6;
+                    else if (skill.Current < 400)
+                        procSpellId = SpellId.DaggerBleed7;
                     else
-                        procSpellId = SpellId.DF_Specialized_Bleed; // Bleeding Assault
+                        procSpellId = SpellId.DaggerBleed8;
                 }
             }
             else if (WeaponSkill == Skill.UnarmedCombat)

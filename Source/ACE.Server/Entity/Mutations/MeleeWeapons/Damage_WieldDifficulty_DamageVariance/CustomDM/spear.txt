@@ -1,321 +1,408 @@
 Spear Mutation #1:
 
-Tier chances: 1, 0, 0, 0, 0, 0
+Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance 5%:
+    - Chance: 6.1%:
         Damage += 0
 
-    - Chance 8%:
+    - Chance: 7.3%:
         Damage += 1
 
-    - Chance 12%:
+    - Chance: 10%:
         Damage += 2
 
-    - Chance 25%:
+    - Chance: 15.2%:
         Damage += 3
 
-    - Chance 25%:
+    - Chance: 22.1%:
         Damage += 4
 
-    - Chance 12%:
+    - Chance: 16%:
         Damage += 5
 
-    - Chance 8%:
+    - Chance: 10%:
         Damage += 6
 
-    - Chance 5%:
+    - Chance: 8.3%:
         Damage += 7
+
+    - Chance: 5%:
+        Damage += 8
 
 Spear Mutation #2:
 
-Tier chances: 0, 1, 0, 0, 0, 0
+Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance 2%:
+    - Chance: 2.6%:
         Damage += 0
 
-    - Chance 4%:
+    - Chance: 3.7%:
         Damage += 1
 
-    - Chance 6%:
+    - Chance: 5.4%:
         Damage += 2
 
-    - Chance 13%:
+    - Chance: 7.6%:
         Damage += 3
 
-    - Chance 13%:
+    - Chance: 11%:
         Damage += 4
 
-    - Chance 6%:
+    - Chance: 7.8%:
         Damage += 5
 
-    - Chance 4%:
+    - Chance: 5.3%:
         Damage += 6
 
-    - Chance 2%:
+    - Chance: 3.7%:
         Damage += 7
 
-    - Chance 3%:
+    - Chance: 3%:
         Damage += 8
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
 
-    - Chance 5%:
+    - Chance: 2.4%:
         Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 10%:
+    - Chance: 3.7%:
         Damage += 10
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 15%:
+    - Chance: 6.5%:
         Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 10%:
+    - Chance: 8.3%:
         Damage += 12
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 5%:
+    - Chance: 12%:
         Damage += 13
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 2%:
+    - Chance: 8%:
         Damage += 14
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 5.4%:
+        Damage += 15
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 3.6%:
+        Damage += 16
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
 Spear Mutation #3:
 
-Tier chances: 0, 0, 1, 0, 0, 0
+Tier Chances: 0, 0, 1, 0, 0, 0
 
-    - Chance 3%:
-        Damage += 8
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 250
-
-    - Chance 5%:
+    - Chance: 1.1%:
         Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 10%:
+    - Chance: 1.6%:
         Damage += 10
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 15%:
+    - Chance: 2.3%:
         Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 10%:
+    - Chance: 3.4%:
         Damage += 12
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 5%:
+    - Chance: 5.2%:
         Damage += 13
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 2%:
+    - Chance: 8.6%:
         Damage += 14
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 38%:
+    - Chance: 12%:
         Damage += 15
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 17%:
+        Damage += 16
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 250
+
+    - Chance: 26%:
+        Damage += 17
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance 12%:
-        Damage += 16
+    - Chance: 13%:
+        Damage += 18
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 6.5%:
+        Damage += 19
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 3.3%:
+        Damage += 20
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
 Spear Mutation #4:
 
-Tier chances: 0, 0, 0, 1, 0, 0
+Tier Chances: 0, 0, 0, 1, 0, 0
 
-    - Chance 38%:
-        Damage += 15
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 300
-
-    - Chance 12%:
-        Damage += 16
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 300
-
-    - Chance 38%:
+    - Chance: 26%:
         Damage += 17
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 13%:
+        Damage += 18
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 6.8%:
+        Damage += 19
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 3.4%:
+        Damage += 20
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 27%:
+        Damage += 21
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance 12%:
-        Damage += 18
+    - Chance: 13%:
+        Damage += 22
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance: 7.5%:
+        Damage += 23
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance: 3.3%:
+        Damage += 24
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
 Spear Mutation #5:
 
-Tier chances: 0, 0, 0, 0, 1, 0
+Tier Chances: 0, 0, 0, 0, 1, 0
 
-    - Chance 35%:
-        Damage += 17
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 325
-
-    - Chance 15%:
-        Damage += 18
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 325
-
-    - Chance 10%:
-        Damage += 19
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
-
-    - Chance 20%:
-        Damage += 20
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
-
-    - Chance 15%:
+    - Chance: 26%:
         Damage += 21
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance: 14%:
+        Damage += 22
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance: 6.6%:
+        Damage += 23
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance: 3.2%:
+        Damage += 24
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 325
+
+    - Chance: 26.1%:
+        Damage += 25
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance 5%:
-        Damage += 22
+    - Chance: 13.1%:
+        Damage += 26
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance: 6.8%:
+        Damage += 27
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 350
+
+    - Chance: 4.2%:
+        Damage += 28
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
 Spear Mutation #6:
 
-Tier chances: 0, 0, 0, 0, 0, 1
+Tier Chances: 0, 0, 0, 0, 0, 1
 
-    - Chance 10%:
-        Damage += 19
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
-
-    - Chance 20%:
-        Damage += 20
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
-
-    - Chance 15%:
-        Damage += 21
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
-
-    - Chance 5%:
-        Damage += 22
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 350
-
-    - Chance 8%:
-        Damage += 23
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 370
-
-    - Chance 10%:
-        Damage += 24
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 370
-
-    - Chance 10%:
+    - Chance: 17%:
         Damage += 25
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
-        WieldDifficulty = 370
+        WieldDifficulty = 350
 
-    - Chance 7%:
+    - Chance: 8.8%:
         Damage += 26
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
-        WieldDifficulty = 370
+        WieldDifficulty = 350
 
-    - Chance 6%:
+    - Chance: 4.3%:
         Damage += 27
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
-        WieldDifficulty = 400
+        WieldDifficulty = 350
 
-    - Chance 4%:
+    - Chance: 2.8%:
         Damage += 28
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
-        WieldDifficulty = 400
+        WieldDifficulty = 350
 
-    - Chance 3%:
+    - Chance: 17%:
         Damage += 29
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 370
+
+    - Chance: 8.8%:
+        Damage += 30
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 370
+
+    - Chance: 4.4%:
+        Damage += 31
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 370
+
+    - Chance: 2.5%:
+        Damage += 32
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 370
+
+    - Chance: 18%:
+        Damage += 33
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-    - Chance 2%:
-        Damage += 30
+    - Chance: 8.9%:
+        Damage += 34
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 400
+
+    - Chance: 5.3%:
+        Damage += 35
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 400
+
+    - Chance: 2.2%:
+        Damage += 36
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
 Spear Mutation #7:
 
-Tier chances: 0.5, 0.6, 0.7, 0.8, 0.9, 1
+Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance 5%:
+    - Chance: 3%:
         DamageVariance = 0.75
 
-    - Chance 15%:
-        DamageVariance = 0.66
+    - Chance: 4.2%:
+        DamageVariance = 0.73
 
-    - Chance 30%:
+    - Chance: 5.7%:
+        DamageVariance = 0.71
+
+    - Chance: 7%:
+        DamageVariance = 0.69
+
+    - Chance: 9.4%:
+        DamageVariance = 0.67
+
+    - Chance: 12.1%:
+        DamageVariance = 0.65
+
+    - Chance: 16.1%:
+        DamageVariance = 0.62
+
+    - Chance: 12%:
         DamageVariance = 0.6
 
-    - Chance 30%:
-        DamageVariance = 0.55
+    - Chance: 9.3%:
+        DamageVariance = 0.58
 
-    - Chance 15%:
+    - Chance: 7.3%:
+        DamageVariance = 0.56
+
+    - Chance: 5.4%:
+        DamageVariance = 0.54
+
+    - Chance: 5.2%:
+        DamageVariance = 0.52
+
+    - Chance: 3.3%:
         DamageVariance = 0.5
-
-    - Chance 5%:
-        DamageVariance = 0.45

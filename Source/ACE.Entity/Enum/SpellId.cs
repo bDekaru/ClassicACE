@@ -6493,6 +6493,14 @@ namespace ACE.Entity.Enum
         HoTOther6,
         HoTOther7,
         HoTOther8,
+        DaggerBleed1,
+        DaggerBleed2,
+        DaggerBleed3,
+        DaggerBleed4,
+        DaggerBleed5,
+        DaggerBleed6,
+        DaggerBleed7,
+        DaggerBleed8,
 
         NumSpells = 8192,
 

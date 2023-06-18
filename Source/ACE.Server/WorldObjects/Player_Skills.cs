@@ -1054,6 +1054,7 @@ namespace ACE.Server.WorldObjects
                 PlayerSkills.Remove(Skill.LightWeapons);
                 PlayerSkills.Remove(Skill.FinesseWeapons);
                 PlayerSkills.Remove(Skill.MissileWeapons);
+                PlayerSkills.Remove(Skill.DualWield);
                 PlayerSkills.Remove(Skill.Recklessness);
                 PlayerSkills.Remove(Skill.SneakAttack);
                 PlayerSkills.Remove(Skill.DirtyFighting);
