@@ -65,6 +65,7 @@ namespace ACE.Server.Factories
 
                 wo.SetProperty(PropertyFloat.CriticalMultiplier, amount);
                 wo.IconOverlayId = 0x06005EBC;
+                wo.ImbuedEffect = ImbuedEffectType.Custom; // This stops other imbues from being applied.
                 return true;
             }
             else
@@ -87,6 +88,7 @@ namespace ACE.Server.Factories
                     amount = 0.15f;
                 wo.CriticalFrequency = amount;
                 wo.IconOverlayId = 0x06005EBD;
+                wo.ImbuedEffect = ImbuedEffectType.Custom; // This stops other imbues from being applied.
                 return true;
             }
             else
@@ -105,6 +107,7 @@ namespace ACE.Server.Factories
                 wo.SlayerCreatureType = SlayerTypeChance.Roll(treasureDeath);
                 wo.SlayerDamageBonus = 1.5f;
                 wo.IconOverlayId = 0x06005EC0;
+                wo.ImbuedEffect = ImbuedEffectType.Custom; // This stops other imbues from being applied.
                 return true;
             }
             return false;
@@ -124,6 +127,7 @@ namespace ACE.Server.Factories
                 wo.Translucency = 0.7f;
                 wo.Name = $"Hollow {wo.Name}";
                 wo.IconOverlayId = 0x06005EBE;
+                wo.ImbuedEffect = ImbuedEffectType.Custom; // This stops other imbues from being applied.
                 return true;
             }
             return false;
@@ -141,6 +145,7 @@ namespace ACE.Server.Factories
                 // 0.0 = ignore 100% of all armor.
                 wo.IgnoreArmor = 0.75f; // Equivalent of Imperil III for 300 AL armor.
                 wo.IconOverlayId = 0x06005EBF;
+                wo.ImbuedEffect = ImbuedEffectType.Custom; // This stops other imbues from being applied.
                 return true;
             }
             return false;
@@ -162,6 +167,7 @@ namespace ACE.Server.Factories
                 wo.IgnoreShield = 0.50f; // Equivalent of Brittlemail V for 300 AL shields.
                 wo.IconOverlayId = 0x06005EC2;
                 wo.Name = $"{wo.Name} of Shield Cleaving";
+                wo.ImbuedEffect = ImbuedEffectType.Custom; // This stops other imbues from being applied.
                 return true;
             }
             return false;
@@ -180,6 +186,7 @@ namespace ACE.Server.Factories
                 wo.Translucency = 0.7f;
                 wo.Name = $"Hollow {wo.Name}";
                 wo.IconOverlayId = 0x06005EBE;
+                wo.ImbuedEffect = ImbuedEffectType.Custom; // This stops other imbues from being applied.
                 return true;
             }
             return false;
@@ -222,6 +229,7 @@ namespace ACE.Server.Factories
                 wo.ResistanceModifierType = damageType;
                 wo.ResistanceModifier = 1.5f; // Equivalent to level III Elemental Vulnerability.
                 wo.IconOverlayId = 0x06005EC1;
+                wo.ImbuedEffect = ImbuedEffectType.Custom; // This stops other imbues from being applied.
                 return true;
             }
             return false;
