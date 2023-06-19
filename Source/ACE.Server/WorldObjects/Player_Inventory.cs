@@ -1655,7 +1655,7 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            if ((wieldedLocation == EquipMask.Shield || wieldedLocation == EquipMask.MeleeWeapon) && !wasEquipped && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (!item.IsShield && (wieldedLocation == EquipMask.Shield || wieldedLocation == EquipMask.MeleeWeapon) && !wasEquipped && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 WorldObject equippedWeapon;
 
