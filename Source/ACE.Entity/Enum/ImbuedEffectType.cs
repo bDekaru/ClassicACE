@@ -21,7 +21,7 @@ namespace ACE.Entity.Enum
         MagicDefense                    = 0x1000,
         Spellbook                       = 0x2000,
         NetherRending                   = 0x4000,
-        Custom                          = 0x8000, // Just so it shows the can't be further imbued message.
+        CustomImbue                     = 0x8000, // Just so it shows the can't be further imbued message.
 
         IgnoreSomeMagicProjectileDamage = 0x20000000,
         AlwaysCritical                  = 0x40000000,
