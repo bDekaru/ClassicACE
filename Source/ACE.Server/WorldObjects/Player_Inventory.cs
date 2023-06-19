@@ -1655,6 +1655,24 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
+            if ((wieldedLocation == EquipMask.Shield || wieldedLocation == EquipMask.MeleeWeapon) && !wasEquipped && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                WorldObject equippedWeapon;
+
+                if(wieldedLocation == EquipMask.Shield)
+                    equippedWeapon = GetEquippedMeleeWeapon(true);
+                else
+                    equippedWeapon = GetDualWieldWeapon();
+
+                if (!CheckDualWieldable(equippedWeapon, item))
+                {
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                    Session.Network.EnqueueSend(new GameMessageSystemChat("To dual wield one of the weapons must be a dagger, punching weapon or light sword.", ChatMessageType.Broadcast));
+                    return false;
+                }
+            }
+
+
             if (wieldedLocation == EquipMask.Shield)
             {
                 if (item.IsShield)
@@ -1676,15 +1694,6 @@ namespace ACE.Server.WorldObjects
                     {
                         Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
                         return false; // No dual wielding allowed in this ruleset.
-                    }
-                    else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                    {
-                        if(item.WeaponSkill != Skill.Dagger && item.WeaponSkill != Skill.UnarmedCombat && (item.WeaponSkill != Skill.Sword || !item.W_AttackType.IsMultiStrike()))
-                        {
-                            Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                            Session.Network.EnqueueSend(new GameMessageSystemChat("Only daggers, punching weapons and light swords can be dual wielded.", ChatMessageType.Broadcast));
-                            return false;
-                        }
                     }
 
                     var mainWeapon = GetEquippedMeleeWeapon(true);
@@ -1882,6 +1891,19 @@ namespace ACE.Server.WorldObjects
                 item.SaveBiotaToDatabase();
 
             return true;
+        }
+
+        public bool CheckDualWieldable(WorldObject weapon1, WorldObject weapon2)
+        {
+            bool weapon1IsLight = false;
+            bool weapon2IsLight = false;
+
+            if (weapon1 == null || !(weapon1.WeaponSkill != Skill.Dagger && weapon1.WeaponSkill != Skill.UnarmedCombat && (weapon1.WeaponSkill != Skill.Sword || !weapon1.W_AttackType.IsMultiStrike())))
+                weapon1IsLight = true;
+            if (weapon2 == null || !(weapon2.WeaponSkill != Skill.Dagger && weapon2.WeaponSkill != Skill.UnarmedCombat && (weapon2.WeaponSkill != Skill.Sword || !weapon2.W_AttackType.IsMultiStrike())))
+                weapon2IsLight = true;
+
+            return weapon1IsLight || weapon2IsLight;
         }
 
         /// <summary>
