@@ -18,25 +18,25 @@ Dagger Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 5.6%:
+    - Chance: 5.7%:
         Damage += 0
 
-    - Chance: 11%:
+    - Chance: 11.1%:
         Damage += 1
 
-    - Chance: 22%:
+    - Chance: 22.1%:
         Damage += 2
 
-    - Chance: 12.1%:
+    - Chance: 12%:
         Damage += 3
 
-    - Chance: 5.8%:
+    - Chance: 5.7%:
         Damage += 4
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 9.7%:
+    - Chance: 9.6%:
         Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -54,13 +54,13 @@ Tier Chances: 0, 1, 0, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 5.8%:
+    - Chance: 5.6%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 3.4%:
+    - Chance: 3.6%:
         Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -70,37 +70,37 @@ Dagger Mutation #3:
 
 Tier Chances: 0, 0, 1, 0, 0, 0
 
-    - Chance: 1.7%:
+    - Chance: 1.6%:
         Damage += 4
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 3%:
+    - Chance: 2.9%:
         Damage += 5
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 5.4%:
+    - Chance: 4.5%:
         Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 7.5%:
+    - Chance: 7.6%:
         Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 13%:
+    - Chance: 12%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 20%:
+    - Chance: 21%:
         Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -130,7 +130,7 @@ Tier Chances: 0, 0, 1, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 2.7%:
+    - Chance: 3.7%:
         Damage += 14
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -158,19 +158,19 @@ Tier Chances: 0, 0, 0, 1, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 8.4%:
+    - Chance: 7.5%:
         Damage += 12
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 4.4%:
+    - Chance: 4.5%:
         Damage += 13
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 3.8%:
+    - Chance: 2.7%:
         Damage += 14
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -182,7 +182,7 @@ Tier Chances: 0, 0, 0, 1, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 30%:
+    - Chance: 31%:
         Damage += 16
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -194,7 +194,7 @@ Tier Chances: 0, 0, 0, 1, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 5.7%:
+    - Chance: 6.6%:
         Damage += 18
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -204,7 +204,7 @@ Dagger Mutation #5:
 
 Tier Chances: 0, 0, 0, 0, 1, 0
 
-    - Chance: 31.2%:
+    - Chance: 31.1%:
         Damage += 16
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -216,25 +216,25 @@ Tier Chances: 0, 0, 0, 0, 1, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 5.7%:
+    - Chance: 6.7%:
         Damage += 18
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 31%:
+    - Chance: 30.1%:
         Damage += 19
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 13%:
+    - Chance: 13.1%:
         Damage += 20
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 6%:
+    - Chance: 5.9%:
         Damage += 21
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -250,7 +250,7 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 9%:
+    - Chance: 8.8%:
         Damage += 20
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -262,19 +262,19 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 21%:
+    - Chance: 20.1%:
         Damage += 22
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 8.9%:
+    - Chance: 9%:
         Damage += 23
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 3.7%:
+    - Chance: 3.8%:
         Damage += 24
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -286,13 +286,13 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-    - Chance: 8.9%:
+    - Chance: 8.8%:
         Damage += 26
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-    - Chance: 3.7%:
+    - Chance: 4.7%:
         Damage += 27
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -302,32 +302,17 @@ Dagger Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 6.2%:
+    - Chance: 13%:
         DamageVariance = 0.6
 
-    - Chance: 7.3%:
+    - Chance: 20%:
         DamageVariance = 0.58
 
-    - Chance: 10.1%:
-        DamageVariance = 0.56
-
-    - Chance: 14%:
-        DamageVariance = 0.53
+    - Chance: 36%:
+        DamageVariance = 0.55
 
     - Chance: 20%:
-        DamageVariance = 0.51
-
-    - Chance: 14%:
-        DamageVariance = 0.49
+        DamageVariance = 0.52
 
     - Chance: 11%:
-        DamageVariance = 0.47
-
-    - Chance: 8.4%:
-        DamageVariance = 0.44
-
-    - Chance: 5.3%:
-        DamageVariance = 0.42
-
-    - Chance: 3.7%:
-        DamageVariance = 0.4
+        DamageVariance = 0.5

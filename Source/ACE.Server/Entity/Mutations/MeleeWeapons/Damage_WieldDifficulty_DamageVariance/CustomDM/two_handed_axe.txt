@@ -88,19 +88,19 @@ two_handed_axe Mutation #6:
 
 Tier Chances: 0, 0, 0, 0, 0, 1
 
-    - Chance: 33.1%:
+    - Chance: 33.2%:
         Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 33.7%:
+    - Chance: 33.5%:
         Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 33.2%:
+    - Chance: 33.3%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -110,41 +110,17 @@ two_handed_axe Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 3.2%:
+    - Chance: 11%:
         DamageVariance = 0.5
 
-    - Chance: 4.2%:
+    - Chance: 21%:
         DamageVariance = 0.48
 
-    - Chance: 5.6%:
-        DamageVariance = 0.46
+    - Chance: 37%:
+        DamageVariance = 0.45
 
-    - Chance: 7.2%:
-        DamageVariance = 0.44
-
-    - Chance: 9.5%:
+    - Chance: 20%:
         DamageVariance = 0.42
 
-    - Chance: 12%:
+    - Chance: 11%:
         DamageVariance = 0.4
-
-    - Chance: 16%:
-        DamageVariance = 0.38
-
-    - Chance: 12%:
-        DamageVariance = 0.35
-
-    - Chance: 10.3%:
-        DamageVariance = 0.33
-
-    - Chance: 7.2%:
-        DamageVariance = 0.31
-
-    - Chance: 5.4%:
-        DamageVariance = 0.29
-
-    - Chance: 4.2%:
-        DamageVariance = 0.27
-
-    - Chance: 3.2%:
-        DamageVariance = 0.25

@@ -2,20 +2,20 @@ two_handed_mace Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 76%:
+    - Chance: 75%:
         Damage += 0
 
-    - Chance: 24%:
+    - Chance: 25%:
         Damage += 1
 
 two_handed_mace Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 37%:
+    - Chance: 38%:
         Damage += 0
 
-    - Chance: 13%:
+    - Chance: 12%:
         Damage += 1
 
     - Chance: 37%:
@@ -34,13 +34,13 @@ two_handed_mace Mutation #3:
 
 Tier Chances: 0, 0, 1, 0, 0, 0
 
-    - Chance: 12%:
+    - Chance: 13%:
         Damage += 2
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 38%:
+    - Chance: 37%:
         Damage += 3
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -88,13 +88,13 @@ two_handed_mace Mutation #6:
 
 Tier Chances: 0, 0, 0, 0, 0, 1
 
-    - Chance: 33.3%:
+    - Chance: 33.6%:
         Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 33.3%:
+    - Chance: 33%:
         Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -110,41 +110,17 @@ two_handed_mace Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 3%:
+    - Chance: 12%:
         DamageVariance = 0.5
 
-    - Chance: 5.3%:
+    - Chance: 21%:
         DamageVariance = 0.48
 
-    - Chance: 5.5%:
-        DamageVariance = 0.46
+    - Chance: 36%:
+        DamageVariance = 0.45
 
-    - Chance: 7.3%:
-        DamageVariance = 0.44
-
-    - Chance: 9.3%:
+    - Chance: 20%:
         DamageVariance = 0.42
 
-    - Chance: 12%:
+    - Chance: 11%:
         DamageVariance = 0.4
-
-    - Chance: 16%:
-        DamageVariance = 0.38
-
-    - Chance: 12%:
-        DamageVariance = 0.35
-
-    - Chance: 9.5%:
-        DamageVariance = 0.33
-
-    - Chance: 7.3%:
-        DamageVariance = 0.31
-
-    - Chance: 5.5%:
-        DamageVariance = 0.29
-
-    - Chance: 4.1%:
-        DamageVariance = 0.27
-
-    - Chance: 3.2%:
-        DamageVariance = 0.25
