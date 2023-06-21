@@ -104,7 +104,6 @@ namespace ACE.Server.Factories.Tables.Wcids
 
             switch (weapon)
             {
-                case WeenieClassName.swordrapier:
                 case WeenieClassName.yaoji:
                 case WeenieClassName.yaojiacid:
                 case WeenieClassName.yaojielectric:

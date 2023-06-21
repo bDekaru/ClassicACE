@@ -149,18 +149,6 @@ namespace ACE.Server.Factories
                 mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
-            {
-                // Add double strike to light swords.
-                if (roll.WeaponType == TreasureWeaponType.SwordMS)
-                {
-                    if (wo.W_AttackType == AttackType.Thrust)
-                        wo.W_AttackType = AttackType.DoubleThrust;
-                    else if (wo.W_AttackType == (AttackType.Thrust | AttackType.Slash))
-                        wo.W_AttackType = AttackType.DoubleThrust | AttackType.DoubleSlash;
-                }
-            }
-
             // weapon speed
             if (wo.WeaponTime != null)
             {

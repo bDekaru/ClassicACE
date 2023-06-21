@@ -120,10 +120,10 @@ namespace ACE.Server.Factories.Tables.Wcids
                     case WeenieClassName.ace41043_lightningmagariyari:
                     case WeenieClassName.ace41044_flamingmagariyari:
                     case WeenieClassName.ace41045_frostmagariyari:
-                        weaponType = TreasureWeaponType.TwoHandedMace;
+                        weaponType = TreasureWeaponType.TwoHandedSpear;
                         break;
                     default:
-                        weaponType = TreasureWeaponType.Mace;
+                        weaponType = TreasureWeaponType.Spear;
                         break;
                 }
 

@@ -1,5 +1,5 @@
 using System;
-
+using System.Linq;
 using ACE.Common;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
@@ -48,6 +48,12 @@ namespace ACE.Server.WorldObjects
         /// Returns TRUE if this weapon cleaves
         /// </summary>
         public bool IsCleaving { get => GetProperty(PropertyInt.Cleaving) != null;  }
+
+        public bool IsLightWeapon
+        {
+            get => GetProperty(PropertyBool.IsLightWeapon) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.IsLightWeapon); else SetProperty(PropertyBool.IsLightWeapon, value); }
+        }
 
         /// <summary>
         /// Returns the number of cleave targets for this weapon
@@ -1476,9 +1482,25 @@ namespace ACE.Server.WorldObjects
             if (target.IsDead)
                 return; // Target is already dead, abort!
 
+            if (WeaponSkill != Skill.Dagger && WeaponSkill != Skill.UnarmedCombat)
+                return;
+
             var procSpellId = SpellId.Undef;
-            var creature = attacker as Creature;
-            if (creature == null)
+            var creatureAttacker = attacker as Creature;
+            if (creatureAttacker == null)
+                return;
+
+            var currentTime = Time.GetUnixTime();
+            if (NextInnateProcAttemptTime > currentTime)
+                return;
+
+            var playerAttacker = attacker as Player;
+            var chance = 0.25f;
+            if (playerAttacker != null)
+                chance += playerAttacker.ScaleWithPowerAccuracyBar((float)chance);
+
+            var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
+            if (rng >= chance)
                 return;
 
             bool showCastMessage = false;
@@ -1486,32 +1508,72 @@ namespace ACE.Server.WorldObjects
             {
                 showCastMessage = true;
 
-                var skill = creature.GetCreatureSkill(Skill.Dagger);
+                var skill = creatureAttacker.GetCreatureSkill(Skill.Dagger);
                 if (skill.AdvancementClass >= SkillAdvancementClass.Trained)
                 {
+                    var enchantments = target.EnchantmentManager.GetEnchantments(SpellCategory.DFBleedDamage);
+                    var highest = enchantments?.OrderByDescending(i => i.PowerLevel).FirstOrDefault();
                     if (skill.Current < 200)
-                        procSpellId = SpellId.DaggerBleed1;
+                    {
+                        if (highest == null)
+                            procSpellId = SpellId.DaggerBleed1;
+                        else if(highest.SpellId == (int)SpellId.DaggerBleed1)
+                            procSpellId = SpellId.DaggerBleed2;
+                        else
+                            procSpellId = SpellId.DaggerBleed3;
+                    }
                     else if (skill.Current < 250)
-                        procSpellId = SpellId.DaggerBleed2;
+                    {
+                        if (highest == null)
+                            procSpellId = SpellId.DaggerBleed2;
+                        else if (highest.SpellId == (int)SpellId.DaggerBleed2)
+                            procSpellId = SpellId.DaggerBleed3;
+                        else
+                            procSpellId = SpellId.DaggerBleed4;
+                    }
                     else if (skill.Current < 300)
-                        procSpellId = SpellId.DaggerBleed3;
+                    {
+                        if (highest == null)
+                            procSpellId = SpellId.DaggerBleed3;
+                        else if (highest.SpellId == (int)SpellId.DaggerBleed3)
+                            procSpellId = SpellId.DaggerBleed4;
+                        else
+                            procSpellId = SpellId.DaggerBleed5;
+                    }
                     else if (skill.Current < 325)
-                        procSpellId = SpellId.DaggerBleed4;
+                    {
+                        if (highest == null)
+                            procSpellId = SpellId.DaggerBleed4;
+                        else if (highest.SpellId == (int)SpellId.DaggerBleed4)
+                            procSpellId = SpellId.DaggerBleed5;
+                        else
+                            procSpellId = SpellId.DaggerBleed6;
+                    }
                     else if (skill.Current < 350)
-                        procSpellId = SpellId.DaggerBleed5;
-                    else if (skill.Current < 370)
-                        procSpellId = SpellId.DaggerBleed6;
-                    else if (skill.Current < 400)
-                        procSpellId = SpellId.DaggerBleed7;
+                    {
+                        if (highest == null)
+                            procSpellId = SpellId.DaggerBleed5;
+                        else if (highest.SpellId == (int)SpellId.DaggerBleed5)
+                            procSpellId = SpellId.DaggerBleed6;
+                        else
+                            procSpellId = SpellId.DaggerBleed7;
+                    }
                     else
-                        procSpellId = SpellId.DaggerBleed8;
+                    {
+                        if (highest == null)
+                            procSpellId = SpellId.DaggerBleed6;
+                        else if (highest.SpellId == (int)SpellId.DaggerBleed6)
+                            procSpellId = SpellId.DaggerBleed7;
+                        else
+                            procSpellId = SpellId.DaggerBleed8;
+                    }
                 }
             }
             else if (WeaponSkill == Skill.UnarmedCombat)
             {
                 showCastMessage = true;
 
-                var skill = creature.GetCreatureSkill(Skill.UnarmedCombat);
+                var skill = creatureAttacker.GetCreatureSkill(Skill.UnarmedCombat);
                 if (skill.AdvancementClass >= SkillAdvancementClass.Trained)
                 {
                     int spellLevel;
@@ -1524,7 +1586,7 @@ namespace ACE.Server.WorldObjects
                     else
                         spellLevel = 4;
 
-                    switch (creature.GetDamageType(false, CombatType.Melee))
+                    switch (creatureAttacker.GetDamageType(false, CombatType.Melee))
                     {
                         case DamageType.Pierce: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.ForceBolt1, spellLevel); break;
                         case DamageType.Slash: procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.WhirlingBlade1, spellLevel); break;
@@ -1538,21 +1600,6 @@ namespace ACE.Server.WorldObjects
             }
 
             if (procSpellId == SpellId.Undef)
-                return;
-
-            var creatureAttacker = attacker as Creature;
-            var playerAttacker = attacker as Player;
-
-            var currentTime = Time.GetUnixTime();
-            if (NextInnateProcAttemptTime > currentTime)
-                return;
-
-            var chance = 0.25f;
-            if (playerAttacker != null)
-                chance += playerAttacker.ScaleWithPowerAccuracyBar((float)chance);
-
-            var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
-            if (rng >= chance)
                 return;
 
             var spell = new Spell(procSpellId);
@@ -1722,17 +1769,27 @@ namespace ACE.Server.WorldObjects
                 // force thrust animation when using a shield with a multi-strike weapon
                 if (attackType.HasFlag(AttackType.TripleThrust))
                 {
-                    if (powerLevel >= ThrustThreshold || !attackType.HasFlag(AttackType.Thrust))
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         attackType = AttackType.TripleThrust;
                     else
-                        attackType = AttackType.Thrust;
+                    {
+                        if (powerLevel >= ThrustThreshold || !attackType.HasFlag(AttackType.Thrust))
+                            attackType = AttackType.TripleThrust;
+                        else
+                            attackType = AttackType.Thrust;
+                    }                        
                 }
                 else if (attackType.HasFlag(AttackType.DoubleThrust))
                 {
-                    if (powerLevel >= ThrustThreshold || !attackType.HasFlag(AttackType.Thrust))
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         attackType = AttackType.DoubleThrust;
                     else
-                        attackType = AttackType.Thrust;
+                    {
+                        if (powerLevel >= ThrustThreshold || !attackType.HasFlag(AttackType.Thrust))
+                            attackType = AttackType.DoubleThrust;
+                        else
+                            attackType = AttackType.Thrust;
+                    }
                 }
 
                 // handle old bugged poniards and newer tachis w/ Thrust, DoubleSlash
@@ -1745,17 +1802,27 @@ namespace ACE.Server.WorldObjects
                 // force slash animation when using no shield with a multi-strike weapon
                 if (attackType.HasFlag(AttackType.TripleSlash))
                 {
-                    if (powerLevel >= ThrustThreshold || !attackType.HasFlag(AttackType.Thrust))
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         attackType = AttackType.TripleSlash;
                     else
-                        attackType = AttackType.Thrust;
+                    {
+                        if (powerLevel >= ThrustThreshold || !attackType.HasFlag(AttackType.Thrust))
+                            attackType = AttackType.TripleSlash;
+                        else
+                            attackType = AttackType.Thrust;
+                    }
                 }
                 else if (attackType.HasFlag(AttackType.DoubleSlash))
                 {
-                    if (powerLevel >= ThrustThreshold || !attackType.HasFlag(AttackType.Thrust))
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         attackType = AttackType.DoubleSlash;
                     else
-                        attackType = AttackType.Thrust;
+                    {
+                        if (powerLevel >= ThrustThreshold || !attackType.HasFlag(AttackType.Thrust))
+                            attackType = AttackType.DoubleSlash;
+                        else
+                            attackType = AttackType.Thrust;
+                    }
                 }
 
                 // handle old bugged stilettos that only have DoubleThrust

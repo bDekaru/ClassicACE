@@ -1667,7 +1667,7 @@ namespace ACE.Server.WorldObjects
                 if (!CheckDualWieldable(equippedWeapon, item))
                 {
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                    Session.Network.EnqueueSend(new GameMessageSystemChat("To dual wield one of the weapons must be a dagger, punching weapon or light sword.", ChatMessageType.Broadcast));
+                    Session.Network.EnqueueSend(new GameMessageSystemChat("To dual wield at least one of the weapons must be a light weapon.", ChatMessageType.Broadcast));
                     return false;
                 }
             }
@@ -1893,14 +1893,14 @@ namespace ACE.Server.WorldObjects
             return true;
         }
 
-        public bool CheckDualWieldable(WorldObject weapon1, WorldObject weapon2)
+        public static bool CheckDualWieldable(WorldObject weapon1, WorldObject weapon2)
         {
             bool weapon1IsLight = false;
             bool weapon2IsLight = false;
 
-            if (weapon1 == null || !(weapon1.WeaponSkill != Skill.Dagger && weapon1.WeaponSkill != Skill.UnarmedCombat && (weapon1.WeaponSkill != Skill.Sword || !weapon1.W_AttackType.IsMultiStrike())))
+            if (weapon1 == null || weapon1.IsLightWeapon || !(weapon1.WeaponSkill != Skill.Dagger && weapon1.WeaponSkill != Skill.UnarmedCombat && (weapon1.WeaponSkill != Skill.Sword || !weapon1.W_AttackType.IsMultiStrike())))
                 weapon1IsLight = true;
-            if (weapon2 == null || !(weapon2.WeaponSkill != Skill.Dagger && weapon2.WeaponSkill != Skill.UnarmedCombat && (weapon2.WeaponSkill != Skill.Sword || !weapon2.W_AttackType.IsMultiStrike())))
+            if (weapon2 == null || weapon2.IsLightWeapon || !(weapon2.WeaponSkill != Skill.Dagger && weapon2.WeaponSkill != Skill.UnarmedCombat && (weapon2.WeaponSkill != Skill.Sword || !weapon2.W_AttackType.IsMultiStrike())))
                 weapon2IsLight = true;
 
             return weapon1IsLight || weapon2IsLight;
