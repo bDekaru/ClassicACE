@@ -142,7 +142,7 @@ namespace ACE.Server.Factories.Tables.Wcids
             }
             else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
             {
-                weaponType = TreasureWeaponType.Axe;
+                weaponType = TreasureWeaponType.Mace;
                 switch (heritage)
                 {
                     case TreasureHeritageGroup.Aluvian:
@@ -163,7 +163,7 @@ namespace ACE.Server.Factories.Tables.Wcids
             }
             else
             {
-                weaponType = TreasureWeaponType.Axe;
+                weaponType = TreasureWeaponType.Mace;
                 switch (heritage)
                 {
                     case TreasureHeritageGroup.Aluvian:
