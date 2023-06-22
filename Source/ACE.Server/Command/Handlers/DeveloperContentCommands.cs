@@ -4439,6 +4439,105 @@ namespace ACE.Server.Command.Handlers.Processors
             }
         }
 
+        [CommandHandler("export-landblock-levels", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        public static void HandleExportDungeonLevels(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Exporting landblock levels to reports/LandblockLevels.txt...");
+
+            var contentFolder = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}reports{sep}");
+
+            if (!folder.Exists)
+                folder.Create();
+
+            var filename = $"{folder.FullName}{sep}LandblockLevels.txt";
+
+            var fileWriter = new StreamWriter(filename);
+
+            fileWriter.WriteLine("Landblock Id\tName\tWeighted Average Level\tMin Level\tMax Level\tContainerCount\tCreatures\tLevels");
+
+            var weenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+
+            for (ushort landblockIdX = 0x00; landblockIdX < 0xFF; landblockIdX++)
+            {
+                for (ushort landblockIdY = 0x00; landblockIdY < 0xFF; landblockIdY++)
+                {
+                    ushort landblockId = (ushort)(landblockIdX << 8 | landblockIdY);
+                    var landblockInstances = DatabaseManager.World.GetCachedInstancesByLandblock(landblockId);
+                    var name = LandblockInstanceWriter.GetNameFromPortalDestination(landblockId);
+                    var minLevel = int.MaxValue;
+                    var maxLevel = 0;
+                    var creatureFamilyList = new SortedDictionary<ACE.Entity.Enum.CreatureType,int>();
+                    var creatureLevelCountList = new SortedDictionary<int, int>();
+                    var containerCount = 0;
+                    var totalCreatureCount = 0;
+
+                    if (landblockInstances != null)
+                    {
+                        foreach (var instance in landblockInstances)
+                        {
+                            var weenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
+                            if(weenie == null)
+                                continue;
+
+                            if (weenieTypes.TryGetValue(instance.WeenieClassId, out var weenieType))
+                            {
+                                var playerKillerStatus = (PlayerKillerStatus?)weenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
+                                var npcLooksLikeObject = weenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
+                                if (playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
+                                {
+                                    if (weenieType == (int)ACE.Entity.Enum.WeenieType.Chest || weenieType == (int)ACE.Entity.Enum.WeenieType.Container)
+                                        containerCount++;
+
+                                    var creatureType = weenie.GetProperty(PropertyInt.CreatureType) ?? 0;
+                                    if (creatureType != 0)
+                                    {
+                                        if (creatureFamilyList.TryGetValue((ACE.Entity.Enum.CreatureType)creatureType, out var entry))
+                                            creatureFamilyList[(ACE.Entity.Enum.CreatureType)creatureType] = entry + 1;
+                                        else
+                                            creatureFamilyList.Add((ACE.Entity.Enum.CreatureType)creatureType, 1);
+                                    }
+
+                                    var level = weenie.GetProperty(PropertyInt.Level) ?? 0;
+                                    if (level != 0)
+                                    {
+                                        if (level < minLevel)
+                                            minLevel = level;
+                                        if (level > maxLevel)
+                                            maxLevel = level;
+
+                                        totalCreatureCount++;
+
+                                        if (creatureLevelCountList.TryGetValue(level, out var entry))
+                                            creatureLevelCountList[level] = entry + 1;
+                                        else
+                                            creatureLevelCountList.Add(level, 1);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (minLevel != int.MaxValue)
+                        {
+                            var weightedAverageLevel = 0;
+                            foreach(var entry in creatureLevelCountList)
+                                weightedAverageLevel += entry.Key * entry.Value;
+
+                            weightedAverageLevel /= totalCreatureCount;
+
+                            fileWriter.WriteLine($"{landblockId.ToString("x4")}\t{name}\t{weightedAverageLevel}\t{minLevel}\t{maxLevel}\t{containerCount}\t{string.Join(",", creatureFamilyList)}\t{string.Join(",", creatureLevelCountList)}");
+                            fileWriter.Flush();
+                        }
+                    }
+                }
+            }
+
+            fileWriter.Close();
+            CommandHandlerHelper.WriteOutputInfo(session, "Done.");
+        }
+
         [CommandHandler("export-creature-clothing", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
         public static void HandleExportCreatureClothing(Session session, params string[] parameters)
         {

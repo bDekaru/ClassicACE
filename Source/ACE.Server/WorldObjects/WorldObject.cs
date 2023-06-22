@@ -1177,6 +1177,9 @@ namespace ACE.Server.WorldObjects
                 {
                     var weenie = DatabaseManager.World.GetCachedWeenie(instance.WeenieClassId);
 
+                    if (weenie == null)
+                        continue;
+
                     if (weenie.WeenieType == WeenieType.Creature)
                     {
                         var level = weenie.GetProperty(PropertyInt.Level) ?? 1;
@@ -1214,9 +1217,15 @@ namespace ACE.Server.WorldObjects
                 {
                     var weenie = DatabaseManager.World.GetCachedWeenie(encounter.WeenieClassId);
 
+                    if (weenie == null)
+                        continue;
+
                     foreach (var generatorEntry in weenie.PropertiesGenerator)
                     {
                         var generatedWeenie = DatabaseManager.World.GetCachedWeenie(generatorEntry.WeenieClassId);
+
+                        if (generatedWeenie == null)
+                            continue;
 
                         if (generatedWeenie.WeenieType == WeenieType.Creature)
                         {
