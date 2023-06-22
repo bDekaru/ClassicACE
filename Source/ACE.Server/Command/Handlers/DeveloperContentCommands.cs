@@ -4440,7 +4440,7 @@ namespace ACE.Server.Command.Handlers.Processors
         }
 
         [CommandHandler("export-landblock-levels", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
-        public static void HandleExportDungeonLevels(Session session, params string[] parameters)
+        public static void HandleExportLandblockLevels(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting landblock levels to reports/LandblockLevels.txt...");
 
