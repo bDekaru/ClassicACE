@@ -4439,6 +4439,39 @@ namespace ACE.Server.Command.Handlers.Processors
             }
         }
 
+        private static List<uint> RecursedList;
+        private static string GetEntranceDirections(uint nameSourceWcid, bool recursing = false)
+        {
+            if (nameSourceWcid == 0)
+                return "";
+
+            if (!recursing)
+                RecursedList = new List<uint>();
+
+            var directions = "";
+            var instance = DatabaseManager.World.GetLandblockInstancesByWcid(nameSourceWcid).FirstOrDefault();
+            if (instance != null)
+            {
+                var pos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+                var landblock = ACE.Server.Physics.Common.LScape.get_landblock(pos.Landblock << 16);
+                if (!landblock.IsDungeon && (pos.Landblock & 0x000000FF) < 0xFA && ((pos.Landblock & 0x0000FF00) >> 8) > 0x02)
+                    directions = $"at {pos.GetMapCoordStr(true)}";
+                else
+                {
+                    var name = LandblockInstanceWriter.GetNameFromPortalDestination(pos.Landblock, out var newNameSourceWcid);
+                    if (RecursedList.Contains(newNameSourceWcid))
+                        return "";
+                    else
+                    {
+                        RecursedList.Add(newNameSourceWcid);
+                        return $"inside {name} {GetEntranceDirections(newNameSourceWcid, true)}";
+                    }
+                }
+            }
+
+            return directions.Trim();
+        }
+
         [CommandHandler("export-landblock-levels", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
         public static void HandleExportLandblockLevels(Session session, params string[] parameters)
         {
@@ -4456,7 +4489,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var fileWriter = new StreamWriter(filename);
 
-            fileWriter.WriteLine("Landblock Id\tName\tWeighted Average Level\tMin Level\tMax Level\tContainerCount\tCreatures\tLevels");
+            fileWriter.WriteLine("Landblock Id\tName\tDirections\tWeighted Average Level\tContent Description\tEntrance Level Min\tEntrance Level Max\tEntrance Quest Restriction\tContainer Count\tMin Creature Level\tMax Creature Level\tCreatures\tLevels");
 
             var weenieTypes = DatabaseManager.World.GetAllWeenieTypes();
 
@@ -4466,13 +4499,29 @@ namespace ACE.Server.Command.Handlers.Processors
                 {
                     ushort landblockId = (ushort)(landblockIdX << 8 | landblockIdY);
                     var landblockInstances = DatabaseManager.World.GetCachedInstancesByLandblock(landblockId);
-                    var name = LandblockInstanceWriter.GetNameFromPortalDestination(landblockId);
+                    var name = LandblockInstanceWriter.GetNameFromPortalDestination(landblockId, out var nameSourceWcid);
                     var minLevel = int.MaxValue;
                     var maxLevel = 0;
                     var creatureFamilyList = new SortedDictionary<ACE.Entity.Enum.CreatureType,int>();
                     var creatureLevelCountList = new SortedDictionary<int, int>();
                     var containerCount = 0;
                     var totalCreatureCount = 0;
+                    var directions = GetEntranceDirections(nameSourceWcid);
+                    var entranceLevelMin = 0;
+                    var entranceLevelMax = 0;
+                    var entranceQuestRestriction = "";
+                    var contentDescription = "";
+                    if(nameSourceWcid != 0)
+                    {
+                        var entranceWeenie = DatabaseManager.World.GetWeenie(nameSourceWcid);
+
+                        if (entranceWeenie != null)
+                        {
+                            entranceLevelMin = entranceWeenie.GetProperty(PropertyInt.MinLevel) ?? 0;
+                            entranceLevelMax = entranceWeenie.GetProperty(PropertyInt.MaxLevel) ?? 0;
+                            entranceQuestRestriction = entranceWeenie.GetProperty(PropertyString.QuestRestriction) ?? "";
+                        }
+                    }
 
                     if (landblockInstances != null)
                     {
@@ -4527,7 +4576,25 @@ namespace ACE.Server.Command.Handlers.Processors
 
                             weightedAverageLevel /= totalCreatureCount;
 
-                            fileWriter.WriteLine($"{landblockId.ToString("x4")}\t{name}\t{weightedAverageLevel}\t{minLevel}\t{maxLevel}\t{containerCount}\t{string.Join(",", creatureFamilyList)}\t{string.Join(",", creatureLevelCountList)}");
+                            var lastEntry = "";
+                            foreach (var creatureType in creatureFamilyList)
+                            {
+                                if (creatureType.Value >= totalCreatureCount * 0.1)
+                                {
+                                    var creatureTypeString = creatureType.Key.ToString();
+                                    var friendlyName = string.Concat(creatureTypeString.Select(x => Char.IsUpper(x) ? " " + x : x.ToString())).TrimStart(" ");
+                                    if (contentDescription.Length > 0)
+                                        lastEntry = $", {friendlyName}{(friendlyName.EndsWith("s") ? "es" : "s")}";
+                                    else
+                                        lastEntry = $"{friendlyName}{(friendlyName.EndsWith("s") ? "es" : "s")}";
+                                    contentDescription += lastEntry;
+                                    
+                                }
+                            }
+
+                            contentDescription = contentDescription.Replace(lastEntry, lastEntry.Replace(",", " and"));
+
+                            fileWriter.WriteLine($"{landblockId.ToString("x4")}\t{name}\t{directions}\t{weightedAverageLevel}\t{contentDescription}\t{entranceLevelMin}\t{entranceLevelMax}\t{entranceQuestRestriction}\t{containerCount}\t{minLevel}\t{maxLevel}\t{string.Join(",", creatureFamilyList)}\t{string.Join(",", creatureLevelCountList)}");
                             fileWriter.Flush();
                         }
                     }

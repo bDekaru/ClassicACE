@@ -28,7 +28,7 @@ namespace ACE.Database.SQLFormatters.World
 
         public static string GetDefaultFileName(uint landblockId)
         {
-            var name = GetNameFromPortalDestination(landblockId);
+            var name = GetNameFromPortalDestination(landblockId, out _);
 
             string fileName;
             if (name != "")
@@ -49,7 +49,7 @@ namespace ACE.Database.SQLFormatters.World
 
         private static List<NameResults> Results = null;
 
-        public static string GetNameFromPortalDestination(uint landblock)
+        public static string GetNameFromPortalDestination(uint landblock, out uint nameSourceWcid)
         {
             using (var ctx = new WorldDbContext())
             {
@@ -69,9 +69,9 @@ namespace ACE.Database.SQLFormatters.World
                     Results = query.ToList();
                 }
 
-                var resultsTest = Results.Where(i => i.Dest.ObjCellId >> 16 == landblock).ToList();
-
-                var name = Results.Where(i => i.Dest.ObjCellId >> 16 == landblock && i.Name != null && !i.Name.Value.Contains("Surface") && !i.Name.Value.Contains("Gateway") && !i.Name.Value.Contains("Exit")).Select(i => i.Name.Value).FirstOrDefault();
+                var results2 = Results.Where(i => i.Dest.ObjCellId >> 16 == landblock && i.Name != null && !i.Name.Value.Contains("Surface") && !i.Name.Value.Contains("Gateway") && !i.Name.Value.Contains("Exit") && !i.Name.Value.Contains("Escape Route"));
+                var name = results2.Select(i => i.Name.Value).FirstOrDefault();
+                nameSourceWcid = results2.Select(i => i.Weenie).FirstOrDefault()?.ClassId ?? 0;
 
                 if (name == null)
                 {
@@ -82,7 +82,9 @@ namespace ACE.Database.SQLFormatters.World
                         foreach (var instance in portalInstances)
                         {
                             var dungeonLandblock = instance.ObjCellId >> 16;
-                            name = Results.Where(i => i.Dest.ObjCellId >> 16 == dungeonLandblock && i.Name != null && !i.Name.Value.Contains("Surface") && !i.Name.Value.Contains("Gateway") && !i.Name.Value.StartsWith("Exit")).Select(i => i.Name.Value).FirstOrDefault();
+                            results2 = Results.Where(i => i.Dest.ObjCellId >> 16 == dungeonLandblock && i.Name != null && !i.Name.Value.Contains("Surface") && !i.Name.Value.Contains("Gateway") && !i.Name.Value.StartsWith("Exit") && !i.Name.Value.Contains("Escape Route"));
+                            name = results2.Select(i => i.Name.Value).FirstOrDefault();
+                            nameSourceWcid = results2.Select(i => i.Weenie).FirstOrDefault()?.ClassId ?? 0;
                             if (name != null)
                             {
                                 name = $"Surface around {name}";
@@ -107,7 +109,7 @@ namespace ACE.Database.SQLFormatters.World
                 else if (name.EndsWith(" Exit"))
                     name = name.Replace(" Exit", "");
 
-                return name;
+                return name.Replace("\n","");
             }
         }
 

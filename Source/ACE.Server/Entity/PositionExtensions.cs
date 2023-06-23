@@ -190,10 +190,10 @@ namespace ACE.Server.Entity
             return uint.MaxValue;
         }
 
-        public static Vector2? GetMapCoords(this Position pos)
+        public static Vector2? GetMapCoords(this Position pos, bool evenIfIndoors = false)
         {
             // no map coords available for dungeons / indoors?
-            if ((pos.Cell & 0xFFFF) >= 0x100)
+            if ((pos.Cell & 0xFFFF) >= 0x100 && !evenIfIndoors)
                 return null;
 
             var globalPos = pos.ToGlobal();
@@ -212,9 +212,9 @@ namespace ACE.Server.Entity
             return mapCoords;
         }
 
-        public static string GetMapCoordStr(this Position pos)
+        public static string GetMapCoordStr(this Position pos, bool evenIfIndoors = false)
         {
-            var mapCoords = pos.GetMapCoords();
+            var mapCoords = pos.GetMapCoords(evenIfIndoors);
 
             if (mapCoords == null)
                 return null;
