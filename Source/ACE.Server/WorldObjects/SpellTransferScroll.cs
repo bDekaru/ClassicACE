@@ -77,7 +77,10 @@ namespace ACE.Server.WorldObjects
 
             if (!RecipeManager.VerifyUse(player, source, target, true))
             {
-                player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
+                if(!confirmed)
+                    player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
+                else
+                    player.SendTransientError("Either you or one of the items involved does not pass the requirements for this craft interaction.");
                 return;
             }
 
@@ -86,7 +89,7 @@ namespace ACE.Server.WorldObjects
                 if(target.Workmanship == null && target.ExtraSpellsMaxOverride == null)
                 {
                     player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
-                    return;
+                        return;
                 }
 
                 var spellToAddId = (uint)source.SpellDID;
@@ -265,6 +268,13 @@ namespace ACE.Server.WorldObjects
 
                 actionChain.AddAction(player, () =>
                 {
+                    if (!RecipeManager.VerifyUse(player, source, target, true))
+                    {
+                        // No longer valid, abort
+                        player.SendTransientError("Either you or one of the items involved does not pass the requirements for this craft interaction.");
+                        return;
+                    }
+
                     if (isProc)
                     {
                         HandleExtraSpellList(target, spellToAddId, target.ProcSpell ?? 0);
@@ -441,6 +451,13 @@ namespace ACE.Server.WorldObjects
 
                 actionChain.AddAction(player, () =>
                 {
+                    if (!RecipeManager.VerifyUse(player, source, target, true))
+                    {
+                        // No longer valid, abort
+                        player.SendTransientError("Either you or one of the items involved does not pass the requirements for this craft interaction.");
+                        return;
+                    }
+
                     var success = ThreadSafeRandom.Next(0.0f, 1.0f) < chance;
                     var spellName = "a spell";
                     if (success)
