@@ -507,7 +507,6 @@ namespace ACE.Server.Managers
             {
                 PropertyManager.ModifyBool("item_dispel", true);
                 PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
-                PropertyManager.ModifyBool("allow_xp_at_max_level", true);
                 PropertyManager.ModifyBool("increase_minimum_encounter_spawn_density", true);
                 PropertyManager.ModifyBool("show_dot_messages", true);
                 PropertyManager.ModifyBool("salvage_handle_overages", true);
@@ -516,7 +515,6 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyBool("allow_pkl_bump", false);
                 PropertyManager.ModifyBool("fix_chest_missing_inventory_window", true);
 
-                PropertyManager.ModifyLong("max_level", 126);
                 PropertyManager.ModifyLong("fellowship_even_share_level", 80);
 
                 PropertyManager.ModifyBool("show_dat_warning", true);

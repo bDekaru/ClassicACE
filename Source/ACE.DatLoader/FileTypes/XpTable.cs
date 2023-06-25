@@ -10,7 +10,6 @@ namespace ACE.DatLoader.FileTypes
     public class XpTable : FileType
     {
         internal const uint FILE_ID = 0x0E000018;
-        internal const uint FILE_ID_FULL = 0x0E000019;
 
         public List<uint> AttributeXpList { get; } = new List<uint>();
         public List<uint> VitalXpList { get; } = new List<uint>();

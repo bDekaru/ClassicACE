@@ -3915,7 +3915,7 @@ namespace ACE.Server.Command.Handlers.Processors
             if (creature.Level == newLevel)
                 return;
 
-            var xpTable = DatLoader.DatManager.PortalDat.XpTableFull.CharacterLevelXPList;
+            var xpTable = DatLoader.DatManager.PortalDat.XpTable.CharacterLevelXPList;
             var attributeTable = DatLoader.DatManager.PortalDat.XpTable.AttributeXpList;
             var vitalTable = DatLoader.DatManager.PortalDat.XpTable.VitalXpList;
             var skillTable = DatLoader.DatManager.PortalDat.XpTable.SpecializedSkillXpList;
@@ -4767,9 +4767,9 @@ namespace ACE.Server.Command.Handlers.Processors
             if (creature == null)
                 return 0;
 
-            var xpTable = DatLoader.DatManager.PortalDat.XpTableFull.CharacterLevelXPList;
-            var skillTable = DatLoader.DatManager.PortalDat.XpTableFull.SpecializedSkillXpList;
-            var vitalTable = DatLoader.DatManager.PortalDat.XpTableFull.VitalXpList;
+            var xpTable = DatLoader.DatManager.PortalDat.XpTable.CharacterLevelXPList;
+            var skillTable = DatLoader.DatManager.PortalDat.XpTable.SpecializedSkillXpList;
+            var vitalTable = DatLoader.DatManager.PortalDat.XpTable.VitalXpList;
 
             ulong totalXp = 0;
 
