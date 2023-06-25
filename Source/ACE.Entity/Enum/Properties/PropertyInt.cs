@@ -655,6 +655,24 @@ namespace ACE.Entity.Enum.Properties
         BaseItemDifficultyOverride               = 10013,
         [ServerOnly]
         BaseSpellcraftOverride                   = 10014,
+        [ServerOnly]
+        Exploration1LandblockId                  = 10015,
+        [ServerOnly]
+        Exploration1KillProgressTracker          = 10016,
+        [ServerOnly]
+        Exploration1MarkerProgressTracker        = 10017,
+        [ServerOnly]
+        Exploration2LandblockId                  = 10018,
+        [ServerOnly]
+        Exploration2KillProgressTracker          = 10019,
+        [ServerOnly]
+        Exploration2MarkerProgressTracker        = 10020,
+        [ServerOnly]
+        Exploration3LandblockId                  = 10021,
+        [ServerOnly]
+        Exploration3KillProgressTracker          = 10022,
+        [ServerOnly]
+        Exploration3MarkerProgressTracker        = 10023,
     }
 
     public static class PropertyIntExtensions

@@ -118,7 +118,7 @@ namespace ACE.Server.WorldObjects
             recommendationChain.AddDelaySeconds(20.0f);
             recommendationChain.AddAction(this, () =>
             {
-                PlayerCommands.HandleSingleRecommendation(this.Session);
+                PlayerCommands.SingleRecommendation(Session, true);
             });
             recommendationChain.EnqueueChain();
 

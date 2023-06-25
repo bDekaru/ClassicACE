@@ -41886,5 +41886,10 @@ namespace ACE.Server.Factories.Enum
         ace87830_olthoislasher = 87830,
         ace87831_surface = 87831,
         ace87832_rootsofskuldgenerator = 87832,
+
+        // CustomDM
+        blankExplorationContract = 50179,
+        explorationContract = 50180,
+        explorationMarker = 50181
     }
 }

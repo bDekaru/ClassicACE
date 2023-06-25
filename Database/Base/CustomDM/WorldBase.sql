@@ -47,6 +47,29 @@ CREATE TABLE `cook_book` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `exploration_sites`
+--
+
+DROP TABLE IF EXISTS `exploration_sites`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `exploration_sites` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique Id of this exploration site instance',
+  `landblock` int NOT NULL COMMENT 'Landblock for this exploration site',
+  `name` text NOT NULL COMMENT 'Name for this exploration site',
+  `directions` text NOT NULL COMMENT 'Directions to get to this this exploration site',
+  `level` int unsigned NOT NULL COMMENT 'Level for this exploration site',
+  `content_Description` text NOT NULL COMMENT 'What can be found at this exploration site',
+  `min_Level` int unsigned NOT NULL COMMENT 'Min level to be able to enter this exploration site',
+  `max_Level` int unsigned NOT NULL COMMENT 'Max level to be able to enter this exploration site',
+  `creature_Count` int unsigned NOT NULL COMMENT 'The amount of creatures at this exploration site',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `level_idx` (`level`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='List of Exploration Sites';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `encounter`
 --
 

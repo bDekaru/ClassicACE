@@ -581,7 +581,6 @@ namespace ACE.Server.Command.Handlers
             new ActivityRecommendation(10, 20, new HashSet<Skill>{Skill.Axe, Skill.Shield}, "Equipment: Explore Trothyr's Rest near Rithwic at 10.3N, 54.9E for Trothyr's War Hammer and Trothyr's Shield. Talk to Ringoshu the Apple Seller at 13.6N, 50.7E for more information."),
             new ActivityRecommendation(5, 20, new HashSet<Skill>{Skill.Armor, Skill.Spear}, "Equipment: Explore the Green Mire Grave near Shoushi at 27.8S, 71.6E for the Green Mire Warrior's Yoroi Cuirass and the Green Mire Yari."),
 
-            new ActivityRecommendation(5, 10, "Hunting Grounds: Eastham Beach - Hunt following the coastline out of Eastham."),
             new ActivityRecommendation(20, 30, "Hunting Grounds: Hunt Lugians in the Hills Citadel near Lin at 56.6S, 66.9E."),
 
             // T2
@@ -594,7 +593,6 @@ namespace ACE.Server.Command.Handlers
             new ActivityRecommendation(15, 30, Skill.Lockpick, "Hunting Grounds: Halls of Metos - North of Tufa at 4.4S, 0.6W - Hunt Undeads for Mnemosynes, and golems for Motes and Hearts. Use a Intricate Carving Tool and the Lockpick skill to turn the Hearts into keys for the Mnemosynes."),
             new ActivityRecommendation(15, 30, "Hunting Grounds: Halls of Metos - North of Tufa at 4.4S, 0.6W - Hunt Undeads for Mnemosynes, and golems for Motes."),
             new ActivityRecommendation(20, 30, "Hunting Grounds: Northern Tiofor Woods - Hunt Shadows for Dark Slivers in the region north of Glenden Wood and Holtburg."),
-            new ActivityRecommendation(20, 30, "Hunting Grounds: Lost Wish Range - Go through the Mountain Shortcut portal near Arwic at 34.9N, 56.0E and hunt along the mountains."),
             new ActivityRecommendation(20, 35, "Hunting Grounds: The very bottom of the Fenmalain Chamber is a great place to hunt Fragments for Tiny Shards. To get there you need to use Fenmalain Keys at the bottom of the Fenmalain Vestibule near Baishi at 46.9S, 55.2E."),
             new ActivityRecommendation(20, 30, Skill.Axe, "Equipment: Explore the Bellig Tower near Zaikhal at 17.8N, 16.0E for the Hammer of Lightning."),
             new ActivityRecommendation(20, 35, Skill.Mace, "JitteKrauLiLesser", "Equipment: Explore the Catacombs of the Forgotten in the Plains of Gaerwel at 17.3N, 32.8E for Mi Krau-Li's Jitte."),
@@ -633,9 +631,16 @@ namespace ACE.Server.Command.Handlers
                 return;
             }
 
+            var level = session.Player?.Level ?? 1;
+            var minLevel = Math.Max(level - (int)(level * 0.1f), 1);
+            var maxLevel = level + (int)(level * 0.2f);
+            if (level > 100)
+                maxLevel = int.MaxValue;
+            var explorationList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, level);
+
             var validRecommendations = BuildRecommendationList(session.Player);
 
-            if (validRecommendations.Count == 0)
+            if (validRecommendations.Count == 0 && explorationList.Count == 0)
                 session.Network.EnqueueSend(new GameMessageSystemChat("No recommendations at the moment.", ChatMessageType.WorldBroadcast));
             else
             {
@@ -643,6 +648,24 @@ namespace ACE.Server.Command.Handlers
                 foreach (var recommendation in validRecommendations)
                 {
                     session.Network.EnqueueSend(new GameMessageSystemChat(recommendation.RecommendationText, ChatMessageType.WorldBroadcast));
+                }
+
+                foreach (var entry in explorationList)
+                {
+                    string amountAdjetive;
+                    if (entry.CreatureCount < 10)
+                        amountAdjetive = "a few ";
+                    else if (entry.CreatureCount < 25)
+                        amountAdjetive = "";
+                    else if (entry.CreatureCount < 50)
+                        amountAdjetive = "some ";
+                    else if (entry.CreatureCount < 75)
+                        amountAdjetive = "quite a few ";
+                    else
+                        amountAdjetive = "a lot of ";
+
+                    var msg = $"Hunting Grounds: {entry.Name} {entry.Directions}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
+                    session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
                 }
             }
         }
@@ -656,12 +679,53 @@ namespace ACE.Server.Command.Handlers
                 return;
             }
 
+            SingleRecommendation(session, false);
+        }
+
+        public static void SingleRecommendation(Session session, bool failSilently)
+        {
             var validRecommendations = BuildRecommendationList(session.Player);
 
-            if (validRecommendations.Count > 0)
+            var level = session.Player?.Level ?? 1;
+            var minLevel = Math.Max(level - (int)(level * 0.1f), 1);
+            var maxLevel = level + (int)(level * 0.2f);
+            if (level > 100)
+                maxLevel = int.MaxValue;
+            var explorationList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, level);
+
+            if (validRecommendations.Count != 0)
             {
-                var recommendation = validRecommendations[ThreadSafeRandom.Next(0, validRecommendations.Count - 1)];
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Activity Recommendation:\n{recommendation.RecommendationText}", ChatMessageType.WorldBroadcast));
+                if (ThreadSafeRandom.Next(1, 4) != 4 || explorationList.Count == 0)
+                {
+                    var recommendation = validRecommendations[ThreadSafeRandom.Next(0, validRecommendations.Count - 1)];
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Activity Recommendation:\n{recommendation.RecommendationText}", ChatMessageType.WorldBroadcast));
+                    return;
+                }
+            }
+
+            if (explorationList.Count == 0)
+            {
+                if (!failSilently)
+                    session.Network.EnqueueSend(new GameMessageSystemChat("No recommendations at the moment.", ChatMessageType.WorldBroadcast));
+            }
+            else
+            {
+                var entry = explorationList[ThreadSafeRandom.Next(0, explorationList.Count - 1)];
+
+                string amountAdjetive;
+                if (entry.CreatureCount < 10)
+                    amountAdjetive = "a few ";
+                else if (entry.CreatureCount < 25)
+                    amountAdjetive = "";
+                else if (entry.CreatureCount < 50)
+                    amountAdjetive = "some ";
+                else if (entry.CreatureCount < 75)
+                    amountAdjetive = "quite a few ";
+                else
+                    amountAdjetive = "a lot of ";
+
+                var msg = $"Activity Recommendation:\nHunting Grounds: {entry.Name} {entry.Directions}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
+                session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
             }
         }
 
@@ -1182,6 +1246,69 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"Health Food: {healthFullness} ({health}/{max})", ChatMessageType.Broadcast);
             CommandHandlerHelper.WriteOutputInfo(session, $"Stamina Food: {staminaFullness} ({stamina}/{max})", ChatMessageType.Broadcast);
             CommandHandlerHelper.WriteOutputInfo(session, $"Mana Food: {manaFullness} ({mana}/{max})", ChatMessageType.Broadcast);
+        }
+
+        [CommandHandler("Exploration", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "")]
+        [CommandHandler("Exp", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleExploration(Session session, params string[] parameters)
+        {
+            var player = session?.Player;
+
+            if (player == null)
+                return;
+
+            var hasAssignments = false;
+            var assignment1Complete = false;
+            var assignment2Complete = false;
+            var assignment3Complete = false;
+            if (player.Exploration1LandblockId != 0 && player.Exploration1Description.Length > 0)
+            {
+                hasAssignments = true;
+                assignment1Complete = player.Exploration1KillProgressTracker <= 0 && player.Exploration1MarkerProgressTracker <= 0;
+            }
+            if (player.Exploration2LandblockId != 0 && player.Exploration2Description.Length > 0)
+            {
+                hasAssignments = true;
+                assignment2Complete = player.Exploration2KillProgressTracker <= 0 && player.Exploration2MarkerProgressTracker <= 0;
+            }
+            if (player.Exploration3LandblockId != 0 && player.Exploration3Description.Length > 0)
+            {
+                hasAssignments = true;
+                assignment3Complete = player.Exploration3KillProgressTracker <= 0 && player.Exploration3MarkerProgressTracker <= 0;
+            }
+
+            if (!hasAssignments)
+                CommandHandlerHelper.WriteOutputInfo(session, "No ongoing exploration assignments at the moment.");
+            else
+            {
+                var msg1 = "";
+                var msg2 = "";
+                var msg3 = "";
+                if (player.Exploration1LandblockId != 0 && player.Exploration1Description.Length > 0)
+                    msg1 = $"{player.Exploration1Description} {(assignment1Complete ? "Complete!" : $"Kills remaining: {player.Exploration1KillProgressTracker} Markers remaining: {player.Exploration1MarkerProgressTracker}")}";
+                if (player.Exploration2LandblockId != 0 && player.Exploration2Description.Length > 0)
+                    msg2 = $"{player.Exploration2Description} {(assignment2Complete ? "Complete!" : $"Kills remaining: {player.Exploration2KillProgressTracker} Markers remaining: {player.Exploration2MarkerProgressTracker}")}";
+                if (player.Exploration3LandblockId != 0 && player.Exploration3Description.Length > 0)
+                    msg3 = $"{player.Exploration3Description} {(assignment3Complete ? "Complete!" : $"Kills remaining: {player.Exploration3KillProgressTracker} Markers remaining: {player.Exploration3MarkerProgressTracker}")}";
+
+                var count = 0;
+                CommandHandlerHelper.WriteOutputInfo(session, "Exploration Assignments:");
+                if (msg1.Length > 0)
+                {
+                    count++;
+                    CommandHandlerHelper.WriteOutputInfo(session, $"\n\n{count:N0}. {msg1}");
+                }
+                if (msg2.Length > 0)
+                {
+                    count++;
+                    CommandHandlerHelper.WriteOutputInfo(session, $"\n\n{count:N0}. {msg2}");
+                }
+                if (msg3.Length > 0)
+                {
+                    count++;
+                    CommandHandlerHelper.WriteOutputInfo(session, $"\n\n{count:N0}. {msg3}");
+                }
+            }
         }
     }
 }

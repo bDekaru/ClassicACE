@@ -20,13 +20,12 @@ namespace ACE.Server.WorldObjects
         /// <param name="amount">The amount of XP being added</param>
         /// <param name="xpType">The source of XP being added</param>
         /// <param name="shareable">True if this XP can be shared with Fellowship</param>
-        public void EarnXP(long amount, XpType xpType, int? xpSourceLevel, uint? xpSourceId, uint xpSourceCampValue, double? xpSourceTier, ShareType shareType = ShareType.All)
+        public void EarnXP(long amount, XpType xpType, int? xpSourceLevel, uint? xpSourceId, uint xpSourceCampValue, double? xpSourceTier, ShareType shareType = ShareType.All, string xpMessage = "")
         {
             //Console.WriteLine($"{Name}.EarnXP({amount}, {sharable}, {fixedAmount})");
 
-            string xpMessage = "";
             bool usesRewardByLevelSystem = false;
-            if (xpType == XpType.Quest && amount < 0 && amount > -6000) // this range is used to specify the reward by level system.
+            if ((xpType == XpType.Quest || xpType == XpType.Exploration) && amount < 0 && amount > -6000) // this range is used to specify the reward by level system.
             {
                 usesRewardByLevelSystem = true;
                 int formulaVersion;
@@ -249,6 +248,31 @@ namespace ACE.Server.WorldObjects
             }
 
             GrantXP(m_amount, xpType, shareType, xpMessage);
+
+            if (xpType == XpType.Kill)
+            {
+                if (Exploration1LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration1KillProgressTracker > 0)
+                {
+                    Exploration1KillProgressTracker--;
+                    long explorationXP = (long)(m_amount * 0.5f);
+                    xpMessage = $"{Exploration1KillProgressTracker:N0} kill{((Exploration1KillProgressTracker ?? 0) > 1 ? "s" : "")} remaining.";
+                    GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
+                }
+                else if (Exploration2LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration2KillProgressTracker > 0)
+                {
+                    Exploration2KillProgressTracker--;
+                    long explorationXP = (long)(m_amount * 0.5f);
+                    xpMessage = $"{Exploration2KillProgressTracker:N0} kill{((Exploration2KillProgressTracker ?? 0) > 1 ? "s" : "")} remaining.";
+                    GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
+                }
+                else if (Exploration3LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration3KillProgressTracker > 0)
+                {
+                    Exploration3KillProgressTracker--;
+                    long explorationXP = (long)(m_amount * 0.5f);
+                    xpMessage = $"{Exploration3KillProgressTracker:N0} kill{((Exploration3KillProgressTracker ?? 0) > 1 ? "s" : "")} remaining.";
+                    GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
+                }
+            }
         }
 
         /// <summary>
@@ -352,6 +376,13 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience! {xpMessage}", ChatMessageType.Broadcast));
                 else if (amount > 0 && xpType == XpType.Proficiency && xpMessage != "")
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} {xpMessage} experience!", ChatMessageType.Broadcast));
+                else if (amount > 0 && xpType == XpType.Exploration)
+                {
+                    if (xpMessage != "")
+                        Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} exploration experience! {xpMessage}", ChatMessageType.Broadcast));
+                    else
+                        Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} exploration experience!", ChatMessageType.Broadcast));
+                }
             }
 
             if (HasVitae && xpType != XpType.Allegiance)
@@ -592,7 +623,7 @@ namespace ACE.Server.WorldObjects
                 recommendationChain.AddDelaySeconds(5.0f);
                 recommendationChain.AddAction(this, () =>
                 {
-                    PlayerCommands.HandleSingleRecommendation(Session);
+                    PlayerCommands.SingleRecommendation(Session, true);
                 });
                 recommendationChain.EnqueueChain();
             }

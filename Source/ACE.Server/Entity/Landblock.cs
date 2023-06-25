@@ -190,9 +190,95 @@ namespace ACE.Server.Entity
                 SpawnDynamicShardObjects();
 
                 SpawnEncounters();
+
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(5);
+                actionChain.AddAction(this, () => InitializeExplorationMarkers());
+                actionChain.EnqueueChain();
             });
 
             //LoadMeshes(objects);
+        }
+
+
+        private double NextExplorationMarkerRefresh;
+        private double ExplorationMarkerRefreshInterval = 300;
+        private List<Position> PositionsForExplorationMarkers = new List<Position>();
+        public void InitializeExplorationMarkers()
+        {
+            var explorationSites = DatabaseManager.World.GetExplorationSitesByLandblock((ushort)(Id.Raw >> 16));
+
+            if (explorationSites.Count == 0)
+            {
+                PositionsForExplorationMarkers = new List<Position>();
+                return;
+            }
+
+            foreach (var obj in worldObjects)
+            {
+                if(obj.Value is Creature creature)
+                {
+                    if (!(creature is Player) && creature.Tolerance == Tolerance.None && creature.PlayerKillerStatus != PlayerKillerStatus.RubberGlue && creature.PlayerKillerStatus != PlayerKillerStatus.Protected)
+                        PositionsForExplorationMarkers.Add(creature.Location.InFrontOf(-0.5f));
+                }
+            }
+
+            SpawnExplorationMarker();
+
+            NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
+        }
+
+        public void RefreshExplorationMarkers()
+        {
+            foreach (var obj in worldObjects)
+            {
+                if (obj.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker)
+                {
+                    bool isVisible = false;
+                    foreach(var player in players)
+                    {
+                        if (player.ObjMaint.VisibleObjectsContainsKey(obj.Value.PhysicsObj.ID))
+                        {
+                            isVisible = true;
+                            break;
+                        }
+                    }
+
+                    if (!isVisible) // Only refresh exploration markers that are not visible for any players at the moment.
+                    {
+                        obj.Value.Destroy();
+                        SpawnExplorationMarker();
+                    }
+                }
+            }
+
+            NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
+        }
+
+        public void SpawnExplorationMarker()
+        {
+            if (PositionsForExplorationMarkers.Count > 0)
+            {
+                var attempts = 0;
+                var entry = PositionsForExplorationMarkers[ThreadSafeRandom.Next(0, PositionsForExplorationMarkers.Count - 1)];
+
+                var explorationMarker = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.explorationMarker);
+                explorationMarker.Location = entry;
+                explorationMarker.Location.LandblockId = new LandblockId(explorationMarker.Location.GetCell());
+                if (explorationMarker.EnterWorld())
+                {
+                    AddWorldObject(explorationMarker);
+                }
+                else if (explorationMarker != null)
+                {
+                    attempts++;
+                    explorationMarker.Destroy();
+                    if(attempts < 10)
+                        SpawnExplorationMarker();
+                    else
+                        log.Error($"Landblock 0x{Id} failed to spawn exploration marker");
+                }
+            }
         }
 
         /// <summary>
@@ -574,6 +660,9 @@ namespace ACE.Server.Entity
             // - Executing trade between two players: Player_Trade.cs FinalizeTrade()
             actionQueue.RunActions();
             ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Landblock_Tick_RunActions, stopwatch.Elapsed.TotalSeconds);
+
+            if(NextExplorationMarkerRefresh <= currentUnixTime)
+                RefreshExplorationMarkers();
 
             ProcessPendingWorldObjectAdditionsAndRemovals();
 

@@ -1531,6 +1531,21 @@ namespace ACE.Server.WorldObjects.Managers
                             vendor.BroadcastStock(true);
                         break;
                     }
+
+                case EmoteType.RefreshExplorationAssignments:
+                    {
+                        if (player != null)
+                            player.RefreshExplorationAssignments(WorldObject);
+                        break;
+                    }
+
+                case EmoteType.RewardExplorationAssignments:
+                    {
+                        if (player != null)
+                            player.RewardExplorationAssignments(WorldObject);
+                        break;
+                    }
+
                 default:
                     log.Debug($"EmoteManager.Execute - Encountered Unhandled EmoteType {(EmoteType)emote.Type} for {WorldObject.Name} ({WorldObject.WeenieClassId})");
                     break;

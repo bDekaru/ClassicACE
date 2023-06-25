@@ -4489,7 +4489,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var fileWriter = new StreamWriter(filename);
 
-            fileWriter.WriteLine("Landblock Id\tName\tDirections\tWeighted Average Level\tContent Description\tEntrance Level Min\tEntrance Level Max\tEntrance Quest Restriction\tContainer Count\tMin Creature Level\tMax Creature Level\tCreatures\tLevels");
+            fileWriter.WriteLine("Landblock Id\tName\tDirections\tWeighted Average Level\tContent Description\tEntrance Level Min\tEntrance Level Max\tTotal Creature Count\tEntrance Quest Restriction\tContainer Count\tMin Creature Level\tMax Creature Level\tCreatures\tLevels");
 
             var weenieTypes = DatabaseManager.World.GetAllWeenieTypes();
 
@@ -4528,41 +4528,53 @@ namespace ACE.Server.Command.Handlers.Processors
                         foreach (var instance in landblockInstances)
                         {
                             var weenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
-                            if(weenie == null)
+                            if (weenie == null)
                                 continue;
 
-                            if (weenieTypes.TryGetValue(instance.WeenieClassId, out var weenieType))
+                            var entriesList = new List<uint>();
+                            entriesList.Add(instance.WeenieClassId);
+                            foreach (var generatorEntry in weenie.WeeniePropertiesGenerator)
+                                entriesList.Add(generatorEntry.WeenieClassId);
+
+                            foreach (var entry in entriesList)
                             {
-                                var playerKillerStatus = (PlayerKillerStatus?)weenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
-                                var npcLooksLikeObject = weenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
-                                if (playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
+                                if (weenieTypes.TryGetValue(entry, out var weenieType))
                                 {
-                                    if (weenieType == (int)ACE.Entity.Enum.WeenieType.Chest || weenieType == (int)ACE.Entity.Enum.WeenieType.Container)
-                                        containerCount++;
+                                    var entryWeenie = DatabaseManager.World.GetWeenie(entry);
+                                    if (entryWeenie == null)
+                                        continue;
 
-                                    var creatureType = weenie.GetProperty(PropertyInt.CreatureType) ?? 0;
-                                    if (creatureType != 0)
+                                    var playerKillerStatus = (PlayerKillerStatus?)entryWeenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
+                                    var npcLooksLikeObject = entryWeenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
+                                    if (playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
                                     {
-                                        if (creatureFamilyList.TryGetValue((ACE.Entity.Enum.CreatureType)creatureType, out var entry))
-                                            creatureFamilyList[(ACE.Entity.Enum.CreatureType)creatureType] = entry + 1;
-                                        else
-                                            creatureFamilyList.Add((ACE.Entity.Enum.CreatureType)creatureType, 1);
-                                    }
+                                        if (weenieType == (int)ACE.Entity.Enum.WeenieType.Chest || weenieType == (int)ACE.Entity.Enum.WeenieType.Container)
+                                            containerCount++;
 
-                                    var level = weenie.GetProperty(PropertyInt.Level) ?? 0;
-                                    if (level != 0)
-                                    {
-                                        if (level < minLevel)
-                                            minLevel = level;
-                                        if (level > maxLevel)
-                                            maxLevel = level;
+                                        var creatureType = entryWeenie.GetProperty(PropertyInt.CreatureType) ?? 0;
+                                        if (creatureType != 0)
+                                        {
+                                            if (creatureFamilyList.TryGetValue((ACE.Entity.Enum.CreatureType)creatureType, out var creatureFamilyCount))
+                                                creatureFamilyList[(ACE.Entity.Enum.CreatureType)creatureType] = creatureFamilyCount + 1;
+                                            else
+                                                creatureFamilyList.Add((ACE.Entity.Enum.CreatureType)creatureType, 1);
+                                        }
 
-                                        totalCreatureCount++;
+                                        var level = entryWeenie.GetProperty(PropertyInt.Level) ?? 0;
+                                        if (level != 0)
+                                        {
+                                            if (level < minLevel)
+                                                minLevel = level;
+                                            if (level > maxLevel)
+                                                maxLevel = level;
 
-                                        if (creatureLevelCountList.TryGetValue(level, out var entry))
-                                            creatureLevelCountList[level] = entry + 1;
-                                        else
-                                            creatureLevelCountList.Add(level, 1);
+                                            totalCreatureCount++;
+
+                                            if (creatureLevelCountList.TryGetValue(level, out var creatureLevelCount))
+                                                creatureLevelCountList[level] = creatureLevelCount + 1;
+                                            else
+                                                creatureLevelCountList.Add(level, 1);
+                                        }
                                     }
                                 }
                             }
@@ -4594,7 +4606,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                             contentDescription = contentDescription.Replace(lastEntry, lastEntry.Replace(",", " and"));
 
-                            fileWriter.WriteLine($"{landblockId.ToString("x4")}\t{name}\t{directions}\t{weightedAverageLevel}\t{contentDescription}\t{entranceLevelMin}\t{entranceLevelMax}\t{entranceQuestRestriction}\t{containerCount}\t{minLevel}\t{maxLevel}\t{string.Join(",", creatureFamilyList)}\t{string.Join(",", creatureLevelCountList)}");
+                            fileWriter.WriteLine($"{landblockId.ToString("x4")}\t{name}\t{directions}\t{weightedAverageLevel}\t{contentDescription}\t{entranceLevelMin}\t{entranceLevelMax}\t{totalCreatureCount}\t{entranceQuestRestriction}\t{containerCount}\t{minLevel}\t{maxLevel}\t{string.Join(",", creatureFamilyList)}\t{string.Join(",", creatureLevelCountList)}");
                             fileWriter.Flush();
                         }
                     }

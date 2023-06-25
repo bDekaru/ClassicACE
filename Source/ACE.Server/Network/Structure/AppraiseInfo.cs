@@ -509,6 +509,69 @@ namespace ACE.Server.Network.Structure
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
+                if (wo.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationContract)
+                {
+                    var player = wo.Container as Player ?? wo.Wielder as Player;
+
+
+                    if (player != null)
+                    {
+                        PropertiesString[PropertyString.LongDesc] = $"{player.Name}'s Current Assignments:";
+
+                        var hasAssignments = false;
+                        var assignment1Complete = false;
+                        var assignment2Complete = false;
+                        var assignment3Complete = false;
+                        if (player.Exploration1LandblockId != 0 && player.Exploration1Description.Length > 0)
+                        {
+                            hasAssignments = true;
+                            assignment1Complete = player.Exploration1KillProgressTracker <= 0 && player.Exploration1MarkerProgressTracker <= 0;
+                        }
+                        if (player.Exploration2LandblockId != 0 && player.Exploration2Description.Length > 0)
+                        {
+                            hasAssignments = true;
+                            assignment2Complete = player.Exploration2KillProgressTracker <= 0 && player.Exploration2MarkerProgressTracker <= 0;
+                        }
+                        if (player.Exploration3LandblockId != 0 && player.Exploration3Description.Length > 0)
+                        {
+                            hasAssignments = true;
+                            assignment3Complete = player.Exploration3KillProgressTracker <= 0 && player.Exploration3MarkerProgressTracker <= 0;
+                        }
+
+                        var msg1 = "";
+                        var msg2 = "";
+                        var msg3 = "";
+                        if (player.Exploration1LandblockId != 0 && player.Exploration1Description.Length > 0)
+                            msg1 = $"{player.Exploration1Description} {(assignment1Complete ? "\n    Complete!" : $"\n    Kills remaining: {player.Exploration1KillProgressTracker}\n    Markers remaining: {player.Exploration1MarkerProgressTracker}")}";
+                        if (player.Exploration2LandblockId != 0 && player.Exploration2Description.Length > 0)
+                            msg2 = $"{player.Exploration2Description} {(assignment2Complete ? "\n    Complete!" : $"\n    Kills remaining: {player.Exploration2KillProgressTracker}\n    Markers remaining: {player.Exploration2MarkerProgressTracker}")}";
+                        if (player.Exploration3LandblockId != 0 && player.Exploration3Description.Length > 0)
+                            msg3 = $"{player.Exploration3Description} {(assignment3Complete ? "\n    Complete!" : $"\n    Kills remaining: {player.Exploration3KillProgressTracker}\n    Markers remaining: {player.Exploration3MarkerProgressTracker}")}";
+
+                        if (!hasAssignments)
+                            PropertiesString[PropertyString.LongDesc] += " None";
+                        else
+                        {
+                            var count = 0;
+                            if (msg1.Length > 0)
+                            {
+                                count++;
+                                PropertiesString[PropertyString.LongDesc] += $"\n\n{count:N0}. {msg1}";
+                            }
+                            if (msg2.Length > 0)
+                            {
+                                count++;
+                                PropertiesString[PropertyString.LongDesc] += $"\n\n{count:N0}. {msg2}";
+                            }
+                            if (msg3.Length > 0)
+                            {
+                                count++;
+                                PropertiesString[PropertyString.LongDesc] += $"\n\n{count:N0}. {msg3}";
+                            }
+                        }
+                    }
+                }
+
                 string extraPropertiesText;
                 if (PropertiesString.TryGetValue(PropertyString.Use, out var useText) && useText.Length > 0)
                     extraPropertiesText = $"{useText}\n\n";

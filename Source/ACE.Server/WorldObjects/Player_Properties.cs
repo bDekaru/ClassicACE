@@ -1423,5 +1423,77 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyString.SmartSalvageFilter);
             set { if (value == null) RemoveProperty(PropertyString.SmartSalvageFilter); else SetProperty(PropertyString.SmartSalvageFilter, value); }
         }
+
+        public int? Exploration1LandblockId
+        {
+            get => GetProperty(PropertyInt.Exploration1LandblockId);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration1LandblockId); else SetProperty(PropertyInt.Exploration1LandblockId, value.Value); }
+        }
+
+        public int? Exploration2LandblockId
+        {
+            get => GetProperty(PropertyInt.Exploration2LandblockId);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration2LandblockId); else SetProperty(PropertyInt.Exploration2LandblockId, value.Value); }
+        }
+
+        public int? Exploration3LandblockId
+        {
+            get => GetProperty(PropertyInt.Exploration3LandblockId);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration3LandblockId); else SetProperty(PropertyInt.Exploration3LandblockId, value.Value); }
+        }
+
+        public int? Exploration1KillProgressTracker
+        {
+            get => GetProperty(PropertyInt.Exploration1KillProgressTracker);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration1KillProgressTracker); else SetProperty(PropertyInt.Exploration1KillProgressTracker, value.Value); }
+        }
+
+        public int? Exploration2KillProgressTracker
+        {
+            get => GetProperty(PropertyInt.Exploration2KillProgressTracker);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration2KillProgressTracker); else SetProperty(PropertyInt.Exploration2KillProgressTracker, value.Value); }
+        }
+
+        public int? Exploration3KillProgressTracker
+        {
+            get => GetProperty(PropertyInt.Exploration3KillProgressTracker);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration3KillProgressTracker); else SetProperty(PropertyInt.Exploration3KillProgressTracker, value.Value); }
+        }
+
+        public int? Exploration1MarkerProgressTracker
+        {
+            get => GetProperty(PropertyInt.Exploration1MarkerProgressTracker);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration1MarkerProgressTracker); else SetProperty(PropertyInt.Exploration1MarkerProgressTracker, value.Value); }
+        }
+
+        public int? Exploration2MarkerProgressTracker
+        {
+            get => GetProperty(PropertyInt.Exploration2MarkerProgressTracker);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration2MarkerProgressTracker); else SetProperty(PropertyInt.Exploration2MarkerProgressTracker, value.Value); }
+        }
+
+        public int? Exploration3MarkerProgressTracker
+        {
+            get => GetProperty(PropertyInt.Exploration3MarkerProgressTracker);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration3MarkerProgressTracker); else SetProperty(PropertyInt.Exploration3MarkerProgressTracker, value.Value); }
+        }
+
+        public string Exploration1Description
+        {
+            get => GetProperty(PropertyString.Exploration1Description);
+            set { if (value == null) RemoveProperty(PropertyString.Exploration1Description); else SetProperty(PropertyString.Exploration1Description, value); }
+        }
+
+        public string Exploration2Description
+        {
+            get => GetProperty(PropertyString.Exploration2Description);
+            set { if (value == null) RemoveProperty(PropertyString.Exploration2Description); else SetProperty(PropertyString.Exploration2Description, value); }
+        }
+
+        public string Exploration3Description
+        {
+            get => GetProperty(PropertyString.Exploration3Description);
+            set { if (value == null) RemoveProperty(PropertyString.Exploration3Description); else SetProperty(PropertyString.Exploration3Description, value); }
+        }
     }
 }

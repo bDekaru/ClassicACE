@@ -229,16 +229,30 @@ namespace ACE.Server.Entity
     public class Confirmation_Custom: Confirmation
     {
         public Action Action;
+        public Action ActionNo;
 
         public Confirmation_Custom(ObjectGuid playerGuid, Action action)
             : base(playerGuid, ConfirmationType.Yes_No)
         {
             Action = action;
+            ActionNo = null;
+        }
+
+        public Confirmation_Custom(ObjectGuid playerGuid, Action actionYes, Action actionNo)
+            : base(playerGuid, ConfirmationType.Yes_No)
+        {
+            Action = actionYes;
+            ActionNo = actionNo;
         }
 
         public override void ProcessConfirmation(bool response, bool timeout = false)
         {
-            if (!response) return;
+            if (!response || timeout)
+            {
+                if (ActionNo != null && Player != null)
+                    ActionNo();
+                return;
+            }
 
             var player = Player;
             if (player == null) return;

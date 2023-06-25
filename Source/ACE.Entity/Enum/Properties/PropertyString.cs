@@ -104,6 +104,12 @@ namespace ACE.Entity.Enum.Properties
         ExtraSpellsList                 = 9010,
         [ServerOnly]
         SmartSalvageFilter              = 9011,
+        [ServerOnly]
+        Exploration1Description         = 9012,
+        [ServerOnly]
+        Exploration2Description         = 9013,
+        [ServerOnly]
+        Exploration3Description         = 9014,
     }
 
     public static class PropertyStringExtensions

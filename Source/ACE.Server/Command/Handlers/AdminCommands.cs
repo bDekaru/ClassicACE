@@ -4916,5 +4916,16 @@ namespace ACE.Server.Command.Handlers
             else
                 CommandHandlerHelper.WriteOutputInfo(session, "Invalid skill IDs.", ChatMessageType.WorldBroadcast);
         }
+
+        [CommandHandler("refreshExploration", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleRefreshExploration(Session session, params string[] parameters)
+        {
+            var player = session?.Player;
+
+            if (player == null)
+                return;
+
+            player.RefreshExplorationAssignments();
+        }
     }
 }

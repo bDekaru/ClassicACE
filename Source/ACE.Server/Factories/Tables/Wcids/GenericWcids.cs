@@ -82,6 +82,8 @@ namespace ACE.Server.Factories.Tables.Wcids
             {
                 T1_T2_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
                 {
+                    ( WeenieClassName.blankExplorationContract, 10.0f ),
+
                     ( WeenieClassName.bowl,              9.0f ),
                     ( WeenieClassName.cup,              14.0f ),
                     ( WeenieClassName.ewer,              3.0f ),
@@ -137,6 +139,8 @@ namespace ACE.Server.Factories.Tables.Wcids
 
                 T3_T4_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
                 {
+                    ( WeenieClassName.blankExplorationContract, 10.0f ),
+
                     ( WeenieClassName.bowl,              8.0f ),
                     ( WeenieClassName.chalice,           6.0f ),
                     ( WeenieClassName.cup,               5.0f ),
@@ -194,6 +198,8 @@ namespace ACE.Server.Factories.Tables.Wcids
 
                 T5_T6_Chances = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
                 {
+                    ( WeenieClassName.blankExplorationContract, 10.0f ),
+
                     ( WeenieClassName.chalice,          23.0f ),
                     ( WeenieClassName.ewer,             13.0f ),
                     ( WeenieClassName.flagon,            9.0f ),

@@ -20,6 +20,7 @@ namespace ACE.Database.Models.World
         public virtual DbSet<CookBook> CookBook { get; set; }
         public virtual DbSet<Encounter> Encounter { get; set; }
         public virtual DbSet<Event> Event { get; set; }
+        public virtual DbSet<ExplorationSite> ExplorationSite { get; set; }
         public virtual DbSet<HousePortal> HousePortal { get; set; }
         public virtual DbSet<LandblockInstance> LandblockInstance { get; set; }
         public virtual DbSet<LandblockInstanceLink> LandblockInstanceLink { get; set; }
@@ -131,6 +132,57 @@ namespace ACE.Database.Models.World
                     .WithMany(p => p.CookBook)
                     .HasForeignKey(d => d.RecipeId)
                     .HasConstraintName("cookbook_recipe");
+            });
+
+            modelBuilder.Entity<ExplorationSite>(entity =>
+            {
+                entity.ToTable("exploration_sites");
+
+                entity.HasComment("List of Exploration Sites");
+
+                entity.HasIndex(e => e.Level, "level");
+
+                entity.Property(e => e.Id)
+                    .HasColumnName("id")
+                    .HasComment("Unique Id of this exploration site instance");
+
+                entity.Property(e => e.LastModified)
+                    .HasColumnType("datetime")
+                    .ValueGeneratedOnAddOrUpdate()
+                    .HasColumnName("last_Modified")
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.Landblock)
+                    .HasColumnName("landblock")
+                    .HasComment("Landblock for this exploration site");
+
+                entity.Property(e => e.Name)
+                    .HasColumnName("name")
+                    .HasComment("Name for this exploration site");
+
+                entity.Property(e => e.Directions)
+                    .HasColumnName("directions")
+                    .HasComment("Directions to get to this this exploration site");
+
+                entity.Property(e => e.Level)
+                    .HasColumnName("level")
+                    .HasComment("Level for this exploration site");
+
+                entity.Property(e => e.ContentDescription)
+                    .HasColumnName("content_Description")
+                    .HasComment("What can be found at this exploration site");
+
+                entity.Property(e => e.MinLevel)
+                    .HasColumnName("min_Level")
+                    .HasComment("Min level to be able to enter this exploration site");
+
+                entity.Property(e => e.MaxLevel)
+                    .HasColumnName("max_Level")
+                    .HasComment("Max level to be able to enter this exploration site");
+
+                entity.Property(e => e.CreatureCount)
+                    .HasColumnName("creature_Count")
+                    .HasComment("The amount of creatures at this exploration site");
             });
 
             modelBuilder.Entity<Encounter>(entity =>

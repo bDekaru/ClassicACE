@@ -422,6 +422,60 @@ namespace ACE.Database
             return result;
         }
 
+        // =====================================
+        // Exploration Sites
+        // =====================================
+
+        public List<ExplorationSite> GetAllExplorationSites()
+        {
+            using (var context = new WorldDbContext())
+            {
+                context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+                return context.ExplorationSite
+                    .ToList();
+            }
+        }
+
+        public List<ExplorationSite> GetExplorationSitesByLandblock(ushort landblockId)
+        {
+            using (var context = new WorldDbContext())
+            {
+                context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+                return context.ExplorationSite
+                    .Where(i => i.Landblock == landblockId)
+                    .ToList();
+            }
+        }
+
+        public List<ExplorationSite> GetExplorationSitesByLevelRange(int minLevel, int maxLevel, int mustAllowLevel = 0)
+        {
+            if (mustAllowLevel == 0)
+            {
+                using (var context = new WorldDbContext())
+                {
+                    var results = context.ExplorationSite
+                        .AsNoTracking()
+                        .Where(r => r.Level >= minLevel && r.Level <= maxLevel)
+                        .ToList();
+
+                    return results;
+                }
+            }
+            else
+            {
+                using (var context = new WorldDbContext())
+                {
+                    var results = context.ExplorationSite
+                        .AsNoTracking()
+                        .Where(r => r.Level >= minLevel && r.Level <= maxLevel && (r.MinLevel == 0 || r.MinLevel <= mustAllowLevel) && (r.MaxLevel == 0 || r.MaxLevel >= mustAllowLevel))
+                        .ToList();
+
+                    return results;
+                }
+            }
+        }
 
         // =====================================
         // Encounter

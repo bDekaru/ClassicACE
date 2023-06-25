@@ -133,5 +133,7 @@ namespace ACE.Entity.Enum
         Enlightenment                 = 9001,
         VendorBroadcastStockLocal     = 9002,
         VendorBroadcastStockWorld     = 9003,
+        RefreshExplorationAssignments = 9004,
+        RewardExplorationAssignments  = 9005,
     }
 }

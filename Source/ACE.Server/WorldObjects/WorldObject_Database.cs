@@ -145,6 +145,9 @@ namespace ACE.Server.WorldObjects
             if (!Guid.IsDynamic())
                 return false;
 
+            if (WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker)
+                return false;
+
             if (BiotaOriginatedFromOrHasBeenSavedToDatabase())
                 return true;
 
