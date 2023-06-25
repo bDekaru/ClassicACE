@@ -69,9 +69,12 @@ namespace ACE.Server.WorldObjects
                     {
                         foreach (var emoteAction in emote.PropertiesEmoteAction)
                         {
-                            MotionCommand motion = (MotionCommand)emoteAction.Motion;
-                            if (emoteAction.Type == (int)EmoteType.Motion && !IdleMotionsList.Contains(motion))
-                                IdleMotionsList.Add(motion);
+                            if (emoteAction.Type == 5 && emoteAction.Motion != null)
+                            {
+                                MotionCommand motion = (MotionCommand)emoteAction.Motion;
+                                if (emoteAction.Type == (int)EmoteType.Motion && !IdleMotionsList.Contains(motion))
+                                    IdleMotionsList.Add(motion);
+                            }
                         }
                     }
                 }
