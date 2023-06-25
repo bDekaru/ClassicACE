@@ -511,8 +511,7 @@ namespace ACE.Server.Network.Structure
             {
                 if (wo.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationContract)
                 {
-                    var player = wo.Container as Player ?? wo.Wielder as Player;
-
+                    var player = wo.Container as Player ?? wo.Container.Container as Player ?? wo.Wielder as Player;
 
                     if (player != null)
                     {

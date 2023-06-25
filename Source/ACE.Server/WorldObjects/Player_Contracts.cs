@@ -77,7 +77,7 @@ namespace ACE.Server.WorldObjects
             var roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
             var entry = explorationList[roll];
             explorationList.RemoveAt(roll);
-            var explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount * 1.5f, entry.CreatureCount * 3.0f), 10, 200);
+            var explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount, entry.CreatureCount * 2.0f), 10, 200);
             var explorationMarkerAmount = Math.Clamp(explorationKillAmount / 30, 1, 10) + ThreadSafeRandom.Next(0, 4);
 
             Exploration1LandblockId = entry.Landblock;
@@ -96,7 +96,7 @@ namespace ACE.Server.WorldObjects
                 roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
                 entry = explorationList[roll];
                 explorationList.RemoveAt(roll);
-                explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount * 1.5f, entry.CreatureCount * 3.0f), 10, 200);
+                explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount, entry.CreatureCount * 2.0f), 10, 200);
                 explorationMarkerAmount = Math.Clamp(explorationKillAmount / 30, 1, 10) + ThreadSafeRandom.Next(0, 4);
 
                 Exploration2LandblockId = entry.Landblock;
@@ -121,7 +121,7 @@ namespace ACE.Server.WorldObjects
                 roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
                 entry = explorationList[roll];
                 explorationList.RemoveAt(roll);
-                explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount * 1.5f, entry.CreatureCount * 3.0f), 10, 200);
+                explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount, entry.CreatureCount * 2.0f), 10, 200);
                 explorationMarkerAmount = Math.Clamp(explorationKillAmount / 30, 1, 10) + ThreadSafeRandom.Next(0, 4);
 
                 Exploration3LandblockId = entry.Landblock;
@@ -172,21 +172,6 @@ namespace ACE.Server.WorldObjects
                 assignment3Complete = Exploration3KillProgressTracker <= 0 && Exploration3MarkerProgressTracker <= 0;
             }
 
-            if (!confirmed && hasAssignments && (!assignment1Complete || !assignment2Complete || !assignment3Complete))
-            {
-                if (sourceObject != null)
-                {
-                    if (!ConfirmationManager.EnqueueSend(new Confirmation_Custom(Guid, () => RewardExplorationAssignments(sourceObject, true), () => GiveFromEmote(sourceObject, (uint)Factories.Enum.WeenieClassName.explorationContract)), "You have unfinished assignments, this will forfeit them.\nProceed?"))
-                        SendWeenieError(WeenieError.ConfirmationInProgress);
-                }
-                else
-                {
-                    if (!ConfirmationManager.EnqueueSend(new Confirmation_Custom(Guid, () => RewardExplorationAssignments(sourceObject, true)), "You have unfinished assignments, this will forfeit them.\nProceed?"))
-                        SendWeenieError(WeenieError.ConfirmationInProgress);
-                }
-                return;
-            }
-
             if (useName)
             {
                 // Cleanup extra contracts that might have cropped up.
@@ -195,12 +180,12 @@ namespace ACE.Server.WorldObjects
             }
 
             if (!hasAssignments)
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{"You had no assignments!"}{(useName ? $"\"" : "")}", useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{"You have no assignments!"}{(useName ? $"\"" : "")}", useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
             else if (!assignment1Complete && !assignment2Complete && !assignment3Complete)
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{"None of your assignments were complete!"}{(useName ? $"\"" : "")}", useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{"None of your assignments are complete!"}{(useName ? $"\"" : "")}", useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
             else
             {
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourceObject.Name} tells you, \"Here's your reward for the completed assignments.\"", ChatMessageType.Tell));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourceObject.Name} tells you, \"Here's your reward for the completed assignments:\"", ChatMessageType.Tell));
 
                 var rewardTier = Math.Clamp(RollTier(CalculateExtendedTier(Level ?? 1)) + 1, 1, 7);
                 int rewardAmount;
@@ -210,31 +195,40 @@ namespace ACE.Server.WorldObjects
                     rewardAmount = ThreadSafeRandom.Next(3, 5);
                     for (int i = 0; i < rewardAmount; i++)
                         TryGiveRandomSalvage(sourceObject, rewardTier);
+
+                    Exploration1LandblockId = 0;
+                    Exploration1KillProgressTracker = 0;
+                    Exploration1MarkerProgressTracker = 0;
+                    Exploration1Description = "";
                 }
                 if (assignment2Complete)
                 {
                     rewardAmount = ThreadSafeRandom.Next(3, 5);
                     for (int i = 0; i < rewardAmount; i++)
                         TryGiveRandomSalvage(sourceObject, rewardTier);
+
+                    Exploration2LandblockId = 0;
+                    Exploration2KillProgressTracker = 0;
+                    Exploration2MarkerProgressTracker = 0;
+                    Exploration2Description = "";
                 }
                 if (assignment3Complete)
                 {
                     rewardAmount = ThreadSafeRandom.Next(3, 5);
                     for (int i = 0; i < rewardAmount; i++)
                         TryGiveRandomSalvage(sourceObject, rewardTier);
+
+                    Exploration3LandblockId = 0;
+                    Exploration3KillProgressTracker = 0;
+                    Exploration3MarkerProgressTracker = 0;
+                    Exploration3Description = "";
                 }
             }
 
-            // Cleanup
-            Exploration1LandblockId = 0;
-            Exploration1KillProgressTracker = 0;
-            Exploration1Description = "";
-            Exploration2LandblockId = 0;
-            Exploration2KillProgressTracker = 0;
-            Exploration2Description = "";
-            Exploration3LandblockId = 0;
-            Exploration3KillProgressTracker = 0;
-            Exploration3Description = "";
+            if (sourceObject != null && hasAssignments && (!assignment1Complete || !assignment1Complete || !assignment1Complete))
+            {
+                GiveFromEmote(sourceObject, (uint)Factories.Enum.WeenieClassName.explorationContract); // Return contract if there's still unfinished contracts.
+            }
         }
 
         public bool TryGiveRandomSalvage(WorldObject giver = null, int tier = 1, float qualityMod = 0.0f)
