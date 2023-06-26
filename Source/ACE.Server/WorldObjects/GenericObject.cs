@@ -1,6 +1,7 @@
 using System;
 
 using ACE.Entity;
+using ACE.Entity.Enum;
 using ACE.Entity.Models;
 using ACE.Server.Network.GameMessages.Messages;
 
@@ -54,29 +55,24 @@ namespace ACE.Server.WorldObjects
                 {
                     player.Exploration1MarkerProgressTracker--;
                     var msg = $"{player.Exploration1MarkerProgressTracker:N0} markers{((player.Exploration1MarkerProgressTracker ?? 0) > 1 ? "s" : "")} remaining.";
-                    player.EarnXP((-player.Level ?? -1) - 1000, ACE.Entity.Enum.XpType.Exploration, null, null, 0, null, ACE.Entity.Enum.ShareType.None, msg);
-
-                    CurrentLandblock.SpawnExplorationMarker();
-                    Destroy();
+                    player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg);
                 }
                 else if (player.Exploration2LandblockId == landblockId && player.Exploration2MarkerProgressTracker > 0)
                 {
                     player.Exploration2MarkerProgressTracker--;
                     var msg = $"{player.Exploration2MarkerProgressTracker:N0} markers{((player.Exploration2MarkerProgressTracker ?? 0) > 1 ? "s" : "")} remaining.";
-                    player.EarnXP((-player.Level ?? -1) - 1000, ACE.Entity.Enum.XpType.Exploration, null, null, 0, null, ACE.Entity.Enum.ShareType.None, msg);
-
-                    CurrentLandblock.SpawnExplorationMarker();
-                    Destroy();
+                    player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg);
                 }
                 else if (player.Exploration3LandblockId == landblockId && player.Exploration3MarkerProgressTracker > 0)
                 {
                     player.Exploration3MarkerProgressTracker--;
                     var msg = $"{player.Exploration3MarkerProgressTracker:N0} markers{((player.Exploration3MarkerProgressTracker ?? 0) > 1 ? "s" : "")} remaining.";
-                    player.EarnXP((-player.Level ?? -1) - 1000, ACE.Entity.Enum.XpType.Exploration, null, null, 0, null, ACE.Entity.Enum.ShareType.None, msg);
+                    player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg);
 
-                    CurrentLandblock.SpawnExplorationMarker();
-                    Destroy();
                 }
+
+                CurrentLandblock.SpawnExplorationMarker();
+                Destroy();
             }
         }
     }

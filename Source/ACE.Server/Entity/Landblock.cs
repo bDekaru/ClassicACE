@@ -204,6 +204,7 @@ namespace ACE.Server.Entity
         private double NextExplorationMarkerRefresh;
         private double ExplorationMarkerRefreshInterval = 300;
         private List<Position> PositionsForExplorationMarkers = new List<Position>();
+        private int ExplorationMarkerCount;
         public void InitializeExplorationMarkers()
         {
             var explorationSites = DatabaseManager.World.GetExplorationSitesByLandblock((ushort)(Id.Raw >> 16));
@@ -211,6 +212,7 @@ namespace ACE.Server.Entity
             if (explorationSites.Count == 0)
             {
                 PositionsForExplorationMarkers = new List<Position>();
+                ExplorationMarkerCount = 0;
                 return;
             }
 
@@ -223,13 +225,17 @@ namespace ACE.Server.Entity
                 }
             }
 
-            SpawnExplorationMarker();
+            ExplorationMarkerCount = Math.Clamp(1 + PositionsForExplorationMarkers.Count / 50, 1, 5);
+
+            for(int i = 0; i < ExplorationMarkerCount; i++)
+                SpawnExplorationMarker();
 
             NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
         }
 
         public void RefreshExplorationMarkers()
         {
+            var currentMarkerCount = 0;
             foreach (var obj in worldObjects)
             {
                 if (obj.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker)
@@ -247,9 +253,18 @@ namespace ACE.Server.Entity
                     if (!isVisible) // Only refresh exploration markers that are not visible for any players at the moment.
                     {
                         obj.Value.Destroy();
-                        SpawnExplorationMarker();
+
+                        if(currentMarkerCount < ExplorationMarkerCount)
+                            SpawnExplorationMarker();
                     }
+                    currentMarkerCount++;
                 }
+            }
+
+            if (currentMarkerCount < ExplorationMarkerCount)
+            {
+                for (int i = currentMarkerCount; i < ExplorationMarkerCount; i++)
+                    SpawnExplorationMarker();
             }
 
             NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
