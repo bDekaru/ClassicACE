@@ -266,7 +266,7 @@ namespace ACE.Server.Managers
                     if (averageLevel > 100)
                         maxLevel = int.MaxValue;
 
-                    var possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel);
+                    var possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, averageLevel);
 
                     if (possibleDungeonList.Count != 0)
                     {
@@ -274,11 +274,13 @@ namespace ACE.Server.Managers
 
                         HotDungeonLandblock = dungeon.Landblock;
                         HotDungeonName = dungeon.Name;
-                        HotDungeonDescription = $"Extra experience rewards dungeon: {dungeon.Name} located {dungeon.Directions}.";
+
+                        var dungeonLevel = Math.Clamp(dungeon.Level, dungeon.MinLevel, dungeon.MaxLevel != 0 ? dungeon.MaxLevel : int.MaxValue);
+                        HotDungeonDescription = $"Extra experience rewards dungeon: {dungeon.Name} located {dungeon.Directions}. Dungeon level: {dungeonLevel:N0}.";
 
                         var timeRemaining = TimeSpan.FromSeconds(NextHotDungeonSwitch - Time.GetUnixTime()).GetFriendlyString();
 
-                        var msg = $"{dungeon.Name} will be giving extra experience rewards for the next {timeRemaining}! The entrance is located {dungeon.Directions}!";
+                        var msg = $"{dungeon.Name} will be giving extra experience rewards for the next {timeRemaining}! The dungeon level is {dungeonLevel:N0}. The entrance is located {dungeon.Directions}!";
                         PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
                         PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
 
