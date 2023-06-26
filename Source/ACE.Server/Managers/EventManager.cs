@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using ACE.Common;
+using ACE.Common.Extensions;
+using ACE.Database;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 
 using log4net;
@@ -20,6 +23,8 @@ namespace ACE.Server.Managers
         static EventManager()
         {
             Events = new Dictionary<string, Event>(StringComparer.OrdinalIgnoreCase);
+
+            NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonRollDelay);
         }
 
         public static void Initialize()
@@ -172,6 +177,117 @@ namespace ACE.Server.Managers
 
             var eventName = eventFormat.Substring(0, idx);
             return eventName;
+        }
+
+        private static double NextEventManagerShortHeartbeat = 0;
+        private static double NextEventManagerLongHeartbeat = 0;
+        private static double EventManagerHeartbeatShortInterval = 10;
+        private static double EventManagerHeartbeatLongInterval = 300;
+        public static void Tick()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            double currentUnixTime = Time.GetUnixTime();
+            if (NextEventManagerShortHeartbeat > currentUnixTime)
+                return;
+            NextEventManagerShortHeartbeat = Time.GetFutureUnixTime(EventManagerHeartbeatShortInterval);
+
+            HotDungeonTick(currentUnixTime);
+
+            if (NextEventManagerLongHeartbeat > currentUnixTime)
+                return;
+            NextEventManagerLongHeartbeat = Time.GetFutureUnixTime(EventManagerHeartbeatLongInterval);
+
+            var smugglersDen = GetEventStatus("smugglersden");
+            if (smugglersDen == GameEventState.Off && PlayerManager.GetOnlinePKCount() >= 5)
+                StartEvent("smugglersden", null, null);
+            else if(smugglersDen == GameEventState.On && PlayerManager.GetOnlinePKCount() < 5)
+                StopEvent("smugglersden", null, null);
+        }
+
+        public static float HotDungeonExtraXP = 0.25f;
+
+        public static int HotDungeonLandblock = 0;
+        public static string HotDungeonName = "";
+        public static string HotDungeonDescription = "";
+        public static double NextHotDungeonSwitch = 0;
+
+        private static double HotDungeonInterval = 7201;
+        private static double HotDungeonRollDelay = 1200;
+        private static double HotDungeonChance = 0.33;
+        public static void HotDungeonTick(double currentUnixTime)
+        {
+            if (NextHotDungeonSwitch > currentUnixTime)
+                return;
+
+            if(HotDungeonLandblock != 0)
+            {
+                var msg = $"{HotDungeonName} is no longer giving extra experience rewards.";
+                PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
+                PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
+            }
+
+            HotDungeonLandblock = 0;
+            HotDungeonName = "";
+            HotDungeonDescription = "";
+
+            var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+            if (roll > HotDungeonChance)
+            {
+                // No hot dungeons for now!
+                NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonRollDelay);
+                return;
+            }
+
+            NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonInterval);
+
+            var onlinePlayers = PlayerManager.GetAllOnline();
+
+            if (onlinePlayers.Count > 0)
+            {
+                var averageLevel = 0;
+                var godCharactersCount = 0;
+                foreach (var player in onlinePlayers)
+                {
+                    if (player.GodState == null)
+                        averageLevel += player.Level ?? 1;
+                    else
+                        godCharactersCount++;
+                }
+                var onlineMinusGods = onlinePlayers.Count - godCharactersCount;
+
+                if (onlineMinusGods > 0)
+                {
+                    averageLevel /= onlineMinusGods;
+
+                    var minLevel = Math.Max(averageLevel - (int)(averageLevel * 0.1f), 1);
+                    var maxLevel = averageLevel + (int)(averageLevel * 0.2f);
+                    if (averageLevel > 100)
+                        maxLevel = int.MaxValue;
+
+                    var possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel);
+
+                    if (possibleDungeonList.Count != 0)
+                    {
+                        var dungeon = possibleDungeonList[ThreadSafeRandom.Next(0, possibleDungeonList.Count - 1)];
+
+                        HotDungeonLandblock = dungeon.Landblock;
+                        HotDungeonName = dungeon.Name;
+                        HotDungeonDescription = $"Extra experience rewards dungeon: {dungeon.Name} located {dungeon.Directions}.";
+
+                        var timeRemaining = TimeSpan.FromSeconds(NextHotDungeonSwitch - Time.GetUnixTime()).GetFriendlyString();
+
+                        var msg = $"{dungeon.Name} will be giving extra experience rewards for the next {timeRemaining}! The entrance is located {dungeon.Directions}!";
+                        PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
+                        PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
+
+                        return;
+                    }
+                }
+            }
+
+            NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonRollDelay); // We failed to select a new hot dungeon, reschedule it.
         }
     }
 }

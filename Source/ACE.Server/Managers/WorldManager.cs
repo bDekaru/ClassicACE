@@ -444,6 +444,8 @@ namespace ACE.Server.Managers
 
             HouseManager.Tick();
 
+            EventManager.Tick();
+
             ServerPerformanceMonitor.RegisterEventEnd(ServerPerformanceMonitor.MonitorType.UpdateGameWorld_Entire);
             ServerPerformanceMonitor.RegisterCumulativeEvents();
 

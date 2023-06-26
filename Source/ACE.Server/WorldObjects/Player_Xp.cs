@@ -103,10 +103,23 @@ namespace ACE.Server.WorldObjects
                     totalXP = (thirdXP * typeCampBonus) + (thirdXP * areaCampBonus) + (thirdXP * restCampBonus);
 
                     xpMessage = $"T: {(typeCampBonus * 100).ToString("0")}% A: {(areaCampBonus * 100).ToString("0")}% R: {(restCampBonus * 100).ToString("0")}%";
+
+                    if (EventManager.HotDungeonLandblock == CurrentLandblock.Id.Raw >> 16)
+                    {
+                        var extraXP = totalXP * EventManager.HotDungeonExtraXP;
+                        totalXP += extraXP;
+
+                        xpMessage = $"Hot Dungeon Bonus: +{extraXP:N0}xp {xpMessage}";
+                    }
                 }
 
                 if (CurrentLandblock != null && !(CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors)))
-                    totalXP *= 1.25f; // Surface provides 25% xp bonus to account for lower creature density.
+                {
+                    var extraXP = totalXP * 0.25f; // Surface provides 25% xp bonus to account for lower creature density.
+                    totalXP += extraXP;
+
+                    xpMessage = $"Surface Bonus: +{extraXP:N0}xp {xpMessage}";
+                }
 
                 amount = (long)Math.Round(totalXP);
             }

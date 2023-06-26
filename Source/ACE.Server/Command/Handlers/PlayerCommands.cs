@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using log4net;
 
 using ACE.Common;
+using ACE.Common.Extensions;
 using ACE.Database;
 using ACE.Entity;
 using ACE.Entity.Enum;
@@ -750,7 +751,7 @@ namespace ACE.Server.Command.Handlers
         public static void HandleXpTracker(Session session, params string[] parameters)
         {
             bool reset = false;
-            if(parameters.Length > 0)
+            if (parameters.Length > 0)
                 reset = parameters[0].ToLower() == "reset";
 
             if (!reset)
@@ -879,7 +880,7 @@ namespace ACE.Server.Command.Handlers
                 int totalDays = (int)Math.Floor(timespan.TotalDays);
                 if (totalDays > 1)
                     returnText = $"{totalDays} days" + (returnText.Length > 0 ? $" {returnText}" : "");
-                else if(totalDays > 0)
+                else if (totalDays > 0)
                     returnText = $"{totalDays} day" + (returnText.Length > 0 ? $" {returnText}" : "");
             }
 
@@ -979,7 +980,7 @@ namespace ACE.Server.Command.Handlers
             var newSetting = !session.Player.GetCharacterOption(CharacterOption.AllowRessAttempts);
             session.Player.SetCharacterOption(CharacterOption.AllowRessAttempts, newSetting);
 
-            if(newSetting)
+            if (newSetting)
                 CommandHandlerHelper.WriteOutputInfo(session, $"You are now accepting resurrection attempts.", ChatMessageType.Broadcast);
             else
                 CommandHandlerHelper.WriteOutputInfo(session, $"You are no longer accepting resurrection attempts.", ChatMessageType.Broadcast);
@@ -995,7 +996,7 @@ namespace ACE.Server.Command.Handlers
             }
 
             var param0 = "help";
-            if(parameters.Length > 0)
+            if (parameters.Length > 0)
                 param0 = parameters[0].ToLower();
 
             if (param0 == "help")
@@ -1308,6 +1309,27 @@ namespace ACE.Server.Command.Handlers
                     count++;
                     CommandHandlerHelper.WriteOutputInfo(session, $"\n\n{count:N0}. {msg3}");
                 }
+            }
+        }
+
+        [CommandHandler("HotDungeon", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "")]
+        [CommandHandler("Hot", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleHotDungeon(Session session, params string[] parameters)
+        {
+            ShowHotDungeon(session, false);
+        }
+
+        public static void ShowHotDungeon(Session session, bool failSilently)
+        {
+            if (EventManager.HotDungeonLandblock == 0)
+            {
+                if(!failSilently)
+                    CommandHandlerHelper.WriteOutputInfo(session, "There's no dungeons providing extra experience rewards at the moment.");
+            }
+            else
+            {
+                var timeRemaining = TimeSpan.FromSeconds(EventManager.NextHotDungeonSwitch - Time.GetUnixTime()).GetFriendlyString();
+                CommandHandlerHelper.WriteOutputInfo(session, $"{EventManager.HotDungeonDescription} Time Remaining: {timeRemaining}.");
             }
         }
     }

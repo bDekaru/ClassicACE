@@ -292,6 +292,19 @@ namespace ACE.Server.Managers
             }
         }
 
+        public static int GetOnlinePKCount()
+        {
+            playersLock.EnterReadLock();
+            try
+            {
+                return onlinePlayers.Values.Where(p => p.IsPK).Count();
+            }
+            finally
+            {
+                playersLock.ExitReadLock();
+            }
+        }
+
         /// <summary>
         /// This will return null if the player wasn't found.
         /// </summary>

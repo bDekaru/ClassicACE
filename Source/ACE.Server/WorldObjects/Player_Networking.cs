@@ -116,10 +116,9 @@ namespace ACE.Server.WorldObjects
             // Let's take the opportinity to send an activity recommendation to the player.
             var recommendationChain = new ActionChain();
             recommendationChain.AddDelaySeconds(20.0f);
-            recommendationChain.AddAction(this, () =>
-            {
-                PlayerCommands.SingleRecommendation(Session, true);
-            });
+            recommendationChain.AddAction(this, () => PlayerCommands.SingleRecommendation(Session, true));
+            recommendationChain.AddDelaySeconds(5.0f);
+            recommendationChain.AddAction(this, () => PlayerCommands.ShowHotDungeon(Session, true));
             recommendationChain.EnqueueChain();
 
             // retail appeared to send the squelch list very early,
