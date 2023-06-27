@@ -394,10 +394,12 @@ namespace ACE.Server.WorldObjects.Managers
         /// <summary>
         /// Called on player death
         /// </summary>
-        public virtual float UpdateVitae()
+        public virtual float UpdateVitae(int amount = 0)
         {
             if (Player == null) return 0;
             PropertiesEnchantmentRegistry vitae;
+
+            var floatAmount = amount > 0 ? Math.Clamp(amount / 100f, 0f, 1f) : (float)PropertyManager.GetDouble("vitae_penalty").Item;
 
             if (!HasVitae)
             {
@@ -409,7 +411,7 @@ namespace ACE.Server.WorldObjects.Managers
                 vitae = BuildEntry(spell);
                 vitae.EnchantmentCategory = (uint)EnchantmentMask.Vitae;
                 vitae.LayerId = 1; // This should be 0 but EF Core seems to be very unhappy with 0 as the layer id now that we're using layer as part of the composite key.
-                vitae.StatModValue = 1.0f - (float)PropertyManager.GetDouble("vitae_penalty").Item;
+                vitae.StatModValue = 1.0f - floatAmount;
                 WorldObject.Biota.PropertiesEnchantmentRegistry.AddEnchantment(vitae, WorldObject.BiotaDatabaseLock);
                 WorldObject.ChangesDetected = true;
             }
@@ -417,7 +419,7 @@ namespace ACE.Server.WorldObjects.Managers
             {
                 // update existing vitae
                 vitae = GetVitae();
-                vitae.StatModValue -= (float)PropertyManager.GetDouble("vitae_penalty").Item;
+                vitae.StatModValue -= floatAmount;
                 WorldObject.ChangesDetected = true;
             }
 

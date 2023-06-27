@@ -2987,7 +2987,48 @@ namespace ACE.Server.Command.Handlers
             player.EnchantmentManager.RemoveVitae();
 
             if (player != session.Player)
-                session.Network.EnqueueSend(new GameMessageSystemChat("Removed vitae for {player.Name}", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Removed vitae for {player.Name}", ChatMessageType.Broadcast));
+        }
+
+        [CommandHandler("add-vitae", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Add vitae from last appraised player")]
+        public static void HandleAddVitae(Session session, params string[] parameters)
+        {
+            if (!Common.ConfigManager.Config.Server.TestWorld && session.AccessLevel < AccessLevel.Developer)
+            {
+                ChatPacket.SendServerMessage(session, "You dont have access to this command",
+                    ChatMessageType.Broadcast);
+                return;
+            }
+
+            var amount = 5;
+            if (parameters?.Length > 0)
+            {
+                List<CommandParameterHelpers.ACECommandParameter> aceParams = new List<CommandParameterHelpers.ACECommandParameter>()
+                {
+                    new CommandParameterHelpers.ACECommandParameter()
+                    {
+                        Type = CommandParameterHelpers.ACECommandParameterType.PositiveLong,
+                        Required = true,
+                        ErrorMessage = "You must specify the amount of vitae."
+                    }
+                };
+
+                if (CommandParameterHelpers.ResolveACEParameters(session, parameters, aceParams))
+                    amount = (int)aceParams[0].AsLong;
+            }
+
+            var player = CommandHandlerHelper.GetLastAppraisedObject(session) as Player;
+
+            if (player == null)
+                player = session.Player;
+            if (player != null)
+            {
+                player.InflictVitaePenalty(amount);
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Added {amount} vitae for {player.Name}", ChatMessageType.Broadcast));
+                return;
+            }
+
+            ChatPacket.SendServerMessage(session, "Usage: /add-vitae [amount]", ChatMessageType.Broadcast);
         }
 
         [CommandHandler("fast", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld)]

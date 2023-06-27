@@ -429,7 +429,7 @@ namespace ACE.Server.WorldObjects.Managers
 
                 case EmoteType.InflictVitaePenalty:
                     if (player != null)
-                        player.InflictVitaePenalty(emote.Amount ?? 5);
+                        player.InflictVitaePenalty(emote.Amount ?? 0);
                     break;
 
                 case EmoteType.InqAttributeStat:
