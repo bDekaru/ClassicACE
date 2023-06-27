@@ -137,27 +137,6 @@ namespace ACE.Server.Network.Handlers
                 return;
             }
 
-            string requiredClientVersion;
-            switch (Common.ConfigManager.Config.Server.WorldRuleset)
-            {
-                default:
-                case Common.Ruleset.EoR:
-                    requiredClientVersion = DatLoader.DatManager.CLIENT_VERSION_STRING;
-                    break;
-                case Common.Ruleset.Infiltration:
-                    requiredClientVersion = DatLoader.DatManager.INFILTRATION_CLIENT_VERSION_STRING;
-                    break;
-                case Common.Ruleset.CustomDM:
-                    requiredClientVersion = DatLoader.DatManager.CUSTOMDM_CLIENT_VERSION_STRING;
-                    break;
-            }
-
-            if (loginRequest.ClientVersion == null || !loginRequest.ClientVersion.Equals(requiredClientVersion))
-            {
-                session.Terminate(SessionTerminationReason.ClientVersionIncorrect, new GameMessageBootAccount(" because you are not running the correct executable file version for this server"));
-                return;
-            }
-
             var connectRequest = new PacketOutboundConnectRequest(
                 Timers.PortalYearTicks,
                 session.Network.ConnectionData.ConnectionCookie,
@@ -187,6 +166,27 @@ namespace ACE.Server.Network.Handlers
 
                 session.Terminate(SessionTerminationReason.NotAuthorizedNoPasswordOrGlsTicketIncludedInLoginReq, new GameMessageCharacterError(CharacterError.AccountInvalid));
 
+                return;
+            }
+
+            string requiredClientVersion;
+            switch (Common.ConfigManager.Config.Server.WorldRuleset)
+            {
+                default:
+                case Common.Ruleset.EoR:
+                    requiredClientVersion = DatLoader.DatManager.CLIENT_VERSION_STRING;
+                    break;
+                case Common.Ruleset.Infiltration:
+                    requiredClientVersion = DatLoader.DatManager.INFILTRATION_CLIENT_VERSION_STRING;
+                    break;
+                case Common.Ruleset.CustomDM:
+                    requiredClientVersion = DatLoader.DatManager.CUSTOMDM_CLIENT_VERSION_STRING;
+                    break;
+            }
+
+            if (loginRequest.ClientVersion == null || !loginRequest.ClientVersion.Equals(requiredClientVersion))
+            {
+                session.Terminate(SessionTerminationReason.ClientVersionIncorrect, new GameMessageBootAccount(" because you are not running the correct executable file version for this server"));
                 return;
             }
 
