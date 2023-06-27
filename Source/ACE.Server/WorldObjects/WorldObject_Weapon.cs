@@ -1222,7 +1222,7 @@ namespace ACE.Server.WorldObjects
 
             if (isPvP)
             {
-                if (weapon.IsTwoHanded)
+                if (weapon != null && weapon.IsTwoHanded)
                     weaponMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_2h_shieldcleave").Item;
                 else
                     weaponMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_shieldcleave").Item;
