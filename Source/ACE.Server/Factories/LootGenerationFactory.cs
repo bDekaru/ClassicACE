@@ -1539,7 +1539,7 @@ namespace ACE.Server.Factories
                     else if (treasureRoll.ItemType == TreasureItemType_Orig.ArtObject)
                         wo.SetStackSize(Math.Min(10, (int)(wo.MaxStackSize ?? 1)));
                     else if (treasureRoll.ItemType == TreasureItemType_Orig.Consumable)
-                        wo.SetStackSize(Math.Min(5, (int)(wo.MaxStackSize ?? 1)));
+                        wo.SetStackSize(Math.Min(3, (int)(wo.MaxStackSize ?? 1)));
                     else if (wo.ItemType == ItemType.SpellComponents)
                     {
                         uint componentId = wo.GetProperty(PropertyDataId.SpellComponent) ?? 0;
