@@ -104,7 +104,7 @@ namespace ACE.Server.WorldObjects
 
                     xpMessage = $"T: {(typeCampBonus * 100).ToString("0")}% A: {(areaCampBonus * 100).ToString("0")}% R: {(restCampBonus * 100).ToString("0")}%";
 
-                    if (EventManager.HotDungeonLandblock == CurrentLandblock.Id.Raw >> 16)
+                    if (CurrentLandblock != null && EventManager.HotDungeonLandblock == CurrentLandblock.Id.Raw >> 16)
                     {
                         var extraXP = totalXP * EventManager.HotDungeonExtraXP;
                         totalXP += extraXP;
