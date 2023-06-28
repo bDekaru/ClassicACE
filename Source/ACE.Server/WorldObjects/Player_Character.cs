@@ -354,7 +354,15 @@ namespace ACE.Server.WorldObjects
 
             if (setAsDisplayTitle && CharacterTitleId != titleId)
             {
-                CharacterTitleId = (int)titleId;
+                if (!IsHardcore)
+                    CharacterTitleId = (int)titleId;
+                else
+                {
+                    titleId = (uint)CharacterTitleId.Value;
+                    setAsDisplayTitle = false;
+                    if(FirstEnterWorldDone)
+                        Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Hardcore characters may not change their title."));
+                }
                 sendMsg = true;
             }
 

@@ -74,7 +74,10 @@ namespace ACE.Server.WorldObjects
                 objDescriptionFlags &= ~ObjectDescriptionFlag.UiHidden;
 
             writer.Write((uint)weenieFlags);
-            writer.WriteString16L(Name ?? string.Empty);
+            if(Guid.IsPlayer() && IsHardcore)
+                writer.WriteString16L(Name + " [HC]" ?? string.Empty);
+            else
+                writer.WriteString16L(Name ?? string.Empty);
             writer.WritePackedDword(WeenieClassId);
             writer.WritePackedDwordOfKnownType(IconId, 0x6000000);
             writer.Write((uint)ItemType);

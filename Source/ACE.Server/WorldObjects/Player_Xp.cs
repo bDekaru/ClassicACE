@@ -102,7 +102,7 @@ namespace ACE.Server.WorldObjects
                     float thirdXP = totalXP / 3.0f;
                     totalXP = (thirdXP * typeCampBonus) + (thirdXP * areaCampBonus) + (thirdXP * restCampBonus);
 
-                    xpMessage = $"T: {(typeCampBonus * 100).ToString("0")}% A: {(areaCampBonus * 100).ToString("0")}% R: {(restCampBonus * 100).ToString("0")}%";
+                    xpMessage = $"{xpMessage}{(xpMessage.Length > 0 ? " " : "")}T: {(typeCampBonus * 100).ToString("0")}% A: {(areaCampBonus * 100).ToString("0")}% R: {(restCampBonus * 100).ToString("0")}%";
 
                     if (CurrentLandblock != null && EventManager.HotDungeonLandblock == CurrentLandblock.Id.Raw >> 16)
                     {

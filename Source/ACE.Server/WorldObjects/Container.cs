@@ -319,19 +319,23 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the inventory items matching a weenie class id
         /// </summary>
-        public List<WorldObject> GetInventoryItemsOfWCID(uint weenieClassId)
+        public List<WorldObject> GetInventoryItemsOfWCID(uint weenieClassId, bool hardcoreOnly = false)
         {
             var items = new List<WorldObject>();
 
             // search main pack / creature
-            var localInventory = Inventory.Values.Where(i => i.WeenieClassId == weenieClassId).OrderBy(i => i.PlacementPosition).ToList();
+            List<WorldObject> localInventory;
+            if(!hardcoreOnly)
+                localInventory = Inventory.Values.Where(i => i.WeenieClassId == weenieClassId).OrderBy(i => i.PlacementPosition).ToList();
+            else
+                localInventory = Inventory.Values.Where(i => i.WeenieClassId == weenieClassId && i.IsHardcore).OrderBy(i => i.PlacementPosition).ToList();
 
             items.AddRange(localInventory);
 
             // next search any side containers
             var sideContainers = Inventory.Values.Where(i => i.WeenieType == WeenieType.Container).Select(i => i as Container).OrderBy(i => i.PlacementPosition).ToList();
             foreach (var container in sideContainers)
-                items.AddRange(container.GetInventoryItemsOfWCID(weenieClassId));
+                items.AddRange(container.GetInventoryItemsOfWCID(weenieClassId, hardcoreOnly));
 
             return items;
         }
@@ -339,27 +343,31 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the total # of inventory items matching a wcid
         /// </summary>
-        public int GetNumInventoryItemsOfWCID(uint weenieClassId)
+        public int GetNumInventoryItemsOfWCID(uint weenieClassId, bool hardcoreOnly = false)
         {
-            return GetInventoryItemsOfWCID(weenieClassId).Select(i => i.StackSize ?? 1).Sum();
+            return GetInventoryItemsOfWCID(weenieClassId, hardcoreOnly).Select(i => i.StackSize ?? 1).Sum();
         }
 
         /// <summary>
         /// Returns the inventory items matching a weenie class name
         /// </summary>
-        public List<WorldObject> GetInventoryItemsOfWeenieClass(string weenieClassName)
+        public List<WorldObject> GetInventoryItemsOfWeenieClass(string weenieClassName, bool hardcoreOnly = false)
         {
             var items = new List<WorldObject>();
 
             // search main pack / creature
-            var localInventory = Inventory.Values.Where(i => i.WeenieClassName.Equals(weenieClassName, StringComparison.OrdinalIgnoreCase)).OrderBy(i => i.PlacementPosition).ToList();
+            List<WorldObject> localInventory;
+            if (!hardcoreOnly)
+                localInventory = Inventory.Values.Where(i => i.WeenieClassName.Equals(weenieClassName, StringComparison.OrdinalIgnoreCase)).OrderBy(i => i.PlacementPosition).ToList();
+            else
+                localInventory = Inventory.Values.Where(i => i.WeenieClassName.Equals(weenieClassName, StringComparison.OrdinalIgnoreCase) && i.IsHardcore).OrderBy(i => i.PlacementPosition).ToList();
 
             items.AddRange(localInventory);
 
             // next search any side containers
             var sideContainers = Inventory.Values.Where(i => i.WeenieType == WeenieType.Container).Select(i => i as Container).OrderBy(i => i.PlacementPosition).ToList();
             foreach (var container in sideContainers)
-                items.AddRange(container.GetInventoryItemsOfWeenieClass(weenieClassName));
+                items.AddRange(container.GetInventoryItemsOfWeenieClass(weenieClassName, hardcoreOnly));
 
             return items;
         }
@@ -367,9 +375,9 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the total # of inventory items matching a weenie class name
         /// </summary>
-        public int GetNumInventoryItemsOfWeenieClass(string weenieClassName)
+        public int GetNumInventoryItemsOfWeenieClass(string weenieClassName, bool hardcoreOnly = false)
         {
-            return GetInventoryItemsOfWeenieClass(weenieClassName).Select(i => i.StackSize ?? 1).Sum();
+            return GetInventoryItemsOfWeenieClass(weenieClassName, hardcoreOnly).Select(i => i.StackSize ?? 1).Sum();
         }
 
         /// <summary>
@@ -690,7 +698,7 @@ namespace ACE.Server.WorldObjects
                 if (allowStacking && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && worldObject.MaterialType == null && worldObject.MaxStackSize > 0 && worldObject.StackSize < worldObject.MaxStackSize)
                 {
                     var wo = worldObject;
-                    var availableStack = containerItems.FirstOrDefault(i => i.WeenieClassId == wo.WeenieClassId && i.StackSize < wo.MaxStackSize - wo.StackSize);
+                    var availableStack = containerItems.FirstOrDefault(i => i.WeenieClassId == wo.WeenieClassId && i.IsHardcore == wo.IsHardcore && i.StackSize < wo.MaxStackSize - wo.StackSize);
                     if(availableStack != null)
                     {
                         availableStack.SetStackSize(availableStack.StackSize + worldObject.StackSize);
@@ -759,7 +767,9 @@ namespace ACE.Server.WorldObjects
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
+                var owner = container as Player ?? container?.Container as Player ?? container.Wielder as Player;
+                if (owner != null && !owner.IsHardcore)
+                    worldObject.IsHardcore = false;
 
                 // Add default ExtraSpellsMaxOverride value to quest items.
                 if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
@@ -768,6 +778,8 @@ namespace ACE.Server.WorldObjects
                     worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty ?? 0;
                     worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft ?? 0;
                 }
+
+                // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
 
                 // Convert weapon skills to merged ones
                 if (worldObject.WieldSkillType.HasValue)
@@ -780,11 +792,6 @@ namespace ACE.Server.WorldObjects
                     worldObject.WieldSkillType4 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType4);
 
                 // Remove invalid spells from items accessible by players, keep the spells on monster's items.
-                WorldObject owner = null;
-                if (container is Player || container is Corpse)
-                    owner = container;
-                else if (container.OwnerId.HasValue)
-                    owner = PlayerManager.GetOnlinePlayer(container.OwnerId.Value);
                 if (owner != null)
                 {
                     var list = worldObject.Biota.GetKnownSpellsIds(BiotaDatabaseLock);

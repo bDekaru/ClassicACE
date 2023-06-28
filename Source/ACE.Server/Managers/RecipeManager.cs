@@ -830,6 +830,12 @@ namespace ACE.Server.Managers
             if (!VerifyUse(player, source, target))
                 return false;
 
+            if (player.IsHardcore && (!source.IsHardcore || !target.IsHardcore))
+            {
+                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"Hardcore characters may not use non-hardcore items!"));
+                return false;
+            }
+
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && source.ItemType == ItemType.TinkeringMaterial && target.ItemType == ItemType.TinkeringMaterial)
             {
                 // Salvage Combining

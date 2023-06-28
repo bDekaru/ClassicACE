@@ -1332,5 +1332,104 @@ namespace ACE.Server.Command.Handlers
                 CommandHandlerHelper.WriteOutputInfo(session, $"{EventManager.HotDungeonDescription} Time Remaining: {timeRemaining}.");
             }
         }
+
+        /// <summary>
+        /// List top 10 Hardcore characters by total XP
+        /// </summary>
+        [CommandHandler("LeaderboardHCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore PK characters by total XP.", "LeaderboardHCXP [pk|npk] [alltime|living]")]
+        public static void HandleLeaderboardHCXP(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardHCXPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardHCXPCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            bool pk = true;
+            if (parameters.Length > 0 && parameters[0] == "npk")
+                pk = false;
+
+            bool onlyLiving = false;
+            if (parameters.Length > 1 && parameters[1] == "living")
+                onlyLiving = true;
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Hardcore {(pk ? "PK" : "NPK")} {(onlyLiving ? "Living" : "All-Time")} Characters by XP: \n");
+            message.Append("-----------------------\n");
+            uint playerCounter = 1;
+            var biotas = DatabaseManager.Shard.BaseDatabase.GetAllPlayerBiotasInParallel(!onlyLiving)
+                .OrderByDescending(b => b.PropertiesInt64.ElementAtOrDefault((int)ACE.Entity.Enum.Properties.PropertyInt64.TotalExperience).Value);
+
+            foreach (var biota in biotas)
+            {
+                var thePlayer = new OfflinePlayer(biota);
+                if (thePlayer.IsHardcore && (!pk || thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PKLite))
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Alive")})";
+                    message.Append($"{label} {thePlayer.Name} - Level {thePlayer.Level}{deathStatus}\n");
+                    playerCounter++;
+                }
+                if (playerCounter > 10)
+                    break;
+            }
+
+            message.Append("-----------------------\n");
+
+            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+        }
+
+        /// <summary>
+        /// Reports on the top 10 Hardcore characters by PvP kills
+        /// </summary>
+        [CommandHandler("LeaderboardHCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters ranked by PvP kills.", "LeaderboardHCPvP [alltime|living]")]
+        public static void HandleLeaderboardHCPvP(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardHCPvPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardHCPvPCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            bool onlyLiving = false;
+            if (parameters.Length > 0 && parameters[0] == "living")
+                onlyLiving = true;
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Hardcore {(onlyLiving ? "Living" : "All-Time")} PvP Leaderboard:\n");
+            message.Append("-------------------------\n");
+
+            uint playerCounter = 1;
+
+            var biotas = DatabaseManager.Shard.BaseDatabase.GetAllPlayerBiotasInParallel(!onlyLiving)
+                .OrderByDescending(b => b.PropertiesInt.ElementAtOrDefault((int)ACE.Entity.Enum.Properties.PropertyInt.PlayerKillsPkl).Value);
+
+            foreach (var biota in biotas)
+            {
+                var thePlayer = new OfflinePlayer(biota);
+                var kills = thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillsPkl);
+                if (thePlayer.IsHardcore && thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PKLite && kills > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Alive")})";
+                    message.Append($"{label} {thePlayer.Name} - Level {thePlayer.Level} - {kills} kill{(kills > 1 ? "s": "")}{deathStatus}\n");
+                    playerCounter++;
+                }
+                if (playerCounter > 10)
+                    break;
+            }
+
+            message.Append("-------------------------\n");
+
+            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+        }
     }
 }

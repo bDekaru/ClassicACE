@@ -303,14 +303,17 @@ namespace ACE.Server.Managers
 
                 vassal.AllegianceXPGenerated += generatedAmount;
 
-                if (PropertyManager.GetBool("offline_xp_passup_limit").Item)
-                    patron.AllegianceXPCached = Math.Min(patron.AllegianceXPCached + passupAmount, uint.MaxValue);
-                else
-                    patron.AllegianceXPCached += passupAmount;
+                if (!patron.IsHardcore) // Hardcore characters do not receive any xp from vassals.
+                {
+                    if (PropertyManager.GetBool("offline_xp_passup_limit").Item)
+                        patron.AllegianceXPCached = Math.Min(patron.AllegianceXPCached + passupAmount, uint.MaxValue);
+                    else
+                        patron.AllegianceXPCached += passupAmount;
 
-                var onlinePatron = PlayerManager.GetOnlinePlayer(patron.Guid);
-                if (onlinePatron != null)
-                    onlinePatron.AddAllegianceXP();
+                    var onlinePatron = PlayerManager.GetOnlinePlayer(patron.Guid);
+                    if (onlinePatron != null)
+                        onlinePatron.AddAllegianceXP();
+                }
 
                 // call recursively
                 DoPassXP(patronNode, passupAmount, false);

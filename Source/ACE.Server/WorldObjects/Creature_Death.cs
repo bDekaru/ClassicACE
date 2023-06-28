@@ -50,8 +50,9 @@ namespace ACE.Server.WorldObjects
             if (KillQuest3 != null)
                 OnDeath_HandleKillTask(KillQuest3);
 
+            onDeath_Hardcore(out var HardcoreExtraXp);
             if (!IsOnNoDeathXPLandblock)
-                OnDeath_GrantXP();
+                OnDeath_GrantXP(HardcoreExtraXp);
 
             return deathMessage;
         }
@@ -166,9 +167,9 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Grants XP to players in damage history
         /// </summary>
-        public void OnDeath_GrantXP()
+        public void OnDeath_GrantXP(double totalHardcoreDeathExtraXp = 0)
         {
-            if (this is Player && PlayerKillerStatus == PlayerKillerStatus.PKLite)
+            if (this is Player && PlayerKillerStatus == PlayerKillerStatus.PKLite && !IsHardcore)
                 return;
 
             var totalHealth = DamageHistory.TotalHealth;
@@ -195,15 +196,22 @@ namespace ACE.Server.WorldObjects
 
                 var damagePercent = totalDamage / totalHealth;
 
-                float totalXP;
-
+                double totalXP;
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !UseXpOverride)
                     totalXP = GetCreatureDeathXP(Level ?? 0, (int)Health.MaxValue, UsedSpells, UsedRangedAttacks) * damagePercent;
                 else
                     totalXP = (XpOverride ?? 0) * damagePercent;
 
+                var msg = "";
+                if (totalHardcoreDeathExtraXp > 0)
+                {
+                    var hardcoreExtraXp = totalHardcoreDeathExtraXp * damagePercent;
+                    totalXP += hardcoreExtraXp;
+                    msg = $"Hardcore Bonus: +{hardcoreExtraXp:N0}xp";
+                }
+
                 var campValue = Math.Clamp((uint)Math.Floor(1f + (totalHealth / 1000f)), 1, 100);
-                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill, Level, (uint)CreatureType, campValue, Tier, ShareType.All);
+                playerDamager.EarnXP((long)Math.Round(totalXP), XpType.Kill, Level, (uint)CreatureType, campValue, Tier, ShareType.All, msg);
 
                 // handle luminance
                 if (LuminanceAward != null)
@@ -213,6 +221,68 @@ namespace ACE.Server.WorldObjects
                 }
             }
         }
+
+        public void onDeath_Hardcore(out double extraXp)
+        {
+            extraXp = 0;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            var victim = DamageHistory.Creature as Player;
+            var killer = DamageHistory.GetTopDamager(false)?.TryGetAttacker() as Player;
+            if (victim == null || killer == null)
+                return;
+
+            var victimLevel = victim.Level ?? 1;
+            var killerLevel = killer.Level ?? 1;
+            var levelDifference = Math.Abs(victimLevel - killerLevel);
+
+            if (victim.IsHardcore && killer.IsHardcore)
+            {                var victimLevelXp = victim.GetXPToNextLevel(victimLevel);
+
+                if (levelDifference < 10)
+                {
+                    if(victimLevel > killerLevel)
+                        extraXp = victimLevelXp;
+                    else
+                        extraXp = victimLevelXp * ((10d - levelDifference) * 0.1);
+                }
+            }
+
+            var totalHealth = DamageHistory.TotalHealth;
+            if (totalHealth == 0)
+                return;
+
+            // Killing or helping to kill much lower level players accrues vitae penalty, unless victim is 80+
+            foreach (var kvp in DamageHistory.TotalDamage)
+            {
+                var playerDamager = kvp.Value.TryGetAttacker() as Player;
+
+                if (playerDamager == null && kvp.Value.PetOwner != null)
+                    playerDamager = kvp.Value.TryGetPetOwner();
+
+                if (playerDamager == null)
+                    continue;
+
+                if (playerDamager == this)
+                    continue;
+
+                var totalDamage = kvp.Value.TotalDamage;
+
+                var damagePercent = totalDamage / totalHealth;
+
+                var playerDamagerLevel = playerDamager.Level ?? 1;
+                levelDifference = Math.Abs(victimLevel - playerDamagerLevel);
+
+                if (victimLevel < playerDamagerLevel && victim.Level < 80 && levelDifference > 10)
+                {
+                    var penalty = (int)Math.Ceiling((double)levelDifference / 2 * damagePercent);
+                    playerDamager.InflictVitaePenalty(penalty);
+                    playerDamager.Session.Network.EnqueueSend(new GameMessageSystemChat("Your cowardly actions weaken your vitae.", ChatMessageType.Broadcast));
+                }
+            }
+        }
+
         public static int GetCreatureDeathXP(int level, int hitpoints = 0, bool usedSpells = false, bool usedRangedAttacks = false, int formulaVersion = 0)
         {
             double baseXp = Math.Min((1.75 * Math.Pow(level, 2)) + (20 * level), 30000);
@@ -613,7 +683,7 @@ namespace ACE.Server.WorldObjects
                     var isPKdeath = player.IsPKDeath(killer);
                     var isPKLdeath = player.IsPKLiteDeath(killer);
 
-	                if (isPKdeath)
+                    if (isPKdeath || (IsHardcore && isPKLdeath))
 	                {
 	                    corpse.PkLevel = PKLevel.PK;
 	

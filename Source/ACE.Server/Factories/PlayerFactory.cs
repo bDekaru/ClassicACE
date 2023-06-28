@@ -470,7 +470,7 @@ namespace ACE.Server.Factories
             else
             {
                 var starterAreaName = starterArea.Name;
-                if (starterAreaName != "Shoushi" && starterAreaName != "Yaraq" && starterAreaName != "Holtburg")
+                if (starterAreaName == "Random")
                 {
                     switch (ThreadSafeRandom.Next(1, 3))
                     {
@@ -485,7 +485,7 @@ namespace ACE.Server.Factories
                             break;
                     }
                 }
-                switch (starterArea.Name)
+                switch (starterAreaName)
                 {
                     case "Shoushi":
                         if(ThreadSafeRandom.Next(0, 1) == 1)
@@ -505,6 +505,16 @@ namespace ACE.Server.Factories
                             player.Location = new Position(0xA5B4002A, 131.134338f, 33.602352f, 53.077141f, 0.000000f, 0.000000f, -0.263666f, 0.964614f); // Holtburg West
                         else
                             player.Location = new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f); // Holtburg South
+                        break;
+                    case "Hardcore":
+                        player.Location = new Position(0x77060038, 163.226196f, 174.996063f, 0.005000f,0.000000f, 0.000000f, 0.980516f, -0.196438f); // Hardcore Starter Island
+                        player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
+                        player.IsHardcore = true;
+
+                        var inventory = player.GetAllPossessions();
+
+                        foreach (var item in inventory)
+                            item.IsHardcore = true;
                         break;
                 }
 

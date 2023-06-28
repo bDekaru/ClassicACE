@@ -201,6 +201,12 @@ namespace ACE.Server.WorldObjects
             if (!(activator is Player player))
                 return new ActivationResult(true);
 
+            if (player.IsHardcore && !IsHardcore)
+            {
+                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"Hardcore characters may not use non-hardcore items!"));
+                return new ActivationResult(false);
+            }
+
             // heritage requirement
             if (!IsCreature && HeritageGroup != 0)
             {

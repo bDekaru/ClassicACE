@@ -115,6 +115,8 @@ namespace ACE.Server.WorldObjects
 
         public DateTime PrevObjSend;
         public DateTime PrevWho;
+        public DateTime PrevLeaderboardHCXPCommandRequestTimestamp;
+        public DateTime PrevLeaderboardHCPvPCommandRequestTimestamp;
 
         public float CurrentRadarRange => Location.Indoors ? MaxRadarRange_Indoors : MaxRadarRange_Outdoors;
 
@@ -1195,6 +1197,12 @@ namespace ACE.Server.WorldObjects
 
         public void HandleActionEnterPkLite()
         {
+            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"The PK Lite system is not available on this server.", ChatMessageType.Broadcast));
+                return;
+            }
+
             // ensure permanent npk
             if (PlayerKillerStatus != PlayerKillerStatus.NPK || MinimumTimeSincePk != null)
             {

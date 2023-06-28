@@ -125,6 +125,15 @@ namespace ACE.Server.WorldObjects
             InitializeHeartbeats();
 
             CreationTimestamp = (int)Time.GetUnixTime();
+
+            if (!Guid.IsPlayer())
+            {
+                var overrideHardcore = GetProperty(PropertyBool.IsHardcore);
+                if (overrideHardcore.HasValue)
+                    IsHardcore = overrideHardcore.Value;
+                else
+                    IsHardcore = true; // All non-player objects start as hardcore unless they have an override flag, contact with non-hardcore characters turns them non-hardcore.
+            }
         }
 
         /// <summary>

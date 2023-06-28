@@ -3231,5 +3231,10 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyFloat.ExtraManaRegenPool);
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.ExtraManaRegenPool); else SetProperty(PropertyFloat.ExtraManaRegenPool, value.Value); }
         }
+        public bool IsHardcore
+        {
+            get => GetProperty(PropertyBool.IsHardcore) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.IsHardcore); else SetProperty(PropertyBool.IsHardcore, value); }
+        }
     }
 }

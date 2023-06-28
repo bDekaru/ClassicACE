@@ -15,6 +15,8 @@ using ACE.Server.Network.Handlers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ACE.Server.Command.Handlers;
+using ACE.Server.Network.GameAction.Actions;
 
 namespace ACE.Server.WorldObjects
 {
@@ -35,7 +37,24 @@ namespace ACE.Server.WorldObjects
         {
             var topDamager = DamageHistory.GetTopDamager(false);
 
-            HandlePKDeathBroadcast(lastDamager, topDamager);
+            if (!HandlePKDeathBroadcast(lastDamager, topDamager) && IsHardcore)
+            {
+                string sourceString;
+                if (lastDamager == null || lastDamager.Guid == Guid)
+                    sourceString = "misadventure";
+                else
+                    sourceString = lastDamager.Name;
+
+                var globalPKDe = $"{Name}'s journey in Dereth has come to an end after {Level} level{(Level > 1 ? "s" : "")}, courtesy of {sourceString}!";
+
+                string webhookMsg = new String(globalPKDe);
+
+                globalPKDe += "\n[PKDe]";
+
+                PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Broadcast));
+
+                _ = TurbineChatHandler.SendWebhookedChat("", webhookMsg, null, "Hardcore PvE");
+            }
 
             var deathMessage = base.OnDeath(lastDamager, damageType, criticalHit);
 
@@ -92,14 +111,14 @@ namespace ACE.Server.WorldObjects
             return deathMessage;
         }
 
-        public void HandlePKDeathBroadcast(DamageHistoryInfo lastDamager, DamageHistoryInfo topDamager)
+        public bool HandlePKDeathBroadcast(DamageHistoryInfo lastDamager, DamageHistoryInfo topDamager)
         {
             if (topDamager == null || !topDamager.IsPlayer)
-                return;
+                return false;
 
             var pkPlayer = topDamager.TryGetAttacker() as Player;
             if (pkPlayer == null)
-                return;
+                return false;
 
             if (IsPKDeath(topDamager))
             {
@@ -118,15 +137,58 @@ namespace ACE.Server.WorldObjects
                 PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Help));
 
                 _ = TurbineChatHandler.SendWebhookedChat("", webhookMsg, null, "PvP");
+
+                return true;
             }
             else if (IsPKLiteDeath(topDamager))
-                pkPlayer.PlayerKillsPkl++;
+            {
+                if(!IsHardcore)
+                    pkPlayer.PlayerKillsPkl++;
+                else
+                {
+                    pkPlayer.PlayerKillsPkl++;
+
+                    var namesList = new List<string>();
+
+                    foreach(var attacker in DamageHistory.Damagers)
+                    {
+                        if(attacker.Guid != lastDamager.Guid && attacker.IsPlayer && attacker.TryGetAttacker() is Player attackerPlayer)
+                            namesList.Add($"{attackerPlayer.Name}({attackerPlayer.Level})");
+                    }
+
+                    if (lastDamager.TryGetAttacker() is Player lastDamagerPlayer)
+                    {
+                        var globalPKDe = $"{Name}({Level}) was defeated by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level})!";
+
+                        if (namesList.Count > 1)
+                        {
+                            var last = namesList.TakeLast(1).FirstOrDefault();
+                            var others = namesList.SkipLast(1);
+                            globalPKDe += $" {(lastDamagerPlayer.Gender != 2 ? "She" : "He")} was helped by {string.Join(",", others)} and {last}!";
+                        }
+                        else if (namesList.Count > 0)
+                            globalPKDe += $" {(lastDamagerPlayer.Gender != 2 ? "She" : "He")} was helped by {namesList.First()}!";
+
+                        string webhookMsg = new String(globalPKDe);
+
+                        globalPKDe += "\n[PKDe]";
+
+                        PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Help));
+
+                        _ = TurbineChatHandler.SendWebhookedChat("", webhookMsg, null, "Hardcore PvP");
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
         /// Inflicts vitae
         /// </summary>
-        public void InflictVitaePenalty(int amount = 5)
+        public void InflictVitaePenalty(int amount = 0)
         {
             DeathLevel = Level; // for calculating vitae XP
             VitaeCpPool = 0;    // reset vitae XP earned
@@ -136,7 +198,7 @@ namespace ACE.Server.WorldObjects
 
             Session.Network.EnqueueSend(msgDeathLevel, msgVitaeCpPool);
 
-            var vitae = EnchantmentManager.UpdateVitae();
+            var vitae = EnchantmentManager.UpdateVitae(amount);
 
             var spellID = (uint)SpellId.Vitae;
             var spell = new Spell(spellID);
@@ -209,7 +271,7 @@ namespace ACE.Server.WorldObjects
 
             // update vitae
             // players who died in a PKLite fight do not accrue vitae
-            if (!IsPKLiteDeath(topDamager))
+            if (!IsPKLiteDeath(topDamager) && !IsHardcore)
                 InflictVitaePenalty();
 
             if (IsPKDeath(topDamager) || AugmentationSpellsRemainPastDeath == 0)
@@ -246,6 +308,17 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void ThreadSafeTeleportOnDeath()
         {
+            if (IsHardcore)
+            {
+                Session.Network.EnqueueSend(new GameEventPopupString(Session, $"And so ends the journey of {Name}.\n\nYou've lived in Dereth for {GameActionQueryAge.CalculateAgeMessage(Age ?? 0)}.\n\nBetter luck next time!"));
+
+                IsInDeathProcess = false;
+                CharacterCommands.HandleCharacterForcedDelete(Session, Name);
+                IsLoggingOut = true;
+                LogOut_Final(true);
+                return;
+            }
+
             // teleport to sanctuary or best location
             var newPosition = Sanctuary ?? Instantiation ?? Location;
 
@@ -480,7 +553,7 @@ namespace ACE.Server.WorldObjects
             bool onDropRecentlyPurchasedLandblock = corpse.IsOnDropRecentlyPurchasedLandblock;
             bool onNoDropLandblock = corpse.IsOnNoDropLandblock;
 
-            if ((!onDropAllPyrealsLandblock && onNoDropLandblock) || IsPKLiteDeath(corpse.KillerId)) // Pyreals will drop even on no drop landblocks if it's also a drop all pyreals landblock.
+            if (!IsHardcore && ((!onDropAllPyrealsLandblock && onNoDropLandblock) || IsPKLiteDeath(corpse.KillerId))) // Pyreals will drop even on no drop landblocks if it's also a drop all pyreals landblock.
                 return new List<WorldObject>();
 
             var dropItems = new List<WorldObject>();
@@ -512,11 +585,41 @@ namespace ACE.Server.WorldObjects
                 dropItems.AddRange(inventory);
             }
 
-            if (!onNoDropLandblock)
+            if (IsHardcore || !onNoDropLandblock)
             {
                 var numItemsDropped = GetNumItemsDropped(corpse);
 
-                if (numItemsDropped > 0)
+                bool dropAllWielded = false;
+                if (IsHardcore)
+                {
+                    var topDamager = DamageHistory.GetTopDamager(false);
+                    if (topDamager != null && topDamager.IsPlayer && topDamager.TryGetAttacker() is Player topDamagerPlayer)
+                    {
+                        dropAllWielded = true;
+
+                        uint hardcoreTrophyWeenie;
+                        if (Level >= 80)
+                            hardcoreTrophyWeenie = (uint)Factories.Enum.WeenieClassName.pkTrophyExtreme;
+                        else if (Level >= 50)
+                            hardcoreTrophyWeenie = (uint)Factories.Enum.WeenieClassName.pkTrophyHigh;
+                        else if (Level >= 20)
+                            hardcoreTrophyWeenie = (uint)Factories.Enum.WeenieClassName.pkTrophyMid;
+                        else
+                            hardcoreTrophyWeenie = (uint)Factories.Enum.WeenieClassName.pkTrophyLow;
+
+                        var hardcoreTrophy = WorldObjectFactory.CreateNewWorldObject(hardcoreTrophyWeenie);
+                        if (hardcoreTrophy != null)
+                        {
+                            hardcoreTrophy.Name = "Skull of " + Name;
+                            hardcoreTrophy.LongDesc = "A trophy harvested from the corpse of " + Name +
+                                                      ", who was slain at level " + Level +
+                                                      " by " + topDamagerPlayer.Name + ", who was level " + topDamagerPlayer.Level;
+                            corpse.TryAddToInventory(hardcoreTrophy);
+                        }
+                    }
+                }
+
+                if (numItemsDropped > 0 || dropAllWielded)
                 {
                     var level = Level ?? 1;
                     var canDropWielded = level >= 35;
@@ -527,8 +630,12 @@ namespace ACE.Server.WorldObjects
                     // exclude pyreals from randomized death item calculation
                     inventory = inventory.Where(i => i.WeenieClassId != coinStackWcid).ToList();
 
-                    // exclude wielded items if < level 35
-                    if (!canDropWielded)
+                    List<WorldObject> wieldedItems = null;
+                    if (dropAllWielded)
+                        wieldedItems = inventory.Where(i => i.CurrentWieldedLocation != null).ToList();
+
+                    // exclude wielded items if < level 35 or if we're dropping them all
+                    if (!canDropWielded || dropAllWielded)
                         inventory = inventory.Where(i => i.CurrentWieldedLocation == null).ToList();
 
                     // exclude bonded items
@@ -537,45 +644,64 @@ namespace ACE.Server.WorldObjects
                     // handle items with BondedStatus.Destroy
                     destroyedItems = HandleDestroyBonded();
 
-                    // construct the list of death items
-                    var sorted = new DeathItems(inventory);
-
-                    // Remove the items from inventory
-                    for (var i = 0; i < numItemsDropped && i < sorted.Inventory.Count; i++)
+                    if (dropAllWielded && wieldedItems != null)
                     {
-                        var deathItem = sorted.Inventory[i];
-
-                        // split stack if needed
-                        if ((deathItem.WorldObject.StackSize ?? 1) > 1)
+                        foreach (var item in wieldedItems)
                         {
-                            var stack = FindObject(deathItem.WorldObject.Guid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out var foundInContainer, out var rootContainer, out _);
-
-                            if (stack != null)
-                            {
-                                AdjustStack(stack, -1, foundInContainer, rootContainer);
-                                Session.Network.EnqueueSend(new GameMessageSetStackSize(stack));
-
-                                var dropItem = WorldObjectFactory.CreateNewWorldObject(deathItem.WorldObject.WeenieClassId);
-                                dropItem.SetStackSize(1);
-
-                                //Console.WriteLine("Dropping " + deathItem.WorldObject.Name + " (stack)");
-                                dropItems.Add(dropItem);
-                            }
-                            else
-                            {
-                                log.WarnFormat("Couldn't find death item stack 0x{0:X8}:{1} for player {2}", deathItem.WorldObject.Guid.Full, deathItem.WorldObject.Name, Name);
-                            }
-                        }
-                        else
-                        {
-                            if (TryRemoveFromInventoryWithNetworking(deathItem.WorldObject.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(deathItem.WorldObject.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                            if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
                             {
                                 //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
-                                dropItems.Add(deathItem.WorldObject);
+                                dropItems.Add(item);
                             }
                             else
                             {
-                                log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", deathItem.WorldObject.Guid.Full, deathItem.WorldObject.Name, Name);
+                                log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
+                            }
+                        }
+                    }
+
+                    if (numItemsDropped > 0)
+                    {
+                        // construct the list of death items
+                        var sorted = new DeathItems(inventory);
+
+                        // Remove the items from inventory
+                        for (var i = 0; i < numItemsDropped && i < sorted.Inventory.Count; i++)
+                        {
+                            var deathItem = sorted.Inventory[i];
+
+                            // split stack if needed
+                            if ((deathItem.WorldObject.StackSize ?? 1) > 1)
+                            {
+                                var stack = FindObject(deathItem.WorldObject.Guid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out var foundInContainer, out var rootContainer, out _);
+
+                                if (stack != null)
+                                {
+                                    AdjustStack(stack, -1, foundInContainer, rootContainer);
+                                    Session.Network.EnqueueSend(new GameMessageSetStackSize(stack));
+
+                                    var dropItem = WorldObjectFactory.CreateNewWorldObject(deathItem.WorldObject.WeenieClassId);
+                                    dropItem.SetStackSize(1);
+
+                                    //Console.WriteLine("Dropping " + deathItem.WorldObject.Name + " (stack)");
+                                    dropItems.Add(dropItem);
+                                }
+                                else
+                                {
+                                    log.WarnFormat("Couldn't find death item stack 0x{0:X8}:{1} for player {2}", deathItem.WorldObject.Guid.Full, deathItem.WorldObject.Name, Name);
+                                }
+                            }
+                            else
+                            {
+                                if (TryRemoveFromInventoryWithNetworking(deathItem.WorldObject.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(deathItem.WorldObject.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                                {
+                                    //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                                    dropItems.Add(deathItem.WorldObject);
+                                }
+                                else
+                                {
+                                    log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", deathItem.WorldObject.Guid.Full, deathItem.WorldObject.Name, Name);
+                                }
                             }
                         }
                     }
@@ -677,13 +803,13 @@ namespace ACE.Server.WorldObjects
 
             var level = Level ?? 1;
 
-            if (level <= 10)
+            if (level <= 10 && !IsHardcore)
                 return 0;
 
-            if (level >= 11 && level <= 20)
+            if (level >= 11 && level <= 20 && !IsHardcore)
                 return ThreadSafeRandom.Next(0, 1);
 
-            // level 21+
+            // level 21+ or Hardcore
             int numItemsDropped;
             if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
                 numItemsDropped = (level / 20) + ThreadSafeRandom.Next(0, 2);
@@ -772,6 +898,12 @@ namespace ACE.Server.WorldObjects
 
         public void HandleActionAddPlayerPermission(string playerName)
         {
+            if (IsHardcore)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Hardcore may not grant corpse looting permissions.", ChatMessageType.Broadcast));
+                return;
+            }
+
             // is this player online?
             var player = PlayerManager.GetOnlinePlayer(playerName);
 

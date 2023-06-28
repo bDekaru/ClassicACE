@@ -187,7 +187,11 @@ namespace ACE.Server.Entity
 
         public int? Gender => GetProperty(PropertyInt.Gender);
 
-
+        public bool IsHardcore
+        {
+            get => GetProperty(PropertyBool.IsHardcore) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.IsHardcore); else SetProperty(PropertyBool.IsHardcore, value); }
+        }
         public uint? MonarchId
         {
             get => GetProperty(PropertyInstanceId.Monarch);

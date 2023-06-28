@@ -98,6 +98,12 @@ namespace ACE.Server.Entity
                 return WeenieError.YouDoNotPassCraftingRequirements;
             }
 
+            if (player.IsHardcore && (!source.IsHardcore || !target.IsHardcore))
+            {
+                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"Hardcore characters may not use non-hardcore items!"));
+                return WeenieError.YouDoNotPassCraftingRequirements;
+            }
+
             // ensure both source and target are in player's inventory
             if (player.FindObject(source.Guid.Full, Player.SearchLocations.MyInventory) == null)
                 return WeenieError.YouDoNotPassCraftingRequirements;

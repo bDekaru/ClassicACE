@@ -42,7 +42,7 @@ namespace ACE.Server.WorldObjects
 
             if (activator is Player player)
             {
-                if(player.GetNumInventoryItemsOfWCID((uint)Factories.Enum.WeenieClassName.flask) > 0 && player.TryConsumeFromInventoryWithNetworking((int)Factories.Enum.WeenieClassName.flask))
+                if(player.GetNumInventoryItemsOfWCID((uint)Factories.Enum.WeenieClassName.flask, activator.IsHardcore) > 0 && player.TryConsumeFromInventoryWithNetworking((int)Factories.Enum.WeenieClassName.flask))
                 {
                     var wo = WorldObjectFactory.CreateNewWorldObject((int)Factories.Enum.WeenieClassName.milk);
 

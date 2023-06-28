@@ -714,7 +714,7 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                var playerAltCurrency = player.GetNumInventoryItemsOfWCID(AlternateCurrency.Value);
+                var playerAltCurrency = player.GetNumInventoryItemsOfWCID(AlternateCurrency.Value, player.IsHardcore);
 
                 if (playerAltCurrency < totalPrice)
                 {

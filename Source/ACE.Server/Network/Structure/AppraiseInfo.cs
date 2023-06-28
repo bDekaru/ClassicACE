@@ -578,6 +578,14 @@ namespace ACE.Server.Network.Structure
                     extraPropertiesText = "";
 
                 bool hasExtraPropertiesText = false;
+                if (wo.IsHardcore && !(wo.Stuck && (int)wo.ItemUseable < 2))
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"This item is useable by hardcore characters.\n";
+                    hasExtraPropertiesText = true;
+                }
+
                 if (wo.ArmorLevel != null && wo.ArmorLevel != 0 && wo.CurrentWieldedLocation != null)
                 {
                     if (hasExtraPropertiesText)

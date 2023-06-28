@@ -41890,6 +41890,10 @@ namespace ACE.Server.Factories.Enum
         // CustomDM
         blankExplorationContract = 50179,
         explorationContract = 50180,
-        explorationMarker = 50181
+        explorationMarker = 50181,
+        pkTrophyLow = 50182,
+        pkTrophyMid = 50183,
+        pkTrophyHigh = 50184,
+        pkTrophyExtreme = 50185,
     }
 }

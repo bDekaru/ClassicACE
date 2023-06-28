@@ -57,7 +57,7 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameMessageSystemChat("You may not leave Olthoi Island until your account and this character have been active on this game world for 15 days.", ChatMessageType.Broadcast));
             }
 
-            if (PlayerKillerStatus == PlayerKillerStatus.PKLite && !PropertyManager.GetBool("pkl_server").Item)
+            if (PlayerKillerStatus == PlayerKillerStatus.PKLite && !PropertyManager.GetBool("pkl_server").Item && !IsHardcore)
             {
                 PlayerKillerStatus = PlayerKillerStatus.NPK;
 
@@ -234,6 +234,8 @@ namespace ACE.Server.WorldObjects
             Placement = null;
             Session.Network.EnqueueSend(new GameMessagePlayerCreate(Guid), new GameMessageCreateObject(this));
 
+            CheckMultipleAccounts();
+
             SendInventoryAndWieldedItems();
 
             SendContractTrackerTable();
@@ -243,6 +245,35 @@ namespace ACE.Server.WorldObjects
         {
             if (!PropertyManager.GetBool("require_spell_comps").Item)
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyBool(this, PropertyBool.SpellComponentsRequired, false));
+        }
+
+        /// <summary>
+        /// This method checks to see if you have multiple accounts, and only one is permitted
+        /// This needs to happen here so an admin can have multiple. We don't know if you're
+        /// an admin until we get player info, thus it isn't possible to run this before SendSelf().
+        /// </summary>
+        public void CheckMultipleAccounts()
+        {
+            if (!Session.Player.IsAdmin)
+            {
+                foreach (var p in PlayerManager.GetAllOnline())
+                {
+                    if (null == p)
+                        continue;
+
+                    if (p.Session.EndPointC2S.Address.Equals(Session.EndPointC2S.Address) &&
+                        !p.Session.Player.Name.Equals(Session.Player.Name)) // Launchers/Plugins sometimes make a 2nd connection
+                    {
+                        if (p.IsHardcore && Session.Player.IsHardcore && !p.IsAdmin)
+                        {
+                            var rejectionReason = "Multiple Hardcore: " + p.Name + " and " + Session.Player.Name;
+                            log.InfoFormat("Login Request from {0} rejected. {1}", Session.EndPointC2S.Address.ToString(), rejectionReason);
+                            Session.SendCharacterError(CharacterError.Logon);
+                            return; // no need to finish the list of sessions
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>

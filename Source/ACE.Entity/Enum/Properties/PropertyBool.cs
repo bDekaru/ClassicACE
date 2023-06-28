@@ -194,7 +194,7 @@ namespace ACE.Entity.Enum.Properties
         FreeMasteryResetRenewed          = 9010,
 
         [Ephemeral][ServerOnly]
-        IsEncounterGenerator          = 9011,
+        IsEncounterGenerator             = 9011,
         [ServerOnly]
         IsModified                       = 9012,
         [ServerOnly]
@@ -214,6 +214,8 @@ namespace ACE.Entity.Enum.Properties
         [ServerOnly]
         SmartSalvageIsWhitelist          = 9020,
         IsLightWeapon                    = 9021,
+        [ServerOnly]
+        IsHardcore                       = 9022
     }
 
     public static class PropertyBoolExtensions

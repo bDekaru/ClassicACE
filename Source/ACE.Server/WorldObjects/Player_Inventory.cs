@@ -89,11 +89,11 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool TryCreateInInventoryWithNetworking(WorldObject item, out Container container, bool allowStacking = false)
         {
-            var currentStack = item.StackSize;
+            var currentStackSize = item.StackSize;
             if (!TryAddToInventory(ref item, out container, 0, false, true, allowStacking)) // We don't have enough burden available or no empty pack slot.
                 return false;
 
-            if(allowStacking && item.StackSize != currentStack)
+            if(allowStacking && item.StackSize != currentStackSize)
             {
                 // We've been merged.
                 item.EnqueueBroadcast(new GameMessageSetStackSize(item));
@@ -155,7 +155,7 @@ namespace ACE.Server.WorldObjects
 
         public bool TryConsumeFromInventoryWithNetworking(uint wcid, int amount = int.MaxValue)
         {
-            var items = GetInventoryItemsOfWCID(wcid);
+            var items = GetInventoryItemsOfWCID(wcid, IsHardcore);
             //items = items.OrderBy(o => o.Value).ToList();
 
             var leftReq = amount;
@@ -1861,6 +1861,13 @@ namespace ACE.Server.WorldObjects
                 return true;
             }
 
+            if(IsHardcore && !item.IsHardcore)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Hardcore characters cannot wield that!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                return false;
+            }
+
             if (item.CurrentLandblock != null) // Movement is an item pickup off the landblock
             {
                 item.CurrentLandblock.RemoveWorldObject(item.Guid, false, true);
@@ -2494,6 +2501,8 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
+                        newStack.IsHardcore = stack.IsHardcore;
+
                         newStack.SetStackSize(amount);
 
                         if (DoHandleActionStackableSplitToContainer(stack, stackFoundInContainer, stackRootOwner, container, containerRootOwner, newStack, placementPosition, amount, wasEquipped))
@@ -2526,6 +2535,8 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId));
                     return;
                 }
+
+                newStack.IsHardcore = stack.IsHardcore;
 
                 newStack.SetStackSize(amount);
 
@@ -2658,6 +2669,8 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId, WeenieError.ActionCancelled));
                     return;
                 }
+
+                newStack.IsHardcore = stack.IsHardcore;
 
                 newStack.SetStackSize(amount);
 
@@ -2852,6 +2865,8 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
+                        newStack.IsHardcore = stack.IsHardcore;
+
                         newStack.SetStackSize(amount);
 
                         if (DoHandleActionGetAndWieldItem(newStack, stackFoundInContainer, stackRootOwner, false, wieldedLocation, true))
@@ -2911,6 +2926,8 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId));
                     return;
                 }
+
+                newStack.IsHardcore = stack.IsHardcore;
 
                 newStack.SetStackSize(amount);
 
@@ -3055,10 +3072,29 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (sourceStack.IsHardcore != targetStack.IsHardcore)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Cannot merge non-hardcore and hardcore items!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeFromGuid));
+
+                if (targetStack.Container != null)
+                {
+                    if(sourceStack.Container != targetStack.Container)
+                        HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.Container.Guid.Full, targetStack.PlacementPosition ?? 0); // Attempt a regular move instead of a merge.
+                    else
+                        HandleActionPutItemInContainer(sourceStack.Guid.Full, Guid.Full); // Redirect to main pack.
+                }
+                return;
+            }
+
+
             if (sourceStack.StackSize == amount && sourceStack.MaterialType != null)
             {
                 // Do not allow merging mutated full stacks into non-mutated stacks as the mutated properties would be lost, divert to a non-merge move.
-                HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.ContainerId ?? Guid.Full, targetStack.PlacementPosition ?? 0);
+                if (sourceStack.Container != targetStack.Container)
+                    HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.Container.Guid.Full, targetStack.PlacementPosition ?? 0); // Attempt a regular move instead of a merge.
+                else
+                    HandleActionPutItemInContainer(sourceStack.Guid.Full, Guid.Full); // Redirect to main pack.
                 return;
             }
 
@@ -3663,6 +3699,14 @@ namespace ACE.Server.WorldObjects
 
         private bool RemoveItemForGive(WorldObject item, Container itemFoundInContainer, bool itemWasEquipped, Container itemRootOwner, int amount, out WorldObject itemToGive, bool destroy = false)
         {
+            if (IsHardcore && !item.IsHardcore)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Hardcore characters cannot turn in non-hardcore items!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                itemToGive = null;
+                return false;
+            }
+
             if (item.StackSize > 1 && amount < item.StackSize) // We're splitting a stack
             {
                 if (!AdjustStack(item, -amount, itemFoundInContainer, itemRootOwner))
@@ -3684,6 +3728,8 @@ namespace ACE.Server.WorldObjects
                     itemToGive = null;
                     return false;
                 }
+
+                newStack.IsHardcore = item.IsHardcore;
 
                 newStack.SetStackSize(amount);
 

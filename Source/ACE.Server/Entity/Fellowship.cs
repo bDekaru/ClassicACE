@@ -528,7 +528,7 @@ namespace ACE.Server.Entity
         {
             // https://asheron.fandom.com/wiki/Announcements_-_2002/02_-_Fever_Dreams#Letter_to_the_Players_1
 
-            var fellowshipMembers = GetFellowshipMembers();
+            var fellowshipMembers = GetLikeFellowshipMembers(player); // Split fellowship xp sharing between hardcore and non-hardcore members.
 
             shareType &= ~ShareType.Fellowship;
 
@@ -769,6 +769,35 @@ namespace ACE.Server.Entity
 
                 if (player != null && player.Session != null && player.Session.Player != null && player.Fellowship != null)
                     results.Add(playerGuid, player);
+                else
+                    dropped.Add(playerGuid);
+            }
+
+            // TODO: process dropped list
+            if (dropped.Count > 0)
+                ProcessDropList(FellowshipMembers, dropped);
+
+            return results;
+        }
+
+        public Dictionary<uint, Player> GetLikeFellowshipMembers(Player me)
+        {
+            var results = new Dictionary<uint, Player>();
+            var dropped = new HashSet<uint>();
+            var isHardcore = me?.IsHardcore;
+
+            foreach (var kvp in FellowshipMembers)
+            {
+                var playerGuid = kvp.Key;
+                var playerRef = kvp.Value;
+
+                playerRef.TryGetTarget(out var player);
+
+                if (player != null && player.Session != null && player.Session.Player != null && player.Fellowship != null)
+                {
+                    if (player.IsHardcore == isHardcore)
+                        results.Add(playerGuid, player);
+                }
                 else
                     dropped.Add(playerGuid);
             }

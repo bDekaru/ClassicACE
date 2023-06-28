@@ -72,11 +72,8 @@ namespace ACE.Server.Command.Handlers
                 player.Session.LogOffPlayer(true);
                 PlayerManager.HandlePlayerDelete(player.Character.Id);
 
-                var success = PlayerManager.ProcessDeletedPlayer(player.Character.Id);
-                if (success)
-                    CommandHandlerHelper.WriteOutputInfo(session, $"Successfully {(isOnline ? "booted and " : "")}deleted character {foundPlayer.Name} (0x{foundPlayer.Guid}).", ChatMessageType.Broadcast);
-                else
-                    CommandHandlerHelper.WriteOutputInfo(session, $"Unable to {(isOnline ? "boot and " : "")}delete character {foundPlayer.Name} (0x{foundPlayer.Guid}) due to PlayerManager failure.", ChatMessageType.Broadcast);
+                if(session.Player != player)
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Successfully booted and deleted character {foundPlayer.Name} (0x{foundPlayer.Guid}).", ChatMessageType.Broadcast);
             }
             else
             {
