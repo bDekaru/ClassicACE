@@ -652,7 +652,8 @@ namespace ACE.Server.Managers
                 ("enforce_player_movement", new Property<bool>(false, "enable this to enforce server side verification of player movement")),
                 ("enforce_player_movement_speed", new Property<bool>(false, "enable this to enforce server side verification of player movement speed")),
                 ("enforce_player_movement_kick", new Property<bool>(false, "enable this to kick players that fail movement verification too frenquently")),
-                ("useable_gems", new Property<bool>(true, "Allows loot generated gems to be used to cast their spells."))
+                ("useable_gems", new Property<bool>(true, "Allows loot generated gems to be used to cast their spells.")),
+                ("allow_PKs_to_go_NPK", new Property<bool>(true, "Allows PKs to go back to being NPKs by using the appropriate altar."))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =

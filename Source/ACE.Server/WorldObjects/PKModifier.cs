@@ -76,6 +76,13 @@ namespace ACE.Server.WorldObjects
                 return new ActivationResult(false);
             }
 
+            if (player.PkLevel == PKLevel.PK && !PropertyManager.GetBool("allow_PKs_to_go_NPK").Item)
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat("This server does not allow Player Killers to go back to being Non-Player Killers.", ChatMessageType.Broadcast));
+
+                return new ActivationResult(false);
+            }
+
             if (player.Teleporting)
                 return new ActivationResult(false);
 
