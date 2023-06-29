@@ -134,7 +134,7 @@ namespace ACE.Server.WorldObjects
 
                 globalPKDe += "\n[PKDe]";
 
-                PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Help));
+                PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Broadcast));
 
                 _ = TurbineChatHandler.SendWebhookedChat("", webhookMsg, null, "PvP");
 
@@ -173,7 +173,7 @@ namespace ACE.Server.WorldObjects
 
                         globalPKDe += "\n[PKDe]";
 
-                        PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Help));
+                        PlayerManager.BroadcastToAll(new GameMessageSystemChat(globalPKDe, ChatMessageType.Broadcast));
 
                         _ = TurbineChatHandler.SendWebhookedChat("", webhookMsg, null, "Hardcore PvP");
                     }

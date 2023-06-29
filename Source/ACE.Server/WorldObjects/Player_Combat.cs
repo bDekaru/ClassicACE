@@ -627,7 +627,7 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventDefenderNotification(Session, creature.Name, damageType, percent, amount, damageLocation, crit, attackConditions));
                     if (damageBlocked > 0)
                     {
-                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.CombatEnemy));
+                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.CombatSelf));
                         var blockSound = new GameMessageSound(Guid, Sound.HitPlate1, 1.0f);
                         EnqueueBroadcast(blockSound);
                     }
