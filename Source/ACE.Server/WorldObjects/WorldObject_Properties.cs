@@ -2933,7 +2933,8 @@ namespace ACE.Server.WorldObjects
             StackSize = value;
 
             EncumbranceVal = (StackUnitEncumbrance ?? 0) * (StackSize ?? 1);
-            Value = (StackUnitValue ?? 0) * (StackSize ?? 1);
+            if (!(ItemType == ItemType.MissileWeapon && Workmanship.HasValue)) // Mutated thrown weapons do not change value with stack size.
+                Value = (StackUnitValue ?? 0) * (StackSize ?? 1);
         }
 
         /// <summary>

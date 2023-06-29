@@ -258,6 +258,54 @@ namespace ACE.Server.WorldObjects
             DefaultItemsForSale.Add(item.Guid, item);
         }
 
+        public int GetDefaultItemStock(uint wcid)
+        {
+            var existing = GetDefaultItemsByWcid(wcid);
+
+            var stock = 0;
+            foreach (var item in existing)
+            {
+                if (item.Generator == null && item.SoldTimestamp == null)
+                    return int.MaxValue; // Null generator and timestamp means infinite stock
+
+                stock += item.StackSize ?? 1;
+            }
+
+            return stock;
+        }
+
+        public void RemoveFromDefaultItemStock(WorldObject itemToRemove)
+        {
+            if (itemToRemove != null)
+                RemoveFromDefaultItemStock(itemToRemove.StackSize ?? 1, itemToRemove.WeenieClassId);
+        }
+
+        public void RemoveFromDefaultItemStock(int amountToRemove, uint wcid)
+        {
+            var existing = GetDefaultItemsByWcid(wcid);
+
+            foreach(var item in existing)
+            {
+                if (item.Generator == null && item.SoldTimestamp == null)
+                    continue; // Null generator and timestamp means infinite stock
+
+                var stackAmount = item.StackSize ?? 1;
+                if (stackAmount > amountToRemove)
+                {
+                    item.SetStackSize(stackAmount - amountToRemove);
+                }
+                else
+                {
+                    amountToRemove -= stackAmount;
+                    DefaultItemsForSale.Remove(item.Guid);
+                    item.Destroy();
+                }
+
+                if (amountToRemove <= 0)
+                    return;
+            }
+        }
+
         /// <summary>
         /// Helper function to replace the previous 'AllItemsForSale' combiner
         /// While AllItemsForSale was a useful concept, it was only used in 2 places, and was inefficient
@@ -274,6 +322,11 @@ namespace ACE.Server.WorldObjects
         public List<WorldObject> GetDefaultItemsByWcid(uint wcid)
         {
             return DefaultItemsForSale.Values.Where(i => i.WeenieClassId == wcid).ToList();
+        }
+
+        public List<WorldObject> GetUniqueItemsByWcid(uint wcid)
+        {
+            return UniqueItemsForSale.Values.Where(i => i.WeenieClassId == wcid).ToList();
         }
 
         /// <summary>
@@ -566,6 +619,7 @@ namespace ACE.Server.WorldObjects
                     itemProfile.WeenieClassId = defaultItemForSale.WeenieClassId;
                     itemProfile.Palette = defaultItemForSale.PaletteTemplate;
                     itemProfile.Shade = defaultItemForSale.Shade;
+                    itemProfile.Amount = Math.Min(itemProfile.Amount, GetDefaultItemStock(itemProfile.WeenieClassId)); // Cap amount to what we have available at the moment.
 
                     defaultItemProfiles.Add(itemProfile);
                 }
@@ -792,30 +846,42 @@ namespace ACE.Server.WorldObjects
                 if (item.Attuned == AttunedStatus.Attuned)
                     resellItem = false;
 
-                // don't resell stackables?
-                if (item.MaxStackSize != null || item.MaxStructure != null)
+                if (item.ItemType == ItemType.MissileWeapon && item.Workmanship.HasValue)
+                {
+                    if(item.StackSize > 1)
+                        item.SetStackSize(1); // Remove ammo from thrown weapon stacks.
+                }
+                else if ((item.MaxStackSize != null && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM) || item.MaxStructure != null) // don't resell stackables?
                     resellItem = false;
 
                 if (resellItem)
                 {
-                    item.ContainerId = Guid.Full;
-
-                    if (!UniqueItemsForSale.TryAdd(item.Guid, item))
+                    if (item.WeenieType == WeenieType.Food && item.MaxStackSize != null && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
-                        var sellItems = string.Join(", ", items.Values.Select(i => $"{i.Name} ({i.Guid})"));
-                        log.Error($"[VENDOR] {Name}.ProcessItemsForPurchase({player.Name}): duplicate item found, sell list: {sellItems}");
+                        item.SoldTimestamp = Time.GetUnixTime();
+                        AddDefaultItem(item); // Sold food and potions are incorporated into the vendor's base stockpile.
                     }
+                    else
+                    {
+                        item.ContainerId = Guid.Full;
 
-                    item.SoldTimestamp = Time.GetUnixTime();
+                        if (!UniqueItemsForSale.TryAdd(item.Guid, item))
+                        {
+                            var sellItems = string.Join(", ", items.Values.Select(i => $"{i.Name} ({i.Guid})"));
+                            log.Error($"[VENDOR] {Name}.ProcessItemsForPurchase({player.Name}): duplicate item found, sell list: {sellItems}");
+                        }
 
-                    // verify no gap: even though the guid is technically free in the database at this point,
-                    // is it still marked as consumed in guid manager, and not marked as freed here?
-                    // if player repurchases item sometime later, we must ensure the guid is still marked as consumed for re-add
+                        item.SoldTimestamp = Time.GetUnixTime();
 
-                    // remove object from shard db, but keep a reference to it in memory
-                    // for DestroyOnSell items, these will effectively be destroyed immediately
-                    // for other items, if a player re-purchases, it will be added to the shard db again
-                    item.RemoveBiotaFromDatabase();
+                        // verify no gap: even though the guid is technically free in the database at this point,
+                        // is it still marked as consumed in guid manager, and not marked as freed here?
+                        // if player repurchases item sometime later, we must ensure the guid is still marked as consumed for re-add
+
+                        // remove object from shard db, but keep a reference to it in memory
+                        // for DestroyOnSell items, these will effectively be destroyed immediately
+                        // for other items, if a player re-purchases, it will be added to the shard db again
+                        item.RemoveBiotaFromDatabase();
+                    }
                 }
                 else
                     item.Destroy();
@@ -1209,30 +1275,36 @@ namespace ACE.Server.WorldObjects
             var item = LootGenerationFactory.CreateRandomLootObjects_New(itemTier, ShopQualityMod, (DealMagicalItems ?? false) ? TreasureItemCategory.MagicItem : TreasureItemCategory.Item, treasureItemType, armorType, weaponType, ShopHeritage);
 
             var amount = item.StackSize ?? 1;
-            if (amount > 1 && !item.Workmanship.HasValue) // Split stackable uniques.
+            if (amount > 1)
             {
-                for (int i = 0; i < amount; i++)
+                if (item.ItemType == ItemType.MissileWeapon && item.Workmanship.HasValue)
+                    item.SetStackSize(1); // Remove ammo from thrown weapon stacks.
+
+                if (VendorSellsSpecialItems) // Special item vendors will split stackable uniques.
                 {
-                    var newItem = WorldObjectFactory.CreateNewWorldObject(item.WeenieClassId);
-                    newItem.ContainerId = Guid.Full;
+                    for (int i = 0; i < amount; i++)
+                    {
+                        var newItem = WorldObjectFactory.CreateNewWorldObject(item.WeenieClassId);
+                        newItem.ContainerId = Guid.Full;
 
-                    UniqueItemsForSale.Add(newItem.Guid, newItem);
+                        UniqueItemsForSale.Add(newItem.Guid, newItem);
 
-                    newItem.SoldTimestamp = Time.GetUnixTime();
-                    newItem.RemoveBiotaFromDatabase();
+                        newItem.SoldTimestamp = Time.GetUnixTime();
+                        newItem.RemoveBiotaFromDatabase();
+                    }
+                    item.Destroy();
+
+                    return;
                 }
-                item.Destroy();
             }
-            else
-            {
-                item.ContainerId = Guid.Full;
 
-                UniqueItemsForSale.Add(item.Guid, item);
+            item.ContainerId = Guid.Full;
 
-                item.SoldTimestamp = Time.GetUnixTime();
+            UniqueItemsForSale.Add(item.Guid, item);
 
-                item.RemoveBiotaFromDatabase();
-            }
+            item.SoldTimestamp = Time.GetUnixTime();
+
+            item.RemoveBiotaFromDatabase();
         }
 
         /// <summary>

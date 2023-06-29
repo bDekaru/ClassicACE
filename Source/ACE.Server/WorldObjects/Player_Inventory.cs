@@ -734,9 +734,7 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            stack.StackSize += amount;
-            stack.EncumbranceVal = (stack.StackUnitEncumbrance ?? 0) * (stack.StackSize ?? 1);
-            stack.Value = (stack.StackUnitValue ?? 0) * (stack.StackSize ?? 1);
+            stack.SetStackSize(stack.StackSize + amount);
 
             if (container != null)
             {

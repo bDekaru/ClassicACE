@@ -76,6 +76,7 @@ namespace ACE.Server.WorldObjects
                         item.Destroy();  // cleanup for guid manager
                     }
 
+                    vendor.RemoveFromDefaultItemStock(item);
                     vendor.NumItemsSold++;
                 }
                 else
