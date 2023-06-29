@@ -870,6 +870,18 @@ namespace ACE.Database
             return biotas.ToList();
         }
 
+        public int? GetCharacterGameplayMode(uint characterId)
+        {
+            using (var context = new ShardDbContext())
+            {
+                var query = from biota in context.Biota
+                            join pInt in context.BiotaPropertiesInt on biota.Id equals pInt.ObjectId
+                            where pInt.Type == (int)PropertyInt.GameplayMode && pInt.ObjectId == characterId
+                            select pInt.Value;
+
+                return query.FirstOrDefault();
+            }
+        }
         public uint? GetAllegianceID(uint monarchID)
         {
             using (var context = new ShardDbContext())
