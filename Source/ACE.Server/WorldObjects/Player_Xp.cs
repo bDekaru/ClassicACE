@@ -262,7 +262,7 @@ namespace ACE.Server.WorldObjects
 
             GrantXP(m_amount, xpType, shareType, xpMessage);
 
-            if (xpType == XpType.Kill)
+            if (xpType == XpType.Kill && CurrentLandblock != null)
             {
                 if (Exploration1LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration1KillProgressTracker > 0)
                 {
