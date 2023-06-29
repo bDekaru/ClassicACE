@@ -1362,7 +1362,7 @@ namespace ACE.Server.Command.Handlers
             message.Append("-----------------------\n");
             uint playerCounter = 1;
             var biotas = DatabaseManager.Shard.BaseDatabase.GetAllPlayerBiotasInParallel(!onlyLiving)
-                .OrderByDescending(b => b.PropertiesInt64.ElementAtOrDefault((int)ACE.Entity.Enum.Properties.PropertyInt64.TotalExperience).Value);
+                .OrderByDescending(b => b.PropertiesInt64.TryGetValue(ACE.Entity.Enum.Properties.PropertyInt64.TotalExperience, out var totalExperience) ? totalExperience : 0);
 
             foreach (var biota in biotas)
             {
@@ -1370,7 +1370,7 @@ namespace ACE.Server.Command.Handlers
                 if (thePlayer.IsHardcore && (!pk || thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PKLite))
                 {
                     var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                    var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Alive")})";
+                    var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Living")})";
                     message.Append($"{label} {thePlayer.Name} - Level {thePlayer.Level}{deathStatus}\n");
                     playerCounter++;
                 }
@@ -1410,7 +1410,7 @@ namespace ACE.Server.Command.Handlers
             uint playerCounter = 1;
 
             var biotas = DatabaseManager.Shard.BaseDatabase.GetAllPlayerBiotasInParallel(!onlyLiving)
-                .OrderByDescending(b => b.PropertiesInt.ElementAtOrDefault((int)ACE.Entity.Enum.Properties.PropertyInt.PlayerKillsPkl).Value);
+                .OrderByDescending(b => b.PropertiesInt.TryGetValue(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillsPkl, out var pklKills) ? pklKills : 0);
 
             foreach (var biota in biotas)
             {
@@ -1419,7 +1419,7 @@ namespace ACE.Server.Command.Handlers
                 if (thePlayer.IsHardcore && thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PKLite && kills > 0)
                 {
                     var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                    var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Alive")})";
+                    var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Living")})";
                     message.Append($"{label} {thePlayer.Name} - Level {thePlayer.Level} - {kills} kill{(kills > 1 ? "s": "")}{deathStatus}\n");
                     playerCounter++;
                 }
