@@ -1367,7 +1367,8 @@ namespace ACE.Server.Command.Handlers
             foreach (var biota in biotas)
             {
                 var thePlayer = new OfflinePlayer(biota);
-                if (thePlayer.IsHardcore && (!pk || thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PKLite))
+                var pkStatus = (PlayerKillerStatus)(thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) ?? 0);
+                if (thePlayer.IsHardcore && ((!pk && pkStatus == PlayerKillerStatus.NPK) || (pk && pkStatus == PlayerKillerStatus.PKLite)))
                 {
                     var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
                     var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Living")})";
@@ -1415,8 +1416,9 @@ namespace ACE.Server.Command.Handlers
             foreach (var biota in biotas)
             {
                 var thePlayer = new OfflinePlayer(biota);
-                var kills = thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillsPkl);
-                if (thePlayer.IsHardcore && thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PKLite && kills > 0)
+                var kills = thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillsPkl) ?? 0;
+                var pkStatus = (PlayerKillerStatus)(thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) ?? 0);
+                if (thePlayer.IsHardcore && pkStatus ==PlayerKillerStatus.PKLite && kills > 0)
                 {
                     var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
                     var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Living")})";
