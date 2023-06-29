@@ -309,10 +309,10 @@ namespace ACE.Server.WorldObjects
                     continue;
                 }
 
-                if (IsHardcore && !wo.IsHardcore)
+                if (!VerifyGameplayMode(wo))
                 {
                     var itemName = (wo.StackSize ?? 1) > 1 ? wo.GetPluralName() : wo.Name;
-                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {itemName} {((wo.StackSize ?? 1) > 1 ? "are" : "is")} not hardcore and cannot be sold by hardcore characters."));
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"The {itemName} {((wo.StackSize ?? 1) > 1 ? "are" : "is")} cannot be sold, incompatible gameplay mode!"));
                     continue;
                 }
 
@@ -347,7 +347,7 @@ namespace ACE.Server.WorldObjects
                 var currentStackAmount = Math.Min(amount, currencyStack.MaxStackSize.Value);
 
                 currencyStack.SetStackSize(currentStackAmount);
-                currencyStack.IsHardcore = IsHardcore;
+                currencyStack.GameplayMode = GameplayMode;
                 coinStacks.Add(currencyStack);
                 amount -= currentStackAmount;
             }
@@ -358,13 +358,8 @@ namespace ACE.Server.WorldObjects
         {
             int coins = 0;
 
-            foreach (var coinStack in GetInventoryItemsOfTypeWeenieType(WeenieType.Coin))
-            {
-                if(!IsHardcore)
-                    coins += coinStack.Value ?? 0;
-                else if(coinStack.IsHardcore)
-                    coins += coinStack.Value ?? 0;
-            }
+            foreach (var coinStack in GetInventoryItemsOfTypeWeenieType(WeenieType.Coin, true))
+                coins += coinStack.Value ?? 0;
 
             if (sendUpdateMessageIfChanged && CoinValue == coins)
                 sendUpdateMessageIfChanged = false;
@@ -408,7 +403,7 @@ namespace ACE.Server.WorldObjects
         {
             var currencyStacksCollected = new List<WorldObject>();
 
-            var currencyStacksInInventory = GetInventoryItemsOfWCID(currencyWcid, IsHardcore);
+            var currencyStacksInInventory = GetInventoryItemsOfWCID(currencyWcid, true);
             //currencyStacksInInventory = currencyStacksInInventory.OrderBy(o => o.Value).ToList();
 
             var remaining = (int)amount;
@@ -426,7 +421,7 @@ namespace ACE.Server.WorldObjects
                     // create new stack
                     var newStack = WorldObjectFactory.CreateNewWorldObject(currencyWcid);
                     newStack.SetStackSize(amountToRemove);
-                    newStack.IsHardcore = IsHardcore;
+                    newStack.GameplayMode = GameplayMode;
                     currencyStacksCollected.Add(newStack);
 
                     var stackToAdjust = FindObject(stack.Guid, SearchLocations.MyInventory, out var foundInContainer, out var rootContainer, out _);

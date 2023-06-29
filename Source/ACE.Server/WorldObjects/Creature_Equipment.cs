@@ -347,6 +347,10 @@ namespace ACE.Server.WorldObjects
 
             TrySetChild(worldObject);
 
+            var owner = this as Player;
+            if (owner != null)
+                owner.ExtraItemChecks(worldObject);
+
             worldObject.OnWield(this);
 
             return true;

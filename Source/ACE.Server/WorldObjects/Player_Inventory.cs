@@ -14,6 +14,7 @@ using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
+using ACE.Server.Factories.Tables;
 using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;
@@ -155,7 +156,7 @@ namespace ACE.Server.WorldObjects
 
         public bool TryConsumeFromInventoryWithNetworking(uint wcid, int amount = int.MaxValue)
         {
-            var items = GetInventoryItemsOfWCID(wcid, IsHardcore);
+            var items = GetInventoryItemsOfWCID(wcid, true);
             //items = items.OrderBy(o => o.Value).ToList();
 
             var leftReq = amount;
@@ -1859,9 +1860,9 @@ namespace ACE.Server.WorldObjects
                 return true;
             }
 
-            if(IsHardcore && !item.IsHardcore)
+            if (!VerifyGameplayMode(item))
             {
-                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Hardcore characters cannot wield that!"));
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "That cannot be wielded, incompatible gameplay mode!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
                 return false;
             }
@@ -2499,7 +2500,7 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
-                        newStack.IsHardcore = stack.IsHardcore;
+                        newStack.GameplayMode = stack.GameplayMode;
 
                         newStack.SetStackSize(amount);
 
@@ -2534,7 +2535,7 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                newStack.IsHardcore = stack.IsHardcore;
+                newStack.GameplayMode = stack.GameplayMode;
 
                 newStack.SetStackSize(amount);
 
@@ -2668,7 +2669,7 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                newStack.IsHardcore = stack.IsHardcore;
+                newStack.GameplayMode = stack.GameplayMode;
 
                 newStack.SetStackSize(amount);
 
@@ -2863,7 +2864,7 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
-                        newStack.IsHardcore = stack.IsHardcore;
+                        newStack.GameplayMode = stack.GameplayMode;
 
                         newStack.SetStackSize(amount);
 
@@ -2925,7 +2926,7 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                newStack.IsHardcore = stack.IsHardcore;
+                newStack.GameplayMode = stack.GameplayMode;
 
                 newStack.SetStackSize(amount);
 
@@ -3070,9 +3071,9 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (sourceStack.IsHardcore != targetStack.IsHardcore)
+            if (sourceStack.GameplayMode != targetStack.GameplayMode)
             {
-                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Cannot merge non-hardcore and hardcore items!"));
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Cannot merge stacks of different gameplay modes!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeFromGuid));
 
                 if (targetStack.Container != null)
@@ -3531,6 +3532,13 @@ namespace ACE.Server.WorldObjects
         {
             if (target == null || item == null) return;
 
+            if (!VerifyGameplayMode(item))
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be given, incompatible gameplay mode!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                return;
+            }
+
             if (item.Name == "IOU" && item.WeenieType == WeenieType.Book && target.Name == "Town Crier")
             {
                 HandleIOUTurnIn(target, item);
@@ -3697,14 +3705,6 @@ namespace ACE.Server.WorldObjects
 
         private bool RemoveItemForGive(WorldObject item, Container itemFoundInContainer, bool itemWasEquipped, Container itemRootOwner, int amount, out WorldObject itemToGive, bool destroy = false)
         {
-            if (IsHardcore && !item.IsHardcore)
-            {
-                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Hardcore characters cannot turn in non-hardcore items!"));
-                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                itemToGive = null;
-                return false;
-            }
-
             if (item.StackSize > 1 && amount < item.StackSize) // We're splitting a stack
             {
                 if (!AdjustStack(item, -amount, itemFoundInContainer, itemRootOwner))
@@ -3727,7 +3727,7 @@ namespace ACE.Server.WorldObjects
                     return false;
                 }
 
-                newStack.IsHardcore = item.IsHardcore;
+                newStack.GameplayMode = item.GameplayMode;
 
                 newStack.SetStackSize(amount);
 
@@ -4132,5 +4132,238 @@ namespace ACE.Server.WorldObjects
         {
             return GetEquippedObjectsOfWCID(weenieClassId).Select(i => i.StackSize ?? 1).Sum();
         }
+
+        public void ExtraItemChecks(WorldObject worldObject)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                worldObject.UpdateGameplayMode(this);
+
+                // Add default ExtraSpellsMaxOverride value to quest items.
+                if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
+                {
+                    worldObject.ExtraSpellsMaxOverride = 2;
+                    worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty ?? 0;
+                    worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft ?? 0;
+                }
+
+                // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
+
+                // Convert weapon skills to merged ones
+                if (worldObject.WieldSkillType.HasValue)
+                    worldObject.WieldSkillType = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType);
+                if (worldObject.WieldSkillType2.HasValue)
+                    worldObject.WieldSkillType2 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType2);
+                if (worldObject.WieldSkillType3.HasValue)
+                    worldObject.WieldSkillType3 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType3);
+                if (worldObject.WieldSkillType4.HasValue)
+                    worldObject.WieldSkillType4 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType4);
+
+                // Remove invalid spells from items accessible by players, keep the spells on monster's items.
+                var list = worldObject.Biota.GetKnownSpellsIds(BiotaDatabaseLock);
+                foreach (var entry in list)
+                {
+                    int replacementId;
+                    if (SpellsToReplace.TryGetValue((SpellId)entry, out replacementId))
+                    {
+                        if (worldObject.Biota.TryRemoveKnownSpell(entry, BiotaDatabaseLock))
+                        {
+                            if (replacementId < 0 && (worldObject is MeleeWeapon || worldObject is MissileLauncher || worldObject is Missile))
+                            {
+                                int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
+
+                                SpellId procSpellLevel1Id;
+                                if (worldObject is MeleeWeapon)
+                                    procSpellLevel1Id = MeleeSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
+                                else
+                                    procSpellLevel1Id = MissileSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
+
+                                var procSpellId = SpellLevelProgression.GetSpellAtLevel(procSpellLevel1Id, level);
+
+                                Spell spell = new Spell(procSpellId);
+                                worldObject.ProcSpellRate = 0.15f;
+                                worldObject.ProcSpell = (uint)procSpellId;
+                                worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
+
+                                log.Warn($"Replaced invalid spell {(SpellId)entry} with {procSpellId} as a proc on {worldObject.GetProperty(PropertyString.Name)}.");
+                            }
+                            else if (replacementId > 0)
+                            {
+                                Spell spell = new Spell(replacementId);
+
+                                if (spell.IsBeneficial)
+                                {
+                                    worldObject.Biota.GetOrAddKnownSpell(replacementId, BiotaDatabaseLock, out _);
+                                    log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} on {worldObject.GetProperty(PropertyString.Name)}.");
+                                }
+                                else
+                                {
+                                    worldObject.ProcSpellRate = 0.15f;
+                                    worldObject.ProcSpell = (uint)replacementId;
+                                    worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
+
+                                    log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} as a proc on {worldObject.GetProperty(PropertyString.Name)}.");
+                                }
+                            }
+                            else
+                                log.Warn($"Removed invalid spell {(SpellId)entry} from {worldObject.GetProperty(PropertyString.Name)}.");
+                        }
+                    }
+                }
+            }
+        }
+
+        Dictionary<SpellId, int> SpellsToReplace = new Dictionary<SpellId, int>()
+        {
+            // -1 means replace with a pseudorandom(based on wcid) level 1 proc and so on.
+            // 0 means remove, positive values mean the spellId of the replacement spell.
+            { SpellId.BloodDrinkerSelf1, 0 },
+            { SpellId.BloodDrinkerSelf2, 0 },
+            { SpellId.BloodDrinkerSelf3, 0 },
+            { SpellId.BloodDrinkerSelf4, 0 },
+            { SpellId.BloodDrinkerSelf5, 0 },
+            { SpellId.BloodDrinkerSelf6, 0 },
+            { SpellId.BloodDrinkerSelf7, 0 },
+            { SpellId.BloodDrinkerSelf8, 0 },
+            { SpellId.LightbringersWay, 0 },
+
+            { SpellId.Discipline, 0 },
+            { SpellId.WoundTwister, 0 },
+            { SpellId.MurderousThirst, 0 },
+
+            { SpellId.BloodDrinkerOther1, 0 },
+            { SpellId.BloodDrinkerOther2, 0 },
+            { SpellId.BloodDrinkerOther3, 0 },
+            { SpellId.BloodDrinkerOther4, 0 },
+            { SpellId.BloodDrinkerOther5, 0 },
+            { SpellId.BloodDrinkerOther6, 0 },
+            { SpellId.BloodDrinkerOther7, 0 },
+            { SpellId.BloodDrinkerOther8, 0 },
+
+            { SpellId.SwiftKillerSelf1, 0 },
+            { SpellId.SwiftKillerSelf2, 0 },
+            { SpellId.SwiftKillerSelf3, 0 },
+            { SpellId.SwiftKillerSelf4, 0 },
+            { SpellId.SwiftKillerSelf5, 0 },
+            { SpellId.SwiftKillerSelf6, 0 },
+            { SpellId.SwiftKillerSelf7, 0 },
+            { SpellId.SwiftKillerSelf8, 0 },
+
+            { SpellId.Alacrity, 0 },
+            { SpellId.SpeedHunter, 0 },
+
+            { SpellId.SwiftKillerOther1, 0 },
+            { SpellId.SwiftKillerOther2, 0 },
+            { SpellId.SwiftKillerOther3, 0 },
+            { SpellId.SwiftKillerOther4, 0 },
+            { SpellId.SwiftKillerOther5, 0 },
+            { SpellId.SwiftKillerOther6, 0 },
+            { SpellId.SwiftKillerOther7, 0 },
+            { SpellId.SwiftKillerOther8, 0 },
+
+            //{ SpellId.HeartSeekerSelf1, 0 },
+            //{ SpellId.HeartSeekerSelf2, 0 },
+            //{ SpellId.HeartSeekerSelf3, 0 },
+            //{ SpellId.HeartSeekerSelf4, 0 },
+            //{ SpellId.HeartSeekerSelf5, 0 },
+            //{ SpellId.HeartSeekerSelf6, 0 },
+            //{ SpellId.HeartSeekerSelf7, 0 },
+            //{ SpellId.HeartSeekerSelf8, 0 },
+
+            //{ SpellId.HeartSeekerOther1, 0 },
+            //{ SpellId.HeartSeekerOther2, 0 },
+            //{ SpellId.HeartSeekerOther3, 0 },
+            //{ SpellId.HeartSeekerOther4, 0 },
+            //{ SpellId.HeartSeekerOther5, 0 },
+            //{ SpellId.HeartSeekerOther6, 0 },
+            //{ SpellId.HeartSeekerOther7, 0 },
+            //{ SpellId.HeartSeekerOther8, 0 },
+
+            //{ SpellId.DefenderSelf1, 0 },
+            //{ SpellId.DefenderSelf2, 0 },
+            //{ SpellId.DefenderSelf3, 0 },
+            //{ SpellId.DefenderSelf4, 0 },
+            //{ SpellId.DefenderSelf5, 0 },
+            //{ SpellId.DefenderSelf6, 0 },
+            //{ SpellId.DefenderSelf7, 0 },
+            //{ SpellId.DefenderSelf8, 0 },
+
+            //{ SpellId.DefenderOther1, 0 },
+            //{ SpellId.DefenderOther2, 0 },
+            //{ SpellId.DefenderOther3, 0 },
+            //{ SpellId.DefenderOther4, 0 },
+            //{ SpellId.DefenderOther5, 0 },
+            //{ SpellId.DefenderOther6, 0 },
+            //{ SpellId.DefenderOther7, 0 },
+            //{ SpellId.DefenderOther8, 0 },
+
+            { SpellId.SpiritDrinkerSelf1, 0 },
+            { SpellId.SpiritDrinkerSelf2, 0 },
+            { SpellId.SpiritDrinkerSelf3, 0 },
+            { SpellId.SpiritDrinkerSelf4, 0 },
+            { SpellId.SpiritDrinkerSelf5, 0 },
+            { SpellId.SpiritDrinkerSelf6, 0 },
+            { SpellId.SpiritDrinkerSelf7, 0 },
+            { SpellId.SpiritDrinkerSelf8, 0 },
+
+            { SpellId.SpiritDrinkerOther1, 0 },
+            { SpellId.SpiritDrinkerOther2, 0 },
+            { SpellId.SpiritDrinkerOther3, 0 },
+            { SpellId.SpiritDrinkerOther4, 0 },
+            { SpellId.SpiritDrinkerOther5, 0 },
+            { SpellId.SpiritDrinkerOther6, 0 },
+            { SpellId.SpiritDrinkerOther7, 0 },
+            { SpellId.SpiritDrinkerOther8, 0 },
+
+            { SpellId.Impenetrability1, 0 },
+            { SpellId.Impenetrability2, 0 },
+            { SpellId.Impenetrability3, 0 },
+            { SpellId.Impenetrability4, 0 },
+            { SpellId.Impenetrability5, 0 },
+            { SpellId.Impenetrability6, 0 },
+            { SpellId.Impenetrability7, 0 },
+            { SpellId.Impenetrability8, 0 },
+
+            { SpellId.AerfallesWard, 0 },
+            { SpellId.LesserSkinFiazhat, 0 },
+            { SpellId.MinorSkinFiazhat, 0 },
+            { SpellId.SkinFiazhat, 0 },
+
+            { SpellId.ItemEnchantmentMasterySelf1, 0 },
+            { SpellId.ItemEnchantmentMasterySelf2, 0 },
+            { SpellId.ItemEnchantmentMasterySelf3, 0 },
+            { SpellId.ItemEnchantmentMasterySelf4, 0 },
+            { SpellId.ItemEnchantmentMasterySelf5, 0 },
+            { SpellId.ItemEnchantmentMasterySelf6, 0 },
+            { SpellId.ItemEnchantmentMasterySelf7, 0 },
+            { SpellId.ItemEnchantmentMasterySelf8, 0 },
+
+            { SpellId.ItemEnchantmentMasteryOther1, 0 },
+            { SpellId.ItemEnchantmentMasteryOther2, 0 },
+            { SpellId.ItemEnchantmentMasteryOther3, 0 },
+            { SpellId.ItemEnchantmentMasteryOther4, 0 },
+            { SpellId.ItemEnchantmentMasteryOther5, 0 },
+            { SpellId.ItemEnchantmentMasteryOther6, 0 },
+            { SpellId.ItemEnchantmentMasteryOther7, 0 },
+            { SpellId.ItemEnchantmentMasteryOther8, 0 },
+
+            { SpellId.CreatureEnchantmentMasterySelf1, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf2, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf3, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf4, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf5, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf6, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf7, 0 },
+            { SpellId.CreatureEnchantmentMasterySelf8, 0 },
+
+            { SpellId.CreatureEnchantmentMasteryOther1, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther2, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther3, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther4, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther5, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther6, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther7, 0 },
+            { SpellId.CreatureEnchantmentMasteryOther8, 0 },
+        };
     }
 }

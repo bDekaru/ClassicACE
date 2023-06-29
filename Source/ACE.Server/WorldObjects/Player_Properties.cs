@@ -1424,58 +1424,58 @@ namespace ACE.Server.WorldObjects
             set { if (value == null) RemoveProperty(PropertyString.SmartSalvageFilter); else SetProperty(PropertyString.SmartSalvageFilter, value); }
         }
 
-        public int? Exploration1LandblockId
+        public int Exploration1LandblockId
         {
-            get => GetProperty(PropertyInt.Exploration1LandblockId);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration1LandblockId); else SetProperty(PropertyInt.Exploration1LandblockId, value.Value); }
+            get => GetProperty(PropertyInt.Exploration1LandblockId) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration1LandblockId); else SetProperty(PropertyInt.Exploration1LandblockId, value); }
         }
 
-        public int? Exploration2LandblockId
+        public int Exploration2LandblockId
         {
-            get => GetProperty(PropertyInt.Exploration2LandblockId);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration2LandblockId); else SetProperty(PropertyInt.Exploration2LandblockId, value.Value); }
+            get => GetProperty(PropertyInt.Exploration2LandblockId) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration2LandblockId); else SetProperty(PropertyInt.Exploration2LandblockId, value); }
         }
 
-        public int? Exploration3LandblockId
+        public int Exploration3LandblockId
         {
-            get => GetProperty(PropertyInt.Exploration3LandblockId);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration3LandblockId); else SetProperty(PropertyInt.Exploration3LandblockId, value.Value); }
+            get => GetProperty(PropertyInt.Exploration3LandblockId) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration3LandblockId); else SetProperty(PropertyInt.Exploration3LandblockId, value); }
         }
 
-        public int? Exploration1KillProgressTracker
+        public int Exploration1KillProgressTracker
         {
-            get => GetProperty(PropertyInt.Exploration1KillProgressTracker);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration1KillProgressTracker); else SetProperty(PropertyInt.Exploration1KillProgressTracker, value.Value); }
+            get => GetProperty(PropertyInt.Exploration1KillProgressTracker) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration1KillProgressTracker); else SetProperty(PropertyInt.Exploration1KillProgressTracker, value); }
         }
 
-        public int? Exploration2KillProgressTracker
+        public int Exploration2KillProgressTracker
         {
-            get => GetProperty(PropertyInt.Exploration2KillProgressTracker);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration2KillProgressTracker); else SetProperty(PropertyInt.Exploration2KillProgressTracker, value.Value); }
+            get => GetProperty(PropertyInt.Exploration2KillProgressTracker) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration2KillProgressTracker); else SetProperty(PropertyInt.Exploration2KillProgressTracker, value); }
         }
 
-        public int? Exploration3KillProgressTracker
+        public int Exploration3KillProgressTracker
         {
-            get => GetProperty(PropertyInt.Exploration3KillProgressTracker);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration3KillProgressTracker); else SetProperty(PropertyInt.Exploration3KillProgressTracker, value.Value); }
+            get => GetProperty(PropertyInt.Exploration3KillProgressTracker) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration3KillProgressTracker); else SetProperty(PropertyInt.Exploration3KillProgressTracker, value); }
         }
 
-        public int? Exploration1MarkerProgressTracker
+        public int Exploration1MarkerProgressTracker
         {
-            get => GetProperty(PropertyInt.Exploration1MarkerProgressTracker);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration1MarkerProgressTracker); else SetProperty(PropertyInt.Exploration1MarkerProgressTracker, value.Value); }
+            get => GetProperty(PropertyInt.Exploration1MarkerProgressTracker) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration1MarkerProgressTracker); else SetProperty(PropertyInt.Exploration1MarkerProgressTracker, value); }
         }
 
-        public int? Exploration2MarkerProgressTracker
+        public int Exploration2MarkerProgressTracker
         {
-            get => GetProperty(PropertyInt.Exploration2MarkerProgressTracker);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration2MarkerProgressTracker); else SetProperty(PropertyInt.Exploration2MarkerProgressTracker, value.Value); }
+            get => GetProperty(PropertyInt.Exploration2MarkerProgressTracker) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration2MarkerProgressTracker); else SetProperty(PropertyInt.Exploration2MarkerProgressTracker, value); }
         }
 
-        public int? Exploration3MarkerProgressTracker
+        public int Exploration3MarkerProgressTracker
         {
-            get => GetProperty(PropertyInt.Exploration3MarkerProgressTracker);
-            set { if (!value.HasValue) RemoveProperty(PropertyInt.Exploration3MarkerProgressTracker); else SetProperty(PropertyInt.Exploration3MarkerProgressTracker, value.Value); }
+            get => GetProperty(PropertyInt.Exploration3MarkerProgressTracker) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.Exploration3MarkerProgressTracker); else SetProperty(PropertyInt.Exploration3MarkerProgressTracker, value); }
         }
 
         public string Exploration1Description

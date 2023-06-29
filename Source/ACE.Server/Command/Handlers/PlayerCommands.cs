@@ -1337,6 +1337,7 @@ namespace ACE.Server.Command.Handlers
         /// List top 10 Hardcore characters by total XP
         /// </summary>
         [CommandHandler("LeaderboardHCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore PK characters by total XP.", "LeaderboardHCXP [pk|npk] [alltime|living]")]
+        [CommandHandler("HCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore PK characters by total XP.", "LeaderboardHCXP [pk|npk] [alltime|living]")]
         public static void HandleLeaderboardHCXP(Session session, params string[] parameters)
         {
             if (session != null)
@@ -1388,6 +1389,7 @@ namespace ACE.Server.Command.Handlers
         /// Reports on the top 10 Hardcore characters by PvP kills
         /// </summary>
         [CommandHandler("LeaderboardHCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters ranked by PvP kills.", "LeaderboardHCPvP [alltime|living]")]
+        [CommandHandler("HCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters ranked by PvP kills.", "LeaderboardHCPvP [alltime|living]")]
         public static void HandleLeaderboardHCPvP(Session session, params string[] parameters)
         {
             if (session != null)

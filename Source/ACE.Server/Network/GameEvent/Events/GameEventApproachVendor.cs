@@ -32,7 +32,7 @@ namespace ACE.Server.Network.GameEvent.Events
                 var pluralName = altCurrency.GetPluralName();
 
                 // the total amount of alternate currency the player currently has
-                var altCurrencyInInventory = (uint)session.Player.GetNumInventoryItemsOfWCID(vendor.AlternateCurrency.Value, session.Player.IsHardcore);
+                var altCurrencyInInventory = (uint)session.Player.GetNumInventoryItemsOfWCID(vendor.AlternateCurrency.Value, true);
                 Writer.Write(altCurrencyInInventory + altCurrencySpent);
 
                 // the plural name of alt currency

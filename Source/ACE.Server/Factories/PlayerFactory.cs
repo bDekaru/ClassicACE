@@ -508,13 +508,6 @@ namespace ACE.Server.Factories
                         break;
                     case "Hardcore":
                         player.Location = new Position(0x77060038, 163.226196f, 174.996063f, 0.005000f,0.000000f, 0.000000f, 0.980516f, -0.196438f); // Hardcore Starter Island
-                        player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
-                        player.IsHardcore = true;
-
-                        var inventory = player.GetAllPossessions();
-
-                        foreach (var item in inventory)
-                            item.IsHardcore = true;
                         break;
                 }
 

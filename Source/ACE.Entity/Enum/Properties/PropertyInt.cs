@@ -673,6 +673,8 @@ namespace ACE.Entity.Enum.Properties
         Exploration3KillProgressTracker          = 10022,
         [ServerOnly]
         Exploration3MarkerProgressTracker        = 10023,
+        [ServerOnly]
+        GameplayMode                             = 10024,
     }
 
     public static class PropertyIntExtensions

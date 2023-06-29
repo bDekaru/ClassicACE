@@ -48,6 +48,13 @@ namespace ACE.Server.WorldObjects
 
         public override void HandleActionUseOnTarget(Player healer, WorldObject target)
         {
+            if (!healer.VerifyGameplayMode(this))
+            {
+                healer.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(healer.Session, $"This item cannot be used, invalid gameplay mode!"));
+                healer.SendUseDoneEvent(WeenieError.YouCannotUseThatItem);
+                return;
+            }
+
             if (healer.GetCreatureSkill(Skill.Healing).AdvancementClass < SkillAdvancementClass.Trained)
             {
                 healer.SendUseDoneEvent(WeenieError.YouArentTrainedInHealing);

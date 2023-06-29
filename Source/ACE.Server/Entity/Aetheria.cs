@@ -185,9 +185,9 @@ namespace ACE.Server.Entity
                 return WeenieError.YouDoNotPassCraftingRequirements;
             }
 
-            if (player.IsHardcore && (!source.IsHardcore || !target.IsHardcore))
+            if(!player.VerifyGameplayMode(source, target))
             {
-                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"Hardcore characters may not use non-hardcore items!"));
+                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"These items cannot be used, incompatible gameplay mode!"));
                 return WeenieError.YouDoNotPassCraftingRequirements;
             }
 

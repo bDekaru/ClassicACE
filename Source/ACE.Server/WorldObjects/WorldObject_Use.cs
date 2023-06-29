@@ -201,9 +201,9 @@ namespace ACE.Server.WorldObjects
             if (!(activator is Player player))
                 return new ActivationResult(true);
 
-            if (player.IsHardcore && !IsHardcore)
+            if (!player.VerifyGameplayMode(this))
             {
-                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"Hardcore characters may not use non-hardcore items!"));
+                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"This item cannot be used, invalid gameplay mode!"));
                 return new ActivationResult(false);
             }
 

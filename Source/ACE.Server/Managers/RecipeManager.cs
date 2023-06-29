@@ -139,7 +139,7 @@ namespace ACE.Server.Managers
                     actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, percentSuccess.Value));
                 actionChain.AddAction(player, () => player.IsBusy = false);
                 
-                log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance on conformation dialog: {percentSuccess.Value}");
+                log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance on confirmation dialog: {percentSuccess.Value}");
             }
             else
             {
@@ -153,7 +153,7 @@ namespace ACE.Server.Managers
                     player.IsBusy = false;
                 });
                 
-                log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance after conformation dialog: {percentSuccess.Value}");
+                log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance after confirmation dialog: {percentSuccess.Value}");
             }
 
             actionChain.EnqueueChain();
@@ -830,9 +830,9 @@ namespace ACE.Server.Managers
             if (!VerifyUse(player, source, target))
                 return false;
 
-            if (player.IsHardcore && (!source.IsHardcore || !target.IsHardcore))
+            if (!player.VerifyGameplayMode(source, target))
             {
-                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"Hardcore characters may not use non-hardcore items!"));
+                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"These items cannot be used, incompatible gameplay mode!"));
                 return false;
             }
 

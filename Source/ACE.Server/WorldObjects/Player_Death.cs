@@ -142,7 +142,7 @@ namespace ACE.Server.WorldObjects
             }
             else if (IsPKLiteDeath(topDamager))
             {
-                if(!IsHardcore)
+                if(GameplayMode != GameplayModes.HardcorePK)
                     pkPlayer.PlayerKillsPkl++;
                 else
                 {
@@ -900,7 +900,7 @@ namespace ACE.Server.WorldObjects
         {
             if (IsHardcore)
             {
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"Hardcore may not grant corpse looting permissions.", ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Hardcore characters may not grant corpse looting permissions.", ChatMessageType.Broadcast));
                 return;
             }
 

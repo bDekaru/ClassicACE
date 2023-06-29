@@ -12,6 +12,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
+using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Structure;
 using ACE.Server.Physics.Extensions;
 
@@ -3234,8 +3235,28 @@ namespace ACE.Server.WorldObjects
         }
         public bool IsHardcore
         {
-            get => GetProperty(PropertyBool.IsHardcore) ?? false;
-            set { if (!value) RemoveProperty(PropertyBool.IsHardcore); else SetProperty(PropertyBool.IsHardcore, value); }
+            get => GameplayMode == GameplayModes.HardcorePK || GameplayMode == GameplayModes.HardcoreNPK;
+        }
+
+        public GameplayModes GameplayMode
+        {
+            get => (GameplayModes)(GetProperty(PropertyInt.GameplayMode) ?? 0);
+            set
+            {
+                if (value == 0)
+                    RemoveProperty(PropertyInt.GameplayMode);
+                else
+                    SetProperty(PropertyInt.GameplayMode, (int)value);
+
+                if (IsGameplayOverlay(IconOverlaySecondary ?? 0))
+                {
+                    IconUnderlayId = GetGameplayModeIconOverlayId(GameplayMode);
+
+                    var player = Container as Player ?? Container?.Container as Player ?? Wielder as Player;
+                    if (player != null && player.Session != null)
+                        player.Session.Network.EnqueueSend(new GameMessageUpdateObject(this));
+                }
+            }
         }
     }
 }

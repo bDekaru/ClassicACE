@@ -237,8 +237,9 @@ namespace ACE.Server.WorldObjects
             var killerLevel = killer.Level ?? 1;
             var levelDifference = Math.Abs(victimLevel - killerLevel);
 
-            if (victim.IsHardcore && killer.IsHardcore)
-            {                var victimLevelXp = victim.GetXPToNextLevel(victimLevel);
+            if (victim.GameplayMode == GameplayModes.HardcorePK && killer.GameplayMode == GameplayModes.HardcorePK)
+            {
+                var victimLevelXp = victim.GetXPToNextLevel(victimLevel);
 
                 if (levelDifference < 10)
                 {
@@ -612,7 +613,7 @@ namespace ACE.Server.WorldObjects
 
             corpse.VictimId = Guid.Full;
             corpse.Name = $"{prefix} of {Name}";
-            corpse.IsHardcore = IsHardcore;
+            corpse.GameplayMode = GameplayMode;
 
             // set 'killed by' for looting rights
             var killerName = "misadventure";
@@ -684,7 +685,7 @@ namespace ACE.Server.WorldObjects
                     var isPKdeath = player.IsPKDeath(killer);
                     var isPKLdeath = player.IsPKLiteDeath(killer);
 
-                    if (isPKdeath || (IsHardcore && isPKLdeath))
+                    if (isPKdeath || (GameplayMode == GameplayModes.HardcorePK && isPKLdeath))
 	                {
                         corpse.PkLevel = PKLevel.PK;
 	

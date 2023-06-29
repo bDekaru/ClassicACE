@@ -128,11 +128,11 @@ namespace ACE.Server.WorldObjects
 
             if (!Guid.IsPlayer())
             {
-                var overrideHardcore = GetProperty(PropertyBool.IsHardcore);
-                if (overrideHardcore.HasValue)
-                    IsHardcore = overrideHardcore.Value;
+                var overrideGameplayMode = GetProperty(PropertyInt.GameplayMode);
+                if (overrideGameplayMode.HasValue)
+                    GameplayMode = (GameplayModes)overrideGameplayMode.Value;
                 else
-                    IsHardcore = true; // All non-player objects start as hardcore unless they have an override flag, contact with non-hardcore characters turns them non-hardcore.
+                    GameplayMode = GameplayModes.InitialMode;
             }
         }
 
@@ -1267,6 +1267,53 @@ namespace ACE.Server.WorldObjects
             }
 
             return maxTier ?? 0;
+        }
+
+        public bool VerifyGameplayMode(WorldObject item1 = null, WorldObject item2 = null)
+        {
+            if (item1 != null && GameplayMode > item1.GameplayMode)
+                return false;
+            if (item2 != null && GameplayMode > item2.GameplayMode)
+                return false;
+            return true;
+        }
+
+        public void UpdateGameplayMode(Player owner)
+        {
+            if (owner == null)
+                return;
+
+            if (GameplayMode > owner.GameplayMode)
+                GameplayMode = owner.GameplayMode;
+        }
+
+        public uint GetGameplayModeIconOverlayId(GameplayModes gameplayMode)
+        {
+            switch (gameplayMode)
+            {
+                default:
+                case GameplayModes.Regular: return 0;
+                case GameplayModes.HardcoreNPK: return 0x06020012;
+                case GameplayModes.InitialMode:
+                case GameplayModes.HardcorePK: return 0x06020011;
+            }
+        }
+
+        public bool IsGameplayOverlay(uint overlayId)
+        {
+            switch (overlayId)
+            {
+                default:
+                    return false;
+                case 0:
+                case 0x06020011:
+                case 0x06020012:
+                case 0x06020013:
+                case 0x06020014:
+                case 0x06020015:
+                case 0x06020016:
+                    return true;
+            }
         }
     }
 }

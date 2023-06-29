@@ -299,19 +299,23 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// This method is used to get all inventory items of a type in this container (example of usage get all items of coin on player)
         /// </summary>
-        public List<WorldObject> GetInventoryItemsOfTypeWeenieType(WeenieType type)
+        public List<WorldObject> GetInventoryItemsOfTypeWeenieType(WeenieType type, bool respectGameplayMode = false)
         {
             var items = new List<WorldObject>();
 
             // first search me / add all items of type.
-            var localInventory = Inventory.Values.Where(wo => wo.WeenieType == type).OrderBy(i => i.PlacementPosition).ToList();
+            List<WorldObject> localInventory;
+            if (!respectGameplayMode)
+                localInventory = Inventory.Values.Where(wo => wo.WeenieType == type).OrderBy(i => i.PlacementPosition).ToList();
+            else
+                localInventory = Inventory.Values.Where(wo => wo.WeenieType == type && VerifyGameplayMode(wo)).OrderBy(i => i.PlacementPosition).ToList();
 
             items.AddRange(localInventory);
 
             // next search all containers for type.. run function again for each container.
             var sideContainers = Inventory.Values.Where(i => i.WeenieType == WeenieType.Container).OrderBy(i => i.PlacementPosition).ToList();
             foreach (var container in sideContainers)
-                items.AddRange(((Container)container).GetInventoryItemsOfTypeWeenieType(type));
+                items.AddRange(((Container)container).GetInventoryItemsOfTypeWeenieType(type, respectGameplayMode));
 
             return items;
         }
@@ -319,23 +323,23 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the inventory items matching a weenie class id
         /// </summary>
-        public List<WorldObject> GetInventoryItemsOfWCID(uint weenieClassId, bool hardcoreOnly = false)
+        public List<WorldObject> GetInventoryItemsOfWCID(uint weenieClassId, bool respectGameplayMode = false)
         {
             var items = new List<WorldObject>();
 
             // search main pack / creature
             List<WorldObject> localInventory;
-            if(!hardcoreOnly)
+            if(!respectGameplayMode)
                 localInventory = Inventory.Values.Where(i => i.WeenieClassId == weenieClassId).OrderBy(i => i.PlacementPosition).ToList();
             else
-                localInventory = Inventory.Values.Where(i => i.WeenieClassId == weenieClassId && i.IsHardcore).OrderBy(i => i.PlacementPosition).ToList();
+                localInventory = Inventory.Values.Where(i => i.WeenieClassId == weenieClassId && VerifyGameplayMode(i)).OrderBy(i => i.PlacementPosition).ToList();
 
             items.AddRange(localInventory);
 
             // next search any side containers
             var sideContainers = Inventory.Values.Where(i => i.WeenieType == WeenieType.Container).Select(i => i as Container).OrderBy(i => i.PlacementPosition).ToList();
             foreach (var container in sideContainers)
-                items.AddRange(container.GetInventoryItemsOfWCID(weenieClassId, hardcoreOnly));
+                items.AddRange(container.GetInventoryItemsOfWCID(weenieClassId, respectGameplayMode));
 
             return items;
         }
@@ -343,31 +347,31 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the total # of inventory items matching a wcid
         /// </summary>
-        public int GetNumInventoryItemsOfWCID(uint weenieClassId, bool hardcoreOnly = false)
+        public int GetNumInventoryItemsOfWCID(uint weenieClassId, bool respectGameplayMode = false)
         {
-            return GetInventoryItemsOfWCID(weenieClassId, hardcoreOnly).Select(i => i.StackSize ?? 1).Sum();
+            return GetInventoryItemsOfWCID(weenieClassId, respectGameplayMode).Select(i => i.StackSize ?? 1).Sum();
         }
 
         /// <summary>
         /// Returns the inventory items matching a weenie class name
         /// </summary>
-        public List<WorldObject> GetInventoryItemsOfWeenieClass(string weenieClassName, bool hardcoreOnly = false)
+        public List<WorldObject> GetInventoryItemsOfWeenieClass(string weenieClassName, bool respectGameplayMode = false)
         {
             var items = new List<WorldObject>();
 
             // search main pack / creature
             List<WorldObject> localInventory;
-            if (!hardcoreOnly)
+            if (!respectGameplayMode)
                 localInventory = Inventory.Values.Where(i => i.WeenieClassName.Equals(weenieClassName, StringComparison.OrdinalIgnoreCase)).OrderBy(i => i.PlacementPosition).ToList();
             else
-                localInventory = Inventory.Values.Where(i => i.WeenieClassName.Equals(weenieClassName, StringComparison.OrdinalIgnoreCase) && i.IsHardcore).OrderBy(i => i.PlacementPosition).ToList();
+                localInventory = Inventory.Values.Where(i => i.WeenieClassName.Equals(weenieClassName, StringComparison.OrdinalIgnoreCase) && VerifyGameplayMode(i)).OrderBy(i => i.PlacementPosition).ToList();
 
             items.AddRange(localInventory);
 
             // next search any side containers
             var sideContainers = Inventory.Values.Where(i => i.WeenieType == WeenieType.Container).Select(i => i as Container).OrderBy(i => i.PlacementPosition).ToList();
             foreach (var container in sideContainers)
-                items.AddRange(container.GetInventoryItemsOfWeenieClass(weenieClassName, hardcoreOnly));
+                items.AddRange(container.GetInventoryItemsOfWeenieClass(weenieClassName, respectGameplayMode));
 
             return items;
         }
@@ -375,9 +379,9 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the total # of inventory items matching a weenie class name
         /// </summary>
-        public int GetNumInventoryItemsOfWeenieClass(string weenieClassName, bool hardcoreOnly = false)
+        public int GetNumInventoryItemsOfWeenieClass(string weenieClassName, bool respectGameplayMode = false)
         {
-            return GetInventoryItemsOfWeenieClass(weenieClassName, hardcoreOnly).Select(i => i.StackSize ?? 1).Sum();
+            return GetInventoryItemsOfWeenieClass(weenieClassName, respectGameplayMode).Select(i => i.StackSize ?? 1).Sum();
         }
 
         /// <summary>
@@ -510,159 +514,6 @@ namespace ACE.Server.WorldObjects
             return newStackSize <= maxStackSize;
         }
 
-        Dictionary<SpellId, int> SpellsToReplace = new Dictionary<SpellId, int>()
-        {
-            // -1 means replace with a pseudorandom(based on wcid) level 1 proc and so on.
-            // 0 means remove, positive values mean the spellId of the replacement spell.
-            { SpellId.BloodDrinkerSelf1, 0 }, 
-            { SpellId.BloodDrinkerSelf2, 0 },
-            { SpellId.BloodDrinkerSelf3, 0 },
-            { SpellId.BloodDrinkerSelf4, 0 },
-            { SpellId.BloodDrinkerSelf5, 0 },
-            { SpellId.BloodDrinkerSelf6, 0 },
-            { SpellId.BloodDrinkerSelf7, 0 },
-            { SpellId.BloodDrinkerSelf8, 0 },
-            { SpellId.LightbringersWay, 0 },
-
-            { SpellId.Discipline, 0 },
-            { SpellId.WoundTwister, 0 },
-            { SpellId.MurderousThirst, 0 },
-
-            { SpellId.BloodDrinkerOther1, 0 },
-            { SpellId.BloodDrinkerOther2, 0 },
-            { SpellId.BloodDrinkerOther3, 0 },
-            { SpellId.BloodDrinkerOther4, 0 },
-            { SpellId.BloodDrinkerOther5, 0 },
-            { SpellId.BloodDrinkerOther6, 0 },
-            { SpellId.BloodDrinkerOther7, 0 },
-            { SpellId.BloodDrinkerOther8, 0 },
-
-            { SpellId.SwiftKillerSelf1, 0 },
-            { SpellId.SwiftKillerSelf2, 0 },
-            { SpellId.SwiftKillerSelf3, 0 },
-            { SpellId.SwiftKillerSelf4, 0 },
-            { SpellId.SwiftKillerSelf5, 0 },
-            { SpellId.SwiftKillerSelf6, 0 },
-            { SpellId.SwiftKillerSelf7, 0 },
-            { SpellId.SwiftKillerSelf8, 0 },
-
-            { SpellId.Alacrity, 0 },
-            { SpellId.SpeedHunter, 0 },
-
-            { SpellId.SwiftKillerOther1, 0 },
-            { SpellId.SwiftKillerOther2, 0 },
-            { SpellId.SwiftKillerOther3, 0 },
-            { SpellId.SwiftKillerOther4, 0 },
-            { SpellId.SwiftKillerOther5, 0 },
-            { SpellId.SwiftKillerOther6, 0 },
-            { SpellId.SwiftKillerOther7, 0 },
-            { SpellId.SwiftKillerOther8, 0 },
-
-            //{ SpellId.HeartSeekerSelf1, 0 },
-            //{ SpellId.HeartSeekerSelf2, 0 },
-            //{ SpellId.HeartSeekerSelf3, 0 },
-            //{ SpellId.HeartSeekerSelf4, 0 },
-            //{ SpellId.HeartSeekerSelf5, 0 },
-            //{ SpellId.HeartSeekerSelf6, 0 },
-            //{ SpellId.HeartSeekerSelf7, 0 },
-            //{ SpellId.HeartSeekerSelf8, 0 },
-
-            //{ SpellId.HeartSeekerOther1, 0 },
-            //{ SpellId.HeartSeekerOther2, 0 },
-            //{ SpellId.HeartSeekerOther3, 0 },
-            //{ SpellId.HeartSeekerOther4, 0 },
-            //{ SpellId.HeartSeekerOther5, 0 },
-            //{ SpellId.HeartSeekerOther6, 0 },
-            //{ SpellId.HeartSeekerOther7, 0 },
-            //{ SpellId.HeartSeekerOther8, 0 },
-
-            //{ SpellId.DefenderSelf1, 0 },
-            //{ SpellId.DefenderSelf2, 0 },
-            //{ SpellId.DefenderSelf3, 0 },
-            //{ SpellId.DefenderSelf4, 0 },
-            //{ SpellId.DefenderSelf5, 0 },
-            //{ SpellId.DefenderSelf6, 0 },
-            //{ SpellId.DefenderSelf7, 0 },
-            //{ SpellId.DefenderSelf8, 0 },
-
-            //{ SpellId.DefenderOther1, 0 },
-            //{ SpellId.DefenderOther2, 0 },
-            //{ SpellId.DefenderOther3, 0 },
-            //{ SpellId.DefenderOther4, 0 },
-            //{ SpellId.DefenderOther5, 0 },
-            //{ SpellId.DefenderOther6, 0 },
-            //{ SpellId.DefenderOther7, 0 },
-            //{ SpellId.DefenderOther8, 0 },
-
-            { SpellId.SpiritDrinkerSelf1, 0 }, 
-            { SpellId.SpiritDrinkerSelf2, 0 },
-            { SpellId.SpiritDrinkerSelf3, 0 },
-            { SpellId.SpiritDrinkerSelf4, 0 },
-            { SpellId.SpiritDrinkerSelf5, 0 },
-            { SpellId.SpiritDrinkerSelf6, 0 },
-            { SpellId.SpiritDrinkerSelf7, 0 },
-            { SpellId.SpiritDrinkerSelf8, 0 },
-
-            { SpellId.SpiritDrinkerOther1, 0 },
-            { SpellId.SpiritDrinkerOther2, 0 },
-            { SpellId.SpiritDrinkerOther3, 0 },
-            { SpellId.SpiritDrinkerOther4, 0 },
-            { SpellId.SpiritDrinkerOther5, 0 },
-            { SpellId.SpiritDrinkerOther6, 0 },
-            { SpellId.SpiritDrinkerOther7, 0 },
-            { SpellId.SpiritDrinkerOther8, 0 },
-
-            { SpellId.Impenetrability1, 0 },
-            { SpellId.Impenetrability2, 0 },
-            { SpellId.Impenetrability3, 0 },
-            { SpellId.Impenetrability4, 0 },
-            { SpellId.Impenetrability5, 0 },
-            { SpellId.Impenetrability6, 0 },
-            { SpellId.Impenetrability7, 0 },
-            { SpellId.Impenetrability8, 0 },
-
-            { SpellId.AerfallesWard, 0 },
-            { SpellId.LesserSkinFiazhat, 0 },
-            { SpellId.MinorSkinFiazhat, 0 },
-            { SpellId.SkinFiazhat, 0 },
-
-            { SpellId.ItemEnchantmentMasterySelf1, 0 },
-            { SpellId.ItemEnchantmentMasterySelf2, 0 },
-            { SpellId.ItemEnchantmentMasterySelf3, 0 },
-            { SpellId.ItemEnchantmentMasterySelf4, 0 },
-            { SpellId.ItemEnchantmentMasterySelf5, 0 },
-            { SpellId.ItemEnchantmentMasterySelf6, 0 },
-            { SpellId.ItemEnchantmentMasterySelf7, 0 },
-            { SpellId.ItemEnchantmentMasterySelf8, 0 },
-
-            { SpellId.ItemEnchantmentMasteryOther1, 0 },
-            { SpellId.ItemEnchantmentMasteryOther2, 0 },
-            { SpellId.ItemEnchantmentMasteryOther3, 0 },
-            { SpellId.ItemEnchantmentMasteryOther4, 0 },
-            { SpellId.ItemEnchantmentMasteryOther5, 0 },
-            { SpellId.ItemEnchantmentMasteryOther6, 0 },
-            { SpellId.ItemEnchantmentMasteryOther7, 0 },
-            { SpellId.ItemEnchantmentMasteryOther8, 0 },
-
-            { SpellId.CreatureEnchantmentMasterySelf1, 0 },
-            { SpellId.CreatureEnchantmentMasterySelf2, 0 },
-            { SpellId.CreatureEnchantmentMasterySelf3, 0 },
-            { SpellId.CreatureEnchantmentMasterySelf4, 0 },
-            { SpellId.CreatureEnchantmentMasterySelf5, 0 },
-            { SpellId.CreatureEnchantmentMasterySelf6, 0 },
-            { SpellId.CreatureEnchantmentMasterySelf7, 0 },
-            { SpellId.CreatureEnchantmentMasterySelf8, 0 },
-
-            { SpellId.CreatureEnchantmentMasteryOther1, 0 },
-            { SpellId.CreatureEnchantmentMasteryOther2, 0 },
-            { SpellId.CreatureEnchantmentMasteryOther3, 0 },
-            { SpellId.CreatureEnchantmentMasteryOther4, 0 },
-            { SpellId.CreatureEnchantmentMasteryOther5, 0 },
-            { SpellId.CreatureEnchantmentMasteryOther6, 0 },
-            { SpellId.CreatureEnchantmentMasteryOther7, 0 },
-            { SpellId.CreatureEnchantmentMasteryOther8, 0 },
-        };
-
         /// <summary>
         /// If enough burden is available, this will try to add an item to the main pack. If the main pack is full, it will try to add it to the first side pack with room.<para />
         /// It will also increase the EncumbranceVal and Value.
@@ -698,7 +549,7 @@ namespace ACE.Server.WorldObjects
                 if (allowStacking && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && worldObject.MaterialType == null && worldObject.MaxStackSize > 0 && worldObject.StackSize < worldObject.MaxStackSize)
                 {
                     var wo = worldObject;
-                    var availableStack = containerItems.FirstOrDefault(i => i.WeenieClassId == wo.WeenieClassId && i.IsHardcore == wo.IsHardcore && i.StackSize < wo.MaxStackSize - wo.StackSize);
+                    var availableStack = containerItems.FirstOrDefault(i => i.WeenieClassId == wo.WeenieClassId && i.GameplayMode == wo.GameplayMode && i.StackSize < wo.MaxStackSize - wo.StackSize);
                     if(availableStack != null)
                     {
                         availableStack.SetStackSize(availableStack.StackSize + worldObject.StackSize);
@@ -765,87 +616,9 @@ namespace ACE.Server.WorldObjects
 
             container = this;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-            {
-                var owner = container as Player ?? container?.Container as Player ?? container.Wielder as Player;
-                if (owner != null && !owner.IsHardcore)
-                    worldObject.IsHardcore = false;
-
-                // Add default ExtraSpellsMaxOverride value to quest items.
-                if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
-                {
-                    worldObject.ExtraSpellsMaxOverride = 2;
-                    worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty ?? 0;
-                    worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft ?? 0;
-                }
-
-                // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
-
-                // Convert weapon skills to merged ones
-                if (worldObject.WieldSkillType.HasValue)
-                    worldObject.WieldSkillType = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType);
-                if (worldObject.WieldSkillType2.HasValue)
-                    worldObject.WieldSkillType2 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType2);
-                if (worldObject.WieldSkillType3.HasValue)
-                    worldObject.WieldSkillType3 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType3);
-                if (worldObject.WieldSkillType4.HasValue)
-                    worldObject.WieldSkillType4 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType4);
-
-                // Remove invalid spells from items accessible by players, keep the spells on monster's items.
-                if (owner != null)
-                {
-                    var list = worldObject.Biota.GetKnownSpellsIds(BiotaDatabaseLock);
-                    foreach (var entry in list)
-                    {
-                        int replacementId;
-                        if (SpellsToReplace.TryGetValue((SpellId)entry, out replacementId))
-                        {
-                            if (worldObject.Biota.TryRemoveKnownSpell(entry, BiotaDatabaseLock))
-                            {
-                                if (replacementId < 0 && (worldObject is MeleeWeapon || worldObject is MissileLauncher || worldObject is Missile))
-                                {
-                                    int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
-
-                                    SpellId procSpellLevel1Id;
-                                    if (worldObject is MeleeWeapon)
-                                        procSpellLevel1Id = MeleeSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
-                                    else
-                                        procSpellLevel1Id = MissileSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
-
-                                    var procSpellId = SpellLevelProgression.GetSpellAtLevel(procSpellLevel1Id, level);
-
-                                    Spell spell = new Spell(procSpellId);
-                                    worldObject.ProcSpellRate = 0.15f;
-                                    worldObject.ProcSpell = (uint)procSpellId;
-                                    worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
-
-                                    log.Warn($"Replaced invalid spell {(SpellId)entry} with {procSpellId} as a proc on {worldObject.GetProperty(PropertyString.Name)}.");
-                                }
-                                else if (replacementId > 0)
-                                {
-                                    Spell spell = new Spell(replacementId);
-
-                                    if (spell.IsBeneficial)
-                                    {
-                                        worldObject.Biota.GetOrAddKnownSpell(replacementId, BiotaDatabaseLock, out _);
-                                        log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} on {worldObject.GetProperty(PropertyString.Name)}.");
-                                    }
-                                    else
-                                    {
-                                        worldObject.ProcSpellRate = 0.15f;
-                                        worldObject.ProcSpell = (uint)replacementId;
-                                        worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
-
-                                        log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} as a proc on {worldObject.GetProperty(PropertyString.Name)}.");
-                                    }
-                                }
-                                else
-                                    log.Warn($"Removed invalid spell {(SpellId)entry} from {worldObject.GetProperty(PropertyString.Name)}.");
-                            }
-                        }
-                    }
-                }
-            }
+            var owner = container as Player ?? container?.Container as Player ?? container.Wielder as Player;
+            if (owner != null)
+                owner.ExtraItemChecks(worldObject);
 
             OnAddItem();
 

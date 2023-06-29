@@ -214,8 +214,6 @@ namespace ACE.Entity.Enum.Properties
         [ServerOnly]
         SmartSalvageIsWhitelist          = 9020,
         IsLightWeapon                    = 9021,
-        [ServerOnly]
-        IsHardcore                       = 9022
     }
 
     public static class PropertyBoolExtensions

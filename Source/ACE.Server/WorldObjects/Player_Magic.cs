@@ -1391,7 +1391,7 @@ namespace ACE.Server.WorldObjects
                 var wcid = Spell.GetComponentWCID(component);
                 if (wcid == 0) continue;
 
-                var item = GetInventoryItemsOfWCID(wcid, IsHardcore).FirstOrDefault();
+                var item = GetInventoryItemsOfWCID(wcid, true).FirstOrDefault();
                 if (item == null)
                 {
                     if (SpellComponentsRequired && PropertyManager.GetBool("require_spell_comps").Item)
@@ -1429,7 +1429,7 @@ namespace ACE.Server.WorldObjects
                 var wcid = kvp.Key;
                 var required = kvp.Value;
 
-                var available = GetNumInventoryItemsOfWCID(wcid, IsHardcore);
+                var available = GetNumInventoryItemsOfWCID(wcid, true);
 
                 if (required > available)
                     return false;

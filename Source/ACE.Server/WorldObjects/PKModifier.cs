@@ -60,19 +60,11 @@ namespace ACE.Server.WorldObjects
 
             if (PkLevelModifier >= 10)
             {
-                if (player.IsHardcore)
-                {
-                    if(player.Level == 1)
-                        return new ActivationResult(true);
-                    else
-                    {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat("Hardcore mode choices are final.", ChatMessageType.Broadcast));
-                        return new ActivationResult(false);
-                    }
-                }
+                if(player.Level == 1)
+                    return new ActivationResult(true);
                 else
                 {
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("Only hardcore characters may interact with that.", ChatMessageType.Broadcast));
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("Hardcore mode choices are final.", ChatMessageType.Broadcast));
                     return new ActivationResult(false);
                 }
             }
@@ -131,23 +123,36 @@ namespace ACE.Server.WorldObjects
             return new ActivationResult(true);
         }
 
-        public void StartHardcoreMode(Player player)
+        public void ConvertToGameplayMode(Player player)
         {
             switch (PkLevelModifier)
             {
-                default:
-                case 10: // NPK
+                case 10: // Hardcore NPK
+                    player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
                     player.PkLevel = PKLevel.NPK;
+                    player.GameplayMode = GameplayModes.HardcoreNPK;
+
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
-                case 11: // PK
+                case 11: // Hardcore PK
+                    player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.PKLite;
                     player.PkLevel = PKLevel.NPK;
+                    player.GameplayMode = GameplayModes.HardcorePK;
+
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
+                default:
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("Invalid gameplay mode!", ChatMessageType.Broadcast));
+                    return;
             }
 
-            player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
-            player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
+            var inventory = player.GetAllPossessions();
+            foreach (var item in inventory)
+                item.GameplayMode = player.GameplayMode;
 
             var starterLocation = ThreadSafeRandom.Next(1, 3);
             switch (starterLocation)
@@ -190,7 +195,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if(IsHardcore)
+            if(PkLevelModifier == 10 || PkLevelModifier == 11)
             {
                 IsBusy = true;
                 player.IsBusy = true;
@@ -209,7 +214,7 @@ namespace ACE.Server.WorldObjects
 
                 actionChain.AddAction(player, () =>
                 {
-                    StartHardcoreMode(player);
+                    ConvertToGameplayMode(player);
 
                     player.IsBusy = false;
                     Reset();

@@ -3,6 +3,7 @@ using System;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Models;
+using ACE.Server.Network.GameEvent.Events;
 
 namespace ACE.Server.WorldObjects
 {
@@ -31,6 +32,13 @@ namespace ACE.Server.WorldObjects
 
         public override void HandleActionUseOnTarget(Player player, WorldObject target)
         {
+            if (!player.VerifyGameplayMode(this))
+            {
+                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"This item cannot be used, invalid gameplay mode!"));
+                player.SendUseDoneEvent(WeenieError.YouCannotUseThatItem);
+                return;
+            }
+
             if (player.IsOlthoiPlayer)
             {
                 player.SendUseDoneEvent(WeenieError.OlthoiCannotInteractWithThat);

@@ -4,6 +4,7 @@ using System.Threading;
 using ACE.Database;
 using ACE.Database.Models.Auth;
 using ACE.Entity;
+using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.WorldObjects;
@@ -189,8 +190,13 @@ namespace ACE.Server.Entity
 
         public bool IsHardcore
         {
-            get => GetProperty(PropertyBool.IsHardcore) ?? false;
-            set { if (!value) RemoveProperty(PropertyBool.IsHardcore); else SetProperty(PropertyBool.IsHardcore, value); }
+            get => GameplayMode == GameplayModes.HardcorePK || GameplayMode == GameplayModes.HardcoreNPK;
+        }
+
+        public GameplayModes GameplayMode
+        {
+            get => (GameplayModes)(GetProperty(PropertyInt.GameplayMode) ?? 0);
+            set { if (value == 0) RemoveProperty(PropertyInt.GameplayMode); else SetProperty(PropertyInt.GameplayMode, (int)value); }
         }
         public uint? MonarchId
         {

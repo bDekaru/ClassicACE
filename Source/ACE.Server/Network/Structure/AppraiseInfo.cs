@@ -578,12 +578,22 @@ namespace ACE.Server.Network.Structure
                     extraPropertiesText = "";
 
                 bool hasExtraPropertiesText = false;
-                if (wo.IsHardcore && !(wo.Stuck && (int)(wo.ItemUseable ?? 0) < 2))
+                if (wo.GameplayMode != GameplayModes.Regular && !(wo.Stuck && (int)(wo.ItemUseable ?? 0) < 2))
                 {
-                    if (hasExtraPropertiesText)
-                        extraPropertiesText += "\n";
-                    extraPropertiesText += $"This item is useable by hardcore characters.\n";
-                    hasExtraPropertiesText = true;
+                    if (wo.GameplayMode >= GameplayModes.HardcorePK)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"This item is useable by hardcore characters.\n";
+                        hasExtraPropertiesText = true;
+                    }
+                    else if(wo.GameplayMode >= GameplayModes.HardcoreNPK)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"This item is useable by hardcore NPKs.\n";
+                        hasExtraPropertiesText = true;
+                    }
                 }
 
                 if (wo.ArmorLevel != null && wo.ArmorLevel != 0 && wo.CurrentWieldedLocation != null)
