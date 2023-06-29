@@ -806,8 +806,8 @@
             "name": "Shield",
             "gear": [
                 {
-                    "weenieId": "93",
-                    "name": "Round Shield",
+                    "weenieId": "44",
+                    "name": "Buckler",
                     "stacksize": "1"
                 }
             ]

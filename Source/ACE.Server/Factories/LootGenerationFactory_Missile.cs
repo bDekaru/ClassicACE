@@ -99,19 +99,20 @@ namespace ACE.Server.Factories
                 wo.WeaponTime = (int)(wo.WeaponTime * weaponSpeedMod);
             }
 
-            RollCrushingBlow(profile, wo);
+            if (!RollSlayer(profile, wo))
+            {
+                RollCrushingBlow(profile, wo);
 
-            RollBitingStrike(profile, wo);
+                RollBitingStrike(profile, wo);
 
-            RollHollow(profile, wo);
+                RollHollow(profile, wo);
 
-            RollArmorCleaving(profile, wo);
+                RollArmorCleaving(profile, wo);
 
-            RollResistanceCleaving(profile, wo);
+                RollResistanceCleaving(profile, wo);
 
-            RollShieldCleaving(profile, wo);
-
-            RollSlayer(profile, wo);
+                RollShieldCleaving(profile, wo);
+            }
 
             // material type
             var materialType = GetMaterialType(wo, profile.Tier);

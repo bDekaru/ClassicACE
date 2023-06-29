@@ -38,6 +38,8 @@ namespace ACE.Server.WorldObjects
             {
                 if (sourcePlayer != null)
                 {
+                    sourcePlayer.EndSneaking();
+
                     // player damage monster or player
                     damageEvent = sourcePlayer.DamageTarget(targetCreature, worldObject);
 

@@ -224,7 +224,7 @@ namespace ACE.Server.WorldObjects
                 return true;
 
             // players can loot corpses of creatures they killed or corpses that have previously been looted by killer
-            if (KillerId != null && player.Guid.Full == KillerId || IsLooted)
+            if (KillerId != null && player.Guid.Full == KillerId || (IsLooted && !IsHardcore))
                 return true;
 
             var victimGuid = new ObjectGuid(VictimId.Value);

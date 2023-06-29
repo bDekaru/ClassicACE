@@ -578,7 +578,7 @@ namespace ACE.Server.Network.Structure
                     extraPropertiesText = "";
 
                 bool hasExtraPropertiesText = false;
-                if (wo.IsHardcore && !(wo.Stuck && (int)wo.ItemUseable < 2))
+                if (wo.IsHardcore && !(wo.Stuck && (int)(wo.ItemUseable ?? 0) < 2))
                 {
                     if (hasExtraPropertiesText)
                         extraPropertiesText += "\n";

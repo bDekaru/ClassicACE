@@ -612,6 +612,7 @@ namespace ACE.Server.WorldObjects
 
             corpse.VictimId = Guid.Full;
             corpse.Name = $"{prefix} of {Name}";
+            corpse.IsHardcore = IsHardcore;
 
             // set 'killed by' for looting rights
             var killerName = "misadventure";
@@ -685,7 +686,7 @@ namespace ACE.Server.WorldObjects
 
                     if (isPKdeath || (IsHardcore && isPKLdeath))
 	                {
-	                    corpse.PkLevel = PKLevel.PK;
+                        corpse.PkLevel = PKLevel.PK;
 	
 	                    if(corpse != null && corpse.VictimId != null)
 	                    {

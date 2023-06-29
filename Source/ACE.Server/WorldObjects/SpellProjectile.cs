@@ -279,7 +279,10 @@ namespace ACE.Server.WorldObjects
                 return;
 
             if (player != null)
+            {
+                player.EndSneaking();
                 player.LastHitSpellProjectile = Spell;
+            }
             
             // ensure caster can damage target
             var sourceCreature = ProjectileSource as Creature;
