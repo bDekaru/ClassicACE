@@ -70,6 +70,8 @@ namespace ACE.Server.WorldObjects
                     player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg);
 
                 }
+                else
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("You currently do not have any exploration assignments for this location.", ChatMessageType.Broadcast));
 
                 CurrentLandblock.SpawnExplorationMarker();
                 Destroy();

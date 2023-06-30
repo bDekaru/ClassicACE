@@ -240,10 +240,13 @@ namespace ACE.Server.Entity
             {
                 if (obj.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker)
                 {
+                    var marker = obj.Value;
                     bool isVisible = false;
                     foreach(var player in players)
                     {
-                        if (player.ObjMaint.VisibleObjectsContainsKey(obj.Value.PhysicsObj.ID))
+                        var distSq = marker.PhysicsObj.get_distance_sq_to_object(player.PhysicsObj, true);
+
+                        if (distSq < 2000)
                         {
                             isVisible = true;
                             break;
@@ -252,9 +255,9 @@ namespace ACE.Server.Entity
 
                     if (!isVisible) // Only refresh exploration markers that are not visible for any players at the moment.
                     {
-                        obj.Value.Destroy();
+                        marker.Destroy();
 
-                        if(currentMarkerCount < ExplorationMarkerCount)
+                        if (currentMarkerCount < ExplorationMarkerCount)
                             SpawnExplorationMarker();
                     }
                     currentMarkerCount++;
