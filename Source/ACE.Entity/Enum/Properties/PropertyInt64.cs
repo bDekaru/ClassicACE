@@ -33,9 +33,11 @@ namespace ACE.Entity.Enum.Properties
         VerifyXp              = 9003,
 
         [ServerOnly]
-        XpTrackerTotalXp = 10000,
+        XpTrackerTotalXp            = 10000,
         [ServerOnly]
-        XpTrackerStartTimestamp = 10001
+        XpTrackerStartTimestamp     = 10001,
+        [ServerOnly]
+        GameplayModeExtraIdentifier = 10002,
     }
 
     public static class PropertyInt64Extensions

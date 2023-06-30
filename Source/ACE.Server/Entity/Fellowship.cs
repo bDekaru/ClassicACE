@@ -785,6 +785,7 @@ namespace ACE.Server.Entity
             var results = new Dictionary<uint, Player>();
             var dropped = new HashSet<uint>();
             var gameplayMode = me?.GameplayMode;
+            var gameplayModeExtra = me?.GameplayModeExtraIdentifier;
 
             foreach (var kvp in FellowshipMembers)
             {
@@ -795,7 +796,7 @@ namespace ACE.Server.Entity
 
                 if (player != null && player.Session != null && player.Session.Player != null && player.Fellowship != null)
                 {
-                    if (player.GameplayMode == gameplayMode)
+                    if (player.GameplayMode == gameplayMode && player.GameplayModeExtraIdentifier == gameplayModeExtra)
                         results.Add(playerGuid, player);
                 }
                 else

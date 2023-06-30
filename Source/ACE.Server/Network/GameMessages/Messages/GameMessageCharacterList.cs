@@ -28,6 +28,9 @@ namespace ACE.Server.Network.GameMessages.Messages
                     case GameplayModes.HardcorePK:
                         gamePlaymodeString = " [HC PK]";
                         break;
+                    case GameplayModes.SoloSelfFound:
+                        gamePlaymodeString = " [SSF]";
+                        break;
                 }
 
                 Writer.Write(character.Id);

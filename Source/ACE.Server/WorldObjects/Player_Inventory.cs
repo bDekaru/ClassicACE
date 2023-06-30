@@ -2501,6 +2501,8 @@ namespace ACE.Server.WorldObjects
                         }
 
                         newStack.GameplayMode = stack.GameplayMode;
+                        newStack.GameplayModeExtraIdentifier = stack.GameplayModeExtraIdentifier;
+                        newStack.GameplayModeIdentifierString = stack.GameplayModeIdentifierString;
 
                         newStack.SetStackSize(amount);
 
@@ -2536,6 +2538,8 @@ namespace ACE.Server.WorldObjects
                 }
 
                 newStack.GameplayMode = stack.GameplayMode;
+                newStack.GameplayModeExtraIdentifier = stack.GameplayModeExtraIdentifier;
+                newStack.GameplayModeIdentifierString = stack.GameplayModeIdentifierString;
 
                 newStack.SetStackSize(amount);
 
@@ -2670,6 +2674,8 @@ namespace ACE.Server.WorldObjects
                 }
 
                 newStack.GameplayMode = stack.GameplayMode;
+                newStack.GameplayModeExtraIdentifier = stack.GameplayModeExtraIdentifier;
+                newStack.GameplayModeIdentifierString = stack.GameplayModeIdentifierString;
 
                 newStack.SetStackSize(amount);
 
@@ -2865,6 +2871,8 @@ namespace ACE.Server.WorldObjects
                         }
 
                         newStack.GameplayMode = stack.GameplayMode;
+                        newStack.GameplayModeExtraIdentifier = stack.GameplayModeExtraIdentifier;
+                        newStack.GameplayModeIdentifierString = stack.GameplayModeIdentifierString;
 
                         newStack.SetStackSize(amount);
 
@@ -2927,6 +2935,8 @@ namespace ACE.Server.WorldObjects
                 }
 
                 newStack.GameplayMode = stack.GameplayMode;
+                newStack.GameplayModeExtraIdentifier = stack.GameplayModeExtraIdentifier;
+                newStack.GameplayModeIdentifierString = stack.GameplayModeIdentifierString;
 
                 newStack.SetStackSize(amount);
 
@@ -3079,6 +3089,20 @@ namespace ACE.Server.WorldObjects
                 if (targetStack.Container != null)
                 {
                     if(sourceStack.Container != targetStack.Container)
+                        HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.Container.Guid.Full, targetStack.PlacementPosition ?? 0); // Attempt a regular move instead of a merge.
+                    else
+                        HandleActionPutItemInContainer(sourceStack.Guid.Full, Guid.Full); // Redirect to main pack.
+                }
+                return;
+            }
+            else if(sourceStack.GameplayModeExtraIdentifier != targetStack.GameplayModeExtraIdentifier)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Cannot merge stacks with different gameplay mode identifiers!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeFromGuid));
+
+                if (targetStack.Container != null)
+                {
+                    if (sourceStack.Container != targetStack.Container)
                         HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.Container.Guid.Full, targetStack.PlacementPosition ?? 0); // Attempt a regular move instead of a merge.
                     else
                         HandleActionPutItemInContainer(sourceStack.Guid.Full, Guid.Full); // Redirect to main pack.
@@ -3728,6 +3752,8 @@ namespace ACE.Server.WorldObjects
                 }
 
                 newStack.GameplayMode = item.GameplayMode;
+                newStack.GameplayModeExtraIdentifier = item.GameplayModeExtraIdentifier;
+                newStack.GameplayModeIdentifierString = item.GameplayModeIdentifierString;
 
                 newStack.SetStackSize(amount);
 

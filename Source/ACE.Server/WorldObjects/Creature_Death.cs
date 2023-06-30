@@ -614,6 +614,8 @@ namespace ACE.Server.WorldObjects
             corpse.VictimId = Guid.Full;
             corpse.Name = $"{prefix} of {Name}";
             corpse.GameplayMode = GameplayMode;
+            corpse.GameplayModeExtraIdentifier = GameplayModeExtraIdentifier;
+            corpse.GameplayModeIdentifierString = GameplayModeIdentifierString;
 
             // set 'killed by' for looting rights
             var killerName = "misadventure";

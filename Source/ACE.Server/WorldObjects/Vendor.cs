@@ -231,7 +231,7 @@ namespace ACE.Server.WorldObjects
 
         public void AddDefaultItem(WorldObject item)
         {
-            var existing = GetDefaultItemsByWcid(item.WeenieClassId);
+            var existing = GetDefaultItemsByWcid(item.WeenieClassId, item.GameplayMode, item.GameplayModeExtraIdentifier);
 
             // add to existing stack?
             if (existing.Count > 0)
@@ -258,9 +258,9 @@ namespace ACE.Server.WorldObjects
             DefaultItemsForSale.Add(item.Guid, item);
         }
 
-        public int GetDefaultItemStock(uint wcid)
+        public int GetDefaultItemStock(uint wcid, GameplayModes gameplayMode, long gameplayModeExtraIdentifier)
         {
-            var existing = GetDefaultItemsByWcid(wcid);
+            var existing = GetDefaultItemsByWcid(wcid, gameplayMode, gameplayModeExtraIdentifier);
 
             var stock = 0;
             foreach (var item in existing)
@@ -274,15 +274,9 @@ namespace ACE.Server.WorldObjects
             return stock;
         }
 
-        public void RemoveFromDefaultItemStock(WorldObject itemToRemove)
+        public void RemoveFromDefaultItemStock(uint wcid, int amountToRemove, GameplayModes gameplayMode, long gameplayModeExtraIdentifier)
         {
-            if (itemToRemove != null)
-                RemoveFromDefaultItemStock(itemToRemove.StackSize ?? 1, itemToRemove.WeenieClassId);
-        }
-
-        public void RemoveFromDefaultItemStock(int amountToRemove, uint wcid)
-        {
-            var existing = GetDefaultItemsByWcid(wcid);
+            var existing = GetDefaultItemsByWcid(wcid, gameplayMode, gameplayModeExtraIdentifier);
 
             foreach(var item in existing)
             {
@@ -319,14 +313,14 @@ namespace ACE.Server.WorldObjects
                 action(kvp.Value);
         }
 
-        public List<WorldObject> GetDefaultItemsByWcid(uint wcid)
+        public List<WorldObject> GetDefaultItemsByWcid(uint wcid, GameplayModes gameplayMode, long gameplayModeExtraIdentifier)
         {
-            return DefaultItemsForSale.Values.Where(i => i.WeenieClassId == wcid).ToList();
+            return DefaultItemsForSale.Values.Where(i => i.WeenieClassId == wcid && i.GameplayMode == gameplayMode && i.GameplayModeExtraIdentifier == gameplayModeExtraIdentifier).ToList();
         }
 
-        public List<WorldObject> GetUniqueItemsByWcid(uint wcid)
+        public List<WorldObject> GetUniqueItemsByWcid(uint wcid, GameplayModes gameplayMode, long gameplayModeExtraIdentifier)
         {
-            return UniqueItemsForSale.Values.Where(i => i.WeenieClassId == wcid).ToList();
+            return UniqueItemsForSale.Values.Where(i => i.WeenieClassId == wcid && i.GameplayMode == gameplayMode && i.GameplayModeExtraIdentifier == gameplayModeExtraIdentifier).ToList();
         }
 
         /// <summary>
@@ -566,6 +560,13 @@ namespace ACE.Server.WorldObjects
                 if (itemProfile.Shade != null)
                     wo.Shade = itemProfile.Shade;
 
+                if (itemProfile.gameplayMode != null)
+                {
+                    wo.GameplayMode = itemProfile.gameplayMode ?? GameplayModes.InitialMode;
+                    wo.GameplayModeExtraIdentifier = itemProfile.gameplayModeExtraIdentifier;
+                    wo.GameplayModeIdentifierString = itemProfile.GameplayModeIdentifierString;
+                }
+
                 if ((wo.MaxStackSize ?? 0) > 0)
                 {
                     // stackable
@@ -619,7 +620,10 @@ namespace ACE.Server.WorldObjects
                     itemProfile.WeenieClassId = defaultItemForSale.WeenieClassId;
                     itemProfile.Palette = defaultItemForSale.PaletteTemplate;
                     itemProfile.Shade = defaultItemForSale.Shade;
-                    itemProfile.Amount = Math.Min(itemProfile.Amount, GetDefaultItemStock(itemProfile.WeenieClassId)); // Cap amount to what we have available at the moment.
+                    itemProfile.gameplayMode = defaultItemForSale.GameplayMode;
+                    itemProfile.gameplayModeExtraIdentifier = defaultItemForSale.GameplayModeExtraIdentifier;
+                    itemProfile.GameplayModeIdentifierString = defaultItemForSale.GameplayModeIdentifierString;
+                    itemProfile.Amount = Math.Min(itemProfile.Amount, GetDefaultItemStock(itemProfile.WeenieClassId, defaultItemForSale.GameplayMode, defaultItemForSale.GameplayModeExtraIdentifier)); // Cap amount to what we have available at the moment.
 
                     defaultItemProfiles.Add(itemProfile);
                 }

@@ -51,6 +51,8 @@ namespace ACE.Server.Entity
         int? Gender { get; }
 
         bool IsHardcore { get; }
+        bool IsSoloSelfFound { get; }
+
         bool IsDeleted { get; }
         bool IsPendingDeletion { get; }
 

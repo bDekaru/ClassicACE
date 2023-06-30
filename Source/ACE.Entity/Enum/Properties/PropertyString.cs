@@ -110,6 +110,8 @@ namespace ACE.Entity.Enum.Properties
         Exploration2Description         = 9013,
         [ServerOnly]
         Exploration3Description         = 9014,
+        [ServerOnly]
+        GameplayModeIdentifierString    = 9015,
     }
 
     public static class PropertyStringExtensions

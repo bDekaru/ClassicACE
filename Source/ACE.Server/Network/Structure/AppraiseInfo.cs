@@ -580,7 +580,24 @@ namespace ACE.Server.Network.Structure
                 bool hasExtraPropertiesText = false;
                 if (wo.GameplayMode != GameplayModes.Regular && !(wo.Stuck && (int)(wo.ItemUseable ?? 0) < 2))
                 {
-                    if (wo.GameplayMode >= GameplayModes.HardcorePK)
+                    if (wo.GameplayMode == GameplayModes.InitialMode)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"This item is useable by anyone.\n";
+                        hasExtraPropertiesText = true;
+                    }
+                    else if (wo.GameplayMode >= GameplayModes.SoloSelfFound)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        if(wo.GameplayModeExtraIdentifier == 0 || wo.GameplayModeIdentifierString == "")
+                            extraPropertiesText += $"This item is useable by solo self-found characters.\n";
+                        else
+                            extraPropertiesText += $"This item is useable {wo.GameplayModeIdentifierString}.\n";
+                        hasExtraPropertiesText = true;
+                    }
+                    else if (wo.GameplayMode >= GameplayModes.HardcorePK)
                     {
                         if (hasExtraPropertiesText)
                             extraPropertiesText += "\n";

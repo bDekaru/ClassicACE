@@ -193,6 +193,11 @@ namespace ACE.Server.Entity
             get => GameplayMode == GameplayModes.HardcorePK || GameplayMode == GameplayModes.HardcoreNPK;
         }
 
+        public bool IsSoloSelfFound
+        {
+            get => GameplayMode == GameplayModes.SoloSelfFound;
+        }
+
         public GameplayModes GameplayMode
         {
             get => (GameplayModes)(GetProperty(PropertyInt.GameplayMode) ?? 0);

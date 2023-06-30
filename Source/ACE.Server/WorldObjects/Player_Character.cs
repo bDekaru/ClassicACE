@@ -354,14 +354,14 @@ namespace ACE.Server.WorldObjects
 
             if (setAsDisplayTitle && CharacterTitleId != titleId)
             {
-                if (!IsHardcore)
+                if (GameplayMode == GameplayModes.Regular)
                     CharacterTitleId = (int)titleId;
                 else
                 {
                     titleId = (uint)CharacterTitleId.Value;
                     setAsDisplayTitle = false;
                     if(FirstEnterWorldDone)
-                        Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Hardcore characters may not change their title."));
+                        Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Characters playing gameplay modes other than the default may not change their titles."));
                 }
                 sendMsg = true;
             }

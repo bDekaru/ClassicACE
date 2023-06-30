@@ -549,7 +549,7 @@ namespace ACE.Server.WorldObjects
                 if (allowStacking && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && worldObject.MaterialType == null && worldObject.MaxStackSize > 0 && worldObject.StackSize < worldObject.MaxStackSize)
                 {
                     var wo = worldObject;
-                    var availableStack = containerItems.FirstOrDefault(i => i.WeenieClassId == wo.WeenieClassId && i.GameplayMode == wo.GameplayMode && i.StackSize < wo.MaxStackSize - wo.StackSize);
+                    var availableStack = containerItems.FirstOrDefault(i => i.WeenieClassId == wo.WeenieClassId && i.GameplayMode == wo.GameplayMode && i.GameplayModeExtraIdentifier == wo.GameplayModeExtraIdentifier && i.StackSize < wo.MaxStackSize - wo.StackSize);
                     if(availableStack != null)
                     {
                         availableStack.SetStackSize(availableStack.StackSize + worldObject.StackSize);

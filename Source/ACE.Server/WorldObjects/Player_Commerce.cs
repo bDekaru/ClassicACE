@@ -68,6 +68,10 @@ namespace ACE.Server.WorldObjects
 
                 if (!service)
                 {
+                    var itemBoughtWcid = item.WeenieClassId;
+                    var itemBoughtGameplayMode = item.GameplayMode;
+                    var itemBoughtGameplayModeExtra = item.GameplayModeExtraIdentifier;
+                    var itemBoughtStackSize = item.StackSize ?? 1;
                     // errors shouldn't be possible here, since the items were pre-validated, but just in case...
                     if (!TryCreateInInventoryWithNetworking(item, out _, true))
                     {
@@ -76,7 +80,7 @@ namespace ACE.Server.WorldObjects
                         item.Destroy();  // cleanup for guid manager
                     }
 
-                    vendor.RemoveFromDefaultItemStock(item);
+                    vendor.RemoveFromDefaultItemStock(itemBoughtWcid, itemBoughtStackSize, itemBoughtGameplayMode, itemBoughtGameplayModeExtra);
                     vendor.NumItemsSold++;
                 }
                 else
@@ -348,6 +352,8 @@ namespace ACE.Server.WorldObjects
 
                 currencyStack.SetStackSize(currentStackAmount);
                 currencyStack.GameplayMode = GameplayMode;
+                currencyStack.GameplayModeExtraIdentifier = GameplayModeExtraIdentifier;
+                currencyStack.GameplayModeIdentifierString = GameplayModeIdentifierString;
                 coinStacks.Add(currencyStack);
                 amount -= currentStackAmount;
             }
@@ -422,6 +428,8 @@ namespace ACE.Server.WorldObjects
                     var newStack = WorldObjectFactory.CreateNewWorldObject(currencyWcid);
                     newStack.SetStackSize(amountToRemove);
                     newStack.GameplayMode = GameplayMode;
+                    newStack.GameplayModeExtraIdentifier = GameplayModeExtraIdentifier;
+                    newStack.GameplayModeIdentifierString = GameplayModeIdentifierString;
                     currencyStacksCollected.Add(newStack);
 
                     var stackToAdjust = FindObject(stack.Guid, SearchLocations.MyInventory, out var foundInContainer, out var rootContainer, out _);

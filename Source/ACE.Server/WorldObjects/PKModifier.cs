@@ -64,7 +64,7 @@ namespace ACE.Server.WorldObjects
                     return new ActivationResult(true);
                 else
                 {
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("Hardcore mode choices are final.", ChatMessageType.Broadcast));
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("Gameplay mode choices are final.", ChatMessageType.Broadcast));
                     return new ActivationResult(false);
                 }
             }
@@ -145,6 +145,17 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
+                case 12: // Solo Self Found
+                    player.AddTitle(CharacterTitle.GimpGoddess, true); // This title was replaced with the "Solo Self-Found" title.
+                    player.PlayerKillerStatus = PlayerKillerStatus.NPK;
+                    player.PkLevel = PKLevel.NPK;
+                    player.GameplayMode = GameplayModes.SoloSelfFound;
+                    player.GameplayModeExtraIdentifier = player.Guid.Full;
+                    player.GameplayModeIdentifierString = player.Name;
+
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
+                    break;
                 default:
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("Invalid gameplay mode!", ChatMessageType.Broadcast));
                     return;
@@ -152,7 +163,11 @@ namespace ACE.Server.WorldObjects
 
             var inventory = player.GetAllPossessions();
             foreach (var item in inventory)
+            {
                 item.GameplayMode = player.GameplayMode;
+                item.GameplayModeExtraIdentifier = player.GameplayModeExtraIdentifier;
+                item.GameplayModeIdentifierString = player.GameplayModeIdentifierString;
+            }
 
             var starterLocation = ThreadSafeRandom.Next(1, 3);
             switch (starterLocation)
@@ -195,7 +210,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if(PkLevelModifier == 10 || PkLevelModifier == 11)
+            if(PkLevelModifier >= 10)
             {
                 IsBusy = true;
                 player.IsBusy = true;

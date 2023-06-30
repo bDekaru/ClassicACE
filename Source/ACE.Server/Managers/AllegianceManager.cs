@@ -303,7 +303,7 @@ namespace ACE.Server.Managers
 
                 vassal.AllegianceXPGenerated += generatedAmount;
 
-                if (!patron.IsHardcore) // Hardcore characters do not receive any xp from vassals.
+                if (!patron.IsHardcore && !patron.IsSoloSelfFound) // Hardcore and Self-Found characters do not receive any xp from vassals.
                 {
                     if (PropertyManager.GetBool("offline_xp_passup_limit").Item)
                         patron.AllegianceXPCached = Math.Min(patron.AllegianceXPCached + passupAmount, uint.MaxValue);

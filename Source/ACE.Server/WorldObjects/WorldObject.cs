@@ -1271,10 +1271,20 @@ namespace ACE.Server.WorldObjects
 
         public bool VerifyGameplayMode(WorldObject item1 = null, WorldObject item2 = null)
         {
-            if (item1 != null && GameplayMode > item1.GameplayMode)
-                return false;
-            if (item2 != null && GameplayMode > item2.GameplayMode)
-                return false;
+            if (item1 != null)
+            {
+                if (GameplayMode > item1.GameplayMode)
+                    return false;
+                else if (item1.GameplayModeExtraIdentifier != 0 && GameplayModeExtraIdentifier != item1.GameplayModeExtraIdentifier)
+                    return false;
+            }
+            if (item2 != null)
+            {
+                if(GameplayMode > item2.GameplayMode)
+                    return false;
+                else if (item2.GameplayModeExtraIdentifier != 0 && GameplayModeExtraIdentifier != item2.GameplayModeExtraIdentifier)
+                    return false;
+            }
             return true;
         }
 
@@ -1283,8 +1293,12 @@ namespace ACE.Server.WorldObjects
             if (owner == null)
                 return;
 
-            if (GameplayMode > owner.GameplayMode)
+            if (GameplayMode > owner.GameplayMode && (owner.GameplayMode != GameplayModes.SoloSelfFound || GameplayMode == GameplayModes.InitialMode))
+            {
                 GameplayMode = owner.GameplayMode;
+                GameplayModeExtraIdentifier = owner.GameplayModeExtraIdentifier;
+                GameplayModeIdentifierString = owner.GameplayModeIdentifierString;
+            }
         }
 
         public uint GetGameplayModeIconOverlayId(GameplayModes gameplayMode)
@@ -1293,9 +1307,10 @@ namespace ACE.Server.WorldObjects
             {
                 default:
                 case GameplayModes.Regular: return 0;
+                case GameplayModes.InitialMode: return 0x06020017;
                 case GameplayModes.HardcoreNPK: return 0x06020012;
-                case GameplayModes.InitialMode:
                 case GameplayModes.HardcorePK: return 0x06020011;
+                case GameplayModes.SoloSelfFound: return 0x06020013;
             }
         }
 
@@ -1312,6 +1327,7 @@ namespace ACE.Server.WorldObjects
                 case 0x06020014:
                 case 0x06020015:
                 case 0x06020016:
+                case 0x06020017:
                     return true;
             }
         }

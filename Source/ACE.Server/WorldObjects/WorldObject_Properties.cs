@@ -3233,10 +3233,17 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyFloat.ExtraManaRegenPool);
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.ExtraManaRegenPool); else SetProperty(PropertyFloat.ExtraManaRegenPool, value.Value); }
         }
+
         public bool IsHardcore
         {
             get => GameplayMode == GameplayModes.HardcorePK || GameplayMode == GameplayModes.HardcoreNPK;
         }
+
+        public bool IsSoloSelfFound
+        {
+            get => GameplayMode == GameplayModes.SoloSelfFound;
+        }
+
 
         public GameplayModes GameplayMode
         {
@@ -3257,6 +3264,18 @@ namespace ACE.Server.WorldObjects
                         player.Session.Network.EnqueueSend(new GameMessageUpdateObject(this));
                 }
             }
+        }
+
+        public long GameplayModeExtraIdentifier
+        {
+            get => GetProperty(PropertyInt64.GameplayModeExtraIdentifier) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt64.GameplayModeExtraIdentifier); else SetProperty(PropertyInt64.GameplayModeExtraIdentifier, value); }
+        }
+
+        public string GameplayModeIdentifierString
+        {
+            get => GetProperty(PropertyString.GameplayModeIdentifierString);
+            set { if (value == null) RemoveProperty(PropertyString.GameplayModeIdentifierString); else SetProperty(PropertyString.GameplayModeIdentifierString, value); }
         }
     }
 }
