@@ -613,14 +613,15 @@ namespace ACE.Server.WorldObjects
 
             corpse.VictimId = Guid.Full;
             corpse.Name = $"{prefix} of {Name}";
-            corpse.GameplayMode = GameplayMode;
-            corpse.GameplayModeExtraIdentifier = GameplayModeExtraIdentifier;
-            corpse.GameplayModeIdentifierString = GameplayModeIdentifierString;
 
             // set 'killed by' for looting rights
             var killerName = "misadventure";
             if (killer != null)
             {
+                corpse.GameplayMode = killer.GameplayMode;
+                corpse.GameplayModeExtraIdentifier = killer.GameplayModeExtraIdentifier;
+                corpse.GameplayModeIdentifierString = killer.GameplayModeIdentifierString;
+
                 if (!(Generator != null && Generator.Guid == killer.Guid) && Guid != killer.Guid)
                 {
                     if (!string.IsNullOrWhiteSpace(killer.Name))

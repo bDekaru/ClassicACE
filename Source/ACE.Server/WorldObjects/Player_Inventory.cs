@@ -4159,32 +4159,13 @@ namespace ACE.Server.WorldObjects
             return GetEquippedObjectsOfWCID(weenieClassId).Select(i => i.StackSize ?? 1).Sum();
         }
 
-        public void ExtraItemChecks(WorldObject worldObject)
+        public override void ExtraItemChecks(WorldObject worldObject)
         {
+            base.ExtraItemChecks(worldObject);
+
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                worldObject.UpdateGameplayMode(this);
-
-                // Add default ExtraSpellsMaxOverride value to quest items.
-                if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
-                {
-                    worldObject.ExtraSpellsMaxOverride = 2;
-                    worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty ?? 0;
-                    worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft ?? 0;
-                }
-
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
-
-                // Convert weapon skills to merged ones
-                if (worldObject.WieldSkillType.HasValue)
-                    worldObject.WieldSkillType = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType);
-                if (worldObject.WieldSkillType2.HasValue)
-                    worldObject.WieldSkillType2 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType2);
-                if (worldObject.WieldSkillType3.HasValue)
-                    worldObject.WieldSkillType3 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType3);
-                if (worldObject.WieldSkillType4.HasValue)
-                    worldObject.WieldSkillType4 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType4);
-
                 // Remove invalid spells from items accessible by players, keep the spells on monster's items.
                 var list = worldObject.Biota.GetKnownSpellsIds(BiotaDatabaseLock);
                 foreach (var entry in list)

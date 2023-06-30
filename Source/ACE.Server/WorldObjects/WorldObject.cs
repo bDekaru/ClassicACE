@@ -1288,7 +1288,7 @@ namespace ACE.Server.WorldObjects
             return true;
         }
 
-        public void UpdateGameplayMode(Player owner)
+        public void UpdateGameplayMode(Container owner)
         {
             if (owner == null)
                 return;

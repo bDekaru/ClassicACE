@@ -616,9 +616,7 @@ namespace ACE.Server.WorldObjects
 
             container = this;
 
-            var owner = container as Player ?? container?.Container as Player ?? container.Wielder as Player;
-            if (owner != null)
-                owner.ExtraItemChecks(worldObject);
+            ExtraItemChecks(worldObject);
 
             OnAddItem();
 
@@ -1069,6 +1067,33 @@ namespace ACE.Server.WorldObjects
             {
                 if (IsOpen)
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat(ActivationTalk, ChatMessageType.Broadcast));
+            }
+        }
+
+        public virtual void ExtraItemChecks(WorldObject worldObject)
+        {
+            worldObject.UpdateGameplayMode(this);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                // Add default ExtraSpellsMaxOverride value to quest items.
+                if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
+                {
+                    worldObject.ExtraSpellsMaxOverride = 2;
+                    worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty ?? 0;
+                    worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft ?? 0;
+                }
+
+                // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
+                // Convert weapon skills to merged ones
+                if (worldObject.WieldSkillType.HasValue)
+                    worldObject.WieldSkillType = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType);
+                if (worldObject.WieldSkillType2.HasValue)
+                    worldObject.WieldSkillType2 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType2);
+                if (worldObject.WieldSkillType3.HasValue)
+                    worldObject.WieldSkillType3 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType3);
+                if (worldObject.WieldSkillType4.HasValue)
+                    worldObject.WieldSkillType4 = (int)worldObject.ConvertToMoASkill((Skill)worldObject.WieldSkillType4);
             }
         }
     }

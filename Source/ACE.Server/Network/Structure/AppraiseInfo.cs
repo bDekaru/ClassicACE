@@ -587,28 +587,28 @@ namespace ACE.Server.Network.Structure
                         extraPropertiesText += $"This item is useable by anyone.\n";
                         hasExtraPropertiesText = true;
                     }
-                    else if (wo.GameplayMode >= GameplayModes.SoloSelfFound)
-                    {
-                        if (hasExtraPropertiesText)
-                            extraPropertiesText += "\n";
-                        if(wo.GameplayModeExtraIdentifier == 0 || wo.GameplayModeIdentifierString == "")
-                            extraPropertiesText += $"This item is useable by solo self-found characters.\n";
-                        else
-                            extraPropertiesText += $"This item is useable {wo.GameplayModeIdentifierString}.\n";
-                        hasExtraPropertiesText = true;
-                    }
                     else if (wo.GameplayMode >= GameplayModes.HardcorePK)
                     {
                         if (hasExtraPropertiesText)
                             extraPropertiesText += "\n";
-                        extraPropertiesText += $"This item is useable by hardcore characters.\n";
+                        extraPropertiesText += $"This item is useable by hardcore characters and less restrictive gameplay modes.\n";
                         hasExtraPropertiesText = true;
                     }
                     else if(wo.GameplayMode >= GameplayModes.HardcoreNPK)
                     {
                         if (hasExtraPropertiesText)
                             extraPropertiesText += "\n";
-                        extraPropertiesText += $"This item is useable by hardcore NPKs.\n";
+                        extraPropertiesText += $"This item is useable by hardcore NPKs and less restrictive gameplay modes.\n";
+                        hasExtraPropertiesText = true;
+                    }
+                    else if (wo.GameplayMode >= GameplayModes.SoloSelfFound)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        if (wo.GameplayModeExtraIdentifier == 0 || wo.GameplayModeIdentifierString == "")
+                            extraPropertiesText += $"This item is useable by solo self-found characters and less restrictive gameplay modes.\n";
+                        else
+                            extraPropertiesText += $"This item is useable by {wo.GameplayModeIdentifierString} and less restrictive gameplay modes.\n";
                         hasExtraPropertiesText = true;
                     }
                 }

@@ -1,6 +1,7 @@
 using System;
 
 using ACE.Entity;
+using ACE.Entity.Enum;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Entity
@@ -11,6 +12,10 @@ namespace ACE.Server.Entity
 
         public readonly ObjectGuid Guid;
         public readonly string Name;
+
+        public readonly GameplayModes GameplayMode;
+        public readonly long GameplayModeExtraIdentifier;
+        public readonly string GameplayModeIdentifierString;
 
         public float TotalDamage;
 
@@ -26,6 +31,9 @@ namespace ACE.Server.Entity
 
             Guid = attacker.Guid;
             Name = attacker.Name;
+            GameplayMode = attacker.GameplayMode;
+            GameplayModeExtraIdentifier = attacker.GameplayModeExtraIdentifier;
+            GameplayModeIdentifierString = attacker.GameplayModeIdentifierString;
 
             IsOlthoiPlayer = attacker is Player player && player.IsOlthoiPlayer;
 
