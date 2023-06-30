@@ -54,19 +54,19 @@ namespace ACE.Server.WorldObjects
                 if (player.Exploration1LandblockId == landblockId && player.Exploration1MarkerProgressTracker > 0)
                 {
                     player.Exploration1MarkerProgressTracker--;
-                    var msg = $"{player.Exploration1MarkerProgressTracker:N0} markers{(player.Exploration1MarkerProgressTracker > 1 ? "s" : "")} remaining.";
+                    var msg = $"{player.Exploration1MarkerProgressTracker:N0} marker{(player.Exploration1MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                     player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg);
                 }
                 else if (player.Exploration2LandblockId == landblockId && player.Exploration2MarkerProgressTracker > 0)
                 {
                     player.Exploration2MarkerProgressTracker--;
-                    var msg = $"{player.Exploration2MarkerProgressTracker:N0} markers{(player.Exploration2MarkerProgressTracker > 1 ? "s" : "")} remaining.";
+                    var msg = $"{player.Exploration2MarkerProgressTracker:N0} marker{(player.Exploration2MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                     player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg);
                 }
                 else if (player.Exploration3LandblockId == landblockId && player.Exploration3MarkerProgressTracker > 0)
                 {
                     player.Exploration3MarkerProgressTracker--;
-                    var msg = $"{player.Exploration3MarkerProgressTracker:N0} markers{(player.Exploration3MarkerProgressTracker > 1 ? "s" : "")} remaining.";
+                    var msg = $"{player.Exploration3MarkerProgressTracker:N0} marker{(player.Exploration3MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                     player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg);
 
                 }
