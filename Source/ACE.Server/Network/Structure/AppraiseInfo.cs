@@ -182,7 +182,7 @@ namespace ACE.Server.Network.Structure
                 var discardInts = PropertiesInt.Where(x => x.Key != PropertyInt.EncumbranceVal && x.Key != PropertyInt.Value).Select(x => x.Key).ToList();
                 foreach (var key in discardInts)
                     PropertiesInt.Remove(key);
-                var discardString = PropertiesString.Where(x => x.Key != PropertyString.LongDesc).Select(x => x.Key).ToList();
+                var discardString = PropertiesString.Where(x => x.Key != PropertyString.LongDesc && x.Key != PropertyString.Use).Select(x => x.Key).ToList();
                 foreach (var key in discardString)
                     PropertiesString.Remove(key);
 
