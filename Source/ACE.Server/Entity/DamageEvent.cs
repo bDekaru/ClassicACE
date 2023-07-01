@@ -201,7 +201,7 @@ namespace ACE.Server.Entity
                 return 0.0f;
             }
 
-            if (defender.Invincible)
+            if (defender.Invincible || defender.IsDead || defender.IsOnNoDamageLandblock)
                 return 0.0f;
 
             // overpower

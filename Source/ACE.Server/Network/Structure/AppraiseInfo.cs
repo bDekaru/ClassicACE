@@ -591,7 +591,7 @@ namespace ACE.Server.Network.Structure
                     {
                         if (hasExtraPropertiesText)
                             extraPropertiesText += "\n";
-                        extraPropertiesText += $"This item is useable by hardcore characters and less restrictive gameplay modes.\n";
+                        extraPropertiesText += $"This item is useable by hardcore PKs and less restrictive gameplay modes.\n";
                         hasExtraPropertiesText = true;
                     }
                     else if(wo.GameplayMode >= GameplayModes.HardcoreNPK)
@@ -606,7 +606,7 @@ namespace ACE.Server.Network.Structure
                         if (hasExtraPropertiesText)
                             extraPropertiesText += "\n";
                         if (wo.GameplayModeExtraIdentifier == 0 || wo.GameplayModeIdentifierString == "")
-                            extraPropertiesText += $"This item is useable by solo self-found characters and less restrictive gameplay modes.\n";
+                            extraPropertiesText += $"This item is useable by solo self-found and less restrictive gameplay modes.\n";
                         else
                             extraPropertiesText += $"This item is useable by {wo.GameplayModeIdentifierString} and less restrictive gameplay modes.\n";
                         hasExtraPropertiesText = true;

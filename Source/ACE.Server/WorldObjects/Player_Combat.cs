@@ -494,7 +494,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public override void TakeDamageOverTime(float _amount, DamageType damageType)
         {
-            if (Invincible || IsDead) return;
+            if (Invincible || IsDead || IsOnNoDamageLandblock) return;
 
             // check lifestone protection
             if (UnderLifestoneProtection)
@@ -555,7 +555,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, AttackConditions attackConditions = AttackConditions.None, int damageBlocked = 0)
         {
-            if (Invincible || IsDead) return 0;
+            if (Invincible || IsDead || IsOnNoDamageLandblock) return 0;
 
             if (source is Creature creatureAttacker)
                 SetCurrentAttacker(creatureAttacker);

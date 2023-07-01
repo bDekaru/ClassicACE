@@ -1427,7 +1427,7 @@ namespace ACE.Server.WorldObjects.Managers
                 var damager = kvp.Key;
                 var amount = kvp.Value;
 
-                if (creature.Invincible)
+                if (creature.Invincible || creature.IsDead || creature.IsOnNoDamageLandblock)
                     amount = 0;
 
                 var damageSourcePlayer = damager as Player;

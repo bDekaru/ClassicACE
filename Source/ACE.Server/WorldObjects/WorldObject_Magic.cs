@@ -190,6 +190,9 @@ namespace ACE.Server.WorldObjects
             if (target is not Creature targetCreature)
                 return false;
 
+            if (targetCreature == null || targetCreature.IsDead || targetCreature.Invincible || targetCreature.IsOnNoDamageLandblock)
+                return true;
+
             // Retrieve target's Magic Defense Skill
             var difficulty = targetCreature.GetEffectiveMagicDefense();
 
@@ -218,9 +221,6 @@ namespace ACE.Server.WorldObjects
 
             if (targetPlayer != null)
             {
-                if (targetPlayer.Invincible)
-                    resisted = true;
-
                 if (targetPlayer.UnderLifestoneProtection)
                 {
                     targetPlayer.HandleLifestoneProtection();

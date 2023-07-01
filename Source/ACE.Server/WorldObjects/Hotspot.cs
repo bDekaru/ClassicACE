@@ -193,7 +193,7 @@ namespace ACE.Server.WorldObjects
             {
                 default:
 
-                    if (creature.Invincible) return;
+                    if (creature.Invincible || creature.IsDead || creature.IsOnNoDamageLandblock) return;
 
                     amount *= creature.GetResistanceMod(DamageType, this, null);
 

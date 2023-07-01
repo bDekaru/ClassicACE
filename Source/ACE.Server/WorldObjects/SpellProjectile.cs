@@ -412,7 +412,7 @@ namespace ACE.Server.WorldObjects
             var sourcePlayer = source as Player;
             var targetPlayer = target as Player;
 
-            if (source == null || !target.IsAlive || targetPlayer != null && targetPlayer.Invincible)
+            if (source == null || target == null || target.IsDead || target.Invincible || target.IsOnNoDamageLandblock)
                 return null;
 
             // check lifestone protection
@@ -822,7 +822,7 @@ namespace ACE.Server.WorldObjects
         {
             var targetPlayer = target as Player;
 
-            if (targetPlayer != null && targetPlayer.Invincible || target.IsDead)
+            if (target == null || target.Invincible || target.IsDead || target.IsOnNoDamageLandblock)
                 return;
 
             var sourceCreature = ProjectileSource as Creature;

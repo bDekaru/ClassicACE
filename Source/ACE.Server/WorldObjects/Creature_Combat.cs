@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using ACE.Common;
@@ -20,10 +21,10 @@ namespace ACE.Server.WorldObjects
     {
         public enum DebugDamageType
         {
-            None     = 0x0,
+            None = 0x0,
             Attacker = 0x1,
             Defender = 0x2,
-            All      = Attacker | Defender
+            All = Attacker | Defender
         };
 
         public DebugDamageType DebugDamage;
@@ -528,7 +529,7 @@ namespace ACE.Server.WorldObjects
             {
                 var skill = GetCreatureSkill(Skill.UnarmedCombat).Current;
 
-                if(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     return (int)skill / 6;
                 else
                     return (int)skill / 20;
@@ -902,7 +903,7 @@ namespace ACE.Server.WorldObjects
 
             // handle negative SL
             //if (effectiveSL < 0 && effectiveRL != 0)
-                //effectiveRL = 1.0f / effectiveRL;
+            //effectiveRL = 1.0f / effectiveRL;
 
             var effectiveLevel = effectiveSL * effectiveRL;
 
@@ -1283,7 +1284,7 @@ namespace ACE.Server.WorldObjects
             var targetAsPlayer = target as Player;
 
             var activationChance = 0.25f;
-            if(sourceAsPlayer != null)
+            if (sourceAsPlayer != null)
                 activationChance += sourceAsPlayer.ScaleWithPowerAccuracyBar(0.25f);
 
             if (activationChance < ThreadSafeRandom.Next(0.0f, 1.0f))
@@ -1307,7 +1308,7 @@ namespace ACE.Server.WorldObjects
 
                 return;
             }
-            else if(sourceAsPlayer != null)
+            else if (sourceAsPlayer != null)
                 Proficiency.OnSuccessUse(sourceAsPlayer, skill, defenseSkill.Current);
 
             string spellType;
@@ -1371,7 +1372,7 @@ namespace ACE.Server.WorldObjects
                 TryCastSpell(spell, target, this, null, false, false, false, false);
 
             string spellTypePrefix;
-            switch(spellLevel + 1)
+            switch (spellLevel + 1)
             {
                 case 1: spellTypePrefix = "a minor"; break;
                 default:
@@ -1838,6 +1839,26 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine($"GetAttackStamina({powerAccuracy}) - burden: {burden}, baseCost: {baseCost}, staminaMod: {staminaMod}, staminaCost: {staminaCost}");
 
             return (int)Math.Round(staminaCost);
+        }
+
+        public bool IsOnNoDamageLandblock => Location != null ? NoDamage_Landblocks.Contains(Location.LandblockId.Landblock) : false;
+
+        /// <summary>
+        /// A list of landblocks where no damage can be done
+        /// </summary>
+        public static HashSet<ushort> NoDamage_Landblocks = new HashSet<ushort>()
+        {
+        };
+
+        static Creature()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                NoDamage_Landblocks = new HashSet<ushort>()
+                {
+                    0x016C // Marketplace
+                };
+            }
         }
     }
 }

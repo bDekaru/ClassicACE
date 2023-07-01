@@ -1422,7 +1422,7 @@ namespace ACE.Server.Command.Handlers
             foreach(var entry in leaderboard)
             {
                 var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                var deathStatus = onlyLiving ? "" : $" {(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 ? $"(Level {entry.KillerLevel})" : "")}")}";
+                var deathStatus = onlyLiving ? "" : $" {(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
                 message.Append($"{label} {entry.Name} - Level {entry.Level}{deathStatus}\n");
                 playerCounter++;
 
@@ -1468,7 +1468,7 @@ namespace ACE.Server.Command.Handlers
             foreach (var entry in leaderboard)
             {
                 var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                var deathStatus = onlyLiving ? "" : $" {(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 ? $"(Level {entry.KillerLevel})" : "")}")}";
+                var deathStatus = onlyLiving ? "" : $" {(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
                 message.Append($"{label} {entry.Name} - Level {entry.Level} - {entry.Kills} kill{(entry.Kills != 1 ? "s" : "")}{deathStatus}\n");
                 playerCounter++;
 
