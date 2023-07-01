@@ -1324,7 +1324,7 @@ namespace ACE.Server.Command.Handlers
         {
             if (EventManager.HotDungeonLandblock == 0)
             {
-                if(!failSilently)
+                if (!failSilently)
                     CommandHandlerHelper.WriteOutputInfo(session, "There's no dungeons providing extra experience rewards at the moment.");
             }
             else
@@ -1334,13 +1334,58 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        struct LeaderboardEntry
+        public struct LeaderboardEntry
         {
             public string Name;
             public int Level;
-            public long XP;
+            public string KillerName;
+            public int KillerLevel;
+            public bool WasPvP;
             public int Kills;
+            public long XP;
             public bool Living;
+        }
+
+        public static List<LeaderboardEntry> PrepareLeaderboard(GameplayModes gameplayMode, bool onlyLiving)
+        {
+            var living = PlayerManager.FindAllByGameplayMode(gameplayMode);
+
+            var leaderboard = new List<LeaderboardEntry>();
+            foreach (var entry in living)
+            {
+                var leaderboardEntry = new LeaderboardEntry();
+                leaderboardEntry.Living = true;
+                leaderboardEntry.Name = entry.GetProperty(PropertyString.Name);
+                leaderboardEntry.Level = entry.GetProperty(PropertyInt.Level) ?? 1;
+                leaderboardEntry.XP = entry.GetProperty(PropertyInt64.TotalExperience) ?? 0;
+                leaderboardEntry.Kills = entry.GetProperty(PropertyInt.PlayerKillsPkl) ?? 0;
+
+                leaderboard.Add(leaderboardEntry);
+            }
+
+            if (!onlyLiving)
+            {
+                var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeathsByGameplayMode(gameplayMode);
+                foreach (var entry in obituaryEntries)
+                {
+                    if (entry.GameplayMode == (int)gameplayMode)
+                    {
+                        var leaderboardEntry = new LeaderboardEntry();
+                        leaderboardEntry.Living = false;
+                        leaderboardEntry.Name = entry.CharacterName;
+                        leaderboardEntry.Level = entry.CharacterLevel;
+                        leaderboardEntry.KillerName = entry.KillerName;
+                        leaderboardEntry.KillerLevel = entry.KillerLevel;
+                        leaderboardEntry.WasPvP = entry.WasPvP;
+                        leaderboardEntry.XP = entry.XP;
+                        leaderboardEntry.Kills = entry.Kills;
+
+                        leaderboard.Add(leaderboardEntry);
+                    }
+                }
+            }
+
+            return leaderboard;
         }
 
         /// <summary>
@@ -1368,53 +1413,7 @@ namespace ACE.Server.Command.Handlers
             if (parameters.Length > 1 && parameters[1] == "living")
                 onlyLiving = true;
 
-            var living = PlayerManager.FindAllByGameplayMode(IsPkLeaderboard ? GameplayModes.HardcorePK : GameplayModes.HardcoreNPK);
-
-            var leaderboard = new List<LeaderboardEntry>();
-            var entriesCounter = 0;
-            foreach(var entry in living)
-            {
-                var leaderboardEntry = new LeaderboardEntry();
-                leaderboardEntry.Living = true;
-                leaderboardEntry.Name = entry.GetProperty(PropertyString.Name);
-                leaderboardEntry.Level = entry.GetProperty(PropertyInt.Level) ?? 1;
-                leaderboardEntry.XP = entry.GetProperty(PropertyInt64.TotalExperience) ?? 0;
-
-                leaderboard.Add(leaderboardEntry);
-
-                entriesCounter++;
-                if (entriesCounter > 10)
-                    break;
-            }
-
-            if (!onlyLiving)
-            {
-                var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeathsByXP();
-                entriesCounter = 0;
-                foreach (var entry in obituaryEntries)
-                {
-                    var isPK = false;
-                    if (entry.GameplayMode == (int)GameplayModes.HardcorePK)
-                        isPK = true;
-
-                    if (isPK == IsPkLeaderboard)
-                    {
-                        var leaderboardEntry = new LeaderboardEntry();
-                        leaderboardEntry.Living = false;
-                        leaderboardEntry.Name = entry.CharacterName;
-                        leaderboardEntry.Level = entry.Level;
-                        leaderboardEntry.XP = entry.XP;
-
-                        leaderboard.Add(leaderboardEntry);
-
-                        entriesCounter++;
-                        if (entriesCounter > 10)
-                            break;
-                    }
-                }
-            }
-
-            leaderboard = leaderboard.OrderByDescending(b => b.XP).ToList();
+            var leaderboard = PrepareLeaderboard(IsPkLeaderboard ? GameplayModes.HardcorePK : GameplayModes.HardcoreNPK, onlyLiving).OrderByDescending(b => b.XP).ToList();
 
             StringBuilder message = new StringBuilder();
             message.Append($"Hardcore {(IsPkLeaderboard ? "PK" : "NPK")} {(onlyLiving ? "Living" : "All-Time")} Characters by XP: \n");
@@ -1423,7 +1422,7 @@ namespace ACE.Server.Command.Handlers
             foreach(var entry in leaderboard)
             {
                 var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                var deathStatus = onlyLiving ? "" : $" ({(entry.Living ? "Living" : "Dead")})";
+                var deathStatus = onlyLiving ? "" : $" {(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 ? $"(Level {entry.KillerLevel})" : "")}")}";
                 message.Append($"{label} {entry.Name} - Level {entry.Level}{deathStatus}\n");
                 playerCounter++;
 
@@ -1458,55 +1457,7 @@ namespace ACE.Server.Command.Handlers
 
             var living = PlayerManager.FindAllByGameplayMode(GameplayModes.HardcorePK);
 
-            var leaderboard = new List<LeaderboardEntry>();
-            var entriesCounter = 0;
-            foreach (var entry in living)
-            {
-                var leaderboardEntry = new LeaderboardEntry();
-                leaderboardEntry.Living = true;
-                leaderboardEntry.Name = entry.GetProperty(PropertyString.Name);
-                leaderboardEntry.Level = entry.GetProperty(PropertyInt.Level) ?? 1;
-                leaderboardEntry.Kills = entry.GetProperty(PropertyInt.PlayerKillsPkl) ?? 0;
-
-                if (leaderboardEntry.Kills > 0)
-                {
-                    leaderboard.Add(leaderboardEntry);
-                    entriesCounter++;
-                }
-
-                if (entriesCounter > 10)
-                    break;
-            }
-
-            if (!onlyLiving)
-            {
-                var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeathsByKills();
-                entriesCounter = 0;
-                foreach (var entry in obituaryEntries)
-                {
-                    var isPK = false;
-                    if (entry.GameplayMode == (int)GameplayModes.HardcorePK)
-                        isPK = true;
-
-                    if (isPK)
-                    {
-                        var leaderboardEntry = new LeaderboardEntry();
-                        leaderboardEntry.Living = false;
-                        leaderboardEntry.Name = entry.CharacterName;
-                        leaderboardEntry.Level = entry.Level;
-                        leaderboardEntry.Kills = entry.Kills;
-
-                        if (entry.Kills > 0)
-                        {
-                            leaderboard.Add(leaderboardEntry);
-                            entriesCounter++;
-                        }
-
-                        if (entriesCounter > 10)
-                            break;
-                    }
-                }
-            }
+            var leaderboard = PrepareLeaderboard(GameplayModes.HardcorePK, onlyLiving).OrderByDescending(b => b.Kills).ToList();
 
             leaderboard = leaderboard.OrderByDescending(b => b.Kills).ToList();
 
@@ -1517,7 +1468,7 @@ namespace ACE.Server.Command.Handlers
             foreach (var entry in leaderboard)
             {
                 var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                var deathStatus = onlyLiving ? "" : $" ({(entry.Living ? "Living" : "Dead")})";
+                var deathStatus = onlyLiving ? "" : $" {(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 ? $"(Level {entry.KillerLevel})" : "")}")}";
                 message.Append($"{label} {entry.Name} - Level {entry.Level} - {entry.Kills} kill{(entry.Kills != 1 ? "s" : "")}{deathStatus}\n");
                 playerCounter++;
 

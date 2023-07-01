@@ -1048,7 +1048,7 @@ namespace ACE.Database
             }
         }
 
-        public void LogHardcoreDeath(uint accountId, uint characterId, string characterName, string killerName, int gameplayMode, int kills, int level, long xp, int age, DateTime timeOfDeath, uint? monarchId)
+        public void LogHardcoreDeath(uint accountId, uint characterId, string characterName, int characterLevel, string killerName, int killerLevel, uint landblockId, int gameplayMode, bool wasPvP, int kills, long xp, int age, DateTime timeOfDeath, uint? monarchId)
         {
             var entry = new HardcoreCharacterObituary();
 
@@ -1057,10 +1057,13 @@ namespace ACE.Database
                 entry.AccountId = accountId;
                 entry.CharacterId = characterId;
                 entry.CharacterName = characterName;
+                entry.CharacterLevel = characterLevel;
                 entry.KillerName = killerName;
+                entry.KillerLevel = killerLevel;
+                entry.LandblockId = landblockId;
                 entry.GameplayMode = gameplayMode;
+                entry.WasPvP = wasPvP;
                 entry.Kills = kills;
-                entry.Level = level;
                 entry.XP = xp;
                 entry.Age = age;
                 entry.TimeOfDeath = timeOfDeath;
@@ -1078,39 +1081,25 @@ namespace ACE.Database
             }
         }
 
-        public List<HardcoreCharacterObituary> GetHardcoreDeathsByKills()
+        public List<HardcoreCharacterObituary> GetHardcoreDeaths()
         {
             using (var context = new ShardDbContext())
             {
                 var results = context.HardcoreCharacterObituary
                     .AsNoTracking()
-                    .OrderByDescending(r => r.Kills)
                     .ToList();
 
                 return results;
             }
         }
 
-        public List<HardcoreCharacterObituary> GetHardcoreDeathsByXP()
+        public List<HardcoreCharacterObituary> GetHardcoreDeathsByGameplayMode(GameplayModes gameplayMode)
         {
             using (var context = new ShardDbContext())
             {
                 var results = context.HardcoreCharacterObituary
                     .AsNoTracking()
-                    .OrderByDescending(r => r.XP)
-                    .ToList();
-
-                return results;
-            }
-        }
-
-        public List<HardcoreCharacterObituary> GetHardcoreDeathsByAge()
-        {
-            using (var context = new ShardDbContext())
-            {
-                var results = context.HardcoreCharacterObituary
-                    .AsNoTracking()
-                    .OrderByDescending(r => r.Age)
+                    .Where(p => p.GameplayMode == (int)gameplayMode)
                     .ToList();
 
                 return results;

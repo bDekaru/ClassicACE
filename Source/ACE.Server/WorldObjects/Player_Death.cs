@@ -228,11 +228,17 @@ namespace ACE.Server.WorldObjects
 
             if (IsHardcore)
             {
-                string killerName = "";
+                var killerName = "";
+                var killerLevel = 0;
+                var wasPvP = false;
                 if (lastDamager != null && lastDamager.Guid != Guid)
+                {
                     killerName = lastDamager.Name;
+                    killerLevel = lastDamager.Level;
+                    wasPvP = lastDamager.IsPlayer;
+                }
 
-                DatabaseManager.Shard.BaseDatabase.LogHardcoreDeath(Account.AccountId, Guid.Full, Name, killerName, (int)GameplayMode, PlayerKillsPkl ?? 0, Level ?? 1, TotalExperience ?? 0, Age ?? 0, DateTime.Now, MonarchId);
+                DatabaseManager.Shard.BaseDatabase.LogHardcoreDeath(Account.AccountId, Guid.Full, Name, Level ?? 1, killerName, killerLevel, CurrentLandblock.Id.Raw >> 16, (int)GameplayMode, wasPvP, PlayerKillsPkl ?? 0, TotalExperience ?? 0, Age ?? 0, DateTime.Now, MonarchId);
             }
 
             UpdateVital(Health, 0);

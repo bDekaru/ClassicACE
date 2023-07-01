@@ -1681,16 +1681,6 @@ namespace ACE.Database.Models.Shard
 
                 entity.ToTable("hardcore_character_obituary");
 
-                entity.HasIndex(e => e.Kills, "kills_idx");
-
-                entity.HasIndex(e => e.XP, "xp_idx");
-
-                entity.HasIndex(e => e.Kills, "kills_idx");
-
-                entity.HasIndex(e => e.Age, "age_idx");
-
-                entity.HasIndex(e => e.CharacterId, "character_Id_idx");
-
                 entity.Property(e => e.AccountId)
                     .HasColumnName("account_Id");
 
@@ -1700,14 +1690,23 @@ namespace ACE.Database.Models.Shard
                 entity.Property(e => e.CharacterName)
                     .HasColumnName("character_Name");
 
+                entity.Property(e => e.CharacterLevel)
+                    .HasColumnName("character_Level");
+
                 entity.Property(e => e.KillerName)
                     .HasColumnName("killer_Name");
+
+                entity.Property(e => e.KillerLevel)
+                    .HasColumnName("killer_Level");
+
+                entity.Property(e => e.LandblockId)
+                    .HasColumnName("landblock_Id");
 
                 entity.Property(e => e.GameplayMode)
                     .HasColumnName("gameplay_Mode");
 
-                entity.Property(e => e.Level)
-                    .HasColumnName("level");
+                entity.Property(e => e.WasPvP)
+                    .HasColumnName("was_Pvp");
 
                 entity.Property(e => e.Kills)
                     .HasColumnName("kills");

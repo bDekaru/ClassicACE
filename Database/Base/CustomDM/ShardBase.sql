@@ -910,22 +910,21 @@ DROP TABLE IF EXISTS `hardcore_character_obituary`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `hardcore_character_obituary` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique Id of this registry',
-  `account_Id` INT unsigned NOT NULL,
+  `account_Id` int unsigned NOT NULL,
   `character_Id` int unsigned NOT NULL,
   `character_Name` VARCHAR(50) NOT NULL,
+  `character_Level` int NOT NULL,
   `killer_Name` VARCHAR(50) NOT NULL,
+  `killer_Level` int NOT NULL,
+  `landblock_Id` int unsigned NOT NULL,
   `gameplay_Mode` int NOT NULL,
+  `was_Pvp` tinyint(1) NOT NULL,
   `kills` int NOT NULL,
-  `level` int NOT NULL,
   `xp` bigint NOT NULL,
   `age` int NOT NULL,
   `time_Of_Death` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `monarch_Id` int unsigned,
-  PRIMARY KEY (`id`),
-  KEY `kills_idx` (`kills`),
-  KEY `xp_idx` (`xp`),
-  KEY `age_idx` (`age`),
-  KEY `character_Id_idx` (`character_Id`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

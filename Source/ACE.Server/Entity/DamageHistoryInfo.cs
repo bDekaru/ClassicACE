@@ -12,6 +12,7 @@ namespace ACE.Server.Entity
 
         public readonly ObjectGuid Guid;
         public readonly string Name;
+        public readonly int Level;
 
         public readonly GameplayModes GameplayMode;
         public readonly long GameplayModeExtraIdentifier;
@@ -31,6 +32,7 @@ namespace ACE.Server.Entity
 
             Guid = attacker.Guid;
             Name = attacker.Name;
+            Level = attacker.Level ?? 0;
             GameplayMode = attacker.GameplayMode;
             GameplayModeExtraIdentifier = attacker.GameplayModeExtraIdentifier;
             GameplayModeIdentifierString = attacker.GameplayModeIdentifierString;
