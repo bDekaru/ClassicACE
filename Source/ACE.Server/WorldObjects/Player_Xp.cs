@@ -962,51 +962,56 @@ namespace ACE.Server.WorldObjects
             Level = 1;
 
             // Add starter skills
-            var skillsToTrain = ChargenTrainedSkills.Split("|");
-            var skillsToSpecialize = ChargenSpecializedSkills.Split("|");
-
-            foreach(var skillString in skillsToTrain)
+            if (ChargenTrainedSkills != null)
             {
-                if (int.TryParse(skillString, out var skillId))
+                var skillsToTrain = ChargenTrainedSkills.Split("|");
+                foreach (var skillString in skillsToTrain)
                 {
-                    var skill = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skillId];
-                    var trainedCost = skill.TrainedCost;
-
-                    foreach (var skillGroup in heritageGroup.Skills)
+                    if (int.TryParse(skillString, out var skillId))
                     {
-                        if (skillGroup.SkillNum == skillId)
-                        {
-                            trainedCost = skillGroup.NormalCost;
-                            break;
-                        }
-                    }
+                        var skill = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skillId];
+                        var trainedCost = skill.TrainedCost;
 
-                    if (!TrainSkill((Skill)skillId, trainedCost, true))
-                        success = false;
+                        foreach (var skillGroup in heritageGroup.Skills)
+                        {
+                            if (skillGroup.SkillNum == skillId)
+                            {
+                                trainedCost = skillGroup.NormalCost;
+                                break;
+                            }
+                        }
+
+                        if (!TrainSkill((Skill)skillId, trainedCost, true))
+                            success = false;
+                    }
                 }
             }
 
-            foreach (var skillString in skillsToSpecialize)
+            if (ChargenSpecializedSkills != null)
             {
-                if (int.TryParse(skillString, out var skillId))
+                var skillsToSpecialize = ChargenSpecializedSkills.Split("|");
+                foreach (var skillString in skillsToSpecialize)
                 {
-                    var skill = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skillId];
-                    var trainedCost = skill.TrainedCost;
-                    var specializedCost = skill.UpgradeCostFromTrainedToSpecialized;
-
-                    foreach (var skillGroup in heritageGroup.Skills)
+                    if (int.TryParse(skillString, out var skillId))
                     {
-                        if (skillGroup.SkillNum == skillId)
+                        var skill = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skillId];
+                        var trainedCost = skill.TrainedCost;
+                        var specializedCost = skill.UpgradeCostFromTrainedToSpecialized;
+
+                        foreach (var skillGroup in heritageGroup.Skills)
                         {
-                            trainedCost = skillGroup.NormalCost;
-                            specializedCost = skillGroup.PrimaryCost;
-                            break;
+                            if (skillGroup.SkillNum == skillId)
+                            {
+                                trainedCost = skillGroup.NormalCost;
+                                specializedCost = skillGroup.PrimaryCost;
+                                break;
+                            }
                         }
+                        if (!TrainSkill((Skill)skillId, trainedCost))
+                            success = false;
+                        else if (!SpecializeSkill((Skill)skillId, specializedCost))
+                            success = false;
                     }
-                    if (!TrainSkill((Skill)skillId, trainedCost))
-                        success = false;
-                    else if (!SpecializeSkill((Skill)skillId, specializedCost))
-                        success = false;
                 }
             }
 
@@ -1022,51 +1027,54 @@ namespace ACE.Server.WorldObjects
                 PlayerFactory.SetInnateAugmentations(this);
             }
 
-            var chargenClothingList = ChargenClothing.Split("|");
-            if (chargenClothingList.Length == 12)
+            if (ChargenClothing != null)
             {
-                bool a = uint.TryParse(chargenClothingList[0], out var hatWcid);
-                bool b = uint.TryParse(chargenClothingList[1], out var hatPalette);
-                bool c = double.TryParse(chargenClothingList[2], out var hatShade);
-
-                bool d = uint.TryParse(chargenClothingList[3], out var shirtWcid);
-                bool e = uint.TryParse(chargenClothingList[4], out var shirtPalette);
-                bool f = double.TryParse(chargenClothingList[5], out var shirtShade);
-
-                bool g = uint.TryParse(chargenClothingList[6], out var pantsWcid);
-                bool h = uint.TryParse(chargenClothingList[7], out var pantsPalette);
-                bool i = double.TryParse(chargenClothingList[8], out var pantsShade);
-
-                bool j = uint.TryParse(chargenClothingList[9], out var footwearWcid);
-                bool k = uint.TryParse(chargenClothingList[10], out var footwearPalette);
-                bool l = double.TryParse(chargenClothingList[11], out var footwearShade);
-
-                if(a && b && c)
+                var chargenClothingList = ChargenClothing.Split("|");
+                if (chargenClothingList.Length == 12)
                 {
-                    var hat = PlayerFactory.GetClothingObject(hatWcid, hatPalette, hatShade);
-                    if (hat != null)
-                        TryEquipObjectWithNetworking(hat, hat.ValidLocations ?? 0);
-                }
+                    bool a = uint.TryParse(chargenClothingList[0], out var hatWcid);
+                    bool b = uint.TryParse(chargenClothingList[1], out var hatPalette);
+                    bool c = double.TryParse(chargenClothingList[2], out var hatShade);
 
-                if (d && e && f)
-                {
-                    var shirt = PlayerFactory.GetClothingObject(shirtWcid, shirtPalette, shirtShade);
-                    if (shirt != null)
-                        TryEquipObjectWithNetworking(shirt, shirt.ValidLocations ?? 0);
-                }
+                    bool d = uint.TryParse(chargenClothingList[3], out var shirtWcid);
+                    bool e = uint.TryParse(chargenClothingList[4], out var shirtPalette);
+                    bool f = double.TryParse(chargenClothingList[5], out var shirtShade);
 
-                if (g && h && i)
-                {
-                    var pants = PlayerFactory.GetClothingObject(pantsWcid, pantsPalette, pantsShade);
-                    if (pants != null)
-                        TryEquipObjectWithNetworking(pants, pants.ValidLocations ?? 0);
-                }
+                    bool g = uint.TryParse(chargenClothingList[6], out var pantsWcid);
+                    bool h = uint.TryParse(chargenClothingList[7], out var pantsPalette);
+                    bool i = double.TryParse(chargenClothingList[8], out var pantsShade);
 
-                if (j && k && l)
-                {
-                    var footwear = PlayerFactory.GetClothingObject(footwearWcid, footwearPalette, footwearShade);
-                    if (footwear != null)
-                        TryEquipObjectWithNetworking(footwear, footwear.ValidLocations ?? 0);
+                    bool j = uint.TryParse(chargenClothingList[9], out var footwearWcid);
+                    bool k = uint.TryParse(chargenClothingList[10], out var footwearPalette);
+                    bool l = double.TryParse(chargenClothingList[11], out var footwearShade);
+
+                    if (a && b && c)
+                    {
+                        var hat = PlayerFactory.GetClothingObject(hatWcid, hatPalette, hatShade);
+                        if (hat != null)
+                            TryEquipObjectWithNetworking(hat, hat.ValidLocations ?? 0);
+                    }
+
+                    if (d && e && f)
+                    {
+                        var shirt = PlayerFactory.GetClothingObject(shirtWcid, shirtPalette, shirtShade);
+                        if (shirt != null)
+                            TryEquipObjectWithNetworking(shirt, shirt.ValidLocations ?? 0);
+                    }
+
+                    if (g && h && i)
+                    {
+                        var pants = PlayerFactory.GetClothingObject(pantsWcid, pantsPalette, pantsShade);
+                        if (pants != null)
+                            TryEquipObjectWithNetworking(pants, pants.ValidLocations ?? 0);
+                    }
+
+                    if (j && k && l)
+                    {
+                        var footwear = PlayerFactory.GetClothingObject(footwearWcid, footwearPalette, footwearShade);
+                        if (footwear != null)
+                            TryEquipObjectWithNetworking(footwear, footwear.ValidLocations ?? 0);
+                    }
                 }
             }
 

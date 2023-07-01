@@ -59,15 +59,7 @@ namespace ACE.Server.WorldObjects
             }
 
             if (PkLevelModifier >= 10)
-            {
-                if(player.Level == 1)
-                    return new ActivationResult(true);
-                else
-                {
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat("Gameplay mode choices are final.", ChatMessageType.Broadcast));
-                    return new ActivationResult(false);
-                }
-            }
+                return new ActivationResult(true);
             else if(player.IsHardcore)
             {
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat("Hardcore characters may not interact with that.", ChatMessageType.Broadcast));
@@ -128,6 +120,7 @@ namespace ACE.Server.WorldObjects
             switch (PkLevelModifier)
             {
                 case 10: // Hardcore NPK
+                    player.RevertToBrandNewCharacter();
                     player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
                     player.PkLevel = PKLevel.NPK;
@@ -135,10 +128,9 @@ namespace ACE.Server.WorldObjects
 
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
-
-                    player.GiveFromEmote(this, (int)Factories.Enum.WeenieClassName.ringHardcore);
                     break;
                 case 11: // Hardcore PK
+                    player.RevertToBrandNewCharacter();
                     player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.PKLite;
                     player.PkLevel = PKLevel.NPK;
@@ -150,6 +142,7 @@ namespace ACE.Server.WorldObjects
                     player.GiveFromEmote(this, (int)Factories.Enum.WeenieClassName.ringHardcore);
                     break;
                 case 12: // Solo Self Found
+                    player.RevertToBrandNewCharacter();
                     player.AddTitle(CharacterTitle.GimpGoddess, true); // This title was replaced with the "Solo Self-Found" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
                     player.PkLevel = PKLevel.NPK;
