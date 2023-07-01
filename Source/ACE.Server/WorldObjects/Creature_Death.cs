@@ -686,7 +686,7 @@ namespace ACE.Server.WorldObjects
                     }
 
                     if (IsHardcore)
-                        corpse.VictimId = null;
+                        corpse.VictimId = 0;
 
                     var isPKdeath = player.IsPKDeath(killer);
                     var isPKLdeath = player.IsPKLiteDeath(killer);
