@@ -75,6 +75,50 @@ namespace ACE.Server.WorldObjects
             CreateMoveToChain(patron, (success) => SwearAllegiance(patron.Guid.Full, success), Allegiance_MaxSwearDistance);
         }
 
+        public void OfflineSwearAllegiance(uint targetGuid)
+        {
+            var patron = PlayerManager.GetOfflinePlayer(targetGuid);
+            if (patron == null)
+                return;
+
+            if (!IsPledgable(patron)) return;
+
+            log.Debug($"[ALLEGIANCE] {Name} ({Level}) swearing allegiance to {patron.Name} ({patron.Level})");
+
+            PatronId = targetGuid;
+
+            var monarchGuid = AllegianceManager.GetMonarch(patron).Guid.Full;
+
+            UpdateProperty(PropertyInstanceId.Monarch, monarchGuid, true);
+
+            ExistedBeforeAllegianceXpChanges = (patron.Level ?? 1) >= (Level ?? 1);
+
+            // handle special case: monarch swearing into another allegiance
+            if (Allegiance != null && Allegiance.MonarchId == Guid.Full)
+                HandleMonarchSwear();
+
+            SaveBiotaToDatabase();
+
+            // send message to vassal:
+            // %patron% has accepted your oath of Allegiance!
+            // Motion_Kneel
+            Session.Network.EnqueueSend(new GameMessageSystemChat($"{patron.Name} has accepted your oath of Allegiance!", ChatMessageType.Broadcast));
+
+            EnqueueBroadcastMotion(new Motion(MotionStance.NonCombat, MotionCommand.Kneel));
+
+            // rebuild allegiance tree structure
+            AllegianceManager.OnSwearAllegiance(this);
+
+            AllegianceXPGenerated = 0;
+            AllegianceOfficerRank = null;
+
+            // refresh ui panel
+            Session.Network.EnqueueSend(new GameEventAllegianceUpdate(Session, Allegiance, AllegianceNode), new GameEventAllegianceAllegianceUpdateDone(Session));
+
+            if (GetCharacterOption(CharacterOption.ListenToAllegianceChat) && Allegiance != null)
+                JoinTurbineChatChannel("Allegiance");
+        }
+
         public void SwearAllegiance(uint targetGuid, bool success, bool confirmed = false)
         {
             if (!success) return;
@@ -293,7 +337,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns TRUE if this player can swear to the target guid
         /// </summary>
-        public bool IsPledgable(Player target)
+        public bool IsPledgable(IPlayer target)
         {
             // the client doesn't seem to display most of these werrors,
             // so we also send similar messages as text
@@ -313,12 +357,15 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            // check ignore allegiance requests
-            if (target.GetCharacterOption(CharacterOption.IgnoreAllegianceRequests))
+            if (target is Player onlinePlayer)
             {
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your offer of allegiance was ignored.", ChatMessageType.Broadcast));
-                Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YourOfferOfAllegianceWasIgnored));
-                return false;
+                // check ignore allegiance requests
+                if (onlinePlayer.GetCharacterOption(CharacterOption.IgnoreAllegianceRequests))
+                {
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"Your offer of allegiance was ignored.", ChatMessageType.Broadcast));
+                    Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YourOfferOfAllegianceWasIgnored));
+                    return false;
+                }
             }
 
             // player already sworn?

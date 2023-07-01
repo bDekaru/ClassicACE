@@ -198,6 +198,14 @@ namespace ACE.Server.Entity
             get => GameplayMode == GameplayModes.SoloSelfFound;
         }
 
+        public bool IsOlthoiPlayer
+        {
+            get
+            {
+                return Heritage == (int)HeritageGroup.Olthoi || Heritage == (int)HeritageGroup.OlthoiAcid;
+            }
+        }
+
         public GameplayModes GameplayMode
         {
             get => (GameplayModes)(GetProperty(PropertyInt.GameplayMode) ?? 0);
