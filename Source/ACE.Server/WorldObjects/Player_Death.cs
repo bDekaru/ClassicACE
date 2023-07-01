@@ -833,7 +833,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// The maximum # of items a player can drop
         /// </summary>
-        public static readonly int MaxItemsDropped = 14;
+        public static readonly int MaxItemsDropped = 0;
 
         /// <summary>
         /// Rolls for the # of items to drop for a player death
