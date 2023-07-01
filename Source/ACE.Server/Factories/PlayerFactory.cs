@@ -108,37 +108,47 @@ namespace ACE.Server.Factories
             // skip over this for olthoi, use the weenie defaults
             if (!player.IsOlthoiPlayer)
             {
+                string charGenClothing;
                 if (characterCreateInfo.Appearance.HeadgearStyle < uint.MaxValue) // No headgear is max UINT
                 {
+                    charGenClothing = $"{sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle)}|{characterCreateInfo.Appearance.HeadgearColor}|{characterCreateInfo.Appearance.HeadgearHue}";
                     var hat = GetClothingObject(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle), characterCreateInfo.Appearance.HeadgearColor, characterCreateInfo.Appearance.HeadgearHue);
                     if (hat != null)
                         player.TryEquipObject(hat, hat.ValidLocations ?? 0);
                     else
                         player.TryAddToInventory(CreateIOU(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle)));
                 }
+                else
+                    charGenClothing = "0|0|0";
 
+                charGenClothing += $"|{sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle)}|{characterCreateInfo.Appearance.ShirtColor}|{characterCreateInfo.Appearance.ShirtHue}";
                 var shirt = GetClothingObject(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle), characterCreateInfo.Appearance.ShirtColor, characterCreateInfo.Appearance.ShirtHue);
                 if (shirt != null)
                     player.TryEquipObject(shirt, shirt.ValidLocations ?? 0);
                 else
                     player.TryAddToInventory(CreateIOU(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle)));
 
+                charGenClothing += $"|{sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle)}|{characterCreateInfo.Appearance.PantsColor}|{characterCreateInfo.Appearance.PantsHue}";
                 var pants = GetClothingObject(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle), characterCreateInfo.Appearance.PantsColor, characterCreateInfo.Appearance.PantsHue);
                 if (pants != null)
                     player.TryEquipObject(pants, pants.ValidLocations ?? 0);
                 else
                     player.TryAddToInventory(CreateIOU(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle)));
 
+                charGenClothing += $"|{sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle)}|{characterCreateInfo.Appearance.FootwearColor}|{characterCreateInfo.Appearance.FootwearHue}";
                 var shoes = GetClothingObject(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle), characterCreateInfo.Appearance.FootwearColor, characterCreateInfo.Appearance.FootwearHue);
                 if (shoes != null)
                     player.TryEquipObject(shoes, shoes.ValidLocations ?? 0);
                 else
                     player.TryAddToInventory(CreateIOU(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle)));
+                player.ChargenClothing = charGenClothing;
 
                 string templateName = heritageGroup.Templates[characterCreateInfo.TemplateOption].Name;
                 player.SetProperty(PropertyString.Template, templateName);
 
-                player.AddTitle(heritageGroup.Templates[characterCreateInfo.TemplateOption].Title, true);
+                var titleId = heritageGroup.Templates[characterCreateInfo.TemplateOption].Title;
+                player.AddTitle(titleId, true);
+                player.ChargenTitleId = (int)titleId;
 
                 // attributes
                 var result = ValidateAttributeCredits(characterCreateInfo, heritageGroup.AttributeCredits);
@@ -182,6 +192,9 @@ namespace ACE.Server.Factories
                         return CreateResult.ClientServerSkillsMismatch;
                 }
 
+                var trainedSkills = new List<int>();
+                var specializedSkills = new List<int>();
+
                 for (int i = 0; i < characterCreateInfo.SkillAdvancementClasses.Count; i++)
                 {
                     var sac = characterCreateInfo.SkillAdvancementClasses[i];
@@ -212,6 +225,7 @@ namespace ACE.Server.Factories
 
                     if (sac == SkillAdvancementClass.Specialized)
                     {
+                        specializedSkills.Add(i);
                         if (!player.TrainSkill((Skill)i, trainedCost))
                             return CreateResult.FailedToTrainSkill;
                         if (!player.SpecializeSkill((Skill)i, specializedCost))
@@ -219,6 +233,7 @@ namespace ACE.Server.Factories
                     }
                     else if (sac == SkillAdvancementClass.Trained)
                     {
+                        trainedSkills.Add(i);
                         if (!player.TrainSkill((Skill)i, trainedCost, true))
                             return CreateResult.FailedToTrainSkill;
                     }
@@ -226,11 +241,11 @@ namespace ACE.Server.Factories
                         player.UntrainSkill((Skill)i, 0);
                 }
 
-                var isDualWieldTrainedOrSpecialized = false;
+                player.ChargenTrainedSkills = string.Join("|",trainedSkills);
+                player.ChargenSpecializedSkills = string.Join("|", specializedSkills);
+
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
                 {
-                    isDualWieldTrainedOrSpecialized = player.Skills.TryGetValue(Skill.DualWield, out var dualWield) && dualWield.AdvancementClass > SkillAdvancementClass.Untrained;
-
                     // Set Heritage based Melee and Ranged Masteries
                     GetMasteries(player.HeritageGroup, out WeaponType meleeMastery, out WeaponType rangedMastery);
 
@@ -256,158 +271,7 @@ namespace ACE.Server.Factories
                     }
                 }
 
-
-                // grant starter items based on skills
-                var starterGearConfig = StarterGearFactory.GetStarterGearConfiguration();
-                var grantedWeenies = new List<uint>();
-
-                Container container = null;
-                foreach (var skillGear in starterGearConfig.Skills)
-                {
-                    //var charSkill = player.Skills[(Skill)skillGear.SkillId];
-                    if (!player.Skills.TryGetValue((Skill)skillGear.SkillId, out var charSkill))
-                        continue;
-
-                    if (charSkill.AdvancementClass == SkillAdvancementClass.Trained || charSkill.AdvancementClass == SkillAdvancementClass.Specialized)
-                    {
-                        foreach (var item in skillGear.Gear)
-                        {
-                            if (charSkill.AdvancementClass == SkillAdvancementClass.Trained && item.SpecializedOnly == true)
-                                continue;
-
-                            if (grantedWeenies.Contains(item.WeenieId))
-                            {
-                                var existingItem = player.Inventory.Values.FirstOrDefault(i => i.WeenieClassId == item.WeenieId);
-                                if (existingItem == null || (existingItem.MaxStackSize ?? 1) <= 1)
-                                    continue;
-
-                                existingItem.SetStackSize(existingItem.StackSize + item.StackSize);
-                                continue;
-                            }
-
-                            var loot = WorldObjectFactory.CreateNewWorldObject(item.WeenieId);
-                            if (loot != null)
-                            {
-                                if (container == null && loot.WeenieType == WeenieType.Container)
-                                    container = (Container)loot;
-
-                                if (loot.StackSize.HasValue && loot.MaxStackSize.HasValue)
-                                    loot.SetStackSize((item.StackSize <= loot.MaxStackSize) ? item.StackSize : loot.MaxStackSize);
-                            }
-                            else
-                            {
-                                player.TryAddToInventory(CreateIOU(item.WeenieId));
-                            }
-
-                            if (loot != null)
-                            {
-                                bool added = false;
-                                if (container != null && (loot.WeenieType == WeenieType.SpellComponent || (loot.WeenieType == WeenieType.CraftTool && loot.WeenieClassId != (uint)Enum.WeenieClassName.flask))) // try to stash spell components and craft tools on a secondary pack
-                                    if (container.TryAddToInventory(loot))
-                                        added = true;
-
-                                if (!added)
-                                    if (player.TryAddToInventory(loot))
-                                        added = true;
-
-                                if (added)
-                                    grantedWeenies.Add(item.WeenieId);
-                            }
-
-                            if (isDualWieldTrainedOrSpecialized && loot != null)
-                            {
-                                if (loot.WeenieType == WeenieType.MeleeWeapon)
-                                {
-                                    var dualloot = WorldObjectFactory.CreateNewWorldObject(item.WeenieId);
-                                    if (dualloot != null)
-                                    {
-                                        player.TryAddToInventory(dualloot);
-                                    }
-                                    else
-                                    {
-                                        player.TryAddToInventory(CreateIOU(item.WeenieId));
-                                    }
-                                }
-                            }
-                        }
-
-                        var heritageLoot = skillGear.Heritage.FirstOrDefault(i => i.HeritageId == (ushort)characterCreateInfo.Heritage);
-                        if (heritageLoot != null)
-                        {
-                            foreach (var item in heritageLoot.Gear)
-                            {
-                                if (charSkill.AdvancementClass == SkillAdvancementClass.Trained && item.SpecializedOnly == true)
-                                    continue;
-
-                                if (grantedWeenies.Contains(item.WeenieId))
-                                {
-                                    var existingItem = player.Inventory.Values.FirstOrDefault(i => i.WeenieClassId == item.WeenieId);
-                                    if (existingItem == null || (existingItem.MaxStackSize ?? 1) <= 1)
-                                        continue;
-
-                                    existingItem.SetStackSize(existingItem.StackSize + item.StackSize);
-                                    continue;
-                                }
-
-                                var loot = WorldObjectFactory.CreateNewWorldObject(item.WeenieId);
-                                if (loot != null)
-                                {
-                                    if (loot.StackSize.HasValue && loot.MaxStackSize.HasValue)
-                                        loot.SetStackSize((item.StackSize <= loot.MaxStackSize) ? item.StackSize : loot.MaxStackSize);
-                                }
-                                else
-                                {
-                                    player.TryAddToInventory(CreateIOU(item.WeenieId));
-                                }
-
-                                if (loot != null && player.TryAddToInventory(loot))
-                                    grantedWeenies.Add(item.WeenieId);
-
-                                if (isDualWieldTrainedOrSpecialized && loot != null)
-                                {
-                                    if (loot.WeenieType == WeenieType.MeleeWeapon)
-                                    {
-                                        var dualloot = WorldObjectFactory.CreateNewWorldObject(item.WeenieId);
-                                        if (dualloot != null)
-                                        {
-                                            player.TryAddToInventory(dualloot);
-                                        }
-                                        else
-                                        {
-                                            player.TryAddToInventory(CreateIOU(item.WeenieId));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        foreach (var spell in skillGear.Spells)
-                        {
-                            bool spellAdded = false;
-                            if (charSkill.AdvancementClass == SkillAdvancementClass.Trained && spell.SpecializedOnly == false)
-                                spellAdded = player.AddKnownSpell(spell.SpellId);
-                            else if (charSkill.AdvancementClass == SkillAdvancementClass.Specialized)
-                                spellAdded = player.AddKnownSpell(spell.SpellId);
-
-                            if (spellAdded && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                            {
-                                // Quality of life: set the entries for the player's /fillcomps
-                                Spell spellEntity = new Spell(spell.SpellId);
-                                foreach (var componentId in spellEntity.Formula.Components)
-                                {
-                                    uint amount = 10;
-                                    if (SpellFormula.SpellComponentsTable.SpellComponents.TryGetValue(componentId, out var spellComponent))
-                                    {
-                                        if (spellComponent.Type == (int)SpellComponentsTable.Type.Scarab || spellComponent.Type == (int)SpellComponentsTable.Type.Talisman)
-                                            amount = 3;
-
-                                        player.Character.AddFillComponent(Spell.GetComponentWCID(componentId), amount, player.CharacterDatabaseLock, out _);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                GrantStarterItems(player);
             }
             else
             {
@@ -507,7 +371,7 @@ namespace ACE.Server.Factories
                             player.Location = new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f); // Holtburg South
                         break;
                     case "Hardcore":
-                        player.Location = new Position(0x77060038, 163.226196f, 174.996063f, 0.005000f,0.000000f, 0.000000f, 0.980516f, -0.196438f); // Hardcore Starter Island
+                        player.Location = new Position(0x77060038, 163.226196f, 174.996063f, 0.005000f,0.000000f, 0.000000f, 0.980516f, -0.196438f); // Gameplay mode selection island
                         break;
                 }
 
@@ -544,7 +408,166 @@ namespace ACE.Server.Factories
             return CreateResult.Success;
         }
 
-        private static WorldObject GetClothingObject(uint weenieClassId, uint palette, double shade)
+        public static void GrantStarterItems(Player player)
+        {
+            // grant starter items based on skills
+            var starterGearConfig = StarterGearFactory.GetStarterGearConfiguration();
+            var grantedWeenies = new List<uint>();
+
+            var isDualWieldTrainedOrSpecialized = false;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+                isDualWieldTrainedOrSpecialized = player.Skills.TryGetValue(Skill.DualWield, out var dualWield) && dualWield.AdvancementClass > SkillAdvancementClass.Untrained;
+
+            Container container = null;
+            foreach (var skillGear in starterGearConfig.Skills)
+            {
+                //var charSkill = player.Skills[(Skill)skillGear.SkillId];
+                if (!player.Skills.TryGetValue((Skill)skillGear.SkillId, out var charSkill))
+                    continue;
+
+                if (charSkill.AdvancementClass == SkillAdvancementClass.Trained || charSkill.AdvancementClass == SkillAdvancementClass.Specialized)
+                {
+                    foreach (var item in skillGear.Gear)
+                    {
+                        if (charSkill.AdvancementClass == SkillAdvancementClass.Trained && item.SpecializedOnly == true)
+                            continue;
+
+                        if (grantedWeenies.Contains(item.WeenieId))
+                        {
+                            var existingItem = player.Inventory.Values.FirstOrDefault(i => i.WeenieClassId == item.WeenieId);
+                            if (existingItem == null || (existingItem.MaxStackSize ?? 1) <= 1)
+                                continue;
+
+                            existingItem.SetStackSize(existingItem.StackSize + item.StackSize);
+                            continue;
+                        }
+
+                        var loot = WorldObjectFactory.CreateNewWorldObject(item.WeenieId);
+                        if (loot != null)
+                        {
+                            if (container == null && loot.WeenieType == WeenieType.Container)
+                                container = (Container)loot;
+
+                            if (loot.StackSize.HasValue && loot.MaxStackSize.HasValue)
+                                loot.SetStackSize((item.StackSize <= loot.MaxStackSize) ? item.StackSize : loot.MaxStackSize);
+                        }
+                        else
+                        {
+                            player.TryAddToInventory(CreateIOU(item.WeenieId));
+                        }
+
+                        if (loot != null)
+                        {
+                            bool added = false;
+                            if (container != null && (loot.WeenieType == WeenieType.SpellComponent || (loot.WeenieType == WeenieType.CraftTool && loot.WeenieClassId != (uint)Enum.WeenieClassName.flask))) // try to stash spell components and craft tools on a secondary pack
+                                if (container.TryAddToInventory(loot))
+                                    added = true;
+
+                            if (!added)
+                                if (player.TryAddToInventory(loot))
+                                    added = true;
+
+                            if (added)
+                                grantedWeenies.Add(item.WeenieId);
+                        }
+
+                        if (isDualWieldTrainedOrSpecialized && loot != null)
+                        {
+                            if (loot.WeenieType == WeenieType.MeleeWeapon)
+                            {
+                                var dualloot = WorldObjectFactory.CreateNewWorldObject(item.WeenieId);
+                                if (dualloot != null)
+                                {
+                                    player.TryAddToInventory(dualloot);
+                                }
+                                else
+                                {
+                                    player.TryAddToInventory(CreateIOU(item.WeenieId));
+                                }
+                            }
+                        }
+                    }
+
+                    var heritageLoot = skillGear.Heritage.FirstOrDefault(i => i.HeritageId == (ushort)player.Heritage);
+                    if (heritageLoot != null)
+                    {
+                        foreach (var item in heritageLoot.Gear)
+                        {
+                            if (charSkill.AdvancementClass == SkillAdvancementClass.Trained && item.SpecializedOnly == true)
+                                continue;
+
+                            if (grantedWeenies.Contains(item.WeenieId))
+                            {
+                                var existingItem = player.Inventory.Values.FirstOrDefault(i => i.WeenieClassId == item.WeenieId);
+                                if (existingItem == null || (existingItem.MaxStackSize ?? 1) <= 1)
+                                    continue;
+
+                                existingItem.SetStackSize(existingItem.StackSize + item.StackSize);
+                                continue;
+                            }
+
+                            var loot = WorldObjectFactory.CreateNewWorldObject(item.WeenieId);
+                            if (loot != null)
+                            {
+                                if (loot.StackSize.HasValue && loot.MaxStackSize.HasValue)
+                                    loot.SetStackSize((item.StackSize <= loot.MaxStackSize) ? item.StackSize : loot.MaxStackSize);
+                            }
+                            else
+                            {
+                                player.TryAddToInventory(CreateIOU(item.WeenieId));
+                            }
+
+                            if (loot != null && player.TryAddToInventory(loot))
+                                grantedWeenies.Add(item.WeenieId);
+
+                            if (isDualWieldTrainedOrSpecialized && loot != null)
+                            {
+                                if (loot.WeenieType == WeenieType.MeleeWeapon)
+                                {
+                                    var dualloot = WorldObjectFactory.CreateNewWorldObject(item.WeenieId);
+                                    if (dualloot != null)
+                                    {
+                                        player.TryAddToInventory(dualloot);
+                                    }
+                                    else
+                                    {
+                                        player.TryAddToInventory(CreateIOU(item.WeenieId));
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    foreach (var spell in skillGear.Spells)
+                    {
+                        bool spellAdded = false;
+                        if (charSkill.AdvancementClass == SkillAdvancementClass.Trained && spell.SpecializedOnly == false)
+                            spellAdded = player.AddKnownSpell(spell.SpellId);
+                        else if (charSkill.AdvancementClass == SkillAdvancementClass.Specialized)
+                            spellAdded = player.AddKnownSpell(spell.SpellId);
+
+                        if (spellAdded && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
+                            // Quality of life: set the entries for the player's /fillcomps
+                            Spell spellEntity = new Spell(spell.SpellId);
+                            foreach (var componentId in spellEntity.Formula.Components)
+                            {
+                                uint amount = 10;
+                                if (SpellFormula.SpellComponentsTable.SpellComponents.TryGetValue(componentId, out var spellComponent))
+                                {
+                                    if (spellComponent.Type == (int)SpellComponentsTable.Type.Scarab || spellComponent.Type == (int)SpellComponentsTable.Type.Talisman)
+                                        amount = 3;
+
+                                    player.Character.AddFillComponent(Spell.GetComponentWCID(componentId), amount, player.CharacterDatabaseLock, out _);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public static WorldObject GetClothingObject(uint weenieClassId, uint palette, double shade)
         {
             var weenie = DatabaseManager.World.GetCachedWeenie(weenieClassId);
 
@@ -614,7 +637,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Set Heritage based Melee and Ranged Masteries
         /// </summary>
-        private static void GetMasteries(HeritageGroup heritageGroup, out WeaponType meleeMastery, out WeaponType rangedMastery)
+        public static void GetMasteries(HeritageGroup heritageGroup, out WeaponType meleeMastery, out WeaponType rangedMastery)
         {
             switch (heritageGroup)
             {
@@ -663,7 +686,7 @@ namespace ACE.Server.Factories
             }
         }
 
-        private static void SetInnateAugmentations(Player player)
+        public static void SetInnateAugmentations(Player player)
         {
             switch (player.HeritageGroup)
             {

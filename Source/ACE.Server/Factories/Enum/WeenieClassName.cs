@@ -41895,5 +41895,6 @@ namespace ACE.Server.Factories.Enum
         pkTrophyMid = 50183,
         pkTrophyHigh = 50184,
         pkTrophyExtreme = 50185,
+        ringHardcore = 50189,
     }
 }

@@ -837,17 +837,13 @@ namespace ACE.Database
         /// <summary>
         /// This will get all player biotas that are backed by characters that are not deleted.
         /// </summary>
-        public List<ACE.Entity.Models.Biota> GetAllPlayerBiotasInParallel(bool includeDeleted = false)
+        public List<ACE.Entity.Models.Biota> GetAllPlayerBiotasInParallel()
         {
             var biotas = new ConcurrentBag<ACE.Entity.Models.Biota>();
 
             using (var context = new ShardDbContext())
             {
-                var results = includeDeleted ?
-                    context.Character
-                    .AsNoTracking()
-                    .ToList()
-                : context.Character
+                var results = context.Character
                     .Where(r => !r.IsDeleted)
                     .AsNoTracking()
                     .ToList();
@@ -1049,6 +1045,75 @@ namespace ACE.Database
             catch (Exception ex)
             {
                 log.Error($"Exception in CreateKill saving kill data to PKKills DB. Ex: {ex}");
+            }
+        }
+
+        public void LogHardcoreDeath(uint accountId, uint characterId, string characterName, string killerName, int gameplayMode, int kills, int level, long xp, int age, DateTime timeOfDeath, uint? monarchId)
+        {
+            var entry = new HardcoreCharacterObituary();
+
+            try
+            {
+                entry.AccountId = accountId;
+                entry.CharacterId = characterId;
+                entry.CharacterName = characterName;
+                entry.KillerName = killerName;
+                entry.GameplayMode = gameplayMode;
+                entry.Kills = kills;
+                entry.Level = level;
+                entry.XP = xp;
+                entry.Age = age;
+                entry.TimeOfDeath = timeOfDeath;
+                entry.MonarchId = monarchId;
+
+                using (var context = new ShardDbContext())
+                {
+                    context.HardcoreCharacterObituary.Add(entry);
+                    context.SaveChanges();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Exception in HardcoreCharacterObituary saving character death info to DB. Ex: {ex}");
+            }
+        }
+
+        public List<HardcoreCharacterObituary> GetHardcoreDeathsByKills()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var results = context.HardcoreCharacterObituary
+                    .AsNoTracking()
+                    .OrderByDescending(r => r.Kills)
+                    .ToList();
+
+                return results;
+            }
+        }
+
+        public List<HardcoreCharacterObituary> GetHardcoreDeathsByXP()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var results = context.HardcoreCharacterObituary
+                    .AsNoTracking()
+                    .OrderByDescending(r => r.XP)
+                    .ToList();
+
+                return results;
+            }
+        }
+
+        public List<HardcoreCharacterObituary> GetHardcoreDeathsByAge()
+        {
+            using (var context = new ShardDbContext())
+            {
+                var results = context.HardcoreCharacterObituary
+                    .AsNoTracking()
+                    .OrderByDescending(r => r.Age)
+                    .ToList();
+
+                return results;
             }
         }
     }

@@ -1495,5 +1495,29 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyString.Exploration3Description);
             set { if (value == null) RemoveProperty(PropertyString.Exploration3Description); else SetProperty(PropertyString.Exploration3Description, value); }
         }
+
+        public string ChargenTrainedSkills
+        {
+            get => GetProperty(PropertyString.ChargenSkillsTrained);
+            set { if (value == null) RemoveProperty(PropertyString.ChargenSkillsTrained); else SetProperty(PropertyString.ChargenSkillsTrained, value); }
+        }
+
+        public string ChargenSpecializedSkills
+        {
+            get => GetProperty(PropertyString.ChargenSkillsSpecialized);
+            set { if (value == null) RemoveProperty(PropertyString.ChargenSkillsSpecialized); else SetProperty(PropertyString.ChargenSkillsSpecialized, value); }
+        }
+
+        public string ChargenClothing
+        {
+            get => GetProperty(PropertyString.ChargenClothing);
+            set { if (value == null) RemoveProperty(PropertyString.ChargenClothing); else SetProperty(PropertyString.ChargenClothing, value); }
+        }
+
+        public int ChargenTitleId
+        {
+            get => GetProperty(PropertyInt.ChargenTitleId) ?? 0;
+            set { if (value == 0) RemoveProperty(PropertyInt.ChargenTitleId); else SetProperty(PropertyInt.ChargenTitleId, value); }
+        }
     }
 }

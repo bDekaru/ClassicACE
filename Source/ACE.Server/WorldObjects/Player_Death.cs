@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ACE.Server.Command.Handlers;
 using ACE.Server.Network.GameAction.Actions;
+using ACE.Database;
 
 namespace ACE.Server.WorldObjects
 {
@@ -225,6 +226,15 @@ namespace ACE.Server.WorldObjects
                     topDamager = topDamagerOther;
             }
 
+            if (IsHardcore)
+            {
+                string killerName = "";
+                if (lastDamager != null && lastDamager.Guid != Guid)
+                    killerName = lastDamager.Name;
+
+                DatabaseManager.Shard.BaseDatabase.LogHardcoreDeath(Account.AccountId, Guid.Full, Name, killerName, (int)GameplayMode, PlayerKillsPkl ?? 0, Level ?? 1, TotalExperience ?? 0, Age ?? 0, DateTime.Now, MonarchId);
+            }
+
             UpdateVital(Health, 0);
             NumDeaths++;
             suicideInProgress = false;
@@ -294,7 +304,7 @@ namespace ACE.Server.WorldObjects
 
                 ThreadSafeTeleportOnDeath(); // enter portal space
 
-                if (IsPKDeath(topDamager) || IsPKLiteDeath(topDamager))
+                if ((IsPKDeath(topDamager) || IsPKLiteDeath(topDamager)) && !IsHardcore)
                     SetMinimumTimeSincePK();
 
                 IsBusy = false;
@@ -308,60 +318,102 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void ThreadSafeTeleportOnDeath()
         {
-            if (IsHardcore)
+            if (!IsHardcore)
+            {
+                // teleport to sanctuary or best location
+                var newPosition = Sanctuary ?? Instantiation ?? Location;
+
+                WorldManager.ThreadSafeTeleport(this, newPosition, new ActionEventDelegate(() =>
+                {
+                    // Stand back up
+                    SetCombatMode(CombatMode.NonCombat);
+
+                    SetLifestoneProtection();
+
+                    var teleportChain = new ActionChain();
+                    if (!IsLoggingOut) // If we're in the process of logging out, we skip the delay
+                        teleportChain.AddDelaySeconds(3.0f);
+                    teleportChain.AddAction(this, () =>
+                    {
+                        // currently happens while in portal space
+                        var newHealth = (uint)Math.Round(Health.MaxValue * 0.75f);
+                        var newStamina = (uint)Math.Round(Stamina.MaxValue * 0.75f);
+                        var newMana = (uint)Math.Round(Mana.MaxValue * 0.75f);
+
+                        var msgHealthUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Health, newHealth);
+                        var msgStaminaUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Stamina, newStamina);
+                        var msgManaUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Mana, newMana);
+
+                        UpdateVital(Health, newHealth);
+                        UpdateVital(Stamina, newStamina);
+                        UpdateVital(Mana, newMana);
+
+                        Session.Network.EnqueueSend(msgHealthUpdate, msgStaminaUpdate, msgManaUpdate);
+
+                        // reset damage history for this player
+                        DamageHistory.Reset();
+
+                        OnHealthUpdate();
+
+                        IsInDeathProcess = false;
+
+                        if (IsLoggingOut)
+                            LogOut_Final(true);
+                    });
+
+                    teleportChain.EnqueueChain();
+                }));
+            }
+            else
             {
                 Session.Network.EnqueueSend(new GameEventPopupString(Session, $"And so ends the journey of {Name}.\n\nYou've lived in Dereth for {GameActionQueryAge.CalculateAgeMessage(Age ?? 0)}.\n\nBetter luck next time!"));
 
                 IsInDeathProcess = false;
-                CharacterCommands.HandleCharacterForcedDelete(Session, Name);
-                IsLoggingOut = true;
-                LogOut_Final(true);
-                return;
-            }
+                var position = new Position(0x77060038, 163.226196f, 174.996063f, 0.005000f, 0.000000f, 0.000000f, 0.980516f, -0.196438f); // Gameplay mode selection island
+                Sanctuary = new Position(position);
+                Instantiation = new Position(position);
 
-            // teleport to sanctuary or best location
-            var newPosition = Sanctuary ?? Instantiation ?? Location;
-
-            WorldManager.ThreadSafeTeleport(this, newPosition, new ActionEventDelegate(() =>
-            {
-                // Stand back up
-                SetCombatMode(CombatMode.NonCombat);
-
-                SetLifestoneProtection();
-
-                var teleportChain = new ActionChain();
-                if (!IsLoggingOut) // If we're in the process of logging out, we skip the delay
-                    teleportChain.AddDelaySeconds(3.0f);
-                teleportChain.AddAction(this, () =>
+                WorldManager.ThreadSafeTeleport(this, position, new ActionEventDelegate(() =>
                 {
-                    // currently happens while in portal space
-                    var newHealth = (uint)Math.Round(Health.MaxValue * 0.75f);
-                    var newStamina = (uint)Math.Round(Stamina.MaxValue * 0.75f);
-                    var newMana = (uint)Math.Round(Mana.MaxValue * 0.75f);
+                    // Stand back up
+                    SetCombatMode(CombatMode.NonCombat);
 
-                    var msgHealthUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Health, newHealth);
-                    var msgStaminaUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Stamina, newStamina);
-                    var msgManaUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Mana, newMana);
+                    RevertToBrandNewCharacter();
 
-                    UpdateVital(Health, newHealth);
-                    UpdateVital(Stamina, newStamina);
-                    UpdateVital(Mana, newMana);
+                    var teleportChain = new ActionChain();
+                    if (!IsLoggingOut) // If we're in the process of logging out, we skip the delay
+                        teleportChain.AddDelaySeconds(3.0f);
+                    teleportChain.AddAction(this, () =>
+                    {
+                        // currently happens while in portal space
+                        var newHealth = Health.MaxValue;
+                        var newStamina = Stamina.MaxValue;
+                        var newMana = Mana.MaxValue;
 
-                    Session.Network.EnqueueSend(msgHealthUpdate, msgStaminaUpdate, msgManaUpdate);
+                        var msgHealthUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Health, newHealth);
+                        var msgStaminaUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Stamina, newStamina);
+                        var msgManaUpdate = new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Mana, newMana);
 
-                    // reset damage history for this player
-                    DamageHistory.Reset();
+                        UpdateVital(Health, newHealth);
+                        UpdateVital(Stamina, newStamina);
+                        UpdateVital(Mana, newMana);
 
-                    OnHealthUpdate();
+                        Session.Network.EnqueueSend(msgHealthUpdate, msgStaminaUpdate, msgManaUpdate);
 
-                    IsInDeathProcess = false;
+                        // reset damage history for this player
+                        DamageHistory.Reset();
 
-                    if (IsLoggingOut)
-                        LogOut_Final(true);
-                });
+                        OnHealthUpdate();
 
-                teleportChain.EnqueueChain();
-            }));
+                        IsInDeathProcess = false;
+
+                        if (IsLoggingOut)
+                            LogOut_Final(true);
+                    });
+
+                    teleportChain.EnqueueChain();
+                }));
+            }
         }
 
         public bool suicideInProgress;
@@ -559,7 +611,7 @@ namespace ACE.Server.WorldObjects
             var dropItems = new List<WorldObject>();
             var destroyedItems = new List<WorldObject>();
 
-            var numCoinsDropped = GetNumCoinsDropped(onDropAllPyrealsLandblock);
+            var numCoinsDropped = GetNumCoinsDropped(onDropAllPyrealsLandblock || IsHardcore);
             if(onDropAllPyrealsLandblock || !onNoDropLandblock)
             {
                 if (numCoinsDropped > 0)
@@ -592,11 +644,11 @@ namespace ACE.Server.WorldObjects
                 bool dropAllWielded = false;
                 if (IsHardcore)
                 {
+                    dropAllWielded = true;
+
                     var topDamager = DamageHistory.GetTopDamager(false);
                     if (topDamager != null && topDamager.IsPlayer && topDamager.TryGetAttacker() is Player topDamagerPlayer)
                     {
-                        dropAllWielded = true;
-
                         uint hardcoreTrophyWeenie;
                         if (Level >= 80)
                             hardcoreTrophyWeenie = (uint)Factories.Enum.WeenieClassName.pkTrophyExtreme;
@@ -632,7 +684,7 @@ namespace ACE.Server.WorldObjects
 
                     List<WorldObject> wieldedItems = null;
                     if (dropAllWielded)
-                        wieldedItems = inventory.Where(i => i.CurrentWieldedLocation != null).ToList();
+                        wieldedItems = inventory.Where(i => i.CurrentWieldedLocation != null && (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
 
                     // exclude wielded items if < level 35 or if we're dropping them all
                     if (!canDropWielded || dropAllWielded)
@@ -748,7 +800,8 @@ namespace ACE.Server.WorldObjects
             var dropList = DropMessage(dropItems, numCoinsDropped);
             if (!string.IsNullOrWhiteSpace(dropList))
             {
-                Session.Network.EnqueueSend(new GameMessageSystemChat(dropList, ChatMessageType.Broadcast));
+                if(!IsHardcore)
+                    Session.Network.EnqueueSend(new GameMessageSystemChat(dropList, ChatMessageType.Broadcast));
 
                 DeathItemLog(dropItems, corpse);
             }

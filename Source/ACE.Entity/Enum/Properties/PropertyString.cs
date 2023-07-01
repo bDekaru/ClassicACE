@@ -112,6 +112,12 @@ namespace ACE.Entity.Enum.Properties
         Exploration3Description         = 9014,
         [ServerOnly]
         GameplayModeIdentifierString    = 9015,
+        [ServerOnly]
+        ChargenSkillsTrained            = 9016,
+        [ServerOnly]
+        ChargenSkillsSpecialized        = 9017,
+        [ServerOnly]
+        ChargenClothing                 = 9018,
     }
 
     public static class PropertyStringExtensions

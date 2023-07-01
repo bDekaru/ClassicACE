@@ -676,7 +676,7 @@ namespace ACE.Server.WorldObjects
                     if (dropped.Count > 0)
                         saveCorpse = true;
 
-                    if ((player.Location.Cell & 0xFFFF) < 0x100)
+                    if ((player.Location.Cell & 0xFFFF) < 0x100 && !IsHardcore)
                     {
                         player.SetPosition(PositionType.LastOutsideDeath, new Position(corpse.Location));
                         player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePosition(player, PositionType.LastOutsideDeath, corpse.Location));
@@ -684,6 +684,9 @@ namespace ACE.Server.WorldObjects
                         if (dropped.Count > 0)
                             player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your corpse is located at ({corpse.Location.GetMapCoordStr()}).", ChatMessageType.Broadcast));
                     }
+
+                    if (IsHardcore)
+                        corpse.VictimId = null;
 
                     var isPKdeath = player.IsPKDeath(killer);
                     var isPKLdeath = player.IsPKLiteDeath(killer);
@@ -713,14 +716,14 @@ namespace ACE.Server.WorldObjects
 	                    }
 	                }
 
-                    if (!isPKdeath && !isPKLdeath)
+                    if (!isPKdeath && !isPKLdeath && !IsHardcore)
                     {
                         var miserAug = player.AugmentationLessDeathItemLoss * 5;
                         if (miserAug > 0)
                             player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your augmentation has reduced the number of items you can lose by {miserAug}!", ChatMessageType.Broadcast));
                     }
 
-                    if (dropped.Count == 0 && !isPKLdeath)
+                    if (dropped.Count == 0 && !isPKLdeath && !IsHardcore)
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have retained all your items. You do not need to recover your corpse!", ChatMessageType.Broadcast));
                 }
             }

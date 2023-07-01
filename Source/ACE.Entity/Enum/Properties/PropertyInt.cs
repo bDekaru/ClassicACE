@@ -675,6 +675,8 @@ namespace ACE.Entity.Enum.Properties
         Exploration3MarkerProgressTracker        = 10023,
         [ServerOnly]
         GameplayMode                             = 10024,
+        [ServerOnly]
+        ChargenTitleId                           = 10025,
     }
 
     public static class PropertyIntExtensions

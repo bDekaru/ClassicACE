@@ -2198,6 +2198,11 @@ namespace ACE.Server.WorldObjects
             if (allowedWielder != null && (allowedWielder != Guid.Full))
                 return WeenieError.YouDoNotOwnThatItem; // Unsure of the exact message
 
+            if (item.MinLevel.HasValue && ((Level ?? 1) <= item.MinLevel.Value))
+                return WeenieError.LevelTooLow;
+            else if (item.MaxLevel.HasValue && (Level ?? 1) > item.MaxLevel.Value)
+                return WeenieError.LevelTooHigh;
+
             var result = CheckWieldRequirement(item.WieldRequirements, item.WieldSkillType, item.WieldDifficulty);
             if (result != WeenieError.None)
                 return result;
@@ -2215,6 +2220,18 @@ namespace ACE.Server.WorldObjects
                 return result;
 
             return WeenieError.None;
+        }
+
+        public void VerifyWieldedLevelRequirements()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                foreach (var wielded in EquippedObjects.Values)
+                {
+                    if (wielded.MaxLevel.HasValue && (Level ?? 1) > wielded.MaxLevel.Value)
+                        HandleActionPutItemInContainer(wielded.Guid.Full, Guid.Full);
+                }
+            }
         }
 
         private WeenieError CheckWieldRequirement(WieldRequirement wieldRequirement, int? wieldSkillType, int? wieldDifficulty)

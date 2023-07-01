@@ -42,7 +42,17 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool RemoveKnownSpell(uint spellId)
         {
-            return Biota.TryRemoveKnownSpell((int)spellId, BiotaDatabaseLock);
+            var removed = Biota.TryRemoveKnownSpell((int)spellId, BiotaDatabaseLock);
+            if(removed)
+                ChangesDetected = true;
+            return removed;
+        }
+
+        public void RemoveAllSpells()
+        {
+            var modified = Biota.ClearSpells(BiotaDatabaseLock);
+
+            ChangesDetected = modified;
         }
 
         public void LearnSpellWithNetworking(uint spellId, bool uiOutput = true)

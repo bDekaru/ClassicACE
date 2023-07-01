@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using ACE.Common.Extensions;
@@ -6,8 +7,11 @@ using ACE.DatLoader;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Command.Handlers;
+using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Factories;
 using ACE.Server.Managers;
+using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 
 namespace ACE.Server.WorldObjects
@@ -629,6 +633,8 @@ namespace ACE.Server.WorldObjects
                 // play level up effect
                 PlayParticleEffect(PlayScript.LevelUp, Guid);
 
+                VerifyWieldedLevelRequirements();
+
                 Session.Network.EnqueueSend(new GameMessageSystemChat(message, ChatMessageType.Advancement), currentCredits);
 
                 // Let's take the opportinity to send an activity recommendation to the player.
@@ -812,6 +818,266 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine($"XPAndLuminanceModifier: {modifier}");
 
             return modifier;
+        }
+
+        public bool RevertToBrandNewCharacter()
+        {
+            var success = true;
+
+            FellowshipQuit(false);
+
+            // Reset buffs and vitae
+            EnchantmentManager.RemoveVitae();
+            EnchantmentManager.RemoveAllEnchantments();
+
+            // Reset trackers
+            XpTrackerStartTimestamp = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
+            XpTrackerTotalXp = 0;
+            NumDeaths = 0;
+            PlayerKillsPkl = 0;
+            PlayerKillsPk = 0;
+            DeathLevel = 0;
+            Age = 0;
+            initialAgeTime = DateTime.MinValue;
+            ImbueAttempts = 0;
+            ImbueSuccesses = 0;
+            LeyLineSeed = null;
+            SetProperty(PropertyString.DateOfBirth, $"{DateTime.UtcNow:dd MMMM yyyy}");
+
+            // Reset positions
+            RemovePosition(PositionType.LastOutsideDeath);
+            RemovePosition(PositionType.LastPortal);
+            RemovePosition(PositionType.LinkedLifestone);
+            RemovePosition(PositionType.LinkedPortalOne);
+            RemovePosition(PositionType.LinkedPortalTwo);
+
+            // Destroy all items
+            var inventory = GetAllPossessions();
+
+            foreach (var item in inventory)
+            {
+                if(item.WeenieType != WeenieType.Deed) // Keep houses
+                    item.DeleteObject(this);
+            }
+
+            RemoveAllSpells();
+
+            // Reset Gameplay Mode
+            PlayerKillerStatus = PlayerKillerStatus.NPK;
+            PkLevel = PKLevel.NPK;
+            GameplayMode = GameplayModes.Regular;
+            GameplayModeExtraIdentifier = 0;
+            GameplayModeIdentifierString = null;
+
+            // Reset Titles
+            RemoveAllTitles();
+            if(ChargenTitleId > 0)
+                AddTitle((uint)ChargenTitleId, true, true);
+
+            // Reset Quest Timers
+            QuestManager.EraseAll();
+
+            // Reset Contracts
+            ContractManager.EraseAll();
+
+            // Reset Exploration Contracts
+            Exploration1LandblockId = 0;
+            Exploration1KillProgressTracker = 0;
+            Exploration1MarkerProgressTracker = 0;
+            Exploration1Description = "";
+            Exploration2LandblockId = 0;
+            Exploration2KillProgressTracker = 0;
+            Exploration2MarkerProgressTracker = 0;
+            Exploration2Description = "";
+            Exploration3LandblockId = 0;
+            Exploration3KillProgressTracker = 0;
+            Exploration3MarkerProgressTracker = 0;
+            Exploration3Description = "";
+
+            // Reset Attributes
+            var propertyCount = Enum.GetNames(typeof(PropertyAttribute)).Length;
+            for (var i = 1; i < propertyCount; i++)
+            {
+                var attribute = (PropertyAttribute)i;
+
+                Attributes[attribute].Ranks = 0;
+                Attributes[attribute].ExperienceSpent = 0;
+            }
+
+            propertyCount = Enum.GetNames(typeof(PropertyAttribute2nd)).Length;
+            for (var i = 1; i < propertyCount; i += 2)
+            {
+                var attribute = (PropertyAttribute2nd)i;
+
+                Vitals[attribute].Ranks = 0;
+                Vitals[attribute].ExperienceSpent = 0;
+            }
+
+            // Reset Skills
+            propertyCount = Enum.GetNames(typeof(Skill)).Length;
+            for (var i = 1; i < propertyCount; i++)
+            {
+                var skill = (Skill)i;
+
+                ResetSkill(skill, false, true);
+            }
+
+            AvailableExperience = 0;
+
+            var heritageGroup = DatManager.PortalDat.CharGen.HeritageGroups[(uint)Heritage];
+            var availableSkillCredits = 0;
+
+            availableSkillCredits += (int)heritageGroup.SkillCredits; // base skill credits allowed
+            AvailableSkillCredits = availableSkillCredits;
+
+            // Reset Luminance
+            LumAugDamageRating = 0;
+            LumAugDamageReductionRating = 0;
+            LumAugCritDamageRating = 0;
+            LumAugCritReductionRating = 0;
+            //LumAugSurgeEffectRating = 0;
+            LumAugSurgeChanceRating = 0;
+            LumAugItemManaUsage = 0;
+            LumAugItemManaGain = 0;
+            LumAugVitality = 0;
+            LumAugHealingRating = 0;
+            LumAugSkilledCraft = 0;
+            LumAugSkilledSpec = 0;
+            LumAugAllSkills = 0;
+
+            AvailableLuminance = null;
+            MaximumLuminance = null;
+
+            // Reset Society
+            Faction1Bits = null;
+            SocietyRankCelhan = null;
+            SocietyRankEldweb = null;
+            SocietyRankRadblo = null;
+
+            // Reset Aetheria
+            AetheriaFlags = AetheriaBitfield.None;
+
+            // Remove Level
+            TotalExperience = 0;
+            Level = 1;
+
+            // Add starter skills
+            var skillsToTrain = ChargenTrainedSkills.Split("|");
+            var skillsToSpecialize = ChargenSpecializedSkills.Split("|");
+
+            foreach(var skillString in skillsToTrain)
+            {
+                if (int.TryParse(skillString, out var skillId))
+                {
+                    var skill = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skillId];
+                    var trainedCost = skill.TrainedCost;
+
+                    foreach (var skillGroup in heritageGroup.Skills)
+                    {
+                        if (skillGroup.SkillNum == skillId)
+                        {
+                            trainedCost = skillGroup.NormalCost;
+                            break;
+                        }
+                    }
+
+                    if (!TrainSkill((Skill)skillId, trainedCost, true))
+                        success = false;
+                }
+            }
+
+            foreach (var skillString in skillsToSpecialize)
+            {
+                if (int.TryParse(skillString, out var skillId))
+                {
+                    var skill = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skillId];
+                    var trainedCost = skill.TrainedCost;
+                    var specializedCost = skill.UpgradeCostFromTrainedToSpecialized;
+
+                    foreach (var skillGroup in heritageGroup.Skills)
+                    {
+                        if (skillGroup.SkillNum == skillId)
+                        {
+                            trainedCost = skillGroup.NormalCost;
+                            specializedCost = skillGroup.PrimaryCost;
+                            break;
+                        }
+                    }
+                    if (!TrainSkill((Skill)skillId, trainedCost))
+                        success = false;
+                    else if (!SpecializeSkill((Skill)skillId, specializedCost))
+                        success = false;
+                }
+            }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+            {
+                // Set Heritage based Melee and Ranged Masteries
+                PlayerFactory.GetMasteries(HeritageGroup, out WeaponType meleeMastery, out WeaponType rangedMastery);
+
+                SetProperty(PropertyInt.MeleeMastery, (int)meleeMastery);
+                SetProperty(PropertyInt.RangedMastery, (int)rangedMastery);
+
+                // Set innate augs
+                PlayerFactory.SetInnateAugmentations(this);
+            }
+
+            var chargenClothingList = ChargenClothing.Split("|");
+            if (chargenClothingList.Length == 12)
+            {
+                bool a = uint.TryParse(chargenClothingList[0], out var hatWcid);
+                bool b = uint.TryParse(chargenClothingList[1], out var hatPalette);
+                bool c = double.TryParse(chargenClothingList[2], out var hatShade);
+
+                bool d = uint.TryParse(chargenClothingList[3], out var shirtWcid);
+                bool e = uint.TryParse(chargenClothingList[4], out var shirtPalette);
+                bool f = double.TryParse(chargenClothingList[5], out var shirtShade);
+
+                bool g = uint.TryParse(chargenClothingList[6], out var pantsWcid);
+                bool h = uint.TryParse(chargenClothingList[7], out var pantsPalette);
+                bool i = double.TryParse(chargenClothingList[8], out var pantsShade);
+
+                bool j = uint.TryParse(chargenClothingList[9], out var footwearWcid);
+                bool k = uint.TryParse(chargenClothingList[10], out var footwearPalette);
+                bool l = double.TryParse(chargenClothingList[11], out var footwearShade);
+
+                if(a && b && c)
+                {
+                    var hat = PlayerFactory.GetClothingObject(hatWcid, hatPalette, hatShade);
+                    if (hat != null)
+                        TryEquipObjectWithNetworking(hat, hat.ValidLocations ?? 0);
+                }
+
+                if (d && e && f)
+                {
+                    var shirt = PlayerFactory.GetClothingObject(shirtWcid, shirtPalette, shirtShade);
+                    if (shirt != null)
+                        TryEquipObjectWithNetworking(shirt, shirt.ValidLocations ?? 0);
+                }
+
+                if (g && h && i)
+                {
+                    var pants = PlayerFactory.GetClothingObject(pantsWcid, pantsPalette, pantsShade);
+                    if (pants != null)
+                        TryEquipObjectWithNetworking(pants, pants.ValidLocations ?? 0);
+                }
+
+                if (j && k && l)
+                {
+                    var footwear = PlayerFactory.GetClothingObject(footwearWcid, footwearPalette, footwearShade);
+                    if (footwear != null)
+                        TryEquipObjectWithNetworking(footwear, footwear.ValidLocations ?? 0);
+                }
+            }
+
+            PlayerFactory.GrantStarterItems(this);
+
+            Session.Network.EnqueueSend(new GameEventPlayerDescription(Session), new GameEventCharacterTitle(Session));
+            EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
+            SendInventoryAndWieldedItems();
+            UpdateCoinValue();
+
+            return success;
         }
     }
 }

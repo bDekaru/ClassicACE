@@ -673,15 +673,16 @@ namespace ACE.Entity.Models
             }
         }
 
-        public static void ClearSpells(this Biota biota, ReaderWriterLockSlim rwLock)
+        public static bool ClearSpells(this Biota biota, ReaderWriterLockSlim rwLock)
         {
-            if (biota.PropertiesSpellBook == null)
-                return;
+            if (biota.PropertiesSpellBook == null || biota.PropertiesSpellBook.Count == 0)
+                return false;
 
             rwLock.EnterWriteLock();
             try
             {
                 biota.PropertiesSpellBook?.Clear();
+                return true;
             }
             finally
             {

@@ -61,6 +61,7 @@ namespace ACE.Database.Models.Shard
         public virtual DbSet<AccountSessionLog> AccountSessions { get; set; }
         public virtual DbSet<CharacterLoginLog> CharacterLogins { get; set; }
         public virtual DbSet<PKKill> PKKills { get; set; }
+        public virtual DbSet<HardcoreCharacterObituary> HardcoreCharacterObituary { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -1669,6 +1670,59 @@ namespace ACE.Database.Models.Shard
 
                 entity.Property(e => e.KillDateTime)
                     .HasColumnName("kill_datetime");
+            });
+
+            modelBuilder.Entity<HardcoreCharacterObituary>(entity =>
+            {
+                entity.HasKey(e => e.Id)
+                    .HasName("PRIMARY");
+
+                entity.Property(e => e.Id).HasColumnName("id");
+
+                entity.ToTable("hardcore_character_obituary");
+
+                entity.HasIndex(e => e.Kills, "kills_idx");
+
+                entity.HasIndex(e => e.XP, "xp_idx");
+
+                entity.HasIndex(e => e.Kills, "kills_idx");
+
+                entity.HasIndex(e => e.Age, "age_idx");
+
+                entity.HasIndex(e => e.CharacterId, "character_Id_idx");
+
+                entity.Property(e => e.AccountId)
+                    .HasColumnName("account_Id");
+
+                entity.Property(e => e.CharacterId)
+                    .HasColumnName("character_Id");
+
+                entity.Property(e => e.CharacterName)
+                    .HasColumnName("character_Name");
+
+                entity.Property(e => e.KillerName)
+                    .HasColumnName("killer_Name");
+
+                entity.Property(e => e.GameplayMode)
+                    .HasColumnName("gameplay_Mode");
+
+                entity.Property(e => e.Level)
+                    .HasColumnName("level");
+
+                entity.Property(e => e.Kills)
+                    .HasColumnName("kills");
+
+                entity.Property(e => e.XP)
+                    .HasColumnName("xp");
+
+                entity.Property(e => e.Age)
+                    .HasColumnName("age");
+
+                entity.Property(e => e.TimeOfDeath)
+                    .HasColumnName("time_Of_Death");
+
+                entity.Property(e => e.MonarchId)
+                    .HasColumnName("monarch_Id");
             });
 
             OnModelCreatingPartial(modelBuilder);

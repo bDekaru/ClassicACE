@@ -734,6 +734,27 @@ namespace ACE.Database.Models.Shard
             }
         }
 
+        public static void RemoveAllTitles(this Character character, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterUpgradeableReadLock();
+            try
+            {
+                rwLock.EnterWriteLock();
+                try
+                {
+                    character.CharacterPropertiesTitleBook.Clear();
+                }
+                finally
+                {
+                    rwLock.ExitWriteLock();
+                }
+            }
+            finally
+            {
+                rwLock.ExitUpgradeableReadLock();
+            }
+        }
+
         // =====================================
         // CharacterPropertiesCampRegistry
         // =====================================

@@ -135,6 +135,8 @@ namespace ACE.Server.WorldObjects
 
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
+
+                    player.GiveFromEmote(this, (int)Factories.Enum.WeenieClassName.ringHardcore);
                     break;
                 case 11: // Hardcore PK
                     player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
@@ -144,6 +146,8 @@ namespace ACE.Server.WorldObjects
 
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
+
+                    player.GiveFromEmote(this, (int)Factories.Enum.WeenieClassName.ringHardcore);
                     break;
                 case 12: // Solo Self Found
                     player.AddTitle(CharacterTitle.GimpGoddess, true); // This title was replaced with the "Solo Self-Found" title.

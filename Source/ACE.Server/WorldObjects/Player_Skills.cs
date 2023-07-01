@@ -956,7 +956,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Resets the skill, refunds all experience and skill credits, if allowed.
         /// </summary>
-        public bool ResetSkill(Skill skill, bool refund = true)
+        public bool ResetSkill(Skill skill, bool refund = true, bool silent = false)
         {
             var creatureSkill = GetCreatureSkill(skill, false);
 
@@ -1003,13 +1003,20 @@ namespace ACE.Server.WorldObjects
             var updateSkill = new GameMessagePrivateUpdateSkill(this, creatureSkill);
             var availableSkillCredits = new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.AvailableSkillCredits, AvailableSkillCredits ?? 0);
 
-            var msg = $"Your {(untrainable ? $"{typeOfSkill}" : "")}{skill.ToSentence()} skill has been {(untrainable ? "removed" : "reset")}. ";
-            msg += $"All the experience {(creditRefund ? "and skill credits " : "")}that you spent on this skill have been refunded to you.";
+            if (!silent)
+            {
+                var msg = $"Your {(untrainable ? $"{typeOfSkill}" : "")}{skill.ToSentence()} skill has been {(untrainable ? "removed" : "reset")}. ";
+                msg += $"All the experience {(creditRefund ? "and skill credits " : "")}that you spent on this skill have been refunded to you.";
 
-            if (refund)
-                Session.Network.EnqueueSend(updateSkill, availableSkillCredits, new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
+                if (refund)
+                    Session.Network.EnqueueSend(updateSkill, availableSkillCredits, new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
+                else
+                    Session.Network.EnqueueSend(updateSkill, new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
+            }
+            else if (refund)
+                Session.Network.EnqueueSend(updateSkill, availableSkillCredits);
             else
-                Session.Network.EnqueueSend(updateSkill, new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(updateSkill);
 
             return true;
         }

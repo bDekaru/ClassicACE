@@ -588,6 +588,28 @@ namespace ACE.Server.Managers
             return results;
         }
 
+        public static List<IPlayer> FindAllByGameplayMode(GameplayModes gameplayMode)
+        {
+            var results = new List<IPlayer>();
+
+            playersLock.EnterReadLock();
+            try
+            {
+                // this kind of sucks, possibly investigate?
+                var onlinePlayersResult = onlinePlayers.Values.Where(p => p.GameplayMode == gameplayMode);
+                var offlinePlayersResult = offlinePlayers.Values.Where(p => p.GameplayMode == gameplayMode);
+
+                results.AddRange(onlinePlayersResult);
+                results.AddRange(offlinePlayersResult);
+            }
+            finally
+            {
+                playersLock.ExitReadLock();
+            }
+
+            return results;
+        }
+
 
         /// <summary>
         /// This will return a list of Players that have this guid as a friend.

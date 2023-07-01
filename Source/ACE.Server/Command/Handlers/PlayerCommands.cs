@@ -17,6 +17,7 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 using System.Linq;
 using System.Text;
+using ACE.Entity.Enum.Properties;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -1333,6 +1334,15 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
+        struct LeaderboardEntry
+        {
+            public string Name;
+            public int Level;
+            public long XP;
+            public int Kills;
+            public bool Living;
+        }
+
         /// <summary>
         /// List top 10 Hardcore characters by total XP
         /// </summary>
@@ -1350,36 +1360,76 @@ namespace ACE.Server.Command.Handlers
                 session.Player.PrevLeaderboardHCXPCommandRequestTimestamp = DateTime.UtcNow;
             }
 
-            bool pk = true;
+            bool IsPkLeaderboard = true;
             if (parameters.Length > 0 && parameters[0] == "npk")
-                pk = false;
+                IsPkLeaderboard = false;
 
             bool onlyLiving = false;
             if (parameters.Length > 1 && parameters[1] == "living")
                 onlyLiving = true;
 
-            StringBuilder message = new StringBuilder();
-            message.Append($"Hardcore {(pk ? "PK" : "NPK")} {(onlyLiving ? "Living" : "All-Time")} Characters by XP: \n");
-            message.Append("-----------------------\n");
-            uint playerCounter = 1;
-            var biotas = DatabaseManager.Shard.BaseDatabase.GetAllPlayerBiotasInParallel(!onlyLiving)
-                .OrderByDescending(b => b.PropertiesInt64.TryGetValue(ACE.Entity.Enum.Properties.PropertyInt64.TotalExperience, out var totalExperience) ? totalExperience : 0);
+            var living = PlayerManager.FindAllByGameplayMode(IsPkLeaderboard ? GameplayModes.HardcorePK : GameplayModes.HardcoreNPK);
 
-            foreach (var biota in biotas)
+            var leaderboard = new List<LeaderboardEntry>();
+            var entriesCounter = 0;
+            foreach(var entry in living)
             {
-                var thePlayer = new OfflinePlayer(biota);
-                var pkStatus = (PlayerKillerStatus)(thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) ?? 0);
-                if (thePlayer.IsHardcore && ((!pk && pkStatus == PlayerKillerStatus.NPK) || (pk && pkStatus == PlayerKillerStatus.PKLite)))
-                {
-                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                    var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Living")})";
-                    message.Append($"{label} {thePlayer.Name} - Level {thePlayer.Level}{deathStatus}\n");
-                    playerCounter++;
-                }
-                if (playerCounter > 10)
+                var leaderboardEntry = new LeaderboardEntry();
+                leaderboardEntry.Living = true;
+                leaderboardEntry.Name = entry.GetProperty(PropertyString.Name);
+                leaderboardEntry.Level = entry.GetProperty(PropertyInt.Level) ?? 1;
+                leaderboardEntry.XP = entry.GetProperty(PropertyInt64.TotalExperience) ?? 0;
+
+                leaderboard.Add(leaderboardEntry);
+
+                entriesCounter++;
+                if (entriesCounter > 10)
                     break;
             }
 
+            if (!onlyLiving)
+            {
+                var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeathsByXP();
+                entriesCounter = 0;
+                foreach (var entry in obituaryEntries)
+                {
+                    var isPK = false;
+                    if (entry.GameplayMode == (int)GameplayModes.HardcorePK)
+                        isPK = true;
+
+                    if (isPK == IsPkLeaderboard)
+                    {
+                        var leaderboardEntry = new LeaderboardEntry();
+                        leaderboardEntry.Living = false;
+                        leaderboardEntry.Name = entry.CharacterName;
+                        leaderboardEntry.Level = entry.Level;
+                        leaderboardEntry.XP = entry.XP;
+
+                        leaderboard.Add(leaderboardEntry);
+
+                        entriesCounter++;
+                        if (entriesCounter > 10)
+                            break;
+                    }
+                }
+            }
+
+            leaderboard = leaderboard.OrderByDescending(b => b.XP).ToList();
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Hardcore {(IsPkLeaderboard ? "PK" : "NPK")} {(onlyLiving ? "Living" : "All-Time")} Characters by XP: \n");
+            message.Append("-----------------------\n");
+            uint playerCounter = 1;
+            foreach(var entry in leaderboard)
+            {
+                var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                var deathStatus = onlyLiving ? "" : $" ({(entry.Living ? "Living" : "Dead")})";
+                message.Append($"{label} {entry.Name} - Level {entry.Level}{deathStatus}\n");
+                playerCounter++;
+
+                if (playerCounter > 10)
+                    break;
+            }
             message.Append("-----------------------\n");
 
             CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
@@ -1406,31 +1456,74 @@ namespace ACE.Server.Command.Handlers
             if (parameters.Length > 0 && parameters[0] == "living")
                 onlyLiving = true;
 
-            StringBuilder message = new StringBuilder();
-            message.Append($"Hardcore {(onlyLiving ? "Living" : "All-Time")} PvP Leaderboard:\n");
-            message.Append("-------------------------\n");
+            var living = PlayerManager.FindAllByGameplayMode(GameplayModes.HardcorePK);
 
-            uint playerCounter = 1;
-
-            var biotas = DatabaseManager.Shard.BaseDatabase.GetAllPlayerBiotasInParallel(!onlyLiving)
-                .OrderByDescending(b => b.PropertiesInt.TryGetValue(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillsPkl, out var pklKills) ? pklKills : 0);
-
-            foreach (var biota in biotas)
+            var leaderboard = new List<LeaderboardEntry>();
+            var entriesCounter = 0;
+            foreach (var entry in living)
             {
-                var thePlayer = new OfflinePlayer(biota);
-                var kills = thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillsPkl) ?? 0;
-                var pkStatus = (PlayerKillerStatus)(thePlayer.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.PlayerKillerStatus) ?? 0);
-                if (thePlayer.IsHardcore && pkStatus ==PlayerKillerStatus.PKLite && kills > 0)
+                var leaderboardEntry = new LeaderboardEntry();
+                leaderboardEntry.Living = true;
+                leaderboardEntry.Name = entry.GetProperty(PropertyString.Name);
+                leaderboardEntry.Level = entry.GetProperty(PropertyInt.Level) ?? 1;
+                leaderboardEntry.Kills = entry.GetProperty(PropertyInt.PlayerKillsPkl) ?? 0;
+
+                if (leaderboardEntry.Kills > 0)
                 {
-                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                    var deathStatus = onlyLiving ? "" : $" ({(thePlayer.IsDeleted ? "Dead" : "Living")})";
-                    message.Append($"{label} {thePlayer.Name} - Level {thePlayer.Level} - {kills} kill{(kills > 1 ? "s": "")}{deathStatus}\n");
-                    playerCounter++;
+                    leaderboard.Add(leaderboardEntry);
+                    entriesCounter++;
                 }
-                if (playerCounter > 10)
+
+                if (entriesCounter > 10)
                     break;
             }
 
+            if (!onlyLiving)
+            {
+                var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeathsByKills();
+                entriesCounter = 0;
+                foreach (var entry in obituaryEntries)
+                {
+                    var isPK = false;
+                    if (entry.GameplayMode == (int)GameplayModes.HardcorePK)
+                        isPK = true;
+
+                    if (isPK)
+                    {
+                        var leaderboardEntry = new LeaderboardEntry();
+                        leaderboardEntry.Living = false;
+                        leaderboardEntry.Name = entry.CharacterName;
+                        leaderboardEntry.Level = entry.Level;
+                        leaderboardEntry.Kills = entry.Kills;
+
+                        if (entry.Kills > 0)
+                        {
+                            leaderboard.Add(leaderboardEntry);
+                            entriesCounter++;
+                        }
+
+                        if (entriesCounter > 10)
+                            break;
+                    }
+                }
+            }
+
+            leaderboard = leaderboard.OrderByDescending(b => b.Kills).ToList();
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Hardcore {(onlyLiving ? "Living" : "All-Time")} PvP Leaderboard:\n");
+            message.Append("-------------------------\n");
+            uint playerCounter = 1;
+            foreach (var entry in leaderboard)
+            {
+                var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                var deathStatus = onlyLiving ? "" : $" ({(entry.Living ? "Living" : "Dead")})";
+                message.Append($"{label} {entry.Name} - Level {entry.Level} - {entry.Kills} kill{(entry.Kills != 1 ? "s" : "")}{deathStatus}\n");
+                playerCounter++;
+
+                if (playerCounter > 10)
+                    break;
+            }
             message.Append("-------------------------\n");
 
             CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
