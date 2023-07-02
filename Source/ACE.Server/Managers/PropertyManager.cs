@@ -851,7 +851,14 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_sneak", new Property<double>(1.0, "Scales the sneak attack damage multiplier.")),
 
-                ("pk_cast_radius", new Property<double>(6.0, "the distance in meters a player can travel from their starting cast position. if they exceed this distance, they fizzle the spell."))
+                ("pk_cast_radius", new Property<double>(6.0, "The distance in meters a player can travel from their starting cast position. if they exceed this distance, they fizzle the spell.")),
+
+                // Hardcore settings
+                ("hardcore_npk_death_level_modifier", new Property<double>(1.0, "Percentage of levels lost on death for Hardcore NPK gameplay mode. A value of 1.0 means deaths reset the player to level 1.")),
+                ("hardcore_pk_pvp_death_level_modifier", new Property<double>(1.0, "Percentage of levels lost on death for Hardcore PK gameplay mode when dying in PvP. A value of 1.0 means deaths reset the player to level 1.")),
+                ("hardcore_pk_pve_death_level_modifier", new Property<double>(1.0, "Percentage of levels lost on death for Hardcore PK gameplay mode when dying in PvE. A value of 1.0 means deaths reset the player to level 1.")),
+                ("hardcore_npk_xp_modifier", new Property<double>(1.0, "Scales the amount of xp received by hardcore NPK players.")),
+                ("hardcore_pk_xp_modifier", new Property<double>(1.0, "Scales the amount of xp received by hardcore PK players."))
                 );
         
         public static readonly ReadOnlyDictionary<string, Property<string>> DefaultStringProperties =

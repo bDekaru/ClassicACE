@@ -231,11 +231,11 @@ namespace ACE.Server.WorldObjects
                 var killerName = "misadventure";
                 var killerLevel = 0;
                 var wasPvP = false;
-                if (lastDamager != null && lastDamager.Guid != Guid)
+                if (topDamager != null && topDamager.Guid != Guid)
                 {
-                    killerName = lastDamager.Name;
-                    killerLevel = lastDamager.Level;
-                    wasPvP = lastDamager.IsPlayer;
+                    killerName = topDamager.Name;
+                    killerLevel = topDamager.Level;
+                    wasPvP = topDamager.IsPlayer;
                 }
 
                 DatabaseManager.Shard.BaseDatabase.LogHardcoreDeath(Account.AccountId, Guid.Full, Name, Level ?? 1, killerName, killerLevel, CurrentLandblock.Id.Raw >> 16, (int)GameplayMode, wasPvP, PlayerKillsPkl ?? 0, TotalExperience ?? 0, Age ?? 0, DateTime.Now, MonarchId);
@@ -315,7 +315,7 @@ namespace ACE.Server.WorldObjects
             dieChain.AddDelaySeconds(1);
             dieChain.AddAction(this, () =>
             {
-                ThreadSafeTeleportOnDeath(); // enter portal space
+                ThreadSafeTeleportOnDeath(topDamager); // enter portal space
 
                 if ((IsPKDeath(topDamager) || IsPKLiteDeath(topDamager)) && !IsHardcore)
                     SetMinimumTimeSincePK();
@@ -335,7 +335,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Called when the player enters portal space after dying
         /// </summary>
-        public void ThreadSafeTeleportOnDeath()
+        public void ThreadSafeTeleportOnDeath(DamageHistoryInfo topDamager)
         {
             if (!IsHardcore)
             {
@@ -392,12 +392,33 @@ namespace ACE.Server.WorldObjects
                 Sanctuary = new Position(position);
                 Instantiation = new Position(position);
 
+                var wasPvP = false;
+                if (topDamager != null && topDamager.Guid != Guid)
+                    wasPvP = topDamager.IsPlayer;
+
+                double levelToRestartAt = Level ?? 1;
+
+                if(GameplayMode == GameplayModes.HardcoreNPK)
+                    levelToRestartAt = levelToRestartAt - (levelToRestartAt * Math.Clamp(PropertyManager.GetDouble("hardcore_npk_death_level_modifier").Item, 0, 1));
+                else if (wasPvP)
+                    levelToRestartAt = levelToRestartAt - (levelToRestartAt * Math.Clamp(PropertyManager.GetDouble("hardcore_pk_pvp_death_level_modifier").Item, 0, 1));
+                else
+                    levelToRestartAt = levelToRestartAt - (levelToRestartAt * Math.Clamp(PropertyManager.GetDouble("hardcore_pk_pve_death_level_modifier").Item, 0, 1));
+
+                ulong xpToRetain = 0;
+                if (levelToRestartAt > 1)
+                {
+                    var betweenLevelsXp = (levelToRestartAt % 1) * GetXPBetweenLevels((int)levelToRestartAt, (int)(levelToRestartAt + 1));
+
+                    xpToRetain =  GetXPBetweenLevels(1, (int)levelToRestartAt) + (ulong)betweenLevelsXp;
+                }
+
                 WorldManager.ThreadSafeTeleport(this, position, new ActionEventDelegate(() =>
                 {
                     // Stand back up
                     SetCombatMode(CombatMode.NonCombat);
 
-                    RevertToBrandNewCharacter(false, true, true, true);
+                    RevertToBrandNewCharacter(false, true, true, true, (long)xpToRetain);
 
                     var teleportChain = new ActionChain();
                     if (!IsLoggingOut) // If we're in the process of logging out, we skip the delay

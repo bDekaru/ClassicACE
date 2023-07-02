@@ -134,6 +134,11 @@ namespace ACE.Server.WorldObjects
             if (xpType == XpType.Quest)
                 modifier *= questModifier;
 
+            if (GameplayMode == GameplayModes.HardcorePK)
+                modifier *= PropertyManager.GetDouble("hardcore_pk_xp_modifier").Item;
+            else if (GameplayMode == GameplayModes.HardcoreNPK)
+                modifier *= PropertyManager.GetDouble("hardcore_npk_xp_modifier").Item;
+
             if (xpType == XpType.Kill)
             {
                 if (xpSourceTier != null)
@@ -363,8 +368,8 @@ namespace ACE.Server.WorldObjects
             var maxLevelXp = xpTable.CharacterLevelXPList[(int)maxLevel];
 
             bool allowXpAtMaxLevel = PropertyManager.GetBool("allow_xp_at_max_level").Item;
-            var totalXpCap = (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR ? long.MaxValue : maxLevelXp); // 0 disables the xp cap
-            var availableXpCap = (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR ? long.MaxValue : uint.MaxValue); // 0 disables the xp cap
+            var totalXpCap = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? maxLevelXp : long.MaxValue; // At what value the total xp counter will stop counting.
+            var availableXpCap = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? uint.MaxValue : long.MaxValue; // Max unassigned xp amount.
 
             if (Level != maxLevel || allowXpAtMaxLevel)
             {
@@ -375,12 +380,12 @@ namespace ACE.Server.WorldObjects
                     addAmount = amountLeftToEnd;
 
                 TotalExperience += addAmount;
-                if (totalXpCap > 0 && TotalExperience > (long)totalXpCap)
+                if (TotalExperience > (long)totalXpCap)
                     TotalExperience = (long)totalXpCap;
 
                 AvailableExperience += addAmount;
-                if (availableXpCap > 0 && AvailableExperience > (long)availableXpCap)
-                    AvailableExperience = (long)availableXpCap;
+                if (AvailableExperience > availableXpCap)
+                    AvailableExperience = availableXpCap;
 
                 var xpTotalUpdate = new GameMessagePrivateUpdatePropertyInt64(this, PropertyInt64.TotalExperience, TotalExperience ?? 0);
                 var xpAvailUpdate = new GameMessagePrivateUpdatePropertyInt64(this, PropertyInt64.AvailableExperience, AvailableExperience ?? 0);
@@ -826,7 +831,7 @@ namespace ACE.Server.WorldObjects
             return modifier;
         }
 
-        public bool RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false)
+        public bool RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false, long startingXP = 0)
         {
             var success = true;
 
@@ -836,22 +841,19 @@ namespace ACE.Server.WorldObjects
             if (!keepAllegiance)
                 AllegianceManager.HandlePlayerDelete(Guid.Full);
 
+            // Reset Gameplay Mode
+            PlayerKillerStatus = PlayerKillerStatus.NPK;
+            PkLevel = PKLevel.NPK;
+            GameplayMode = GameplayModes.Regular;
+            GameplayModeExtraIdentifier = 0;
+            GameplayModeIdentifierString = null;
+
             // Reset Titles
             RemoveAllTitles();
             if(setToLimboGameplayMode)
                 AddTitle((uint)CharacterTitle.DeadMeat, true, true, true);
             else if (ChargenTitleId > 0)
                 AddTitle((uint)ChargenTitleId, true, true, true);
-
-            // Reset Gameplay Mode
-            PlayerKillerStatus = PlayerKillerStatus.NPK;
-            PkLevel = PKLevel.NPK;
-            if (!setToLimboGameplayMode)
-                GameplayMode = GameplayModes.Regular;
-            else
-                GameplayMode = GameplayModes.Limbo;
-            GameplayModeExtraIdentifier = 0;
-            GameplayModeIdentifierString = null;
 
             // Reset buffs and vitae
             EnchantmentManager.RemoveVitae();
@@ -1034,6 +1036,13 @@ namespace ACE.Server.WorldObjects
             }
 
             RevertToBrandNewCharacterEquipment(keepHousing);
+
+            if (startingXP > 0)
+                UpdateXpAndLevel(startingXP, XpType.Admin);
+
+            // Leave this for last as it could potentially block some actions during the reset process.
+            if (setToLimboGameplayMode)
+                GameplayMode = GameplayModes.Limbo;
 
             Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
             EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
