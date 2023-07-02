@@ -613,6 +613,14 @@ namespace ACE.Server.Network.Structure
                     }
                 }
 
+                if(wo.WeenieType == WeenieType.MeleeWeapon && wo.IsLightWeapon)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"This weapon feels light enough to dual wield.\n";
+                    hasExtraPropertiesText = true;
+                }
+
                 if (wo.ArmorLevel != null && wo.ArmorLevel != 0 && wo.CurrentWieldedLocation != null)
                 {
                     if (hasExtraPropertiesText)
@@ -756,7 +764,7 @@ namespace ACE.Server.Network.Structure
                 }
 
                 if (hasExtraPropertiesText)
-                    PropertiesString[PropertyString.Use] = extraPropertiesText;
+                    PropertiesString[PropertyString.Use] = extraPropertiesText.TrimEnd('\n');
             }
         }
 

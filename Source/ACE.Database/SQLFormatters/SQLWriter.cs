@@ -230,11 +230,11 @@ namespace ACE.Database.SQLFormatters
                     }
                     break;
                 case PropertyDataId.WieldedTreasureType:
-                    /*if (TreasureWielded != null && TreasureWielded.ContainsKey(value))
+                    if (TreasureWielded != null && TreasureWielded.ContainsKey(value))
                     {
                         return GetValuesForTreasureDID(TreasureWielded[value]);
                     }
-                    else*/ if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
+                    else if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
                     {
                         if(Enum.IsDefined((TreasureDeathDesc)value))
                             return $"{(TreasureDeathDesc)value} - Loot Tier: {TreasureDeath[value].Tier}";
@@ -256,21 +256,21 @@ namespace ACE.Database.SQLFormatters
                     }
                     break;
                 case PropertyDataId.InventoryTreasureType:
-                    /*if (TreasureWielded != null && TreasureWielded.ContainsKey(value))
+                    if (TreasureWielded != null && TreasureWielded.ContainsKey(value))
                     {
                         return GetValuesForTreasureDID(TreasureWielded[value]);
                     }
-                    else*/ if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
+                    else if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
                     {
                         return $"Loot Tier: {TreasureDeath[value].Tier}";
                     }
                     break;
                 case PropertyDataId.ShopTreasureType:
-                    /*if (TreasureWielded != null && TreasureWielded.ContainsKey(value))
+                    if (TreasureWielded != null && TreasureWielded.ContainsKey(value))
                     {
                         return GetValuesForTreasureDID(TreasureWielded[value]);
                     }
-                    else*/ if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
+                    else if (TreasureDeath != null && TreasureDeath.ContainsKey(value))
                     {
                         return $"Loot Tier: {TreasureDeath[value].Tier}";
                     }

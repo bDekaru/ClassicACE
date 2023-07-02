@@ -228,7 +228,7 @@ namespace ACE.Server.WorldObjects
 
             if (IsHardcore)
             {
-                var killerName = "";
+                var killerName = "misadventure";
                 var killerLevel = 0;
                 var wasPvP = false;
                 if (lastDamager != null && lastDamager.Guid != Guid)

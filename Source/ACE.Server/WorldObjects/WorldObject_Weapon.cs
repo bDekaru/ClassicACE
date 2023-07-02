@@ -49,10 +49,20 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool IsCleaving { get => GetProperty(PropertyInt.Cleaving) != null;  }
 
-        public bool IsLightWeapon
+        public bool HasLightWeaponProperty
         {
             get => GetProperty(PropertyBool.IsLightWeapon) ?? false;
             set { if (!value) RemoveProperty(PropertyBool.IsLightWeapon); else SetProperty(PropertyBool.IsLightWeapon, value); }
+        }
+
+        public bool IsLightWeapon
+        {
+            get
+            {
+                if (HasLightWeaponProperty || !(WeaponSkill != Skill.Dagger && WeaponSkill != Skill.UnarmedCombat && (WeaponSkill != Skill.Sword || W_AttackType.IsMultiStrike())))
+                    return true;
+                return false;
+            }
         }
 
         /// <summary>
