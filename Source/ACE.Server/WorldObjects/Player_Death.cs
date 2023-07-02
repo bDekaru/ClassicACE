@@ -384,7 +384,7 @@ namespace ACE.Server.WorldObjects
                     // Stand back up
                     SetCombatMode(CombatMode.NonCombat);
 
-                    RevertToBrandNewCharacter();
+                    RevertToBrandNewCharacter(false, true, true, true);
 
                     var teleportChain = new ActionChain();
                     if (!IsLoggingOut) // If we're in the process of logging out, we skip the delay

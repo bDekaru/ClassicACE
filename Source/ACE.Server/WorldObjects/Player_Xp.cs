@@ -300,6 +300,12 @@ namespace ACE.Server.WorldObjects
         /// <param name="shareable">If TRUE, this XP can be shared with fellowship members</param>
         public void GrantXP(long amount, XpType xpType, ShareType shareType = ShareType.All, string xpMessage = "")
         {
+            if (GameplayMode == GameplayModes.Limbo)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You are in limbo mode and cannot earn any experience, please select a gameplay mode.", ChatMessageType.Broadcast));
+                return;
+            }
+
             if (IsOlthoiPlayer)
             {
                 if (HasVitae)
@@ -820,11 +826,32 @@ namespace ACE.Server.WorldObjects
             return modifier;
         }
 
-        public bool RevertToBrandNewCharacter()
+        public bool RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false)
         {
             var success = true;
 
-            FellowshipQuit(false);
+            if(!keepFellowship)
+                FellowshipQuit(false);
+
+            if (!keepAllegiance)
+                AllegianceManager.HandlePlayerDelete(Guid.Full);
+
+            // Reset Titles
+            RemoveAllTitles();
+            if(setToLimboGameplayMode)
+                AddTitle((uint)CharacterTitle.DeadMeat, true, true, true);
+            else if (ChargenTitleId > 0)
+                AddTitle((uint)ChargenTitleId, true, true, true);
+
+            // Reset Gameplay Mode
+            PlayerKillerStatus = PlayerKillerStatus.NPK;
+            PkLevel = PKLevel.NPK;
+            if (!setToLimboGameplayMode)
+                GameplayMode = GameplayModes.Regular;
+            else
+                GameplayMode = GameplayModes.Limbo;
+            GameplayModeExtraIdentifier = 0;
+            GameplayModeIdentifierString = null;
 
             // Reset buffs and vitae
             EnchantmentManager.RemoveVitae();
@@ -851,28 +878,7 @@ namespace ACE.Server.WorldObjects
             RemovePosition(PositionType.LinkedPortalOne);
             RemovePosition(PositionType.LinkedPortalTwo);
 
-            // Destroy all items
-            var inventory = GetAllPossessions();
-
-            foreach (var item in inventory)
-            {
-                if(item.WeenieType != WeenieType.Deed) // Keep houses
-                    item.DeleteObject(this);
-            }
-
             RemoveAllSpells();
-
-            // Reset Gameplay Mode
-            PlayerKillerStatus = PlayerKillerStatus.NPK;
-            PkLevel = PKLevel.NPK;
-            GameplayMode = GameplayModes.Regular;
-            GameplayModeExtraIdentifier = 0;
-            GameplayModeIdentifierString = null;
-
-            // Reset Titles
-            RemoveAllTitles();
-            if(ChargenTitleId > 0)
-                AddTitle((uint)ChargenTitleId, true, true);
 
             // Reset Quest Timers
             QuestManager.EraseAll();
@@ -1027,6 +1033,25 @@ namespace ACE.Server.WorldObjects
                 PlayerFactory.SetInnateAugmentations(this);
             }
 
+            RevertToBrandNewCharacterEquipment(keepHousing);
+
+            Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
+            EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
+
+            return success;
+        }
+
+        public void RevertToBrandNewCharacterEquipment(bool keepHousing)
+        {
+            // Destroy all items
+            var inventory = GetAllPossessions();
+
+            foreach (var item in inventory)
+            {
+                if (keepHousing && item.WeenieType != WeenieType.Deed) // Keep houses
+                    item.DeleteObject(this);
+            }
+
             if (ChargenClothing != null)
             {
                 var chargenClothingList = ChargenClothing.Split("|");
@@ -1080,12 +1105,8 @@ namespace ACE.Server.WorldObjects
 
             PlayerFactory.GrantStarterItems(this);
 
-            Session.Network.EnqueueSend(new GameEventPlayerDescription(Session), new GameEventCharacterTitle(Session));
-            EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
             SendInventoryAndWieldedItems();
             UpdateCoinValue();
-
-            return success;
         }
     }
 }
