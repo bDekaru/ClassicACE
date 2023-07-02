@@ -302,18 +302,31 @@ namespace ACE.Server.WorldObjects
             // wait for the death animation to finish
             var dieChain = new ActionChain();
             var animLength = DatManager.PortalDat.ReadFromDat<MotionTable>(MotionTableId).GetAnimationLength(MotionCommand.Dead);
-            dieChain.AddDelaySeconds(animLength + 1.0f);
+            dieChain.AddDelaySeconds(animLength);
 
+            var nearbyPlayers = PhysicsObj.ObjMaint.GetKnownPlayersValuesAsPlayer();
             dieChain.AddAction(this, () =>
             {
+                // Remove this player from other players' tracked list so the dead do not stand back up briefly before being teleported away.
+                foreach (var player in nearbyPlayers)
+                    player.RemoveTrackedObject(this, false);
                 CreateCorpse(topDamager, hadVitae);
-
+            });
+            dieChain.AddDelaySeconds(1);
+            dieChain.AddAction(this, () =>
+            {
                 ThreadSafeTeleportOnDeath(); // enter portal space
 
                 if ((IsPKDeath(topDamager) || IsPKLiteDeath(topDamager)) && !IsHardcore)
                     SetMinimumTimeSincePK();
 
                 IsBusy = false;
+            });
+            dieChain.AddDelaySeconds(1);
+            dieChain.AddAction(this, () =>
+            {
+                foreach (var player in nearbyPlayers)
+                    player.TrackObject(this); // Re-add to tracked list in case we respawn close enough that we're still visible. I expected this to happen automatically but it does not.
             });
 
             dieChain.EnqueueChain();
