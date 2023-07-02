@@ -718,7 +718,7 @@ namespace ACE.Server.WorldObjects
                         }
                     }
 
-                    if (numItemsDropped > 0)
+                    if (numItemsDropped > 1)
                     {
                         // construct the list of death items
                         var sorted = new DeathItems(inventory);
