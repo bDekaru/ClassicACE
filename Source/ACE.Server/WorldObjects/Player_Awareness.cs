@@ -104,9 +104,9 @@ namespace ACE.Server.WorldObjects
             uint difficulty;
 
             var angle = Math.Abs(creature.GetAngle(this));
-            if (angle < 90)
+            if (angle < 10)
             {
-                if (distanceSquared < 2)
+                if (distanceSquared < 1)
                 {
                     EndSneaking(failureMessage);
                     return false;
