@@ -202,14 +202,14 @@ namespace ACE.Server.WorldObjects
                     Entity.CreatureSkill skill = target.GetCreatureSkill(Skill.Deception);
 
                     var activationChance = ThreadSafeRandom.Next(0.0f, 1.0f);
-                    if (skill.AdvancementClass == SkillAdvancementClass.Specialized && activationChance > 0.5)
+                    if (skill.AdvancementClass == SkillAdvancementClass.Specialized && activationChance > 1.0)
                         continue;
-                    else if (skill.AdvancementClass == SkillAdvancementClass.Trained && activationChance > 0.25)
+                    else if (skill.AdvancementClass == SkillAdvancementClass.Trained && activationChance > 0.5)
                         continue;
                     else if (activationChance > 0.10)
                         continue;
 
-                    if (target.attacksReceivedPerSecond >= skill.Current / 50.0f)
+                    if (target.attacksReceivedPerSecond >= skill.Current / 60.0f)
                     {
                         target.Session.Network.EnqueueSend(new GameMessageSystemChat($"You're too busy with your current targets to attempt to taunt any others!", ChatMessageType.CombatSelf));
                         continue;
