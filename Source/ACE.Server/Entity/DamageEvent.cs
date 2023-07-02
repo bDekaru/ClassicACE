@@ -466,7 +466,7 @@ namespace ACE.Server.Entity
                 else
                 {
                     Blocked = false;
-                    ShieldMod = 1.0f;
+                    ShieldMod = 2.0f;
                 }
             }
 
