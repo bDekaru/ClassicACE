@@ -3244,6 +3244,10 @@ namespace ACE.Server.WorldObjects
             get => GameplayMode == GameplayModes.SoloSelfFound;
         }
 
+        public bool IsInLimboMode
+        {
+            get => GameplayMode == GameplayModes.Limbo;
+        }
 
         public GameplayModes GameplayMode
         {

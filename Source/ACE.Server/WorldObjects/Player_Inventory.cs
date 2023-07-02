@@ -3573,7 +3573,7 @@ namespace ACE.Server.WorldObjects
         {
             if (target == null || item == null) return;
 
-            if (!VerifyGameplayMode(item))
+            if (!VerifyGameplayMode(item) || IsInLimboMode)
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be given, incompatible gameplay mode!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));

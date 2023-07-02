@@ -250,6 +250,11 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            // Divide our extra xp with the multiplier so that it ends up the same no matter the xp modifier.
+            var hardcoreXpMultiplier = PropertyManager.GetDouble("hardcore_pk_xp_modifier").Item;
+            if (hardcoreXpMultiplier != 0)
+                extraXp /= hardcoreXpMultiplier;
+
             var totalHealth = DamageHistory.TotalHealth;
             if (totalHealth == 0)
                 return;
