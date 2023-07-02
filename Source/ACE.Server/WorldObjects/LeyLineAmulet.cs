@@ -84,52 +84,56 @@ namespace ACE.Server.WorldObjects
             SpellId.RevitalizeOther1,
 
             SpellId.StaminaToManaSelf1,
+        /// Adding some useful spells for Martyr Mages
+            SpellId.HealthToManaSelf1,
 
-            SpellId.HarmOther1,
-            SpellId.EnfeebleOther1,
-            SpellId.ManaDrainOther1,
+        /// Removing spells that are not useful.
+            ///SpellId.HarmOther1,
+            ///SpellId.EnfeebleOther1,
+            ///SpellId.ManaDrainOther1,
 
             SpellId.DrainHealth1,
-            SpellId.DrainStamina1,
-            SpellId.DrainMana1,
+        /// Removing spells that are not useful.
+            ///SpellId.DrainStamina1,
+            ///SpellId.DrainMana1,
 
             SpellId.HealthBolt1,
-            SpellId.StaminaBolt1,
-            SpellId.ManaBolt1,
+            ///SpellId.StaminaBolt1,
+            ///SpellId.ManaBolt1,
         };
 
         private static readonly List<SpellId> PossibleLifeMagicOtherTriggerSpells = new List<SpellId>()
         {
             SpellId.HealOther1,
 
-            SpellId.RevitalizeOther1,
+            ///SpellId.RevitalizeOther1,
 
-            SpellId.HarmOther1,
-            SpellId.EnfeebleOther1,
-            SpellId.ManaDrainOther1,
+            ///SpellId.HarmOther1,
+            ///SpellId.EnfeebleOther1,
+            ///SpellId.ManaDrainOther1,
 
             SpellId.DrainHealth1,
-            SpellId.DrainStamina1,
-            SpellId.DrainMana1,
+            ///SpellId.DrainStamina1,
+            ///SpellId.DrainMana1,
 
             SpellId.HealthBolt1,
-            SpellId.StaminaBolt1,
-            SpellId.ManaBolt1,
+            ///SpellId.StaminaBolt1,
+            ///SpellId.ManaBolt1,
         };
 
         private static readonly List<SpellId> PossibleLifeMagicOffensiveTriggerSpells = new List<SpellId>()
         {
-            SpellId.HarmOther1,
-            SpellId.EnfeebleOther1,
-            SpellId.ManaDrainOther1,
+            ///SpellId.HarmOther1,
+            ///SpellId.EnfeebleOther1,
+            ///SpellId.ManaDrainOther1,
 
             SpellId.DrainHealth1,
-            SpellId.DrainStamina1,
-            SpellId.DrainMana1,
+            ///SpellId.DrainStamina1,
+            ///SpellId.DrainMana1,
 
             SpellId.HealthBolt1,
-            SpellId.StaminaBolt1,
-            SpellId.ManaBolt1,
+            ///SpellId.StaminaBolt1,
+            ///SpellId.ManaBolt1,
         };
 
         private static readonly List<SpellId> PossibleOffensiveSpells = new List<SpellId>()
@@ -190,10 +194,11 @@ namespace ACE.Server.WorldObjects
         private static readonly List<SpellId> PossibleBeneficialSelfSpells = new List<SpellId>()
         {
             SpellId.HealSelf1,
-            SpellId.RevitalizeSelf1,
+           /// SpellId.RevitalizeSelf1,
             SpellId.ManaBoostSelf1,
 
-            SpellId.StaminaToManaSelf1,
+           /// SpellId.StaminaToManaSelf1,
+            SpellId.HealthToManaSelf1,
 
             SpellId.DispelLifeBadSelf1,
             SpellId.DispelCreatureBadSelf1,
