@@ -35,9 +35,6 @@ Tier chances: 0, 1, 0, 0, 0, 0
         WieldSkillType = 1
         WieldDifficulty = 5
 
-    - Chance 100%
-        ArmorLevel += -120
-
 Armor Mutation #3:
 
 Tier chances: 0, 0, 1, 0, 0, 0
@@ -67,9 +64,6 @@ Tier chances: 0, 0, 1, 0, 0, 0
         WieldRequirements = Level
         WieldSkillType = 1
         WieldDifficulty = 20
-
-    - Chance 100%
-        ArmorLevel += -100
 
 Armor Mutation #4:
 
@@ -101,9 +95,6 @@ Tier chances: 0, 0, 0, 1, 0, 0
         WieldSkillType = 1
         WieldDifficulty = 40
 
-    - Chance 100%
-        ArmorLevel += -80
-
 Armor Mutation #5:
 
 Tier chances: 0, 0, 0, 0, 1, 0
@@ -134,9 +125,6 @@ Tier chances: 0, 0, 0, 0, 1, 0
         WieldSkillType = 1
         WieldDifficulty = 50
 
-    - Chance 100%
-        ArmorLevel += -60
-
 Armor Mutation #6:
 
 Tier chances: 0, 0, 0, 0, 0, 1
@@ -163,9 +151,6 @@ Tier chances: 0, 0, 0, 0, 0, 1
         WieldRequirements = Level
         WieldSkillType = 1
         WieldDifficulty = 60
-
-    - Chance 100%
-        ArmorLevel += -40
 
 Armor Mutation #7:
 
@@ -194,7 +179,6 @@ Tier chances: 1, 0, 0, 0, 0, 0
         ComponentBurnRateMod = -0.15
 
     - Chance 70%
-        ArmorLevel += +20
         ManaConversionMod += 0.15
 
 Armor Mutation #9:
@@ -217,8 +201,7 @@ Tier chances: 0, 1, 0, 0, 0, 0
         ComponentBurnRateMod = -0.25
 
     - Chance 50%
-        ArmorLevel += +20
-        ManaConversionMod += 0.15
+        ManaConversionMod += 0.10
 
 
 Armor Mutation #10:
@@ -247,8 +230,7 @@ Tier chances: 0, 0, 1, 0, 0, 0
         ComponentBurnRateMod = -0.35
 
     - Chance 30%
-        ArmorLevel += +20
-        ManaConversionMod += 0.15
+        ManaConversionMod += 0.10
 
 
 Armor Mutation #11:
@@ -277,8 +259,7 @@ Tier chances: 0, 0, 0, 1, 0, 0
         ComponentBurnRateMod = -0.40
 
     - Chance 10%
-        ArmorLevel += +20
-        ManaConversionMod += 0.15
+        ManaConversionMod += 0.10
 
 
 Armor Mutation #12:
@@ -307,8 +288,7 @@ Tier chances: 0, 0, 0, 0, 1, 0
         ComponentBurnRateMod = -0.45
 
     - Chance 5%
-        ArmorLevel += +20
-        ManaConversionMod += 0.20
+        ManaConversionMod += 0.15
 
 Armor Mutation #13:
 
@@ -333,5 +313,4 @@ Tier chances: 0, 0, 0, 0, 0, 1
         ComponentBurnRateMod = -0.50
 
     - Chance 5%
-        ArmorLevel += +20
-        ManaConversionMod += 0.30
+        ManaConversionMod += 0.15
