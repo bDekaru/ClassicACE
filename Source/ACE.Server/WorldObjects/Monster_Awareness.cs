@@ -168,9 +168,9 @@ namespace ACE.Server.WorldObjects
                 else
                 {
                     var defenseSkill = GetCreatureSkill(Skill.AssessCreature);
-                    var avoidChance = 1.0f - SkillCheck.GetSkillChance(skill.Current, defenseSkill.Current);
+                    var avoidChance = 1.5f - SkillCheck.GetSkillChance(skill.Current, defenseSkill.Current);
 
-                    if (avoidChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                    if (avoidChance > ThreadSafeRandom.Next(0.0f, 1.5f))
                     {
                         // The current taunter has lost the taunt! Give other taunters a shot, remove from targetDistances to incentivize the monster to switch targets.
                         target.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your taunt loses its effect on {Name}!", ChatMessageType.CombatSelf));
