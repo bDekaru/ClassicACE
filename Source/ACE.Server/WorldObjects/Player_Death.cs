@@ -191,7 +191,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void InflictVitaePenalty(int amount = 0)
         {
-            DeathLevel = Level; // for calculating vitae XP
+            DeathLevel = Level * 5; // for calculating vitae XP
             VitaeCpPool = 0;    // reset vitae XP earned
 
             var msgDeathLevel = new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.DeathLevel, DeathLevel ?? 0);
