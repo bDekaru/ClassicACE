@@ -566,7 +566,7 @@ namespace ACE.Server.Command.Handlers
 
                 if (wo != null && wo.IsGenerator)
                 {
-                    if(wo is Container container)
+                    if (wo is Container container)
                         container.Reset();
                     wo.ResetGenerator();
                     wo.GeneratorEnteredWorld = false;
@@ -1151,7 +1151,7 @@ namespace ACE.Server.Command.Handlers
                     }
                 }
                 else if (parameters.Length > 1 && parameters[1] == "name")
-                {                    
+                {
                     var playerName = "";
                     for (var i = 2; i < parameters.Length; i++)
                         playerName += $"{parameters[i]} ";
@@ -1271,13 +1271,13 @@ namespace ACE.Server.Command.Handlers
                 else if (parameters.Length > 1 && parameters[1] == "summary")
                 {
                     var apartmentsTotal = 3000d;
-                    var cottagesTotal   = 2600d;
-                    var villasTotal     = 570d;
-                    var mansionsTotal   = 80d;
+                    var cottagesTotal = 2600d;
+                    var villasTotal = 570d;
+                    var mansionsTotal = 80d;
 
-                    var cottages   = 0;
-                    var villas     = 0;
-                    var mansions   = 0;
+                    var cottages = 0;
+                    var villas = 0;
+                    var mansions = 0;
                     var apartments = 0;
 
                     for (var i = 1u; i < 6251; i++)
@@ -1306,9 +1306,9 @@ namespace ACE.Server.Command.Handlers
                     }
 
                     var apartmentsAvail = (apartmentsTotal - apartments) / apartmentsTotal;
-                    var cottagesAvail   = (cottagesTotal - cottages) / cottagesTotal;
-                    var villasAvail     = (villasTotal - villas) / villasTotal;
-                    var mansionsAvail   = (mansionsTotal - mansions) / mansionsTotal;
+                    var cottagesAvail = (cottagesTotal - cottages) / cottagesTotal;
+                    var villasAvail = (villasTotal - villas) / villasTotal;
+                    var mansionsAvail = (mansionsTotal - mansions) / mansionsTotal;
 
                     var msg = "HUD Report:\n";
                     msg += "=========================================================\n";
@@ -1483,7 +1483,7 @@ namespace ACE.Server.Command.Handlers
                 msg += "@adminhouse payrent off / on: sets the targeted house to not require / require normal maintenance payments.\n";
 
                 session.Player.SendMessage(msg);
-            }    
+            }
         }
 
         private static void DumpHouse(Session session, House targetHouse, WorldObject wo)
@@ -1561,7 +1561,7 @@ namespace ACE.Server.Command.Handlers
                     session.Player.SendMessage(msg, ChatMessageType.System);
                 }
 
-                session.Player.SendMessage(AppendHouseLinkDump(house), ChatMessageType.System);                
+                session.Player.SendMessage(AppendHouseLinkDump(house), ChatMessageType.System);
 
                 if (house.HouseType == HouseType.Villa || house.HouseType == HouseType.Mansion)
                 {
@@ -1781,7 +1781,7 @@ namespace ACE.Server.Command.Handlers
 
                     var names = string.Join(" ", parameters).Split(",");
 
-                    var newCharName = names[1].TrimStart(' ').TrimEnd(' ');                    
+                    var newCharName = names[1].TrimStart(' ').TrimEnd(' ');
 
                     if (newCharName.StartsWith("+"))
                         newCharName = newCharName.Substring(1);
@@ -2434,7 +2434,7 @@ namespace ACE.Server.Command.Handlers
             var obj = WorldObjectFactory.CreateNewWorldObject(weenie);
 
             //if (obj.TimeToRot == null)
-                //obj.TimeToRot = double.MaxValue;
+            //obj.TimeToRot = double.MaxValue;
 
             if (obj.WeenieType == WeenieType.Creature)
                 obj.Location = session.Player.Location.InFrontOf(5f, true);
@@ -2703,7 +2703,7 @@ namespace ACE.Server.Command.Handlers
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"You must select a player to send them a message.", ChatMessageType.Broadcast));
                 return;
-            }    
+            }
 
             var wo = session.Player.CurrentLandblock?.GetObject(objectId);
 
@@ -3161,7 +3161,7 @@ namespace ACE.Server.Command.Handlers
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Exception ( { e.Source } - {e.Message} ) caught while {currentPlayer.Name} was attempting to return to normal from godmode.");
+                    Console.WriteLine($"Exception ( {e.Source} - {e.Message} ) caught while {currentPlayer.Name} was attempting to return to normal from godmode.");
                     ChatPacket.SendServerMessage(session, "Error returning to mortal state, defaulting to godmode.", ChatMessageType.Broadcast);
                     DoGodMode(true, session, true);
                     return;
@@ -4783,7 +4783,7 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("setmotd", AccessLevel.Admin, CommandHandlerFlag.None, 1, "Set the server's message of the day", "(string)")]
         public static void HandleSetMotD(Session session, params string[] parameters)
         {
-            var newMotD = String.Join(" ",parameters).Replace("\\n", "\n"); // We need this so the MoTD can have line breaks.
+            var newMotD = String.Join(" ", parameters).Replace("\\n", "\n"); // We need this so the MoTD can have line breaks.
             if (PropertyManager.ModifyString("server_motd", newMotD))
             {
                 CommandHandlerHelper.WriteOutputInfo(session, "Message of the day successfully updated!");
@@ -4870,7 +4870,7 @@ namespace ACE.Server.Command.Handlers
                     primarySkill = player.GetCreatureSkill((Skill)primarySkillId);
                 var secondarySkill = player.GetCreatureSkill((Skill)secondarySkillId);
 
-                if(primarySkill != null && secondarySkill != null)
+                if (primarySkill != null && secondarySkill != null)
                 {
                     if (secondarySkill.AdvancementClass < SkillAdvancementClass.Trained)
                     {
@@ -4892,7 +4892,7 @@ namespace ACE.Server.Command.Handlers
                         else
                         {
                             var currentPrimarySkill = player.GetCreatureSkill(secondarySkill.SecondaryTo);
-                            if(currentPrimarySkill != null)
+                            if (currentPrimarySkill != null)
                                 CommandHandlerHelper.WriteOutputInfo(session, $"Your {secondarySkill.Skill.ToSentence()} skill is already a secondary skill of {currentPrimarySkill.Skill.ToSentence()} skill.", ChatMessageType.WorldBroadcast);
                             else
                                 CommandHandlerHelper.WriteOutputInfo(session, $"Your {secondarySkill.Skill.ToSentence()} skill is already a secondary skill.", ChatMessageType.WorldBroadcast);
@@ -4900,7 +4900,7 @@ namespace ACE.Server.Command.Handlers
                         }
                     }
                 }
-                else if(secondarySkill != null && primarySkillId == 0)
+                else if (secondarySkill != null && primarySkillId == 0)
                 {
                     if (secondarySkill.IsSecondary)
                     {
@@ -4917,7 +4917,7 @@ namespace ACE.Server.Command.Handlers
                 CommandHandlerHelper.WriteOutputInfo(session, "Invalid skill IDs.", ChatMessageType.WorldBroadcast);
         }
 
-        [CommandHandler("refreshExploration", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
+        [CommandHandler("RefreshExploration", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
         public static void HandleRefreshExploration(Session session, params string[] parameters)
         {
             var player = session?.Player;
@@ -4926,6 +4926,18 @@ namespace ACE.Server.Command.Handlers
                 return;
 
             player.RefreshExplorationAssignments();
+        }
+
+        [CommandHandler("SwitchHotDungeon", AccessLevel.Admin, CommandHandlerFlag.None, "")]
+        public static void HandleRefreshHotDungeon(Session session, params string[] parameters)
+        {
+            EventManager.RollHotDungeon();
+        }
+
+        [CommandHandler("ProlongHotDungeon", AccessLevel.Admin, CommandHandlerFlag.None, "")]
+        public static void HandleProlongHotDungeon(Session session, params string[] parameters)
+        {
+            EventManager.ProlongHotDungeon();
         }
     }
 }

@@ -110,7 +110,7 @@ namespace ACE.Server.WorldObjects
 
                     if (CurrentLandblock != null && EventManager.HotDungeonLandblock == CurrentLandblock.Id.Raw >> 16)
                     {
-                        var extraXP = totalXP * EventManager.HotDungeonExtraXP;
+                        var extraXP = totalXP * (float)PropertyManager.GetDouble("hot_dungeon_bonus_xp").Item;
                         totalXP += extraXP;
 
                         xpMessage = $"Hot Dungeon Bonus: +{extraXP:N0}xp {xpMessage}";
@@ -119,7 +119,7 @@ namespace ACE.Server.WorldObjects
 
                 if (CurrentLandblock != null && !(CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors)))
                 {
-                    var extraXP = totalXP * 0.25f; // Surface provides 25% xp bonus to account for lower creature density.
+                    var extraXP = totalXP * (float)PropertyManager.GetDouble("surface_bonus_xp").Item; // Surface provides extra xp to account for lower creature density.
                     totalXP += extraXP;
 
                     xpMessage = $"Surface Bonus: +{extraXP:N0}xp {xpMessage}";
@@ -276,21 +276,21 @@ namespace ACE.Server.WorldObjects
                 if (Exploration1LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration1KillProgressTracker > 0)
                 {
                     Exploration1KillProgressTracker--;
-                    long explorationXP = (long)(m_amount * 0.5f);
+                    long explorationXP = (long)(m_amount * (float)PropertyManager.GetDouble("exploration_bonus_xp").Item);
                     xpMessage = $"{Exploration1KillProgressTracker:N0} kill{(Exploration1KillProgressTracker != 1 ? "s" : "")} remaining.";
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
                 }
                 else if (Exploration2LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration2KillProgressTracker > 0)
                 {
                     Exploration2KillProgressTracker--;
-                    long explorationXP = (long)(m_amount * 0.5f);
+                    long explorationXP = (long)(m_amount * (float)PropertyManager.GetDouble("exploration_bonus_xp").Item);
                     xpMessage = $"{Exploration2KillProgressTracker:N0} kill{(Exploration2KillProgressTracker != 1 ? "s" : "")} remaining.";
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
                 }
                 else if (Exploration3LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration3KillProgressTracker > 0)
                 {
                     Exploration3KillProgressTracker--;
-                    long explorationXP = (long)(m_amount * 0.5f);
+                    long explorationXP = (long)(m_amount * (float)PropertyManager.GetDouble("exploration_bonus_xp").Item);
                     xpMessage = $"{Exploration3KillProgressTracker:N0} kill{(Exploration3KillProgressTracker != 1 ? "s" : "")} remaining.";
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
                 }

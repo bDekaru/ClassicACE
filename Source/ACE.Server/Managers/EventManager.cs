@@ -31,7 +31,7 @@ namespace ACE.Server.Managers
         {
             var events = Database.DatabaseManager.World.GetAllEvents();
 
-            foreach(var evnt in events)
+            foreach (var evnt in events)
             {
                 Events.Add(evnt.Name, evnt);
 
@@ -202,11 +202,9 @@ namespace ACE.Server.Managers
             var smugglersDen = GetEventStatus("smugglersden");
             if (smugglersDen == GameEventState.Off && PlayerManager.GetOnlinePKCount() >= 5)
                 StartEvent("smugglersden", null, null);
-            else if(smugglersDen == GameEventState.On && PlayerManager.GetOnlinePKCount() < 5)
+            else if (smugglersDen == GameEventState.On && PlayerManager.GetOnlinePKCount() < 5)
                 StopEvent("smugglersden", null, null);
         }
-
-        public static float HotDungeonExtraXP = 0.25f;
 
         public static int HotDungeonLandblock = 0;
         public static string HotDungeonName = "";
@@ -221,7 +219,7 @@ namespace ACE.Server.Managers
             if (NextHotDungeonSwitch > currentUnixTime)
                 return;
 
-            if(HotDungeonLandblock != 0)
+            if (HotDungeonLandblock != 0)
             {
                 var msg = $"{HotDungeonName} is no longer giving extra experience rewards.";
                 PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
@@ -240,6 +238,20 @@ namespace ACE.Server.Managers
                 return;
             }
 
+            RollHotDungeon();
+        }
+
+        public static void ProlongHotDungeon()
+        {
+            NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonInterval);
+
+            var msg = $"The current extra experience dungeon duration has been prolonged!";
+            PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
+            PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
+        }
+
+        public static void RollHotDungeon()
+        {
             NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonInterval);
 
             var onlinePlayers = PlayerManager.GetAllOnline();
