@@ -134,6 +134,11 @@ namespace ACE.Server.WorldObjects
             if (xpType == XpType.Quest)
                 modifier *= questModifier;
 
+            if (GameplayMode == GameplayModes.HardcorePK)
+                modifier *= PropertyManager.GetDouble("hardcore_pk_xp_modifier").Item;
+            else if (GameplayMode == GameplayModes.HardcoreNPK)
+                modifier *= PropertyManager.GetDouble("hardcore_npk_xp_modifier").Item;
+
             if (xpType == XpType.Kill)
             {
                 if (xpSourceTier != null)
@@ -300,6 +305,12 @@ namespace ACE.Server.WorldObjects
         /// <param name="shareable">If TRUE, this XP can be shared with fellowship members</param>
         public void GrantXP(long amount, XpType xpType, ShareType shareType = ShareType.All, string xpMessage = "")
         {
+            if (GameplayMode == GameplayModes.Limbo)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You are in limbo mode and cannot earn any experience, please select a gameplay mode.", ChatMessageType.Broadcast));
+                return;
+            }
+
             if (IsOlthoiPlayer)
             {
                 if (HasVitae)
@@ -357,8 +368,8 @@ namespace ACE.Server.WorldObjects
             var maxLevelXp = xpTable.CharacterLevelXPList[(int)maxLevel];
 
             bool allowXpAtMaxLevel = PropertyManager.GetBool("allow_xp_at_max_level").Item;
-            var totalXpCap = (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR ? long.MaxValue : maxLevelXp); // 0 disables the xp cap
-            var availableXpCap = (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR ? long.MaxValue : uint.MaxValue); // 0 disables the xp cap
+            var totalXpCap = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? maxLevelXp : long.MaxValue; // At what value the total xp counter will stop counting.
+            var availableXpCap = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? uint.MaxValue : long.MaxValue; // Max unassigned xp amount.
 
             if (Level != maxLevel || allowXpAtMaxLevel)
             {
@@ -369,12 +380,12 @@ namespace ACE.Server.WorldObjects
                     addAmount = amountLeftToEnd;
 
                 TotalExperience += addAmount;
-                if (totalXpCap > 0 && TotalExperience > (long)totalXpCap)
+                if (TotalExperience > (long)totalXpCap)
                     TotalExperience = (long)totalXpCap;
 
                 AvailableExperience += addAmount;
-                if (availableXpCap > 0 && AvailableExperience > (long)availableXpCap)
-                    AvailableExperience = (long)availableXpCap;
+                if (AvailableExperience > availableXpCap)
+                    AvailableExperience = availableXpCap;
 
                 var xpTotalUpdate = new GameMessagePrivateUpdatePropertyInt64(this, PropertyInt64.TotalExperience, TotalExperience ?? 0);
                 var xpAvailUpdate = new GameMessagePrivateUpdatePropertyInt64(this, PropertyInt64.AvailableExperience, AvailableExperience ?? 0);
@@ -820,11 +831,29 @@ namespace ACE.Server.WorldObjects
             return modifier;
         }
 
-        public bool RevertToBrandNewCharacter()
+        public bool RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false, long startingXP = 0)
         {
             var success = true;
 
-            FellowshipQuit(false);
+            if(!keepFellowship)
+                FellowshipQuit(false);
+
+            if (!keepAllegiance)
+                AllegianceManager.HandlePlayerDelete(Guid.Full);
+
+            // Reset Gameplay Mode
+            PlayerKillerStatus = PlayerKillerStatus.NPK;
+            PkLevel = PKLevel.NPK;
+            GameplayMode = GameplayModes.Regular;
+            GameplayModeExtraIdentifier = 0;
+            GameplayModeIdentifierString = null;
+
+            // Reset Titles
+            RemoveAllTitles();
+            if(setToLimboGameplayMode)
+                AddTitle((uint)CharacterTitle.DeadMeat, true, true, true);
+            else if (ChargenTitleId > 0)
+                AddTitle((uint)ChargenTitleId, true, true, true);
 
             // Reset buffs and vitae
             EnchantmentManager.RemoveVitae();
@@ -851,28 +880,7 @@ namespace ACE.Server.WorldObjects
             RemovePosition(PositionType.LinkedPortalOne);
             RemovePosition(PositionType.LinkedPortalTwo);
 
-            // Destroy all items
-            var inventory = GetAllPossessions();
-
-            foreach (var item in inventory)
-            {
-                if(item.WeenieType != WeenieType.Deed) // Keep houses
-                    item.DeleteObject(this);
-            }
-
             RemoveAllSpells();
-
-            // Reset Gameplay Mode
-            PlayerKillerStatus = PlayerKillerStatus.NPK;
-            PkLevel = PKLevel.NPK;
-            GameplayMode = GameplayModes.Regular;
-            GameplayModeExtraIdentifier = 0;
-            GameplayModeIdentifierString = null;
-
-            // Reset Titles
-            RemoveAllTitles();
-            if(ChargenTitleId > 0)
-                AddTitle((uint)ChargenTitleId, true, true);
 
             // Reset Quest Timers
             QuestManager.EraseAll();
@@ -1027,6 +1035,32 @@ namespace ACE.Server.WorldObjects
                 PlayerFactory.SetInnateAugmentations(this);
             }
 
+            RevertToBrandNewCharacterEquipment(keepHousing);
+
+            if (startingXP > 0)
+                UpdateXpAndLevel(startingXP, XpType.Admin);
+
+            // Leave this for last as it could potentially block some actions during the reset process.
+            if (setToLimboGameplayMode)
+                GameplayMode = GameplayModes.Limbo;
+
+            Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
+            EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
+
+            return success;
+        }
+
+        public void RevertToBrandNewCharacterEquipment(bool keepHousing)
+        {
+            // Destroy all items
+            var inventory = GetAllPossessions();
+
+            foreach (var item in inventory)
+            {
+                if (keepHousing && item.WeenieType != WeenieType.Deed) // Keep houses
+                    item.DeleteObject(this);
+            }
+
             if (ChargenClothing != null)
             {
                 var chargenClothingList = ChargenClothing.Split("|");
@@ -1080,12 +1114,8 @@ namespace ACE.Server.WorldObjects
 
             PlayerFactory.GrantStarterItems(this);
 
-            Session.Network.EnqueueSend(new GameEventPlayerDescription(Session), new GameEventCharacterTitle(Session));
-            EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
             SendInventoryAndWieldedItems();
             UpdateCoinValue();
-
-            return success;
         }
     }
 }

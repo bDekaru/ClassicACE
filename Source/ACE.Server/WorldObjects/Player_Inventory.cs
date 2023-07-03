@@ -1904,9 +1904,9 @@ namespace ACE.Server.WorldObjects
             bool weapon1IsLight = false;
             bool weapon2IsLight = false;
 
-            if (weapon1 == null || weapon1.IsLightWeapon || !(weapon1.WeaponSkill != Skill.Dagger && weapon1.WeaponSkill != Skill.UnarmedCombat && (weapon1.WeaponSkill != Skill.Sword || !weapon1.W_AttackType.IsMultiStrike())))
+            if (weapon1 == null || weapon1.IsLightWeapon)
                 weapon1IsLight = true;
-            if (weapon2 == null || weapon2.IsLightWeapon || !(weapon2.WeaponSkill != Skill.Dagger && weapon2.WeaponSkill != Skill.UnarmedCombat && (weapon2.WeaponSkill != Skill.Sword || !weapon2.W_AttackType.IsMultiStrike())))
+            if (weapon2 == null || weapon2.IsLightWeapon)
                 weapon2IsLight = true;
 
             return weapon1IsLight || weapon2IsLight;
@@ -3573,7 +3573,7 @@ namespace ACE.Server.WorldObjects
         {
             if (target == null || item == null) return;
 
-            if (!VerifyGameplayMode(item))
+            if (!VerifyGameplayMode(item) || IsInLimboMode)
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be given, incompatible gameplay mode!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));

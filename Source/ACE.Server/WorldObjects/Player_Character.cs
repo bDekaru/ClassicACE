@@ -331,7 +331,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         /// <param name="titleId">Id of Title to Add</param>
         /// <param name="setAsDisplayTitle">If this is true, make this the player's current title</param>
-        public void AddTitle(uint titleId, bool setAsDisplayTitle = false, bool silent = false)
+        public void AddTitle(uint titleId, bool setAsDisplayTitle = false, bool silent = false, bool forceApply = false)
         {
             if (!Enum.IsDefined(typeof(CharacterTitle), titleId))
                 return;
@@ -354,7 +354,7 @@ namespace ACE.Server.WorldObjects
 
             if (setAsDisplayTitle && CharacterTitleId != titleId)
             {
-                if (GameplayMode == GameplayModes.Regular)
+                if (GameplayMode == GameplayModes.Regular || forceApply)
                     CharacterTitleId = (int)titleId;
                 else
                 {
@@ -412,6 +412,8 @@ namespace ACE.Server.WorldObjects
             Character.RemoveAllTitles(CharacterDatabaseLock);
 
             NumCharacterTitles = 0;
+
+            Session.Network.EnqueueSend(new GameEventCharacterTitle(Session));
         }
     }
 }
