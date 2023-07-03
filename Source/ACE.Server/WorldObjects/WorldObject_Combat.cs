@@ -58,5 +58,20 @@ namespace ACE.Server.WorldObjects
                     aetheria.TryProcItem(attacker, target, selfTarget);
             }
         }
+
+        public float GetShieldMissileBlockBonus()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || !IsShield)
+                return 0;
+
+            if (Mass >= 600)
+                return 1.0f;
+            else if (Mass >= 400)
+                return 0.75f;
+            else if (Mass >= 200)
+                return 0.50f;
+            else
+                return 0;
+        }
     }
 }
