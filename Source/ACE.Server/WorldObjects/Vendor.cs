@@ -728,19 +728,19 @@ namespace ACE.Server.WorldObjects
                             {
                                 Proficiency.OnSuccessUse(player, appraisalSkill, diff3);
 
-                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.85f), 1);
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.10f), 1);
                             }
                             else if (chance2 > roll)
                             {
                                 Proficiency.OnSuccessUse(player, appraisalSkill, diff2);
 
-                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.90f), 1);
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.30f), 1);
                             }
                             else if (chance1 > roll)
                             {
                                 Proficiency.OnSuccessUse(player, appraisalSkill, diff1);
 
-                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.95f), 1);
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.50f), 1);
                             }
                             else
                                 totalPriceAfterHaggling += cost;
