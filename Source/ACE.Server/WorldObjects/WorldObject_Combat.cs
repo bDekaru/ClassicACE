@@ -61,7 +61,7 @@ namespace ACE.Server.WorldObjects
 
         public float GetShieldMissileBlockBonus()
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || !IsShield)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || !IsShield || !Mass.HasValue)
                 return 0;
 
             if (Mass >= 600)
