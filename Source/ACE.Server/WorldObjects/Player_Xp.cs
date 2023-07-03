@@ -831,10 +831,8 @@ namespace ACE.Server.WorldObjects
             return modifier;
         }
 
-        public bool RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false, long startingXP = 0)
+        public void RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false, long startingXP = 0)
         {
-            var success = true;
-
             if(!keepFellowship)
                 FellowshipQuit(false);
 
@@ -967,9 +965,9 @@ namespace ACE.Server.WorldObjects
             Level = 1;
 
             // Add starter skills
-            if (ChargenTrainedSkills != null)
+            if (ChargenSkillsTrained != null)
             {
-                var skillsToTrain = ChargenTrainedSkills.Split("|");
+                var skillsToTrain = ChargenSkillsTrained.Split("|");
                 foreach (var skillString in skillsToTrain)
                 {
                     if (int.TryParse(skillString, out var skillId))
@@ -986,15 +984,14 @@ namespace ACE.Server.WorldObjects
                             }
                         }
 
-                        if (!TrainSkill((Skill)skillId, trainedCost, true))
-                            success = false;
+                        TrainSkill((Skill)skillId, trainedCost, true);
                     }
                 }
             }
 
-            if (ChargenSpecializedSkills != null)
+            if (ChargenSkillsSpecialized != null)
             {
-                var skillsToSpecialize = ChargenSpecializedSkills.Split("|");
+                var skillsToSpecialize = ChargenSkillsSpecialized.Split("|");
                 foreach (var skillString in skillsToSpecialize)
                 {
                     if (int.TryParse(skillString, out var skillId))
@@ -1012,10 +1009,30 @@ namespace ACE.Server.WorldObjects
                                 break;
                             }
                         }
-                        if (!TrainSkill((Skill)skillId, trainedCost))
-                            success = false;
-                        else if (!SpecializeSkill((Skill)skillId, specializedCost))
-                            success = false;
+                        if (TrainSkill((Skill)skillId, trainedCost))
+                            SpecializeSkill((Skill)skillId, specializedCost);                            
+                    }
+                }
+            }
+
+            if (ChargenSkillsSecondary != null)
+            {
+                var skillsToSetAsSecondary = ChargenSkillsSecondary.Split("|");
+                foreach (var skillString in skillsToSetAsSecondary)
+                {
+                    var skillAndPrimarySkill = skillString.Split(":");
+                    if(skillAndPrimarySkill.Length == 2)
+                    {
+                        if (int.TryParse(skillAndPrimarySkill[0], out var secondarySkillId) && int.TryParse(skillAndPrimarySkill[1], out var primarySkillId))
+                        {
+                            var primarySkill = GetCreatureSkill((Skill)primarySkillId);
+                            var secondarySkill = GetCreatureSkill((Skill)secondarySkillId);
+
+                            if(primarySkill.AdvancementClass > SkillAdvancementClass.Untrained && secondarySkill.AdvancementClass > SkillAdvancementClass.Untrained)
+                            {
+                                secondarySkill.SecondaryTo = (Skill)primarySkillId;
+                            }
+                        }
                     }
                 }
             }
@@ -1046,8 +1063,6 @@ namespace ACE.Server.WorldObjects
 
             Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
             EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
-
-            return success;
         }
 
         public void RevertToBrandNewCharacterEquipment(bool keepHousing)

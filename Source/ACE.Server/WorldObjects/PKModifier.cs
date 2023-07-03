@@ -166,6 +166,7 @@ namespace ACE.Server.WorldObjects
 
                     var trainedSkills = new List<int>();
                     var specializedSkills = new List<int>();
+                    var secondarySkills = new List<string>();
 
                     foreach (var skillEntry in player.Skills)
                     {
@@ -202,12 +203,18 @@ namespace ACE.Server.WorldObjects
                             trainedSkills.Add(skillId);
                             availableSkillCredits -= trainedCost;
                         }
+
+                        if(skill.IsSecondary && sac > SkillAdvancementClass.Untrained)
+                        {
+                            secondarySkills.Add($"{skillId}:{(int)skill.SecondaryTo}");
+                        }
                     }
 
                     if (availableSkillCredits >= 0)
                     {
-                        player.ChargenTrainedSkills = string.Join("|", trainedSkills);
-                        player.ChargenSpecializedSkills = string.Join("|", specializedSkills);
+                        player.ChargenSkillsTrained = string.Join("|", trainedSkills);
+                        player.ChargenSkillsSpecialized = string.Join("|", specializedSkills);
+                        player.ChargenSkillsSecondary = string.Join("|", secondarySkills);
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your starting template has been updated!", ChatMessageType.Broadcast));
                         return;
                     }

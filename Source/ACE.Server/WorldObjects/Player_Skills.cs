@@ -994,8 +994,10 @@ namespace ACE.Server.WorldObjects
                 AvailableSkillCredits += skillBase.TrainedCost;
             }
 
-            if (refund)
+            if (refund && creatureSkill.SecondaryTo == Skill.None)
                 RefundXP(creatureSkill.ExperienceSpent);
+            else if (creatureSkill.SecondaryTo != Skill.None)
+                creatureSkill.SecondaryTo = Skill.None;
 
             creatureSkill.ExperienceSpent = 0;
             creatureSkill.Ranks = 0;

@@ -241,8 +241,8 @@ namespace ACE.Server.Factories
                         player.UntrainSkill((Skill)i, 0);
                 }
 
-                player.ChargenTrainedSkills = string.Join("|",trainedSkills);
-                player.ChargenSpecializedSkills = string.Join("|", specializedSkills);
+                player.ChargenSkillsTrained = string.Join("|",trainedSkills);
+                player.ChargenSkillsSpecialized = string.Join("|", specializedSkills);
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
                 {
@@ -372,6 +372,7 @@ namespace ACE.Server.Factories
                         break;
                     case "Hardcore":
                         player.Location = new Position(0x77060038, 163.226196f, 174.996063f, 0.005000f,0.000000f, 0.000000f, 0.980516f, -0.196438f); // Gameplay mode selection island
+                        player.AddTitle((uint)CharacterTitle.DeadMeat, true, true, true);
                         player.SetProperty(PropertyBool.RecallsDisabled, true);
                         player.GameplayMode = GameplayModes.Limbo;
                         break;
