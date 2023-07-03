@@ -310,9 +310,33 @@ namespace ACE.Server.WorldObjects
                 // Remove this player from other players' tracked list so the dead do not stand back up briefly before being teleported away.
                 foreach (var player in nearbyPlayers)
                     player.RemoveTrackedObject(this, false);
+
+                var previousVisibility = Visibility;
+                var previousCloaked = Cloaked;
+                var previousEthereal = Ethereal;
+                var previousNoDraw = NoDraw;
+                var previousReportCollisions = ReportCollisions;
+                var previousIsFrozen = IsFrozen;
+                Visibility = true;
+                Cloaked = true;
+                Ethereal = true;
+                NoDraw = true;
+                ReportCollisions = false;
+                IsFrozen = true;
+                Session.Network.EnqueueSend(new GameMessageSetState(this, PhysicsObj.State));
+                Visibility = previousVisibility;
+                Cloaked = previousCloaked;
+                Ethereal = previousEthereal;
+                NoDraw = previousNoDraw;
+                ReportCollisions = previousReportCollisions;
+                IsFrozen = previousIsFrozen;
+
                 CreateCorpse(topDamager, hadVitae);
+
+                if(IsHardcore)
+                    Session.Network.EnqueueSend(new GameMessageSystemChat("Your corpse will release your soul in 30 seconds.", ChatMessageType.Broadcast));
             });
-            dieChain.AddDelaySeconds(1);
+            dieChain.AddDelaySeconds(IsHardcore ? 30 : 1);
             dieChain.AddAction(this, () =>
             {
                 ThreadSafeTeleportOnDeath(topDamager); // enter portal space
@@ -322,7 +346,7 @@ namespace ACE.Server.WorldObjects
 
                 IsBusy = false;
             });
-            dieChain.AddDelaySeconds(1);
+            dieChain.AddDelayForOneTick();
             dieChain.AddAction(this, () =>
             {
                 foreach (var player in nearbyPlayers)
