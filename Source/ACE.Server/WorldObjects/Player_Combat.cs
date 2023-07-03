@@ -991,11 +991,11 @@ namespace ACE.Server.WorldObjects
         {
             var strAndEnd = Strength.Base + Endurance.Base;
 
-            if (strAndEnd > 440)        return "Indomitable";
-            else if (strAndEnd > 380)   return "Resilient";
-            else if (strAndEnd > 320)   return "Hardy";
-            else if (strAndEnd > 260)   return "Mediocre";
-            else if (strAndEnd > 200)   return "Poor";
+            if (strAndEnd > 400)        return "Indomitable";
+            else if (strAndEnd > 360)   return "Resilient";
+            else if (strAndEnd > 300)   return "Hardy";
+            else if (strAndEnd > 200)   return "Mediocre";
+            else if (strAndEnd > 100)   return "Poor";
             else
                 return "None";
         }
@@ -1004,11 +1004,11 @@ namespace ACE.Server.WorldObjects
         {
             var strAndEnd = Strength.Base + 2 * Endurance.Base;
 
-            if (strAndEnd > 690)        return "Indomitable";
-            else if (strAndEnd > 580)   return "Resilient";
-            else if (strAndEnd > 470)   return "Hardy";
-            else if (strAndEnd > 346)   return "Mediocre";
-            else if (strAndEnd > 200)   return "Poor";
+            if (strAndEnd > 440)        return "Indomitable";
+            else if (strAndEnd > 560)   return "Resilient";
+            else if (strAndEnd > 300)   return "Hardy";
+            else if (strAndEnd > 200)   return "Mediocre";
+            else if (strAndEnd > 100)   return "Poor";
             else
                 return "None";
         }
