@@ -1,5 +1,5 @@
 using System;
-
+using System.Collections.Generic;
 using ACE.Common;
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
@@ -156,6 +156,66 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
+                case 100: // Reset to brand new character but keep xp.
+                    player.RevertToBrandNewCharacter(true, true, true, true, player.TotalExperience ?? 0);
+                    setStarterLocation = false;
+                    break;
+                case 101: // Update starting template skills
+                    var heritageGroup = DatManager.PortalDat.CharGen.HeritageGroups[(uint)(Heritage ?? 1)];
+                    var availableSkillCredits = (int)heritageGroup.SkillCredits;
+
+                    var trainedSkills = new List<int>();
+                    var specializedSkills = new List<int>();
+
+                    foreach (var skillEntry in player.Skills)
+                    {
+                        var skillId = (int)skillEntry.Key;
+                        var skill = skillEntry.Value;
+                        var sac = skill.AdvancementClass;
+
+                        if (sac < SkillAdvancementClass.Trained)
+                            continue;
+
+                        var skillBase = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skillId];
+
+                        var trainedCost = skillBase.TrainedCost;
+                        var specializedCost = skillBase.UpgradeCostFromTrainedToSpecialized;
+
+                        foreach (var skillGroup in heritageGroup.Skills)
+                        {
+                            if (skillGroup.SkillNum == skillId)
+                            {
+                                trainedCost = skillGroup.NormalCost;
+                                specializedCost = skillGroup.PrimaryCost;
+                                break;
+                            }
+                        }
+
+                        if (sac == SkillAdvancementClass.Specialized)
+                        {
+                            specializedSkills.Add(skillId);
+                            availableSkillCredits -= trainedCost;
+                            availableSkillCredits -= specializedCost;
+                        }
+                        else if (sac == SkillAdvancementClass.Trained)
+                        {
+                            trainedSkills.Add(skillId);
+                            availableSkillCredits -= trainedCost;
+                        }
+                    }
+
+                    if (availableSkillCredits >= 0)
+                    {
+                        player.ChargenTrainedSkills = string.Join("|", trainedSkills);
+                        player.ChargenSpecializedSkills = string.Join("|", specializedSkills);
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your starting template has been updated!", ChatMessageType.Broadcast));
+                        return;
+                    }
+                    else
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your starting template must be {(int)heritageGroup.SkillCredits} skill credits or less! You are currently {-availableSkillCredits} skil credits above that!", ChatMessageType.Broadcast));
+                        return;
+                    }
                 default:
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("Invalid gameplay mode!", ChatMessageType.Broadcast));
                     return;
@@ -171,6 +231,8 @@ namespace ACE.Server.WorldObjects
 
             if (setStarterLocation)
             {
+                player.SetProperty(PropertyBool.RecallsDisabled, false);
+
                 var starterLocation = ThreadSafeRandom.Next(1, 3);
                 switch (starterLocation)
                 {

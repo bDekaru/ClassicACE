@@ -1050,6 +1050,9 @@ namespace ACE.Database
 
         public void LogHardcoreDeath(uint accountId, uint characterId, string characterName, int characterLevel, string killerName, int killerLevel, uint landblockId, int gameplayMode, bool wasPvP, int kills, long xp, int age, DateTime timeOfDeath, uint? monarchId)
         {
+            if (characterLevel >= 999)
+                return;
+
             var entry = new HardcoreCharacterObituary();
 
             try

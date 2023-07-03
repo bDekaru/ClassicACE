@@ -1121,7 +1121,11 @@ namespace ACE.Server.WorldObjects
                             var itemFoundOnMyCorpse = itemFoundOnCorpse && (itemRootOwner.VictimId == Guid.Full);
                             if (item.GeneratorId != null || (itemFoundOnCorpse && !itemFoundOnMyCorpse)) // item is controlled by a generator or is on a corpse that is not my own
                             {
-                                if (QuestManager.CanSolve(item.Quest))
+                                if (GameplayMode == GameplayModes.Limbo && (item.Quest == "SkillForgetfulnessGemPickedUp" || item.Quest == "SkillEnlightenmentGemPickedUp" || item.Quest == "AttributeLoweringGemPickedUp" || item.Quest == "AttributeRaisingGemPickedUp"))
+                                {
+                                    questSolve = false;
+                                }
+                                else if (QuestManager.CanSolve(item.Quest))
                                 {
                                     questSolve = true;
                                 }

@@ -159,7 +159,7 @@ namespace ACE.Server.WorldObjects
 
                     if (lastDamager.TryGetAttacker() is Player lastDamagerPlayer)
                     {
-                        var globalPKDe = $"{Name}({Level}) was permanently killed by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level})!";
+                        var globalPKDe = $"{Name}({Level}) was hardcore killed by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level})!";
 
                         if (namesList.Count > 1)
                         {

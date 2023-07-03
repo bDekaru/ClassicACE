@@ -932,11 +932,8 @@ namespace ACE.Server.WorldObjects
 
             AvailableExperience = 0;
 
-            var heritageGroup = DatManager.PortalDat.CharGen.HeritageGroups[(uint)Heritage];
-            var availableSkillCredits = 0;
-
-            availableSkillCredits += (int)heritageGroup.SkillCredits; // base skill credits allowed
-            AvailableSkillCredits = availableSkillCredits;
+            var heritageGroup = DatManager.PortalDat.CharGen.HeritageGroups[(uint)(Heritage ?? 1)];
+            AvailableSkillCredits = (int)heritageGroup.SkillCredits;
 
             // Reset Luminance
             LumAugDamageRating = 0;
@@ -1042,7 +1039,10 @@ namespace ACE.Server.WorldObjects
 
             // Leave this for last as it could potentially block some actions during the reset process.
             if (setToLimboGameplayMode)
+            {
                 GameplayMode = GameplayModes.Limbo;
+                SetProperty(PropertyBool.RecallsDisabled, true);
+            }
 
             Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
             EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));

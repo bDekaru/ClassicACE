@@ -1053,7 +1053,6 @@ namespace ACE.Server.WorldObjects
             }
             else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                AlwaysTrained.Remove(Skill.ArcaneLore);
                 AlwaysTrained.Remove(Skill.Salvaging);
 
                 PlayerSkills.Remove(Skill.TwoHandedCombat);

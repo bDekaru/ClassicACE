@@ -1316,6 +1316,9 @@ namespace ACE.Server.WorldObjects
 
         public bool IsGameplayOverlay(uint overlayId)
         {
+            if (WeenieType == WeenieType.Creature && !Guid.IsPlayer())
+                return false;
+
             switch (overlayId)
             {
                 default:
