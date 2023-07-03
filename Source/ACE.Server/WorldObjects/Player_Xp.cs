@@ -1009,8 +1009,9 @@ namespace ACE.Server.WorldObjects
                                 break;
                             }
                         }
-                        if (TrainSkill((Skill)skillId, trainedCost))
-                            SpecializeSkill((Skill)skillId, specializedCost);                            
+
+                        TrainSkill((Skill)skillId, trainedCost);
+                        SpecializeSkill((Skill)skillId, specializedCost);
                     }
                 }
             }
