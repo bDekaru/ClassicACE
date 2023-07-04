@@ -59,7 +59,7 @@ namespace ACE.Server.WorldObjects
         {
             get
             {
-                if (HasLightWeaponProperty || !(WeaponSkill != Skill.Dagger && WeaponSkill != Skill.UnarmedCombat && (WeaponSkill != Skill.Sword || W_AttackType.IsMultiStrike())))
+                if ((HasLightWeaponProperty || !(WeaponSkill != Skill.Dagger && WeaponSkill != Skill.UnarmedCombat && (WeaponSkill != Skill.Sword || W_AttackType.IsMultiStrike()))) && !IsTwoHanded)
                     return true;
                 return false;
             }

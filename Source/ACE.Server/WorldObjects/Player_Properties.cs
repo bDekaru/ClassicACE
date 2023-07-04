@@ -1496,16 +1496,22 @@ namespace ACE.Server.WorldObjects
             set { if (value == null) RemoveProperty(PropertyString.Exploration3Description); else SetProperty(PropertyString.Exploration3Description, value); }
         }
 
-        public string ChargenTrainedSkills
+        public string ChargenSkillsTrained
         {
             get => GetProperty(PropertyString.ChargenSkillsTrained);
             set { if (value == null) RemoveProperty(PropertyString.ChargenSkillsTrained); else SetProperty(PropertyString.ChargenSkillsTrained, value); }
         }
 
-        public string ChargenSpecializedSkills
+        public string ChargenSkillsSpecialized
         {
             get => GetProperty(PropertyString.ChargenSkillsSpecialized);
             set { if (value == null) RemoveProperty(PropertyString.ChargenSkillsSpecialized); else SetProperty(PropertyString.ChargenSkillsSpecialized, value); }
+        }
+
+        public string ChargenSkillsSecondary
+        {
+            get => GetProperty(PropertyString.ChargenSkillsSecondary);
+            set { if (value == null) RemoveProperty(PropertyString.ChargenSkillsSecondary); else SetProperty(PropertyString.ChargenSkillsSecondary, value); }
         }
 
         public string ChargenClothing

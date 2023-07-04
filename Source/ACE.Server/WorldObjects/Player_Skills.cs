@@ -994,8 +994,10 @@ namespace ACE.Server.WorldObjects
                 AvailableSkillCredits += skillBase.TrainedCost;
             }
 
-            if (refund)
+            if (refund && creatureSkill.SecondaryTo == Skill.None)
                 RefundXP(creatureSkill.ExperienceSpent);
+            else if (creatureSkill.SecondaryTo != Skill.None)
+                creatureSkill.SecondaryTo = Skill.None;
 
             creatureSkill.ExperienceSpent = 0;
             creatureSkill.Ranks = 0;
@@ -1053,7 +1055,6 @@ namespace ACE.Server.WorldObjects
             }
             else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                AlwaysTrained.Remove(Skill.ArcaneLore);
                 AlwaysTrained.Remove(Skill.Salvaging);
 
                 PlayerSkills.Remove(Skill.TwoHandedCombat);

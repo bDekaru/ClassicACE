@@ -1353,10 +1353,14 @@ namespace ACE.Server.Command.Handlers
             var leaderboard = new List<LeaderboardEntry>();
             foreach (var entry in living)
             {
+                var level = entry.GetProperty(PropertyInt.Level) ?? 1;
+                if (level >= 999)
+                    continue;
+
                 var leaderboardEntry = new LeaderboardEntry();
                 leaderboardEntry.Living = true;
                 leaderboardEntry.Name = entry.GetProperty(PropertyString.Name);
-                leaderboardEntry.Level = entry.GetProperty(PropertyInt.Level) ?? 1;
+                leaderboardEntry.Level = level;
                 leaderboardEntry.XP = entry.GetProperty(PropertyInt64.TotalExperience) ?? 0;
                 leaderboardEntry.Kills = entry.GetProperty(PropertyInt.PlayerKillsPkl) ?? 0;
 
@@ -1368,6 +1372,9 @@ namespace ACE.Server.Command.Handlers
                 var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeathsByGameplayMode(gameplayMode);
                 foreach (var entry in obituaryEntries)
                 {
+                    if (entry.CharacterLevel >= 999)
+                        continue;
+
                     if (entry.GameplayMode == (int)gameplayMode)
                     {
                         var leaderboardEntry = new LeaderboardEntry();

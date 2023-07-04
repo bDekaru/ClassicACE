@@ -110,7 +110,7 @@ namespace ACE.Server.WorldObjects
 
                     if (CurrentLandblock != null && EventManager.HotDungeonLandblock == CurrentLandblock.Id.Raw >> 16)
                     {
-                        var extraXP = totalXP * EventManager.HotDungeonExtraXP;
+                        var extraXP = totalXP * (float)PropertyManager.GetDouble("hot_dungeon_bonus_xp").Item;
                         totalXP += extraXP;
 
                         xpMessage = $"Hot Dungeon Bonus: +{extraXP:N0}xp {xpMessage}";
@@ -119,7 +119,7 @@ namespace ACE.Server.WorldObjects
 
                 if (CurrentLandblock != null && !(CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors)))
                 {
-                    var extraXP = totalXP * 0.25f; // Surface provides 25% xp bonus to account for lower creature density.
+                    var extraXP = totalXP * (float)PropertyManager.GetDouble("surface_bonus_xp").Item; // Surface provides extra xp to account for lower creature density.
                     totalXP += extraXP;
 
                     xpMessage = $"Surface Bonus: +{extraXP:N0}xp {xpMessage}";
@@ -276,21 +276,21 @@ namespace ACE.Server.WorldObjects
                 if (Exploration1LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration1KillProgressTracker > 0)
                 {
                     Exploration1KillProgressTracker--;
-                    long explorationXP = (long)(m_amount * 0.5f);
+                    long explorationXP = (long)(m_amount * (float)PropertyManager.GetDouble("exploration_bonus_xp").Item);
                     xpMessage = $"{Exploration1KillProgressTracker:N0} kill{(Exploration1KillProgressTracker != 1 ? "s" : "")} remaining.";
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
                 }
                 else if (Exploration2LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration2KillProgressTracker > 0)
                 {
                     Exploration2KillProgressTracker--;
-                    long explorationXP = (long)(m_amount * 0.5f);
+                    long explorationXP = (long)(m_amount * (float)PropertyManager.GetDouble("exploration_bonus_xp").Item);
                     xpMessage = $"{Exploration2KillProgressTracker:N0} kill{(Exploration2KillProgressTracker != 1 ? "s" : "")} remaining.";
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
                 }
                 else if (Exploration3LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration3KillProgressTracker > 0)
                 {
                     Exploration3KillProgressTracker--;
-                    long explorationXP = (long)(m_amount * 0.5f);
+                    long explorationXP = (long)(m_amount * (float)PropertyManager.GetDouble("exploration_bonus_xp").Item);
                     xpMessage = $"{Exploration3KillProgressTracker:N0} kill{(Exploration3KillProgressTracker != 1 ? "s" : "")} remaining.";
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
                 }
@@ -831,10 +831,8 @@ namespace ACE.Server.WorldObjects
             return modifier;
         }
 
-        public bool RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false, long startingXP = 0)
+        public void RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false, long startingXP = 0)
         {
-            var success = true;
-
             if(!keepFellowship)
                 FellowshipQuit(false);
 
@@ -932,11 +930,8 @@ namespace ACE.Server.WorldObjects
 
             AvailableExperience = 0;
 
-            var heritageGroup = DatManager.PortalDat.CharGen.HeritageGroups[(uint)Heritage];
-            var availableSkillCredits = 0;
-
-            availableSkillCredits += (int)heritageGroup.SkillCredits; // base skill credits allowed
-            AvailableSkillCredits = availableSkillCredits;
+            var heritageGroup = DatManager.PortalDat.CharGen.HeritageGroups[(uint)(Heritage ?? 1)];
+            AvailableSkillCredits = (int)heritageGroup.SkillCredits;
 
             // Reset Luminance
             LumAugDamageRating = 0;
@@ -970,9 +965,9 @@ namespace ACE.Server.WorldObjects
             Level = 1;
 
             // Add starter skills
-            if (ChargenTrainedSkills != null)
+            if (ChargenSkillsTrained != null)
             {
-                var skillsToTrain = ChargenTrainedSkills.Split("|");
+                var skillsToTrain = ChargenSkillsTrained.Split("|");
                 foreach (var skillString in skillsToTrain)
                 {
                     if (int.TryParse(skillString, out var skillId))
@@ -989,15 +984,14 @@ namespace ACE.Server.WorldObjects
                             }
                         }
 
-                        if (!TrainSkill((Skill)skillId, trainedCost, true))
-                            success = false;
+                        TrainSkill((Skill)skillId, trainedCost, true);
                     }
                 }
             }
 
-            if (ChargenSpecializedSkills != null)
+            if (ChargenSkillsSpecialized != null)
             {
-                var skillsToSpecialize = ChargenSpecializedSkills.Split("|");
+                var skillsToSpecialize = ChargenSkillsSpecialized.Split("|");
                 foreach (var skillString in skillsToSpecialize)
                 {
                     if (int.TryParse(skillString, out var skillId))
@@ -1015,10 +1009,31 @@ namespace ACE.Server.WorldObjects
                                 break;
                             }
                         }
-                        if (!TrainSkill((Skill)skillId, trainedCost))
-                            success = false;
-                        else if (!SpecializeSkill((Skill)skillId, specializedCost))
-                            success = false;
+
+                        TrainSkill((Skill)skillId, trainedCost);
+                        SpecializeSkill((Skill)skillId, specializedCost);
+                    }
+                }
+            }
+
+            if (ChargenSkillsSecondary != null)
+            {
+                var skillsToSetAsSecondary = ChargenSkillsSecondary.Split("|");
+                foreach (var skillString in skillsToSetAsSecondary)
+                {
+                    var skillAndPrimarySkill = skillString.Split(":");
+                    if(skillAndPrimarySkill.Length == 2)
+                    {
+                        if (int.TryParse(skillAndPrimarySkill[0], out var secondarySkillId) && int.TryParse(skillAndPrimarySkill[1], out var primarySkillId))
+                        {
+                            var primarySkill = GetCreatureSkill((Skill)primarySkillId);
+                            var secondarySkill = GetCreatureSkill((Skill)secondarySkillId);
+
+                            if(primarySkill.AdvancementClass > SkillAdvancementClass.Untrained && secondarySkill.AdvancementClass > SkillAdvancementClass.Untrained)
+                            {
+                                secondarySkill.SecondaryTo = (Skill)primarySkillId;
+                            }
+                        }
                     }
                 }
             }
@@ -1042,12 +1057,13 @@ namespace ACE.Server.WorldObjects
 
             // Leave this for last as it could potentially block some actions during the reset process.
             if (setToLimboGameplayMode)
+            {
                 GameplayMode = GameplayModes.Limbo;
+                SetProperty(PropertyBool.RecallsDisabled, true);
+            }
 
             Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
             EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
-
-            return success;
         }
 
         public void RevertToBrandNewCharacterEquipment(bool keepHousing)

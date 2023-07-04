@@ -118,6 +118,8 @@ namespace ACE.Entity.Enum.Properties
         ChargenSkillsSpecialized        = 9017,
         [ServerOnly]
         ChargenClothing                 = 9018,
+        [ServerOnly]
+        ChargenSkillsSecondary          = 9019,
     }
 
     public static class PropertyStringExtensions
