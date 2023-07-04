@@ -326,6 +326,18 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var worldTarget = target.Wielder ?? target.Container ?? target;
+                if (spell.MetaSpellType != SpellType.Projectile && spell.MetaSpellType != SpellType.LifeProjectile && spell.MetaSpellType != SpellType.EnchantmentProjectile
+                    && worldTarget != this && (worldTarget == null || !IsDirectVisible(worldTarget)))
+                {
+                    if(this is Player player)
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat("You can't see your target well enough to affect it!", ChatMessageType.Broadcast));
+                    return false;
+                }
+            }
+
             switch (spell.MetaSpellType)
             {
                 case SpellType.Enchantment:
