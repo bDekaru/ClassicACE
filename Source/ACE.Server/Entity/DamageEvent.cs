@@ -691,7 +691,10 @@ namespace ACE.Server.Entity
 
         public float GetBlockChance(Creature attacker, Creature defender)
         {
+            var playerAttacker = attacker as Player;
             var playerDefender = defender as Player;
+            bool isPvP = playerAttacker != null && playerDefender != null;
+
             if (playerDefender == null)
                 return 1.0f; // Creatures with shields always block.
             else
@@ -704,7 +707,10 @@ namespace ACE.Server.Entity
 
                 var combatTypeMod = CombatType == CombatType.Missile ? 1.0f : 0.6f;
 
-                EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 3.0f);
+                if(isPvP)
+                    EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 1.5f);
+                else
+                    EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 3.0f);
 
                 var blockChance = 1.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
 
