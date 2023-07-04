@@ -828,14 +828,17 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Return the scalar damage absorbed by a shield
         /// </summary>
-        public float GetShieldMod(WorldObject attacker, DamageType damageType, WorldObject weapon, bool isPvP)
+        public float GetShieldMod(WorldObject attacker, DamageType damageType, WorldObject weapon, bool isPvP, out WorldObject shield)
         {
             // ensure combat stance
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR && CombatMode == CombatMode.NonCombat)
+            {
+                shield = null;
                 return 1.0f;
+            }
 
             // does the player have a shield equipped?
-            var shield = GetEquippedShield();
+            shield = GetEquippedShield();
             if (shield == null)
                 return 1.0f;
 

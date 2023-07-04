@@ -655,6 +655,16 @@ namespace ACE.Server.Network.Structure
                     hasExtraPropertiesText = true;
                 }
 
+                if(wo.IsShield)
+                {
+                    var blockBonus = wo.GetShieldMissileBlockBonus() * 100;
+
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"Missile Attack Bonus Block Chance: {blockBonus:N0}%.";
+                    hasExtraPropertiesText = true;
+                }
+
                 if (PropertiesFloat.TryGetValue(PropertyFloat.MagicDefenseCap, out var magicDefenseCap) && magicDefenseCap != 0)
                 {
                     if (hasExtraPropertiesText)

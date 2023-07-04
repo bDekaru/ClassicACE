@@ -456,11 +456,14 @@ namespace ACE.Server.Entity
             }
 
             // get shield modifier
-            ShieldMod = defender.GetShieldMod(attacker, DamageType, Weapon, pkBattle);
+            ShieldMod = defender.GetShieldMod(attacker, DamageType, Weapon, pkBattle, out var shield);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && ShieldMod < 1.0f)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && shield != null)
             {
                 BlockChance = GetBlockChance(attacker, defender);
+                if (CombatType == CombatType.Missile)
+                    BlockChance += shield.GetShieldMissileBlockBonus();
+
                 if (attacker != defender && BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                     Blocked = true;
                 else
