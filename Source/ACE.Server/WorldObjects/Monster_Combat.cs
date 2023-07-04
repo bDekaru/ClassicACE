@@ -303,6 +303,8 @@ namespace ACE.Server.WorldObjects
 
             CurrentAttack = null;
             MaxRange = 0.0f;
+
+            MissileAttacksReceivedWithoutBeingAbleToCounter = 0;
         }
 
         public DamageType GetDamageType(PropertiesBodyPart attackPart, CombatType? combatType = null)

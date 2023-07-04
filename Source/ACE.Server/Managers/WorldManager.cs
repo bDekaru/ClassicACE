@@ -219,6 +219,9 @@ namespace ACE.Server.Managers
                     session.Player.Location = new Position(0xA9B40019, 84, 7.1f, 94, 0, 0, -0.0784591f, 0.996917f);  // ultimate fallback
             }
 
+            if (session.Player.Location.PositionX == 0 && session.Player.Location.PositionY == 0) // Trying to catch invalid position.
+                session.Player.Location = new Position(session.Player.Sanctuary) ?? new Position(session.Player.Instantiation) ?? new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f);
+
             var olthoiPlayerReturnedToLifestone = session.Player.IsOlthoiPlayer && character.TotalLogins >= 1 && session.Player.LoginAtLifestone;
             if (olthoiPlayerReturnedToLifestone)
                 session.Player.Location = new Position(session.Player.Sanctuary);

@@ -720,7 +720,12 @@ namespace ACE.Server.WorldObjects
         {
             var attackerAsCreature = attacker as Creature;
             if (attackerAsCreature != null)
+            {
                 attackerAsCreature.TryCastAssessDebuff(this, attackType);
+
+                if (!Guid.IsPlayer())
+                    MissileAttacksReceivedWithoutBeingAbleToCounter++;
+            }
 
             numRecentAttacksReceived++;
         }

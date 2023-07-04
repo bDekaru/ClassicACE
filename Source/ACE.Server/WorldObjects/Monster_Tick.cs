@@ -10,6 +10,8 @@ namespace ACE.Server.WorldObjects
 
         private bool firstUpdate = true;
 
+        private int MissileAttacksReceivedWithoutBeingAbleToCounter = 0;
+
         /// <summary>
         /// Primary dispatch for monster think
         /// </summary>
@@ -131,6 +133,19 @@ namespace ACE.Server.WorldObjects
 
             if (PathfindingPending)
                 return;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !Location.Indoors && MissileAttacksReceivedWithoutBeingAbleToCounter > 3 && PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 10)
+            {
+                MissileAttacksReceivedWithoutBeingAbleToCounter = 0;
+
+                if (HasRangedWeapon && CurrentAttack == CombatType.Melee && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime)
+                    TrySwitchToMissileAttack();
+                else
+                {
+                    FindNewHome(100, 260, 100);
+                    MoveToHome();
+                }
+            }
 
             if (CurrentAttack != CombatType.Missile || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {

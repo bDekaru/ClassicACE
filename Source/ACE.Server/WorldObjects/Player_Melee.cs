@@ -7,6 +7,7 @@ using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
+using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics;
 using ACE.Server.Physics.Animation;
 
@@ -388,6 +389,12 @@ namespace ACE.Server.WorldObjects
                     {
                         Attacking = false;
                         OnAttackDone();
+                        return;
+                    }
+
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !IsDirectVisible(target))
+                    {
+                        Session.Network.EnqueueSend(new GameMessageSystemChat("You can't quite reach your target!", ChatMessageType.Broadcast));
                         return;
                     }
 
