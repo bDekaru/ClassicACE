@@ -306,15 +306,15 @@ namespace ACE.Server.Factories
 
             var itemDifficulty = 0.0f;
 
-                // exclude highest spell
-                for (var i = 0; i < spells.Count - 1; i++)
-                {
-                    var spell = spells[i];
+            // exclude highest spell
+            for (var i = 0; i < spells.Count - 1; i++)
+            {
+                var spell = spells[i];
 
-                    var rng = (float)ThreadSafeRandom.Next(0.5f, 1.5f);
+                var rng = (float)ThreadSafeRandom.Next(0.5f, 1.5f);
 
-                    itemDifficulty += spell.Formula.Level * 5.0f * rng;
-                }
+                itemDifficulty += spell.Formula.Level * 5.0f * rng;
+            }
 
             return itemDifficulty;
         }

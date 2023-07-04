@@ -510,6 +510,9 @@ namespace ACE.Server.WorldObjects
             {
                 var newSpellcraft = LootGenerationFactory.RollSpellcraft(wo);
 
+                if (newSpellcraft < wo.ItemSpellcraft)
+                    newSpellcraft = wo.ItemSpellcraft ?? 1; // Avoid lowering spellcraft.
+
                 var itemSkillLevelFactor = 0.0f;
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
