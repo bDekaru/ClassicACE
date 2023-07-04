@@ -224,7 +224,7 @@ namespace ACE.Server.Managers
             if (Debug)
                 Console.WriteLine($"{Name}.CampManager.EraseAll");
 
-            Player.Character.EraseAllQuests(out var campIdsErased, Player.CharacterDatabaseLock);
+            Player.Character.EraseAllCamps(out var campIdsErased, Player.CharacterDatabaseLock);
 
             if (campIdsErased.Count > 0)
                 Player.CharacterChangesDetected = true;
