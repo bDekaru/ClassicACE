@@ -287,6 +287,8 @@ namespace ACE.Server.WorldObjects
             EmoteManager.OnAttack(AttackTarget);
 
             ResetAttack();
+
+            MissileOrMagicAttacksReceivedWithoutBeingAbleToCounter = 0;
         }
 
         /// <summary>
@@ -303,8 +305,6 @@ namespace ACE.Server.WorldObjects
 
             CurrentAttack = null;
             MaxRange = 0.0f;
-
-            MissileAttacksReceivedWithoutBeingAbleToCounter = 0;
         }
 
         public DamageType GetDamageType(PropertiesBodyPart attackPart, CombatType? combatType = null)

@@ -10,7 +10,9 @@ namespace ACE.Server.WorldObjects
 
         private bool firstUpdate = true;
 
-        private int MissileAttacksReceivedWithoutBeingAbleToCounter = 0;
+        private int MissileOrMagicAttacksReceivedWithoutBeingAbleToCounter = 0;
+        private double NextAttackReceivedWithoutBeingAbleToCounterResetTime = 0;
+        private static double NextAttackReceivedWithoutBeingAbleToCounterInterval = 15;
 
         /// <summary>
         /// Primary dispatch for monster think
@@ -31,6 +33,9 @@ namespace ACE.Server.WorldObjects
             }
 
             NextMonsterTickTime = currentUnixTime + monsterTickInterval;
+
+            if (MissileOrMagicAttacksReceivedWithoutBeingAbleToCounter > 0 && NextAttackReceivedWithoutBeingAbleToCounterResetTime > currentUnixTime)
+                NextAttackReceivedWithoutBeingAbleToCounterInterval = 0;
 
             if (!IsAwake)
             {
@@ -134,9 +139,9 @@ namespace ACE.Server.WorldObjects
             if (PathfindingPending)
                 return;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !Location.Indoors && MissileAttacksReceivedWithoutBeingAbleToCounter > 3 && PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 10)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !Location.Indoors && MissileOrMagicAttacksReceivedWithoutBeingAbleToCounter > 3 && PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 10)
             {
-                MissileAttacksReceivedWithoutBeingAbleToCounter = 0;
+                MissileOrMagicAttacksReceivedWithoutBeingAbleToCounter = 0;
 
                 if (HasRangedWeapon && CurrentAttack == CombatType.Melee && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime)
                     TrySwitchToMissileAttack();
