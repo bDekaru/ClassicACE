@@ -288,7 +288,7 @@ namespace ACE.Server.WorldObjects
 
             ResetAttack();
 
-            MissileOrMagicAttacksReceivedWithoutBeingAbleToCounter = 0;
+            AttacksReceivedWithoutBeingAbleToCounter = 0;
         }
 
         /// <summary>

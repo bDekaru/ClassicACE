@@ -723,11 +723,11 @@ namespace ACE.Server.WorldObjects
             {
                 attackerAsCreature.TryCastAssessDebuff(this, attackType);
 
-                if (!Guid.IsPlayer() && attackType == CombatType.Missile || attackType == CombatType.Magic)
+                if (!Guid.IsPlayer() && attacker == AttackTarget && (attackType == CombatType.Missile || attackType == CombatType.Magic))
                 {
-                    if (MissileOrMagicAttacksReceivedWithoutBeingAbleToCounter == 0)
-                        NextAttackReceivedWithoutBeingAbleToCounterResetTime = Time.GetFutureUnixTime(NextAttackReceivedWithoutBeingAbleToCounterInterval);
-                    MissileOrMagicAttacksReceivedWithoutBeingAbleToCounter++;
+                    if (AttacksReceivedWithoutBeingAbleToCounter == 0)
+                        NextNoCounterResetTime = Time.GetFutureUnixTime(NoCounterInterval);
+                    AttacksReceivedWithoutBeingAbleToCounter++;
                 }
             }
 
