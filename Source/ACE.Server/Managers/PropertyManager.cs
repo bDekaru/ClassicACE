@@ -493,6 +493,7 @@ namespace ACE.Server.Managers
             // Alternative ruleset's default overrides
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
             {
+                PropertyManager.ModifyBool("corpse_destroy_pyreals", false);
                 PropertyManager.ModifyBool("item_dispel", true);
                 PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
                 PropertyManager.ModifyBool("allow_xp_at_max_level", true);
@@ -505,6 +506,7 @@ namespace ACE.Server.Managers
             }
             else if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
+                PropertyManager.ModifyBool("corpse_destroy_pyreals", false);
                 PropertyManager.ModifyBool("item_dispel", true);
                 PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
                 PropertyManager.ModifyBool("increase_minimum_encounter_spawn_density", true);
