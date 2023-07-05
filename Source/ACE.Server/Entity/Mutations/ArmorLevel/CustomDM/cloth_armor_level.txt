@@ -6,10 +6,10 @@ Tier chances: 1, 0, 0, 0, 0, 0
         ManaConversionMod = 0
 
     - Chance: 40%:
-        ManaConversionMod = 0.01
+        ManaConversionMod = 0.10
 
     - Chance: 30%:
-        ManaConversionMod = 0.02
+        ManaConversionMod = 0.15
 
 Armor Mutation #2:
 
@@ -19,16 +19,16 @@ Tier chances: 0, 1, 0, 0, 0, 0
         ManaConversionMod = 0
 
     - Chance: 20%:
-        ManaConversionMod = 0.01
+        ManaConversionMod = 0.10
 
     - Chance: 40%:
-        ManaConversionMod = 0.02
+        ManaConversionMod = 0.15
 
     - Chance: 20%:
-        ManaConversionMod = 0.03
+        ManaConversionMod = 0.20
 
     - Chance: 10%:
-        ManaConversionMod = 0.04
+        ManaConversionMod = 0.25
 
     - Chance 100%:
         WieldRequirements = Level
@@ -43,22 +43,22 @@ Tier chances: 0, 0, 1, 0, 0, 0
         ManaConversionMod = 0
 
     - Chance: 10%:
-        ManaConversionMod = 0.01
+        ManaConversionMod = 0.10
 
     - Chance: 20%:
-        ManaConversionMod = 0.02
+        ManaConversionMod = 0.20
 
     - Chance: 30%:
-        ManaConversionMod = 0.03
+        ManaConversionMod = 0.15
 
     - Chance: 20%:
-        ManaConversionMod = 0.04
+        ManaConversionMod = 0.15
 
     - Chance: 10%:
-        ManaConversionMod = 0.05
+        ManaConversionMod = 0.20
 
     - Chance: 5%:
-        ManaConversionMod = 0.06
+        ManaConversionMod = 0.20
 
     - Chance 100%:
         WieldRequirements = Level
@@ -70,25 +70,25 @@ Armor Mutation #4:
 Tier chances: 0, 0, 0, 1, 0, 0
 
     - Chance: 5%:
-        ManaConversionMod = 0.02
+        ManaConversionMod = 0.25
 
     - Chance: 10%:
-        ManaConversionMod = 0.03
+        ManaConversionMod = 0.22
 
     - Chance: 20%:
-        ManaConversionMod = 0.04
+        ManaConversionMod = 0.18
 
     - Chance: 30%:
-        ManaConversionMod = 0.05
+        ManaConversionMod = 0.15
 
     - Chance: 20%:
-        ManaConversionMod = 0.06
+        ManaConversionMod = 0.20
 
     - Chance: 10%:
-        ManaConversionMod = 0.07
+        ManaConversionMod = 0.25
 
     - Chance: 5%:
-        ManaConversionMod = 0.08
+        ManaConversionMod = 0.30
 
     - Chance 100%:
         WieldRequirements = Level
@@ -99,26 +99,27 @@ Armor Mutation #5:
 
 Tier chances: 0, 0, 0, 0, 1, 0
 
+
     - Chance: 5%:
-        ManaConversionMod = 0.04
+        ManaConversionMod = 0.25
 
     - Chance: 10%:
-        ManaConversionMod = 0.05
+        ManaConversionMod = 0.22
 
     - Chance: 20%:
-        ManaConversionMod = 0.06
+        ManaConversionMod = 0.18
 
     - Chance: 30%:
-        ManaConversionMod = 0.07
+        ManaConversionMod = 0.15
 
     - Chance: 20%:
-        ManaConversionMod = 0.08
+        ManaConversionMod = 0.20
 
     - Chance: 10%:
-        ManaConversionMod = 0.09
+        ManaConversionMod = 0.25
 
     - Chance: 5%:
-        ManaConversionMod = 0.1
+        ManaConversionMod = 0.30
 
     - Chance 100%:
         WieldRequirements = Level
@@ -129,23 +130,27 @@ Armor Mutation #6:
 
 Tier chances: 0, 0, 0, 0, 0, 1
 
+
     - Chance: 5%:
-        ManaConversionMod = 0.05
-
-    - Chance: 15%:
-        ManaConversionMod = 0.06
-
-    - Chance: 20%:
-        ManaConversionMod = 0.07
-
-    - Chance: 30%:
-        ManaConversionMod = 0.08
-
-    - Chance: 20%:
-        ManaConversionMod = 0.09
+        ManaConversionMod = 0.25
 
     - Chance: 10%:
-        ManaConversionMod = 0.1
+        ManaConversionMod = 0.22
+
+    - Chance: 20%:
+        ManaConversionMod = 0.18
+
+    - Chance: 30%:
+        ManaConversionMod = 0.15
+
+    - Chance: 20%:
+        ManaConversionMod = 0.20
+
+    - Chance: 10%:
+        ManaConversionMod = 0.25
+
+    - Chance: 5%:
+        ManaConversionMod = 0.30
 
     - Chance 100%:
         WieldRequirements = Level
