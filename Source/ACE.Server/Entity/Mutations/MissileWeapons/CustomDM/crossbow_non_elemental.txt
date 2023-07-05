@@ -2,45 +2,51 @@ Crossbow Mutation #1:
 
 Tier chances: 1, 0, 0, 0, 0, 0
 
-    - Chance 10%:
+    - Chance 6%:
         DamageMod = 1.8
 
-    - Chance 15%:
+    - Chance 10%:
         DamageMod = 1.9
 
-    - Chance 25%:
+    - Chance 18%:
         DamageMod = 2
 
-    - Chance 25%:
+    - Chance 10%:
         DamageMod = 2.1
 
-    - Chance 15%:
+    - Chance 6%:
         DamageMod = 2.2
 
-    - Chance 10%:
+    - Chance 5%:
         DamageMod = 2.3
+
+    - Chance 27%:
+        DamageMod = 2.2
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
+
+    - Chance 18%:
+        DamageMod = 2.3
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
 
 Crossbow Mutation #2:
 
 Tier chances: 0, 1, 0, 0, 0, 0
 
-    - Chance 5%:
-        DamageMod = 1.8
-
-    - Chance 7%:
-        DamageMod = 1.9
-
-    - Chance 12%:
-        DamageMod = 2
-
-    - Chance 13%:
-        DamageMod = 2.1
-
-    - Chance 8%:
+    - Chance 30%:
         DamageMod = 2.2
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
 
-    - Chance 5%:
+    - Chance 20%:
         DamageMod = 2.3
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
 
     - Chance 10%:
         DamageMod = 2.33

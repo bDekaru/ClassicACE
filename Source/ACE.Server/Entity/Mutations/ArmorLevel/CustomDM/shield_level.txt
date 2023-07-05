@@ -2,14 +2,20 @@ Shield Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 25%:
+    - Chance: 15%:
         ArmorLevel += 0
 
-    - Chance: 50%:
+    - Chance: 40%:
         ArmorLevel += 10
 
-    - Chance: 25%:
+    - Chance: 15%:
         ArmorLevel += 20
+
+    - Chance: 30%:
+        ArmorLevel += 20
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 8
 
     - Chance 100%:
         ArmorLevel += Random(-5, 5)
