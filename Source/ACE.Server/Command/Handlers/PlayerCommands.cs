@@ -967,6 +967,7 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
+        [CommandHandler("fi", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Resends all visible items and creatures to the client")]
         [CommandHandler("fixinvisible", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Resends all visible items and creatures to the client")]
         public static void HandleFixInvisible(Session session, params string[] parameters)
         {

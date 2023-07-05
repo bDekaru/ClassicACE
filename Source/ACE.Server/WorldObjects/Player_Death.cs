@@ -682,7 +682,7 @@ namespace ACE.Server.WorldObjects
                 if (numCoinsDropped > 0)
                 {
                     // add pyreals to dropped items
-                    pyreals.AddRange(SpendCurrency(coinStackWcid, (uint)numCoinsDropped));
+                    pyreals.AddRange(SpendCurrency(coinStackWcid, (uint)numCoinsDropped).OrderBy(i => i.StackSize));
                     //Console.WriteLine($"Dropping {numCoinsDropped} pyreals");
                 }
             }
@@ -741,7 +741,7 @@ namespace ACE.Server.WorldObjects
                     // handle items with BondedStatus.Destroy
                     destroyedItems = HandleDestroyBonded();
 
-                    var inventory = Inventory.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList(); // Filter bonded items
+                    var inventory = Inventory.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0 || (IsHardcore && i.ItemType == ItemType.PromissoryNote)).OrderByDescending(i => i.PlacementPosition).ToList(); // Filter bonded items
                     var wieldedItems = EquippedObjects.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList(); // Filter bonded items
 
                     var allItems = new List<WorldObject>();
@@ -752,14 +752,17 @@ namespace ACE.Server.WorldObjects
                     {
                         if(item is Container container)
                         {
-                            var containedBoundItems = container.Inventory.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) != 0).ToList();
+                            var containedBoundItems = container.Inventory.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) != 0 && !(IsHardcore && i.ItemType == ItemType.PromissoryNote)).ToList();
 
                             foreach(var containedItem in containedBoundItems)
                             {
                                 if (!DoHandleActionPutItemInContainer(containedItem, this, false, this, this, 0))
                                 {
-                                    log.WarnFormat("Couldn't move bound death item 0x{0:X8}:{1} to player {2}'s main pack", item.Guid.Full, item.Name, Name);
-                                    TryConsumeFromInventoryWithNetworking(containedItem);
+                                    if(!TryDropItem(containedItem))
+                                    {
+                                        log.WarnFormat("Couldn't move bound death item 0x{0:X8}:{1} to player {2}'s main pack nor ground.", item.Guid.Full, item.Name, Name);
+                                        TryConsumeFromInventoryWithNetworking(containedItem);
+                                    }
                                 }
                             }
                         }
