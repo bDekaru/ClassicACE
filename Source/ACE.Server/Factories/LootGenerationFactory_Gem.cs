@@ -154,7 +154,7 @@ namespace ACE.Server.Factories
                     AddActivationRequirements(wo, profile, roll);
                 }
                 else
-                    wo.Use = "Use a Spell Extaction Scroll to extract this gem's spell without chance of failure.\n";
+                    wo.Use = "Use a Spell Extraction Scroll to extract this gem's spell without chance of failure.\n";
             }
 
             return true;
