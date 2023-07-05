@@ -849,6 +849,11 @@ namespace ACE.Server.WorldObjects
             // Reset T.A.R.
             CampManager.EraseAll();
 
+            // Reset Food
+            ExtraHealthRegenPool = 0;
+            ExtraStaminaRegenPool = 0;
+            ExtraManaRegenPool = 0;
+
             // Reset Titles
             RemoveAllTitles();
             if(setToLimboGameplayMode)
