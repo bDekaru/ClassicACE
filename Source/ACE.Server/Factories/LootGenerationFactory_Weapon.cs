@@ -216,15 +216,6 @@ namespace ACE.Server.Factories
                         case 6: damageType = DamageType.Acid; break;
                     }
                 }
-                if (damageType == (DamageType.Slash | DamageType.Pierce))
-                {
-                    var roll = ThreadSafeRandom.Next(0, 1);
-                    switch (roll)
-                    {
-                        case 0: damageType = DamageType.Slash; break;
-                        case 1: damageType = DamageType.Pierce; break;
-                    }
-                }
 
                 wo.ResistanceModifierType = damageType;
                 wo.ResistanceModifier = 1.5f; // Equivalent to level III Elemental Vulnerability.

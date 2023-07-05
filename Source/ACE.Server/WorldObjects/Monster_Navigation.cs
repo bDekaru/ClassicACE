@@ -570,10 +570,7 @@ namespace ACE.Server.WorldObjects
 
             LastPathfindTime = Time.GetUnixTime();
 
-            var angle = GetAngle(AttackTarget);
-
             var offsetPosition = new ACE.Entity.Position(Location);
-            var currDir = offsetPosition.GetCurrentDir();
             offsetPosition.Rotation = new Quaternion(0, 0, offsetPosition.RotationZ, offsetPosition.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(directionMinAngle.ToRadians(), directionMaxAngle.ToRadians()));
             offsetPosition = offsetPosition.InFrontOf(25);
             offsetPosition.SetLandblock();
@@ -594,6 +591,16 @@ namespace ACE.Server.WorldObjects
             actionChain.AddAction(this, () => PathfindingPending = false);
             actionChain.AddAction(this, CancelMoveTo);
             actionChain.EnqueueChain();
+        }
+
+        public void FindNewHome(float directionMinAngle, float directionMaxAngle, float distance)
+        {
+            var offsetPosition = new ACE.Entity.Position(Location);
+            offsetPosition.Rotation = new Quaternion(0, 0, offsetPosition.RotationZ, offsetPosition.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(directionMinAngle.ToRadians(), directionMaxAngle.ToRadians()));
+            offsetPosition = offsetPosition.InFrontOf(distance);
+            offsetPosition.SetLandblock();
+
+            Home = offsetPosition;
         }
     }
 }

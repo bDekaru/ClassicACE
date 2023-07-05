@@ -847,6 +847,9 @@ namespace ACE.Server.WorldObjects
             GameplayModeExtraIdentifier = 0;
             GameplayModeIdentifierString = null;
 
+            // Reset T.A.R.
+            CampManager.EraseAll();
+
             // Reset Titles
             RemoveAllTitles();
             if(setToLimboGameplayMode)

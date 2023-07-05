@@ -131,7 +131,11 @@ namespace ACE.Server.WorldObjects
                         {
                             // Chance of striking back at the target while dual wielding when receiving an attack.
                             Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name} with your offhand!", ChatMessageType.CombatSelf));
-                            DamageTarget(creatureAttacker, GetDualWieldWeapon());
+                            var lightWeapon = GetDualWieldWeapon();
+                            var mainWeapon = GetEquippedMeleeWeapon();
+                            if (lightWeapon == null || !lightWeapon.IsLightWeapon)
+                                lightWeapon = mainWeapon;
+                            DamageTarget(creatureAttacker, lightWeapon);
                             NextDualWieldRiposteActivationTime = currentTime + DualWieldRiposteActivationInterval;
                         }
                     }

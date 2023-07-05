@@ -1,3 +1,4 @@
+using ACE.Entity;
 using ACE.Entity.Enum;
 
 namespace ACE.Server.WorldObjects
@@ -9,6 +10,11 @@ namespace ACE.Server.WorldObjects
         public double NextMonsterTickTime;
 
         private bool firstUpdate = true;
+
+        private int AttacksReceivedWithoutBeingAbleToCounter = 0;
+        private double NextNoCounterResetTime = double.MaxValue;
+        private static double NoCounterInterval = 60;
+        private Position PreviousTickPosition = new Position();
 
         /// <summary>
         /// Primary dispatch for monster think
@@ -131,6 +137,38 @@ namespace ACE.Server.WorldObjects
 
             if (PathfindingPending)
                 return;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if (NextNoCounterResetTime <= currentUnixTime)
+                {
+                    AttacksReceivedWithoutBeingAbleToCounter = 0;
+                    NextNoCounterResetTime = double.MaxValue;
+                }
+
+                var distanceCovered = PreviousTickPosition?.SquaredDistanceTo(Location);
+                PreviousTickPosition = new Position(Location);
+
+                if (distanceCovered > 0.2)
+                    AttacksReceivedWithoutBeingAbleToCounter = 0;
+
+                if (!Location.Indoors && AttacksReceivedWithoutBeingAbleToCounter > 3)
+                {
+                    AttacksReceivedWithoutBeingAbleToCounter = 0;
+
+                    if (HasRangedWeapon && CurrentAttack == CombatType.Melee && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime)
+                    {
+                        TrySwitchToMissileAttack();
+                        return;
+                    }
+                    else
+                    {
+                        FindNewHome(100, 260, 100);
+                        MoveToHome();
+                        return;
+                    }
+                }
+            }
 
             if (CurrentAttack != CombatType.Missile || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {

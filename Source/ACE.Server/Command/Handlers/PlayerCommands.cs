@@ -18,6 +18,9 @@ using ACE.Server.WorldObjects;
 using System.Linq;
 using System.Text;
 using ACE.Entity.Enum.Properties;
+using ACE.Database.Models.Shard;
+using ACE.DatLoader.FileTypes;
+using ACE.Entity.Models;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -1519,6 +1522,52 @@ namespace ACE.Server.Command.Handlers
             }
             else
                 session.Player.OfflineSwearAllegiance(offlinePlayer.Guid.Full);
+        }
+
+        [CommandHandler("AutoFillComps", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 1, "Automatically adds components to fillcomps according to the current spellbook.", "AutoFillComps <Amount Multiplier|Clear>")]
+        public static void HandleAutoFillComps(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+            if (player == null)
+                return;
+
+            if (parameters[0].ToLower() == "clear")
+            {
+                player.Character.ClearFillComponents(player.CharacterDatabaseLock);
+            }
+            else
+            {
+                if (!int.TryParse(parameters[0], out var multiplier))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"The syntax of the command is incorrect.\nUsage: @AutoFillComps <Amount Multiplier|Clear>");
+                    return;
+                }
+
+                multiplier = Math.Clamp(multiplier, 0, 5000);
+
+                foreach (var spell in player.Biota.GetKnownSpellsIds(player.BiotaDatabaseLock))
+                {
+                    Spell spellEntity = new Spell(spell);
+                    foreach (var componentId in spellEntity.Formula.Components)
+                    {
+                        int amount = Math.Min(10 * multiplier, 5000);
+                        if (SpellFormula.SpellComponentsTable.SpellComponents.TryGetValue(componentId, out var spellComponent))
+                        {
+                            if (spellComponent.Type == (int)SpellComponentsTable.Type.Scarab || spellComponent.Type == (int)SpellComponentsTable.Type.Talisman)
+                                amount = Math.Min(3 * multiplier, 5000);
+
+                            var compWcid = Spell.GetComponentWCID(componentId);
+                            if (SpellComponent.IsValid(compWcid))
+                            {
+                                player.Character.TryRemoveFillComponent(compWcid, out _, player.CharacterDatabaseLock);
+                                player.Character.AddFillComponent(compWcid, (uint)amount, player.CharacterDatabaseLock, out _);
+                            }
+                        }
+                    }
+                }
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Fillcomps values updated. Please relog to see the updated values.");
         }
     }
 }

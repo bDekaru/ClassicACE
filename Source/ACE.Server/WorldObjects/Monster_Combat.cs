@@ -287,6 +287,8 @@ namespace ACE.Server.WorldObjects
             EmoteManager.OnAttack(AttackTarget);
 
             ResetAttack();
+
+            AttacksReceivedWithoutBeingAbleToCounter = 0;
         }
 
         /// <summary>
