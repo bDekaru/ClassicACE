@@ -1273,14 +1273,14 @@ namespace ACE.Server.WorldObjects
         {
             if (item1 != null)
             {
-                if (GameplayMode > item1.GameplayMode)
+                if (GameplayMode > item1.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item1.IsHardcore))
                     return false;
                 else if (item1.GameplayModeExtraIdentifier != 0 && GameplayModeExtraIdentifier != item1.GameplayModeExtraIdentifier)
                     return false;
             }
             if (item2 != null)
             {
-                if(GameplayMode > item2.GameplayMode)
+                if(GameplayMode > item2.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item2.IsHardcore))
                     return false;
                 else if (item2.GameplayModeExtraIdentifier != 0 && GameplayModeExtraIdentifier != item2.GameplayModeExtraIdentifier)
                     return false;
