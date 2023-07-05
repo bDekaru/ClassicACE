@@ -728,19 +728,23 @@ namespace ACE.Server.WorldObjects
                             {
                                 Proficiency.OnSuccessUse(player, appraisalSkill, diff3);
 
-                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.85f), 1);
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.10f), 1);
                             }
                             else if (chance2 > roll)
                             {
                                 Proficiency.OnSuccessUse(player, appraisalSkill, diff2);
 
-                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.90f), 1);
+
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.30f), 1);
+
                             }
                             else if (chance1 > roll)
                             {
                                 Proficiency.OnSuccessUse(player, appraisalSkill, diff1);
 
-                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.95f), 1);
+
+                                totalPriceAfterHaggling += (uint)Math.Max(Math.Ceiling(cost * 0.50f), 1);
+                                
                             }
                             else
                                 totalPriceAfterHaggling += cost;
@@ -1103,22 +1107,22 @@ namespace ACE.Server.WorldObjects
                 {
                     default:
                     case 1:
-                        MerchandiseMaxValue = 3000 + (int)(extraValueMod * 9000);
+                        MerchandiseMaxValue = 1500 + (int)(extraValueMod * 9000);
                         break;
                     case 2:
-                        MerchandiseMaxValue = 12000 + (int)(extraValueMod * 6000);
+                        MerchandiseMaxValue = 6000 + (int)(extraValueMod * 6000);
                         break;
                     case 3:
-                        MerchandiseMaxValue = 18000 + (int)(extraValueMod * 12000);
+                        MerchandiseMaxValue = 9000 + (int)(extraValueMod * 12000);
                         break;
                     case 4:
-                        MerchandiseMaxValue = 30000 + (int)(extraValueMod * 10000);
+                        MerchandiseMaxValue = 10000 + (int)(extraValueMod * 10000);
                         break;
                     case 5:
-                        MerchandiseMaxValue = 40000 + (int)(extraValueMod * 10000);
+                        MerchandiseMaxValue = 20000 + (int)(extraValueMod * 10000);
                         break;
                     case 6:
-                        MerchandiseMaxValue = 50000;
+                        MerchandiseMaxValue = 30000;
                         break;
                 }
             }
