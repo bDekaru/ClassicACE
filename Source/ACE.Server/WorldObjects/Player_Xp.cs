@@ -857,7 +857,7 @@ namespace ACE.Server.WorldObjects
             // Reset Titles
             RemoveAllTitles();
             if(setToLimboGameplayMode)
-                AddTitle((uint)CharacterTitle.DeadMeat, true, true, true);
+                AddTitle((uint)CharacterTitle.DeadMeat, true, true, true); // This title was replaced with the "In Limbo" title.
             else if (ChargenTitleId > 0)
                 AddTitle((uint)ChargenTitleId, true, true, true);
 
