@@ -355,6 +355,12 @@ namespace ACE.Server.Network.Structure
                     PropertiesInt.Remove(PropertyInt.Value);
             }
 
+            if (wo.ScribeIID == examiner.Guid.Full)
+            {
+                var realName = wo.ScribeName.Replace(" [HC]", "");
+                PropertiesString[PropertyString.ScribeName] = realName + (examiner.IsHardcore ? " [HC]" : "");
+            }
+
             BuildFlags();
         }
 

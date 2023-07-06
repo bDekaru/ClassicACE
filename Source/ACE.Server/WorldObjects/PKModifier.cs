@@ -146,7 +146,7 @@ namespace ACE.Server.WorldObjects
                 case 12: // Solo Self Found
                     player.RevertToBrandNewCharacterEquipment(true);
                     player.RemoveAllTitles();
-                    player.AddTitle(CharacterTitle.GimpGoddess, true); // This title was replaced with the "Solo Self-Found" title.
+                    player.AddTitle((uint)CharacterTitle.GimpGoddess, true, true, true); // This title was replaced with the "Solo Self-Found" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
                     player.PkLevel = PKLevel.NPK;
                     player.GameplayMode = GameplayModes.SoloSelfFound;

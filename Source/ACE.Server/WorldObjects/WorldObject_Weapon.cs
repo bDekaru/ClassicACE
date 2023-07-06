@@ -1124,7 +1124,7 @@ namespace ACE.Server.WorldObjects
                         break;
                 }
 
-                armorRendingMod = Math.Min(1.0f - pvpMod, 0.0f);
+                armorRendingMod = Math.Max(1.0f - pvpMod, 0.0f);
             }
 
             //Console.WriteLine($"ArmorRendingMod: {armorRendingMod}");
@@ -1209,7 +1209,7 @@ namespace ACE.Server.WorldObjects
                         break;
                 }
 
-                armorCleavingMod = Math.Min(1.0f - pvpMod, 0.0f);
+                armorCleavingMod = Math.Max(1.0f - pvpMod, 0.0f);
             }
 
             return armorCleavingMod;

@@ -392,11 +392,11 @@ namespace ACE.Server.WorldObjects
                         return;
                     }
 
-                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !IsDirectVisible(target))
-                    {
-                        Session.Network.EnqueueSend(new GameMessageSystemChat("You can't quite reach your target!", ChatMessageType.Broadcast));
-                        return;
-                    }
+                    //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !IsDirectVisible(target))
+                    //{
+                    //    Session.Network.EnqueueSend(new GameMessageSystemChat("You can't quite reach your target!", ChatMessageType.Broadcast));
+                    //    return;
+                    //}
 
                     var damageEvent = DamageTarget(creature, weapon);
 

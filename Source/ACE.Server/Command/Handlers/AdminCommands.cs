@@ -4928,6 +4928,17 @@ namespace ACE.Server.Command.Handlers
             player.RefreshExplorationAssignments();
         }
 
+        [CommandHandler("RefreshExpMarkers", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
+        public static void RefreshExpMarkers(Session session, params string[] parameters)
+        {
+            var player = session?.Player;
+
+            if (player == null)
+                return;
+
+            player.CurrentLandblock.RefreshExplorationMarkers();
+        }
+
         [CommandHandler("SwitchHotDungeon", AccessLevel.Admin, CommandHandlerFlag.None, "")]
         public static void HandleRefreshHotDungeon(Session session, params string[] parameters)
         {

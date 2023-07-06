@@ -708,7 +708,7 @@ namespace ACE.Server.Entity
                 var combatTypeMod = CombatType == CombatType.Missile ? 1.5f : 0.6f;
 
                 if(isPvP)
-                    EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 1.5f);
+                    EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 2.0f);
                 else
                     EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 5.0f);
 

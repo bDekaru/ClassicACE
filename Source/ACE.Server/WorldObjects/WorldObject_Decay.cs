@@ -113,7 +113,7 @@ namespace ACE.Server.WorldObjects
             decayCompleted = true;
 
             // If this is a player corpse, puke out the corpses contents onto the landblock
-            if (corpse != null && !corpse.IsMonster)
+            if (corpse != null && !corpse.IsMonster && !corpse.IsHardcore)
             {
                 var inventoryGUIDs = corpse.Inventory.Keys.ToList();
 

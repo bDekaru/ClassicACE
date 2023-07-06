@@ -399,7 +399,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool TryDequipObjectWithNetworking(ObjectGuid objectGuid, out WorldObject item, DequipObjectAction dequipObjectAction)
         {
-            if (!TryDequipObjectWithBroadcasting(objectGuid, out item, out var wieldedLocation, (dequipObjectAction == DequipObjectAction.DropItem)))
+            if (!TryDequipObjectWithBroadcasting(objectGuid, out item, out var wieldedLocation, (dequipObjectAction == DequipObjectAction.DropItem || dequipObjectAction == DequipObjectAction.ToCorpseOnDeath)))
                 return false;
 
             Session.Network.EnqueueSend(

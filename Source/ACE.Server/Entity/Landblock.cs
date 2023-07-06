@@ -207,7 +207,7 @@ namespace ACE.Server.Entity
         private int ExplorationMarkerCount;
         public void InitializeExplorationMarkers()
         {
-            var explorationSites = DatabaseManager.World.GetExplorationSitesByLandblock((ushort)(Id.Raw >> 16));
+            var explorationSites = DatabaseManager.World.GetExplorationSitesByLandblock(Id.Landblock);
 
             if (explorationSites.Count == 0)
             {
@@ -220,7 +220,7 @@ namespace ACE.Server.Entity
             {
                 if(obj.Value is Creature creature)
                 {
-                    if (!(creature is Player) && creature.Tolerance == Tolerance.None && creature.PlayerKillerStatus != PlayerKillerStatus.RubberGlue && creature.PlayerKillerStatus != PlayerKillerStatus.Protected)
+                    if (!(creature is Player) && creature.PlayerKillerStatus != PlayerKillerStatus.RubberGlue && creature.PlayerKillerStatus != PlayerKillerStatus.Protected)
                         PositionsForExplorationMarkers.Add(creature.Location.InFrontOf(-0.5f));
                 }
             }

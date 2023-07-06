@@ -157,7 +157,7 @@ namespace ACE.Server.WorldObjects
 
                 string fullness = null;
                 if (regenPool == 0 && !(previousRegenPool == 0))
-                    fullness = $"You are now very hungy for {vitalString} food!";
+                    fullness = $"You are now very hungry for {vitalString} food!";
                 else if (regenPool <= regenPool * 0.25f && !(previousRegenPool <= regenPool * 0.25f))
                     fullness = $"You are now hungry for {vitalString} food.";
                 else if (regenPool <= regenPool * 0.5f && !(previousRegenPool <= regenPool * 0.5f))

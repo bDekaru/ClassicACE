@@ -672,6 +672,7 @@ namespace ACE.Server.WorldObjects
             if (!IsHardcore && ((!onDropAllPyrealsLandblock && onNoDropLandblock) || IsPKLiteDeath(corpse.KillerId))) // Pyreals will drop even on no drop landblocks if it's also a drop all pyreals landblock.
                 return new List<WorldObject>();
 
+            var pyreals = new List<WorldObject>();
             var dropItems = new List<WorldObject>();
             var destroyedItems = new List<WorldObject>();
 
@@ -681,8 +682,7 @@ namespace ACE.Server.WorldObjects
                 if (numCoinsDropped > 0)
                 {
                     // add pyreals to dropped items
-                    var pyreals = SpendCurrency(coinStackWcid, (uint)numCoinsDropped);
-                    dropItems.AddRange(pyreals);
+                    pyreals.AddRange(SpendCurrency(coinStackWcid, (uint)numCoinsDropped).OrderBy(i => i.StackSize));
                     //Console.WriteLine($"Dropping {numCoinsDropped} pyreals");
                 }
             }
@@ -706,9 +706,10 @@ namespace ACE.Server.WorldObjects
                 var numItemsDropped = GetNumItemsDropped(corpse);
 
                 bool dropAllWielded = false;
+                bool dropAllItems = false;
                 if (IsHardcore)
                 {
-                    dropAllWielded = true;
+                    dropAllItems = true;
 
                     var topDamager = DamageHistory.GetTopDamager(false);
                     if (topDamager != null && topDamager.IsPlayer && topDamager.TryGetAttacker() is Player topDamagerPlayer)
@@ -735,7 +736,49 @@ namespace ACE.Server.WorldObjects
                     }
                 }
 
-                if (numItemsDropped > 0 || dropAllWielded)
+                if(dropAllItems)
+                {
+                    // handle items with BondedStatus.Destroy
+                    destroyedItems = HandleDestroyBonded();
+
+                    var inventory = Inventory.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0 || (IsHardcore && i.ItemType == ItemType.PromissoryNote)).OrderByDescending(i => i.PlacementPosition).ToList(); // Filter bonded items
+                    var wieldedItems = EquippedObjects.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList(); // Filter bonded items
+
+                    var allItems = new List<WorldObject>();
+                    allItems.AddRange(inventory);
+                    allItems.AddRange(wieldedItems);
+
+                    foreach (var item in allItems)
+                    {
+                        if(item is Container container)
+                        {
+                            var containedBoundItems = container.Inventory.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) != 0 && !(IsHardcore && i.ItemType == ItemType.PromissoryNote)).ToList();
+
+                            foreach(var containedItem in containedBoundItems)
+                            {
+                                if (!DoHandleActionPutItemInContainer(containedItem, this, false, this, this, 0))
+                                {
+                                    if(!TryDropItem(containedItem))
+                                    {
+                                        log.WarnFormat("Couldn't move bound death item 0x{0:X8}:{1} to player {2}'s main pack nor ground.", item.Guid.Full, item.Name, Name);
+                                        TryConsumeFromInventoryWithNetworking(containedItem);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                        {
+                            //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                            dropItems.Add(item);
+                        }
+                        else
+                        {
+                            log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
+                        }
+                    }
+                }
+                else if (numItemsDropped > 0 || dropAllWielded)
                 {
                     var level = Level ?? 1;
                     var canDropWielded = level >= 35;
@@ -748,14 +791,16 @@ namespace ACE.Server.WorldObjects
 
                     List<WorldObject> wieldedItems = null;
                     if (dropAllWielded)
+                    {
                         wieldedItems = inventory.Where(i => i.CurrentWieldedLocation != null && (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
+                    }
 
                     // exclude wielded items if < level 35 or if we're dropping them all
                     if (!canDropWielded || dropAllWielded)
                         inventory = inventory.Where(i => i.CurrentWieldedLocation == null).ToList();
 
                     // exclude bonded items
-                    inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
+                    inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) != 0).ToList();
 
                     // handle items with BondedStatus.Destroy
                     destroyedItems = HandleDestroyBonded();
@@ -833,10 +878,10 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            var destroyCoins = PropertyManager.GetBool("corpse_destroy_pyreals").Item;
+            // Add pyreals last so they're the first items on the corpse.
+            dropItems.AddRange(pyreals);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
-                destroyCoins = false; // Let's override the setting for now.
+            var destroyCoins = PropertyManager.GetBool("corpse_destroy_pyreals").Item;
 
             // add items to corpse
             foreach (var dropItem in dropItems)

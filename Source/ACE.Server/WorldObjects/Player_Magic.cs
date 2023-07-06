@@ -1256,16 +1256,16 @@ namespace ACE.Server.WorldObjects
 
                     if (!spell.IsProjectile)
                     {
-                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                        {
-                            var worldTarget = target.Wielder ?? target.Container ?? target;
-                            if (spell.MetaSpellType != SpellType.Projectile && spell.MetaSpellType != SpellType.LifeProjectile && spell.MetaSpellType != SpellType.EnchantmentProjectile
-                                && worldTarget != this && (worldTarget == null || !IsDirectVisible(worldTarget)))
-                            {
-                                Session.Network.EnqueueSend(new GameMessageSystemChat("You can't see your target well enough to affect it!", ChatMessageType.Broadcast));
-                                return;
-                            }
-                        }
+                        //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        //{
+                        //    var worldTarget = target.Wielder ?? target.Container ?? target;
+                        //    if (spell.MetaSpellType != SpellType.Projectile && spell.MetaSpellType != SpellType.LifeProjectile && spell.MetaSpellType != SpellType.EnchantmentProjectile
+                        //        && worldTarget != this && (worldTarget == null || !IsDirectVisible(worldTarget)))
+                        //    {
+                        //        Session.Network.EnqueueSend(new GameMessageSystemChat("You can't see your target well enough to affect it!", ChatMessageType.Broadcast));
+                        //        return;
+                        //    }
+                        //}
 
                         if (targetPlayer == null)
                             OnAttackMonster(targetCreature);

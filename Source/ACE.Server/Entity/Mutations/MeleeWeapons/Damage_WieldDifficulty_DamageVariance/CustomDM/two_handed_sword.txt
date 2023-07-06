@@ -2,23 +2,29 @@ two_handed_sword Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 76%:
+    - Chance: 37%:
         Damage += 0
 
-    - Chance: 24%:
+    - Chance: 13%:
         Damage += 1
+
+    - Chance: 50%:
+        Damage += 1
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
 
 two_handed_sword Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 37%:
-        Damage += 0
-
-    - Chance: 12%:
+    - Chance: 50%:
         Damage += 1
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
 
-    - Chance: 38%:
+    - Chance: 37%:
         Damage += 2
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -34,7 +40,7 @@ two_handed_sword Mutation #3:
 
 Tier Chances: 0, 0, 1, 0, 0, 0
 
-    - Chance: 13%:
+    - Chance: 12%:
         Damage += 2
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -46,7 +52,7 @@ Tier Chances: 0, 0, 1, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 50%:
+    - Chance: 51%:
         Damage += 4
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -94,13 +100,13 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 33.2%:
+    - Chance: 33.5%:
         Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 33.6%:
+    - Chance: 33.3%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -110,17 +116,17 @@ two_handed_sword Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 13%:
+    - Chance: 11%:
         DamageVariance = 0.5
 
     - Chance: 20%:
         DamageVariance = 0.48
 
-    - Chance: 36%:
+    - Chance: 37%:
         DamageVariance = 0.45
 
     - Chance: 20%:
         DamageVariance = 0.42
 
-    - Chance: 11%:
+    - Chance: 12%:
         DamageVariance = 0.4

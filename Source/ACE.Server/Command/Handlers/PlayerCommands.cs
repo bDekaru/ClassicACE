@@ -967,6 +967,7 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
+        [CommandHandler("fi", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Resends all visible items and creatures to the client")]
         [CommandHandler("fixinvisible", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Resends all visible items and creatures to the client")]
         public static void HandleFixInvisible(Session session, params string[] parameters)
         {
@@ -1344,9 +1345,11 @@ namespace ACE.Server.Command.Handlers
             public string KillerName;
             public int KillerLevel;
             public bool WasPvP;
-            public int Kills;
+            public int HardcoreKills;
+            public int PKKills;
             public long XP;
             public bool Living;
+            public bool isPK;
         }
 
         public static List<LeaderboardEntry> PrepareLeaderboard(GameplayModes gameplayMode, bool onlyLiving)
@@ -1365,7 +1368,9 @@ namespace ACE.Server.Command.Handlers
                 leaderboardEntry.Name = entry.GetProperty(PropertyString.Name);
                 leaderboardEntry.Level = level;
                 leaderboardEntry.XP = entry.GetProperty(PropertyInt64.TotalExperience) ?? 0;
-                leaderboardEntry.Kills = entry.GetProperty(PropertyInt.PlayerKillsPkl) ?? 0;
+                leaderboardEntry.HardcoreKills = entry.GetProperty(PropertyInt.PlayerKillsPkl) ?? 0;
+                leaderboardEntry.PKKills = entry.GetProperty(PropertyInt.PlayerKillsPk) ?? 0;
+                leaderboardEntry.isPK = entry.GetProperty(PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PKLite || entry.GetProperty(PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PK;
 
                 leaderboard.Add(leaderboardEntry);
             }
@@ -1388,7 +1393,8 @@ namespace ACE.Server.Command.Handlers
                         leaderboardEntry.KillerLevel = entry.KillerLevel;
                         leaderboardEntry.WasPvP = entry.WasPvP;
                         leaderboardEntry.XP = entry.XP;
-                        leaderboardEntry.Kills = entry.Kills;
+                        leaderboardEntry.HardcoreKills = entry.Kills;
+                        leaderboardEntry.isPK = gameplayMode == GameplayModes.HardcorePK;
 
                         leaderboard.Add(leaderboardEntry);
                     }
@@ -1401,8 +1407,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// List top 10 Hardcore characters by total XP
         /// </summary>
-        [CommandHandler("LeaderboardHCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore PK characters by total XP.", "LeaderboardHCXP [pk|npk] [alltime|living]")]
-        [CommandHandler("HCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore PK characters by total XP.", "LeaderboardHCXP [pk|npk] [alltime|living]")]
+        [CommandHandler("HCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore characters by total XP.", "HCXP [pk|npk] [alltime|living]")]
         public static void HandleLeaderboardHCXP(Session session, params string[] parameters)
         {
             if (session != null)
@@ -1445,10 +1450,128 @@ namespace ACE.Server.Command.Handlers
         }
 
         /// <summary>
+        /// List top 10 Solo Self-Found characters by total XP
+        /// </summary>
+        [CommandHandler("TopSSF", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Solo Self-Found characters by total XP.", "TopSSF")]
+        public static void HandleLeaderboardSSF(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardSSFCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardSSFCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            var leaderboard = PrepareLeaderboard(GameplayModes.SoloSelfFound, true).OrderByDescending(b => b.XP).ToList();
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Solo Self-Found Characters by XP: \n");
+            message.Append("-----------------------\n");
+            uint playerCounter = 1;
+            foreach (var entry in leaderboard)
+            {
+                if (entry.XP > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    message.Append($"{label} {entry.Name} - Level {entry.Level}\n");
+                    playerCounter++;
+
+                    if (playerCounter > 10)
+                        break;
+                }
+            }
+            message.Append("-----------------------\n");
+
+            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+        }
+
+        /// <summary>
+        /// List top 10 characters by total XP
+        /// </summary>
+        [CommandHandler("TopXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 characters by total XP.", "TopXP")]
+        public static void HandleLeaderboardLevel(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardXPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardXPCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            var leaderboard = PrepareLeaderboard(GameplayModes.Regular, true).OrderByDescending(b => b.XP).ToList();
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Top Characters by XP: \n");
+            message.Append("-----------------------\n");
+            uint playerCounter = 1;
+            foreach (var entry in leaderboard)
+            {
+                if (entry.XP > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    var pkStatus = entry.isPK ? "(PK)" : "";
+                    message.Append($"{label} {entry.Name} - Level {entry.Level}{pkStatus}\n");
+                    playerCounter++;
+
+                    if (playerCounter > 10)
+                        break;
+                }
+            }
+            message.Append("-----------------------\n");
+
+            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+        }
+
+        /// <summary>
+        /// List top 10 characters by total kills
+        /// </summary>
+        [CommandHandler("TopPvP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 characters by total kills.", "TopPvP")]
+        public static void HandleLeaderboardPvP(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardPvPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardPvPCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            var leaderboard = PrepareLeaderboard(GameplayModes.Regular, true).OrderByDescending(b => b.XP).ToList();
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Top Characters by Kills: \n");
+            message.Append("-----------------------\n");
+            uint playerCounter = 1;
+            foreach (var entry in leaderboard)
+            {
+                if (entry.PKKills > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    var pkStatus = entry.isPK ? "(PK)" : "";
+                    message.Append($"{label} {entry.Name} - Level {entry.Level}{pkStatus} - {entry.PKKills} kill{(entry.PKKills != 1 ? "s" : "")}\n");
+                    playerCounter++;
+
+                    if (playerCounter > 10)
+                        break;
+                }
+            }
+            message.Append("-----------------------\n");
+
+            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+        }
+
+        /// <summary>
         /// Reports on the top 10 Hardcore characters by PvP kills
         /// </summary>
-        [CommandHandler("LeaderboardHCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters ranked by PvP kills.", "LeaderboardHCPvP [alltime|living]")]
-        [CommandHandler("HCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters ranked by PvP kills.", "LeaderboardHCPvP [alltime|living]")]
+        [CommandHandler("HCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters by PvP kills.", "HCPvP [alltime|living]")]
         public static void HandleLeaderboardHCPvP(Session session, params string[] parameters)
         {
             if (session != null)
@@ -1467,9 +1590,9 @@ namespace ACE.Server.Command.Handlers
 
             var living = PlayerManager.FindAllByGameplayMode(GameplayModes.HardcorePK);
 
-            var leaderboard = PrepareLeaderboard(GameplayModes.HardcorePK, onlyLiving).OrderByDescending(b => b.Kills).ToList();
+            var leaderboard = PrepareLeaderboard(GameplayModes.HardcorePK, onlyLiving).OrderByDescending(b => b.HardcoreKills).ToList();
 
-            leaderboard = leaderboard.OrderByDescending(b => b.Kills).ToList();
+            leaderboard = leaderboard.OrderByDescending(b => b.HardcoreKills).ToList();
 
             StringBuilder message = new StringBuilder();
             message.Append($"Hardcore {(onlyLiving ? "Living" : "All-Time")} PvP Leaderboard:\n");
@@ -1477,13 +1600,16 @@ namespace ACE.Server.Command.Handlers
             uint playerCounter = 1;
             foreach (var entry in leaderboard)
             {
-                var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                var deathStatus = onlyLiving ? "" : $"{(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
-                message.Append($"{label} {entry.Name} - Level {entry.Level} - {entry.Kills} kill{(entry.Kills != 1 ? "s" : "")}{deathStatus}\n");
-                playerCounter++;
+                if (entry.HardcoreKills > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    var deathStatus = onlyLiving ? "" : $"{(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
+                    message.Append($"{label} {entry.Name} - Level {entry.Level} - {entry.HardcoreKills} kill{(entry.HardcoreKills != 1 ? "s" : "")}{deathStatus}\n");
+                    playerCounter++;
 
-                if (playerCounter > 10)
-                    break;
+                    if (playerCounter > 10)
+                        break;
+                }
             }
             message.Append("-------------------------\n");
 

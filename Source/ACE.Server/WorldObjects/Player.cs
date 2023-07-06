@@ -117,6 +117,9 @@ namespace ACE.Server.WorldObjects
         public DateTime PrevWho;
         public DateTime PrevLeaderboardHCXPCommandRequestTimestamp;
         public DateTime PrevLeaderboardHCPvPCommandRequestTimestamp;
+        public DateTime PrevLeaderboardSSFCommandRequestTimestamp;
+        public DateTime PrevLeaderboardXPCommandRequestTimestamp;
+        public DateTime PrevLeaderboardPvPCommandRequestTimestamp;
 
         public float CurrentRadarRange => Location.Indoors ? MaxRadarRange_Indoors : MaxRadarRange_Outdoors;
 

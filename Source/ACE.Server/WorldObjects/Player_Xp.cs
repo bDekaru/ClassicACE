@@ -850,10 +850,15 @@ namespace ACE.Server.WorldObjects
             // Reset T.A.R.
             CampManager.EraseAll();
 
+            // Reset Food
+            ExtraHealthRegenPool = 0;
+            ExtraStaminaRegenPool = 0;
+            ExtraManaRegenPool = 0;
+
             // Reset Titles
             RemoveAllTitles();
             if(setToLimboGameplayMode)
-                AddTitle((uint)CharacterTitle.DeadMeat, true, true, true);
+                AddTitle((uint)CharacterTitle.DeadMeat, true, true, true); // This title was replaced with the "In Limbo" title.
             else if (ChargenTitleId > 0)
                 AddTitle((uint)ChargenTitleId, true, true, true);
 

@@ -134,7 +134,7 @@ namespace ACE.Server.WorldObjects
                 }
                 else if(target.ItemType == ItemType.MeleeWeapon || target.ItemType == ItemType.MissileWeapon || target.ItemType == ItemType.Caster)
                 {
-                    if (spellToAdd.IsImpenBaneType)
+                    if (spellToAdd.IsImpenBaneType && spellToAddlevel1Id != SpellId.Brittlemail1)
                     {
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain {spellToAdd.Name}.", ChatMessageType.Craft));
                         player.SendUseDoneEvent();
