@@ -462,7 +462,7 @@ namespace ACE.Server.Entity
             {
                 BlockChance = GetBlockChance(attacker, defender);
                 if (CombatType == CombatType.Missile)
-                    BlockChance += shield.GetShieldMissileBlockBonus();
+                    BlockChance += BlockChance * shield.GetShieldMissileBlockBonus();
 
                 if (attacker != defender && BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                     Blocked = true;

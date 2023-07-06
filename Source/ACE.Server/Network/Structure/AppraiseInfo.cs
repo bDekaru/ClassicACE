@@ -667,7 +667,7 @@ namespace ACE.Server.Network.Structure
 
                     if (hasExtraPropertiesText)
                         extraPropertiesText += "\n";
-                    extraPropertiesText += $"Missile Attack Bonus Block Chance: {blockBonus:N0}%.";
+                    extraPropertiesText += $"Missile Attack Bonus Block Chance: {(blockBonus > 0 ? "+" : "")}{blockBonus:N0}%.";
                     hasExtraPropertiesText = true;
                 }
 
