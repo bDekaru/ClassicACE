@@ -521,7 +521,7 @@ namespace ACE.Server.Entity
                             pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow").Item;
                             break;
                         case Skill.ThrownWeapon:
-                            pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown").Item;
+                            pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown").Item;
                             break;
                     }
 
@@ -564,7 +564,7 @@ namespace ACE.Server.Entity
                                     pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_hollow").Item;
                                     break;
                                 case Skill.ThrownWeapon:
-                                    pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_hollow").Item;
+                                    pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_hollow").Item;
                                     break;
 
                             }
@@ -606,7 +606,7 @@ namespace ACE.Server.Entity
                                     pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_phantom").Item;
                                     break;
                                 case Skill.ThrownWeapon:
-                                    pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_phantom").Item;
+                                    pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_phantom").Item;
                                     break;
                             }
                         }

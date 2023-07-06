@@ -361,7 +361,7 @@ namespace ACE.Server.WorldObjects
                         critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_crit_chance").Item;
                         break;
                     case Skill.ThrownWeapon:
-                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_crit_chance").Item;
+                        critRate *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_crit_chance").Item;
                         break;
                 }
             }
@@ -485,7 +485,7 @@ namespace ACE.Server.WorldObjects
                         critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_crit_dmg").Item;
                         break;
                     case Skill.ThrownWeapon:
-                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_crit_dmg").Item;
+                        critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_crit_dmg").Item;
                         break;
                     case Skill.WarMagic:
                         critDamageMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_crit_dmg").Item;
@@ -896,7 +896,7 @@ namespace ACE.Server.WorldObjects
                         criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_crit_chance").Item;
                         break;
                     case Skill.ThrownWeapon:
-                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_crit_chance").Item;
+                        criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_crit_chance").Item;
                         break;
                     case Skill.WarMagic:
                         criticalStrikeMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_crit_chance").Item;
@@ -1005,7 +1005,7 @@ namespace ACE.Server.WorldObjects
                         cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_crit_dmg").Item;
                         break;
                     case Skill.ThrownWeapon:
-                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_crit_dmg").Item;
+                        cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_crit_dmg").Item;
                         break;
                     case Skill.WarMagic:
                         cripplingBlowMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_crit_dmg").Item;
@@ -1120,7 +1120,7 @@ namespace ACE.Server.WorldObjects
                         pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_armor_ignore").Item;
                         break;
                     case Skill.ThrownWeapon:
-                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_armor_ignore").Item;
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_armor_ignore").Item;
                         break;
                 }
 
@@ -1205,7 +1205,7 @@ namespace ACE.Server.WorldObjects
                         pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_armor_ignore").Item;
                         break;
                     case Skill.ThrownWeapon:
-                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_armor_ignore").Item;
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_armor_ignore").Item;
                         break;
                 }
 

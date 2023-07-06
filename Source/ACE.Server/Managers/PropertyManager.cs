@@ -755,7 +755,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow", new Property<double>(1.0, "Scales bow damage.")),
                 ("pvp_dmg_mod_crossbow", new Property<double>(1.0, "Scales crossbow damage.")),
-                ("pvp_dmg_mod_trown", new Property<double>(1.0, "Scales thrown weapons damage.")),
+                ("pvp_dmg_mod_thrown", new Property<double>(1.0, "Scales thrown weapons damage.")),
 
                 ("pvp_dmg_mod_war", new Property<double>(1.0, "Scales war magic spell(not including streaks) damage.")),
                 ("pvp_dmg_mod_void", new Property<double>(1.0, "Scales void magic spell(not including streaks and DoTs) damage.")),
@@ -778,7 +778,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_crit_dmg", new Property<double>(1.0, "Scales bow Crippling Blow and Crushing Blow damage.")),
                 ("pvp_dmg_mod_crossbow_crit_dmg", new Property<double>(1.0, "Scales crossbow Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_trown_crit_dmg", new Property<double>(1.0, "Scales thrown weapons Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_thrown_crit_dmg", new Property<double>(1.0, "Scales thrown weapons Crippling Blow and Crushing Blow damage.")),
 
                 ("pvp_dmg_mod_war_crit_dmg", new Property<double>(1.0, "Scales war magic Crippling Blow and Crushing Blow damage.")),
                 ("pvp_dmg_mod_life_crit_dmg", new Property<double>(1.0, "Scales life magic Crippling Blow and Crushing Blow damage.")),
@@ -796,7 +796,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_crit_chance", new Property<double>(1.0, "Scales bow Critical Strike and Biting Strike critical hit chance.")),
                 ("pvp_dmg_mod_crossbow_crit_chance", new Property<double>(1.0, "Scales crossbow Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_trown_crit_chance", new Property<double>(1.0, "Scales thrown weapons Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_thrown_crit_chance", new Property<double>(1.0, "Scales thrown weapons Critical Strike and Biting Strike critical hit chance.")),
 
                 ("pvp_dmg_mod_war_crit_chance", new Property<double>(1.0, "Scales war magic Critical Strike and Biting Strike critical hit chance.")),
                 ("pvp_dmg_mod_life_crit_chance", new Property<double>(1.0, "Scales life magic Critical Strike and Biting Strike critical hit chance.")),
@@ -814,7 +814,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_armor_ignore", new Property<double>(1.0, "Scales bow Armor Rending and Armor Cleaving armor ignore ratio.")),
                 ("pvp_dmg_mod_crossbow_armor_ignore", new Property<double>(1.0, "Scales crossbow Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_trown_armor_ignore", new Property<double>(1.0, "Scales thrown weapons Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_thrown_armor_ignore", new Property<double>(1.0, "Scales thrown weapons Armor Rending and Armor Cleaving armor ignore ratio.")),
 
                 // PvP Hollow damage modifiers
                 ("pvp_dmg_mod_hollow", new Property<double>(1.0, "Scales hollow weapon damage.")),
@@ -828,7 +828,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_hollow", new Property<double>(1.0, "Scales hollow bow damage.")),
                 ("pvp_dmg_mod_crossbow_hollow", new Property<double>(1.0, "Scales hollow crossbow damage.")),
-                ("pvp_dmg_mod_trown_hollow", new Property<double>(1.0, "Scales hollow thrown weapons damage.")),
+                ("pvp_dmg_mod_thrown_hollow", new Property<double>(1.0, "Scales hollow thrown weapons damage.")),
 
                 // PvP Phantom damage modifiers
                 ("pvp_dmg_mod_phantom", new Property<double>(1.0, "Scales phantom weapon damage.")),
@@ -842,7 +842,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_phantom", new Property<double>(1.0, "Scales phantom bow damage.")),
                 ("pvp_dmg_mod_crossbow_phantom", new Property<double>(1.0, "Scales phantom crossbow damage.")),
-                ("pvp_dmg_mod_trown_phantom", new Property<double>(1.0, "Scales phantom thrown weapon damage.")),
+                ("pvp_dmg_mod_thrown_phantom", new Property<double>(1.0, "Scales phantom thrown weapon damage.")),
 
                 // PvP Miscellaneous modifiers
                 ("pvp_dmg_mod_shieldcleave", new Property<double>(1.0, "Scales the Shield Cleave amount.")),
