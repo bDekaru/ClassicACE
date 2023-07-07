@@ -706,18 +706,12 @@ namespace ACE.Server.WorldObjects
                 var numItemsDropped = GetNumItemsDropped(corpse);
 
                 bool dropAllWielded = false;
+                bool dropAllTradeNotes = false;
                 bool dropAllItems = false;
-                var dropItemDestroyChance = 0d;
                 if (IsHardcore)
                 {
-                    dropAllItems = true;
-
-                    if (GameplayMode == GameplayModes.HardcoreNPK)
-                        dropItemDestroyChance = Math.Clamp(PropertyManager.GetDouble("hardcore_npk_death_item_destruction_chance").Item, 0, 1);
-                    else if (wasPvP)
-                        dropItemDestroyChance = Math.Clamp(PropertyManager.GetDouble("hardcore_pk_pvp_death_item_destruction_chance").Item, 0, 1);
-                    else
-                        dropItemDestroyChance = Math.Clamp(PropertyManager.GetDouble("hardcore_pk_pve_death_item_destruction_chance").Item, 0, 1);
+                    dropAllWielded = true;
+                    dropAllTradeNotes = true;
 
                     var topDamager = DamageHistory.GetTopDamager(false);
                     if (topDamager != null && topDamager.IsPlayer && topDamager.TryGetAttacker() is Player topDamagerPlayer)
@@ -773,29 +767,16 @@ namespace ACE.Server.WorldObjects
                                     }
                                 }
                             }
-
-                            foreach (var containedItem in container.Inventory.Values)
-                            {
-                                var containedRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
-                                if (containedRoll < dropItemDestroyChance)
-                                    TryConsumeFromInventoryWithNetworking(containedItem, 1);
-                            }
                         }
 
-                        var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
-                        if (!(item is Container) && roll < dropItemDestroyChance)
-                            TryConsumeFromInventoryWithNetworking(item, 1);
+                        if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                        {
+                            //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                            dropItems.Add(item);
+                        }
                         else
                         {
-                            if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
-                            {
-                                //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
-                                dropItems.Add(item);
-                            }
-                            else
-                            {
-                                log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
-                            }
+                            log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
                         }
                     }
                 }
@@ -812,16 +793,18 @@ namespace ACE.Server.WorldObjects
 
                     List<WorldObject> wieldedItems = null;
                     if (dropAllWielded)
-                    {
                         wieldedItems = inventory.Where(i => i.CurrentWieldedLocation != null && (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
-                    }
+
+                    List<WorldObject> tradeNotes = null;
+                    if (dropAllTradeNotes)
+                        tradeNotes = inventory.Where(i => i.ItemType == ItemType.PromissoryNote).OrderByDescending(i => i.WeenieClassId).ToList();
 
                     // exclude wielded items if < level 35 or if we're dropping them all
                     if (!canDropWielded || dropAllWielded)
                         inventory = inventory.Where(i => i.CurrentWieldedLocation == null).ToList();
 
                     // exclude bonded items
-                    inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) != 0).ToList();
+                    inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
 
                     // handle items with BondedStatus.Destroy
                     destroyedItems = HandleDestroyBonded();
@@ -829,6 +812,22 @@ namespace ACE.Server.WorldObjects
                     if (dropAllWielded && wieldedItems != null)
                     {
                         foreach (var item in wieldedItems)
+                        {
+                            if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                            {
+                                //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                                dropItems.Add(item);
+                            }
+                            else
+                            {
+                                log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
+                            }
+                        }
+                    }
+
+                    if (dropAllTradeNotes && tradeNotes != null)
+                    {
+                        foreach (var item in tradeNotes)
                         {
                             if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
                             {

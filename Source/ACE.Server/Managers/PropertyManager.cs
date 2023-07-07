@@ -861,9 +861,6 @@ namespace ACE.Server.Managers
                 ("hardcore_pk_pve_death_level_modifier", new Property<double>(1.0, "Percentage of levels lost on death for Hardcore PK gameplay mode when dying in PvE. A value of 1.0 means deaths reset the player to level 1.")),
                 ("hardcore_npk_xp_modifier", new Property<double>(1.0, "Scales the amount of xp received by hardcore NPK players.")),
                 ("hardcore_pk_xp_modifier", new Property<double>(1.0, "Scales the amount of xp received by hardcore PK players.")),
-                ("hardcore_npk_death_item_destruction_chance", new Property<double>(0.0, "Chance an item will be destroyed on owner's death for Hardcore NPK gameplay mode.")),
-                ("hardcore_pk_pve_death_item_destruction_chance", new Property<double>(0.25, "Chance an item will be destroyed on owner's death for Hardcore PK gameplay mode when dying in PvE.")),
-                ("hardcore_pk_pvp_death_item_destruction_chance", new Property<double>(0.25, "Chance an item will be destroyed on owner's death for Hardcore PK gameplay mode when dying in PvP.")),
 
                 ("surface_bonus_xp", new Property<double>(0.25, "Extra xp earned for kills when hunting outside dungeons. 1.0 means 100% more xp.")),
                 ("hot_dungeon_bonus_xp", new Property<double>(1.0, "Extra xp earned for kills when inside hot dungeons. 1.0 means 100% more xp.")),
