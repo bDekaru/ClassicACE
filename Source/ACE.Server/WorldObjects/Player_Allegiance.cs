@@ -78,7 +78,7 @@ namespace ACE.Server.WorldObjects
         public void OfflineSwearAllegiance(uint targetGuid)
         {
             var patron = PlayerManager.GetOfflinePlayer(targetGuid);
-            if (patron == null)
+            if (patron == null || patron.IsPendingDeletion || patron.IsDeleted)
                 return;
 
             if (!IsPledgable(patron)) return;
