@@ -460,9 +460,7 @@ namespace ACE.Server.Entity
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && shield != null)
             {
-                BlockChance = GetBlockChance(attacker, defender, shield);
-                if (CombatType == CombatType.Missile)
-                    BlockChance += BlockChance * shield.GetShieldMissileBlockBonus();
+                BlockChance = GetBlockChance(attacker, defender, shield, attackSkill);
 
                 if (attacker != defender && BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                     Blocked = true;
@@ -689,15 +687,12 @@ namespace ACE.Server.Entity
             return (float)evadeChance;
         }
 
-        public float GetBlockChance(Creature attacker, Creature defender, WorldObject shield)
+        public float GetBlockChance(Creature attacker, Creature defender, WorldObject shield, CreatureSkill attackSkill)
         {
             if (defender == null || defender.IsExhausted)
                 return 0.0f;
 
-            var playerAttacker = attacker as Player;
             var playerDefender = defender as Player;
-            bool isPvP = playerAttacker != null && playerDefender != null;
-
             if (playerDefender == null)
                 return 1.0f; // Creatures with shields always block.
             else
@@ -715,14 +710,13 @@ namespace ACE.Server.Entity
                 else
                     EffectiveBlockSkill = 0;
 
-                var combatTypeMod = CombatType == CombatType.Missile ? 1.0f : 0.6f;
+                var combatTypeMod = CombatType == CombatType.Missile ? 1.0f : 1.333f;
+                EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 1.25f);
 
-                if(isPvP)
-                    EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 2.0f);
-                else
-                    EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 3.0f);
+                var blockChance = 1.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
 
-                var blockChance = 1.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
+                if (CombatType == CombatType.Missile)
+                    blockChance += blockChance * shield.GetShieldMissileBlockBonus();
 
                 return (float)blockChance;
             }
