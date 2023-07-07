@@ -156,6 +156,22 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
+                case 13: // Regular
+                    player.RevertToBrandNewCharacterEquipment(true);
+                    player.RemoveAllTitles();
+                    if (player.ChargenTitleId > 0)
+                        player.AddTitle((uint)player.ChargenTitleId, true, true, true);
+                    else
+                        player.AddTitle((uint)CharacterTitle.Adventurer, true, true, true);
+                    player.PlayerKillerStatus = PlayerKillerStatus.NPK;
+                    player.PkLevel = PKLevel.NPK;
+                    player.GameplayMode = GameplayModes.Regular;
+                    player.GameplayModeExtraIdentifier = 0;
+                    player.GameplayModeIdentifierString = null;
+
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
+                    break;
                 case 100: // Reset to brand new character but keep xp.
                     player.RevertToBrandNewCharacter(true, true, true, true, player.TotalExperience ?? 0);
                     setStarterLocation = false;
