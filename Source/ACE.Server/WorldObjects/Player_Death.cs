@@ -531,7 +531,7 @@ namespace ACE.Server.WorldObjects
                 Die(new DamageHistoryInfo(this), DamageHistory.TopDamager);
         }
 
-        public List<WorldObject> CalculateDeathItems(Corpse corpse)
+        public List<WorldObject> CalculateDeathItems(Corpse corpse, bool wasPvP)
         {
             // https://web.archive.org/web/20140712134108/http://support.turbine.com/link/portal/24001/24001/Article/464/How-do-death-items-work-in-Asheron-s-Call-Could-you-explain-how-the-game-decides-what-you-drop-when-you-die-in-Asheron-s-Call
 
@@ -707,9 +707,17 @@ namespace ACE.Server.WorldObjects
 
                 bool dropAllWielded = false;
                 bool dropAllItems = false;
+                var dropItemDestroyChance = 0d;
                 if (IsHardcore)
                 {
                     dropAllItems = true;
+
+                    if (GameplayMode == GameplayModes.HardcoreNPK)
+                        dropItemDestroyChance = Math.Clamp(PropertyManager.GetDouble("hardcore_npk_death_item_destruction_chance").Item, 0, 1);
+                    else if (wasPvP)
+                        dropItemDestroyChance = Math.Clamp(PropertyManager.GetDouble("hardcore_pk_pvp_death_item_destruction_chance").Item, 0, 1);
+                    else
+                        dropItemDestroyChance = Math.Clamp(PropertyManager.GetDouble("hardcore_pk_pve_death_item_destruction_chance").Item, 0, 1);
 
                     var topDamager = DamageHistory.GetTopDamager(false);
                     if (topDamager != null && topDamager.IsPlayer && topDamager.TryGetAttacker() is Player topDamagerPlayer)
@@ -761,20 +769,33 @@ namespace ACE.Server.WorldObjects
                                     if(!TryDropItem(containedItem))
                                     {
                                         log.WarnFormat("Couldn't move bound death item 0x{0:X8}:{1} to player {2}'s main pack nor ground.", item.Guid.Full, item.Name, Name);
-                                        TryConsumeFromInventoryWithNetworking(containedItem);
+                                        TryConsumeFromInventoryWithNetworking(containedItem, containedItem.StackSize ?? 1);
                                     }
                                 }
                             }
+
+                            foreach (var containedItem in container.Inventory.Values)
+                            {
+                                var containedRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                                if (containedRoll < dropItemDestroyChance)
+                                    TryConsumeFromInventoryWithNetworking(containedItem, 1);
+                            }
                         }
 
-                        if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
-                        {
-                            //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
-                            dropItems.Add(item);
-                        }
+                        var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                        if (!(item is Container) && roll < dropItemDestroyChance)
+                            TryConsumeFromInventoryWithNetworking(item, 1);
                         else
                         {
-                            log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
+                            if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                            {
+                                //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                                dropItems.Add(item);
+                            }
+                            else
+                            {
+                                log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
+                            }
                         }
                     }
                 }

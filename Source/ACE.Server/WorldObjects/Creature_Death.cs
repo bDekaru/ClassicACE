@@ -680,7 +680,7 @@ namespace ACE.Server.WorldObjects
                 }
                 else
                 {
-                    var dropped = player.CalculateDeathItems(corpse);
+                    var dropped = player.CalculateDeathItems(corpse, killerIsPkPlayer);
 
                     corpse.RecalculateDecayTime(player);
 
