@@ -635,6 +635,27 @@ namespace ACE.Server.Network.Structure
                     hasExtraPropertiesText = true;
                 }
 
+                if (wo.IsShield)
+                {
+                    var shieldDefenseMod = ((wo.ShieldDefense ?? 1) - 1) * 100;
+                    if (shieldDefenseMod != 0)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Bonus to Shield Skill: {(shieldDefenseMod > 0 ? "+" : "")}{shieldDefenseMod.ToString("0.0")}%.";
+                        hasExtraPropertiesText = true;
+                    }
+
+                    var blockBonus = wo.GetShieldMissileBlockBonus() * 100;
+                    if (blockBonus != 0)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Missile Attack Bonus Block Chance: {(blockBonus > 0 ? "+" : "")}{blockBonus:N0}%.";
+                        hasExtraPropertiesText = true;
+                    }
+                }
+
                 if (PropertiesFloat.TryGetValue(PropertyFloat.MeleeDefenseCap, out var meleeDefenseCap) && meleeDefenseCap != 0)
                 {
                     if (PropertiesFloat.TryGetValue(PropertyFloat.MissileDefenseCap, out var missileDefenseCap) && missileDefenseCap == meleeDefenseCap)
@@ -658,16 +679,6 @@ namespace ACE.Server.Network.Structure
                     if (hasExtraPropertiesText)
                         extraPropertiesText += "\n";
                     extraPropertiesText += $"Max Missile Evasion Chance: {(missileDefenseCap > 0 ? "+" : "")}{missileDefenseCap.ToString("0.0")}%.";
-                    hasExtraPropertiesText = true;
-                }
-
-                if(wo.IsShield)
-                {
-                    var blockBonus = wo.GetShieldMissileBlockBonus() * 100;
-
-                    if (hasExtraPropertiesText)
-                        extraPropertiesText += "\n";
-                    extraPropertiesText += $"Missile Attack Bonus Block Chance: {(blockBonus > 0 ? "+" : "")}{blockBonus:N0}%.";
                     hasExtraPropertiesText = true;
                 }
 

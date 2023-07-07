@@ -3281,5 +3281,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyString.GameplayModeIdentifierString);
             set { if (value == null) RemoveProperty(PropertyString.GameplayModeIdentifierString); else SetProperty(PropertyString.GameplayModeIdentifierString, value); }
         }
+
+        public double? ShieldDefense
+        {
+            get => GetProperty(PropertyFloat.ShieldDefense);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ShieldDefense); else SetProperty(PropertyFloat.ShieldDefense, value.Value); }
+        }
     }
 }

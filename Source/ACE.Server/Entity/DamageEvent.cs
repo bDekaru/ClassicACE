@@ -460,7 +460,7 @@ namespace ACE.Server.Entity
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && shield != null)
             {
-                BlockChance = GetBlockChance(attacker, defender);
+                BlockChance = GetBlockChance(attacker, defender, shield);
                 if (CombatType == CombatType.Missile)
                     BlockChance += BlockChance * shield.GetShieldMissileBlockBonus();
 
@@ -689,8 +689,11 @@ namespace ACE.Server.Entity
             return (float)evadeChance;
         }
 
-        public float GetBlockChance(Creature attacker, Creature defender)
+        public float GetBlockChance(Creature attacker, Creature defender, WorldObject shield)
         {
+            if (defender == null || defender.IsExhausted)
+                return 0.0f;
+
             var playerAttacker = attacker as Player;
             var playerDefender = defender as Player;
             bool isPvP = playerAttacker != null && playerDefender != null;
@@ -701,7 +704,14 @@ namespace ACE.Server.Entity
             {
                 var shieldSkill = defender.GetCreatureSkill(Skill.Shield);
                 if (shieldSkill.AdvancementClass > SkillAdvancementClass.Untrained)
-                    EffectiveBlockSkill = shieldSkill.Current;
+                {
+                    var shieldDefenseMod = (float)(shield.ShieldDefense ?? 1) + shield.EnchantmentManager.GetShieldDefenseMod();
+
+                    if (shield.IsEnchantable)
+                        shieldDefenseMod += defender.EnchantmentManager.GetAttackMod();
+
+                    EffectiveBlockSkill = (uint)Math.Round(shieldSkill.Current * shieldDefenseMod);
+                }
                 else
                     EffectiveBlockSkill = 0;
 
@@ -714,7 +724,7 @@ namespace ACE.Server.Entity
 
                 var blockChance = 1.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
 
-               return (float)blockChance;
+                return (float)blockChance;
             }
         }
 
