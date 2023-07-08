@@ -152,7 +152,7 @@ namespace ACE.Server.WorldObjects
                 if (distanceCovered > 0.2)
                     AttacksReceivedWithoutBeingAbleToCounter = 0;
 
-                if (!Location.Indoors && AttacksReceivedWithoutBeingAbleToCounter > 3)
+                if (!Location.Indoors && AttacksReceivedWithoutBeingAbleToCounter > 1)
                 {
                     AttacksReceivedWithoutBeingAbleToCounter = 0;
 
