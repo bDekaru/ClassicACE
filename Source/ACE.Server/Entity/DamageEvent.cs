@@ -692,7 +692,9 @@ namespace ACE.Server.Entity
             if (defender == null || defender.IsExhausted)
                 return 0.0f;
 
+            var playerAttacker = attacker as Player;
             var playerDefender = defender as Player;
+            var isPvP = playerAttacker != null && playerDefender != null;
             if (playerDefender == null)
                 return 1.0f; // Creatures with shields always block.
             else
@@ -717,6 +719,9 @@ namespace ACE.Server.Entity
 
                 if (CombatType == CombatType.Missile)
                     blockChance += blockChance * shield.GetShieldMissileBlockBonus();
+
+                if (isPvP)
+                    blockChance *= (float)PropertyManager.GetDouble("pvp_dmg_mod_shield_block_chance").Item;
 
                 return (float)blockChance;
             }

@@ -850,6 +850,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_armor_level", new Property<double>(1.0, "Scales the base armor level.")),
                 ("pvp_dmg_mod_shield_level", new Property<double>(1.0, "Scales the base shield level.")),
+                ("pvp_dmg_mod_shield_block_chance", new Property<double>(1.0, "Scales the base shield block chance.")),
 
                 ("pvp_dmg_mod_sneak", new Property<double>(1.0, "Scales the sneak attack damage multiplier.")),
 
