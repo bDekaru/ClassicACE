@@ -467,7 +467,7 @@ namespace ACE.Server.Entity
                 else
                 {
                     Blocked = false;
-                    ShieldMod = 1.0f;
+                    ShieldMod = 2.0f;
                 }
             }
 
@@ -712,10 +712,10 @@ namespace ACE.Server.Entity
                 else
                     EffectiveBlockSkill = 0;
 
-                var combatTypeMod = CombatType == CombatType.Missile ? 1.0f : 1.333f;
+                var combatTypeMod = CombatType == CombatType.Missile ? 1.5f : 1.333f;
                 EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod);
 
-                var blockChance = 1.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
+                var blockChance = 2.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
 
                 if (CombatType == CombatType.Missile)
                     blockChance += blockChance * shield.GetShieldMissileBlockBonus();
@@ -964,7 +964,7 @@ namespace ACE.Server.Entity
             if (ResistanceMod != 0.0f && ResistanceMod != 1.0f)
                 info += $"ResistanceMod: {ResistanceMod}\n";
 
-            if (ShieldMod != 0.0f && ShieldMod != 1.0f)
+            if (ShieldMod != 0.0f && ShieldMod != 1.5f)
                 info += $"ShieldMod: {ShieldMod}\n";
 
             if (WeaponResistanceMod != 0.0f && WeaponResistanceMod != 1.0f)
