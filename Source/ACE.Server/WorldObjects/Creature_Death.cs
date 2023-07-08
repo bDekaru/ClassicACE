@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using ACE.Common;
 using ACE.Database;
 using ACE.Database.Models.World;
 using ACE.Entity;
@@ -615,6 +615,7 @@ namespace ACE.Server.WorldObjects
             // use the physics location for accuracy,
             // especially while jumping
             corpse.Location = PhysicsObj.Position.ACEPosition();
+            corpse.DeathTimestamp = Time.GetUnixTime();
 
             corpse.VictimId = Guid.Full;
             corpse.Name = $"{prefix} of {Name}";

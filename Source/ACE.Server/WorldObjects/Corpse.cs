@@ -223,11 +223,18 @@ namespace ACE.Server.WorldObjects
             if (VictimId == null || player.Guid.Full == VictimId)
                 return true;
 
-            // Hardcore corpses killed in PvE are open to everyone
-            if (IsHardcore && PkLevel != PKLevel.PK)
-                return true;
+            if (IsHardcore)
+            {
+                // Hardcore corpses killed in PvE are open to everyone
+                if (PkLevel != PKLevel.PK)
+                    return true;
 
-            // players can loot corpses of creatures they killed or corpses that have previously been looted by killer, hardcore PvP kills can only ever be looted by the killer
+                // allow everyone to open hardcore PvP corpses 5 minutes after death.
+                if (Time.GetUnixTime() >= DeathTimestamp + 300)
+                    return true;
+            }
+
+            // players can loot corpses of creatures they killed or corpses that have previously been looted by killer, hardcore PvP kills can only be looted by the killer until they are opened to everyone.
             if (KillerId != null && player.Guid.Full == KillerId || (IsLooted && !IsHardcore))
                 return true;
 
