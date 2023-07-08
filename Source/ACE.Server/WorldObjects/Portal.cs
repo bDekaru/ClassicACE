@@ -163,6 +163,12 @@ namespace ACE.Server.WorldObjects
 
             if (!player.IgnorePortalRestrictions)
             {
+                if (!player.VerifyGameplayMode(this))
+                {
+                    player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"This item cannot be used, invalid gameplay mode!"));
+                    return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouFailToTeleport));
+                }
+
                 if (player.Level < MinLevel)
                 {
                     // You are not powerful enough to interact with that portal!

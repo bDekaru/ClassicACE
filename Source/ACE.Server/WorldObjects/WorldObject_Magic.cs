@@ -1430,7 +1430,7 @@ namespace ACE.Server.WorldObjects
             if (summonLoc != null)
                 summonLoc.LandblockId = new LandblockId(summonLoc.GetCell());
 
-            var success = SummonPortal(portalId, summonLoc, spell.PortalLifetime);
+            var success = SummonPortal(portalId, summonLoc, spell.PortalLifetime, GameplayMode, GameplayModeExtraIdentifier, GameplayModeIdentifierString);
 
             if (!success && player != null)
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouFailToSummonPortal));
@@ -1439,7 +1439,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Spawns a portal for SpellType.PortalSummon spells
         /// </summary>
-        protected static bool SummonPortal(uint portalId, Position location, double portalLifetime)
+        protected static bool SummonPortal(uint portalId, Position location, double portalLifetime, GameplayModes gameplayMode, long gameplayModeExtraIdentifier, string gameplayModeIdentifierString)
         {
             var portal = GetPortal(portalId);
 
@@ -1470,6 +1470,10 @@ namespace ACE.Server.WorldObjects
             gateway.Biota.PropertiesEmote = portal.Biota.PropertiesEmote;
 
             gateway.PortalRestrictions |= PortalBitmask.NoSummon; // all gateways are marked NoSummon but by default ruleset, the OriginalPortal is the one that is checked against
+
+            gateway.GameplayMode = gameplayMode;
+            gateway.GameplayModeExtraIdentifier = gameplayModeExtraIdentifier;
+            gateway.GameplayModeIdentifierString = gameplayModeIdentifierString;
 
             gateway.EnterWorld();
 
