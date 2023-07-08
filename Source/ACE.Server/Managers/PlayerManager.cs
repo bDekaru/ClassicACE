@@ -201,14 +201,14 @@ namespace ACE.Server.Managers
         /// <summary>
         /// This will return null of the name was not found.
         /// </summary>
-        public static OfflinePlayer GetOfflinePlayer(string name)
+        public static OfflinePlayer GetOfflinePlayer(string name, bool allowDeletedAndPendingDeletion = true)
         {
             var admin = "+" + name;
 
             playersLock.EnterReadLock();
             try
             {
-                var offlinePlayer = offlinePlayers.Values.FirstOrDefault(p => p.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || p.Name.Equals(admin, StringComparison.OrdinalIgnoreCase));
+                var offlinePlayer = offlinePlayers.Values.FirstOrDefault(p => (p.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || p.Name.Equals(admin, StringComparison.OrdinalIgnoreCase)) && (allowDeletedAndPendingDeletion || (!p.IsPendingDeletion && !p.IsDeleted)));
 
                 if (offlinePlayer != null)
                     return offlinePlayer;

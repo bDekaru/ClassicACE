@@ -1628,7 +1628,7 @@ namespace ACE.Server.Command.Handlers
             var patronName = string.Join(" ", parameters);
 
             var onlinePlayer = PlayerManager.GetOnlinePlayer(patronName);
-            var offlinePlayer = PlayerManager.GetOfflinePlayer(patronName);
+            var offlinePlayer = PlayerManager.GetOfflinePlayer(patronName, false);
             if (onlinePlayer != null)
             {
                 if (onlinePlayer.Account.AccountId != session.AccountId)
