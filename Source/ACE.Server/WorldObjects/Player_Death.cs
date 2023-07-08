@@ -531,7 +531,7 @@ namespace ACE.Server.WorldObjects
                 Die(new DamageHistoryInfo(this), DamageHistory.TopDamager);
         }
 
-        public List<WorldObject> CalculateDeathItems(Corpse corpse)
+        public List<WorldObject> CalculateDeathItems(Corpse corpse, bool wasPvP)
         {
             // https://web.archive.org/web/20140712134108/http://support.turbine.com/link/portal/24001/24001/Article/464/How-do-death-items-work-in-Asheron-s-Call-Could-you-explain-how-the-game-decides-what-you-drop-when-you-die-in-Asheron-s-Call
 
@@ -706,10 +706,12 @@ namespace ACE.Server.WorldObjects
                 var numItemsDropped = GetNumItemsDropped(corpse);
 
                 bool dropAllWielded = false;
+                bool dropAllTradeNotes = false;
                 bool dropAllItems = false;
                 if (IsHardcore)
                 {
-                    dropAllItems = true;
+                    dropAllWielded = true;
+                    dropAllTradeNotes = true;
 
                     var topDamager = DamageHistory.GetTopDamager(false);
                     if (topDamager != null && topDamager.IsPlayer && topDamager.TryGetAttacker() is Player topDamagerPlayer)
@@ -761,7 +763,7 @@ namespace ACE.Server.WorldObjects
                                     if(!TryDropItem(containedItem))
                                     {
                                         log.WarnFormat("Couldn't move bound death item 0x{0:X8}:{1} to player {2}'s main pack nor ground.", item.Guid.Full, item.Name, Name);
-                                        TryConsumeFromInventoryWithNetworking(containedItem);
+                                        TryConsumeFromInventoryWithNetworking(containedItem, containedItem.StackSize ?? 1);
                                     }
                                 }
                             }
@@ -791,16 +793,18 @@ namespace ACE.Server.WorldObjects
 
                     List<WorldObject> wieldedItems = null;
                     if (dropAllWielded)
-                    {
                         wieldedItems = inventory.Where(i => i.CurrentWieldedLocation != null && (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
-                    }
+
+                    List<WorldObject> tradeNotes = null;
+                    if (dropAllTradeNotes)
+                        tradeNotes = inventory.Where(i => i.ItemType == ItemType.PromissoryNote).OrderByDescending(i => i.WeenieClassId).ToList();
 
                     // exclude wielded items if < level 35 or if we're dropping them all
                     if (!canDropWielded || dropAllWielded)
                         inventory = inventory.Where(i => i.CurrentWieldedLocation == null).ToList();
 
                     // exclude bonded items
-                    inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) != 0).ToList();
+                    inventory = inventory.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
 
                     // handle items with BondedStatus.Destroy
                     destroyedItems = HandleDestroyBonded();
@@ -821,7 +825,24 @@ namespace ACE.Server.WorldObjects
                         }
                     }
 
-                    if (numItemsDropped > 1)
+                    if (dropAllTradeNotes && tradeNotes != null)
+                    {
+                        foreach (var item in tradeNotes)
+                        {
+                            if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                            {
+                                //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                                dropItems.Add(item);
+                            }
+                            else
+                            {
+                                log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
+                            }
+                        }
+                    }
+
+                    if (numItemsDropped > 0)
+
                     {
                         // construct the list of death items
                         var sorted = new DeathItems(inventory);

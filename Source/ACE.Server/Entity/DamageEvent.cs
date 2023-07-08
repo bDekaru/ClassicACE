@@ -460,9 +460,7 @@ namespace ACE.Server.Entity
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && shield != null)
             {
-                BlockChance = GetBlockChance(attacker, defender);
-                if (CombatType == CombatType.Missile)
-                    BlockChance += shield.GetShieldMissileBlockBonus();
+                BlockChance = GetBlockChance(attacker, defender, shield, attackSkill);
 
                 if (attacker != defender && BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                     Blocked = true;
@@ -521,7 +519,7 @@ namespace ACE.Server.Entity
                             pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow").Item;
                             break;
                         case Skill.ThrownWeapon:
-                            pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown").Item;
+                            pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown").Item;
                             break;
                     }
 
@@ -564,7 +562,7 @@ namespace ACE.Server.Entity
                                     pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_hollow").Item;
                                     break;
                                 case Skill.ThrownWeapon:
-                                    pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_hollow").Item;
+                                    pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_hollow").Item;
                                     break;
 
                             }
@@ -606,7 +604,7 @@ namespace ACE.Server.Entity
                                     pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_crossbow_phantom").Item;
                                     break;
                                 case Skill.ThrownWeapon:
-                                    pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_trown_phantom").Item;
+                                    pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_thrown_phantom").Item;
                                     break;
                             }
                         }
@@ -689,32 +687,43 @@ namespace ACE.Server.Entity
             return (float)evadeChance;
         }
 
-        public float GetBlockChance(Creature attacker, Creature defender)
+        public float GetBlockChance(Creature attacker, Creature defender, WorldObject shield, CreatureSkill attackSkill)
         {
+            if (defender == null || defender.IsExhausted)
+                return 0.0f;
+
             var playerAttacker = attacker as Player;
             var playerDefender = defender as Player;
-            bool isPvP = playerAttacker != null && playerDefender != null;
-
+            var isPvP = playerAttacker != null && playerDefender != null;
             if (playerDefender == null)
                 return 1.0f; // Creatures with shields always block.
             else
             {
                 var shieldSkill = defender.GetCreatureSkill(Skill.Shield);
                 if (shieldSkill.AdvancementClass > SkillAdvancementClass.Untrained)
-                    EffectiveBlockSkill = shieldSkill.Current;
+                {
+                    var shieldDefenseMod = (float)(shield.ShieldDefense ?? 1) + shield.EnchantmentManager.GetShieldDefenseMod();
+
+                    if (shield.IsEnchantable)
+                        shieldDefenseMod += defender.EnchantmentManager.GetAttackMod();
+
+                    EffectiveBlockSkill = (uint)Math.Round(shieldSkill.Current * shieldDefenseMod);
+                }
                 else
                     EffectiveBlockSkill = 0;
 
-                var combatTypeMod = CombatType == CombatType.Missile ? 1.5f : 0.6f;
+                var combatTypeMod = CombatType == CombatType.Missile ? 1.5f : 1.333f;
+                EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod);
 
-                if(isPvP)
-                    EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 2.0f);
-                else
-                    EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 5.0f);
+                var blockChance = 2.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
 
-                var blockChance = 2.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
+                if (CombatType == CombatType.Missile)
+                    blockChance += blockChance * shield.GetShieldMissileBlockBonus();
 
-               return (float)blockChance;
+                if (isPvP)
+                    blockChance *= (float)PropertyManager.GetDouble("pvp_dmg_mod_shield_block_chance").Item;
+
+                return (float)blockChance;
             }
         }
 

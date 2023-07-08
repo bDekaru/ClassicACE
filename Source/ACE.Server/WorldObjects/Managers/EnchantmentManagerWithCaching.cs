@@ -451,6 +451,17 @@ namespace ACE.Server.WorldObjects.Managers
             return defenseModCache.Value;
         }
 
+        private float? shieldDefenseModCache;
+        public override float GetShieldDefenseMod()
+        {
+            if (shieldDefenseModCache.HasValue)
+                return shieldDefenseModCache.Value;
+
+            shieldDefenseModCache = base.GetShieldDefenseMod();
+
+            return shieldDefenseModCache.Value;
+        }
+
         private float? manaConvModCache;
 
         /// <summary>

@@ -1038,6 +1038,13 @@ namespace ACE.Server.WorldObjects.Managers
             return auraDefenseMod + defenseMod;
         }
 
+        public virtual float GetShieldDefenseMod()
+        {
+            var defenseMod = GetAdditiveMod(PropertyFloat.ShieldDefense);
+
+            return defenseMod;
+        }
+
         /// <summary>
         /// Returns the mana conversion bonus modifier, ie. Hermetic Link / Void
         /// </summary>

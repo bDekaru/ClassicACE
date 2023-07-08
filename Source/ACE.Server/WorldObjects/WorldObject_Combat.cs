@@ -67,9 +67,9 @@ namespace ACE.Server.WorldObjects
             if (Mass >= 600)
                 return 1.0f;
             else if (Mass >= 400)
-                return 0.75f;
+                return 0.25f;
             else if (Mass >= 200)
-                return 0.50f;
+                return 0.10f;
             else
                 return 0;
         }

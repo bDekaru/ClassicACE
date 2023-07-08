@@ -560,7 +560,12 @@ namespace ACE.Server.WorldObjects
         {
             var difficulty = spell.Power;
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                difficulty += 50;
+            {
+                if(difficulty <= 10)
+                    difficulty = 35;
+                else
+                    difficulty += 50;
+            }
 
             if (MagicState.IsCombatCasting)
                 difficulty += 10; // Combat casting is a bit more difficult than regular casting.

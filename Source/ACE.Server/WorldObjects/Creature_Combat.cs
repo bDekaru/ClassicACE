@@ -1305,8 +1305,12 @@ namespace ACE.Server.WorldObjects
             NextAssessDebuffActivationTime = currentTime + AssessDebuffActivationInterval;
 
             var defenseSkill = target.GetCreatureSkill(Skill.Deception);
+            var effectiveDefenseSkill = defenseSkill.Current;
 
-            var avoidChance = 1.0f - SkillCheck.GetSkillChance(skill.Current, defenseSkill.Current);
+            if (targetAsPlayer != null)
+                effectiveDefenseSkill *= 2;
+
+            var avoidChance = 1.0f - SkillCheck.GetSkillChance(skill.Current, effectiveDefenseSkill);
             if (avoidChance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
                 if (sourceAsPlayer != null)
