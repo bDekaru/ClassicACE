@@ -863,6 +863,13 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
+            if (!item.VerifyGameplayMode(container) || IsInLimboMode)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be moved to that container, incompatible gameplay mode!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                return false;
+            }
+
             if (container is Corpse)
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"You cannot put {item.Name} in that.")); // Custom error message
