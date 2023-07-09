@@ -3577,7 +3577,9 @@ namespace ACE.Server.WorldObjects
         {
             if (target == null || item == null) return;
 
-            if (!VerifyGameplayMode(item) || IsInLimboMode)
+            var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned;
+
+            if ((!VerifyGameplayMode(item) && (!acceptAll || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationContract || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.blankExplorationContract)) || IsInLimboMode)
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be given, incompatible gameplay mode!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
@@ -3609,8 +3611,6 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeItemBeingTraded));
                 return;
             }
-
-            var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned;
 
             if (target.HasGiveOrRefuseEmoteForItem(item, out var emoteResult) || acceptAll)
             {
