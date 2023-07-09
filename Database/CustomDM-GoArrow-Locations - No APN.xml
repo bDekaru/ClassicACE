@@ -2707,8 +2707,8 @@
   </location>
   <location>
     <id>170</id>
-    <latitude>49.7</latitude>
-    <longitude>-56.3</longitude>
+    <latitude>-9.3</latitude>
+    <longitude>63.9</longitude>
     <name>Knath Lair</name>
     <type>Dungeon</type>
     <arrival_latitude>0</arrival_latitude>
@@ -7255,22 +7255,6 @@
     <tod_req>0</tod_req>
   </location>
   <location>
-    <id>455</id>
-    <latitude>-22.6</latitude>
-    <longitude>37.1</longitude>
-    <name>Farmhouse</name>
-    <type>Landmark</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>Farmhouse with a couple cows and a farmer who sells minor items. Nothing special. This is south of Fort Witshire. &lt;I&gt; -- Nether&lt;/i&gt;&lt;BR&gt;Farmhouse is no longer at these coords &lt;I&gt;	-- Devyn 3/22/2000 3/22/2000 &lt;/i&gt;</description>
-    <date_added>1999-12-12T00:00:00.0000000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
     <id>456</id>
     <latitude>-1</latitude>
     <longitude>48.4</longitude>
@@ -7699,9 +7683,9 @@
   </location>
   <location>
     <id>483</id>
-    <latitude>-11.8</latitude>
-    <longitude>33.7</longitude>
-    <name>Grilhud the Hermit Bunker</name>
+    <latitude>-22.6</latitude>
+    <longitude>37.1</longitude>
+    <name>Grilhud the Hermit Farmhouse</name>
     <type>Landmark</type>
     <arrival_latitude>0</arrival_latitude>
     <arrival_longitude>0</arrival_longitude>
@@ -12469,21 +12453,6 @@
     <tod_req>0</tod_req>
   </location>
   <location>
-    <id>783</id>
-    <latitude>-26.3</latitude>
-    <longitude>1.9</longitude>
-    <name>Murk Warrens</name>
-    <type>Dungeon</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>North of Zaikhal. No entry restrictions. Full range of basic Mosswarts in early stages and most of the Banderling race in the later stages. Spawn is very rapid and large groups are encountered. Always some more rushing to help the current bunch youre fighting. Didnt find much beyond the locked doors except a surface portal leading to the entry point. Theer were parts of the dungeon we may have missed through our exploration and constant battling. Found by Agamemnon. Fought through by Katsumii, Agamem, Chibi and God. &lt;I&gt; -- Katsumii&lt;/i&gt;&lt;BR&gt;This place is Full of Mossworts, mudlarks barker, shamans at least as far a I got, which Wasnt far.  The respawn is fast and I only got a little way in by myself before I was ankle deep in mossie corpses.. It is rather large and you should definately take a group just to keep up with the respawn.  Or take lots of stamina potions.. &lt;I&gt; -- Stranyr alQroni&lt;/i&gt;&lt;BR&gt;Futher Down you get knee deep in Banderlings, Breeders, Captains, Ravers, Guards, Raiders .....made it to the end and thats about it &lt;I&gt;	-- The Vampire 6/24/2000 &lt;/i&gt;&lt;BR&gt;Great place for levels 15 and up for experience. Re-spawn rate is incredible. Above notes correct, bring stamina potions with you...preferable in bucket loads. &lt;I&gt;	-- Leifson 6/26/2000 &lt;/i&gt;&lt;BR&gt;This is the ULTIMATE place for a mid sized lvl 15-25 group to lvl. You want a challenge, you wanna see some of the coolest battles in all of dereth? Youve come to the right place. Murk Warrens has only 2 BREEDS of monsters. Mosswarts (Feeders-Cheifs) in the first half, and Banderlings (Scouts-Ravers) in the second half. In 1st area if the dungeon, the monsters only rush in at the front (about 5-15 at a time). As you progress in the dungeon, they come in about 20 at a time, in front, and 10 rush in from the back. Oh, and remember that the respawn time is 2 mins, so alot of times, as you kill 1 wave, another wave will spawn behind you. I didnt know my way around too well, because it is dark, and so is my monitor (it REALLY REALLY sucks), but when you get to a locked door in the mosswart area, DO NOT GO IN FOR GODS SAKE. There are about 10 moss cheifs and 50+ other mosswarts that will rush out as you open it. Besides that, when you are fighting that group, youll get side rushed by a group down another hallway. There is also a room in the banderling area with the same situation, but diffrent look. Just look for the locked doors. This place IS NOT reccomended for mages =P. I know because I am one (lvl 22 all schools mage), and I went with a group of Melee fighters. If your a mage, stay in back and cast de-buffs on the stronger guys and heal, &amp; infuse stamina on your allys. If you waste mana using war spells, your done for because theyll start to rush YOU. If your in a group, make sure all the melee fighters are lvl 20-35. Mages can be any level (we had lvl 11, 17, 21, 24, and 32 melee fighers, and me, as a lvl 15 mage). &lt;I&gt;	-- Al-Tuvah 8/8/2000 &lt;/i&gt;&lt;BR&gt;The dungeon is new school with heroic physical dimensions and spawn rate.  A nice place for mixed levels to work on leveling.  Entrance and foyer are both safe. Running in from Zaikhal (south) is safer than running in from the north. &lt;I&gt;	-- Doc Feelgood 10/8/2000 &lt;/i&gt;&lt;BR&gt;Dont even bother coming here unless you have a small army of low level people with nothing better to do than kill mosswarts.too many for anyone to kill them all alone.Nobody is ever here!why did turbine even make this place? &lt;I&gt;	-- Sega Slayer 11/15/2000 &lt;/i&gt;</description>
-    <date_added>2000-06-07T00:00:00.0000000-07:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>0100</dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
     <id>784</id>
     <latitude>-46</latitude>
     <longitude>44.6</longitude>
@@ -15442,21 +15411,6 @@
     <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
     <dungeon_id>
     </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>969</id>
-    <latitude>-67.5</latitude>
-    <longitude>-29.4</longitude>
-    <name>Murk Warrens</name>
-    <type>Dungeon</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>West of Stonehold.  Probably a copy to the other two Murk Warrens found to date.  The top level is full of mudlurk and barker mosswarts, spawning very quickly.  Did not go any further.  Many banderlings, tuskers, and wood golems around the entrance - not a safe place to rest from the dungeon.  Exit portal near the entrance point. &lt;I&gt; -- GladiusHawkwood&lt;/i&gt;</description>
-    <date_added>2000-07-11T00:00:00.0000000-07:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>0100</dungeon_id>
     <retired>N</retired>
     <tod_req>0</tod_req>
   </location>
@@ -46471,6 +46425,22 @@ This tree grows atop the large cataracts overlooking the Chapel on Xi Ru's Islan
     <description>
     </description>
     <date_added>2004-06-13T18:19:54.0200000-07:00</date_added>
+    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
+    <dungeon_id>
+    </dungeon_id>
+    <retired>N</retired>
+    <tod_req>0</tod_req>
+  </location>
+  <location>
+    <id>2794</id>
+    <latitude>-11.8</latitude>
+    <longitude>33.7</longitude>
+    <name>Bunker</name>
+    <type>Landmark</type>
+    <arrival_latitude>0</arrival_latitude>
+    <arrival_longitude>0</arrival_longitude>
+    <description></description>
+    <date_added>1999-12-26T00:00:00.0000000-08:00</date_added>
     <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
     <dungeon_id>
     </dungeon_id>
