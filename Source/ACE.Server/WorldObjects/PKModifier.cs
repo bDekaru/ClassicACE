@@ -284,6 +284,8 @@ namespace ACE.Server.WorldObjects
                 player.Sanctuary = new Position(player.Location);
 
                 WorldManager.ThreadSafeTeleport(player, player.Instantiation);
+
+                player.CheckMultipleAccounts();
             }
         }
 
