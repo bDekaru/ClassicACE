@@ -5474,8 +5474,8 @@
     <id>343</id>
     <latitude>-23.7</latitude>
     <longitude>-36.5</longitude>
-    <name>Tumerok Outpost</name>
-    <type>Dungeon</type>
+    <name>Cave</name>
+    <type>Landmark</type>
     <arrival_latitude>0</arrival_latitude>
     <arrival_longitude>0</arrival_longitude>
     <description>
@@ -7754,22 +7754,6 @@
     <arrival_latitude>0</arrival_latitude>
     <arrival_longitude>0</arrival_longitude>
     <description>Just like Tou Tous lighthouse. &lt;I&gt; -- Curunir&lt;/i&gt;</description>
-    <date_added>1999-12-27T00:00:00.0000000-08:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>488</id>
-    <latitude>38.9</latitude>
-    <longitude>-48.4</longitude>
-    <name>Sclavus Keep Portal</name>
-    <type>Dungeon</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>I didnt go in.  This is what the map dot indicates. &lt;I&gt; -- Curunir&lt;/i&gt;&lt;BR&gt;Good dungeon layout. Scalvus are cool looking creatures, but weak for this lvl 34 unarmed - they should be buffed up a lot. A lot of switch pulling in this one. A portal to GW I think is immediately inside. A group of 15-25 level folks should be able to handle this place. Take S.Dires portal near Mayoi to S. Dires, and you are real close - I think. &lt;I&gt;	-- Elder 1/6/00 &lt;/i&gt;&lt;BR&gt;Portal to Riverbend 2.3S, 63.3E &lt;I&gt;	-- Darksilver 1/8/00 &lt;/i&gt;&lt;BR&gt;Went in with lvl 25 Warrior, and 28 Archer. Very cool dungeon, fun, but dangerous. Be aware !!!! after you pull the levers that will open a door, on the upper platform, there will be a series of floor traps that will open and close doors. If you let this main door close b4 you finish this section of the dungeon, you will be trapped. We looked for 3 hours, in about a 6 room area for a lever, button or something to let us out. Wound up commiting suicide and re-entering the dungeon. Maybe we missed something, but would be smart to have 1 member stand outside the door, to run back and reopen it if it closes. We didnt go any farther, as we ran out of time, but i think there is much more to the place. Take 3 people just incase. 1 last thing, when you incounter the little ZEFIRs go for the little Red Bastard 1st. He will hit you rapidly with lvl 3 and 4 spells. A warrior can hack them appart in 2-3 swings, but do it quickly. Good luck. &lt;I&gt;	-- Vylarn -Harvest 3/6/2000 &lt;/i&gt;&lt;BR&gt;This is a medium-size pull levers dungeon, with many traps on the upper level.  The outside is infested, the foyer is clear.  But, the portal to the surface is at the bottom, not near the entrance.  Upper level is a mix of scalvi and zefirs, bottom pure scalvi.  Gen rate is modest in most areas, fast in a few. &lt;I&gt;	-- Doc Feelgood 6/26/2000 &lt;/i&gt;</description>
     <date_added>1999-12-27T00:00:00.0000000-08:00</date_added>
     <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
     <dungeon_id>
@@ -13463,22 +13447,6 @@
     <tod_req>0</tod_req>
   </location>
   <location>
-    <id>847</id>
-    <latitude>38.9</latitude>
-    <longitude>-48.4</longitude>
-    <name>Sclavus Keep to Riverbend Subway</name>
-    <type>Portal</type>
-    <arrival_latitude>2.3</arrival_latitude>
-    <arrival_longitude>63.3</arrival_longitude>
-    <description>Exits at 2.3S, 63.3E.  -- &lt;I&gt;Polecat&lt;/i&gt;</description>
-    <date_added>2000-07-06T00:00:00.0000000-07:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
     <id>848</id>
     <latitude>-34.9</latitude>
     <longitude>54.5</longitude>
@@ -16890,22 +16858,6 @@
     <arrival_latitude>0</arrival_latitude>
     <arrival_longitude>0</arrival_longitude>
     <description>Plains Crystal Ring  &lt;I&gt; -- XxX&lt;/i&gt;</description>
-    <date_added>2000-09-21T00:00:00.0000000-07:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>
-    </dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
-    <id>1063</id>
-    <latitude>23.2</latitude>
-    <longitude>64.3</longitude>
-    <name>Sclavus Swamp Crypt</name>
-    <type>Landmark</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>Contains 4 Se Sclavi.  In the crypt there are 2 chests with very bad loot.  Also on the floor is a Diamond with NO DESCRIPTION AT ALL (ie - Well-Cut Onyx, etc.).  Possibly part of some quest.&lt;I&gt; -- Kimura Shigenar&lt;/i&gt;</description>
     <date_added>2000-09-21T00:00:00.0000000-07:00</date_added>
     <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
     <dungeon_id>
@@ -52323,6 +52275,70 @@ This tree grows atop the large cataracts overlooking the Chapel on Xi Ru's Islan
     <arrival_longitude>0</arrival_longitude>
     <description></description>
     <date_added>1999-12-26T00:00:00.0000000-08:00</date_added>
+    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
+    <dungeon_id>
+    </dungeon_id>
+    <retired>N</retired>
+    <tod_req>0</tod_req>
+  </location>
+  <location>
+    <id>2795</id>
+    <latitude>-11.2</latitude>
+    <longitude>67.4</longitude>
+    <name>Tumerok Outpost</name>
+    <type>Dungeon</type>
+    <arrival_latitude>0</arrival_latitude>
+    <arrival_longitude>0</arrival_longitude>
+    <description>
+    </description>
+    <date_added>1999-10-03T00:00:00.0000000-07:00</date_added>
+    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
+    <dungeon_id>01BF</dungeon_id>
+    <retired>N</retired>
+    <tod_req>0</tod_req>
+  </location>
+  <location>
+    <id>1063</id>
+    <latitude>38.9</latitude>
+    <longitude>-48.4</longitude>
+    <name>Empty Crypt</name>
+    <type>Landmark</type>
+    <arrival_latitude>0</arrival_latitude>
+    <arrival_longitude>0</arrival_longitude>
+    <description>Contains 4 Se Sclavi.  In the crypt there are 2 chests with very bad loot.  Also on the floor is a Diamond with NO DESCRIPTION AT ALL (ie - Well-Cut Onyx, etc.).  Possibly part of some quest.&lt;I&gt; -- Kimura Shigenar&lt;/i&gt;</description>
+    <date_added>2000-09-21T00:00:00.0000000-07:00</date_added>
+    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
+    <dungeon_id>
+    </dungeon_id>
+    <retired>N</retired>
+    <tod_req>0</tod_req>
+  </location>
+  <location>
+    <id>488</id>
+    <latitude>23.2</latitude>
+    <longitude>64.3</longitude>
+    <name>Sclavus Keep Portal</name>
+    <type>Dungeon</type>
+    <arrival_latitude>0</arrival_latitude>
+    <arrival_longitude>0</arrival_longitude>
+    <description>I didnt go in.  This is what the map dot indicates. &lt;I&gt; -- Curunir&lt;/i&gt;&lt;BR&gt;Good dungeon layout. Scalvus are cool looking creatures, but weak for this lvl 34 unarmed - they should be buffed up a lot. A lot of switch pulling in this one. A portal to GW I think is immediately inside. A group of 15-25 level folks should be able to handle this place. Take S.Dires portal near Mayoi to S. Dires, and you are real close - I think. &lt;I&gt;	-- Elder 1/6/00 &lt;/i&gt;&lt;BR&gt;Portal to Riverbend 2.3S, 63.3E &lt;I&gt;	-- Darksilver 1/8/00 &lt;/i&gt;&lt;BR&gt;Went in with lvl 25 Warrior, and 28 Archer. Very cool dungeon, fun, but dangerous. Be aware !!!! after you pull the levers that will open a door, on the upper platform, there will be a series of floor traps that will open and close doors. If you let this main door close b4 you finish this section of the dungeon, you will be trapped. We looked for 3 hours, in about a 6 room area for a lever, button or something to let us out. Wound up commiting suicide and re-entering the dungeon. Maybe we missed something, but would be smart to have 1 member stand outside the door, to run back and reopen it if it closes. We didnt go any farther, as we ran out of time, but i think there is much more to the place. Take 3 people just incase. 1 last thing, when you incounter the little ZEFIRs go for the little Red Bastard 1st. He will hit you rapidly with lvl 3 and 4 spells. A warrior can hack them appart in 2-3 swings, but do it quickly. Good luck. &lt;I&gt;	-- Vylarn -Harvest 3/6/2000 &lt;/i&gt;&lt;BR&gt;This is a medium-size pull levers dungeon, with many traps on the upper level.  The outside is infested, the foyer is clear.  But, the portal to the surface is at the bottom, not near the entrance.  Upper level is a mix of scalvi and zefirs, bottom pure scalvi.  Gen rate is modest in most areas, fast in a few. &lt;I&gt;	-- Doc Feelgood 6/26/2000 &lt;/i&gt;</description>
+    <date_added>1999-12-27T00:00:00.0000000-08:00</date_added>
+    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
+    <dungeon_id>
+    </dungeon_id>
+    <retired>N</retired>
+    <tod_req>0</tod_req>
+  </location>
+  <location>
+    <id>847</id>
+    <latitude>23.2</latitude>
+    <longitude>64.3</longitude>
+    <name>Sclavus Keep to Riverbend Subway</name>
+    <type>Portal</type>
+    <arrival_latitude>2.3</arrival_latitude>
+    <arrival_longitude>63.3</arrival_longitude>
+    <description>Exits at 2.3S, 63.3E.  -- &lt;I&gt;Polecat&lt;/i&gt;</description>
+    <date_added>2000-07-06T00:00:00.0000000-07:00</date_added>
     <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
     <dungeon_id>
     </dungeon_id>
