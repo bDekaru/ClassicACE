@@ -4950,5 +4950,19 @@ namespace ACE.Server.Command.Handlers
         {
             EventManager.ProlongHotDungeon();
         }
+
+        [CommandHandler("DiscordChatStart", AccessLevel.Admin, CommandHandlerFlag.None, "")]
+        public static void HandleDiscordChatStart(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Starting Discord chat bridge...", ChatMessageType.WorldBroadcast);
+            DiscordChatBridge.Start();
+        }
+
+        [CommandHandler("DiscordChatStop", AccessLevel.Admin, CommandHandlerFlag.None, "")]
+        public static void HandleDiscordChatStop(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Stopping Discord chat bridge...", ChatMessageType.WorldBroadcast);
+            DiscordChatBridge.Stop();
+        }
     }
 }
