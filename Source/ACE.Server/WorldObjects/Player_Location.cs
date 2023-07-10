@@ -826,6 +826,7 @@ namespace ACE.Server.WorldObjects
             // https://asheron.fandom.com/wiki/Special:Search?query=Lifestone+on+Relog%3A+Yes+
             // https://docs.google.com/spreadsheets/d/122xOw3IKCezaTDjC_hggWSVzYJ_9M_zUUtGEXkwNXfs/edit#gid=846612575
 
+            0x0000,     // Null Landblock
             0x0002,     // Viamontian Garrison
             0x0007,     // Town Network
             0x0056,     // Augmentation Realm Main Level
