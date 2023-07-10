@@ -1,8 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
-using System.Net;
-using System.IO;
 using System.Threading.Tasks;
 using ACE.Server.Managers;
 using log4net;
@@ -12,9 +9,9 @@ using Discord.WebSocket;
 using ACE.Server.Entity;
 using ACE.Entity.Enum;
 using ACE.Server.Network.GameMessages.Messages;
-using System.Text.RegularExpressions;
 using System.Linq;
-using System.Globalization;
+using ACE.Server.Command.Handlers;
+using HarmonyLib;
 
 namespace ACE.Server.Network
 {    public static class DiscordChatBridge
@@ -23,6 +20,12 @@ namespace ACE.Server.Network
 
         private static DiscordSocketClient DiscordClient = null;
         public static bool IsRunning { get; private set; }
+
+        public static DateTime PrevLeaderboardHCXPCommandRequestTimestamp;
+        public static DateTime PrevLeaderboardHCPvPCommandRequestTimestamp;
+        public static DateTime PrevLeaderboardSSFCommandRequestTimestamp;
+        public static DateTime PrevLeaderboardXPCommandRequestTimestamp;
+        public static DateTime PrevLeaderboardPvPCommandRequestTimestamp;
 
         public static async void Start()
         {
@@ -49,13 +52,24 @@ namespace ACE.Server.Network
 
         public static async void Stop()
         {
-            if (!IsRunning)
+            if (!IsRunning || DiscordClient == null)
                 return;
 
             await DiscordClient.LogoutAsync();
             await DiscordClient.StopAsync();
 
             IsRunning = false;
+        }
+
+        public static Task SendMessage(ulong channelId, string message)
+        {
+            if (!IsRunning || DiscordClient == null)
+                return Task.CompletedTask;
+
+            var channel = DiscordClient.GetChannel(channelId) as IMessageChannel;
+            if(channel != null)
+                channel.SendMessageAsync(message);
+            return Task.CompletedTask;
         }
 
         private static Task DiscordMessageReceived(SocketMessage messageParam)
@@ -66,6 +80,105 @@ namespace ACE.Server.Network
                 var message = messageParam as SocketUserMessage;
                 if (message == null)
                     return Task.CompletedTask;
+
+                var messageText = message.CleanContent;
+                if (messageText.StartsWith("/") || messageText.StartsWith("!"))
+                {
+                    var splitString = messageText.Split(" ");
+                    string[] parameters;
+                    if (splitString.Length > 0)
+                    {
+                        var command = splitString[0].Substring(1).ToLower();
+                        switch (command)
+                        {
+                            case "hcxp":
+                                if (DateTime.UtcNow - PrevLeaderboardHCXPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                {
+                                    SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
+                                    return Task.CompletedTask;
+                                }
+                                PrevLeaderboardHCXPCommandRequestTimestamp = DateTime.UtcNow;
+
+                                parameters = splitString.Skip(1).Take(2).ToArray();
+                                if (parameters.Length == 0)
+                                    parameters = parameters.AddToArray("pk");
+                                if (parameters.Length == 1)
+                                    parameters = parameters.AddToArray("alltime");
+                                parameters = parameters.AddToArray("discord");
+                                parameters = parameters.AddToArray(message.Channel.Id.ToString());
+
+                                PlayerCommands.HandleLeaderboardHCXP(null, parameters);
+                                return Task.CompletedTask;
+
+                            case "hcpvp":
+                                if (DateTime.UtcNow - PrevLeaderboardHCPvPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                {
+                                    SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
+                                    return Task.CompletedTask;
+                                }
+                                PrevLeaderboardHCPvPCommandRequestTimestamp = DateTime.UtcNow;
+
+                                parameters = splitString.Skip(1).Take(1).ToArray();
+                                if (parameters.Length == 0)
+                                    parameters = parameters.AddToArray("alltime");
+                                parameters = parameters.AddToArray("discord");
+                                parameters = parameters.AddToArray(message.Channel.Id.ToString());
+
+                                PlayerCommands.HandleLeaderboardHCPvP(null, parameters);
+                                return Task.CompletedTask;
+
+                            case "topssf":
+                                if (DateTime.UtcNow - PrevLeaderboardSSFCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                {
+                                    SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
+                                    return Task.CompletedTask;
+                                }
+                                PrevLeaderboardSSFCommandRequestTimestamp = DateTime.UtcNow;
+
+                                parameters = splitString.Skip(1).ToArray();
+                                parameters = parameters.AddToArray("discord");
+                                parameters = parameters.AddToArray(message.Channel.Id.ToString());
+
+                                PlayerCommands.HandleLeaderboardSSF(null, parameters);
+                                return Task.CompletedTask;
+
+                            case "topxp":
+                                if (DateTime.UtcNow - PrevLeaderboardXPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                {
+                                    SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
+                                    return Task.CompletedTask;
+                                }
+                                PrevLeaderboardXPCommandRequestTimestamp = DateTime.UtcNow;
+
+                                parameters = splitString.Skip(1).ToArray();
+                                parameters = parameters.AddToArray("discord");
+                                parameters = parameters.AddToArray(message.Channel.Id.ToString());
+
+                                PlayerCommands.HandleLeaderboardLevel(null, parameters);
+                                return Task.CompletedTask;
+
+                            case "toppvp":
+                                if (DateTime.UtcNow - PrevLeaderboardPvPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                {
+                                    SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
+                                    return Task.CompletedTask;
+                                }
+                                PrevLeaderboardPvPCommandRequestTimestamp = DateTime.UtcNow;
+
+                                parameters = splitString.Skip(1).ToArray();
+                                parameters = parameters.AddToArray("discord");
+                                parameters = parameters.AddToArray(message.Channel.Id.ToString());
+
+                                PlayerCommands.HandleLeaderboardPvP(null, parameters);
+                                return Task.CompletedTask;
+
+                            case "hot":
+                                PlayerCommands.ShowHotDungeon(null, false, message.Channel.Id);
+                                return Task.CompletedTask;
+                        }
+                    }
+                    return Task.CompletedTask;
+                }
 
                 if (message.Author.IsBot || message.Channel.Id != (ulong)PropertyManager.GetLong("discord_channel_id").Item)
                     return Task.CompletedTask;
@@ -88,7 +201,6 @@ namespace ACE.Server.Network
                     authorName = authorName.Trim();
                     authorName = authorName.TrimStart('+');
 
-                    var messageText = message.CleanContent;
                     if (!string.IsNullOrWhiteSpace(authorName) && !string.IsNullOrWhiteSpace(messageText))
                     {
                         messageText = messageText.Replace("\n", " ");
