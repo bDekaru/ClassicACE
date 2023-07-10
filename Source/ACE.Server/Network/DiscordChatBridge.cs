@@ -175,6 +175,10 @@ namespace ACE.Server.Network
                             case "hot":
                                 PlayerCommands.ShowHotDungeon(null, false, message.Channel.Id);
                                 return Task.CompletedTask;
+
+                            case "pop":
+                                SendMessage(message.Channel.Id, $"Current world population: {PlayerManager.GetOnlineCount():N0}");
+                                return Task.CompletedTask;
                         }
                     }
                     return Task.CompletedTask;
