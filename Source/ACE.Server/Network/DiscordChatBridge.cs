@@ -88,7 +88,7 @@ namespace ACE.Server.Network
                     authorName = authorName.Trim();
                     authorName = authorName.TrimStart('+');
 
-                    var messageText = message.CleanContent;
+                    var messageText = message.CleanContent.Replace("\n"," ");
 
                     if (messageText.Length > 256)
                         messageText = messageText.Substring(0, 250) +"[...]";

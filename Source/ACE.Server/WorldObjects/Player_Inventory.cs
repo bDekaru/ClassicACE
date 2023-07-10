@@ -863,7 +863,7 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            if (!item.VerifyGameplayMode(container) || IsInLimboMode)
+            if (item.GameplayMode != GameplayModes.InitialMode && !container.Guid.IsPlayer() && (!item.VerifyGameplayMode(container) || IsInLimboMode))
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be moved to that container, incompatible gameplay mode!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
