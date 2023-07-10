@@ -88,24 +88,28 @@ namespace ACE.Server.Network
                     authorName = authorName.Trim();
                     authorName = authorName.TrimStart('+');
 
-                    var messageText = message.CleanContent.Replace("\n"," ");
-
-                    if (messageText.Length > 256)
-                        messageText = messageText.Substring(0, 250) +"[...]";
-
+                    var messageText = message.CleanContent;
                     if (!string.IsNullOrWhiteSpace(authorName) && !string.IsNullOrWhiteSpace(messageText))
                     {
-                        authorName = $"[Discord] {authorName}";
-                        foreach (var recipient in PlayerManager.GetAllOnline())
+                        messageText = messageText.Replace("\n", " ");
+                        messageText.Trim();
+                        if (!string.IsNullOrWhiteSpace(messageText))
                         {
-                            if (!recipient.GetCharacterOption(CharacterOption.ListenToGeneralChat))
-                                continue;
+                            if (messageText.Length > 256)
+                                messageText = messageText.Substring(0, 250) + "[...]";
 
-                            if (recipient.IsOlthoiPlayer)
-                                continue;
+                            authorName = $"[Discord] {authorName}";
+                            foreach (var recipient in PlayerManager.GetAllOnline())
+                            {
+                                if (!recipient.GetCharacterOption(CharacterOption.ListenToGeneralChat))
+                                    continue;
 
-                            var gameMessageTurbineChat = new GameMessageTurbineChat(ChatNetworkBlobType.NETBLOB_EVENT_BINARY, ChatNetworkBlobDispatchType.ASYNCMETHOD_SENDTOROOMBYNAME, TurbineChatChannel.General, authorName, messageText, 0, ChatType.General);
-                            recipient.Session.Network.EnqueueSend(gameMessageTurbineChat);
+                                if (recipient.IsOlthoiPlayer)
+                                    continue;
+
+                                var gameMessageTurbineChat = new GameMessageTurbineChat(ChatNetworkBlobType.NETBLOB_EVENT_BINARY, ChatNetworkBlobDispatchType.ASYNCMETHOD_SENDTOROOMBYNAME, TurbineChatChannel.General, authorName, messageText, 0, ChatType.General);
+                                recipient.Session.Network.EnqueueSend(gameMessageTurbineChat);
+                            }
                         }
                     }
                 }
