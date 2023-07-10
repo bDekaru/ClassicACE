@@ -17,6 +17,12 @@ namespace ACE.Server.Network.GameAction.Actions
 
             var position = new Position(message.Payload);
 
+            if (position.PositionX == 0 && position.PositionY == 0 && position.Cell == 0)
+            {
+                // fix invalid null location sent by client
+                return;
+            }
+
             var instanceTimestamp = message.Payload.ReadUInt16();
             var serverControlTimestamp = message.Payload.ReadUInt16();
             var teleportTimestamp = message.Payload.ReadUInt16();
