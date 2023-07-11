@@ -487,7 +487,7 @@ namespace ACE.Server.Factories
 
         private static SpellId AdjustForWeaponMastery(WorldObject wo)
         {
-            if (ConfigManager.Config.Server.WorldRuleset != Ruleset.Infiltration && wo.WeaponSkill != Skill.TwoHandedCombat && wo.WeaponSkill != Skill.MissileWeapons)
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR && wo.WeaponSkill != Skill.TwoHandedCombat && wo.WeaponSkill != Skill.MissileWeapons)
             {
                 // 10% chance to adjust to dual wielding
                 var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
