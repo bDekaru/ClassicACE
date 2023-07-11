@@ -149,7 +149,7 @@ namespace ACE.Server.WorldObjects
                 var distanceCovered = PreviousTickPosition?.SquaredDistanceTo(Location);
                 PreviousTickPosition = new Position(Location);
 
-                if (distanceCovered > 0.2)
+                if (IsTurning || distanceCovered > 0.2)
                     AttacksReceivedWithoutBeingAbleToCounter = 0;
 
                 if (!Location.Indoors && AttacksReceivedWithoutBeingAbleToCounter > 2)
