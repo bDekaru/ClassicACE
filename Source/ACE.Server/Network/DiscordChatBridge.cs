@@ -184,7 +184,7 @@ namespace ACE.Server.Network
                     return Task.CompletedTask;
                 }
 
-                if (message.Author.IsBot || message.Channel.Id != (ulong)PropertyManager.GetLong("discord_channel_id").Item)
+                if (!PropertyManager.GetBool("show_discord_chat_ingame").Item || message.Author.IsBot || message.Channel.Id != (ulong)PropertyManager.GetLong("discord_channel_id").Item)
                     return Task.CompletedTask;
 
                 if (message.Author is SocketGuildUser author)
