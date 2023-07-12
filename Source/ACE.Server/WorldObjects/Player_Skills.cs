@@ -9,6 +9,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
+using ACE.Server.Network;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
 
@@ -26,19 +27,25 @@ namespace ACE.Server.WorldObjects
             if (creatureSkill == null || creatureSkill.AdvancementClass < SkillAdvancementClass.Trained)
             {
                 log.Error($"{Name}.HandleActionRaiseSkill({skill}, {amount}) - trained or specialized skill not found");
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
                 return false;
             }
 
             if (amount > AvailableExperience)
             {
                 //log.Error($"{Name}.HandleActionRaiseSkill({skill}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
                 return false;
             }
 
             var prevRank = creatureSkill.Ranks;
 
             if (!SpendSkillXp(creatureSkill, amount))
+            {
+                ChatPacket.SendServerMessage(Session, $"You do not have enough experience to raise your {skill.ToSentence()} skill.", ChatMessageType.Broadcast);
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
                 return false;
+            }
 
             Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
 
