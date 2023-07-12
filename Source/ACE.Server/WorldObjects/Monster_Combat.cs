@@ -373,6 +373,11 @@ namespace ACE.Server.WorldObjects
                 msg = $"You {verb} {Name} for {iAmount} points of periodic nether damage!";
                 type = ChatMessageType.Magic;
             }
+            else if (damageType == DamageType.Fire)
+            {
+                msg = $"You {verb} {Name} for {iAmount} points of periodic fire damage!";
+                type = ChatMessageType.Magic;
+            }
             else if (aetheria)
             {
                 msg = $"With Surge of Affliction you {verb} {iAmount} points of health from {Name}!";

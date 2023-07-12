@@ -517,15 +517,27 @@ namespace ACE.Server.WorldObjects
             //UpdateVitalDelta(Stamina, -1);
 
             //if (Fellowship != null)
-                //Fellowship.OnVitalUpdate(this);
+            //Fellowship.OnVitalUpdate(this);
 
             // send damage text message
             //if (PropertyManager.GetBool("show_dot_messages").Item)
             //{
-                var nether = damageType == DamageType.Nether ? "nether " : "";
-                var chatMessageType = damageType == DamageType.Nether ? ChatMessageType.Magic : ChatMessageType.Combat;
-                var text = $"You receive {amount} points of periodic {nether}damage.";
-                SendMessage(text, chatMessageType);
+            string damageTypeString;
+            switch (damageType)
+            {
+                case DamageType.Fire:
+                    damageTypeString = "fire ";
+                    break;
+                case DamageType.Nether:
+                    damageTypeString = "nether ";
+                    break;
+                default:
+                    damageTypeString = "";
+                    break;
+            }
+            var chatMessageType = damageType == DamageType.Nether ? ChatMessageType.Magic : ChatMessageType.Combat;
+            var text = $"You receive {amount} points of periodic {damageTypeString}damage.";
+            SendMessage(text, chatMessageType);
             //}
 
             // splatter effects

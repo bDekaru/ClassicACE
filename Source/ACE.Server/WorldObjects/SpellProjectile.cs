@@ -5,11 +5,14 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Factories.Tables;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace ACE.Server.WorldObjects
@@ -389,6 +392,61 @@ namespace ACE.Server.WorldObjects
                         // But, to keep it simple, we will just ignore it and not bother with TryProcEquippedItems for this particular impact.
                     }
                 }
+
+                if (!resisted && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    switch (Spell.DamageType)
+                    {
+                        case DamageType.Cold:
+                            var freezingSpell = new Spell(SpellId.Freezing);
+                            if (!freezingSpell.NotFound)
+                                sourceCreature.TryCastSpell(freezingSpell, target, null, ProjectileLauncher, false, false, false, true, creatureTarget);
+                            break;
+
+                        case DamageType.Fire:
+                            var burningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.Burning1, (int)Spell.Level, true);
+                            var burningSpell = new Spell(burningSpellId);
+                            if (!burningSpell.NotFound)
+                                sourceCreature.TryCastSpell(burningSpell, target, null, ProjectileLauncher, false, false, false, true, creatureTarget);
+                            break;
+
+                        case DamageType.Acid:
+                            var acidSpellPierce = new Spell(SpellId.MeltingPierce);
+                            if (!acidSpellPierce.NotFound)
+                                sourceCreature.TryCastSpell(acidSpellPierce, target, null, ProjectileLauncher, false, false, false, true, creatureTarget);
+
+                            var acidSpellBludgeon = new Spell(SpellId.MeltingBludgeon);
+                            if (!acidSpellBludgeon.NotFound)
+                                sourceCreature.TryCastSpell(acidSpellBludgeon, target, null, ProjectileLauncher, false, false, false, true, creatureTarget);
+
+                            var acidSpellSlash = new Spell(SpellId.MeltingSlash);
+                            if (!acidSpellSlash.NotFound)
+                                sourceCreature.TryCastSpell(acidSpellSlash, target, null, ProjectileLauncher, false, false, false, true, creatureTarget);
+                            break;
+
+                        case DamageType.Electric:
+                            var spreadChance = 0.7f;
+                            if (spreadChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                            {
+                                var lightningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.LightningBolt1, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
+                                var lightningSpell = new Spell(lightningSpellId);
+
+                                if (!lightningSpell.NotFound)
+                                {
+                                    var list = GetNearbyTargets(creatureTarget);
+                                    if (list.Count > 0)
+                                    {
+                                        var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
+                                        var actionChain = new ActionChain();
+                                        actionChain.AddDelaySeconds(0.5);
+                                        actionChain.AddAction(sourceCreature, () => sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget));
+                                        actionChain.EnqueueChain();
+                                    }
+                                }
+                            }
+                            break;
+                    }
+                }
             }
 
             // also called on resist
@@ -401,6 +459,40 @@ namespace ACE.Server.WorldObjects
                 if (sourceCreature != null && creatureTarget != null && (sourceCreature.AllowFactionCombat(creatureTarget) || sourceCreature.PotentialFoe(creatureTarget)))
                     sourceCreature.MonsterOnAttackMonster(creatureTarget);
             }
+        }
+
+        public List<Creature> GetNearbyTargets(Creature aroundCreature)
+        {
+            List<Physics.PhysicsObj> visible;
+
+            if (ProjectileSource is Player sourcePlayer)
+                visible = sourcePlayer.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null);
+            else
+                visible = ProjectileSource.PhysicsObj.ObjMaint.GetVisibleTargetsValues();
+            visible.Sort(aroundCreature.DistanceComparator);
+
+            var targets = new List<Creature>();
+            foreach (var obj in visible)
+            {
+                if (obj.ID == aroundCreature.PhysicsObj.ID)
+                    continue;
+
+                var creature = obj.WeenieObj.WorldObject as Creature;
+                if (creature == null || creature.Teleporting || creature.IsDead) continue;
+
+                if (ProjectileSource != null && ProjectileSource.CheckPKStatusVsTarget(creature, null) != null)
+                    continue;
+
+                if (!creature.Attackable && creature.TargetingTactic == TargetingTactic.None || creature.Teleporting)
+                    continue;
+
+                var cylDist = GetCylinderDistance(creature);
+                if (cylDist > 10)
+                    return targets;
+
+                targets.Add(creature);
+            }
+            return targets;
         }
 
         /// <summary>
