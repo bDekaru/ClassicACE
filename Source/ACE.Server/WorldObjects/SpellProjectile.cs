@@ -721,7 +721,9 @@ namespace ACE.Server.WorldObjects
 
                 if (Spell.School == MagicSchool.WarMagic)
                 {
-                    if (SpellType == ProjectileSpellType.Streak)
+                    if (FromProc)
+                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_unarmed_war").Item;
+                    else if (SpellType == ProjectileSpellType.Streak)
                         pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war_streak").Item;
                     else
                         pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_war").Item;
