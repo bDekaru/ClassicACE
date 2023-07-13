@@ -400,28 +400,28 @@ namespace ACE.Server.WorldObjects
                         case DamageType.Cold:
                             var freezingSpell = new Spell(SpellId.Freezing);
                             if (!freezingSpell.NotFound)
-                                sourceCreature.TryCastSpell(freezingSpell, target, null, ProjectileLauncher, false, false, false, false, creatureTarget);
+                                sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
                             break;
 
                         case DamageType.Fire:
                             var burningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.Burning1, (int)Spell.Level, true);
                             var burningSpell = new Spell(burningSpellId);
                             if (!burningSpell.NotFound)
-                                sourceCreature.TryCastSpell(burningSpell, target, null, ProjectileLauncher, false, false, false, false, creatureTarget);
+                                sourceCreature.TryCastSpell(burningSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
                             break;
 
                         case DamageType.Acid:
                             var acidSpellPierce = new Spell(SpellId.MeltingPierce);
                             if (!acidSpellPierce.NotFound)
-                                sourceCreature.TryCastSpell(acidSpellPierce, target, null, ProjectileLauncher, false, false, false, false, creatureTarget);
+                                sourceCreature.TryCastSpell(acidSpellPierce, creatureTarget, null, ProjectileLauncher, false, false, false, false);
 
                             var acidSpellBludgeon = new Spell(SpellId.MeltingBludgeon);
                             if (!acidSpellBludgeon.NotFound)
-                                sourceCreature.TryCastSpell(acidSpellBludgeon, target, null, ProjectileLauncher, false, false, false, false, creatureTarget);
+                                sourceCreature.TryCastSpell(acidSpellBludgeon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
 
                             var acidSpellSlash = new Spell(SpellId.MeltingSlash);
                             if (!acidSpellSlash.NotFound)
-                                sourceCreature.TryCastSpell(acidSpellSlash, target, null, ProjectileLauncher, false, false, false, false, creatureTarget);
+                                sourceCreature.TryCastSpell(acidSpellSlash, creatureTarget, null, ProjectileLauncher, false, false, false, false);
                             break;
 
                         case DamageType.Electric:
@@ -439,7 +439,11 @@ namespace ACE.Server.WorldObjects
                                         var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
                                         var actionChain = new ActionChain();
                                         actionChain.AddDelaySeconds(0.5);
-                                        actionChain.AddAction(sourceCreature, () => sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget));
+                                        actionChain.AddAction(creatureTarget, () =>
+                                        {
+                                            if (!sourceCreature.IsDestroyed && !creatureTarget.IsDestroyed && !newTarget.IsDestroyed && !ProjectileLauncher.IsDestroyed)
+                                                sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
+                                        });
                                         actionChain.EnqueueChain();
                                     }
                                 }
