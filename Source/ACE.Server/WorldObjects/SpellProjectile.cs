@@ -381,8 +381,69 @@ namespace ACE.Server.WorldObjects
                     }
 
                     if (threadSafe)
+                    {
                         // This can result in spell projectiles being added to either sourceCreature or creatureTargets landblock.
                         sourceCreature.TryProcEquippedItems(sourceCreature, creatureTarget, false, ProjectileLauncher);
+
+                        if (!FromProc && !resisted && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
+                            switch (Spell.DamageType)
+                            {
+                                case DamageType.Cold:
+                                    var freezingSpell = new Spell(SpellId.Freezing);
+                                    if (!freezingSpell.NotFound)
+                                        sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                                    break;
+
+                                case DamageType.Fire:
+                                    var burningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.Burning1, (int)Spell.Level, true);
+                                    var burningSpell = new Spell(burningSpellId);
+                                    if (!burningSpell.NotFound)
+                                        sourceCreature.TryCastSpell(burningSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                                    break;
+
+                                case DamageType.Acid:
+                                    var acidSpellPierce = new Spell(SpellId.MeltingPierce);
+                                    if (!acidSpellPierce.NotFound)
+                                        sourceCreature.TryCastSpell(acidSpellPierce, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+
+                                    var acidSpellBludgeon = new Spell(SpellId.MeltingBludgeon);
+                                    if (!acidSpellBludgeon.NotFound)
+                                        sourceCreature.TryCastSpell(acidSpellBludgeon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+
+                                    var acidSpellSlash = new Spell(SpellId.MeltingSlash);
+                                    if (!acidSpellSlash.NotFound)
+                                        sourceCreature.TryCastSpell(acidSpellSlash, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                                    break;
+
+                                case DamageType.Electric:
+                                    var spreadChance = 0.7f;
+                                    if (spreadChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                    {
+                                        var lightningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.LightningBolt1, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
+                                        var lightningSpell = new Spell(lightningSpellId);
+
+                                        if (!lightningSpell.NotFound)
+                                        {
+                                            var list = GetNearbyTargets(creatureTarget);
+                                            if (list.Count > 0)
+                                            {
+                                                var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
+                                                var actionChain = new ActionChain();
+                                                actionChain.AddDelaySeconds(0.5);
+                                                actionChain.AddAction(creatureTarget, () =>
+                                                {
+                                                    if (!sourceCreature.IsDestroyed && !creatureTarget.IsDestroyed && !newTarget.IsDestroyed && !ProjectileLauncher.IsDestroyed)
+                                                        sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
+                                                });
+                                                actionChain.EnqueueChain();
+                                            }
+                                        }
+                                    }
+                                    break;
+                            }
+                        }
+                    }
                     else
                     {
                         // sourceCreature and creatureTarget are now in different landblock groups.
@@ -390,65 +451,6 @@ namespace ACE.Server.WorldObjects
                         // To perform this fully thread safe, we would enqueue the work onto worldManager.
                         // WorldManager.EnqueueAction(new ActionEventDelegate(() => sourceCreature.TryProcEquippedItems(creatureTarget, false)));
                         // But, to keep it simple, we will just ignore it and not bother with TryProcEquippedItems for this particular impact.
-                    }
-                }
-
-                if (!FromProc && !resisted && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                {
-                    switch (Spell.DamageType)
-                    {
-                        case DamageType.Cold:
-                            var freezingSpell = new Spell(SpellId.Freezing);
-                            if (!freezingSpell.NotFound)
-                                sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                            break;
-
-                        case DamageType.Fire:
-                            var burningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.Burning1, (int)Spell.Level, true);
-                            var burningSpell = new Spell(burningSpellId);
-                            if (!burningSpell.NotFound)
-                                sourceCreature.TryCastSpell(burningSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                            break;
-
-                        case DamageType.Acid:
-                            var acidSpellPierce = new Spell(SpellId.MeltingPierce);
-                            if (!acidSpellPierce.NotFound)
-                                sourceCreature.TryCastSpell(acidSpellPierce, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                            var acidSpellBludgeon = new Spell(SpellId.MeltingBludgeon);
-                            if (!acidSpellBludgeon.NotFound)
-                                sourceCreature.TryCastSpell(acidSpellBludgeon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                            var acidSpellSlash = new Spell(SpellId.MeltingSlash);
-                            if (!acidSpellSlash.NotFound)
-                                sourceCreature.TryCastSpell(acidSpellSlash, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                            break;
-
-                        case DamageType.Electric:
-                            var spreadChance = 0.7f;
-                            if (spreadChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                            {
-                                var lightningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.LightningBolt1, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
-                                var lightningSpell = new Spell(lightningSpellId);
-
-                                if (!lightningSpell.NotFound)
-                                {
-                                    var list = GetNearbyTargets(creatureTarget);
-                                    if (list.Count > 0)
-                                    {
-                                        var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
-                                        var actionChain = new ActionChain();
-                                        actionChain.AddDelaySeconds(0.5);
-                                        actionChain.AddAction(creatureTarget, () =>
-                                        {
-                                            if (!sourceCreature.IsDestroyed && !creatureTarget.IsDestroyed && !newTarget.IsDestroyed && !ProjectileLauncher.IsDestroyed)
-                                                sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
-                                        });
-                                        actionChain.EnqueueChain();
-                                    }
-                                }
-                            }
-                            break;
                     }
                 }
             }
