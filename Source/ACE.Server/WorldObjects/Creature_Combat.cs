@@ -530,7 +530,7 @@ namespace ACE.Server.WorldObjects
                 var skill = GetCreatureSkill(Skill.UnarmedCombat).Current;
 
                 if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                    return (int)skill / 6;
+                    return (int)skill / 10;
                 else
                     return (int)skill / 20;
             }
@@ -644,7 +644,7 @@ namespace ACE.Server.WorldObjects
         {
             var quickness = Quickness.Current;
             if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsHumanoid && GetCurrentWeaponSkill() == Skill.UnarmedCombat)
-                quickness = (uint)(GetCreatureSkill(Skill.UnarmedCombat).Current * 0.66f);
+                quickness = Focus.Current;
             var weaponSpeed = GetWeaponSpeed(this);
 
             var divisor = 1.0 - (quickness / 300.0) + (weaponSpeed / 150.0);

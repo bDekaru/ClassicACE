@@ -655,7 +655,7 @@ namespace ACE.Server.WorldObjects
         {
             var newPosition = new Position(_newPosition);
 
-            if(newPosition.PositionX == 0 && newPosition.PositionY == 0) // Trying to catch invalid position.
+            if(newPosition.PositionX == 0 && newPosition.PositionY == 0 && newPosition.Cell == 0) // Trying to catch invalid position.
                 newPosition = new Position(Sanctuary) ?? new Position(Instantiation) ?? new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f);
 
             //newPosition.PositionZ += 0.005f;
