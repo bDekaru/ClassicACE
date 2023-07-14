@@ -1273,6 +1273,8 @@ namespace ACE.Server.WorldObjects.Managers
                         aetheriaDots.Add(enchantment);
                     else if (enchantment.SpellCategory == SpellCategory.FireDoT)
                         fireDots.Add(enchantment);
+                    else
+                        dots.Add(enchantment);
                 }
                 else if (enchantment.StatModKey == (int)PropertyInt.NetherOverTime)
                     netherDots.Add(enchantment);
