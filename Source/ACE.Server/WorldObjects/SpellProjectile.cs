@@ -430,10 +430,10 @@ namespace ACE.Server.WorldObjects
                                             {
                                                 var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
                                                 var actionChain = new ActionChain();
-                                                actionChain.AddDelaySeconds(0.5);
+                                                actionChain.AddDelaySeconds(0.1);
                                                 actionChain.AddAction(creatureTarget, () =>
                                                 {
-                                                    if (sourceCreature != null && !sourceCreature.IsDestroyed && creatureTarget != null && !creatureTarget.IsDestroyed && newTarget != null && newTarget.IsDestroyed && ProjectileLauncher != null && !ProjectileLauncher.IsDestroyed)
+                                                    if (sourceCreature != null && !sourceCreature.IsDestroyed && creatureTarget != null && !creatureTarget.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && ProjectileLauncher != null && !ProjectileLauncher.IsDestroyed)
                                                         sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
                                                 });
                                                 actionChain.EnqueueChain();
