@@ -250,13 +250,13 @@ namespace ACE.Server.Managers
             PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
         }
 
-        public static void RollHotDungeon()
+        public static void RollHotDungeon(ushort forceLandblock = 0)
         {
             NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonInterval);
 
             var onlinePlayers = PlayerManager.GetAllOnline();
 
-            if (onlinePlayers.Count > 0)
+            if (onlinePlayers.Count > 0 || forceLandblock != 0)
             {
                 var averageLevel = 0;
                 var godCharactersCount = 0;
@@ -269,16 +269,22 @@ namespace ACE.Server.Managers
                 }
                 var onlineMinusGods = onlinePlayers.Count - godCharactersCount;
 
-                if (onlineMinusGods > 0)
+                if (onlineMinusGods > 0 || forceLandblock != 0)
                 {
-                    averageLevel /= onlineMinusGods;
+                    List<ExplorationSite> possibleDungeonList;
 
-                    var minLevel = Math.Max(averageLevel - (int)(averageLevel * 0.1f), 1);
-                    var maxLevel = averageLevel + (int)(averageLevel * 0.2f);
-                    if (averageLevel > 100)
-                        maxLevel = int.MaxValue;
+                    if (forceLandblock == 0)
+                    {
+                        averageLevel /= onlineMinusGods;
 
-                    var possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, averageLevel);
+                        var minLevel = Math.Max(averageLevel - (int)(averageLevel * 0.1f), 1);
+                        var maxLevel = averageLevel + (int)(averageLevel * 0.2f);
+                        if (averageLevel > 100)
+                            maxLevel = int.MaxValue;
+                        possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, averageLevel);
+                    }
+                    else
+                        possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLandblock(forceLandblock);
 
                     if (possibleDungeonList.Count != 0)
                     {

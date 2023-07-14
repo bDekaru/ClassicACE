@@ -4945,6 +4945,17 @@ namespace ACE.Server.Command.Handlers
             EventManager.RollHotDungeon();
         }
 
+        [CommandHandler("ForceHotDungeon", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleForceHotDungeon(Session session, params string[] parameters)
+        {
+            var player = session?.Player;
+
+            if (player == null)
+                return;
+
+            EventManager.RollHotDungeon(player.CurrentLandblock.Id.Landblock);
+        }
+
         [CommandHandler("ProlongHotDungeon", AccessLevel.Admin, CommandHandlerFlag.None, "")]
         public static void HandleProlongHotDungeon(Session session, params string[] parameters)
         {
