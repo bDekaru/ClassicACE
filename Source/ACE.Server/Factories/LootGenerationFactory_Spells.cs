@@ -325,7 +325,12 @@ namespace ACE.Server.Factories
             if (roll.ItemType == TreasureItemType_Orig.ArtObject)
                 return null;
 
-            var numCantrips = CantripChance.RollNumCantrips(profile);
+            int numCantrips;
+
+            if (roll.IsClothArmor) // robes
+                numCantrips = CantripChance.RollRobeNumCantrips(profile);
+            else
+                numCantrips = CantripChance.RollNumCantrips(profile);
 
             if (numCantrips == 0)
                 return null;

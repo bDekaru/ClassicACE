@@ -80,9 +80,30 @@ namespace ACE.Server.Factories.Tables
             T7_T8_NumCantrips,
         };
 
+        private static ChanceTable<int> T1_Robe_NumCantrips = new ChanceTable<int>();
+
+        private static ChanceTable<int> T2_Robe_NumCantrips = new ChanceTable<int>();
+
+        private static ChanceTable<int> T3_Robe_NumCantrips = new ChanceTable<int>();
+
+        private static ChanceTable<int> T4_Robe_NumCantrips = new ChanceTable<int>();
+
+        private static ChanceTable<int> T5_Robe_NumCantrips = new ChanceTable<int>();
+
+        private static ChanceTable<int> T6_Robe_NumCantrips = new ChanceTable<int>();
+
+        private static ChanceTable<int> T7_T8_Robe_NumCantrips = new ChanceTable<int>();
+
+        private static readonly List<ChanceTable<int>> _robeNumCantrips = new List<ChanceTable<int>>();
+
         public static int RollNumCantrips(TreasureDeath profile)
         {
             return numCantrips[profile.Tier - 1].Roll(profile.LootQualityMod);
+        }
+
+        public static int RollRobeNumCantrips(TreasureDeath profile)
+        {
+            return robeNumCantrips[profile.Tier - 1].Roll(profile.LootQualityMod);
         }
 
 
@@ -150,6 +171,8 @@ namespace ACE.Server.Factories.Tables
 
         private static List<ChanceTable<int>> numCantrips = _numCantrips;
 
+        private static List<ChanceTable<int>> robeNumCantrips = _robeNumCantrips;
+
         public static void ApplyNumCantripsMod(bool showResults = true)
         {
             // scales NumCantrips, no chance vs. chance, relative to each other
@@ -175,6 +198,31 @@ namespace ACE.Server.Factories.Tables
                 log.Info("");
 
                 ShowTables(numCantrips);
+            }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            {
+                if (cantrip_drop_rate != 1.0f)
+                {
+                    var newTable = new List<ChanceTable<int>>();
+
+                    foreach (var entry in _robeNumCantrips)
+                    {
+                        var newEntry = ScaleNumCantrips(entry, cantrip_drop_rate);
+                        newTable.Add(newEntry);
+                    }
+                    robeNumCantrips = newTable;
+                }
+                else
+                    robeNumCantrips = _robeNumCantrips;
+
+                if (showResults)
+                {
+                    log.Info($"Robes.ApplyNumCantripsMod({cantrip_drop_rate})");
+                    log.Info("");
+
+                    ShowTables(robeNumCantrips);
+                }
             }
         }
 
@@ -394,6 +442,70 @@ namespace ACE.Server.Factories.Tables
                     T6_CantripLevel,
                     T7_CantripLevel,
                     T8_CantripLevel,
+                };
+            }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                T1_Robe_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.90f ),
+                    ( 1, 0.10f ),
+                };
+
+                T2_Robe_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.85f ),
+                    ( 1, 0.15f ),
+                };
+
+                T3_Robe_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.85f ),
+                    ( 1, 0.14f ),
+                    ( 2, 0.01f ),
+                };
+
+                T4_Robe_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.80f ),
+                    ( 1, 0.19f ),
+                    ( 2, 0.01f ),
+                };
+
+                T5_Robe_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.80f ),
+                    ( 1, 0.15f ),
+                    ( 2, 0.05f ),
+                };
+
+                T6_Robe_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.79f ),
+                    ( 1, 0.15f ),
+                    ( 2, 0.05f ),
+                    ( 3, 0.01f ),
+                };
+
+                T7_T8_Robe_NumCantrips = new ChanceTable<int>()
+                {
+                    ( 0, 0.79f ),
+                    ( 1, 0.15f ),
+                    ( 2, 0.05f ),
+                    ( 3, 0.01f ),
+                };
+
+                _robeNumCantrips = new List<ChanceTable<int>>()
+                {
+                    T1_Robe_NumCantrips,
+                    T2_Robe_NumCantrips,
+                    T3_Robe_NumCantrips,
+                    T4_Robe_NumCantrips,
+                    T5_Robe_NumCantrips,
+                    T6_Robe_NumCantrips,
+                    T7_T8_Robe_NumCantrips,
+                    T7_T8_Robe_NumCantrips,
                 };
             }
 

@@ -1151,7 +1151,11 @@ namespace ACE.Server.WorldObjects
         {
             if (ExtraSpellsMaxOverride != null)
                 return Math.Max(ExtraSpellsMaxOverride ?? 0, 0);
-            return (int)Math.Floor((ItemWorkmanship ?? 0) / 2f);
+
+            var baseSlots = (int)Math.Floor((ItemWorkmanship ?? 0) / 2f);
+            if (ItemType == ItemType.Clothing && ClothingPriority.HasValue && ClothingPriority.Value.HasFlag(CoverageMask.OuterwearChest)) // Robes
+                return baseSlots == 0 ? 1 : (baseSlots * 2);
+            return baseSlots;
         }
 
         public bool CanHaveExtraSpells()
