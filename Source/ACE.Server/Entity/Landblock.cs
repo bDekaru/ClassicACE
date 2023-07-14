@@ -679,9 +679,6 @@ namespace ACE.Server.Entity
             actionQueue.RunActions();
             ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Landblock_Tick_RunActions, stopwatch.Elapsed.TotalSeconds);
 
-            if(NextExplorationMarkerRefresh <= currentUnixTime)
-                RefreshExplorationMarkers();
-
             ProcessPendingWorldObjectAdditionsAndRemovals();
 
             // When a WorldObject Ticks, it can end up adding additional WorldObjects to this landblock
@@ -824,6 +821,9 @@ namespace ACE.Server.Entity
             }
 
             ProcessPendingWorldObjectAdditionsAndRemovals();
+
+            if (!IsDormant && NextExplorationMarkerRefresh <= currentUnixTime)
+                RefreshExplorationMarkers();
 
             stopwatch.Restart();
             foreach (var player in players)
