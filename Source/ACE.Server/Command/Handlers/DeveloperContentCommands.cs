@@ -4617,6 +4617,50 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
+        [CommandHandler("export-landblock-description", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        public static void HandleExportLandblockDescription(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Exporting landblock description to reports/LandblockDescription.txt...");
+
+            var contentFolder = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}reports{sep}");
+
+            if (!folder.Exists)
+                folder.Create();
+
+            var filename = $"{folder.FullName}{sep}LandblockDescription.txt";
+
+            var fileWriter = new StreamWriter(filename);
+
+            fileWriter.WriteLine("Landblock Id\tName\tIsDungeon\tHasDungeon\tDirections");
+
+            var weenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+
+            for (byte landblockIdX = 0x00; landblockIdX < 0xFF; landblockIdX++)
+            {
+                for (byte landblockIdY = 0x00; landblockIdY < 0xFF; landblockIdY++)
+                {
+                    ushort landblockId = (ushort)(landblockIdX << 8 | landblockIdY);
+                    var name = LandblockInstanceWriter.GetNameFromPortalDestination(landblockId, out var nameSourceWcid);
+                    var landblock = LandblockManager.GetLandblock(new LandblockId(landblockIdX, landblockIdY), false, false);
+                    var isDungeon = landblock.IsDungeon;
+                    var hasDungeon = landblock.HasDungeon;
+
+                    var directions = "";
+                    if(isDungeon || hasDungeon)
+                        directions = GetEntranceDirections(nameSourceWcid);
+
+                    fileWriter.WriteLine($"{landblockId.ToString("x4")}\t{name}\t{isDungeon}\t{hasDungeon}\t{directions}\t");
+                    fileWriter.Flush();
+                }
+            }
+
+            fileWriter.Close();
+            CommandHandlerHelper.WriteOutputInfo(session, "Done.");
+        }
+
         [CommandHandler("export-creature-clothing", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
         public static void HandleExportCreatureClothing(Session session, params string[] parameters)
         {

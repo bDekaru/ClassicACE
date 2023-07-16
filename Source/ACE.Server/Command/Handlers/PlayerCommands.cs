@@ -1751,5 +1751,26 @@ namespace ACE.Server.Command.Handlers
 
             CommandHandlerHelper.WriteOutputInfo(session, $"Fillcomps values updated. Please relog to see the updated values.");
         }
+
+        [CommandHandler("Where", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Shows information about your current location")]
+        public static void HandleWhere(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: Where", ChatMessageType.Help));
+                return;
+            }
+
+            var player = session.Player;
+            if (player == null)
+                return;
+
+            var landblockDescription = DatabaseManager.World.GetLandblockDescriptionsByLandblock(player.CurrentLandblock.Id.Landblock).FirstOrDefault();
+
+            if(landblockDescription != null)
+                CommandHandlerHelper.WriteOutputInfo(session, $"Current Location: {landblockDescription.Name}\nDirections: {landblockDescription.Directions}\nReference: {landblockDescription.Reference}\nMacro Region: {landblockDescription.MacroRegion}\nMicro Region: {landblockDescription.MicroRegion}");
+            else
+                CommandHandlerHelper.WriteOutputInfo(session, $"You are at an unknown location.");
+        }
     }
 }

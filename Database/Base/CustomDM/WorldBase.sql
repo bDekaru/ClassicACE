@@ -70,6 +70,29 @@ CREATE TABLE `exploration_sites` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `exploration_sites`
+--
+
+DROP TABLE IF EXISTS `landblock_description`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `landblock_description` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique Id of this landblock description instance',
+  `landblock` int NOT NULL,
+  `name` text NOT NULL,
+  `is_Dungeon` bit(1) NOT NULL,
+  `has_Dungeon` bit(1) NOT NULL,
+  `directions` text NOT NULL,
+  `reference` text NOT NULL,
+  `macro_Region` text NOT NULL,
+  `micro_Region` text NOT NULL,
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `landblock_idx` (`landblock`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `encounter`
 --
 
