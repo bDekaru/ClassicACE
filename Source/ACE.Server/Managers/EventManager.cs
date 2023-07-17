@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ACE.Common;
 using ACE.Common.Extensions;
 using ACE.Database;
@@ -290,15 +291,29 @@ namespace ACE.Server.Managers
                     {
                         var dungeon = possibleDungeonList[ThreadSafeRandom.Next(0, possibleDungeonList.Count - 1)];
 
+                        string dungeonName;
+                        string dungeonDirections;
+                        var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)dungeon.Landblock).FirstOrDefault();
+                        if (entryLandblock != null)
+                        {
+                            dungeonName = entryLandblock.Name;
+                            dungeonDirections = entryLandblock.Directions;
+                        }
+                        else
+                        {
+                            dungeonName = $"unknown location({dungeon.Landblock})";
+                            dungeonDirections = "at an unknown location";
+                        }
+
                         HotDungeonLandblock = dungeon.Landblock;
-                        HotDungeonName = dungeon.Name;
+                        HotDungeonName = dungeonName;
 
                         var dungeonLevel = Math.Clamp(dungeon.Level, dungeon.MinLevel, dungeon.MaxLevel != 0 ? dungeon.MaxLevel : int.MaxValue);
-                        HotDungeonDescription = $"Extra experience rewards dungeon: {dungeon.Name} located {dungeon.Directions}. Dungeon level: {dungeonLevel:N0}.";
+                        HotDungeonDescription = $"Extra experience rewards dungeon: {dungeonName} located {dungeonDirections}. Dungeon level: {dungeonLevel:N0}.";
 
                         var timeRemaining = TimeSpan.FromSeconds(NextHotDungeonSwitch - Time.GetUnixTime()).GetFriendlyString();
 
-                        var msg = $"{dungeon.Name} will be giving extra experience rewards for the next {timeRemaining}! The dungeon level is {dungeonLevel:N0}. The entrance is located {dungeon.Directions}!";
+                        var msg = $"{dungeonName} will be giving extra experience rewards for the next {timeRemaining}! The dungeon level is {dungeonLevel:N0}. The entrance is located {dungeonDirections}!";
                         PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
                         PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
 

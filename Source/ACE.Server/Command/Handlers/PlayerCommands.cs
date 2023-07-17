@@ -669,7 +669,21 @@ namespace ACE.Server.Command.Handlers
                     else
                         amountAdjetive = "a lot of ";
 
-                    var msg = $"Hunting Grounds: {entry.Name} {entry.Directions}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
+                    string entryName;
+                    string entryDirections;
+                    var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+                    if (entryLandblock != null)
+                    {
+                        entryName = entryLandblock.Name;
+                        entryDirections = entryLandblock.Directions;
+                    }
+                    else
+                    {
+                        entryName = $"unknown location({entry.Landblock})";
+                        entryDirections = "at an unknown location";
+                    }
+
+                    var msg = $"Hunting Grounds: {entryName} {entryDirections}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
                     session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
                 }
             }
@@ -729,7 +743,21 @@ namespace ACE.Server.Command.Handlers
                 else
                     amountAdjetive = "a lot of ";
 
-                var msg = $"Activity Recommendation:\nHunting Grounds: {entry.Name} {entry.Directions}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
+                string entryName;
+                string entryDirections;
+                var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+                if (entryLandblock != null)
+                {
+                    entryName = entryLandblock.Name;
+                    entryDirections = entryLandblock.Directions;
+                }
+                else
+                {
+                    entryName = $"unknown location({entry.Landblock})";
+                    entryDirections = "at an unknown location";
+                }
+
+                var msg = $"Activity Recommendation:\nHunting Grounds: {entryName} {entryDirections}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
                 session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
             }
         }

@@ -56,8 +56,6 @@ DROP TABLE IF EXISTS `exploration_sites`;
 CREATE TABLE `exploration_sites` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique Id of this exploration site instance',
   `landblock` int NOT NULL COMMENT 'Landblock for this exploration site',
-  `name` text NOT NULL COMMENT 'Name for this exploration site',
-  `directions` text NOT NULL COMMENT 'Directions to get to this this exploration site',
   `level` int unsigned NOT NULL COMMENT 'Level for this exploration site',
   `content_Description` text NOT NULL COMMENT 'What can be found at this exploration site',
   `min_Level` int unsigned NOT NULL COMMENT 'Min level to be able to enter this exploration site',

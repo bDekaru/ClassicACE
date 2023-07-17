@@ -157,14 +157,6 @@ namespace ACE.Database.Models.World
                     .HasColumnName("landblock")
                     .HasComment("Landblock for this exploration site");
 
-                entity.Property(e => e.Name)
-                    .HasColumnName("name")
-                    .HasComment("Name for this exploration site");
-
-                entity.Property(e => e.Directions)
-                    .HasColumnName("directions")
-                    .HasComment("Directions to get to this this exploration site");
-
                 entity.Property(e => e.Level)
                     .HasColumnName("level")
                     .HasComment("Level for this exploration site");

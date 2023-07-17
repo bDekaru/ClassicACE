@@ -112,6 +112,35 @@ namespace ACE.Server.WorldObjects
             return deathMessage;
         }
 
+        public string GetLocationString()
+        {
+            var landblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock(Location.LandblockId.Landblock).FirstOrDefault();
+            string locationString = "";
+            if (landblock != null)
+            {
+                if (landblock.Name != "" && (landblock.IsDungeon || landblock.HasDungeon && Location.Indoors))
+                    locationString = $" in {landblock.Name}";
+                else if (landblock.Name != "")
+                {
+                    if (!landblock.Reference.StartsWith("in "))
+                        locationString = $" at {landblock.Name} {landblock.Reference}";
+                    else
+                        locationString = $" {landblock.Reference}";
+                }
+                else
+                {
+                    if (landblock.MicroRegion != "")
+                        locationString = $" {landblock.Reference} in {landblock.MicroRegion}";
+                    else if (landblock.MacroRegion != "" && landblock.MacroRegion != "Dereth")
+                        locationString = $" {landblock.Reference} in {landblock.MacroRegion}";
+                    else
+                        locationString = $" {landblock.Reference}";
+                }
+            }
+
+            return locationString;
+        }
+
         public bool HandlePKDeathBroadcast(DamageHistoryInfo lastDamager, DamageHistoryInfo topDamager)
         {
             if (topDamager == null || !topDamager.IsPlayer)
@@ -126,10 +155,17 @@ namespace ACE.Server.WorldObjects
                 pkPlayer.PkTimestamp = Time.GetUnixTime();
                 pkPlayer.PlayerKillsPk++;
 
+                string locationString = GetLocationString();
+
                 var globalPKDe = $"{lastDamager.Name} has defeated {Name}!";
 
-                if ((Location.Cell & 0xFFFF) < 0x100)
+                //if ((Location.Cell & 0xFFFF) < 0x100)
+                //    globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
+
+                if(locationString == "" && (Location.Cell & 0xFFFF) < 0x100)
                     globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
+                else
+                    globalPKDe += $" The kill occured{locationString}.";
 
                 string webhookMsg = new String(globalPKDe);
 
@@ -159,7 +195,9 @@ namespace ACE.Server.WorldObjects
 
                     if (lastDamager.TryGetAttacker() is Player lastDamagerPlayer)
                     {
-                        var globalPKDe = $"{Name}({Level}) was hardcore killed by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level})!";
+                        string locationString = GetLocationString();
+
+                        var globalPKDe = $"{Name}({Level}) was hardcore killed by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level}){locationString}!";
 
                         if (namesList.Count > 1)
                         {

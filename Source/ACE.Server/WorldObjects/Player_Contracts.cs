@@ -7,6 +7,7 @@ using ACE.Server.Factories;
 using ACE.Server.Factories.Enum;
 using ACE.Server.Network.GameMessages.Messages;
 using System;
+using System.Linq;
 
 namespace ACE.Server.WorldObjects
 {
@@ -77,6 +78,7 @@ namespace ACE.Server.WorldObjects
             var roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
             var entry = explorationList[roll];
             explorationList.RemoveAt(roll);
+
             var explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount, entry.CreatureCount * 2.0f), 10, 200);
             var explorationMarkerAmount = Math.Clamp(explorationKillAmount / 30, 1, 10) + ThreadSafeRandom.Next(0, 4);
 
@@ -84,7 +86,21 @@ namespace ACE.Server.WorldObjects
             Exploration1KillProgressTracker = explorationKillAmount;
             Exploration1MarkerProgressTracker = explorationMarkerAmount;
 
-            Exploration1Description = $"Explore {entry.Name} by killing {explorationKillAmount:N0} {entry.ContentDescription} and finding {explorationMarkerAmount:N0} exploration marker{(explorationMarkerAmount > 1 ? "s" : "")}. It is located {entry.Directions}.";
+            string entryName;
+            string entryDirections;
+            var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+            if (entryLandblock != null)
+            {
+                entryName = entryLandblock.Name;
+                entryDirections = entryLandblock.Directions;
+            }
+            else
+            {
+                entryName = $"unknown location({entry.Landblock})";
+                entryDirections = "at an unknown location";
+            }
+
+            Exploration1Description = $"Explore {entryName} by killing {explorationKillAmount:N0} {entry.ContentDescription} and finding {explorationMarkerAmount:N0} exploration marker{(explorationMarkerAmount > 1 ? "s" : "")}. It is located {entryDirections}.";
             msg = $"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{Exploration1Description}{(useName ? $"\"" : "")}";
 
             if (useName)
@@ -103,7 +119,19 @@ namespace ACE.Server.WorldObjects
                 Exploration2KillProgressTracker = explorationKillAmount;
                 Exploration2MarkerProgressTracker = explorationMarkerAmount;
 
-                Exploration2Description = $"Explore {entry.Name} by killing {explorationKillAmount:N0} {entry.ContentDescription} and finding {explorationMarkerAmount:N0} exploration marker{(explorationMarkerAmount > 1 ? "s" : "")}. It is located {entry.Directions}.";
+                entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+                if (entryLandblock != null)
+                {
+                    entryName = entryLandblock.Name;
+                    entryDirections = entryLandblock.Directions;
+                }
+                else
+                {
+                    entryName = $"unknown location({entry.Landblock})";
+                    entryDirections = "at an unknown location";
+                }
+
+                Exploration2Description = $"Explore {entryName} by killing {explorationKillAmount:N0} {entry.ContentDescription} and finding {explorationMarkerAmount:N0} exploration marker{(explorationMarkerAmount > 1 ? "s" : "")}. It is located {entryDirections}.";
                 msg = $"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{Exploration2Description}{(useName ? $"\"" : "")}";
 
                 Session.Network.EnqueueSend(new GameMessageSystemChat(msg, useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
@@ -128,7 +156,19 @@ namespace ACE.Server.WorldObjects
                 Exploration3KillProgressTracker = explorationKillAmount;
                 Exploration3MarkerProgressTracker = explorationMarkerAmount;
 
-                Exploration3Description = $"Explore {entry.Name} by killing {explorationKillAmount:N0} {entry.ContentDescription} and finding {explorationMarkerAmount:N0} exploration marker{(explorationMarkerAmount > 1 ? "s" : "")}. It is located {entry.Directions}.";
+                entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+                if (entryLandblock != null)
+                {
+                    entryName = entryLandblock.Name;
+                    entryDirections = entryLandblock.Directions;
+                }
+                else
+                {
+                    entryName = $"unknown location({entry.Landblock})";
+                    entryDirections = "at an unknown location";
+                }
+
+                Exploration3Description = $"Explore {entryName} by killing {explorationKillAmount:N0} {entry.ContentDescription} and finding {explorationMarkerAmount:N0} exploration marker{(explorationMarkerAmount > 1 ? "s" : "")}. It is located {entryDirections}.";
                 msg = $"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{Exploration3Description}{(useName ? $"\"" : "")}";
 
                 Session.Network.EnqueueSend(new GameMessageSystemChat(msg, useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
