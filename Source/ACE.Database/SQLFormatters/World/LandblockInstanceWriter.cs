@@ -108,6 +108,8 @@ namespace ACE.Database.SQLFormatters.World
                     name = name.Replace("Way Back to ", "");
                 else if (name.EndsWith(" Exit"))
                     name = name.Replace(" Exit", "");
+                else if (name.EndsWith(" Conveyance"))
+                    name = name.Replace(" Conveyance", "");
 
                 return name.Replace("\n","");
             }
