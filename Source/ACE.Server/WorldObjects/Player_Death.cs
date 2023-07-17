@@ -118,12 +118,10 @@ namespace ACE.Server.WorldObjects
             string locationString = "";
             if (landblock != null)
             {
-                if (landblock.Name != "" && (landblock.IsDungeon || landblock.HasDungeon && Location.Indoors))
-                    locationString = $" in {landblock.Name}";
-                else if (landblock.Name != "")
+                if (landblock.Name != "")
                 {
                     if (!landblock.Reference.StartsWith("in "))
-                        locationString = $" at {landblock.Name} {landblock.Reference}";
+                        locationString = $" in {landblock.Name} {landblock.Reference}";
                     else
                         locationString = $" {landblock.Reference}";
                 }
