@@ -120,7 +120,7 @@ namespace ACE.Server.WorldObjects
             {
                 if (landblock.Name != "")
                 {
-                    if (!landblock.Reference.StartsWith("in "))
+                    if (landblock.Reference != $"in {landblock.Name}")
                         locationString = $" in {landblock.Name} {landblock.Reference}";
                     else
                         locationString = $" {landblock.Reference}";
