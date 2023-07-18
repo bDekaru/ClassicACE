@@ -432,7 +432,11 @@ namespace ACE.Server.WorldObjects.Managers
                 WorldObject.ChangesDetected = true;
             }
 
-            var minVitae = GetMinVitae((uint)Player.Level);
+            float minVitae;
+            if (!Player.IsHardcore)
+                minVitae = GetMinVitae((uint)Player.Level);
+            else
+                minVitae = 0.1f;
 
             if (vitae.StatModValue < minVitae)
                 vitae.StatModValue = minVitae;
