@@ -966,7 +966,7 @@ namespace ACE.Server.WorldObjects
                 var validPossiblePlayers = new List<Player>();
                 foreach (var entry in possiblePlayers)
                 {
-                    if (!LandblockManager.apartmentLandblocks.Contains((uint)entry.Location.LandblockId.Landblock << 16 ^ 0x0000FFFF) && !NoDamage_Landblocks.Contains(entry.Location.LandblockId.Landblock) && (Allegiance == null || entry.Allegiance != Allegiance))
+                    if (!LandblockManager.apartmentLandblocks.Contains((uint)entry.Location.LandblockId.Landblock << 16 ^ 0x0000FFFF) && !NoDamage_Landblocks.Contains(entry.Location.LandblockId.Landblock) && (Allegiance == null || entry.Allegiance != Allegiance) && (Fellowship == null || entry.Fellowship != Fellowship))
                         validPossiblePlayers.Add(entry);
                 }
 
