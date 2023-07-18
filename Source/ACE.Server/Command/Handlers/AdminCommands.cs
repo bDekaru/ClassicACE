@@ -4975,5 +4975,21 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, "Stopping Discord chat bridge...", ChatMessageType.WorldBroadcast);
             DiscordChatBridge.Stop();
         }
+
+        [CommandHandler("ClearMainPack", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleClearMainPakc(Session session, params string[] parameters)
+        {
+            var player = session?.Player;
+
+            if (player == null)
+                return;
+
+            CommandHandlerHelper.WriteOutputInfo(session, "Deleting all items in main pack...", ChatMessageType.WorldBroadcast);
+
+            var mainPackItems = player.Inventory.Values.Where(e => !(e is Container) && (e.CurrentWieldedLocation ?? 0) == 0);
+
+            foreach (var item in mainPackItems)
+                player.TryConsumeFromInventoryWithNetworking(item, item.StackSize ?? 1);
+        }
     }
 }
