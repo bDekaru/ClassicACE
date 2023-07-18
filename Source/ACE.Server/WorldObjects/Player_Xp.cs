@@ -1086,8 +1086,12 @@ namespace ACE.Server.WorldObjects
             {
                 if (keepHousing && item.WeenieType == WeenieType.Deed) // Keep houses
                     continue;
-                if (keepBondedEquipment && item.ValidLocations != EquipMask.None && item.Bonded == BondedStatus.Bonded && item.WeenieClassId != (int)Factories.Enum.WeenieClassName.ringHardcore)
+                if (keepBondedEquipment && (item.ValidLocations ?? EquipMask.None) != EquipMask.None && item.Bonded == BondedStatus.Bonded && item.WeenieClassId != (int)Factories.Enum.WeenieClassName.ringHardcore)
+                {
+                    if(item.CurrentWieldedLocation != null)
+                        HandleActionPutItemInContainer(item.Guid.Full, Guid.Full);
                     continue;
+                }
 
                 item.DeleteObject(this);
             }
