@@ -951,7 +951,7 @@ namespace ACE.Server.WorldObjects
         };
         public void PvPInciteTick(double currentUnixTime)
         {
-            if ((!IsPK && !IsPKL) || ThreadSafeRandom.Next(0, 1) > 0.2)
+            if ((!IsPK && !IsPKL) || ThreadSafeRandom.Next(0.0f, 1.0f) > 0.2f)
                 return;
 
             List<Player> possiblePlayers;
