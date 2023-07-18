@@ -831,7 +831,7 @@ namespace ACE.Server.WorldObjects
             return modifier;
         }
 
-        public void RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool keepSpells, bool setToLimboGameplayMode = false, long startingXP = 0)
+        public void RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool keepBondedEquipment, bool keepSpells, bool setToLimboGameplayMode = false, long startingXP = 0)
         {
             if(!keepFellowship)
                 FellowshipQuit(false);
@@ -1061,7 +1061,7 @@ namespace ACE.Server.WorldObjects
                 PlayerFactory.SetInnateAugmentations(this);
             }
 
-            RevertToBrandNewCharacterEquipment(keepHousing);
+            RevertToBrandNewCharacterEquipment(keepHousing, keepBondedEquipment);
 
             if (startingXP > 0)
                 UpdateXpAndLevel(startingXP, XpType.Admin);
@@ -1077,15 +1077,19 @@ namespace ACE.Server.WorldObjects
             EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
         }
 
-        public void RevertToBrandNewCharacterEquipment(bool keepHousing)
+        public void RevertToBrandNewCharacterEquipment(bool keepHousing, bool keepBondedEquipment)
         {
             // Destroy all items
             var inventory = GetAllPossessions();
 
             foreach (var item in inventory)
             {
-                if (keepHousing && item.WeenieType != WeenieType.Deed) // Keep houses
-                    item.DeleteObject(this);
+                if (keepHousing && item.WeenieType == WeenieType.Deed) // Keep houses
+                    continue;
+                if (keepBondedEquipment && item.ValidLocations != EquipMask.None && item.Bonded == BondedStatus.Bonded && item.WeenieClassId != (int)Factories.Enum.WeenieClassName.ringHardcore)
+                    continue;
+
+                item.DeleteObject(this);
             }
 
             if (ChargenClothing != null)
