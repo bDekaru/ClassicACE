@@ -40,6 +40,10 @@ namespace ACE.Server.WorldObjects
 
         private double enchantmentTickTimestamp;
         private const double enchantmentTickInterval = 0.5;
+
+        private double PvPInciteTickTimestamp;
+        private const double PvPInciteTickInterval = 600;
+
         public void Player_Tick(double currentUnixTime)
         {
             if (CharacterSaveFailed)
@@ -115,6 +119,14 @@ namespace ACE.Server.WorldObjects
                 LeyLineAmuletsTick(currentUnixTime);
 
                 leyLineAmuletsTickTimestamp = Time.GetFutureUnixTime(leyLineAmuletsTickInterval);
+            }
+
+            if (PvPInciteTickTimestamp == 0 || currentUnixTime > PvPInciteTickTimestamp)
+            {
+                if(PvPInciteTickTimestamp != 0)
+                    PvPInciteTick(currentUnixTime);
+
+                PvPInciteTickTimestamp = Time.GetFutureUnixTime(PvPInciteTickInterval);
             }
 
             if (enchantmentTickTimestamp == 0 || currentUnixTime > enchantmentTickTimestamp)
@@ -927,6 +939,51 @@ namespace ACE.Server.WorldObjects
                     LeyLineAmulet amulet = item as LeyLineAmulet;
                     if(amulet != null)
                         amulet.CheckAlignmentDecay(this, currentUnixTime);
+                }
+            }
+        }
+
+        private static List<string> PvPInciteMessages = new List<string>
+        {
+            "It would be a shame if someone would kill them...",
+            "Be a good boy and do your thing would you?",
+            "Just hanging around without a care in the world..."
+        };
+        public void PvPInciteTick(double currentUnixTime)
+        {
+            if ((!IsPK && !IsPKL) || ThreadSafeRandom.Next(0, 1) > 0.2)
+                return;
+
+            List<Player> possiblePlayers;
+
+            if(GameplayMode == GameplayModes.HardcorePK)
+                possiblePlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.HardcorePK && e.Level >= Level && e.Level <= Level + 5).ToList();
+            else
+                possiblePlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.Regular && e.IsPK && e.Level >= Level && e.Level <= Level + 5).ToList();
+
+            if (possiblePlayers.Count() > 0)
+            {
+                var validPossiblePlayers = new List<Player>();
+                foreach (var entry in possiblePlayers)
+                {
+                    if (!LandblockManager.apartmentLandblocks.Contains((uint)entry.Location.LandblockId.Landblock << 16 ^ 0x0000FFFF) && !NoDamage_Landblocks.Contains(entry.Location.LandblockId.Landblock))
+                        validPossiblePlayers.Add(entry);
+                }
+
+                if (validPossiblePlayers.Count() > 0)
+                {
+                    var rolledPlayer = validPossiblePlayers[ThreadSafeRandom.Next(0, validPossiblePlayers.Count() - 1)];
+
+                    var position = rolledPlayer.Biota.GetPosition(PositionType.Location, rolledPlayer.BiotaDatabaseLock);
+
+                    string locationString = Server.Entity.Landblock.GetLocationString(position.LandblockId.Landblock);
+
+                    if (locationString != "")
+                    {
+                        var message = PvPInciteMessages[ThreadSafeRandom.Next(0, PvPInciteMessages.Count() - 1)];
+                        Session.Network.EnqueueSend(new GameMessageSound(Guid, Sound.HealthDownVoid));
+                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Bael'zharon whispers in your ear, \"{rolledPlayer.Name} is currently{locationString}. {(Gender == 1 ? "She" : "He")} is level {rolledPlayer.Level}. {message}\"", ChatMessageType.Tell));
+                    }
                 }
             }
         }
