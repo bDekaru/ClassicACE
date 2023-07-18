@@ -173,7 +173,7 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
                 case 100: // Reset to brand new character but keep xp.
-                    player.RevertToBrandNewCharacter(true, true, true, true, player.TotalExperience ?? 0);
+                    player.RevertToBrandNewCharacter(true, true, true, true, true, player.TotalExperience ?? 0);
                     setStarterLocation = false;
                     break;
                 case 101: // Update starting template skills

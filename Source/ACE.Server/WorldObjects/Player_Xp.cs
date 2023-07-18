@@ -831,7 +831,7 @@ namespace ACE.Server.WorldObjects
             return modifier;
         }
 
-        public void RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false, long startingXP = 0)
+        public void RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool keepSpells, bool setToLimboGameplayMode = false, long startingXP = 0)
         {
             if(!keepFellowship)
                 FellowshipQuit(false);
@@ -876,7 +876,6 @@ namespace ACE.Server.WorldObjects
             initialAgeTime = DateTime.MinValue;
             ImbueAttempts = 0;
             ImbueSuccesses = 0;
-            LeyLineSeed = null;
             SetProperty(PropertyString.DateOfBirth, $"{DateTime.UtcNow:dd MMMM yyyy}");
 
             // Reset positions
@@ -886,7 +885,11 @@ namespace ACE.Server.WorldObjects
             RemovePosition(PositionType.LinkedPortalOne);
             RemovePosition(PositionType.LinkedPortalTwo);
 
-            RemoveAllSpells();
+            if (!keepSpells)
+            {
+                RemoveAllSpells();
+                LeyLineSeed = null;
+            }
 
             // Reset Quest Timers
             QuestManager.EraseAll();
