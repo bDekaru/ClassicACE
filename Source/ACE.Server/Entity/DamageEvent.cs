@@ -350,7 +350,7 @@ namespace ACE.Server.Entity
             // It should be noted that any time a character is logging off, PK or not, all physical attacks against them become automatically critical.
             // (Note that spells do not share this behavior.) We hope this will stress the need to log off in a safe place.
 
-            if (playerDefender != null && (playerDefender.IsLoggingOut || playerDefender.PKLogout))
+            if (playerDefender != null && (playerDefender.IsLoggingOut || playerDefender.PKLogout) && (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || (!playerDefender.IsPK && !playerDefender.IsPKL)))
                 CriticalChance = 1.0f;
 
             if (CriticalChance > ThreadSafeRandom.Next(0.0f, 1.0f))
