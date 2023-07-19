@@ -549,19 +549,35 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool LogOut(bool clientSessionTerminatedAbruptly = false, bool forceImmediate = false)
         {
-            if (PKLogoutActive && !forceImmediate)
+            if ((PKLogoutActive || ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)) && !forceImmediate)
             {
-                //Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
-                Session.Network.EnqueueSend(new GameMessageSystemChat("Beginning delayed player killer logoff...", ChatMessageType.Broadcast));
+                var timer = PropertyManager.GetLong("pk_timer").Item;
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You will logout in {timer} seconds...", ChatMessageType.Broadcast));
 
                 if (!PKLogout)
                 {
                     PKLogout = true;
 
-                    IsFrozen = true;
-                    EnqueueBroadcastPhysicsState();
+                    if (Teleporting && ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        OnTeleportComplete();
 
-                    LogoffTimestamp = Time.GetFutureUnixTime(PropertyManager.GetLong("pk_timer").Item);
+                        var actionChain = new ActionChain();
+                        actionChain.AddDelaySeconds(2);
+                        actionChain.AddAction(this, () =>
+                        {
+                            IsFrozen = true;
+                            EnqueueBroadcastPhysicsState();
+                        });
+                        actionChain.EnqueueChain();
+                    }
+                    else
+                    {
+                        IsFrozen = true;
+                        EnqueueBroadcastPhysicsState();
+                    }
+
+                    LogoffTimestamp = Time.GetFutureUnixTime(timer);
                     PlayerManager.AddPlayerToLogoffQueue(this);
                 }
                 return false;

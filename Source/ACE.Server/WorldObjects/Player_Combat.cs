@@ -93,18 +93,47 @@ namespace ACE.Server.WorldObjects
             return skill;
         }
 
+        bool LogoutTimerReset = false;
         /// <summary>
         /// Called when a player receives an attack, evaded or not
         /// </summary>
         public override void OnAttackReceived(WorldObject attacker, CombatType attackType, bool critical, bool avoided)
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CombatMode == CombatMode.Melee && AttackTarget == attacker)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                var currentTime = Time.GetUnixTime();
-                if (avoided && NextTechniqueActivationTime <= currentTime)
+                if(attacker.Guid.IsPlayer() && PKLogout && !LogoutTimerReset)
                 {
-                    var techniqueTrinket = GetEquippedTrinket();
-                    if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Riposte)
+                    var timer = PropertyManager.GetLong("pk_timer").Item;
+                    LogoffTimestamp = Time.GetFutureUnixTime(timer);
+                    LogoutTimerReset = true;
+
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"Logout timer reset to {timer} seconds...", ChatMessageType.Broadcast));
+                }
+
+                if (CombatMode == CombatMode.Melee && AttackTarget == attacker)
+                {
+                    var currentTime = Time.GetUnixTime();
+                    if (avoided && NextTechniqueActivationTime <= currentTime)
+                    {
+                        var techniqueTrinket = GetEquippedTrinket();
+                        if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Riposte)
+                        {
+                            Creature creatureAttacker = attacker as Creature;
+                            if (creatureAttacker != null)
+                            {
+                                var chance = 0.4f;
+                                if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                {
+                                    // Chance of striking back at the target when successfully evading an attack while using the Riposte technique.
+                                    Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name}!", ChatMessageType.CombatSelf));
+                                    DamageTarget(creatureAttacker, GetEquippedMeleeWeapon());
+                                    NextTechniqueActivationTime = currentTime + TechniqueActivationInterval;
+                                }
+                            }
+                        }
+                    }
+
+                    if (IsDualWieldAttack && NextDualWieldRiposteActivationTime <= currentTime)
                     {
                         Creature creatureAttacker = attacker as Creature;
                         if (creatureAttacker != null)
@@ -112,31 +141,15 @@ namespace ACE.Server.WorldObjects
                             var chance = 0.4f;
                             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
                             {
-                                // Chance of striking back at the target when successfully evading an attack while using the Riposte technique.
-                                Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name}!", ChatMessageType.CombatSelf));
-                                DamageTarget(creatureAttacker, GetEquippedMeleeWeapon());
-                                NextTechniqueActivationTime = currentTime + TechniqueActivationInterval;
+                                // Chance of striking back at the target while dual wielding when receiving an attack.
+                                Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name} with your offhand!", ChatMessageType.CombatSelf));
+                                var lightWeapon = GetDualWieldWeapon();
+                                var mainWeapon = GetEquippedMeleeWeapon();
+                                if (lightWeapon == null || !lightWeapon.IsLightWeapon)
+                                    lightWeapon = mainWeapon;
+                                DamageTarget(creatureAttacker, lightWeapon);
+                                NextDualWieldRiposteActivationTime = currentTime + DualWieldRiposteActivationInterval;
                             }
-                        }
-                    }
-                }
-
-                if(IsDualWieldAttack && NextDualWieldRiposteActivationTime <= currentTime)
-                {
-                    Creature creatureAttacker = attacker as Creature;
-                    if (creatureAttacker != null)
-                    {
-                        var chance = 0.4f;
-                        if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                        {
-                            // Chance of striking back at the target while dual wielding when receiving an attack.
-                            Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name} with your offhand!", ChatMessageType.CombatSelf));
-                            var lightWeapon = GetDualWieldWeapon();
-                            var mainWeapon = GetEquippedMeleeWeapon();
-                            if (lightWeapon == null || !lightWeapon.IsLightWeapon)
-                                lightWeapon = mainWeapon;
-                            DamageTarget(creatureAttacker, lightWeapon);
-                            NextDualWieldRiposteActivationTime = currentTime + DualWieldRiposteActivationInterval;
                         }
                     }
                 }

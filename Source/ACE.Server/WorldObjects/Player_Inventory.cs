@@ -3586,7 +3586,7 @@ namespace ACE.Server.WorldObjects
 
             var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned;
 
-            if ((!VerifyGameplayMode(item) && (!acceptAll || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationContract || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.blankExplorationContract)) || IsInLimboMode)
+            if (!VerifyGameplayMode(item) && (!acceptAll || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationContract || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.blankExplorationContract) && !(acceptAll && IsInLimboMode))
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be given, incompatible gameplay mode!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
