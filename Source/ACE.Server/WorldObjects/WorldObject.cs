@@ -1275,19 +1275,20 @@ namespace ACE.Server.WorldObjects
 
         public bool VerifyGameplayMode(WorldObject item1 = null, WorldObject item2 = null)
         {
-            if (GameplayMode == GameplayModes.Limbo)
-                return false;
-
             if (item1 != null)
             {
-                if (GameplayMode > item1.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item1.IsHardcore))
+                if (GameplayMode == GameplayModes.Limbo && item1.GameplayMode != GameplayModes.Limbo)
+                    return false;
+                else if (GameplayMode > item1.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item1.IsHardcore))
                     return false;
                 else if (item1.GameplayModeExtraIdentifier != 0 && GameplayModeExtraIdentifier != item1.GameplayModeExtraIdentifier)
                     return false;
             }
             if (item2 != null)
             {
-                if(GameplayMode > item2.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item2.IsHardcore))
+                if (GameplayMode == GameplayModes.Limbo && item2.GameplayMode != GameplayModes.Limbo)
+                    return false;
+                else if (GameplayMode > item2.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item2.IsHardcore))
                     return false;
                 else if (item2.GameplayModeExtraIdentifier != 0 && GameplayModeExtraIdentifier != item2.GameplayModeExtraIdentifier)
                     return false;
