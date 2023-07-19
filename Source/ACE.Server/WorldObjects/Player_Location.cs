@@ -64,7 +64,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -131,7 +131,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void HandleActionTeleToLifestone()
         {
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -204,7 +204,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -273,7 +273,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -366,7 +366,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -487,7 +487,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -571,7 +571,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
