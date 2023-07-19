@@ -245,14 +245,19 @@ namespace ACE.Server.WorldObjects
             }
 
             var inventory = player.GetAllPossessions();
-            foreach (var item in inventory)
+            if (player.GameplayMode != GameplayModes.Limbo)
             {
-                if (item.GameplayMode >= player.GameplayMode || item.GameplayMode == GameplayModes.Limbo)
+                foreach (var item in inventory)
                 {
-                    item.GameplayMode = player.GameplayMode;
-                    item.GameplayModeExtraIdentifier = player.GameplayModeExtraIdentifier;
-                    item.GameplayModeIdentifierString = player.GameplayModeIdentifierString;
+                    if (item.GameplayMode >= player.GameplayMode || item.GameplayMode == GameplayModes.Limbo)
+                    {
+                        item.GameplayMode = player.GameplayMode;
+                        item.GameplayModeExtraIdentifier = player.GameplayModeExtraIdentifier;
+                        item.GameplayModeIdentifierString = player.GameplayModeIdentifierString;
+                    }
                 }
+
+                player.UpdateCoinValue();
             }
 
             if (setStarterLocation)

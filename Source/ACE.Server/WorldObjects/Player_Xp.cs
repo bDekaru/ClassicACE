@@ -1061,8 +1061,6 @@ namespace ACE.Server.WorldObjects
                 PlayerFactory.SetInnateAugmentations(this);
             }
 
-            RevertToBrandNewCharacterEquipment(keepHousing, keepBondedEquipment);
-
             if (startingXP > 0)
                 UpdateXpAndLevel(startingXP, XpType.Admin);
 
@@ -1072,6 +1070,8 @@ namespace ACE.Server.WorldObjects
                 GameplayMode = GameplayModes.Limbo;
                 SetProperty(PropertyBool.RecallsDisabled, true);
             }
+
+            RevertToBrandNewCharacterEquipment(keepHousing, keepBondedEquipment);
 
             Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
             EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));

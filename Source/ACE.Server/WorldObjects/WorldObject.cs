@@ -1275,6 +1275,9 @@ namespace ACE.Server.WorldObjects
 
         public bool VerifyGameplayMode(WorldObject item1 = null, WorldObject item2 = null)
         {
+            if (GameplayMode == GameplayModes.Limbo)
+                return false;
+
             if (item1 != null)
             {
                 if (GameplayMode > item1.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item1.IsHardcore))
@@ -1294,7 +1297,7 @@ namespace ACE.Server.WorldObjects
 
         public void UpdateGameplayMode(Container owner)
         {
-            if (owner == null)
+            if (owner == null ||( owner.GameplayMode == GameplayModes.Limbo && GameplayMode != GameplayModes.InitialMode))
                 return;
 
             if (GameplayMode > owner.GameplayMode && (owner.GameplayMode != GameplayModes.SoloSelfFound || GameplayMode == GameplayModes.InitialMode))
