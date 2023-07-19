@@ -1589,9 +1589,9 @@ namespace ACE.Server.WorldObjects
                     int spellLevel;
                     if (skill.Current < 200)
                         spellLevel = 1;
-                    else if (skill.Current < 250)
-                        spellLevel = 2;
                     else if (skill.Current < 300)
+                        spellLevel = 2;
+                    else if (skill.Current < 400)
                         spellLevel = 3;
                     else
                         spellLevel = 4;

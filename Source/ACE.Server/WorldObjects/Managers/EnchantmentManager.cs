@@ -14,6 +14,7 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.Structure;
 using ACE.Server.WorldObjects.Entity;
+using ACE.Server.Entity.Actions;
 
 namespace ACE.Server.WorldObjects.Managers
 {
@@ -329,6 +330,14 @@ namespace ACE.Server.WorldObjects.Managers
             }
             else
             {
+                if (WorldObject is Creature creature)
+                {
+                    var actionChain = new ActionChain();
+                    actionChain.AddDelayForOneTick();
+                    actionChain.AddAction(creature, () => creature.UpdateMoveSpeed());
+                    actionChain.EnqueueChain();
+                }
+
                 var ownerID = WorldObject.OwnerId ?? WorldObject.WielderId;
 
                 if (ownerID != null)
@@ -423,7 +432,11 @@ namespace ACE.Server.WorldObjects.Managers
                 WorldObject.ChangesDetected = true;
             }
 
-            var minVitae = GetMinVitae((uint)Player.Level);
+            float minVitae;
+            if (!Player.IsHardcore)
+                minVitae = GetMinVitae((uint)Player.Level);
+            else
+                minVitae = 0.1f;
 
             if (vitae.StatModValue < minVitae)
                 vitae.StatModValue = minVitae;
@@ -1249,6 +1262,7 @@ namespace ACE.Server.WorldObjects.Managers
         /// <param name="enchantments">A list of active enchantments at the top layers</param>
         public void HeartBeat_DamageOverTime(List<PropertiesEnchantmentRegistry> enchantments)
         {
+            var fireDots = new List<PropertiesEnchantmentRegistry>();
             var dots = new List<PropertiesEnchantmentRegistry>();
             var netherDots = new List<PropertiesEnchantmentRegistry>();
             var aetheriaDots = new List<PropertiesEnchantmentRegistry>();
@@ -1261,6 +1275,8 @@ namespace ACE.Server.WorldObjects.Managers
                 {
                     if (enchantment.SpellCategory == SpellCategory.AetheriaProcDamageOverTimeRaising)
                         aetheriaDots.Add(enchantment);
+                    else if (enchantment.SpellCategory == SpellCategory.FireDoT)
+                        fireDots.Add(enchantment);
                     else
                         dots.Add(enchantment);
                 }
@@ -1274,6 +1290,9 @@ namespace ACE.Server.WorldObjects.Managers
             // apply damage over time (DoTs)
             if (dots.Count > 0)
                 ApplyDamageTick(dots, DamageType.Undef);
+
+            if (fireDots.Count > 0)
+                ApplyDamageTick(fireDots, DamageType.Fire);
 
             if (netherDots.Count > 0)
                 ApplyDamageTick(netherDots, DamageType.Nether);

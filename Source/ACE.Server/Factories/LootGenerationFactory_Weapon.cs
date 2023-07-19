@@ -107,7 +107,6 @@ namespace ACE.Server.Factories
                 wo.SlayerCreatureType = SlayerTypeChance.Roll(treasureDeath);
                 wo.SlayerDamageBonus = 1.5f;
                 wo.IconOverlayId = 0x06005EC0;
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
             return false;

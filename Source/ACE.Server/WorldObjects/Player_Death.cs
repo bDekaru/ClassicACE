@@ -126,10 +126,17 @@ namespace ACE.Server.WorldObjects
                 pkPlayer.PkTimestamp = Time.GetUnixTime();
                 pkPlayer.PlayerKillsPk++;
 
+                string locationString = Landblock.GetLocationString(Location.LandblockId.Landblock);
+
                 var globalPKDe = $"{lastDamager.Name} has defeated {Name}!";
 
-                if ((Location.Cell & 0xFFFF) < 0x100)
+                //if ((Location.Cell & 0xFFFF) < 0x100)
+                //    globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
+
+                if(locationString == "" && (Location.Cell & 0xFFFF) < 0x100)
                     globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
+                else
+                    globalPKDe += $" The kill occured{locationString}.";
 
                 string webhookMsg = new String(globalPKDe);
 
@@ -159,7 +166,9 @@ namespace ACE.Server.WorldObjects
 
                     if (lastDamager.TryGetAttacker() is Player lastDamagerPlayer)
                     {
-                        var globalPKDe = $"{Name}({Level}) was hardcore killed by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level})!";
+                        string locationString = Landblock.GetLocationString(Location.LandblockId.Landblock);
+
+                        var globalPKDe = $"{Name}({Level}) was hardcore killed by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level}){locationString}!";
 
                         if (namesList.Count > 1)
                         {
@@ -442,7 +451,7 @@ namespace ACE.Server.WorldObjects
                     // Stand back up
                     SetCombatMode(CombatMode.NonCombat);
 
-                    RevertToBrandNewCharacter(false, true, true, true, (long)xpToRetain);
+                    RevertToBrandNewCharacter(false, true, true, true, true, true, (long)xpToRetain);
 
                     var teleportChain = new ActionChain();
                     if (!IsLoggingOut) // If we're in the process of logging out, we skip the delay

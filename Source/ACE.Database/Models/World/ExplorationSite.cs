@@ -9,8 +9,6 @@ namespace ACE.Database.Models.World
     {
         public uint Id { get; set; }
         public int Landblock { get; set; }
-        public string Name { get; set; }
-        public string Directions { get; set; }
         public int Level { get; set; }
         public string ContentDescription { get; set; }
         public int MinLevel { get; set; }

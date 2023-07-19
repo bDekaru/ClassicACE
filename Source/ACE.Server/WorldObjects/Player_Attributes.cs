@@ -15,12 +15,14 @@ namespace ACE.Server.WorldObjects
             if (!Attributes.TryGetValue(attribute, out var creatureAttribute))
             {
                 log.Error($"{Name}.HandleActionRaiseAttribute({attribute}, {amount}) - invalid attribute");
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute(this, creatureAttribute));
                 return false;
             }
 
             if (amount > AvailableExperience)
             {
                 //log.Error($"{Name}.HandleActionRaiseAttribute({attribute}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute(this, creatureAttribute));
                 return false;
             }
 
@@ -28,7 +30,8 @@ namespace ACE.Server.WorldObjects
 
             if (!SpendAttributeXp(creatureAttribute, amount))
             {
-                ChatPacket.SendServerMessage(Session, $"Your attempt to raise {attribute} has failed.", ChatMessageType.Broadcast);
+                ChatPacket.SendServerMessage(Session, $"You do not have enough experience to raise your {attribute}.", ChatMessageType.Broadcast);
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute(this, creatureAttribute));
                 return false;
             }
 

@@ -679,9 +679,6 @@ namespace ACE.Server.Entity
             actionQueue.RunActions();
             ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Landblock_Tick_RunActions, stopwatch.Elapsed.TotalSeconds);
 
-            if(NextExplorationMarkerRefresh <= currentUnixTime)
-                RefreshExplorationMarkers();
-
             ProcessPendingWorldObjectAdditionsAndRemovals();
 
             // When a WorldObject Ticks, it can end up adding additional WorldObjects to this landblock
@@ -824,6 +821,9 @@ namespace ACE.Server.Entity
             }
 
             ProcessPendingWorldObjectAdditionsAndRemovals();
+
+            if (!IsDormant && NextExplorationMarkerRefresh <= currentUnixTime)
+                RefreshExplorationMarkers();
 
             stopwatch.Restart();
             foreach (var player in players)
@@ -1587,6 +1587,33 @@ namespace ACE.Server.Entity
                 SetFogColor(environChangeType);
             else
                 SendEnvironSound(environChangeType);
+        }
+
+        public static string GetLocationString(ushort landblockId)
+        {
+            var landblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock(landblockId).FirstOrDefault();
+            string locationString = "";
+            if (landblock != null)
+            {
+                if (landblock.Name != "")
+                {
+                    if (landblock.Reference != $"in {landblock.Name}")
+                        locationString = $" in {landblock.Name} {landblock.Reference}";
+                    else
+                        locationString = $" {landblock.Reference}";
+                }
+                else
+                {
+                    if (landblock.MicroRegion != "")
+                        locationString = $" {landblock.Reference} in {landblock.MicroRegion}";
+                    else if (landblock.MacroRegion != "" && landblock.MacroRegion != "Dereth")
+                        locationString = $" {landblock.Reference} in {landblock.MacroRegion}";
+                    else
+                        locationString = $" {landblock.Reference}";
+                }
+            }
+
+            return locationString;
         }
     }
 }

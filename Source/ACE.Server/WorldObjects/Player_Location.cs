@@ -64,7 +64,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -131,7 +131,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void HandleActionTeleToLifestone()
         {
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -204,7 +204,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -273,7 +273,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -366,7 +366,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -487,7 +487,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -571,7 +571,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive)
+            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -655,7 +655,7 @@ namespace ACE.Server.WorldObjects
         {
             var newPosition = new Position(_newPosition);
 
-            if(newPosition.PositionX == 0 && newPosition.PositionY == 0) // Trying to catch invalid position.
+            if(newPosition.PositionX == 0 && newPosition.PositionY == 0 && newPosition.Cell == 0) // Trying to catch invalid position.
                 newPosition = new Position(Sanctuary) ?? new Position(Instantiation) ?? new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f);
 
             //newPosition.PositionZ += 0.005f;
@@ -826,6 +826,7 @@ namespace ACE.Server.WorldObjects
             // https://asheron.fandom.com/wiki/Special:Search?query=Lifestone+on+Relog%3A+Yes+
             // https://docs.google.com/spreadsheets/d/122xOw3IKCezaTDjC_hggWSVzYJ_9M_zUUtGEXkwNXfs/edit#gid=846612575
 
+            0x0000,     // Null Landblock
             0x0002,     // Viamontian Garrison
             0x0007,     // Town Network
             0x0056,     // Augmentation Realm Main Level

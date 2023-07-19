@@ -863,6 +863,13 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
+            if (item.GameplayMode != GameplayModes.InitialMode && !container.Guid.IsPlayer() && (!item.VerifyGameplayMode(container) || IsInLimboMode))
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be moved to that container, incompatible gameplay mode!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                return false;
+            }
+
             if (container is Corpse)
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"You cannot put {item.Name} in that.")); // Custom error message
@@ -3577,7 +3584,9 @@ namespace ACE.Server.WorldObjects
         {
             if (target == null || item == null) return;
 
-            if (!VerifyGameplayMode(item) || IsInLimboMode)
+            var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned;
+
+            if (!VerifyGameplayMode(item) && (!acceptAll || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationContract || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.blankExplorationContract) && !(acceptAll && IsInLimboMode))
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be given, incompatible gameplay mode!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
@@ -3609,8 +3618,6 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeItemBeingTraded));
                 return;
             }
-
-            var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned;
 
             if (target.HasGiveOrRefuseEmoteForItem(item, out var emoteResult) || acceptAll)
             {
