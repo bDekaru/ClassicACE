@@ -101,7 +101,7 @@ namespace ACE.Server.WorldObjects
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if(attacker.Guid.IsPlayer() && PKLogout && !LogoutTimerReset)
+                if(attacker != null && attacker.Guid.IsPlayer() && PKLogout && !LogoutTimerReset)
                 {
                     var timer = PropertyManager.GetLong("pk_timer").Item;
                     LogoffTimestamp = Time.GetFutureUnixTime(timer);
