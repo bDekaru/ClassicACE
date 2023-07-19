@@ -4945,10 +4945,100 @@ namespace ACE.Server.Command.Handlers
             EventManager.RollHotDungeon();
         }
 
+        [CommandHandler("ForceHotDungeon", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleForceHotDungeon(Session session, params string[] parameters)
+        {
+            var player = session?.Player;
+
+            if (player == null)
+                return;
+
+            EventManager.RollHotDungeon(player.CurrentLandblock.Id.Landblock);
+        }
+
         [CommandHandler("ProlongHotDungeon", AccessLevel.Admin, CommandHandlerFlag.None, "")]
         public static void HandleProlongHotDungeon(Session session, params string[] parameters)
         {
             EventManager.ProlongHotDungeon();
+        }
+
+        [CommandHandler("DiscordChatStart", AccessLevel.Admin, CommandHandlerFlag.None, "")]
+        public static void HandleDiscordChatStart(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Starting Discord chat bridge...", ChatMessageType.WorldBroadcast);
+            DiscordChatBridge.Start();
+        }
+
+        [CommandHandler("DiscordChatStop", AccessLevel.Admin, CommandHandlerFlag.None, "")]
+        public static void HandleDiscordChatStop(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Stopping Discord chat bridge...", ChatMessageType.WorldBroadcast);
+            DiscordChatBridge.Stop();
+        }
+
+        [CommandHandler("ClearMainPack", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleClearMainPakc(Session session, params string[] parameters)
+        {
+            var player = session?.Player;
+
+            if (player == null)
+                return;
+
+            CommandHandlerHelper.WriteOutputInfo(session, "Deleting all items in main pack...", ChatMessageType.WorldBroadcast);
+
+            var mainPackItems = player.Inventory.Values.Where(e => !(e is Container) && (e.CurrentWieldedLocation ?? 0) == 0);
+
+            foreach (var item in mainPackItems)
+                player.TryConsumeFromInventoryWithNetworking(item, item.StackSize ?? 1);
+        }
+
+        [CommandHandler("GiveToAllOnline", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 1, "Gives an object to all online players.", "wclassid (string or number), Amount to Spawn (optional [default:1]), Palette (optional), Shade (optional)\n")]
+        public static void HandleGiveToAllOnline(Session session, params string[] parameters)
+        {
+            var weenie = GetWeenieForCreate(session, parameters[0], true);
+
+            if (weenie == null)
+                return;
+
+            ushort stackSize = 1;
+            int? palette = null;
+            float? shade = null;
+
+            if (parameters.Length > 1)
+            {
+                if (!ushort.TryParse(parameters[1], out stackSize) || stackSize == 0)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"stacksize must be number between 1 - {ushort.MaxValue}", ChatMessageType.Broadcast));
+                    return;
+                }
+            }
+
+            if (parameters.Length > 2)
+            {
+                if (!int.TryParse(parameters[2], out int _palette))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"palette must be number between {int.MinValue} - {int.MaxValue}", ChatMessageType.Broadcast));
+                    return;
+                }
+                else
+                    palette = _palette;
+            }
+
+            if (parameters.Length > 3)
+            {
+                if (!float.TryParse(parameters[3], out float _shade))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"shade must be number between {float.MinValue} - {float.MaxValue}", ChatMessageType.Broadcast));
+                    return;
+                }
+                else
+                    shade = _shade;
+            }
+
+            foreach (var player in PlayerManager.GetAllOnline())
+                player.GiveFromEmote(session.Player, weenie.WeenieClassId, stackSize, palette ?? 0, shade ?? 0);
+
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has given {(stackSize == 0 ? 1 : stackSize)} {weenie.GetName()} to all online players.");
         }
     }
 }

@@ -7912,6 +7912,30 @@ namespace ACE.Server.Factories.Tables
             SpellId.HoTOther8,
         };
 
+        public static readonly List<SpellId> DaggerBleed = new List<SpellId>()
+        {
+            SpellId.DaggerBleed1,
+            SpellId.DaggerBleed2,
+            SpellId.DaggerBleed3,
+            SpellId.DaggerBleed4,
+            SpellId.DaggerBleed5,
+            SpellId.DaggerBleed6,
+            SpellId.DaggerBleed7,
+            SpellId.DaggerBleed8,
+        };
+
+        public static readonly List<SpellId> Burning = new List<SpellId>()
+        {
+            SpellId.Burning1,
+            SpellId.Burning2,
+            SpellId.Burning3,
+            SpellId.Burning4,
+            SpellId.Burning5,
+            SpellId.Burning6,
+            SpellId.Burning7,
+            SpellId.Burning8,
+        };
+
         static SpellLevelProgression()
         {
             // takes ~5ms
@@ -8683,6 +8707,8 @@ namespace ACE.Server.Factories.Tables
                 AddSpells(FellowshipHeal);
                 AddSpells(HotSelf);
                 AddSpells(HotOther);
+                AddSpells(DaggerBleed);
+                AddSpells(Burning);
             }
         }
 

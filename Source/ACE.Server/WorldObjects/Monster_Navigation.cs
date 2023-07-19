@@ -503,6 +503,23 @@ namespace ACE.Server.WorldObjects
             EmoteManager.OnHomeSick(prevAttackTarget);
         }
 
+        public void UpdateMoveSpeed()
+        {
+            var previousMoveSpeed = MoveSpeed;
+            GetMovementSpeed();
+
+            if (IsMoving && previousMoveSpeed != MoveSpeed)
+            {
+                PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
+                PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
+
+                if (AttackTarget != null)
+                    MoveTo(AttackTarget, RunRate);
+                else
+                    MoveToHome();
+            }
+        }
+
         public void CancelMoveTo()
         {
             //Console.WriteLine($"{Name}.CancelMoveTo()");

@@ -832,7 +832,7 @@ namespace ACE.Server.WorldObjects
             return modifier;
         }
 
-        public void RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool setToLimboGameplayMode = false, long startingXP = 0)
+        public void RevertToBrandNewCharacter(bool keepFellowship, bool keepAllegiance, bool keepHousing, bool keepBondedEquipment, bool keepSpells, bool setToLimboGameplayMode = false, long startingXP = 0)
         {
             if(!keepFellowship)
                 FellowshipQuit(false);
@@ -877,7 +877,6 @@ namespace ACE.Server.WorldObjects
             initialAgeTime = DateTime.MinValue;
             ImbueAttempts = 0;
             ImbueSuccesses = 0;
-            LeyLineSeed = null;
             SetProperty(PropertyString.DateOfBirth, $"{DateTime.UtcNow:dd MMMM yyyy}");
 
             // Reset positions
@@ -887,7 +886,11 @@ namespace ACE.Server.WorldObjects
             RemovePosition(PositionType.LinkedPortalOne);
             RemovePosition(PositionType.LinkedPortalTwo);
 
-            RemoveAllSpells();
+            if (!keepSpells)
+            {
+                RemoveAllSpells();
+                LeyLineSeed = null;
+            }
 
             // Reset Quest Timers
             QuestManager.EraseAll();
@@ -1059,8 +1062,6 @@ namespace ACE.Server.WorldObjects
                 PlayerFactory.SetInnateAugmentations(this);
             }
 
-            RevertToBrandNewCharacterEquipment(keepHousing);
-
             if (startingXP > 0)
                 UpdateXpAndLevel(startingXP, XpType.Admin);
 
@@ -1071,19 +1072,29 @@ namespace ACE.Server.WorldObjects
                 SetProperty(PropertyBool.RecallsDisabled, true);
             }
 
+            RevertToBrandNewCharacterEquipment(keepHousing, keepBondedEquipment);
+
             Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
             EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PlayerKillerStatus, (int)PlayerKillerStatus), new GameMessagePublicUpdatePropertyInt(this, PropertyInt.PkLevelModifier, PkLevelModifier));
         }
 
-        public void RevertToBrandNewCharacterEquipment(bool keepHousing)
+        public void RevertToBrandNewCharacterEquipment(bool keepHousing, bool keepBondedEquipment)
         {
             // Destroy all items
             var inventory = GetAllPossessions();
 
             foreach (var item in inventory)
             {
-                if (keepHousing && item.WeenieType != WeenieType.Deed) // Keep houses
-                    item.DeleteObject(this);
+                if (keepHousing && item.WeenieType == WeenieType.Deed) // Keep houses
+                    continue;
+                if (keepBondedEquipment && (item.ValidLocations ?? EquipMask.None) != EquipMask.None && item.Bonded == BondedStatus.Bonded && item.WeenieClassId != (int)Factories.Enum.WeenieClassName.ringHardcore && item.WeenieClassId != (uint)Factories.Enum.WeenieClassName.explorationContract)
+                {
+                    if(item.CurrentWieldedLocation != null)
+                        HandleActionPutItemInContainer(item.Guid.Full, Guid.Full);
+                    continue;
+                }
+
+                item.DeleteObject(this);
             }
 
             if (ChargenClothing != null)

@@ -120,7 +120,7 @@ namespace ACE.Server.WorldObjects
             switch (PkLevelModifier)
             {
                 case 10: // Hardcore NPK
-                    player.RevertToBrandNewCharacterEquipment(true);
+                    player.RevertToBrandNewCharacterEquipment(true, true);
                     player.RemoveAllTitles();
                     player.AddTitle((uint)CharacterTitle.GimpyMageofMight, true, true, true); // This title was replaced with the "Hardcore" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
@@ -131,7 +131,7 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
                 case 11: // Hardcore PK
-                    player.RevertToBrandNewCharacterEquipment(true);
+                    player.RevertToBrandNewCharacterEquipment(true, true);
                     player.RemoveAllTitles();
                     player.AddTitle((uint)CharacterTitle.GimpyMageofMight, true, true, true); // This title was replaced with the "Hardcore" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.PKLite;
@@ -144,7 +144,7 @@ namespace ACE.Server.WorldObjects
                     player.GiveFromEmote(this, (int)Factories.Enum.WeenieClassName.ringHardcore);
                     break;
                 case 12: // Solo Self Found
-                    player.RevertToBrandNewCharacterEquipment(true);
+                    player.RevertToBrandNewCharacterEquipment(true, true);
                     player.RemoveAllTitles();
                     player.AddTitle((uint)CharacterTitle.GimpGoddess, true, true, true); // This title was replaced with the "Solo Self-Found" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
@@ -157,7 +157,7 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
                 case 13: // Regular
-                    player.RevertToBrandNewCharacterEquipment(true);
+                    player.RevertToBrandNewCharacterEquipment(true, true);
                     player.RemoveAllTitles();
                     if (player.ChargenTitleId > 0)
                         player.AddTitle((uint)player.ChargenTitleId, true, true, true);
@@ -173,7 +173,7 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
                 case 100: // Reset to brand new character but keep xp.
-                    player.RevertToBrandNewCharacter(true, true, true, true, player.TotalExperience ?? 0);
+                    player.RevertToBrandNewCharacter(true, true, true, true, true, true, player.TotalExperience ?? 0);
                     setStarterLocation = false;
                     break;
                 case 101: // Update starting template skills
@@ -245,11 +245,19 @@ namespace ACE.Server.WorldObjects
             }
 
             var inventory = player.GetAllPossessions();
-            foreach (var item in inventory)
+            if (player.GameplayMode != GameplayModes.Limbo)
             {
-                item.GameplayMode = player.GameplayMode;
-                item.GameplayModeExtraIdentifier = player.GameplayModeExtraIdentifier;
-                item.GameplayModeIdentifierString = player.GameplayModeIdentifierString;
+                foreach (var item in inventory)
+                {
+                    if (item.GameplayMode >= player.GameplayMode || item.GameplayMode == GameplayModes.Limbo)
+                    {
+                        item.GameplayMode = player.GameplayMode;
+                        item.GameplayModeExtraIdentifier = player.GameplayModeExtraIdentifier;
+                        item.GameplayModeIdentifierString = player.GameplayModeIdentifierString;
+                    }
+                }
+
+                player.UpdateCoinValue();
             }
 
             if (setStarterLocation)
@@ -284,6 +292,8 @@ namespace ACE.Server.WorldObjects
                 player.Sanctuary = new Position(player.Location);
 
                 WorldManager.ThreadSafeTeleport(player, player.Instantiation);
+
+                player.CheckMultipleAccounts();
             }
         }
 

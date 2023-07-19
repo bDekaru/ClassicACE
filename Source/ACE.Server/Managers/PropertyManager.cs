@@ -516,6 +516,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyBool("allow_jump_loot", false);
                 PropertyManager.ModifyBool("allow_pkl_bump", false);
                 PropertyManager.ModifyBool("fix_chest_missing_inventory_window", true);
+                PropertyManager.ModifyBool("runrate_add_hooks", true);
 
                 PropertyManager.ModifyLong("fellowship_even_share_level", 80);
 
@@ -654,8 +655,9 @@ namespace ACE.Server.Managers
                 ("enforce_player_movement", new Property<bool>(false, "enable this to enforce server side verification of player movement")),
                 ("enforce_player_movement_speed", new Property<bool>(false, "enable this to enforce server side verification of player movement speed")),
                 ("enforce_player_movement_kick", new Property<bool>(false, "enable this to kick players that fail movement verification too frenquently")),
-                ("useable_gems", new Property<bool>(true, "Allows loot generated gems to be used to cast their spells.")),
-                ("allow_PKs_to_go_NPK", new Property<bool>(true, "Allows PKs to go back to being NPKs by using the appropriate altar."))
+                ("useable_gems", new Property<bool>(true, "Allows loot generated gems to be used to cast their spells")),
+                ("allow_PKs_to_go_NPK", new Property<bool>(true, "Allows PKs to go back to being NPKs by using the appropriate altar")),
+                ("show_discord_chat_ingame", new Property<bool>(false, "Display messages posted to Discord in general chat"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
@@ -675,7 +677,8 @@ namespace ACE.Server.Managers
                 ("rares_max_seconds_between", new Property<long>(5256000, "for rares_real_time: the maximum number of seconds a player can go before a second chance at a rare is allowed on rare eligible creature kills that did not generate a rare")),
                 ("summoning_killtask_multicredit_cap", new Property<long>(2, "if allow_summoning_killtask_multicredit is enabled, the maximum # of killtask credits a player can receive from 1 kill")),
                 ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects")),
-                ("max_level", new Property<long>(275, "Set the max character level."))
+                ("max_level", new Property<long>(275, "Set the max character level.")),
+                ("discord_channel_id", new Property<long>(0, "Messages posted to this Discord channel will be shown in General Chat"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<double>> DefaultDoubleProperties =
@@ -752,6 +755,7 @@ namespace ACE.Server.Managers
                 ("pvp_dmg_mod_staff", new Property<double>(1.0, "Scales staff damage.")),
                 ("pvp_dmg_mod_sword", new Property<double>(1.0, "Scales sword damage.")),
                 ("pvp_dmg_mod_unarmed", new Property<double>(1.0, "Scales unarmed combat damage.")),
+                ("pvp_dmg_mod_unarmed_war", new Property<double>(1.0, "Scales unamed combat war magic spell damage.")),
 
                 ("pvp_dmg_mod_bow", new Property<double>(1.0, "Scales bow damage.")),
                 ("pvp_dmg_mod_crossbow", new Property<double>(1.0, "Scales crossbow damage.")),
@@ -884,7 +888,8 @@ namespace ACE.Server.Managers
                 ("turbine_chat_webhook", new Property<string>("", "Webhook to be used for turbine chat. This is for copying ingame general chat channels to a Discord channel.")),
                 ("turbine_chat_webhook_audit", new Property<string>("", "Webhook to be used for ingame audit log.")),
                 ("proxycheck_api_key", new Property<string>("", "API key for proxycheck.io service for VPN detection")),
-                ("vpn_account_whitelist", new Property<string>("", "A comma separated list of account names for which VPN detection is bypassed"))
+                ("vpn_account_whitelist", new Property<string>("", "A comma separated list of account names for which VPN detection is bypassed")),
+                ("discord_login_token", new Property<string>("", "Login Token used for Discord chat integration"))
                 );
     }
 }

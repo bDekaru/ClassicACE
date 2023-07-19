@@ -35,6 +35,8 @@ namespace ACE.Server.Factories.Tables
             {
                 clothArmorCantrips = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
+                    ( SpellId.CANTRIPARMOR1,                          3.0f ),
+
                     ( SpellId.CANTRIPFOCUS1,                          2.0f ),
                     ( SpellId.CANTRIPWILLPOWER1,                      2.0f ),
 
@@ -47,7 +49,6 @@ namespace ACE.Server.Factories.Tables
                     ( SpellId.CANTRIPINVULNERABILITY1,                1.0f ),
                     ( SpellId.CANTRIPMAGICRESISTANCE1,                1.0f ),
 
-                    ( SpellId.CANTRIPARMOR1,                          1.0f ),
                     ( SpellId.CANTRIPACIDWARD1,                       1.0f ),
                     ( SpellId.CANTRIPBLUDGEONINGWARD1,                1.0f ),
                     ( SpellId.CANTRIPFLAMEWARD1,                      1.0f ),
@@ -56,7 +57,6 @@ namespace ACE.Server.Factories.Tables
                     ( SpellId.CANTRIPSLASHINGWARD1,                   1.0f ),
                     ( SpellId.CANTRIPSTORMWARD1,                      1.0f ),
 
-                    ( SpellId.CantripArmorAptitude1,                  1.0f ),
                     ( SpellId.CantripAwarenessAptitude1,              1.0f ),
                     ( SpellId.CantripAppraiseAptitude1,               1.0f ),
                     ( SpellId.CantripSneakingAptitude1,               1.0f ),

@@ -93,18 +93,47 @@ namespace ACE.Server.WorldObjects
             return skill;
         }
 
+        bool LogoutTimerReset = false;
         /// <summary>
         /// Called when a player receives an attack, evaded or not
         /// </summary>
         public override void OnAttackReceived(WorldObject attacker, CombatType attackType, bool critical, bool avoided)
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CombatMode == CombatMode.Melee && AttackTarget == attacker)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                var currentTime = Time.GetUnixTime();
-                if (avoided && NextTechniqueActivationTime <= currentTime)
+                if(attacker != null && attacker.Guid.IsPlayer() && PKLogout && !LogoutTimerReset)
                 {
-                    var techniqueTrinket = GetEquippedTrinket();
-                    if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Riposte)
+                    var timer = PropertyManager.GetLong("pk_timer").Item;
+                    LogoffTimestamp = Time.GetFutureUnixTime(timer);
+                    LogoutTimerReset = true;
+
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"Logout timer reset to {timer} seconds...", ChatMessageType.Broadcast));
+                }
+
+                if (CombatMode == CombatMode.Melee && AttackTarget == attacker)
+                {
+                    var currentTime = Time.GetUnixTime();
+                    if (avoided && NextTechniqueActivationTime <= currentTime)
+                    {
+                        var techniqueTrinket = GetEquippedTrinket();
+                        if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Riposte)
+                        {
+                            Creature creatureAttacker = attacker as Creature;
+                            if (creatureAttacker != null)
+                            {
+                                var chance = 0.4f;
+                                if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                {
+                                    // Chance of striking back at the target when successfully evading an attack while using the Riposte technique.
+                                    Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name}!", ChatMessageType.CombatSelf));
+                                    DamageTarget(creatureAttacker, GetEquippedMeleeWeapon());
+                                    NextTechniqueActivationTime = currentTime + TechniqueActivationInterval;
+                                }
+                            }
+                        }
+                    }
+
+                    if (IsDualWieldAttack && NextDualWieldRiposteActivationTime <= currentTime)
                     {
                         Creature creatureAttacker = attacker as Creature;
                         if (creatureAttacker != null)
@@ -112,31 +141,15 @@ namespace ACE.Server.WorldObjects
                             var chance = 0.4f;
                             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
                             {
-                                // Chance of striking back at the target when successfully evading an attack while using the Riposte technique.
-                                Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name}!", ChatMessageType.CombatSelf));
-                                DamageTarget(creatureAttacker, GetEquippedMeleeWeapon());
-                                NextTechniqueActivationTime = currentTime + TechniqueActivationInterval;
+                                // Chance of striking back at the target while dual wielding when receiving an attack.
+                                Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name} with your offhand!", ChatMessageType.CombatSelf));
+                                var lightWeapon = GetDualWieldWeapon();
+                                var mainWeapon = GetEquippedMeleeWeapon();
+                                if (lightWeapon == null || !lightWeapon.IsLightWeapon)
+                                    lightWeapon = mainWeapon;
+                                DamageTarget(creatureAttacker, lightWeapon);
+                                NextDualWieldRiposteActivationTime = currentTime + DualWieldRiposteActivationInterval;
                             }
-                        }
-                    }
-                }
-
-                if(IsDualWieldAttack && NextDualWieldRiposteActivationTime <= currentTime)
-                {
-                    Creature creatureAttacker = attacker as Creature;
-                    if (creatureAttacker != null)
-                    {
-                        var chance = 0.4f;
-                        if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                        {
-                            // Chance of striking back at the target while dual wielding when receiving an attack.
-                            Session.Network.EnqueueSend(new GameMessageSystemChat($"You see an opening and quickly strike back at the {attacker.Name} with your offhand!", ChatMessageType.CombatSelf));
-                            var lightWeapon = GetDualWieldWeapon();
-                            var mainWeapon = GetEquippedMeleeWeapon();
-                            if (lightWeapon == null || !lightWeapon.IsLightWeapon)
-                                lightWeapon = mainWeapon;
-                            DamageTarget(creatureAttacker, lightWeapon);
-                            NextDualWieldRiposteActivationTime = currentTime + DualWieldRiposteActivationInterval;
                         }
                     }
                 }
@@ -517,15 +530,27 @@ namespace ACE.Server.WorldObjects
             //UpdateVitalDelta(Stamina, -1);
 
             //if (Fellowship != null)
-                //Fellowship.OnVitalUpdate(this);
+            //Fellowship.OnVitalUpdate(this);
 
             // send damage text message
             //if (PropertyManager.GetBool("show_dot_messages").Item)
             //{
-                var nether = damageType == DamageType.Nether ? "nether " : "";
-                var chatMessageType = damageType == DamageType.Nether ? ChatMessageType.Magic : ChatMessageType.Combat;
-                var text = $"You receive {amount} points of periodic {nether}damage.";
-                SendMessage(text, chatMessageType);
+            string damageTypeString;
+            switch (damageType)
+            {
+                case DamageType.Fire:
+                    damageTypeString = "fire ";
+                    break;
+                case DamageType.Nether:
+                    damageTypeString = "nether ";
+                    break;
+                default:
+                    damageTypeString = "";
+                    break;
+            }
+            var chatMessageType = damageType == DamageType.Nether ? ChatMessageType.Magic : ChatMessageType.Combat;
+            var text = $"You receive {amount} points of periodic {damageTypeString}damage.";
+            SendMessage(text, chatMessageType);
             //}
 
             // splatter effects
@@ -840,14 +865,26 @@ namespace ACE.Server.WorldObjects
 
                     // todo expand checks
                     if (!forceHandCombat && (missileWeapon != null || caster != null))
+                    {
+                        // client has already independently brought the melee bar up by this point, revert and sync everything back up
+                        SetCombatMode(CombatMode.NonCombat);
                         return;
+                    }
 
                     break;
 
                 case CombatMode.Missile:
                     {
                         if (missileWeapon == null)
+                        {
+                            // client has already independently switched to missile mode by this point,
+                            // so instead of simply returning here, we need to deny the request by reverting to either the current server combat state, or switching to NonCombat to maintain client sync
+                            // this is especially important for missile, because the client is unable to break out of this bugged state for this mode specifically
+                            // see: ClientCombatSystem::PlayerInReadyPosition
+
+                            SetCombatMode(CombatMode.NonCombat);
                             return;
+                        }
 
                         switch (currentCombatStance)
                         {
@@ -909,7 +946,11 @@ namespace ACE.Server.WorldObjects
 
                     // todo expand checks
                     if (caster == null)
+                    {
+                        // client has already independently brought the magic bar up by this point, revert and sync everything back up
+                        SetCombatMode(CombatMode.NonCombat);
                         return;
+                    }
 
                     break;
 

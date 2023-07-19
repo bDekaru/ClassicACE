@@ -748,5 +748,6 @@ namespace ACE.Entity.Enum
         SneakingSkillLowering = 747,
         ExtraSneakingSkillRaising = 748,
         ExtraSneakingSkillLowering = 749,
+        FireDoT = 750,
     }
 }

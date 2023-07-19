@@ -33,7 +33,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Instantly casts a spell for a WorldObject (ie. spell traps)
         /// </summary>
-        public void TryCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool tryResist = true, bool showMsg = true)
+        public void TryCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool tryResist = true, bool showMsg = true, WorldObject sourceOverride = null)
         {
             // TODO: look into further normalizing this / caster / weapon
 
@@ -54,13 +54,13 @@ namespace ACE.Server.WorldObjects
                 var fellows = targetPlayer.Fellowship.GetFellowshipMembers();
 
                 foreach (var fellow in fellows.Values)
-                    TryCastSpell_Inner(spell, fellow, itemCaster, weapon, isWeaponSpell, fromProc, tryResist, showMsg);
+                    TryCastSpell_Inner(spell, fellow, itemCaster, weapon, isWeaponSpell, fromProc, tryResist, showMsg, sourceOverride);
             }
             else
-                TryCastSpell_Inner(spell, target, itemCaster, weapon, isWeaponSpell, fromProc, tryResist, showMsg);
+                TryCastSpell_Inner(spell, target, itemCaster, weapon, isWeaponSpell, fromProc, tryResist, showMsg, sourceOverride);
         }
 
-        public void TryCastSpell_Inner(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool tryResist = true, bool showMsg = true)
+        public void TryCastSpell_Inner(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool tryResist = true, bool showMsg = true, WorldObject sourceOverride = null)
         {
             // verify before resist, still consumes source item
             if (spell.MetaSpellType == SpellType.Dispel && !VerifyDispelPKStatus(itemCaster, target))
@@ -71,7 +71,7 @@ namespace ACE.Server.WorldObjects
                 return;
 
             // if not resisted, cast spell
-            HandleCastSpell(spell, target, itemCaster, weapon, isWeaponSpell, fromProc, false, showMsg);
+            HandleCastSpell(spell, target, itemCaster, weapon, isWeaponSpell, fromProc, false, showMsg, sourceOverride);
         }
 
         /// <summary>
@@ -302,7 +302,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Creates a spell based on MetaSpellType
         /// </summary>
-        protected bool HandleCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool equip = false, bool showMsg = true)
+        protected bool HandleCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool equip = false, bool showMsg = true, WorldObject sourceOverride = null)
         {
             var targetCreature = !spell.IsSelfTargeted || spell.IsFellowshipSpell ? target as Creature : this as Creature;
 
@@ -369,7 +369,7 @@ namespace ACE.Server.WorldObjects
                 case SpellType.LifeProjectile:
                 case SpellType.EnchantmentProjectile:
 
-                    HandleCastSpell_Projectile(spell, targetCreature, itemCaster, weapon, isWeaponSpell, fromProc);
+                    HandleCastSpell_Projectile(spell, targetCreature, itemCaster, weapon, isWeaponSpell, fromProc, sourceOverride);
                     break;
 
                 case SpellType.PortalLink:
@@ -523,6 +523,8 @@ namespace ACE.Server.WorldObjects
                 if (!spell.IsBeneficial && this is Creature creatureCaster)
                     playerTarget.SetCurrentAttacker(creatureCaster);
             }
+            else if (target is Creature creature)
+                creature.UpdateMoveSpeed();
 
             if (playerTarget == null && target.Wielder is Player wielder)
                 playerTarget = wielder;
@@ -1069,7 +1071,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Handles casting SpellType.Projectile / LifeProjectile / EnchantmentProjectile spells
         /// </summary>
-        private void HandleCastSpell_Projectile(Spell spell, WorldObject target, WorldObject itemCaster, WorldObject weapon, bool isWeaponSpell, bool fromProc)
+        private void HandleCastSpell_Projectile(Spell spell, WorldObject target, WorldObject itemCaster, WorldObject weapon, bool isWeaponSpell, bool fromProc, WorldObject sourceOverride = null)
         {
             uint damage = 0;
             var caster = this as Creature;
@@ -1101,7 +1103,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            CreateSpellProjectiles(spell, target, weapon, isWeaponSpell, fromProc, damage);
+            CreateSpellProjectiles(spell, target, weapon, isWeaponSpell, fromProc, damage, sourceOverride);
 
             if (spell.School == MagicSchool.LifeMagic)
             {
@@ -1224,7 +1226,7 @@ namespace ACE.Server.WorldObjects
 
             var targetPlayer = targetCreature as Player;
 
-            if (player != null && player.PKTimerActive)
+            if (player != null && player.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
             {
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -1359,7 +1361,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (player != null && player.PKTimerActive)
+            if (player != null && player.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
             {
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -1487,7 +1489,7 @@ namespace ACE.Server.WorldObjects
         {
             if (targetCreature is Player targetPlayer)
             {
-                if (targetPlayer.PKTimerActive)
+                if (targetPlayer.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (targetPlayer.IsPK || targetPlayer.IsPKL)))
                 {
                     targetPlayer.Session.Network.EnqueueSend(new GameEventWeenieError(targetPlayer.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                     return;
@@ -1530,7 +1532,7 @@ namespace ACE.Server.WorldObjects
             if (targetPlayer == null || targetPlayer.Fellowship == null)
                 return false;
 
-            if (targetPlayer.PKTimerActive)
+            if (targetPlayer.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (targetPlayer.IsPK || targetPlayer.IsPKL)))
             {
                 targetPlayer.Session.Network.EnqueueSend(new GameEventWeenieError(targetPlayer.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return false;
@@ -1679,7 +1681,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Creates and launches the projectiles for a spell
         /// </summary>
-        public List<SpellProjectile> CreateSpellProjectiles(Spell spell, WorldObject target, WorldObject weapon, bool isWeaponSpell = false, bool fromProc = false, uint lifeProjectileDamage = 0)
+        public List<SpellProjectile> CreateSpellProjectiles(Spell spell, WorldObject target, WorldObject weapon, bool isWeaponSpell = false, bool fromProc = false, uint lifeProjectileDamage = 0, WorldObject sourceOverride = null)
         {
             if (spell.NumProjectiles == 0)
             {
@@ -1689,11 +1691,22 @@ namespace ACE.Server.WorldObjects
 
             var spellType = SpellProjectile.GetProjectileSpellType(spell.Id);
 
-            var origins = CalculateProjectileOrigins(spell, spellType, target);
+            List<Vector3> origins;
+            Vector3 velocity;
+            if (sourceOverride == null)
+            {
+                origins = CalculateProjectileOrigins(spell, spellType, target);
+                velocity = CalculateProjectileVelocity(spell, target, spellType, origins[0]);
 
-            var velocity = CalculateProjectileVelocity(spell, target, spellType, origins[0]);
+                return LaunchSpellProjectiles(spell, target, spellType, weapon, isWeaponSpell, fromProc, origins, velocity, lifeProjectileDamage);
+            }
+            else
+            {
+                origins = sourceOverride.CalculateProjectileOrigins(spell, spellType, target);
+                velocity = sourceOverride.CalculateProjectileVelocity(spell, target, spellType, origins[0]);
 
-            return LaunchSpellProjectiles(spell, target, spellType, weapon, isWeaponSpell, fromProc, origins, velocity, lifeProjectileDamage);
+                return sourceOverride.LaunchSpellProjectiles(spell, target, spellType, weapon, isWeaponSpell, fromProc, origins, velocity, lifeProjectileDamage, this);
+            }
         }
 
         public static readonly float ProjHeight = 2.0f / 3.0f;
@@ -1740,7 +1753,7 @@ namespace ACE.Server.WorldObjects
         /// in local space relative to the caster
         /// </summary>
         public List<Vector3> CalculateProjectileOrigins(Spell spell, ProjectileSpellType spellType, WorldObject target)
-        {
+            {
             var origins = new List<Vector3>();
 
             var radius = GetProjectileRadius(spell);
@@ -1929,7 +1942,7 @@ namespace ACE.Server.WorldObjects
             return dir * speed;
         }
 
-        public List<SpellProjectile> LaunchSpellProjectiles(Spell spell, WorldObject target, ProjectileSpellType spellType, WorldObject weapon, bool isWeaponSpell, bool fromProc, List<Vector3> origins, Vector3 velocity, uint lifeProjectileDamage = 0)
+        public List<SpellProjectile> LaunchSpellProjectiles(Spell spell, WorldObject target, ProjectileSpellType spellType, WorldObject weapon, bool isWeaponSpell, bool fromProc, List<Vector3> origins, Vector3 velocity, uint lifeProjectileDamage = 0, WorldObject spellOwnerOverride = null)
         {
             var useGravity = spellType == ProjectileSpellType.Arc;
 
@@ -1979,7 +1992,10 @@ namespace ACE.Server.WorldObjects
                 sp.PhysicsObj.Position.Frame.set_vector_heading(dir);
                 sp.Location.Rotation = sp.PhysicsObj.Position.Frame.Orientation;
 
-                sp.ProjectileSource = this;
+                if (spellOwnerOverride == null)
+                    sp.ProjectileSource = this;
+                else
+                    sp.ProjectileSource = spellOwnerOverride;
                 sp.FromProc = fromProc;
 
                 // side projectiles always untargeted?
@@ -2195,7 +2211,7 @@ namespace ACE.Server.WorldObjects
                 return enchantment_statModVal * damageRatingMod;
             }
 
-            if (spell.Category != SpellCategory.NetherDamageOverTimeRaising && spell.Category != SpellCategory.NetherDamageOverTimeRaising2 && spell.Category != SpellCategory.NetherDamageOverTimeRaising3)
+            if (spell.Category != SpellCategory.NetherDamageOverTimeRaising && spell.Category != SpellCategory.NetherDamageOverTimeRaising2 && spell.Category != SpellCategory.NetherDamageOverTimeRaising3 && spell.Category != SpellCategory.FireDoT)
             {
                 log.Error($"{Name}.CalculateDamageOverTimeBase({spell.Id} - {spell.Name}, {target?.Name}) - unknown dot spell category {spell.Category}");
                 return enchantment_statModVal;

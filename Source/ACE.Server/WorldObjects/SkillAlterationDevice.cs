@@ -136,6 +136,8 @@ namespace ACE.Server.WorldObjects
             var bow = player.GetCreatureSkill(Skill.Bow);
             //var crossbow = player.GetCreatureSkill(Skill.Crossbow);
             var thrown = player.GetCreatureSkill(Skill.ThrownWeapon);
+            var war = player.GetCreatureSkill(Skill.WarMagic);
+            var life = player.GetCreatureSkill(Skill.LifeMagic);
 
             highestSkill = axe;
             if (dagger.Current > highestSkill.Current)
@@ -156,6 +158,10 @@ namespace ACE.Server.WorldObjects
             //    highestSkill = crossbow;
             if (thrown.Current > highestSkill.Current)
                 highestSkill = thrown;
+            if (war.Current > highestSkill.Current)
+                highestSkill = war;
+            if (life.Current > highestSkill.Current)
+                highestSkill = life;
 
             return highestSkill;
         }

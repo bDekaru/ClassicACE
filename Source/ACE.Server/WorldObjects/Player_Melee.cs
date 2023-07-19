@@ -366,9 +366,6 @@ namespace ACE.Server.WorldObjects
                 numStrikes = attackFrames.Count;
             }
 
-            if(weapon != null)
-                weapon.TryProcInnate(this, creature, false);
-
             // handle self-procs
             TryProcEquippedItems(this, this, true, weapon);
 
@@ -403,6 +400,9 @@ namespace ACE.Server.WorldObjects
                     // handle target procs
                     if (damageEvent != null && damageEvent.HasDamage && !targetProc)
                     {
+                        if (weapon != null)
+                            weapon.TryProcInnate(this, creature, false);
+
                         TryProcEquippedItems(this, creature, false, weapon);
                         targetProc = true;
                     }

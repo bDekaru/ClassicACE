@@ -360,7 +360,7 @@ namespace ACE.Server.WorldObjects
             return coinStacks;
         }
 
-        private void UpdateCoinValue(bool sendUpdateMessageIfChanged = true)
+        public void UpdateCoinValue(bool sendUpdateMessageIfChanged = true)
         {
             int coins = 0;
 

@@ -669,7 +669,21 @@ namespace ACE.Server.Command.Handlers
                     else
                         amountAdjetive = "a lot of ";
 
-                    var msg = $"Hunting Grounds: {entry.Name} {entry.Directions}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
+                    string entryName;
+                    string entryDirections;
+                    var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+                    if (entryLandblock != null)
+                    {
+                        entryName = entryLandblock.Name;
+                        entryDirections = entryLandblock.Directions;
+                    }
+                    else
+                    {
+                        entryName = $"unknown location({entry.Landblock})";
+                        entryDirections = "at an unknown location";
+                    }
+
+                    var msg = $"Hunting Grounds: {entryName} {entryDirections}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
                     session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
                 }
             }
@@ -729,7 +743,21 @@ namespace ACE.Server.Command.Handlers
                 else
                     amountAdjetive = "a lot of ";
 
-                var msg = $"Activity Recommendation:\nHunting Grounds: {entry.Name} {entry.Directions}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
+                string entryName;
+                string entryDirections;
+                var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+                if (entryLandblock != null)
+                {
+                    entryName = entryLandblock.Name;
+                    entryDirections = entryLandblock.Directions;
+                }
+                else
+                {
+                    entryName = $"unknown location({entry.Landblock})";
+                    entryDirections = "at an unknown location";
+                }
+
+                var msg = $"Activity Recommendation:\nHunting Grounds: {entryName} {entryDirections}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
                 session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
             }
         }
@@ -1324,17 +1352,27 @@ namespace ACE.Server.Command.Handlers
             ShowHotDungeon(session, false);
         }
 
-        public static void ShowHotDungeon(Session session, bool failSilently)
+        public static void ShowHotDungeon(Session session, bool failSilently, ulong discordChannel = 0)
         {
             if (EventManager.HotDungeonLandblock == 0)
             {
                 if (!failSilently)
-                    CommandHandlerHelper.WriteOutputInfo(session, "There's no dungeons providing extra experience rewards at the moment.");
+                {
+                    var msg = "There's no dungeons providing extra experience rewards at the moment.";
+                    if (discordChannel == 0)
+                        CommandHandlerHelper.WriteOutputInfo(session, msg);
+                    else
+                        DiscordChatBridge.SendMessage(discordChannel, msg);
+                }
             }
             else
             {
                 var timeRemaining = TimeSpan.FromSeconds(EventManager.NextHotDungeonSwitch - Time.GetUnixTime()).GetFriendlyString();
-                CommandHandlerHelper.WriteOutputInfo(session, $"{EventManager.HotDungeonDescription} Time Remaining: {timeRemaining}.");
+                var msg = $"{EventManager.HotDungeonDescription} Time Remaining: {timeRemaining}.";
+                if (discordChannel == 0)
+                    CommandHandlerHelper.WriteOutputInfo(session, msg);
+                else
+                    DiscordChatBridge.SendMessage(discordChannel, msg);
             }
         }
 
@@ -1428,6 +1466,10 @@ namespace ACE.Server.Command.Handlers
             if (parameters.Length > 1 && parameters[1] == "living")
                 onlyLiving = true;
 
+            ulong discordChannel = 0;
+            if (parameters.Length > 3 && parameters[2] == "discord")
+                ulong.TryParse(parameters[3], out discordChannel);
+
             var leaderboard = PrepareLeaderboard(IsPkLeaderboard ? GameplayModes.HardcorePK : GameplayModes.HardcoreNPK, onlyLiving).OrderByDescending(b => b.XP).ToList();
 
             StringBuilder message = new StringBuilder();
@@ -1446,7 +1488,10 @@ namespace ACE.Server.Command.Handlers
             }
             message.Append("-----------------------\n");
 
-            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
         /// <summary>
@@ -1464,6 +1509,10 @@ namespace ACE.Server.Command.Handlers
                 }
                 session.Player.PrevLeaderboardSSFCommandRequestTimestamp = DateTime.UtcNow;
             }
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 1 && parameters[0] == "discord")
+                ulong.TryParse(parameters[1], out discordChannel);
 
             var leaderboard = PrepareLeaderboard(GameplayModes.SoloSelfFound, true).OrderByDescending(b => b.XP).ToList();
 
@@ -1485,7 +1534,10 @@ namespace ACE.Server.Command.Handlers
             }
             message.Append("-----------------------\n");
 
-            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
         /// <summary>
@@ -1503,6 +1555,10 @@ namespace ACE.Server.Command.Handlers
                 }
                 session.Player.PrevLeaderboardXPCommandRequestTimestamp = DateTime.UtcNow;
             }
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 1 && parameters[0] == "discord")
+                ulong.TryParse(parameters[1], out discordChannel);
 
             var leaderboard = PrepareLeaderboard(GameplayModes.Regular, true).OrderByDescending(b => b.XP).ToList();
 
@@ -1525,7 +1581,10 @@ namespace ACE.Server.Command.Handlers
             }
             message.Append("-----------------------\n");
 
-            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
         /// <summary>
@@ -1543,6 +1602,10 @@ namespace ACE.Server.Command.Handlers
                 }
                 session.Player.PrevLeaderboardPvPCommandRequestTimestamp = DateTime.UtcNow;
             }
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 1 && parameters[0] == "discord")
+                ulong.TryParse(parameters[1], out discordChannel);
 
             var leaderboard = PrepareLeaderboard(GameplayModes.Regular, true).OrderByDescending(b => b.XP).ToList();
 
@@ -1565,7 +1628,10 @@ namespace ACE.Server.Command.Handlers
             }
             message.Append("-----------------------\n");
 
-            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
         /// <summary>
@@ -1587,6 +1653,10 @@ namespace ACE.Server.Command.Handlers
             bool onlyLiving = false;
             if (parameters.Length > 0 && parameters[0] == "living")
                 onlyLiving = true;
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 2 && parameters[1] == "discord")
+                ulong.TryParse(parameters[2], out discordChannel);
 
             var living = PlayerManager.FindAllByGameplayMode(GameplayModes.HardcorePK);
 
@@ -1613,7 +1683,10 @@ namespace ACE.Server.Command.Handlers
             }
             message.Append("-------------------------\n");
 
-            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
         [CommandHandler("OfflineSwear", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 1, "Swear allegiance to an offline character on the same account.", "OfflineSwear <PatronName>")]
@@ -1705,6 +1778,27 @@ namespace ACE.Server.Command.Handlers
             }
 
             CommandHandlerHelper.WriteOutputInfo(session, $"Fillcomps values updated. Please relog to see the updated values.");
+        }
+
+        [CommandHandler("Where", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Shows information about your current location")]
+        public static void HandleWhere(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: Where", ChatMessageType.Help));
+                return;
+            }
+
+            var player = session.Player;
+            if (player == null)
+                return;
+
+            var landblockDescription = DatabaseManager.World.GetLandblockDescriptionsByLandblock(player.CurrentLandblock.Id.Landblock).FirstOrDefault();
+
+            if(landblockDescription != null)
+                CommandHandlerHelper.WriteOutputInfo(session, $"Current Location: {landblockDescription.Name}\nDirections: {landblockDescription.Directions}\nReference: {landblockDescription.Reference}\nMacro Region: {landblockDescription.MacroRegion}\nMicro Region: {landblockDescription.MicroRegion}");
+            else
+                CommandHandlerHelper.WriteOutputInfo(session, $"You are at an unknown location.");
         }
     }
 }

@@ -36,8 +36,6 @@ namespace ACE.Server.Factories.Tables
             SpellId.InvulnerabilityOther1,
             SpellId.MagicResistanceOther1,
             SpellId.MonsterAttunementOther1,
-            SpellId.WarMagicMasteryOther1,
-            SpellId.LifeMagicMasteryOther1,
             SpellId.AlchemyMasteryOther1,
         };
 
@@ -53,6 +51,8 @@ namespace ACE.Server.Factories.Tables
                 clothArmorSpells = new List<(SpellId, float)>()
                 {
                     ( SpellId.ArmorOther1,                  1.00f ),
+                    ( SpellId.WarMagicMasteryOther1,        0.33f ),
+                    ( SpellId.LifeMagicMasteryOther1,       0.33f ),
                     ( SpellId.AcidProtectionOther1,         0.15f ),
                     ( SpellId.BludgeonProtectionOther1,     0.15f ),
                     ( SpellId.ColdProtectionOther1,         0.15f ),

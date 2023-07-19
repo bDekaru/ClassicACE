@@ -8,7 +8,9 @@ using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Factories;
 using ACE.Server.Managers;
+using ACE.Server.Network;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects.Entity;
 
@@ -26,19 +28,25 @@ namespace ACE.Server.WorldObjects
             if (creatureSkill == null || creatureSkill.AdvancementClass < SkillAdvancementClass.Trained)
             {
                 log.Error($"{Name}.HandleActionRaiseSkill({skill}, {amount}) - trained or specialized skill not found");
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
                 return false;
             }
 
             if (amount > AvailableExperience)
             {
                 //log.Error($"{Name}.HandleActionRaiseSkill({skill}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
                 return false;
             }
 
             var prevRank = creatureSkill.Ranks;
 
             if (!SpendSkillXp(creatureSkill, amount))
+            {
+                ChatPacket.SendServerMessage(Session, $"You do not have enough experience to raise your {skill.ToSentence()} skill.", ChatMessageType.Broadcast);
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
                 return false;
+            }
 
             Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
 
@@ -949,6 +957,53 @@ namespace ACE.Server.WorldObjects
                 QuestManager.Erase("UsedFreeMeleeMasteryReset");
                 QuestManager.Erase("UsedFreeRangedMasteryReset");
                 QuestManager.Erase("UsedFreeSummoningMasteryReset");
+            });
+            actionChain.EnqueueChain();
+        }
+
+        public void HandleMigrateCharacterVersion1To2()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            var version = GetProperty(PropertyInt.Version) ?? 0;
+
+            if (version != 1)
+                return;
+
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(5.0f);
+            actionChain.AddAction(this, () =>
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in skill formulae you're entitled to change your Focus to Self!", ChatMessageType.Magic));
+
+                var failed = false;
+                var amount = Math.Min(Focus.StartingValue / 10, 9);
+                var list = new List<WorldObject>();
+                for(int i = 0; i < amount; i++)
+                {
+                    var gem = WorldObjectFactory.CreateNewWorldObject(23058); // Focus to Self Gem
+                    if (!TryCreateInInventoryWithNetworking(gem))
+                    {
+                        gem.Destroy(); // Clean up on creation failure
+                        failed = true;
+                        break;
+                    }
+                    else
+                        list.Add(gem);
+                }
+
+                if (!failed)
+                    SetProperty(PropertyInt.Version, 2);
+                else
+                {
+                    foreach(var gem in list)
+                    {
+                        if (TryRemoveFromInventoryWithNetworking(gem.Guid, out var item, RemoveFromInventoryAction.ConsumeItem))
+                            item.Destroy();
+                    }
+                    Session.Network.EnqueueSend(new GameMessageSystemChat("Failed to generate your gems! Please make sure you have enough space in your inventory and relog to try again.", ChatMessageType.Magic));
+                }
             });
             actionChain.EnqueueChain();
         }
