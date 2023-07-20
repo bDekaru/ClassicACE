@@ -3553,10 +3553,16 @@ namespace ACE.Server.Command.Handlers
 
                 DatabaseManager.Shard.AddCharacterInParallel(player.Biota, player.BiotaDatabaseLock, possessedBiotas, player.Character, player.CharacterDatabaseLock, null);
 
-                PlayerManager.AddOfflinePlayer(player);
-                session.Characters.Add(player.Character);
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(5.0f);
+                actionChain.AddAction(session.Player, () =>
+                {
+                    PlayerManager.AddOfflinePlayer(player);
+                    session.Characters.Add(player.Character);
 
-                session.LogOffPlayer();
+                    session.LogOffPlayer();
+                });
+                actionChain.EnqueueChain();
             });
         }
 
