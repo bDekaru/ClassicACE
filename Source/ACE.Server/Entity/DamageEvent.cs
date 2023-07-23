@@ -675,13 +675,14 @@ namespace ACE.Server.Entity
 
                 // Evasion penalty for receiving too many attacks per second.
                 if (defender.attacksReceivedPerSecond > 0.0f && Defender.AttackTarget != attacker) // But we still have full evasion chance against our attack target.
-                    EffectiveDefenseSkill = (uint)Math.Round(EffectiveDefenseSkill * (1.0f - Math.Min(1.0f, defender.attacksReceivedPerSecond / 40.0f)));
+                    EffectiveDefenseSkill = (uint)Math.Round(EffectiveDefenseSkill * (1.0f - Math.Min(1.0f, defender.attacksReceivedPerSecond / 20.0f)));
             }
 
             var evadeChance = 1.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveDefenseSkill);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && playerDefender != null)
                 evadeChance = Math.Min(evadeChance, 0.95f + ((CombatType == CombatType.Missile ? playerDefender.CachedMissileDefenseCapBonus : playerDefender.CachedMeleeDefenseCapBonus)) * 0.01);
+
 
             return (float)evadeChance;
         }
@@ -701,9 +702,9 @@ namespace ACE.Server.Entity
 
                 var combatTypeMod = CombatType == CombatType.Missile ? 1.5f : 0.6f;
 
-                EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 4.0f);
+                EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 5.0f);
 
-                var blockChance = 1.5f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
+                var blockChance = 3.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
 
                return (float)blockChance;
             }
