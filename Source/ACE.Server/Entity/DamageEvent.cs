@@ -713,22 +713,16 @@ namespace ACE.Server.Entity
                 else
                     EffectiveBlockSkill = 0;
 
-                var combatTypeMod = CombatType == CombatType.Missile ? 1.5f : 1.333f;
+                var combatTypeMod = CombatType == CombatType.Missile ? 2.0f : 1.333f;
                 EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod);
 
-                var blockChance = 2.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
-
-
-                EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod * 5.0f);
-
-                var blockChance = 3.0f - SkillCheck.GetSkillChance(EffectiveAttackSkill, EffectiveBlockSkill);
+                var blockChance = 5.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
 
                 if (CombatType == CombatType.Missile)
                     blockChance += blockChance * shield.GetShieldMissileBlockBonus();
 
                 if (isPvP)
                     blockChance *= (float)PropertyManager.GetDouble("pvp_dmg_mod_shield_block_chance").Item;
-
 
                 return (float)blockChance;
             }
