@@ -107,7 +107,6 @@ namespace ACE.Server.Factories
                 wo.SlayerCreatureType = SlayerTypeChance.Roll(treasureDeath);
                 wo.SlayerDamageBonus = 1.5f;
                 wo.IconOverlayId = 0x06005EC0;
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
             return false;
@@ -214,15 +213,6 @@ namespace ACE.Server.Factories
                         case 4: damageType = DamageType.Cold; break;
                         case 5: damageType = DamageType.Electric; break;
                         case 6: damageType = DamageType.Acid; break;
-                    }
-                }
-                if (damageType == (DamageType.Slash | DamageType.Pierce))
-                {
-                    var roll = ThreadSafeRandom.Next(0, 1);
-                    switch (roll)
-                    {
-                        case 0: damageType = DamageType.Slash; break;
-                        case 1: damageType = DamageType.Pierce; break;
                     }
                 }
 

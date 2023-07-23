@@ -18,6 +18,9 @@ using ACE.Server.WorldObjects;
 using System.Linq;
 using System.Text;
 using ACE.Entity.Enum.Properties;
+using ACE.Database.Models.Shard;
+using ACE.DatLoader.FileTypes;
+using ACE.Entity.Models;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -666,7 +669,21 @@ namespace ACE.Server.Command.Handlers
                     else
                         amountAdjetive = "a lot of ";
 
-                    var msg = $"Hunting Grounds: {entry.Name} {entry.Directions}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
+                    string entryName;
+                    string entryDirections;
+                    var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+                    if (entryLandblock != null)
+                    {
+                        entryName = entryLandblock.Name;
+                        entryDirections = entryLandblock.Directions;
+                    }
+                    else
+                    {
+                        entryName = $"unknown location({entry.Landblock})";
+                        entryDirections = "at an unknown location";
+                    }
+
+                    var msg = $"Hunting Grounds: {entryName} {entryDirections}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
                     session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
                 }
             }
@@ -726,7 +743,21 @@ namespace ACE.Server.Command.Handlers
                 else
                     amountAdjetive = "a lot of ";
 
-                var msg = $"Activity Recommendation:\nHunting Grounds: {entry.Name} {entry.Directions}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
+                string entryName;
+                string entryDirections;
+                var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
+                if (entryLandblock != null)
+                {
+                    entryName = entryLandblock.Name;
+                    entryDirections = entryLandblock.Directions;
+                }
+                else
+                {
+                    entryName = $"unknown location({entry.Landblock})";
+                    entryDirections = "at an unknown location";
+                }
+
+                var msg = $"Activity Recommendation:\nHunting Grounds: {entryName} {entryDirections}. Expect to find {amountAdjetive}{entry.ContentDescription}.";
                 session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
             }
         }
@@ -964,6 +995,7 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
+        [CommandHandler("fi", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Resends all visible items and creatures to the client")]
         [CommandHandler("fixinvisible", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Resends all visible items and creatures to the client")]
         public static void HandleFixInvisible(Session session, params string[] parameters)
         {
@@ -1320,17 +1352,27 @@ namespace ACE.Server.Command.Handlers
             ShowHotDungeon(session, false);
         }
 
-        public static void ShowHotDungeon(Session session, bool failSilently)
+        public static void ShowHotDungeon(Session session, bool failSilently, ulong discordChannel = 0)
         {
             if (EventManager.HotDungeonLandblock == 0)
             {
                 if (!failSilently)
-                    CommandHandlerHelper.WriteOutputInfo(session, "There's no dungeons providing extra experience rewards at the moment.");
+                {
+                    var msg = "There's no dungeons providing extra experience rewards at the moment.";
+                    if (discordChannel == 0)
+                        CommandHandlerHelper.WriteOutputInfo(session, msg);
+                    else
+                        DiscordChatBridge.SendMessage(discordChannel, msg);
+                }
             }
             else
             {
                 var timeRemaining = TimeSpan.FromSeconds(EventManager.NextHotDungeonSwitch - Time.GetUnixTime()).GetFriendlyString();
-                CommandHandlerHelper.WriteOutputInfo(session, $"{EventManager.HotDungeonDescription} Time Remaining: {timeRemaining}.");
+                var msg = $"{EventManager.HotDungeonDescription} Time Remaining: {timeRemaining}.";
+                if (discordChannel == 0)
+                    CommandHandlerHelper.WriteOutputInfo(session, msg);
+                else
+                    DiscordChatBridge.SendMessage(discordChannel, msg);
             }
         }
 
@@ -1341,9 +1383,11 @@ namespace ACE.Server.Command.Handlers
             public string KillerName;
             public int KillerLevel;
             public bool WasPvP;
-            public int Kills;
+            public int HardcoreKills;
+            public int PKKills;
             public long XP;
             public bool Living;
+            public bool isPK;
         }
 
         public static List<LeaderboardEntry> PrepareLeaderboard(GameplayModes gameplayMode, bool onlyLiving)
@@ -1353,12 +1397,18 @@ namespace ACE.Server.Command.Handlers
             var leaderboard = new List<LeaderboardEntry>();
             foreach (var entry in living)
             {
+                var level = entry.GetProperty(PropertyInt.Level) ?? 1;
+                if (level >= 999)
+                    continue;
+
                 var leaderboardEntry = new LeaderboardEntry();
                 leaderboardEntry.Living = true;
                 leaderboardEntry.Name = entry.GetProperty(PropertyString.Name);
-                leaderboardEntry.Level = entry.GetProperty(PropertyInt.Level) ?? 1;
+                leaderboardEntry.Level = level;
                 leaderboardEntry.XP = entry.GetProperty(PropertyInt64.TotalExperience) ?? 0;
-                leaderboardEntry.Kills = entry.GetProperty(PropertyInt.PlayerKillsPkl) ?? 0;
+                leaderboardEntry.HardcoreKills = entry.GetProperty(PropertyInt.PlayerKillsPkl) ?? 0;
+                leaderboardEntry.PKKills = entry.GetProperty(PropertyInt.PlayerKillsPk) ?? 0;
+                leaderboardEntry.isPK = entry.GetProperty(PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PKLite || entry.GetProperty(PropertyInt.PlayerKillerStatus) == (int)PlayerKillerStatus.PK;
 
                 leaderboard.Add(leaderboardEntry);
             }
@@ -1368,6 +1418,9 @@ namespace ACE.Server.Command.Handlers
                 var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeathsByGameplayMode(gameplayMode);
                 foreach (var entry in obituaryEntries)
                 {
+                    if (entry.CharacterLevel >= 999)
+                        continue;
+
                     if (entry.GameplayMode == (int)gameplayMode)
                     {
                         var leaderboardEntry = new LeaderboardEntry();
@@ -1378,7 +1431,8 @@ namespace ACE.Server.Command.Handlers
                         leaderboardEntry.KillerLevel = entry.KillerLevel;
                         leaderboardEntry.WasPvP = entry.WasPvP;
                         leaderboardEntry.XP = entry.XP;
-                        leaderboardEntry.Kills = entry.Kills;
+                        leaderboardEntry.HardcoreKills = entry.Kills;
+                        leaderboardEntry.isPK = gameplayMode == GameplayModes.HardcorePK;
 
                         leaderboard.Add(leaderboardEntry);
                     }
@@ -1391,8 +1445,7 @@ namespace ACE.Server.Command.Handlers
         /// <summary>
         /// List top 10 Hardcore characters by total XP
         /// </summary>
-        [CommandHandler("LeaderboardHCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore PK characters by total XP.", "LeaderboardHCXP [pk|npk] [alltime|living]")]
-        [CommandHandler("HCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore PK characters by total XP.", "LeaderboardHCXP [pk|npk] [alltime|living]")]
+        [CommandHandler("HCXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Hardcore characters by total XP.", "HCXP [pk|npk] [alltime|living]")]
         public static void HandleLeaderboardHCXP(Session session, params string[] parameters)
         {
             if (session != null)
@@ -1413,6 +1466,10 @@ namespace ACE.Server.Command.Handlers
             if (parameters.Length > 1 && parameters[1] == "living")
                 onlyLiving = true;
 
+            ulong discordChannel = 0;
+            if (parameters.Length > 3 && parameters[2] == "discord")
+                ulong.TryParse(parameters[3], out discordChannel);
+
             var leaderboard = PrepareLeaderboard(IsPkLeaderboard ? GameplayModes.HardcorePK : GameplayModes.HardcoreNPK, onlyLiving).OrderByDescending(b => b.XP).ToList();
 
             StringBuilder message = new StringBuilder();
@@ -1422,7 +1479,7 @@ namespace ACE.Server.Command.Handlers
             foreach(var entry in leaderboard)
             {
                 var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                var deathStatus = onlyLiving ? "" : $" {(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
+                var deathStatus = onlyLiving ? "" : $"{(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
                 message.Append($"{label} {entry.Name} - Level {entry.Level}{deathStatus}\n");
                 playerCounter++;
 
@@ -1431,14 +1488,156 @@ namespace ACE.Server.Command.Handlers
             }
             message.Append("-----------------------\n");
 
-            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
+        }
+
+        /// <summary>
+        /// List top 10 Solo Self-Found characters by total XP
+        /// </summary>
+        [CommandHandler("TopSSF", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 Solo Self-Found characters by total XP.", "TopSSF")]
+        public static void HandleLeaderboardSSF(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardSSFCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardSSFCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 1 && parameters[0] == "discord")
+                ulong.TryParse(parameters[1], out discordChannel);
+
+            var leaderboard = PrepareLeaderboard(GameplayModes.SoloSelfFound, true).OrderByDescending(b => b.XP).ToList();
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Solo Self-Found Characters by XP: \n");
+            message.Append("-----------------------\n");
+            uint playerCounter = 1;
+            foreach (var entry in leaderboard)
+            {
+                if (entry.XP > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    message.Append($"{label} {entry.Name} - Level {entry.Level}\n");
+                    playerCounter++;
+
+                    if (playerCounter > 10)
+                        break;
+                }
+            }
+            message.Append("-----------------------\n");
+
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
+        }
+
+        /// <summary>
+        /// List top 10 characters by total XP
+        /// </summary>
+        [CommandHandler("TopXP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 characters by total XP.", "TopXP")]
+        public static void HandleLeaderboardLevel(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardXPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardXPCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 1 && parameters[0] == "discord")
+                ulong.TryParse(parameters[1], out discordChannel);
+
+            var leaderboard = PrepareLeaderboard(GameplayModes.Regular, true).OrderByDescending(b => b.XP).ToList();
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Top Characters by XP: \n");
+            message.Append("-----------------------\n");
+            uint playerCounter = 1;
+            foreach (var entry in leaderboard)
+            {
+                if (entry.XP > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    var pkStatus = entry.isPK ? "(PK)" : "";
+                    message.Append($"{label} {entry.Name} - Level {entry.Level}{pkStatus}\n");
+                    playerCounter++;
+
+                    if (playerCounter > 10)
+                        break;
+                }
+            }
+            message.Append("-----------------------\n");
+
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
+        }
+
+        /// <summary>
+        /// List top 10 characters by total kills
+        /// </summary>
+        [CommandHandler("TopPvP", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 characters by total kills.", "TopPvP")]
+        public static void HandleLeaderboardPvP(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardPvPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardPvPCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 1 && parameters[0] == "discord")
+                ulong.TryParse(parameters[1], out discordChannel);
+
+            var leaderboard = PrepareLeaderboard(GameplayModes.Regular, true).OrderByDescending(b => b.XP).ToList();
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Top Characters by Kills: \n");
+            message.Append("-----------------------\n");
+            uint playerCounter = 1;
+            foreach (var entry in leaderboard)
+            {
+                if (entry.PKKills > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    var pkStatus = entry.isPK ? "(PK)" : "";
+                    message.Append($"{label} {entry.Name} - Level {entry.Level}{pkStatus} - {entry.PKKills} kill{(entry.PKKills != 1 ? "s" : "")}\n");
+                    playerCounter++;
+
+                    if (playerCounter > 10)
+                        break;
+                }
+            }
+            message.Append("-----------------------\n");
+
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
         /// <summary>
         /// Reports on the top 10 Hardcore characters by PvP kills
         /// </summary>
-        [CommandHandler("LeaderboardHCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters ranked by PvP kills.", "LeaderboardHCPvP [alltime|living]")]
-        [CommandHandler("HCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters ranked by PvP kills.", "LeaderboardHCPvP [alltime|living]")]
+        [CommandHandler("HCPvP", AccessLevel.Player, CommandHandlerFlag.None, "Reports on the top 10 Hardcore characters by PvP kills.", "HCPvP [alltime|living]")]
         public static void HandleLeaderboardHCPvP(Session session, params string[] parameters)
         {
             if (session != null)
@@ -1455,11 +1654,15 @@ namespace ACE.Server.Command.Handlers
             if (parameters.Length > 0 && parameters[0] == "living")
                 onlyLiving = true;
 
+            ulong discordChannel = 0;
+            if (parameters.Length > 2 && parameters[1] == "discord")
+                ulong.TryParse(parameters[2], out discordChannel);
+
             var living = PlayerManager.FindAllByGameplayMode(GameplayModes.HardcorePK);
 
-            var leaderboard = PrepareLeaderboard(GameplayModes.HardcorePK, onlyLiving).OrderByDescending(b => b.Kills).ToList();
+            var leaderboard = PrepareLeaderboard(GameplayModes.HardcorePK, onlyLiving).OrderByDescending(b => b.HardcoreKills).ToList();
 
-            leaderboard = leaderboard.OrderByDescending(b => b.Kills).ToList();
+            leaderboard = leaderboard.OrderByDescending(b => b.HardcoreKills).ToList();
 
             StringBuilder message = new StringBuilder();
             message.Append($"Hardcore {(onlyLiving ? "Living" : "All-Time")} PvP Leaderboard:\n");
@@ -1467,26 +1670,38 @@ namespace ACE.Server.Command.Handlers
             uint playerCounter = 1;
             foreach (var entry in leaderboard)
             {
-                var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
-                var deathStatus = onlyLiving ? "" : $" {(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
-                message.Append($"{label} {entry.Name} - Level {entry.Level} - {entry.Kills} kill{(entry.Kills != 1 ? "s" : "")}{deathStatus}\n");
-                playerCounter++;
+                if (entry.HardcoreKills > 0)
+                {
+                    var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
+                    var deathStatus = onlyLiving ? "" : $"{(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
+                    message.Append($"{label} {entry.Name} - Level {entry.Level} - {entry.HardcoreKills} kill{(entry.HardcoreKills != 1 ? "s" : "")}{deathStatus}\n");
+                    playerCounter++;
 
-                if (playerCounter > 10)
-                    break;
+                    if (playerCounter > 10)
+                        break;
+                }
             }
             message.Append("-------------------------\n");
 
-            CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
         [CommandHandler("OfflineSwear", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 1, "Swear allegiance to an offline character on the same account.", "OfflineSwear <PatronName>")]
         public static void HandleOfflineSwear(Session session, params string[] parameters)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: OfflineSwear", ChatMessageType.Help));
+                return;
+            }
+
             var patronName = string.Join(" ", parameters);
 
             var onlinePlayer = PlayerManager.GetOnlinePlayer(patronName);
-            var offlinePlayer = PlayerManager.GetOfflinePlayer(patronName);
+            var offlinePlayer = PlayerManager.GetOfflinePlayer(patronName, false);
             if (onlinePlayer != null)
             {
                 if (onlinePlayer.Account.AccountId != session.AccountId)
@@ -1510,8 +1725,80 @@ namespace ACE.Server.Command.Handlers
                 CommandHandlerHelper.WriteOutputInfo(session, $"The target character must be on the same account as this character!");
                 return;
             }
+            else if (offlinePlayer.IsPendingDeletion || offlinePlayer.IsDeleted)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"The target must not be a deleted character!");
+                return;
+            }
             else
                 session.Player.OfflineSwearAllegiance(offlinePlayer.Guid.Full);
+        }
+
+        [CommandHandler("AutoFillComps", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 1, "Automatically adds components to fillcomps according to the current spellbook.", "AutoFillComps <Amount Multiplier|Clear>")]
+        public static void HandleAutoFillComps(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+            if (player == null)
+                return;
+
+            if (parameters[0].ToLower() == "clear")
+            {
+                player.Character.ClearFillComponents(player.CharacterDatabaseLock);
+            }
+            else
+            {
+                if (!int.TryParse(parameters[0], out var multiplier))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"The syntax of the command is incorrect.\nUsage: @AutoFillComps <Amount Multiplier|Clear>");
+                    return;
+                }
+
+                multiplier = Math.Clamp(multiplier, 0, 5000);
+
+                foreach (var spell in player.Biota.GetKnownSpellsIds(player.BiotaDatabaseLock))
+                {
+                    Spell spellEntity = new Spell(spell);
+                    foreach (var componentId in spellEntity.Formula.Components)
+                    {
+                        int amount = Math.Min(10 * multiplier, 5000);
+                        if (SpellFormula.SpellComponentsTable.SpellComponents.TryGetValue(componentId, out var spellComponent))
+                        {
+                            if (spellComponent.Type == (int)SpellComponentsTable.Type.Scarab || spellComponent.Type == (int)SpellComponentsTable.Type.Talisman)
+                                amount = Math.Min(3 * multiplier, 5000);
+
+                            var compWcid = Spell.GetComponentWCID(componentId);
+                            if (SpellComponent.IsValid(compWcid))
+                            {
+                                player.Character.TryRemoveFillComponent(compWcid, out _, player.CharacterDatabaseLock);
+                                player.Character.AddFillComponent(compWcid, (uint)amount, player.CharacterDatabaseLock, out _);
+                            }
+                        }
+                    }
+                }
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Fillcomps values updated. Please relog to see the updated values.");
+        }
+
+        [CommandHandler("Where", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Shows information about your current location")]
+        public static void HandleWhere(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: Where", ChatMessageType.Help));
+                return;
+            }
+
+            var player = session.Player;
+            if (player == null)
+                return;
+
+            var landblockDescription = DatabaseManager.World.GetLandblockDescriptionsByLandblock(player.CurrentLandblock.Id.Landblock).FirstOrDefault();
+
+            if(landblockDescription != null)
+                CommandHandlerHelper.WriteOutputInfo(session, $"Current Location: {landblockDescription.Name}\nDirections: {landblockDescription.Directions}\nReference: {landblockDescription.Reference}\nMacro Region: {landblockDescription.MacroRegion}\nMicro Region: {landblockDescription.MicroRegion}");
+            else
+                CommandHandlerHelper.WriteOutputInfo(session, $"You are at an unknown location.");
         }
     }
 }

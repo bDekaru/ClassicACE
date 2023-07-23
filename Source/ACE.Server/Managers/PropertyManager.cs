@@ -493,6 +493,7 @@ namespace ACE.Server.Managers
             // Alternative ruleset's default overrides
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
             {
+                PropertyManager.ModifyBool("corpse_destroy_pyreals", false);
                 PropertyManager.ModifyBool("item_dispel", true);
                 PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
                 PropertyManager.ModifyBool("allow_xp_at_max_level", true);
@@ -505,6 +506,7 @@ namespace ACE.Server.Managers
             }
             else if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
+                PropertyManager.ModifyBool("corpse_destroy_pyreals", false);
                 PropertyManager.ModifyBool("item_dispel", true);
                 PropertyManager.ModifyBool("vendor_shop_uses_generator", true);
                 PropertyManager.ModifyBool("increase_minimum_encounter_spawn_density", true);
@@ -514,6 +516,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyBool("allow_jump_loot", false);
                 PropertyManager.ModifyBool("allow_pkl_bump", false);
                 PropertyManager.ModifyBool("fix_chest_missing_inventory_window", true);
+                PropertyManager.ModifyBool("runrate_add_hooks", true);
 
                 PropertyManager.ModifyLong("fellowship_even_share_level", 80);
 
@@ -652,8 +655,9 @@ namespace ACE.Server.Managers
                 ("enforce_player_movement", new Property<bool>(false, "enable this to enforce server side verification of player movement")),
                 ("enforce_player_movement_speed", new Property<bool>(false, "enable this to enforce server side verification of player movement speed")),
                 ("enforce_player_movement_kick", new Property<bool>(false, "enable this to kick players that fail movement verification too frenquently")),
-                ("useable_gems", new Property<bool>(true, "Allows loot generated gems to be used to cast their spells.")),
-                ("allow_PKs_to_go_NPK", new Property<bool>(true, "Allows PKs to go back to being NPKs by using the appropriate altar."))
+                ("useable_gems", new Property<bool>(true, "Allows loot generated gems to be used to cast their spells")),
+                ("allow_PKs_to_go_NPK", new Property<bool>(true, "Allows PKs to go back to being NPKs by using the appropriate altar")),
+                ("show_discord_chat_ingame", new Property<bool>(false, "Display messages posted to Discord in general chat"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
@@ -673,7 +677,8 @@ namespace ACE.Server.Managers
                 ("rares_max_seconds_between", new Property<long>(5256000, "for rares_real_time: the maximum number of seconds a player can go before a second chance at a rare is allowed on rare eligible creature kills that did not generate a rare")),
                 ("summoning_killtask_multicredit_cap", new Property<long>(2, "if allow_summoning_killtask_multicredit is enabled, the maximum # of killtask credits a player can receive from 1 kill")),
                 ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects")),
-                ("max_level", new Property<long>(275, "Set the max character level."))
+                ("max_level", new Property<long>(275, "Set the max character level.")),
+                ("discord_channel_id", new Property<long>(0, "Messages posted to this Discord channel will be shown in General Chat"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<double>> DefaultDoubleProperties =
@@ -750,10 +755,11 @@ namespace ACE.Server.Managers
                 ("pvp_dmg_mod_staff", new Property<double>(1.0, "Scales staff damage.")),
                 ("pvp_dmg_mod_sword", new Property<double>(1.0, "Scales sword damage.")),
                 ("pvp_dmg_mod_unarmed", new Property<double>(1.0, "Scales unarmed combat damage.")),
+                ("pvp_dmg_mod_unarmed_war", new Property<double>(1.0, "Scales unamed combat war magic spell damage.")),
 
                 ("pvp_dmg_mod_bow", new Property<double>(1.0, "Scales bow damage.")),
                 ("pvp_dmg_mod_crossbow", new Property<double>(1.0, "Scales crossbow damage.")),
-                ("pvp_dmg_mod_trown", new Property<double>(1.0, "Scales thrown weapons damage.")),
+                ("pvp_dmg_mod_thrown", new Property<double>(1.0, "Scales thrown weapons damage.")),
 
                 ("pvp_dmg_mod_war", new Property<double>(1.0, "Scales war magic spell(not including streaks) damage.")),
                 ("pvp_dmg_mod_void", new Property<double>(1.0, "Scales void magic spell(not including streaks and DoTs) damage.")),
@@ -776,7 +782,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_crit_dmg", new Property<double>(1.0, "Scales bow Crippling Blow and Crushing Blow damage.")),
                 ("pvp_dmg_mod_crossbow_crit_dmg", new Property<double>(1.0, "Scales crossbow Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_trown_crit_dmg", new Property<double>(1.0, "Scales thrown weapons Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_thrown_crit_dmg", new Property<double>(1.0, "Scales thrown weapons Crippling Blow and Crushing Blow damage.")),
 
                 ("pvp_dmg_mod_war_crit_dmg", new Property<double>(1.0, "Scales war magic Crippling Blow and Crushing Blow damage.")),
                 ("pvp_dmg_mod_life_crit_dmg", new Property<double>(1.0, "Scales life magic Crippling Blow and Crushing Blow damage.")),
@@ -794,7 +800,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_crit_chance", new Property<double>(1.0, "Scales bow Critical Strike and Biting Strike critical hit chance.")),
                 ("pvp_dmg_mod_crossbow_crit_chance", new Property<double>(1.0, "Scales crossbow Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_trown_crit_chance", new Property<double>(1.0, "Scales thrown weapons Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_thrown_crit_chance", new Property<double>(1.0, "Scales thrown weapons Critical Strike and Biting Strike critical hit chance.")),
 
                 ("pvp_dmg_mod_war_crit_chance", new Property<double>(1.0, "Scales war magic Critical Strike and Biting Strike critical hit chance.")),
                 ("pvp_dmg_mod_life_crit_chance", new Property<double>(1.0, "Scales life magic Critical Strike and Biting Strike critical hit chance.")),
@@ -812,7 +818,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_armor_ignore", new Property<double>(1.0, "Scales bow Armor Rending and Armor Cleaving armor ignore ratio.")),
                 ("pvp_dmg_mod_crossbow_armor_ignore", new Property<double>(1.0, "Scales crossbow Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_trown_armor_ignore", new Property<double>(1.0, "Scales thrown weapons Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_thrown_armor_ignore", new Property<double>(1.0, "Scales thrown weapons Armor Rending and Armor Cleaving armor ignore ratio.")),
 
                 // PvP Hollow damage modifiers
                 ("pvp_dmg_mod_hollow", new Property<double>(1.0, "Scales hollow weapon damage.")),
@@ -826,7 +832,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_hollow", new Property<double>(1.0, "Scales hollow bow damage.")),
                 ("pvp_dmg_mod_crossbow_hollow", new Property<double>(1.0, "Scales hollow crossbow damage.")),
-                ("pvp_dmg_mod_trown_hollow", new Property<double>(1.0, "Scales hollow thrown weapons damage.")),
+                ("pvp_dmg_mod_thrown_hollow", new Property<double>(1.0, "Scales hollow thrown weapons damage.")),
 
                 // PvP Phantom damage modifiers
                 ("pvp_dmg_mod_phantom", new Property<double>(1.0, "Scales phantom weapon damage.")),
@@ -840,7 +846,7 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_bow_phantom", new Property<double>(1.0, "Scales phantom bow damage.")),
                 ("pvp_dmg_mod_crossbow_phantom", new Property<double>(1.0, "Scales phantom crossbow damage.")),
-                ("pvp_dmg_mod_trown_phantom", new Property<double>(1.0, "Scales phantom thrown weapon damage.")),
+                ("pvp_dmg_mod_thrown_phantom", new Property<double>(1.0, "Scales phantom thrown weapon damage.")),
 
                 // PvP Miscellaneous modifiers
                 ("pvp_dmg_mod_shieldcleave", new Property<double>(1.0, "Scales the Shield Cleave amount.")),
@@ -848,10 +854,22 @@ namespace ACE.Server.Managers
 
                 ("pvp_dmg_mod_armor_level", new Property<double>(1.0, "Scales the base armor level.")),
                 ("pvp_dmg_mod_shield_level", new Property<double>(1.0, "Scales the base shield level.")),
+                ("pvp_dmg_mod_shield_block_chance", new Property<double>(1.0, "Scales the base shield block chance.")),
 
                 ("pvp_dmg_mod_sneak", new Property<double>(1.0, "Scales the sneak attack damage multiplier.")),
 
-                ("pk_cast_radius", new Property<double>(6.0, "the distance in meters a player can travel from their starting cast position. if they exceed this distance, they fizzle the spell."))
+                ("pk_cast_radius", new Property<double>(6.0, "The distance in meters a player can travel from their starting cast position. if they exceed this distance, they fizzle the spell.")),
+
+                // Hardcore settings
+                ("hardcore_npk_death_level_modifier", new Property<double>(1.0, "Percentage of levels lost on death for Hardcore NPK gameplay mode. A value of 1.0 means deaths reset the player to level 1.")),
+                ("hardcore_pk_pvp_death_level_modifier", new Property<double>(1.0, "Percentage of levels lost on death for Hardcore PK gameplay mode when dying in PvP. A value of 1.0 means deaths reset the player to level 1.")),
+                ("hardcore_pk_pve_death_level_modifier", new Property<double>(1.0, "Percentage of levels lost on death for Hardcore PK gameplay mode when dying in PvE. A value of 1.0 means deaths reset the player to level 1.")),
+                ("hardcore_npk_xp_modifier", new Property<double>(1.0, "Scales the amount of xp received by hardcore NPK players.")),
+                ("hardcore_pk_xp_modifier", new Property<double>(1.0, "Scales the amount of xp received by hardcore PK players.")),
+
+                ("surface_bonus_xp", new Property<double>(0.25, "Extra xp earned for kills when hunting outside dungeons. 1.0 means 100% more xp.")),
+                ("hot_dungeon_bonus_xp", new Property<double>(1.0, "Extra xp earned for kills when inside hot dungeons. 1.0 means 100% more xp.")),
+                ("exploration_bonus_xp", new Property<double>(0.5, "Extra xp earned for while completing exploration assignment's objecttives. 1.0 means 100% more xp."))
                 );
         
         public static readonly ReadOnlyDictionary<string, Property<string>> DefaultStringProperties =
@@ -870,7 +888,8 @@ namespace ACE.Server.Managers
                 ("turbine_chat_webhook", new Property<string>("", "Webhook to be used for turbine chat. This is for copying ingame general chat channels to a Discord channel.")),
                 ("turbine_chat_webhook_audit", new Property<string>("", "Webhook to be used for ingame audit log.")),
                 ("proxycheck_api_key", new Property<string>("", "API key for proxycheck.io service for VPN detection")),
-                ("vpn_account_whitelist", new Property<string>("", "A comma separated list of account names for which VPN detection is bypassed"))
+                ("vpn_account_whitelist", new Property<string>("", "A comma separated list of account names for which VPN detection is bypassed")),
+                ("discord_login_token", new Property<string>("", "Login Token used for Discord chat integration"))
                 );
     }
 }

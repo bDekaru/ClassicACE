@@ -217,6 +217,27 @@ namespace ACE.Database.Models.Shard
             }
         }
 
+        public static void ClearFillComponents(this Character character, ReaderWriterLockSlim rwLock)
+        {
+            rwLock.EnterUpgradeableReadLock();
+            try
+            {
+                rwLock.EnterWriteLock();
+                try
+                {
+                    character.CharacterPropertiesFillCompBook.Clear();
+                }
+                finally
+                {
+                    rwLock.ExitWriteLock();
+                }
+            }
+            finally
+            {
+                rwLock.ExitUpgradeableReadLock();
+            }
+        }
+
 
         // =====================================
         // CharacterPropertiesFriendList

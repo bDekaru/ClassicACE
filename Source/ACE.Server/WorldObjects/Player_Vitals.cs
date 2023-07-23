@@ -22,6 +22,7 @@ namespace ACE.Server.WorldObjects
             if (!Vitals.TryGetValue(vital, out var creatureVital))
             {
                 log.Error($"{Name}.HandleActionRaiseVital({vital}, {amount}) - invalid vital");
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateVital(this, creatureVital));
                 return false;
             }
 
@@ -32,16 +33,18 @@ namespace ACE.Server.WorldObjects
                 // where the client will enable the button to raise a vital by 10
                 // if the player only has enough AvailableExperience to raise it by 1
 
-                ChatPacket.SendServerMessage(Session, $"Your attempt to raise {vital.ToSentence()} has failed.", ChatMessageType.Broadcast);
-
-                //log.Error($"{Name}.HandleActionRaiseVital({vital}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
+                ChatPacket.SendServerMessage(Session, $"You do not have enough experience to raise your {vital.ToSentence()}.", ChatMessageType.Broadcast);
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateVital(this, creatureVital));
                 return false;
             }
 
             var prevRank = creatureVital.Ranks;
 
             if (!SpendVitalXp(creatureVital, amount))
+            {
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdateVital(this, creatureVital));
                 return false;
+            }
 
             Session.Network.EnqueueSend(new GameMessagePrivateUpdateVital(this, creatureVital));
 

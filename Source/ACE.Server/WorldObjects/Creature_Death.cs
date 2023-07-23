@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using ACE.Common;
 using ACE.Database;
 using ACE.Database.Models.World;
 using ACE.Entity;
@@ -249,6 +249,11 @@ namespace ACE.Server.WorldObjects
                         extraXp = victimLevelXp * ((10d - levelDifference) * 0.1);
                 }
             }
+
+            // Divide our extra xp with the multiplier so that it ends up the same no matter the xp modifier.
+            var hardcoreXpMultiplier = PropertyManager.GetDouble("hardcore_pk_xp_modifier").Item;
+            if (hardcoreXpMultiplier != 0)
+                extraXp /= hardcoreXpMultiplier;
 
             var totalHealth = DamageHistory.TotalHealth;
             if (totalHealth == 0)
@@ -610,6 +615,7 @@ namespace ACE.Server.WorldObjects
             // use the physics location for accuracy,
             // especially while jumping
             corpse.Location = PhysicsObj.Position.ACEPosition();
+            corpse.DeathTimestamp = Time.GetUnixTime();
 
             corpse.VictimId = Guid.Full;
             corpse.Name = $"{prefix} of {Name}";
@@ -675,7 +681,7 @@ namespace ACE.Server.WorldObjects
                 }
                 else
                 {
-                    var dropped = player.CalculateDeathItems(corpse);
+                    var dropped = player.CalculateDeathItems(corpse, killerIsPkPlayer);
 
                     corpse.RecalculateDecayTime(player);
 

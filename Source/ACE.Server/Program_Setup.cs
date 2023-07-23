@@ -1,5 +1,3 @@
-extern alias MySqlConnectorAlias;
-
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -303,6 +301,8 @@ namespace ACE.Server
             Console.WriteLine();
             Console.Write("Do you want to ACEmulator to attempt to initialize your SQL databases? This will erase any existing ACEmulator specific databases that may already exist on the server (Y/n): ");
             variable = Console.ReadLine();
+            var sqlConnectInfo = $"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120";
+            var sqlConnect = new MySqlConnector.MySqlConnection(sqlConnectInfo);
             if (IsRunningInContainer) variable = Convert.ToBoolean(Environment.GetEnvironmentVariable("ACE_SQL_INITIALIZE_DATABASES")) ? "y" : "n";
             if (!variable.Equals("n", StringComparison.OrdinalIgnoreCase) && !variable.Equals("no", StringComparison.OrdinalIgnoreCase))
             {
@@ -313,7 +313,7 @@ namespace ACE.Server
                 {
                     try
                     {
-                        using (var sqlTestConnection = new MySql.Data.MySqlClient.MySqlConnection($"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120"))
+                        using (var sqlTestConnection = new MySqlConnector.MySqlConnection($"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120"))
                         {
                             Console.Write(".");
                             sqlTestConnection.Open();
@@ -321,7 +321,7 @@ namespace ACE.Server
 
                         break;
                     }
-                    catch (MySql.Data.MySqlClient.MySqlException)
+                    catch (MySqlConnector.MySqlException)
                     {
                         Console.Write(".");
                         Thread.Sleep(5000);
@@ -333,17 +333,14 @@ namespace ACE.Server
                 {
                     Console.Write("Clearing out temporary ace% database .... ");
                     var sqlDBFile = "DROP DATABASE `ace%`;";
-                    var sqlConnectInfo = $"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120";
-                    var sqlConnect = new MySql.Data.MySqlClient.MySqlConnection(sqlConnectInfo);
-                    var script = new MySql.Data.MySqlClient.MySqlScript(sqlConnect, sqlDBFile);
+                    var script = new MySqlConnector.MySqlCommand(sqlDBFile, sqlConnect);
 
                     Console.Write($"Importing into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} .... ");
                     try
                     {
-                        script.StatementExecuted += new MySql.Data.MySqlClient.MySqlStatementExecutedEventHandler(OnStatementExecutedOutputDot);
-                        var count = script.Execute();
+                        ExecuteScript(script);
                     }
-                    catch (MySql.Data.MySqlClient.MySqlException)
+                    catch (MySqlConnector.MySqlException)
                     {
 
                     }
@@ -383,7 +380,6 @@ namespace ACE.Server
                 {
                     Console.Write($"Found {file.Name} .... ");
                     var sqlDBFile = File.ReadAllText(file.FullName);
-                    var sqlConnectInfo = $"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120";
                     switch (file.Name)
                     {
                         case "AuthenticationBase.sql":
@@ -400,16 +396,14 @@ namespace ACE.Server
                             sqlDBFile = sqlDBFile.Replace(databaseDefaultNameWorld, config.MySql.World.Database);
                             break;
                     }
-                    var sqlConnect = new MySql.Data.MySqlClient.MySqlConnection(sqlConnectInfo);
-                    var script = new MySql.Data.MySqlClient.MySqlScript(sqlConnect, sqlDBFile);
+                    var script = new MySqlConnector.MySqlCommand(sqlDBFile, sqlConnect);
 
                     Console.Write($"Importing into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} .... ");
                     try
                     {
-                        script.StatementExecuted += new MySql.Data.MySqlClient.MySqlStatementExecutedEventHandler(OnStatementExecutedOutputDot);
-                        var count = script.Execute();
+                        ExecuteScript(script);
                     }
-                    catch (MySql.Data.MySqlClient.MySqlException)
+                    catch (MySqlConnector.MySqlException)
                     {
 
                     }
@@ -474,14 +468,12 @@ namespace ACE.Server
                     File.Delete(dbFileName);
                     Console.WriteLine("Deleted!");
 
-                    var sqlFile = dbFileName.Substring(0, dbFileName.Length - 4);
-                    Console.Write($"Importing {sqlFile} into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} (This will take a while, please be patient) .... ");
-                    using (var sr = File.OpenText(sqlFile))
-                    {
-                        var sqlConnect = new MySql.Data.MySqlClient.MySqlConnection($"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120");
-
-                        var line = string.Empty;
-                        var completeSQLline = string.Empty;
+                var sqlFile = dbFileName.Substring(0, dbFileName.Length - 4);
+                Console.Write($"Importing {sqlFile} into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} (This will take a while, please be patient) .... ");
+                using (var sr = File.OpenText(sqlFile))
+                {
+                    var line = string.Empty;
+                    var completeSQLline = string.Empty;
 
                         var dbname = config.MySql.World.Database;
 
@@ -493,14 +485,13 @@ namespace ACE.Server
                             {
                                 completeSQLline += line + Environment.NewLine;
 
-                                var script = new MySql.Data.MySqlClient.MySqlScript(sqlConnect, completeSQLline);
-                                try
-                                {
-                                    script.StatementExecuted += new MySql.Data.MySqlClient.MySqlStatementExecutedEventHandler(OnStatementExecutedOutputDot);
-                                    var count = script.Execute();
-                                }
-                                catch (MySql.Data.MySqlClient.MySqlException)
-                                {
+                            var script = new MySqlConnector.MySqlCommand(completeSQLline, sqlConnect);
+                            try
+                            {
+                                ExecuteScript(script);
+                            }
+                            catch (MySqlConnector.MySqlException)
+                            {
 
                                 }
                                 completeSQLline = string.Empty;
@@ -540,12 +531,32 @@ namespace ACE.Server
                 Console.WriteLine();
             }
 
+            CleanupConnection(sqlConnect);
             Console.WriteLine("exiting setup for ACEmulator.");
         }
 
-        private static void OnStatementExecutedOutputDot(object sender, MySql.Data.MySqlClient.MySqlScriptEventArgs args)
+        private static void ExecuteScript(MySqlConnector.MySqlCommand scriptCommand)
         {
+            if (scriptCommand.Connection.State != System.Data.ConnectionState.Open)
+            {
+                scriptCommand.Connection.Open();
+            }
+            scriptCommand.ExecuteNonQuery();
             Console.Write(".");
+        }
+
+        private static void CleanupConnection(MySqlConnector.MySqlConnection connection)
+        {
+            if (connection.State != System.Data.ConnectionState.Closed)
+            {
+                try
+                {
+                    connection.Close();
+                }
+                catch
+                {
+                }
+            }
         }
     }
 }

@@ -2554,6 +2554,12 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.TimeToRot); else SetProperty(PropertyFloat.TimeToRot, value.Value); }
         }
 
+        public double? DeathTimestamp
+        {
+            get => GetProperty(PropertyFloat.DeathTimestamp);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.DeathTimestamp); else SetProperty(PropertyFloat.DeathTimestamp, value.Value); }
+        }
+
         /// <summary>
         /// If set to true will prevent an object from being able to rot even if it otherwise would. If set to false will force an object to be rottable.
         /// </summary>
@@ -3244,6 +3250,10 @@ namespace ACE.Server.WorldObjects
             get => GameplayMode == GameplayModes.SoloSelfFound;
         }
 
+        public bool IsInLimboMode
+        {
+            get => GameplayMode == GameplayModes.Limbo;
+        }
 
         public GameplayModes GameplayMode
         {
@@ -3276,6 +3286,12 @@ namespace ACE.Server.WorldObjects
         {
             get => GetProperty(PropertyString.GameplayModeIdentifierString);
             set { if (value == null) RemoveProperty(PropertyString.GameplayModeIdentifierString); else SetProperty(PropertyString.GameplayModeIdentifierString, value); }
+        }
+
+        public double? ShieldDefense
+        {
+            get => GetProperty(PropertyFloat.ShieldDefense);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ShieldDefense); else SetProperty(PropertyFloat.ShieldDefense, value.Value); }
         }
     }
 }

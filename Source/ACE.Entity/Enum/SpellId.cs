@@ -6501,6 +6501,18 @@ namespace ACE.Entity.Enum
         DaggerBleed6,
         DaggerBleed7,
         DaggerBleed8,
+        Freezing,
+        MeltingPierce,
+        MeltingBludgeon,
+        MeltingSlash,
+        Burning1,
+        Burning2,
+        Burning3,
+        Burning4,
+        Burning5,
+        Burning6,
+        Burning7,
+        Burning8,
 
         NumSpells = 8192,
 

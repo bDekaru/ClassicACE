@@ -2,47 +2,16 @@ Sword Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 5%:
+    - Chance: 2.7%:
         Damage += 0
 
-    - Chance: 7.4%:
-        Damage += 1
-
-    - Chance: 10%:
-        Damage += 2
-
-    - Chance: 16%:
-        Damage += 3
-
-    - Chance: 23%:
-        Damage += 4
-
-    - Chance: 15%:
-        Damage += 5
-
-    - Chance: 10%:
-        Damage += 6
-
-    - Chance: 8.4%:
-        Damage += 7
-
-    - Chance: 5.2%:
-        Damage += 8
-
-Sword Mutation #2:
-
-Tier Chances: 0, 1, 0, 0, 0, 0
-
-    - Chance: 3%:
-        Damage += 0
-
-    - Chance: 3.6%:
+    - Chance: 3.7%:
         Damage += 1
 
     - Chance: 5.3%:
         Damage += 2
 
-    - Chance: 8.8%:
+    - Chance: 7.6%:
         Damage += 3
 
     - Chance: 11%:
@@ -54,25 +23,53 @@ Tier Chances: 0, 1, 0, 0, 0, 0
     - Chance: 5.3%:
         Damage += 6
 
-    - Chance: 3.7%:
+    - Chance: 4.7%:
         Damage += 7
 
-    - Chance: 2.7%:
+    - Chance: 3%:
         Damage += 8
 
-    - Chance: 2.5%:
+    - Chance: 37%:
+        Damage += 7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
+
+    - Chance: 12%:
+        Damage += 8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
+
+Sword Mutation #2:
+
+Tier Chances: 0, 1, 0, 0, 0, 0
+
+    - Chance: 37%:
+        Damage += 7
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
+
+    - Chance: 13%:
+        Damage += 8
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 125
+
+    - Chance: 2.6%:
         Damage += 9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 3.5%:
+    - Chance: 3.6%:
         Damage += 10
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 5.4%:
+    - Chance: 5.5%:
         Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -90,13 +87,13 @@ Tier Chances: 0, 1, 0, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 8.2%:
-        Damage += 14
+    - Chance: 8.3%:
+        Damage += 16
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 5.7%:
+    - Chance: 6.4%:
         Damage += 15
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -124,7 +121,7 @@ Tier Chances: 0, 0, 1, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 3.2%:
+    - Chance: 2.5%:
         Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -142,7 +139,7 @@ Tier Chances: 0, 0, 1, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 7.7%:
+    - Chance: 7.5%:
         Damage += 14
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -160,25 +157,25 @@ Tier Chances: 0, 0, 1, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 26%:
+    - Chance: 27%:
         Damage += 17
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 13%:
+    - Chance: 14%:
         Damage += 18
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 6.7%:
+    - Chance: 6.6%:
         Damage += 19
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 4.3%:
+    - Chance: 3.3%:
         Damage += 20
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -200,19 +197,19 @@ Tier Chances: 0, 0, 0, 1, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 6.6%:
+    - Chance: 6.9%:
         Damage += 19
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 4.4%:
+    - Chance: 3.3%:
         Damage += 20
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
-    - Chance: 26%:
+    - Chance: 27%:
         Damage += 21
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -230,7 +227,7 @@ Tier Chances: 0, 0, 0, 1, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 3.4%:
+    - Chance: 3.2%:
         Damage += 24
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -246,13 +243,13 @@ Tier Chances: 0, 0, 0, 0, 1, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 14%:
+    - Chance: 13%:
         Damage += 22
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 6.5%:
+    - Chance: 6.7%:
         Damage += 23
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -264,25 +261,25 @@ Tier Chances: 0, 0, 0, 0, 1, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 27%:
+    - Chance: 26%:
         Damage += 25
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 13%:
+    - Chance: 15%:
         Damage += 26
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 6.7%:
+    - Chance: 6.6%:
         Damage += 27
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 3.5%:
+    - Chance: 3.4%:
         Damage += 28
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -298,43 +295,43 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 8.8%:
+    - Chance: 8.9%:
         Damage += 26
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 4.6%:
+    - Chance: 5.5%:
         Damage += 27
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 2%:
+    - Chance: 2.4%:
         Damage += 28
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 18%:
+    - Chance: 17%:
         Damage += 29
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 8.7%:
+    - Chance: 9.9%:
         Damage += 30
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 4.4%:
+    - Chance: 4.3%:
         Damage += 31
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 3.2%:
+    - Chance: 2.4%:
         Damage += 32
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -346,7 +343,7 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-    - Chance: 8.9%:
+    - Chance: 8.8%:
         Damage += 34
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -358,7 +355,7 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-    - Chance: 3%:
+    - Chance: 2.4%:
         Damage += 36
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -371,7 +368,7 @@ Tier Chances: 1, 1, 1, 1, 1, 1
     - Chance: 11%:
         DamageVariance = 0.5
 
-    - Chance: 20%:
+    - Chance: 21%:
         DamageVariance = 0.48
 
     - Chance: 37%:
@@ -380,5 +377,5 @@ Tier Chances: 1, 1, 1, 1, 1, 1
     - Chance: 20%:
         DamageVariance = 0.42
 
-    - Chance: 12%:
+    - Chance: 11%:
         DamageVariance = 0.4

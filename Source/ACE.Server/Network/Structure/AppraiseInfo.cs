@@ -355,6 +355,12 @@ namespace ACE.Server.Network.Structure
                     PropertiesInt.Remove(PropertyInt.Value);
             }
 
+            if (wo.ScribeIID == examiner.Guid.Full)
+            {
+                var realName = wo.ScribeName.Replace(" [HC]", "");
+                PropertiesString[PropertyString.ScribeName] = realName + (examiner.IsHardcore ? " [HC]" : "");
+            }
+
             BuildFlags();
         }
 
@@ -613,12 +619,41 @@ namespace ACE.Server.Network.Structure
                     }
                 }
 
+                if(wo.WeenieType == WeenieType.MeleeWeapon && wo.IsLightWeapon)
+                {
+                    if (hasExtraPropertiesText)
+                        extraPropertiesText += "\n";
+                    extraPropertiesText += $"This weapon feels light enough to dual wield.\n";
+                    hasExtraPropertiesText = true;
+                }
+
                 if (wo.ArmorLevel != null && wo.ArmorLevel != 0 && wo.CurrentWieldedLocation != null)
                 {
                     if (hasExtraPropertiesText)
                         extraPropertiesText += "\n";
                     extraPropertiesText += $"Base Armor Level: {wo.ArmorLevel}.";
                     hasExtraPropertiesText = true;
+                }
+
+                if (wo.IsShield)
+                {
+                    var shieldDefenseMod = ((wo.ShieldDefense ?? 1) - 1) * 100;
+                    if (shieldDefenseMod != 0)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Bonus to Shield Skill: {(shieldDefenseMod > 0 ? "+" : "")}{shieldDefenseMod.ToString("0.0")}%.";
+                        hasExtraPropertiesText = true;
+                    }
+
+                    var blockBonus = wo.GetShieldMissileBlockBonus() * 100;
+                    if (blockBonus != 0)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Missile Attack Bonus Block Chance: {(blockBonus > 0 ? "+" : "")}{blockBonus:N0}%.";
+                        hasExtraPropertiesText = true;
+                    }
                 }
 
                 if (PropertiesFloat.TryGetValue(PropertyFloat.MeleeDefenseCap, out var meleeDefenseCap) && meleeDefenseCap != 0)
@@ -756,7 +791,7 @@ namespace ACE.Server.Network.Structure
                 }
 
                 if (hasExtraPropertiesText)
-                    PropertiesString[PropertyString.Use] = extraPropertiesText;
+                    PropertiesString[PropertyString.Use] = extraPropertiesText.TrimEnd('\n');
             }
         }
 

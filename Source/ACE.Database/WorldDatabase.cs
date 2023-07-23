@@ -478,6 +478,33 @@ namespace ACE.Database
         }
 
         // =====================================
+        // LandblockDescription
+        // =====================================
+
+        public List<LandblockDescription> GetAllLandblockDescriptions()
+        {
+            using (var context = new WorldDbContext())
+            {
+                context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+                return context.LandblockDescription
+                    .ToList();
+            }
+        }
+
+        public List<LandblockDescription> GetLandblockDescriptionsByLandblock(ushort landblockId)
+        {
+            using (var context = new WorldDbContext())
+            {
+                context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
+
+                return context.LandblockDescription
+                    .Where(i => i.Landblock == landblockId)
+                    .ToList();
+            }
+        }
+
+        // =====================================
         // Encounter
         // =====================================
 

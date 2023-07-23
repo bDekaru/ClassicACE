@@ -96,6 +96,9 @@ namespace ACE.Server.WorldObjects
                 {
                     if (AttackTarget == null || IsDead || target.IsDead) return;
 
+                    //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !IsDirectVisible(target))
+                    //    return;
+
                     if (WeenieType == WeenieType.GamePiece)
                     {
                         target.TakeDamage(this, DamageType.Slash, target.Health.Current);

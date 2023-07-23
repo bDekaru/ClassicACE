@@ -287,6 +287,8 @@ namespace ACE.Server.WorldObjects
             EmoteManager.OnAttack(AttackTarget);
 
             ResetAttack();
+
+            AttacksReceivedWithoutBeingAbleToCounter = 0;
         }
 
         /// <summary>
@@ -369,6 +371,11 @@ namespace ACE.Server.WorldObjects
             if (damageType == DamageType.Nether)
             {
                 msg = $"You {verb} {Name} for {iAmount} points of periodic nether damage!";
+                type = ChatMessageType.Magic;
+            }
+            else if (damageType == DamageType.Fire)
+            {
+                msg = $"You {verb} {Name} for {iAmount} points of periodic fire damage!";
                 type = ChatMessageType.Magic;
             }
             else if (aetheria)

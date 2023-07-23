@@ -198,6 +198,11 @@ namespace ACE.Server.Entity
             get => GameplayMode == GameplayModes.SoloSelfFound;
         }
 
+        public bool IsInLimboMode
+        {
+            get => GameplayMode == GameplayModes.Limbo;
+        }
+
         public bool IsOlthoiPlayer
         {
             get

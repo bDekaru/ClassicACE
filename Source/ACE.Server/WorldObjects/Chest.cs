@@ -40,6 +40,8 @@ namespace ACE.Server.WorldObjects
             set { if (!value) RemoveProperty(PropertyBool.ChestClearedWhenClosed); else SetProperty(PropertyBool.ChestClearedWhenClosed, value); }
         }
 
+        double? CalculatedChestResetInterval = null;
+
         /// <summary>
         /// This is the default setup for resetting chests
         /// </summary>
@@ -47,14 +49,36 @@ namespace ACE.Server.WorldObjects
         {
             get
             {
+                if (CalculatedChestResetInterval.HasValue)
+                    return CalculatedChestResetInterval.Value;
+
                 var chestResetInterval = GetProperty(PropertyFloat.ResetInterval);
                 if (chestResetInterval == null)
-                    chestResetInterval = GetProperty(PropertyFloat.RegenerationInterval);
+                {
+                    if(IsGenerator && GeneratorProfiles.Count > 0)
+                    {
+                        var highest = 0f;
+                        foreach(var entry in GeneratorProfiles)
+                        {
+                            if (entry.Delay != 0)
+                                highest = entry.Delay;
+                        }
+
+                        if (highest == 0)
+                            chestResetInterval = GetProperty(PropertyFloat.RegenerationInterval);
+                        else
+                            chestResetInterval = highest;
+                    }
+                    else
+                        chestResetInterval = GetProperty(PropertyFloat.RegenerationInterval);
+                }
 
                 if (chestResetInterval == null || chestResetInterval < 15)
                     chestResetInterval = Default_ChestResetInterval;
 
-                return chestResetInterval.Value;
+                CalculatedChestResetInterval = chestResetInterval.Value;
+
+                return CalculatedChestResetInterval.Value;
             }
         }
 

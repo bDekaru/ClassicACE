@@ -2,14 +2,20 @@ Shield Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 25%:
+    - Chance: 15%:
         ArmorLevel += 0
 
-    - Chance: 50%:
+    - Chance: 40%:
         ArmorLevel += 10
 
-    - Chance: 25%:
+    - Chance: 15%:
         ArmorLevel += 20
+
+    - Chance: 30%:
+        ArmorLevel += 20
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 8
 
     - Chance 100%:
         ArmorLevel += Random(-5, 5)
@@ -241,3 +247,167 @@ Tier chances: 0.5, 0.5, 0.5, 0.6, 0.8, 1
 
     - Chance 25%:
         EncumbranceVal *= Random(0.85, 0.95)
+
+Shield Mutation #8:
+
+Tier chances: 1, 0, 0, 0, 0, 0
+
+    - Chance 5%:
+
+    - Chance 15%:
+        ShieldDefense += 0.01
+
+    - Chance 30%:
+        ShieldDefense += 0.02
+
+    - Chance 30%:
+        ShieldDefense += 0.03
+
+    - Chance 15%:
+        ShieldDefense += 0.04
+
+    - Chance 5%:
+        ShieldDefense += 0.05
+
+Shield Mutation #9:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance 5%:
+        ShieldDefense += 0.02
+
+    - Chance 15%:
+        ShieldDefense += 0.03
+
+    - Chance 30%:
+        ShieldDefense += 0.04
+
+    - Chance 30%:
+        ShieldDefense += 0.05
+
+    - Chance 15%:
+        ShieldDefense += 0.06
+
+    - Chance 5%:
+        ShieldDefense += 0.07
+
+Shield Mutation #10:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance 2%:
+        ShieldDefense += 0.03
+
+    - Chance 5%:
+        ShieldDefense += 0.04
+
+    - Chance 15%:
+        ShieldDefense += 0.05
+
+    - Chance 25%:
+        ShieldDefense += 0.06
+
+    - Chance 30%:
+        ShieldDefense += 0.07
+
+    - Chance 15%:
+        ShieldDefense += 0.08
+
+    - Chance 5%:
+        ShieldDefense += 0.09
+
+    - Chance 3%:
+        ShieldDefense += 0.1
+
+Shield Mutation #11:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance 5%:
+        ShieldDefense += 0.05
+
+    - Chance 15%:
+        ShieldDefense += 0.06
+
+    - Chance 25%:
+        ShieldDefense += 0.07
+
+    - Chance 30%:
+        ShieldDefense += 0.08
+
+    - Chance 15%:
+        ShieldDefense += 0.09
+
+    - Chance 5%:
+        ShieldDefense += 0.1
+
+    - Chance 3%:
+        ShieldDefense += 0.11
+
+    - Chance 2%:
+        ShieldDefense += 0.12
+
+Shield Mutation #12:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 3%:
+        ShieldDefense += 0.06
+
+    - Chance 5%:
+        ShieldDefense += 0.07
+
+    - Chance 15%:
+        ShieldDefense += 0.08
+
+    - Chance 25%:
+        ShieldDefense += 0.09
+
+    - Chance 25%:
+        ShieldDefense += 0.1
+
+    - Chance 15%:
+        ShieldDefense += 0.11
+
+    - Chance 5%:
+        ShieldDefense += 0.12
+
+    - Chance 3%:
+        ShieldDefense += 0.13
+
+    - Chance 2%:
+        ShieldDefense += 0.14
+
+    - Chance 2%:
+        ShieldDefense += 0.15
+
+Shield Mutation #13:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 5%:
+        ShieldDefense += 0.07
+
+    - Chance 5%:
+        ShieldDefense += 0.08
+
+    - Chance 10%:
+        ShieldDefense += 0.09
+
+    - Chance 15%:
+        ShieldDefense += 0.1
+
+    - Chance 20%:
+        ShieldDefense += 0.11
+
+    - Chance 20%:
+        ShieldDefense += 0.12
+
+    - Chance 15%:
+        ShieldDefense += 0.13
+
+    - Chance 5%:
+        ShieldDefense += 0.14
+
+    - Chance 5%:
+        ShieldDefense += 0.15

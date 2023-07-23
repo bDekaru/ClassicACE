@@ -1151,7 +1151,11 @@ namespace ACE.Server.WorldObjects
         {
             if (ExtraSpellsMaxOverride != null)
                 return Math.Max(ExtraSpellsMaxOverride ?? 0, 0);
-            return (int)Math.Floor((ItemWorkmanship ?? 0) / 2f);
+
+            var baseSlots = (int)Math.Floor((ItemWorkmanship ?? 0) / 2f);
+            if (ItemType == ItemType.Clothing && ClothingPriority.HasValue && ClothingPriority.Value.HasFlag(CoverageMask.OuterwearChest)) // Robes
+                return baseSlots == 0 ? 1 : (baseSlots * 2);
+            return baseSlots;
         }
 
         public bool CanHaveExtraSpells()
@@ -1273,14 +1277,18 @@ namespace ACE.Server.WorldObjects
         {
             if (item1 != null)
             {
-                if (GameplayMode > item1.GameplayMode)
+                if (GameplayMode == GameplayModes.Limbo && item1.GameplayMode != GameplayModes.Limbo)
+                    return false;
+                else if (GameplayMode > item1.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item1.IsHardcore))
                     return false;
                 else if (item1.GameplayModeExtraIdentifier != 0 && GameplayModeExtraIdentifier != item1.GameplayModeExtraIdentifier)
                     return false;
             }
             if (item2 != null)
             {
-                if(GameplayMode > item2.GameplayMode)
+                if (GameplayMode == GameplayModes.Limbo && item2.GameplayMode != GameplayModes.Limbo)
+                    return false;
+                else if (GameplayMode > item2.GameplayMode || (GameplayMode == GameplayModes.SoloSelfFound && item2.IsHardcore))
                     return false;
                 else if (item2.GameplayModeExtraIdentifier != 0 && GameplayModeExtraIdentifier != item2.GameplayModeExtraIdentifier)
                     return false;
@@ -1290,7 +1298,7 @@ namespace ACE.Server.WorldObjects
 
         public void UpdateGameplayMode(Container owner)
         {
-            if (owner == null)
+            if (owner == null ||( owner.GameplayMode == GameplayModes.Limbo && GameplayMode != GameplayModes.InitialMode))
                 return;
 
             if (GameplayMode > owner.GameplayMode && (owner.GameplayMode != GameplayModes.SoloSelfFound || GameplayMode == GameplayModes.InitialMode))
@@ -1316,6 +1324,9 @@ namespace ACE.Server.WorldObjects
 
         public bool IsGameplayOverlay(uint overlayId)
         {
+            if (WeenieType == WeenieType.Creature && !Guid.IsPlayer())
+                return false;
+
             switch (overlayId)
             {
                 default:

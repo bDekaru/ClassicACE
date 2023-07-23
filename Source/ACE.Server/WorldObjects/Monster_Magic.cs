@@ -330,14 +330,24 @@ namespace ACE.Server.WorldObjects
             if (target != null && (CurrentLandblock == null || target.CurrentLandblock == null || CurrentLandblock.CurrentLandblockGroup != target.CurrentLandblock.CurrentLandblockGroup))
                 return;
 
+            UsedSpells = true;
+
+            //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            //{
+            //    var worldTarget = target.Wielder ?? target.Container ?? target;
+            //    if (spell.MetaSpellType != SpellType.Projectile && spell.MetaSpellType != SpellType.LifeProjectile && spell.MetaSpellType != SpellType.EnchantmentProjectile
+            //        && worldTarget != this && (worldTarget == null || !IsDirectVisible(worldTarget)))
+            //    {
+            //        return;
+            //    }
+            //}
+
             // try to resist spell, if applicable
             if (TryResistSpell(target, spell))
             {
                 TryHandleFactionMob(target);
                 return;
             }
-
-            UsedSpells = true;
 
             var targetCreature = target as Creature;
 

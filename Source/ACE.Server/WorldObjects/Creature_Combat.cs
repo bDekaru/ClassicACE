@@ -530,7 +530,7 @@ namespace ACE.Server.WorldObjects
                 var skill = GetCreatureSkill(Skill.UnarmedCombat).Current;
 
                 if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                    return (int)skill / 6;
+                    return (int)skill / 10;
                 else
                     return (int)skill / 20;
             }
@@ -644,7 +644,7 @@ namespace ACE.Server.WorldObjects
         {
             var quickness = Quickness.Current;
             if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsHumanoid && GetCurrentWeaponSkill() == Skill.UnarmedCombat)
-                quickness = (uint)(GetCreatureSkill(Skill.UnarmedCombat).Current * 0.66f);
+                quickness = Focus.Current;
             var weaponSpeed = GetWeaponSpeed(this);
 
             var divisor = 1.0 - (quickness / 300.0) + (weaponSpeed / 150.0);
@@ -720,7 +720,16 @@ namespace ACE.Server.WorldObjects
         {
             var attackerAsCreature = attacker as Creature;
             if (attackerAsCreature != null)
+            {
                 attackerAsCreature.TryCastAssessDebuff(this, attackType);
+
+                if (!Guid.IsPlayer() && attacker == AttackTarget && (attackType == CombatType.Missile || attackType == CombatType.Magic))
+                {
+                    if (AttacksReceivedWithoutBeingAbleToCounter == 0)
+                        NextNoCounterResetTime = Time.GetFutureUnixTime(NoCounterInterval);
+                    AttacksReceivedWithoutBeingAbleToCounter++;
+                }
+            }
 
             numRecentAttacksReceived++;
         }
@@ -828,14 +837,17 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Return the scalar damage absorbed by a shield
         /// </summary>
-        public float GetShieldMod(WorldObject attacker, DamageType damageType, WorldObject weapon, bool isPvP)
+        public float GetShieldMod(WorldObject attacker, DamageType damageType, WorldObject weapon, bool isPvP, out WorldObject shield)
         {
             // ensure combat stance
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR && CombatMode == CombatMode.NonCombat)
+            {
+                shield = null;
                 return 1.0f;
+            }
 
             // does the player have a shield equipped?
-            var shield = GetEquippedShield();
+            shield = GetEquippedShield();
             if (shield == null)
                 return 1.0f;
 
@@ -1293,8 +1305,12 @@ namespace ACE.Server.WorldObjects
             NextAssessDebuffActivationTime = currentTime + AssessDebuffActivationInterval;
 
             var defenseSkill = target.GetCreatureSkill(Skill.Deception);
+            var effectiveDefenseSkill = defenseSkill.Current;
 
-            var avoidChance = 1.0f - SkillCheck.GetSkillChance(skill.Current, defenseSkill.Current);
+            if (targetAsPlayer != null)
+                effectiveDefenseSkill *= 2;
+
+            var avoidChance = 1.0f - SkillCheck.GetSkillChance(skill.Current, effectiveDefenseSkill);
             if (avoidChance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
                 if (sourceAsPlayer != null)
@@ -1856,7 +1872,59 @@ namespace ACE.Server.WorldObjects
             {
                 NoDamage_Landblocks = new HashSet<ushort>()
                 {
-                    0x016C // Marketplace
+                    // Marketplace
+                    0x016C,
+                    // Apartments
+                    0x7200,
+                    0x7300,
+                    0x7400,
+                    0x7500,
+                    0x7600,
+                    0x7700,
+                    0x7800,
+                    0x7900,
+                    0x7A00,
+                    0x7B00,
+                    0x7C00,
+                    0x7D00,
+                    0x7E00,
+                    0x7F00,
+                    0x8000,
+                    0x8100,
+                    0x8200,
+                    0x8300,
+                    0x8400,
+                    0x8500,
+                    0x8600,
+                    0x8700,
+                    0x8800,
+                    0x8900,
+                    0x8A00,
+                    0x8B00,
+                    0x8C00,
+                    0x8D00,
+                    0x8E00,
+                    0x8F00,
+                    0x9000,
+                    0x9100,
+                    0x9200,
+                    0x9300,
+                    0x9400,
+                    0x9500,
+                    0x9600,
+                    0x9700,
+                    0x9800,
+                    0x9900,
+                    0x5360,
+                    0x5361,
+                    0x5362,
+                    0x5363,
+                    0x5364,
+                    0x5365,
+                    0x5366,
+                    0x5367,
+                    0x5368,
+                    0x5369
                 };
             }
         }

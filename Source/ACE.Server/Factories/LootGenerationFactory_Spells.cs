@@ -306,15 +306,15 @@ namespace ACE.Server.Factories
 
             var itemDifficulty = 0.0f;
 
-                // exclude highest spell
-                for (var i = 0; i < spells.Count - 1; i++)
-                {
-                    var spell = spells[i];
+            // exclude highest spell
+            for (var i = 0; i < spells.Count - 1; i++)
+            {
+                var spell = spells[i];
 
-                    var rng = (float)ThreadSafeRandom.Next(0.5f, 1.5f);
+                var rng = (float)ThreadSafeRandom.Next(0.5f, 1.5f);
 
-                    itemDifficulty += spell.Formula.Level * 5.0f * rng;
-                }
+                itemDifficulty += spell.Formula.Level * 5.0f * rng;
+            }
 
             return itemDifficulty;
         }
@@ -325,7 +325,12 @@ namespace ACE.Server.Factories
             if (roll.ItemType == TreasureItemType_Orig.ArtObject)
                 return null;
 
-            var numCantrips = CantripChance.RollNumCantrips(profile);
+            int numCantrips;
+
+            if (roll.IsClothArmor) // robes
+                numCantrips = CantripChance.RollRobeNumCantrips(profile);
+            else
+                numCantrips = CantripChance.RollNumCantrips(profile);
 
             if (numCantrips == 0)
                 return null;
@@ -487,7 +492,7 @@ namespace ACE.Server.Factories
 
         private static SpellId AdjustForWeaponMastery(WorldObject wo)
         {
-            if (ConfigManager.Config.Server.WorldRuleset != Ruleset.Infiltration && wo.WeaponSkill != Skill.TwoHandedCombat && wo.WeaponSkill != Skill.MissileWeapons)
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR && wo.WeaponSkill != Skill.TwoHandedCombat && wo.WeaponSkill != Skill.MissileWeapons)
             {
                 // 10% chance to adjust to dual wielding
                 var rng = ThreadSafeRandom.Next(0.0f, 1.0f);

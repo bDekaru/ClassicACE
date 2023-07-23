@@ -1,5 +1,5 @@
 using System;
-
+using System.Collections.Generic;
 using ACE.Common;
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
@@ -115,13 +115,14 @@ namespace ACE.Server.WorldObjects
             return new ActivationResult(true);
         }
 
-        public void ConvertToGameplayMode(Player player)
+        public void ConvertToGameplayMode(Player player, bool setStarterLocation)
         {
             switch (PkLevelModifier)
             {
                 case 10: // Hardcore NPK
-                    player.RevertToBrandNewCharacter();
-                    player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
+                    player.RevertToBrandNewCharacterEquipment(true, true);
+                    player.RemoveAllTitles();
+                    player.AddTitle((uint)CharacterTitle.GimpyMageofMight, true, true, true); // This title was replaced with the "Hardcore" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
                     player.PkLevel = PKLevel.NPK;
                     player.GameplayMode = GameplayModes.HardcoreNPK;
@@ -130,8 +131,9 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
                 case 11: // Hardcore PK
-                    player.RevertToBrandNewCharacter();
-                    player.AddTitle(CharacterTitle.GimpyMageofMight, true); // This title was replaced with the "Hardcore" title.
+                    player.RevertToBrandNewCharacterEquipment(true, true);
+                    player.RemoveAllTitles();
+                    player.AddTitle((uint)CharacterTitle.GimpyMageofMight, true, true, true); // This title was replaced with the "Hardcore" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.PKLite;
                     player.PkLevel = PKLevel.NPK;
                     player.GameplayMode = GameplayModes.HardcorePK;
@@ -142,8 +144,9 @@ namespace ACE.Server.WorldObjects
                     player.GiveFromEmote(this, (int)Factories.Enum.WeenieClassName.ringHardcore);
                     break;
                 case 12: // Solo Self Found
-                    player.RevertToBrandNewCharacter();
-                    player.AddTitle(CharacterTitle.GimpGoddess, true); // This title was replaced with the "Solo Self-Found" title.
+                    player.RevertToBrandNewCharacterEquipment(true, true);
+                    player.RemoveAllTitles();
+                    player.AddTitle((uint)CharacterTitle.GimpGoddess, true, true, true); // This title was replaced with the "Solo Self-Found" title.
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
                     player.PkLevel = PKLevel.NPK;
                     player.GameplayMode = GameplayModes.SoloSelfFound;
@@ -153,47 +156,145 @@ namespace ACE.Server.WorldObjects
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
                     player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
                     break;
+                case 13: // Regular
+                    player.RevertToBrandNewCharacterEquipment(true, true);
+                    player.RemoveAllTitles();
+                    if (player.ChargenTitleId > 0)
+                        player.AddTitle((uint)player.ChargenTitleId, true, true, true);
+                    else
+                        player.AddTitle((uint)CharacterTitle.Adventurer, true, true, true);
+                    player.PlayerKillerStatus = PlayerKillerStatus.NPK;
+                    player.PkLevel = PKLevel.NPK;
+                    player.GameplayMode = GameplayModes.Regular;
+                    player.GameplayModeExtraIdentifier = 0;
+                    player.GameplayModeIdentifierString = null;
+
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PlayerKillerStatus, (int)player.PlayerKillerStatus));
+                    player.EnqueueBroadcast(new GameMessagePublicUpdatePropertyInt(player, PropertyInt.PkLevelModifier, player.PkLevelModifier));
+                    break;
+                case 100: // Reset to brand new character but keep xp.
+                    player.RevertToBrandNewCharacter(true, true, true, true, true, true, player.TotalExperience ?? 0);
+                    setStarterLocation = false;
+                    break;
+                case 101: // Update starting template skills
+                    var heritageGroup = DatManager.PortalDat.CharGen.HeritageGroups[(uint)(Heritage ?? 1)];
+                    var availableSkillCredits = (int)heritageGroup.SkillCredits;
+
+                    var trainedSkills = new List<int>();
+                    var specializedSkills = new List<int>();
+                    var secondarySkills = new List<string>();
+
+                    foreach (var skillEntry in player.Skills)
+                    {
+                        var skillId = (int)skillEntry.Key;
+                        var skill = skillEntry.Value;
+                        var sac = skill.AdvancementClass;
+
+                        if (sac < SkillAdvancementClass.Trained)
+                            continue;
+
+                        var skillBase = DatManager.PortalDat.SkillTable.SkillBaseHash[(uint)skillId];
+
+                        var trainedCost = skillBase.TrainedCost;
+                        var specializedCost = skillBase.UpgradeCostFromTrainedToSpecialized;
+
+                        foreach (var skillGroup in heritageGroup.Skills)
+                        {
+                            if (skillGroup.SkillNum == skillId)
+                            {
+                                trainedCost = skillGroup.NormalCost;
+                                specializedCost = skillGroup.PrimaryCost;
+                                break;
+                            }
+                        }
+
+                        if (sac == SkillAdvancementClass.Specialized)
+                        {
+                            specializedSkills.Add(skillId);
+                            availableSkillCredits -= trainedCost;
+                            availableSkillCredits -= specializedCost;
+                        }
+                        else if (sac == SkillAdvancementClass.Trained)
+                        {
+                            trainedSkills.Add(skillId);
+                            availableSkillCredits -= trainedCost;
+                        }
+
+                        if(skill.IsSecondary && sac > SkillAdvancementClass.Untrained)
+                        {
+                            secondarySkills.Add($"{skillId}:{(int)skill.SecondaryTo}");
+                        }
+                    }
+
+                    if (availableSkillCredits >= 0)
+                    {
+                        player.ChargenSkillsTrained = string.Join("|", trainedSkills);
+                        player.ChargenSkillsSpecialized = string.Join("|", specializedSkills);
+                        player.ChargenSkillsSecondary = string.Join("|", secondarySkills);
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your starting template has been updated!", ChatMessageType.Broadcast));
+                        return;
+                    }
+                    else
+                    {
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your starting template must be {(int)heritageGroup.SkillCredits} skill credits or less! You are currently {-availableSkillCredits} skil credits above that!", ChatMessageType.Broadcast));
+                        return;
+                    }
                 default:
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("Invalid gameplay mode!", ChatMessageType.Broadcast));
                     return;
             }
 
             var inventory = player.GetAllPossessions();
-            foreach (var item in inventory)
+            if (player.GameplayMode != GameplayModes.Limbo)
             {
-                item.GameplayMode = player.GameplayMode;
-                item.GameplayModeExtraIdentifier = player.GameplayModeExtraIdentifier;
-                item.GameplayModeIdentifierString = player.GameplayModeIdentifierString;
+                foreach (var item in inventory)
+                {
+                    if (item.GameplayMode >= player.GameplayMode || item.GameplayMode == GameplayModes.Limbo)
+                    {
+                        item.GameplayMode = player.GameplayMode;
+                        item.GameplayModeExtraIdentifier = player.GameplayModeExtraIdentifier;
+                        item.GameplayModeIdentifierString = player.GameplayModeIdentifierString;
+                    }
+                }
+
+                player.UpdateCoinValue();
             }
 
-            var starterLocation = ThreadSafeRandom.Next(1, 3);
-            switch (starterLocation)
+            if (setStarterLocation)
             {
-                case 1:
-                    if (ThreadSafeRandom.Next(0, 1) == 1)
-                        player.Location = new Position(0xD6550023, 108.765625f, 62.215103f, 52.005001f, 0.000000f, 0.000000f, -0.300088f, 0.953912f); // Shoushi West
-                    else
-                        player.Location = new Position(0xDE51001D, 85.017159f, 107.291908f, 15.861228f, 0.000000f, 0.000000f, 0.323746f, 0.946144f); // Shoushi Southeast
-                    break;
-                case 2:
-                    if (ThreadSafeRandom.Next(0, 1) == 1)
-                        player.Location = new Position(0x7D680012, 65.508179f, 37.516647f, 16.257774f, 0.000000f, 0.000000f, -0.950714f, 0.310069f); // Yaraq North
-                    else
-                        player.Location = new Position(0x8164000D, 40.296101f, 107.638382f, 31.363008f, 0.000000f, 0.000000f, -0.699884f, -0.714257f); //Yaraq East
-                    break;
-                case 3:
-                default:
-                    if (ThreadSafeRandom.Next(0, 1) == 1)
-                        player.Location = new Position(0xA5B4002A, 131.134338f, 33.602352f, 53.077141f, 0.000000f, 0.000000f, -0.263666f, 0.964614f); // Holtburg West
-                    else
-                        player.Location = new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f); // Holtburg South
-                    break;
+                player.SetProperty(PropertyBool.RecallsDisabled, false);
+
+                var starterLocation = ThreadSafeRandom.Next(1, 3);
+                switch (starterLocation)
+                {
+                    case 1:
+                        if (ThreadSafeRandom.Next(0, 1) == 1)
+                            player.Location = new Position(0xD6550023, 108.765625f, 62.215103f, 52.005001f, 0.000000f, 0.000000f, -0.300088f, 0.953912f); // Shoushi West
+                        else
+                            player.Location = new Position(0xDE51001D, 85.017159f, 107.291908f, 15.861228f, 0.000000f, 0.000000f, 0.323746f, 0.946144f); // Shoushi Southeast
+                        break;
+                    case 2:
+                        if (ThreadSafeRandom.Next(0, 1) == 1)
+                            player.Location = new Position(0x7D680012, 65.508179f, 37.516647f, 16.257774f, 0.000000f, 0.000000f, -0.950714f, 0.310069f); // Yaraq North
+                        else
+                            player.Location = new Position(0x8164000D, 40.296101f, 107.638382f, 31.363008f, 0.000000f, 0.000000f, -0.699884f, -0.714257f); //Yaraq East
+                        break;
+                    case 3:
+                    default:
+                        if (ThreadSafeRandom.Next(0, 1) == 1)
+                            player.Location = new Position(0xA5B4002A, 131.134338f, 33.602352f, 53.077141f, 0.000000f, 0.000000f, -0.263666f, 0.964614f); // Holtburg West
+                        else
+                            player.Location = new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f); // Holtburg South
+                        break;
+                }
+
+                player.Instantiation = new Position(player.Location);
+                player.Sanctuary = new Position(player.Location);
+
+                WorldManager.ThreadSafeTeleport(player, player.Instantiation);
+
+                player.CheckMultipleAccounts();
             }
-
-            player.Instantiation = new Position(player.Location);
-            player.Sanctuary = new Position(player.Location);
-
-            WorldManager.ThreadSafeTeleport(player, player.Instantiation);
         }
 
         public override void ActOnUse(WorldObject activator)
@@ -226,7 +327,7 @@ namespace ACE.Server.WorldObjects
 
                 actionChain.AddAction(player, () =>
                 {
-                    ConvertToGameplayMode(player);
+                    ConvertToGameplayMode(player, true);
 
                     player.IsBusy = false;
                     Reset();

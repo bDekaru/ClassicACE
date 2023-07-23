@@ -399,7 +399,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool TryDequipObjectWithNetworking(ObjectGuid objectGuid, out WorldObject item, DequipObjectAction dequipObjectAction)
         {
-            if (!TryDequipObjectWithBroadcasting(objectGuid, out item, out var wieldedLocation, (dequipObjectAction == DequipObjectAction.DropItem)))
+            if (!TryDequipObjectWithBroadcasting(objectGuid, out item, out var wieldedLocation, (dequipObjectAction == DequipObjectAction.DropItem || dequipObjectAction == DequipObjectAction.ToCorpseOnDeath)))
                 return false;
 
             Session.Network.EnqueueSend(
@@ -863,6 +863,13 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
+            if (item.GameplayMode != GameplayModes.InitialMode && !container.Guid.IsPlayer() && (!item.VerifyGameplayMode(container) || IsInLimboMode))
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be moved to that container, incompatible gameplay mode!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
+                return false;
+            }
+
             if (container is Corpse)
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"You cannot put {item.Name} in that.")); // Custom error message
@@ -1121,7 +1128,11 @@ namespace ACE.Server.WorldObjects
                             var itemFoundOnMyCorpse = itemFoundOnCorpse && (itemRootOwner.VictimId == Guid.Full);
                             if (item.GeneratorId != null || (itemFoundOnCorpse && !itemFoundOnMyCorpse)) // item is controlled by a generator or is on a corpse that is not my own
                             {
-                                if (QuestManager.CanSolve(item.Quest))
+                                if (GameplayMode == GameplayModes.Limbo && (item.Quest == "SkillForgetfulnessGemPickedUp" || item.Quest == "SkillEnlightenmentGemPickedUp" || item.Quest == "AttributeLoweringGemPickedUp" || item.Quest == "AttributeRaisingGemPickedUp" || item.Quest == "SkillPrimaryGemPickedUp" || item.Quest == "SkillSecondaryGemPickedUp"))
+                                {
+                                    questSolve = false;
+                                }
+                                else if (QuestManager.CanSolve(item.Quest))
                                 {
                                     questSolve = true;
                                 }
@@ -1904,9 +1915,9 @@ namespace ACE.Server.WorldObjects
             bool weapon1IsLight = false;
             bool weapon2IsLight = false;
 
-            if (weapon1 == null || weapon1.IsLightWeapon || !(weapon1.WeaponSkill != Skill.Dagger && weapon1.WeaponSkill != Skill.UnarmedCombat && (weapon1.WeaponSkill != Skill.Sword || !weapon1.W_AttackType.IsMultiStrike())))
+            if (weapon1 == null || weapon1.IsLightWeapon)
                 weapon1IsLight = true;
-            if (weapon2 == null || weapon2.IsLightWeapon || !(weapon2.WeaponSkill != Skill.Dagger && weapon2.WeaponSkill != Skill.UnarmedCombat && (weapon2.WeaponSkill != Skill.Sword || !weapon2.W_AttackType.IsMultiStrike())))
+            if (weapon2 == null || weapon2.IsLightWeapon)
                 weapon2IsLight = true;
 
             return weapon1IsLight || weapon2IsLight;
@@ -3573,7 +3584,9 @@ namespace ACE.Server.WorldObjects
         {
             if (target == null || item == null) return;
 
-            if (!VerifyGameplayMode(item))
+            var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned;
+
+            if (!VerifyGameplayMode(item) && (!acceptAll || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationContract || item.WeenieClassId == (uint)Factories.Enum.WeenieClassName.blankExplorationContract) && !(acceptAll && IsInLimboMode))
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "This item cannot be given, incompatible gameplay mode!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
@@ -3605,8 +3618,6 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeItemBeingTraded));
                 return;
             }
-
-            var acceptAll = target.AiAcceptEverything && !item.IsStickyAttunedOrContainsStickyAttuned;
 
             if (target.HasGiveOrRefuseEmoteForItem(item, out var emoteResult) || acceptAll)
             {

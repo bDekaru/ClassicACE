@@ -126,10 +126,17 @@ namespace ACE.Server.WorldObjects
                 pkPlayer.PkTimestamp = Time.GetUnixTime();
                 pkPlayer.PlayerKillsPk++;
 
+                string locationString = Landblock.GetLocationString(Location.LandblockId.Landblock);
+
                 var globalPKDe = $"{lastDamager.Name} has defeated {Name}!";
 
-                if ((Location.Cell & 0xFFFF) < 0x100)
+                //if ((Location.Cell & 0xFFFF) < 0x100)
+                //    globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
+
+                if(locationString == "" && (Location.Cell & 0xFFFF) < 0x100)
                     globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
+                else
+                    globalPKDe += $" The kill occured{locationString}.";
 
                 string webhookMsg = new String(globalPKDe);
 
@@ -159,7 +166,9 @@ namespace ACE.Server.WorldObjects
 
                     if (lastDamager.TryGetAttacker() is Player lastDamagerPlayer)
                     {
-                        var globalPKDe = $"{Name}({Level}) was permanently killed by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level})!";
+                        string locationString = Landblock.GetLocationString(Location.LandblockId.Landblock);
+
+                        var globalPKDe = $"{Name}({Level}) was hardcore killed by {lastDamagerPlayer.Name}({lastDamagerPlayer.Level}){locationString}!";
 
                         if (namesList.Count > 1)
                         {
@@ -228,14 +237,14 @@ namespace ACE.Server.WorldObjects
 
             if (IsHardcore)
             {
-                var killerName = "";
+                var killerName = "misadventure";
                 var killerLevel = 0;
                 var wasPvP = false;
-                if (lastDamager != null && lastDamager.Guid != Guid)
+                if (topDamager != null && topDamager.Guid != Guid)
                 {
-                    killerName = lastDamager.Name;
-                    killerLevel = lastDamager.Level;
-                    wasPvP = lastDamager.IsPlayer;
+                    killerName = topDamager.Name;
+                    killerLevel = topDamager.Level;
+                    wasPvP = topDamager.IsPlayer;
                 }
 
                 DatabaseManager.Shard.BaseDatabase.LogHardcoreDeath(Account.AccountId, Guid.Full, Name, Level ?? 1, killerName, killerLevel, CurrentLandblock.Id.Raw >> 16, (int)GameplayMode, wasPvP, PlayerKillsPkl ?? 0, TotalExperience ?? 0, Age ?? 0, DateTime.Now, MonarchId);
@@ -302,18 +311,55 @@ namespace ACE.Server.WorldObjects
             // wait for the death animation to finish
             var dieChain = new ActionChain();
             var animLength = DatManager.PortalDat.ReadFromDat<MotionTable>(MotionTableId).GetAnimationLength(MotionCommand.Dead);
-            dieChain.AddDelaySeconds(animLength + 1.0f);
+            dieChain.AddDelaySeconds(animLength);
 
+            var nearbyPlayers = PhysicsObj.ObjMaint.GetKnownPlayersValuesAsPlayer();
             dieChain.AddAction(this, () =>
             {
+                // Remove this player from other players' tracked list so the dead do not stand back up briefly before being teleported away.
+                foreach (var player in nearbyPlayers)
+                    player.RemoveTrackedObject(this, false);
+
+                var previousVisibility = Visibility;
+                var previousCloaked = Cloaked;
+                var previousEthereal = Ethereal;
+                var previousNoDraw = NoDraw;
+                var previousReportCollisions = ReportCollisions;
+                var previousIsFrozen = IsFrozen;
+                Visibility = true;
+                Cloaked = true;
+                Ethereal = true;
+                NoDraw = true;
+                ReportCollisions = false;
+                IsFrozen = true;
+                Session.Network.EnqueueSend(new GameMessageSetState(this, PhysicsObj.State));
+                Visibility = previousVisibility;
+                Cloaked = previousCloaked;
+                Ethereal = previousEthereal;
+                NoDraw = previousNoDraw;
+                ReportCollisions = previousReportCollisions;
+                IsFrozen = previousIsFrozen;
+
                 CreateCorpse(topDamager, hadVitae);
 
-                ThreadSafeTeleportOnDeath(); // enter portal space
+                if(IsHardcore)
+                    Session.Network.EnqueueSend(new GameMessageSystemChat("Your corpse will release your soul in 30 seconds.", ChatMessageType.Broadcast));
+            });
+            dieChain.AddDelaySeconds(IsHardcore ? 30 : 1);
+            dieChain.AddAction(this, () =>
+            {
+                ThreadSafeTeleportOnDeath(topDamager); // enter portal space
 
                 if ((IsPKDeath(topDamager) || IsPKLiteDeath(topDamager)) && !IsHardcore)
                     SetMinimumTimeSincePK();
 
                 IsBusy = false;
+            });
+            dieChain.AddDelayForOneTick();
+            dieChain.AddAction(this, () =>
+            {
+                foreach (var player in nearbyPlayers)
+                    player.TrackObject(this); // Re-add to tracked list in case we respawn close enough that we're still visible. I expected this to happen automatically but it does not.
             });
 
             dieChain.EnqueueChain();
@@ -322,7 +368,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Called when the player enters portal space after dying
         /// </summary>
-        public void ThreadSafeTeleportOnDeath()
+        public void ThreadSafeTeleportOnDeath(DamageHistoryInfo topDamager)
         {
             if (!IsHardcore)
             {
@@ -379,12 +425,33 @@ namespace ACE.Server.WorldObjects
                 Sanctuary = new Position(position);
                 Instantiation = new Position(position);
 
+                var wasPvP = false;
+                if (topDamager != null && topDamager.Guid != Guid)
+                    wasPvP = topDamager.IsPlayer;
+
+                double levelToRestartAt = Level ?? 1;
+
+                if(GameplayMode == GameplayModes.HardcoreNPK)
+                    levelToRestartAt = levelToRestartAt - (levelToRestartAt * Math.Clamp(PropertyManager.GetDouble("hardcore_npk_death_level_modifier").Item, 0, 1));
+                else if (wasPvP)
+                    levelToRestartAt = levelToRestartAt - (levelToRestartAt * Math.Clamp(PropertyManager.GetDouble("hardcore_pk_pvp_death_level_modifier").Item, 0, 1));
+                else
+                    levelToRestartAt = levelToRestartAt - (levelToRestartAt * Math.Clamp(PropertyManager.GetDouble("hardcore_pk_pve_death_level_modifier").Item, 0, 1));
+
+                ulong xpToRetain = 0;
+                if (levelToRestartAt > 1)
+                {
+                    var betweenLevelsXp = (levelToRestartAt % 1) * GetXPBetweenLevels((int)levelToRestartAt, (int)(levelToRestartAt + 1));
+
+                    xpToRetain =  GetXPBetweenLevels(1, (int)levelToRestartAt) + (ulong)betweenLevelsXp;
+                }
+
                 WorldManager.ThreadSafeTeleport(this, position, new ActionEventDelegate(() =>
                 {
                     // Stand back up
                     SetCombatMode(CombatMode.NonCombat);
 
-                    RevertToBrandNewCharacter();
+                    RevertToBrandNewCharacter(false, true, true, true, true, true, (long)xpToRetain);
 
                     var teleportChain = new ActionChain();
                     if (!IsLoggingOut) // If we're in the process of logging out, we skip the delay
@@ -473,7 +540,7 @@ namespace ACE.Server.WorldObjects
                 Die(new DamageHistoryInfo(this), DamageHistory.TopDamager);
         }
 
-        public List<WorldObject> CalculateDeathItems(Corpse corpse)
+        public List<WorldObject> CalculateDeathItems(Corpse corpse, bool wasPvP)
         {
             // https://web.archive.org/web/20140712134108/http://support.turbine.com/link/portal/24001/24001/Article/464/How-do-death-items-work-in-Asheron-s-Call-Could-you-explain-how-the-game-decides-what-you-drop-when-you-die-in-Asheron-s-Call
 
@@ -614,6 +681,7 @@ namespace ACE.Server.WorldObjects
             if (!IsHardcore && ((!onDropAllPyrealsLandblock && onNoDropLandblock) || IsPKLiteDeath(corpse.KillerId))) // Pyreals will drop even on no drop landblocks if it's also a drop all pyreals landblock.
                 return new List<WorldObject>();
 
+            var pyreals = new List<WorldObject>();
             var dropItems = new List<WorldObject>();
             var destroyedItems = new List<WorldObject>();
 
@@ -623,8 +691,7 @@ namespace ACE.Server.WorldObjects
                 if (numCoinsDropped > 0)
                 {
                     // add pyreals to dropped items
-                    var pyreals = SpendCurrency(coinStackWcid, (uint)numCoinsDropped);
-                    dropItems.AddRange(pyreals);
+                    pyreals.AddRange(SpendCurrency(coinStackWcid, (uint)numCoinsDropped).OrderBy(i => i.StackSize));
                     //Console.WriteLine($"Dropping {numCoinsDropped} pyreals");
                 }
             }
@@ -648,9 +715,12 @@ namespace ACE.Server.WorldObjects
                 var numItemsDropped = GetNumItemsDropped(corpse);
 
                 bool dropAllWielded = false;
+                bool dropAllTradeNotes = false;
+                bool dropAllItems = false;
                 if (IsHardcore)
                 {
                     dropAllWielded = true;
+                    dropAllTradeNotes = true;
 
                     var topDamager = DamageHistory.GetTopDamager(false);
                     if (topDamager != null && topDamager.IsPlayer && topDamager.TryGetAttacker() is Player topDamagerPlayer)
@@ -677,7 +747,49 @@ namespace ACE.Server.WorldObjects
                     }
                 }
 
-                if (numItemsDropped > 0 || dropAllWielded)
+                if(dropAllItems)
+                {
+                    // handle items with BondedStatus.Destroy
+                    destroyedItems = HandleDestroyBonded();
+
+                    var inventory = Inventory.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0 || (IsHardcore && i.ItemType == ItemType.PromissoryNote)).OrderByDescending(i => i.PlacementPosition).ToList(); // Filter bonded items
+                    var wieldedItems = EquippedObjects.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList(); // Filter bonded items
+
+                    var allItems = new List<WorldObject>();
+                    allItems.AddRange(inventory);
+                    allItems.AddRange(wieldedItems);
+
+                    foreach (var item in allItems)
+                    {
+                        if(item is Container container)
+                        {
+                            var containedBoundItems = container.Inventory.Values.Where(i => (i.GetProperty(PropertyInt.Bonded) ?? 0) != 0 && !(IsHardcore && i.ItemType == ItemType.PromissoryNote)).ToList();
+
+                            foreach(var containedItem in containedBoundItems)
+                            {
+                                if (!DoHandleActionPutItemInContainer(containedItem, this, false, this, this, 0))
+                                {
+                                    if(!TryDropItem(containedItem))
+                                    {
+                                        log.WarnFormat("Couldn't move bound death item 0x{0:X8}:{1} to player {2}'s main pack nor ground.", item.Guid.Full, item.Name, Name);
+                                        TryConsumeFromInventoryWithNetworking(containedItem, containedItem.StackSize ?? 1);
+                                    }
+                                }
+                            }
+                        }
+
+                        if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                        {
+                            //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                            dropItems.Add(item);
+                        }
+                        else
+                        {
+                            log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
+                        }
+                    }
+                }
+                else if (numItemsDropped > 0 || dropAllWielded)
                 {
                     var level = Level ?? 1;
                     var canDropWielded = level >= 35;
@@ -691,6 +803,10 @@ namespace ACE.Server.WorldObjects
                     List<WorldObject> wieldedItems = null;
                     if (dropAllWielded)
                         wieldedItems = inventory.Where(i => i.CurrentWieldedLocation != null && (i.GetProperty(PropertyInt.Bonded) ?? 0) == 0).ToList();
+
+                    List<WorldObject> tradeNotes = null;
+                    if (dropAllTradeNotes)
+                        tradeNotes = inventory.Where(i => i.ItemType == ItemType.PromissoryNote).OrderByDescending(i => i.WeenieClassId).ToList();
 
                     // exclude wielded items if < level 35 or if we're dropping them all
                     if (!canDropWielded || dropAllWielded)
@@ -718,7 +834,24 @@ namespace ACE.Server.WorldObjects
                         }
                     }
 
-                    if (numItemsDropped > 1)
+                    if (dropAllTradeNotes && tradeNotes != null)
+                    {
+                        foreach (var item in tradeNotes)
+                        {
+                            if (TryRemoveFromInventoryWithNetworking(item.Guid, out _, RemoveFromInventoryAction.ToCorpseOnDeath) || TryDequipObjectWithNetworking(item.Guid, out _, DequipObjectAction.ToCorpseOnDeath))
+                            {
+                                //Console.WriteLine("Dropping " + deathItem.WorldObject.Name);
+                                dropItems.Add(item);
+                            }
+                            else
+                            {
+                                log.WarnFormat("Couldn't find death item 0x{0:X8}:{1} for player {2}", item.Guid.Full, item.Name, Name);
+                            }
+                        }
+                    }
+
+                    if (numItemsDropped > 0)
+
                     {
                         // construct the list of death items
                         var sorted = new DeathItems(inventory);
@@ -775,10 +908,10 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            var destroyCoins = PropertyManager.GetBool("corpse_destroy_pyreals").Item;
+            // Add pyreals last so they're the first items on the corpse.
+            dropItems.AddRange(pyreals);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
-                destroyCoins = false; // Let's override the setting for now.
+            var destroyCoins = PropertyManager.GetBool("corpse_destroy_pyreals").Item;
 
             // add items to corpse
             foreach (var dropItem in dropItems)

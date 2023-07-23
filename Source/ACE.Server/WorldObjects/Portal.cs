@@ -156,13 +156,19 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (player.PKTimerActive && !PortalIgnoresPkAttackTimer)
+            if (player.PKTimerActive && !PortalIgnoresPkAttackTimer && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
             {
                 return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
             }
 
             if (!player.IgnorePortalRestrictions)
             {
+                if (!player.VerifyGameplayMode(this))
+                {
+                    player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"This item cannot be used, invalid gameplay mode!"));
+                    return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouFailToTeleport));
+                }
+
                 if (player.Level < MinLevel)
                 {
                     // You are not powerful enough to interact with that portal!

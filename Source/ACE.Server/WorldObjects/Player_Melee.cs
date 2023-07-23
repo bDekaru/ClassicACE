@@ -7,6 +7,7 @@ using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
+using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics;
 using ACE.Server.Physics.Animation;
 
@@ -365,9 +366,6 @@ namespace ACE.Server.WorldObjects
                 numStrikes = attackFrames.Count;
             }
 
-            if(weapon != null)
-                weapon.TryProcInnate(this, creature, false);
-
             // handle self-procs
             TryProcEquippedItems(this, this, true, weapon);
 
@@ -391,11 +389,20 @@ namespace ACE.Server.WorldObjects
                         return;
                     }
 
+                    //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !IsDirectVisible(target))
+                    //{
+                    //    Session.Network.EnqueueSend(new GameMessageSystemChat("You can't quite reach your target!", ChatMessageType.Broadcast));
+                    //    return;
+                    //}
+
                     var damageEvent = DamageTarget(creature, weapon);
 
                     // handle target procs
                     if (damageEvent != null && damageEvent.HasDamage && !targetProc)
                     {
+                        if (weapon != null)
+                            weapon.TryProcInnate(this, creature, false);
+
                         TryProcEquippedItems(this, creature, false, weapon);
                         targetProc = true;
                     }
