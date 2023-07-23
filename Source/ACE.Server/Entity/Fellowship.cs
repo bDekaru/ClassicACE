@@ -478,12 +478,12 @@ namespace ACE.Server.Entity
             {
                 var maxLevelDiff = fellows.Values.Max(f => Math.Abs((leader.Level ?? 1) - (f.Level ?? 1)));
 
-                if (maxLevelDiff <= 5)
+                if (maxLevelDiff <= 10)
                 {
                     ShareXP = DesiredShareXP;
                     EvenShare = true;
                 }
-                else if (maxLevelDiff <= 10)
+                else if (maxLevelDiff <= 15)
                 {
                     ShareXP = DesiredShareXP;
                     EvenShare = false;
@@ -630,21 +630,21 @@ namespace ACE.Server.Entity
                 case 1:
                     return 1.0;
                 case 2:
-                    return .75;
+                    return 1.0;
                 case 3:
-                    return .6;
+                    return 1.0;
                 case 4:
-                    return .55;
+                    return .9;
                 case 5:
-                    return .5;
+                    return .7;
                 case 6:
-                    return .45;
+                    return .6;
                 case 7:
-                    return .4;
+                    return .5;
                 case 8:
-                    return .35;
+                    return .4;
                 case 9:
-                    return .3;
+                    return .1;
                     // TODO: handle fellowship mods with > 9 players?
             }
             return 1.0;
