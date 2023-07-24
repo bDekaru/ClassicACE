@@ -171,7 +171,7 @@ namespace ACE.Server.WorldObjects
                     var schoolSkill = wielder.GetCreatureSkill(spell.School).Current;
 
                     var arcaneLore = wielder.GetCreatureSkill(Skill.ArcaneLore).Current;
-                    var arcaneLoreMod = Math.Max(1.0f + (arcaneLore - 55) * 0.002f, 1.0f);
+                    var arcaneLoreMod = Math.Max(1.0f + Math.Max(arcaneLore - 55, 0) * 0.002f, 1.0f);
                     var ArcaneLoreModifiedSpellcraft = (uint)(magicSkill * arcaneLoreMod);
 
                     magicSkill = Math.Max(weaponSkill, schoolSkill);
