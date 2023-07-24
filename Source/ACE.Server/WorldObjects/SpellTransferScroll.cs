@@ -316,6 +316,9 @@ namespace ACE.Server.WorldObjects
                     {
                         target.ItemUseable = Usable.Contained;
                         target.ItemManaCost = (int)spellToAdd.BaseMana;
+                        target.ItemMaxMana = newMaxMana;
+                        target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
+
                         var baseWeenie = DatabaseManager.World.GetCachedWeenie(target.WeenieClassId);
                         if (baseWeenie != null)
                         {
@@ -326,15 +329,15 @@ namespace ACE.Server.WorldObjects
                     }
                     else if (newMaxMana > (target.ItemMaxMana ?? 0))
                     {
+                        target.ItemMaxMana = newMaxMana;
+                        target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
+
                         target.ManaRate = newManaRate;
                         target.LongDesc = LootGenerationFactory.GetLongDesc(target);
                     }
 
                     if (spellToReplace == null || (isProc && target.ProcSpell == null))
                         target.ExtraSpellsCount = (target.ExtraSpellsCount ?? 0) + 1;
-
-                    target.ItemMaxMana = newMaxMana;
-                    target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
 
                     var newRollDiff = LootGenerationFactory.RollEnchantmentDifficulty(enchantments);
                     newRollDiff += LootGenerationFactory.RollCantripDifficulty(cantrips);
