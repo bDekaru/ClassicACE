@@ -1416,11 +1416,11 @@ namespace ACE.Server.WorldObjects.Managers
                 var pvpMod = 1.0f;
                 if (isPvP)
                 {
-                    pvpMod = (float)PropertyManager.GetDouble("pvp_dmg_mod").Item;
+                    pvpMod = (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low", "pvp_dmg_mod_high", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                     if (damageType == DamageType.Nether)
-                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_void_dot").Item;
+                        pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_void_dot", "pvp_dmg_mod_high_void_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                     else
-                        pvpMod *= (float)PropertyManager.GetDouble("pvp_dmg_mod_dot").Item;
+                        pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_dot", "pvp_dmg_mod_high_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                 }
 
                 tickAmount *= resistanceMod * damageResistRatingMod * dotResistRatingMod * pvpMod;
