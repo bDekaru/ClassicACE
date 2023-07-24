@@ -2,13 +2,13 @@ two_handed_axe Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 37%:
+    - Chance: 61%:
         Damage += 0
 
-    - Chance: 13%:
+    - Chance: 19%:
         Damage += 1
 
-    - Chance: 50%:
+    - Chance: 20%:
         Damage += 1
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -18,19 +18,19 @@ two_handed_axe Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 50%:
+    - Chance: 75%:
         Damage += 1
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 125
 
-    - Chance: 37%:
+    - Chance: 19%:
         Damage += 2
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 13%:
+    - Chance: 6%:
         Damage += 3
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -40,13 +40,13 @@ two_handed_axe Mutation #3:
 
 Tier Chances: 0, 0, 1, 0, 0, 0
 
-    - Chance: 12%:
+    - Chance: 13%:
         Damage += 2
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 38%:
+    - Chance: 37%:
         Damage += 3
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -94,19 +94,19 @@ two_handed_axe Mutation #6:
 
 Tier Chances: 0, 0, 0, 0, 0, 1
 
-    - Chance: 33.5%:
+    - Chance: 34%:
         Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 33.2%:
+    - Chance: 33%:
         Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 33.3%:
+    - Chance: 33%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -116,13 +116,13 @@ two_handed_axe Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 5%:
+    - Chance: 6.2%:
         DamageVariance = 0.65
 
-    - Chance: 7.4%:
+    - Chance: 7.5%:
         DamageVariance = 0.64
 
-    - Chance: 10%:
+    - Chance: 11%:
         DamageVariance = 0.63
 
     - Chance: 14%:
@@ -131,17 +131,17 @@ Tier Chances: 1, 1, 1, 1, 1, 1
     - Chance: 20%:
         DamageVariance = 0.61
 
-    - Chance: 14%:
+    - Chance: 15%:
         DamageVariance = 0.6
 
     - Chance: 10%:
         DamageVariance = 0.59
 
-    - Chance: 9.5%:
+    - Chance: 7.3%:
         DamageVariance = 0.58
 
-    - Chance: 6.2%:
+    - Chance: 5.3%:
         DamageVariance = 0.57
 
-    - Chance: 3.9%:
+    - Chance: 3.7%:
         DamageVariance = 0.56

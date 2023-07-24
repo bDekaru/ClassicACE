@@ -2,31 +2,31 @@ Bow Mutation #1:
 
 Tier chances: 1, 0, 0, 0, 0, 0
 
-    - Chance 6%:
+    - Chance 33%:
         DamageMod = 1.5
 
-    - Chance 10%:
+    - Chance 20%:
         DamageMod = 1.6
 
-    - Chance 18%:
+    - Chance 13%:
         DamageMod = 1.7
 
-    - Chance 10%:
+    - Chance 7%:
         DamageMod = 1.8
 
-    - Chance 6%:
+    - Chance 4.5%:
         DamageMod = 1.9
 
-    - Chance 5%:
+    - Chance 2.5%:
         DamageMod = 2
 
-    - Chance 27%:
+    - Chance 15%:
         DamageMod = 1.9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 125
 
-    - Chance 18%:
+    - Chance 5%:
         DamageMod = 2
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -36,37 +36,37 @@ Bow Mutation #2:
 
 Tier chances: 0, 1, 0, 0, 0, 0
 
-    - Chance 30%:
+    - Chance 56%:
         DamageMod = 1.9
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 125
 
-    - Chance 20%:
+    - Chance 18%:
         DamageMod = 2
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 125
 
-    - Chance 10%:
+    - Chance 13%:
         DamageMod = 2.03
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 20%:
+    - Chance 7.6%:
         DamageMod = 2.05
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 15%:
+    - Chance 3.3%:
         DamageMod = 2.07
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance 5%:
+    - Chance 2.1%:
         DamageMod = 2.1
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill

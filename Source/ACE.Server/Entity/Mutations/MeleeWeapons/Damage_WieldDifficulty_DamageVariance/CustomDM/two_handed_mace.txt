@@ -2,13 +2,13 @@ two_handed_mace Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 37%:
+    - Chance: 60%:
         Damage += 0
 
-    - Chance: 13%:
+    - Chance: 20%:
         Damage += 1
 
-    - Chance: 50%:
+    - Chance: 20%:
         Damage += 1
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -18,19 +18,19 @@ two_handed_mace Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 50%:
+    - Chance: 75.2%:
         Damage += 1
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 125
 
-    - Chance: 37%:
+    - Chance: 18.3%:
         Damage += 2
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 13%:
+    - Chance: 6.5%:
         Damage += 3
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -94,7 +94,7 @@ two_handed_mace Mutation #6:
 
 Tier Chances: 0, 0, 0, 0, 0, 1
 
-    - Chance: 33.2%:
+    - Chance: 34%:
         Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -106,7 +106,7 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 33.8%:
+    - Chance: 33%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -116,32 +116,32 @@ two_handed_mace Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 5.2%:
+    - Chance: 7.4%:
         DamageVariance = 0.65
 
-    - Chance: 7.4%:
+    - Chance: 7.5%:
         DamageVariance = 0.64
 
     - Chance: 10%:
         DamageVariance = 0.63
 
-    - Chance: 14%:
+    - Chance: 14.1%:
         DamageVariance = 0.62
 
     - Chance: 20%:
         DamageVariance = 0.61
 
-    - Chance: 15%:
+    - Chance: 14.1%:
         DamageVariance = 0.6
 
-    - Chance: 10%:
+    - Chance: 10.1%:
         DamageVariance = 0.59
 
-    - Chance: 8.3%:
+    - Chance: 7.5%:
         DamageVariance = 0.58
 
-    - Chance: 6.4%:
+    - Chance: 5.4%:
         DamageVariance = 0.57
 
-    - Chance: 3.7%:
+    - Chance: 3.9%:
         DamageVariance = 0.56

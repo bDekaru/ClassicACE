@@ -2,28 +2,28 @@ two_handed_spear Mutation #1:
 
 Tier Chances: 1, 0, 0, 0, 0, 0
 
-    - Chance: 5.8%:
+    - Chance: 37.1%:
         Damage += 0
 
-    - Chance: 10%:
+    - Chance: 22%:
         Damage += 1
 
-    - Chance: 18.3%:
+    - Chance: 11%:
         Damage += 2
 
-    - Chance: 10.3%:
+    - Chance: 6.4%:
         Damage += 3
 
-    - Chance: 5.5%:
+    - Chance: 4.5%:
         Damage += 4
 
-    - Chance: 37.1%:
+    - Chance: 14%:
         Damage += 3
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 125
 
-    - Chance: 13%:
+    - Chance: 5%:
         Damage += 4
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -33,37 +33,37 @@ two_handed_spear Mutation #2:
 
 Tier Chances: 0, 1, 0, 0, 0, 0
 
-    - Chance: 38.1%:
+    - Chance: 57%:
         Damage += 3
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 125
 
-    - Chance: 12%:
+    - Chance: 18%:
         Damage += 4
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 125
 
-    - Chance: 5.6%:
+    - Chance: 13%:
         Damage += 5
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 11%:
+    - Chance: 6.7%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 22.2%:
+    - Chance: 3.3%:
         Damage += 7
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 11.1%:
+    - Chance: 2%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -73,13 +73,13 @@ two_handed_spear Mutation #3:
 
 Tier Chances: 0, 0, 1, 0, 0, 0
 
-    - Chance: 3.2%:
+    - Chance: 4.2%:
         Damage += 5
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 6.7%:
+    - Chance: 6.8%:
         Damage += 6
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -91,27 +91,11 @@ Tier Chances: 0, 0, 1, 0, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
 
-    - Chance: 27%:
+    - Chance: 26%:
         Damage += 8
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 250
-
-    - Chance: 38%:
-        Damage += 9
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 300
-
-    - Chance: 12.1%:
-        Damage += 10
-        WieldRequirements = RawSkill
-        WieldSkillType = WeaponSkill
-        WieldDifficulty = 300
-
-two_handed_spear Mutation #4:
-
-Tier Chances: 0, 0, 0, 1, 0, 0
 
     - Chance: 38%:
         Damage += 9
@@ -125,7 +109,23 @@ Tier Chances: 0, 0, 0, 1, 0, 0
         WieldSkillType = WeaponSkill
         WieldDifficulty = 300
 
+two_handed_spear Mutation #4:
+
+Tier Chances: 0, 0, 0, 1, 0, 0
+
     - Chance: 37%:
+        Damage += 9
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 12%:
+        Damage += 10
+        WieldRequirements = RawSkill
+        WieldSkillType = WeaponSkill
+        WieldDifficulty = 300
+
+    - Chance: 38%:
         Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -141,13 +141,13 @@ two_handed_spear Mutation #5:
 
 Tier Chances: 0, 0, 0, 0, 1, 0
 
-    - Chance: 37%:
+    - Chance: 38%:
         Damage += 11
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 325
 
-    - Chance: 13%:
+    - Chance: 12%:
         Damage += 12
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -175,13 +175,13 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 8.4%:
+    - Chance: 8.5%:
         Damage += 14
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 350
 
-    - Chance: 26%:
+    - Chance: 24.1%:
         Damage += 15
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -193,13 +193,13 @@ Tier Chances: 0, 0, 0, 0, 0, 1
         WieldSkillType = WeaponSkill
         WieldDifficulty = 370
 
-    - Chance: 24%:
+    - Chance: 25%:
         Damage += 17
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
         WieldDifficulty = 400
 
-    - Chance: 8.4%:
+    - Chance: 9.2%:
         Damage += 18
         WieldRequirements = RawSkill
         WieldSkillType = WeaponSkill
@@ -209,17 +209,17 @@ two_handed_spear Mutation #7:
 
 Tier Chances: 1, 1, 1, 1, 1, 1
 
-    - Chance: 11%:
+    - Chance: 12%:
         DamageVariance = 0.35
 
-    - Chance: 20%:
+    - Chance: 21%:
         DamageVariance = 0.32
 
-    - Chance: 37%:
+    - Chance: 36%:
         DamageVariance = 0.3
 
     - Chance: 20%:
         DamageVariance = 0.28
 
-    - Chance: 12%:
+    - Chance: 11%:
         DamageVariance = 0.25
