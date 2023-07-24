@@ -1044,7 +1044,14 @@ namespace ACE.Server.WorldObjects
             }
 
             if (!Tier.HasValue) // We're not in a town and no defined shop tier! See what's around us.
-                Tier = Math.Max(GetHighestTierAroundObject(50), 1); // Fallback to tier 1 if there's nothing around us.
+            {
+                float maxDistance;
+                if (CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+                    maxDistance = 50;
+                else
+                    maxDistance = 500;
+                Tier = Math.Max(GetHighestTierAroundObject(maxDistance), 1); // Fallback to tier 1 if there's nothing around us.
+            }
 
             sellsRandomArmor = ((ItemType)MerchandiseItemTypes & ItemType.Armor) == ItemType.Armor;
             sellsRandomMeleeWeapons = ((ItemType)MerchandiseItemTypes & ItemType.MeleeWeapon) == ItemType.MeleeWeapon;
