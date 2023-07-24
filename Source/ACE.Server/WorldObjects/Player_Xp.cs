@@ -1081,18 +1081,32 @@ namespace ACE.Server.WorldObjects
         {
             // Destroy all items
             var inventory = GetAllPossessions();
+            var inventoryToDelete = new List<WorldObject>();
 
             foreach (var item in inventory)
             {
                 if (keepHousing && item.WeenieType == WeenieType.Deed) // Keep houses
-                    continue;
-                if (keepBondedEquipment && (item.ValidLocations ?? EquipMask.None) != EquipMask.None && item.Bonded == BondedStatus.Bonded && item.WeenieClassId != (int)Factories.Enum.WeenieClassName.ringHardcore && item.WeenieClassId != (uint)Factories.Enum.WeenieClassName.explorationContract)
                 {
-                    if(item.CurrentWieldedLocation != null)
+                    if (item.CurrentWieldedLocation != null || item.Container != this)
                         HandleActionPutItemInContainer(item.Guid.Full, Guid.Full);
                     continue;
                 }
 
+                if (keepBondedEquipment
+                    && (item.ValidLocations ?? EquipMask.None) != EquipMask.None && item.Bonded == BondedStatus.Bonded
+                    && item.WeenieClassId != (int)Factories.Enum.WeenieClassName.ringHardcore
+                    && item.WeenieClassId != (uint)Factories.Enum.WeenieClassName.explorationContract)
+                {
+                    if(item.CurrentWieldedLocation != null || item.Container != this)
+                        HandleActionPutItemInContainer(item.Guid.Full, Guid.Full);
+                    continue;
+                }
+
+                inventoryToDelete.Add(item);
+            }
+
+            foreach (var item in inventoryToDelete)
+            {
                 item.DeleteObject(this);
             }
 
