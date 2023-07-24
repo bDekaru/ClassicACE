@@ -1,5 +1,6 @@
 using ACE.Entity;
 using ACE.Entity.Enum;
+using System;
 
 namespace ACE.Server.WorldObjects
 {
@@ -152,20 +153,25 @@ namespace ACE.Server.WorldObjects
                 if (IsTurning || (IsMoving && distanceCovered > 0.2))
                     AttacksReceivedWithoutBeingAbleToCounter = 0;
 
-                if (!Location.Indoors && AttacksReceivedWithoutBeingAbleToCounter > 2)
+                if (AttackTarget != null && !Location.Indoors)
                 {
-                    AttacksReceivedWithoutBeingAbleToCounter = 0;
+                    var heightDifference = Math.Abs(Location.PositionZ - AttackTarget.Location.PositionZ);
 
-                    if (HasRangedWeapon && CurrentAttack == CombatType.Melee && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime)
+                    if (heightDifference > 2.0 && AttacksReceivedWithoutBeingAbleToCounter > 2)
                     {
-                        TrySwitchToMissileAttack();
-                        return;
-                    }
-                    else
-                    {
-                        FindNewHome(100, 260, 100);
-                        MoveToHome();
-                        return;
+                        AttacksReceivedWithoutBeingAbleToCounter = 0;
+
+                        if (HasRangedWeapon && CurrentAttack == CombatType.Melee && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime)
+                        {
+                            TrySwitchToMissileAttack();
+                            return;
+                        }
+                        else
+                        {
+                            FindNewHome(100, 260, 100);
+                            MoveToHome();
+                            return;
+                        }
                     }
                 }
             }
