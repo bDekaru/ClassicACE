@@ -564,7 +564,7 @@ namespace ACE.Server.WorldObjects
                 if(difficulty <= 10)
                     difficulty = 35;
                 else
-                    difficulty += 50;
+                    difficulty += 25;
             }
 
             if (MagicState.IsCombatCasting)
