@@ -125,6 +125,14 @@ namespace ACE.Server.WorldObjects
                     xpMessage = $"Surface Bonus: +{extraXP:N0}xp {xpMessage}";
                 }
 
+                if(Level < (MaxReachedLevel ?? 1))
+                {
+                    var extraXP = totalXP * (float)PropertyManager.GetDouble("relive_bonus_xp").Item; // Surface provides extra xp to account for lower creature density.
+                    totalXP += extraXP;
+
+                    xpMessage = $"Relive Bonus: +{extraXP:N0}xp {xpMessage}";
+                }
+
                 amount = (long)Math.Round(totalXP);
             }
 
@@ -598,6 +606,9 @@ namespace ACE.Server.WorldObjects
                     TotalSkillCredits += (int)xpTable.CharacterLevelSkillCreditList[Level ?? 0];
                     creditEarned = true;
                 }
+
+                if (Level <= maxLevel && Level > MaxReachedLevel)
+                    MaxReachedLevel = Level;
 
                 // break if we reach max
                 if (Level == maxLevel)

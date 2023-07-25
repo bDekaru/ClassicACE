@@ -677,6 +677,8 @@ namespace ACE.Entity.Enum.Properties
         GameplayMode                             = 10024,
         [ServerOnly]
         ChargenTitleId                           = 10025,
+        [ServerOnly]
+        MaxReachedLevel                          = 10026,
     }
 
     public static class PropertyIntExtensions
