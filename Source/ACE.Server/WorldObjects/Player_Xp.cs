@@ -84,6 +84,14 @@ namespace ACE.Server.WorldObjects
                     xpMessage = $"T: {(typeCampBonus * 100).ToString("0")}%";
                 }
 
+                if (Level < (MaxReachedLevel ?? 1))
+                {
+                    var extraXP = totalXP * (float)PropertyManager.GetDouble("relive_bonus_xp").Item;
+                    totalXP += extraXP;
+
+                    xpMessage = $"Relive Bonus: +{extraXP:N0}xp {xpMessage}";
+                }
+
                 amount = (long)Math.Round(totalXP);
             }
             else if (amount < 0)
@@ -127,7 +135,7 @@ namespace ACE.Server.WorldObjects
 
                 if(Level < (MaxReachedLevel ?? 1))
                 {
-                    var extraXP = totalXP * (float)PropertyManager.GetDouble("relive_bonus_xp").Item; // Surface provides extra xp to account for lower creature density.
+                    var extraXP = totalXP * (float)PropertyManager.GetDouble("relive_bonus_xp").Item;
                     totalXP += extraXP;
 
                     xpMessage = $"Relive Bonus: +{extraXP:N0}xp {xpMessage}";
