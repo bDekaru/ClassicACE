@@ -331,6 +331,19 @@ namespace ACE.Server.Physics.Common
             }
         }
 
+        public List<Player> GetVisiblePlayersValuesAsPlayer()
+        {
+            rwLock.EnterReadLock();
+            try
+            {
+                return VisibleObjects.Values.Select(v => v.WeenieObj.WorldObject).OfType<Player>().ToList();
+            }
+            finally
+            {
+                rwLock.ExitReadLock();
+            }
+        }
+
         /// <summary>
         /// Returns a list of objects that are currently visible from a cell
         /// </summary>

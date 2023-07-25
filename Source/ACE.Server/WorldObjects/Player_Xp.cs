@@ -607,7 +607,7 @@ namespace ACE.Server.WorldObjects
                     creditEarned = true;
                 }
 
-                if (Level <= maxLevel && Level > MaxReachedLevel)
+                if (Level <= maxLevel && Level > (MaxReachedLevel ?? 1))
                     MaxReachedLevel = Level;
 
                 // break if we reach max

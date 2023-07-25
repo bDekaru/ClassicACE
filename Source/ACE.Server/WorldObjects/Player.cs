@@ -563,9 +563,9 @@ namespace ACE.Server.WorldObjects
                     {
                         List<Player> visiblePlayers;
                         if (GameplayMode == GameplayModes.HardcorePK)
-                            visiblePlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.HardcorePK && Math.Abs((Level ?? 1) - (e.Level ?? 1)) <= 10).ToList();
+                            visiblePlayers = PhysicsObj.ObjMaint.GetVisiblePlayersValuesAsPlayer().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.HardcorePK && Math.Abs((Level ?? 1) - (e.Level ?? 1)) <= 10).ToList();
                         else
-                            visiblePlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.Regular && e.IsPK && Math.Abs((Level ?? 1) - (e.Level ?? 1)) <= 10).ToList();
+                            visiblePlayers = PhysicsObj.ObjMaint.GetVisiblePlayersValuesAsPlayer().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.Regular && e.IsPK && Math.Abs((Level ?? 1) - (e.Level ?? 1)) <= 10).ToList();
 
                         if (visiblePlayers.Count() > 0)
                         {
