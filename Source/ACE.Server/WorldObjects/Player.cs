@@ -28,6 +28,7 @@ using ACE.Server.WorldObjects.Managers;
 
 using Character = ACE.Database.Models.Shard.Character;
 using MotionTable = ACE.DatLoader.FileTypes.MotionTable;
+using System.Linq;
 
 namespace ACE.Server.WorldObjects
 {
@@ -549,7 +550,42 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool LogOut(bool clientSessionTerminatedAbruptly = false, bool forceImmediate = false)
         {
-            if ((PKLogoutActive || ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)) && !forceImmediate)
+            var isHardcoreLogout = false;
+            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL))
+            {
+                if (!LandblockManager.apartmentLandblocks.Contains((uint)Location.LandblockId.Landblock << 16 ^ 0x0000FFFF) && !NoDamage_Landblocks.Contains(Location.LandblockId.Landblock))
+                {
+                    var currentTime = Time.GetUnixTime();
+                    var timeSinceLastPortal = currentTime - (LastPortalTeleportTimestamp ?? 0);
+                    if (Teleporting || timeSinceLastPortal < 10)
+                        isHardcoreLogout = true;
+                    else
+                    {
+                        List<Player> visiblePlayers;
+                        if (GameplayMode == GameplayModes.HardcorePK)
+                            visiblePlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.HardcorePK && Math.Abs((Level ?? 1) - (e.Level ?? 1)) <= 10).ToList();
+                        else
+                            visiblePlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.Regular && e.IsPK && Math.Abs((Level ?? 1) - (e.Level ?? 1)) <= 10).ToList();
+
+                        if (visiblePlayers.Count() > 0)
+                        {
+                            foreach (var entry in visiblePlayers)
+                            {
+                                if (Fellowship == null || entry.Fellowship != Fellowship)
+                                {
+                                    if (Allegiance == null || entry.Allegiance != Allegiance)
+                                    {
+                                        isHardcoreLogout = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ((PKLogoutActive || isHardcoreLogout) && !forceImmediate)
             {
                 var timer = PropertyManager.GetLong("pk_timer").Item;
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"You will logout in {timer} seconds...", ChatMessageType.Broadcast));
