@@ -214,6 +214,27 @@ namespace ACE.Server.Managers
             return new Property<double>(value, dbValue?.Description);
         }
 
+        public static double GetInterpolatedDouble(int interpolationKey, string lowKey, string highKey, string referenceLowKey, string referenceHighKey)
+        {
+            var referenceLow = GetDouble(referenceLowKey).Item;
+            var referenceHigh = GetDouble(referenceHighKey).Item;
+            var lowValue = GetDouble(lowKey).Item;
+            var highValue = GetDouble(highKey).Item;
+
+            if (lowValue == highValue)
+                return lowValue;
+            else if (referenceLow > interpolationKey)
+                return lowValue;
+            else if (referenceHigh < interpolationKey)
+                return highValue;
+
+            var stepsBetweenRefences = referenceHigh - referenceLow;
+            var stepValue = (highValue - lowValue) / stepsBetweenRefences;
+            var steps = interpolationKey - referenceLow;
+
+            return lowValue + (steps * stepValue);
+        }
+
         /// <summary>
         /// Modifies a float value in the cache and marks it for being synced on the next cycle.
         /// </summary>
@@ -747,116 +768,230 @@ namespace ACE.Server.Managers
                 // Dagger = Finesse Weapons
                 // Bow = Missile Weapons
                 //
-                ("pvp_dmg_mod", new Property<double>(1.0, "Scales damage.")),
-                ("pvp_dmg_mod_axe", new Property<double>(1.0, "Scales axe damage.")),
-                ("pvp_dmg_mod_dagger", new Property<double>(1.0, "Scales dagger damage.")),
-                ("pvp_dmg_mod_mace", new Property<double>(1.0, "Scales mace damage.")),
-                ("pvp_dmg_mod_spear", new Property<double>(1.0, "Scales spear damage.")),
-                ("pvp_dmg_mod_staff", new Property<double>(1.0, "Scales staff damage.")),
-                ("pvp_dmg_mod_sword", new Property<double>(1.0, "Scales sword damage.")),
-                ("pvp_dmg_mod_unarmed", new Property<double>(1.0, "Scales unarmed combat damage.")),
-                ("pvp_dmg_mod_unarmed_war", new Property<double>(1.0, "Scales unamed combat war magic spell damage.")),
+                ("pvp_dmg_mod_low_level", new Property<double>(10.0, "Reference low level.")),
+                ("pvp_dmg_mod_high_level", new Property<double>(80.0, "Reference high level.")),
 
-                ("pvp_dmg_mod_bow", new Property<double>(1.0, "Scales bow damage.")),
-                ("pvp_dmg_mod_crossbow", new Property<double>(1.0, "Scales crossbow damage.")),
-                ("pvp_dmg_mod_thrown", new Property<double>(1.0, "Scales thrown weapons damage.")),
+                ("pvp_dmg_mod_low", new Property<double>(1.0, "Scales damage.")),
+                ("pvp_dmg_mod_low_axe", new Property<double>(1.0, "Scales axe damage.")),
+                ("pvp_dmg_mod_low_dagger", new Property<double>(1.0, "Scales dagger damage.")),
+                ("pvp_dmg_mod_low_mace", new Property<double>(1.0, "Scales mace damage.")),
+                ("pvp_dmg_mod_low_spear", new Property<double>(1.0, "Scales spear damage.")),
+                ("pvp_dmg_mod_low_staff", new Property<double>(1.0, "Scales staff damage.")),
+                ("pvp_dmg_mod_low_sword", new Property<double>(1.0, "Scales sword damage.")),
+                ("pvp_dmg_mod_low_unarmed", new Property<double>(1.0, "Scales unarmed combat damage.")),
+                ("pvp_dmg_mod_low_unarmed_war", new Property<double>(1.0, "Scales unamed combat war magic spell damage.")),
 
-                ("pvp_dmg_mod_war", new Property<double>(1.0, "Scales war magic spell(not including streaks) damage.")),
-                ("pvp_dmg_mod_void", new Property<double>(1.0, "Scales void magic spell(not including streaks and DoTs) damage.")),
+                ("pvp_dmg_mod_low_bow", new Property<double>(1.0, "Scales bow damage.")),
+                ("pvp_dmg_mod_low_crossbow", new Property<double>(1.0, "Scales crossbow damage.")),
+                ("pvp_dmg_mod_low_thrown", new Property<double>(1.0, "Scales thrown weapons damage.")),
 
-                ("pvp_dmg_mod_war_streak", new Property<double>(1.0, "Scales war magic streaks damage.")),
-                ("pvp_dmg_mod_void_streak", new Property<double>(1.0, "Scales void magic streaks damage.")),
+                ("pvp_dmg_mod_low_war", new Property<double>(1.0, "Scales war magic spell(not including streaks) damage.")),
+                ("pvp_dmg_mod_low_void", new Property<double>(1.0, "Scales void magic spell(not including streaks and DoTs) damage.")),
 
-                ("pvp_dmg_mod_dot", new Property<double>(1.0, "Scales damage over time damage.")),
-                ("pvp_dmg_mod_void_dot", new Property<double>(1.0, "Scales void magic damage over time damage.")),
+                ("pvp_dmg_mod_low_war_streak", new Property<double>(1.0, "Scales war magic streaks damage.")),
+                ("pvp_dmg_mod_low_void_streak", new Property<double>(1.0, "Scales void magic streaks damage.")),
+
+                ("pvp_dmg_mod_low_dot", new Property<double>(1.0, "Scales damage over time damage.")),
+                ("pvp_dmg_mod_low_void_dot", new Property<double>(1.0, "Scales void magic damage over time damage.")),
 
                 // PvP Crippling Blow and Crushing Blow modifiers
-                ("pvp_dmg_mod_crit_dmg", new Property<double>(1.0, "Scales Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_axe_crit_dmg", new Property<double>(1.0, "Scales axe Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_dagger_crit_dmg", new Property<double>(1.0, "Scales dagger Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_mace_crit_dmg", new Property<double>(1.0, "Scales mace Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_spear_crit_dmg", new Property<double>(1.0, "Scales spear Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_staff_crit_dmg", new Property<double>(1.0, "Scales staff Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_sword_crit_dmg", new Property<double>(1.0, "Scales sword Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_unarmed_crit_dmg", new Property<double>(1.0, "Scales unarmed combat Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_crit_dmg", new Property<double>(1.0, "Scales Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_axe_crit_dmg", new Property<double>(1.0, "Scales axe Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_dagger_crit_dmg", new Property<double>(1.0, "Scales dagger Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_mace_crit_dmg", new Property<double>(1.0, "Scales mace Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_spear_crit_dmg", new Property<double>(1.0, "Scales spear Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_staff_crit_dmg", new Property<double>(1.0, "Scales staff Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_sword_crit_dmg", new Property<double>(1.0, "Scales sword Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_unarmed_crit_dmg", new Property<double>(1.0, "Scales unarmed combat Crippling Blow and Crushing Blow damage.")),
 
-                ("pvp_dmg_mod_bow_crit_dmg", new Property<double>(1.0, "Scales bow Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_crossbow_crit_dmg", new Property<double>(1.0, "Scales crossbow Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_thrown_crit_dmg", new Property<double>(1.0, "Scales thrown weapons Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_bow_crit_dmg", new Property<double>(1.0, "Scales bow Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_crossbow_crit_dmg", new Property<double>(1.0, "Scales crossbow Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_thrown_crit_dmg", new Property<double>(1.0, "Scales thrown weapons Crippling Blow and Crushing Blow damage.")),
 
-                ("pvp_dmg_mod_war_crit_dmg", new Property<double>(1.0, "Scales war magic Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_life_crit_dmg", new Property<double>(1.0, "Scales life magic Crippling Blow and Crushing Blow damage.")),
-                ("pvp_dmg_mod_void_crit_dmg", new Property<double>(1.0, "Scales void magic Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_war_crit_dmg", new Property<double>(1.0, "Scales war magic Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_life_crit_dmg", new Property<double>(1.0, "Scales life magic Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_low_void_crit_dmg", new Property<double>(1.0, "Scales void magic Crippling Blow and Crushing Blow damage.")),
 
                 // PvP Critical Strike and Biting Strike modifiers
-                ("pvp_dmg_mod_crit_chance", new Property<double>(1.0, "Scales Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_axe_crit_chance", new Property<double>(1.0, "Scales axe Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_dagger_crit_chance", new Property<double>(1.0, "Scales dagger Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_mace_crit_chance", new Property<double>(1.0, "Scales mace Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_spear_crit_chance", new Property<double>(1.0, "Scales spear Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_staff_crit_chance", new Property<double>(1.0, "Scales staff Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_sword_crit_chance", new Property<double>(1.0, "Scales sword Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_unarmed_crit_chance", new Property<double>(1.0, "Scales unarmed combat Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_crit_chance", new Property<double>(1.0, "Scales Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_axe_crit_chance", new Property<double>(1.0, "Scales axe Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_dagger_crit_chance", new Property<double>(1.0, "Scales dagger Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_mace_crit_chance", new Property<double>(1.0, "Scales mace Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_spear_crit_chance", new Property<double>(1.0, "Scales spear Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_staff_crit_chance", new Property<double>(1.0, "Scales staff Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_sword_crit_chance", new Property<double>(1.0, "Scales sword Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_unarmed_crit_chance", new Property<double>(1.0, "Scales unarmed combat Critical Strike and Biting Strike critical hit chance.")),
 
-                ("pvp_dmg_mod_bow_crit_chance", new Property<double>(1.0, "Scales bow Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_crossbow_crit_chance", new Property<double>(1.0, "Scales crossbow Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_thrown_crit_chance", new Property<double>(1.0, "Scales thrown weapons Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_bow_crit_chance", new Property<double>(1.0, "Scales bow Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_crossbow_crit_chance", new Property<double>(1.0, "Scales crossbow Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_thrown_crit_chance", new Property<double>(1.0, "Scales thrown weapons Critical Strike and Biting Strike critical hit chance.")),
 
-                ("pvp_dmg_mod_war_crit_chance", new Property<double>(1.0, "Scales war magic Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_life_crit_chance", new Property<double>(1.0, "Scales life magic Critical Strike and Biting Strike critical hit chance.")),
-                ("pvp_dmg_mod_void_crit_chance", new Property<double>(1.0, "Scales void magic Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_war_crit_chance", new Property<double>(1.0, "Scales war magic Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_life_crit_chance", new Property<double>(1.0, "Scales life magic Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_low_void_crit_chance", new Property<double>(1.0, "Scales void magic Critical Strike and Biting Strike critical hit chance.")),
 
                 // PvP Armor Rending and Armor Cleaving modifiers
-                ("pvp_dmg_mod_armor_ignore", new Property<double>(1.0, "Scales Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_axe_armor_ignore", new Property<double>(1.0, "Scales axe Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_dagger_armor_ignore", new Property<double>(1.0, "Scales dagger Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_mace_armor_ignore", new Property<double>(1.0, "Scales mace Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_spear_armor_ignore", new Property<double>(1.0, "Scales spear Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_staff_armor_ignore", new Property<double>(1.0, "Scales staff Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_sword_armor_ignore", new Property<double>(1.0, "Scales sword Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_unarmed_armor_ignore", new Property<double>(1.0, "Scales unarmed combat Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_armor_ignore", new Property<double>(1.0, "Scales Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_axe_armor_ignore", new Property<double>(1.0, "Scales axe Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_dagger_armor_ignore", new Property<double>(1.0, "Scales dagger Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_mace_armor_ignore", new Property<double>(1.0, "Scales mace Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_spear_armor_ignore", new Property<double>(1.0, "Scales spear Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_staff_armor_ignore", new Property<double>(1.0, "Scales staff Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_sword_armor_ignore", new Property<double>(1.0, "Scales sword Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_unarmed_armor_ignore", new Property<double>(1.0, "Scales unarmed combat Armor Rending and Armor Cleaving armor ignore ratio.")),
 
-                ("pvp_dmg_mod_bow_armor_ignore", new Property<double>(1.0, "Scales bow Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_crossbow_armor_ignore", new Property<double>(1.0, "Scales crossbow Armor Rending and Armor Cleaving armor ignore ratio.")),
-                ("pvp_dmg_mod_thrown_armor_ignore", new Property<double>(1.0, "Scales thrown weapons Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_bow_armor_ignore", new Property<double>(1.0, "Scales bow Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_crossbow_armor_ignore", new Property<double>(1.0, "Scales crossbow Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_low_thrown_armor_ignore", new Property<double>(1.0, "Scales thrown weapons Armor Rending and Armor Cleaving armor ignore ratio.")),
 
                 // PvP Hollow damage modifiers
-                ("pvp_dmg_mod_hollow", new Property<double>(1.0, "Scales hollow weapon damage.")),
-                ("pvp_dmg_mod_axe_hollow", new Property<double>(1.0, "Scales hollow axe damage.")),
-                ("pvp_dmg_mod_dagger_hollow", new Property<double>(1.0, "Scales hollow dagger damage.")),
-                ("pvp_dmg_mod_mace_hollow", new Property<double>(1.0, "Scales hollow mace damage.")),
-                ("pvp_dmg_mod_spear_hollow", new Property<double>(1.0, "Scales hollow spear damage.")),
-                ("pvp_dmg_mod_staff_hollow", new Property<double>(1.0, "Scales hollow staff damage.")),
-                ("pvp_dmg_mod_sword_hollow", new Property<double>(1.0, "Scales hollow sword damage.")),
-                ("pvp_dmg_mod_unarmed_hollow", new Property<double>(1.0, "Scales hollow unarmed combat damage.")),
+                ("pvp_dmg_mod_low_hollow", new Property<double>(1.0, "Scales hollow weapon damage.")),
+                ("pvp_dmg_mod_low_axe_hollow", new Property<double>(1.0, "Scales hollow axe damage.")),
+                ("pvp_dmg_mod_low_dagger_hollow", new Property<double>(1.0, "Scales hollow dagger damage.")),
+                ("pvp_dmg_mod_low_mace_hollow", new Property<double>(1.0, "Scales hollow mace damage.")),
+                ("pvp_dmg_mod_low_spear_hollow", new Property<double>(1.0, "Scales hollow spear damage.")),
+                ("pvp_dmg_mod_low_staff_hollow", new Property<double>(1.0, "Scales hollow staff damage.")),
+                ("pvp_dmg_mod_low_sword_hollow", new Property<double>(1.0, "Scales hollow sword damage.")),
+                ("pvp_dmg_mod_low_unarmed_hollow", new Property<double>(1.0, "Scales hollow unarmed combat damage.")),
 
-                ("pvp_dmg_mod_bow_hollow", new Property<double>(1.0, "Scales hollow bow damage.")),
-                ("pvp_dmg_mod_crossbow_hollow", new Property<double>(1.0, "Scales hollow crossbow damage.")),
-                ("pvp_dmg_mod_thrown_hollow", new Property<double>(1.0, "Scales hollow thrown weapons damage.")),
+                ("pvp_dmg_mod_low_bow_hollow", new Property<double>(1.0, "Scales hollow bow damage.")),
+                ("pvp_dmg_mod_low_crossbow_hollow", new Property<double>(1.0, "Scales hollow crossbow damage.")),
+                ("pvp_dmg_mod_low_thrown_hollow", new Property<double>(1.0, "Scales hollow thrown weapons damage.")),
 
                 // PvP Phantom damage modifiers
-                ("pvp_dmg_mod_phantom", new Property<double>(1.0, "Scales phantom weapon damage.")),
-                ("pvp_dmg_mod_axe_phantom", new Property<double>(1.0, "Scales phantom axe damage.")),
-                ("pvp_dmg_mod_dagger_phantom", new Property<double>(1.0, "Scales phantom dagger damage.")),
-                ("pvp_dmg_mod_mace_phantom", new Property<double>(1.0, "Scales phantom mace damage.")),
-                ("pvp_dmg_mod_spear_phantom", new Property<double>(1.0, "Scales phantom spear damage.")),
-                ("pvp_dmg_mod_staff_phantom", new Property<double>(1.0, "Scales phantom staff damage.")),
-                ("pvp_dmg_mod_sword_phantom", new Property<double>(1.0, "Scales phantom sword damage.")),
-                ("pvp_dmg_mod_unarmed_phantom", new Property<double>(1.0, "Scales phantom unarmed combat damage.")),
+                ("pvp_dmg_mod_low_phantom", new Property<double>(1.0, "Scales phantom weapon damage.")),
+                ("pvp_dmg_mod_low_axe_phantom", new Property<double>(1.0, "Scales phantom axe damage.")),
+                ("pvp_dmg_mod_low_dagger_phantom", new Property<double>(1.0, "Scales phantom dagger damage.")),
+                ("pvp_dmg_mod_low_mace_phantom", new Property<double>(1.0, "Scales phantom mace damage.")),
+                ("pvp_dmg_mod_low_spear_phantom", new Property<double>(1.0, "Scales phantom spear damage.")),
+                ("pvp_dmg_mod_low_staff_phantom", new Property<double>(1.0, "Scales phantom staff damage.")),
+                ("pvp_dmg_mod_low_sword_phantom", new Property<double>(1.0, "Scales phantom sword damage.")),
+                ("pvp_dmg_mod_low_unarmed_phantom", new Property<double>(1.0, "Scales phantom unarmed combat damage.")),
 
-                ("pvp_dmg_mod_bow_phantom", new Property<double>(1.0, "Scales phantom bow damage.")),
-                ("pvp_dmg_mod_crossbow_phantom", new Property<double>(1.0, "Scales phantom crossbow damage.")),
-                ("pvp_dmg_mod_thrown_phantom", new Property<double>(1.0, "Scales phantom thrown weapon damage.")),
+                ("pvp_dmg_mod_low_bow_phantom", new Property<double>(1.0, "Scales phantom bow damage.")),
+                ("pvp_dmg_mod_low_crossbow_phantom", new Property<double>(1.0, "Scales phantom crossbow damage.")),
+                ("pvp_dmg_mod_low_thrown_phantom", new Property<double>(1.0, "Scales phantom thrown weapon damage.")),
 
                 // PvP Miscellaneous modifiers
-                ("pvp_dmg_mod_shieldcleave", new Property<double>(1.0, "Scales the Shield Cleave amount.")),
-                ("pvp_dmg_mod_2h_shieldcleave", new Property<double>(1.0, "Scales the Shield Cleave amount for two-handed weapons.")),
+                ("pvp_dmg_mod_low_shieldcleave", new Property<double>(1.0, "Scales the Shield Cleave amount.")),
+                ("pvp_dmg_mod_low_2h_shieldcleave", new Property<double>(1.0, "Scales the Shield Cleave amount for two-handed weapons.")),
 
-                ("pvp_dmg_mod_armor_level", new Property<double>(1.0, "Scales the base armor level.")),
-                ("pvp_dmg_mod_shield_level", new Property<double>(1.0, "Scales the base shield level.")),
-                ("pvp_dmg_mod_shield_block_chance", new Property<double>(1.0, "Scales the base shield block chance.")),
+                ("pvp_dmg_mod_low_armor_level", new Property<double>(1.0, "Scales the base armor level.")),
+                ("pvp_dmg_mod_low_shield_level", new Property<double>(1.0, "Scales the base shield level.")),
+                ("pvp_dmg_mod_low_shield_block_chance", new Property<double>(1.0, "Scales the base shield block chance.")),
 
-                ("pvp_dmg_mod_sneak", new Property<double>(1.0, "Scales the sneak attack damage multiplier.")),
+                ("pvp_dmg_mod_low_sneak", new Property<double>(1.0, "Scales the sneak attack damage multiplier.")),
+
+                ("pvp_dmg_mod_high", new Property<double>(1.0, "Scales damage.")),
+                ("pvp_dmg_mod_high_axe", new Property<double>(1.0, "Scales axe damage.")),
+                ("pvp_dmg_mod_high_dagger", new Property<double>(1.0, "Scales dagger damage.")),
+                ("pvp_dmg_mod_high_mace", new Property<double>(1.0, "Scales mace damage.")),
+                ("pvp_dmg_mod_high_spear", new Property<double>(1.0, "Scales spear damage.")),
+                ("pvp_dmg_mod_high_staff", new Property<double>(1.0, "Scales staff damage.")),
+                ("pvp_dmg_mod_high_sword", new Property<double>(1.0, "Scales sword damage.")),
+                ("pvp_dmg_mod_high_unarmed", new Property<double>(1.0, "Scales unarmed combat damage.")),
+                ("pvp_dmg_mod_high_unarmed_war", new Property<double>(1.0, "Scales unamed combat war magic spell damage.")),
+
+                ("pvp_dmg_mod_high_bow", new Property<double>(1.0, "Scales bow damage.")),
+                ("pvp_dmg_mod_high_crossbow", new Property<double>(1.0, "Scales crossbow damage.")),
+                ("pvp_dmg_mod_high_thrown", new Property<double>(1.0, "Scales thrown weapons damage.")),
+
+                ("pvp_dmg_mod_high_war", new Property<double>(1.0, "Scales war magic spell(not including streaks) damage.")),
+                ("pvp_dmg_mod_high_void", new Property<double>(1.0, "Scales void magic spell(not including streaks and DoTs) damage.")),
+
+                ("pvp_dmg_mod_high_war_streak", new Property<double>(1.0, "Scales war magic streaks damage.")),
+                ("pvp_dmg_mod_high_void_streak", new Property<double>(1.0, "Scales void magic streaks damage.")),
+
+                ("pvp_dmg_mod_high_dot", new Property<double>(1.0, "Scales damage over time damage.")),
+                ("pvp_dmg_mod_high_void_dot", new Property<double>(1.0, "Scales void magic damage over time damage.")),
+
+                // PvP Crippling Blow and Crushing Blow modifiers
+                ("pvp_dmg_mod_high_crit_dmg", new Property<double>(1.0, "Scales Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_axe_crit_dmg", new Property<double>(1.0, "Scales axe Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_dagger_crit_dmg", new Property<double>(1.0, "Scales dagger Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_mace_crit_dmg", new Property<double>(1.0, "Scales mace Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_spear_crit_dmg", new Property<double>(1.0, "Scales spear Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_staff_crit_dmg", new Property<double>(1.0, "Scales staff Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_sword_crit_dmg", new Property<double>(1.0, "Scales sword Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_unarmed_crit_dmg", new Property<double>(1.0, "Scales unarmed combat Crippling Blow and Crushing Blow damage.")),
+
+                ("pvp_dmg_mod_high_bow_crit_dmg", new Property<double>(1.0, "Scales bow Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_crossbow_crit_dmg", new Property<double>(1.0, "Scales crossbow Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_thrown_crit_dmg", new Property<double>(1.0, "Scales thrown weapons Crippling Blow and Crushing Blow damage.")),
+
+                ("pvp_dmg_mod_high_war_crit_dmg", new Property<double>(1.0, "Scales war magic Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_life_crit_dmg", new Property<double>(1.0, "Scales life magic Crippling Blow and Crushing Blow damage.")),
+                ("pvp_dmg_mod_high_void_crit_dmg", new Property<double>(1.0, "Scales void magic Crippling Blow and Crushing Blow damage.")),
+
+                // PvP Critical Strike and Biting Strike modifiers
+                ("pvp_dmg_mod_high_crit_chance", new Property<double>(1.0, "Scales Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_axe_crit_chance", new Property<double>(1.0, "Scales axe Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_dagger_crit_chance", new Property<double>(1.0, "Scales dagger Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_mace_crit_chance", new Property<double>(1.0, "Scales mace Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_spear_crit_chance", new Property<double>(1.0, "Scales spear Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_staff_crit_chance", new Property<double>(1.0, "Scales staff Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_sword_crit_chance", new Property<double>(1.0, "Scales sword Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_unarmed_crit_chance", new Property<double>(1.0, "Scales unarmed combat Critical Strike and Biting Strike critical hit chance.")),
+
+                ("pvp_dmg_mod_high_bow_crit_chance", new Property<double>(1.0, "Scales bow Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_crossbow_crit_chance", new Property<double>(1.0, "Scales crossbow Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_thrown_crit_chance", new Property<double>(1.0, "Scales thrown weapons Critical Strike and Biting Strike critical hit chance.")),
+
+                ("pvp_dmg_mod_high_war_crit_chance", new Property<double>(1.0, "Scales war magic Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_life_crit_chance", new Property<double>(1.0, "Scales life magic Critical Strike and Biting Strike critical hit chance.")),
+                ("pvp_dmg_mod_high_void_crit_chance", new Property<double>(1.0, "Scales void magic Critical Strike and Biting Strike critical hit chance.")),
+
+                // PvP Armor Rending and Armor Cleaving modifiers
+                ("pvp_dmg_mod_high_armor_ignore", new Property<double>(1.0, "Scales Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_axe_armor_ignore", new Property<double>(1.0, "Scales axe Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_dagger_armor_ignore", new Property<double>(1.0, "Scales dagger Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_mace_armor_ignore", new Property<double>(1.0, "Scales mace Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_spear_armor_ignore", new Property<double>(1.0, "Scales spear Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_staff_armor_ignore", new Property<double>(1.0, "Scales staff Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_sword_armor_ignore", new Property<double>(1.0, "Scales sword Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_unarmed_armor_ignore", new Property<double>(1.0, "Scales unarmed combat Armor Rending and Armor Cleaving armor ignore ratio.")),
+
+                ("pvp_dmg_mod_high_bow_armor_ignore", new Property<double>(1.0, "Scales bow Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_crossbow_armor_ignore", new Property<double>(1.0, "Scales crossbow Armor Rending and Armor Cleaving armor ignore ratio.")),
+                ("pvp_dmg_mod_high_thrown_armor_ignore", new Property<double>(1.0, "Scales thrown weapons Armor Rending and Armor Cleaving armor ignore ratio.")),
+
+                // PvP Hollow damage modifiers
+                ("pvp_dmg_mod_high_hollow", new Property<double>(1.0, "Scales hollow weapon damage.")),
+                ("pvp_dmg_mod_high_axe_hollow", new Property<double>(1.0, "Scales hollow axe damage.")),
+                ("pvp_dmg_mod_high_dagger_hollow", new Property<double>(1.0, "Scales hollow dagger damage.")),
+                ("pvp_dmg_mod_high_mace_hollow", new Property<double>(1.0, "Scales hollow mace damage.")),
+                ("pvp_dmg_mod_high_spear_hollow", new Property<double>(1.0, "Scales hollow spear damage.")),
+                ("pvp_dmg_mod_high_staff_hollow", new Property<double>(1.0, "Scales hollow staff damage.")),
+                ("pvp_dmg_mod_high_sword_hollow", new Property<double>(1.0, "Scales hollow sword damage.")),
+                ("pvp_dmg_mod_high_unarmed_hollow", new Property<double>(1.0, "Scales hollow unarmed combat damage.")),
+
+                ("pvp_dmg_mod_high_bow_hollow", new Property<double>(1.0, "Scales hollow bow damage.")),
+                ("pvp_dmg_mod_high_crossbow_hollow", new Property<double>(1.0, "Scales hollow crossbow damage.")),
+                ("pvp_dmg_mod_high_thrown_hollow", new Property<double>(1.0, "Scales hollow thrown weapons damage.")),
+
+                // PvP Phantom damage modifiers
+                ("pvp_dmg_mod_high_phantom", new Property<double>(1.0, "Scales phantom weapon damage.")),
+                ("pvp_dmg_mod_high_axe_phantom", new Property<double>(1.0, "Scales phantom axe damage.")),
+                ("pvp_dmg_mod_high_dagger_phantom", new Property<double>(1.0, "Scales phantom dagger damage.")),
+                ("pvp_dmg_mod_high_mace_phantom", new Property<double>(1.0, "Scales phantom mace damage.")),
+                ("pvp_dmg_mod_high_spear_phantom", new Property<double>(1.0, "Scales phantom spear damage.")),
+                ("pvp_dmg_mod_high_staff_phantom", new Property<double>(1.0, "Scales phantom staff damage.")),
+                ("pvp_dmg_mod_high_sword_phantom", new Property<double>(1.0, "Scales phantom sword damage.")),
+                ("pvp_dmg_mod_high_unarmed_phantom", new Property<double>(1.0, "Scales phantom unarmed combat damage.")),
+
+                ("pvp_dmg_mod_high_bow_phantom", new Property<double>(1.0, "Scales phantom bow damage.")),
+                ("pvp_dmg_mod_high_crossbow_phantom", new Property<double>(1.0, "Scales phantom crossbow damage.")),
+                ("pvp_dmg_mod_high_thrown_phantom", new Property<double>(1.0, "Scales phantom thrown weapon damage.")),
+
+                // PvP Miscellaneous modifiers
+                ("pvp_dmg_mod_high_shieldcleave", new Property<double>(1.0, "Scales the Shield Cleave amount.")),
+                ("pvp_dmg_mod_high_2h_shieldcleave", new Property<double>(1.0, "Scales the Shield Cleave amount for two-handed weapons.")),
+
+                ("pvp_dmg_mod_high_armor_level", new Property<double>(1.0, "Scales the base armor level.")),
+                ("pvp_dmg_mod_high_shield_level", new Property<double>(1.0, "Scales the base shield level.")),
+                ("pvp_dmg_mod_high_shield_block_chance", new Property<double>(1.0, "Scales the base shield block chance.")),
+
+                ("pvp_dmg_mod_high_sneak", new Property<double>(1.0, "Scales the sneak attack damage multiplier.")),
 
                 ("pk_cast_radius", new Property<double>(6.0, "The distance in meters a player can travel from their starting cast position. if they exceed this distance, they fizzle the spell.")),
 

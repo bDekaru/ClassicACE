@@ -837,7 +837,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Return the scalar damage absorbed by a shield
         /// </summary>
-        public float GetShieldMod(WorldObject attacker, DamageType damageType, WorldObject weapon, bool isPvP, out WorldObject shield)
+        public float GetShieldMod(Creature attacker, DamageType damageType, WorldObject weapon, bool isPvP, out WorldObject shield)
         {
             // ensure combat stance
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR && CombatMode == CombatMode.NonCombat)
@@ -921,13 +921,13 @@ namespace ACE.Server.WorldObjects
 
             effectiveLevel = GetSkillModifiedShieldLevel(effectiveLevel);
 
-            var ignoreShieldMod = attacker.GetIgnoreShieldMod(weapon, isPvP);
+            var ignoreShieldMod = attacker.GetIgnoreShieldMod(attacker, weapon, isPvP);
             //Console.WriteLine($"IgnoreShieldMod: {ignoreShieldMod}");
 
             effectiveLevel *= ignoreShieldMod;
 
             if (isPvP)
-                effectiveLevel *= (float)PropertyManager.GetDouble("pvp_dmg_mod_shield_level").Item;
+                effectiveLevel *= (float)PropertyManager.GetInterpolatedDouble(attacker.Level ?? 1, "pvp_dmg_mod_low_shield_level", "pvp_dmg_mod_high_shield_level", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
 
             // SL is multiplied by existing AL
             var shieldMod = SkillFormula.CalcArmorMod(effectiveLevel);
