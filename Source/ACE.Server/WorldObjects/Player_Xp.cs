@@ -444,6 +444,9 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            if (HasVitae && IsHardcore && xpType != XpType.Kill)
+                return; // Only kill xp reduces hardcore vitae penalty.
+
             if (HasVitae && xpType != XpType.Allegiance)
                 UpdateXpVitae(amount);
         }
