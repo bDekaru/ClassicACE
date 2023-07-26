@@ -207,6 +207,9 @@ namespace ACE.Server.Entity
         private int ExplorationMarkerCount;
         public void InitializeExplorationMarkers()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
             var explorationSites = DatabaseManager.World.GetExplorationSitesByLandblock(Id.Landblock);
 
             if (explorationSites.Count == 0)
@@ -235,6 +238,9 @@ namespace ACE.Server.Entity
 
         public void RefreshExplorationMarkers()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
             var currentMarkerCount = 0;
             foreach (var obj in worldObjects)
             {
@@ -1591,6 +1597,9 @@ namespace ACE.Server.Entity
 
         public static string GetLocationString(ushort landblockId)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return "";
+
             var landblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock(landblockId).FirstOrDefault();
             string locationString = "";
             if (landblock != null)

@@ -135,7 +135,7 @@ namespace ACE.Server.WorldObjects
 
                 if(locationString == "" && (Location.Cell & 0xFFFF) < 0x100)
                     globalPKDe += $" The kill occured at {Location.GetMapCoordStr()}";
-                else
+                else if(locationString == "")
                     globalPKDe += $" The kill occured{locationString}.";
 
                 string webhookMsg = new String(globalPKDe);

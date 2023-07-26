@@ -4861,6 +4861,12 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("setsecondaryskill", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 2, "Sets a skill as a secondary skill of another skill.", "<secondaryId> <primaryId or 0>")]
         public static void HandleSetSecondarySkill(Session session, params string[] parameters)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
             if (ushort.TryParse(parameters[0], out ushort secondarySkillId) && ushort.TryParse(parameters[1], out ushort primarySkillId))
             {
                 var player = session.Player;
@@ -4926,6 +4932,12 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("RefreshExploration", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
         public static void HandleRefreshExploration(Session session, params string[] parameters)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
             var player = session?.Player;
 
             if (player == null)
@@ -4937,6 +4949,12 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("RefreshExpMarkers", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
         public static void RefreshExpMarkers(Session session, params string[] parameters)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
             var player = session?.Player;
 
             if (player == null)
@@ -4948,12 +4966,24 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("SwitchHotDungeon", AccessLevel.Admin, CommandHandlerFlag.None, "")]
         public static void HandleRefreshHotDungeon(Session session, params string[] parameters)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
             EventManager.RollHotDungeon();
         }
 
         [CommandHandler("ForceHotDungeon", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
         public static void HandleForceHotDungeon(Session session, params string[] parameters)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
             var player = session?.Player;
 
             if (player == null)

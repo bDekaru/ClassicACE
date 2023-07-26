@@ -217,6 +217,9 @@ namespace ACE.Server.Managers
         private static double HotDungeonChance = 0.33;
         public static void HotDungeonTick(double currentUnixTime)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
             if (NextHotDungeonSwitch > currentUnixTime)
                 return;
 
@@ -244,6 +247,9 @@ namespace ACE.Server.Managers
 
         public static void ProlongHotDungeon()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
             NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonInterval);
 
             var msg = $"The current extra experience dungeon duration has been prolonged!";
@@ -253,6 +259,9 @@ namespace ACE.Server.Managers
 
         public static void RollHotDungeon(ushort forceLandblock = 0)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
             NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonInterval);
 
             var onlinePlayers = PlayerManager.GetAllOnline();

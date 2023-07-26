@@ -703,6 +703,9 @@ namespace ACE.Server.Command.Handlers
 
         public static void SingleRecommendation(Session session, bool failSilently)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
             var validRecommendations = BuildRecommendationList(session.Player);
 
             var level = session.Player?.Level ?? 1;

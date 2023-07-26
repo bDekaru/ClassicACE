@@ -951,6 +951,9 @@ namespace ACE.Server.WorldObjects
         };
         public void PvPInciteTick(double currentUnixTime)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
             if ((!IsPK && !IsPKL) || ThreadSafeRandom.Next(0.0f, 1.0f) > 0.2f)
                 return;
 

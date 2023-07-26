@@ -20,6 +20,9 @@ namespace ACE.Server.WorldObjects
 
         public void RefreshExplorationAssignments(WorldObject sourceObject = null, bool confirmed = false)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
             if (!confirmed && Exploration1KillProgressTracker != 0)
             {
                 if (sourceObject != null)

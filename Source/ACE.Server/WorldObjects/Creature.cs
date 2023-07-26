@@ -176,7 +176,7 @@ namespace ACE.Server.WorldObjects
         {
             base.OnGeneration(generator);
 
-            if (Location != null && CurrentLandblock != null && Tolerance == Tolerance.None && PlayerKillerStatus != PlayerKillerStatus.RubberGlue && PlayerKillerStatus != PlayerKillerStatus.Protected)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Location != null && CurrentLandblock != null && Tolerance == Tolerance.None && PlayerKillerStatus != PlayerKillerStatus.RubberGlue && PlayerKillerStatus != PlayerKillerStatus.Protected)
             {
                 int seed = Time.GetDateTimeFromTimestamp(Time.GetUnixTime()).DayOfYear + (CurrentLandblock.Id.LandblockX << 8 | CurrentLandblock.Id.LandblockY);
 
