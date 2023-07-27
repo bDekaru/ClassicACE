@@ -156,6 +156,11 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            if (player.PKTimerActive && !PortalIgnoresPkAttackTimer && Creature.NoDamage_Landblocks.Contains(Destination.LandblockId.Landblock))
+            {
+                return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
+            }
+
             if (player.PKTimerActive && !PortalIgnoresPkAttackTimer && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
             {
                 return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
