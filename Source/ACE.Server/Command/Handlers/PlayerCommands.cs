@@ -1460,12 +1460,14 @@ namespace ACE.Server.Command.Handlers
             }
 
             bool IsPkLeaderboard = true;
-            if (parameters.Length > 0 && parameters[0] == "npk")
-                IsPkLeaderboard = false;
-
             bool onlyLiving = false;
-            if (parameters.Length > 1 && parameters[1] == "living")
-                onlyLiving = true;
+            foreach(var par in parameters)
+            {
+                if (par == "npk")
+                    IsPkLeaderboard = false;
+                else if(par == "living")
+                    onlyLiving = true;
+            }
 
             ulong discordChannel = 0;
             if (parameters.Length > 3 && parameters[2] == "discord")
