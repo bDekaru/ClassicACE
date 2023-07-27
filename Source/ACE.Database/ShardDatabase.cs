@@ -18,6 +18,7 @@ using ACE.Database.Entity;
 using ACE.Database.Models.Shard;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
+using ACE.Database.Models.Auth;
 
 namespace ACE.Database
 {
@@ -1048,16 +1049,16 @@ namespace ACE.Database
             }
         }
 
-        public void LogHardcoreDeath(uint accountId, uint characterId, string characterName, int characterLevel, string killerName, int killerLevel, uint landblockId, int gameplayMode, bool wasPvP, int kills, long xp, int age, DateTime timeOfDeath, uint? monarchId)
+        public void LogHardcoreDeath(Account account, uint characterId, string characterName, int characterLevel, string killerName, int killerLevel, uint landblockId, int gameplayMode, bool wasPvP, int kills, long xp, int age, DateTime timeOfDeath, uint? monarchId)
         {
-            if (characterLevel >= 999)
+            if (account == null || account.AccessLevel > 0)
                 return;
 
             var entry = new HardcoreCharacterObituary();
 
             try
             {
-                entry.AccountId = accountId;
+                entry.AccountId = account.AccountId;
                 entry.CharacterId = characterId;
                 entry.CharacterName = characterName;
                 entry.CharacterLevel = characterLevel;
