@@ -779,7 +779,7 @@ namespace ACE.Server.Managers
                 ("pvp_dmg_mod_low_staff", new Property<double>(1.0, "Scales staff damage.")),
                 ("pvp_dmg_mod_low_sword", new Property<double>(1.0, "Scales sword damage.")),
                 ("pvp_dmg_mod_low_unarmed", new Property<double>(1.0, "Scales unarmed combat damage.")),
-                ("pvp_dmg_mod_low_unarmed_war", new Property<double>(1.0, "Scales unamed combat war magic spell damage.")),
+                ("pvp_dmg_mod_low_unarmed_war", new Property<double>(1.0, "Scales unarmed combat war magic spell damage.")),
 
                 ("pvp_dmg_mod_low_bow", new Property<double>(1.0, "Scales bow damage.")),
                 ("pvp_dmg_mod_low_crossbow", new Property<double>(1.0, "Scales crossbow damage.")),
