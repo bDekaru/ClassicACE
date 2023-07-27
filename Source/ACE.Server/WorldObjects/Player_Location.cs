@@ -691,6 +691,20 @@ namespace ACE.Server.WorldObjects
 
             Session.Network.EnqueueSend(new GameMessagePlayerTeleport(this));
 
+            // Stop nearby players that are far away from the destination of a teleport from receiving position updates.
+            var nearbyPlayers = PhysicsObj.ObjMaint.GetKnownPlayersValuesAsPlayer();
+            foreach (var player in nearbyPlayers)
+            {
+                if (newPosition.DistanceTo(player.Location) > 192.0f)
+                {
+                    PhysicsObj.ObjMaint.RemoveObject(player.PhysicsObj);
+                    RemoveTrackedObject(player, false);
+
+                    player.ObjMaint.RemoveObject(PhysicsObj);
+                    player.RemoveTrackedObject(this, false);
+                }
+            }
+
             // load quickly, but player can load into landblock before server is finished loading
 
             // send a "fake" update position to get the client to start loading asap,
