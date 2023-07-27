@@ -532,37 +532,37 @@ namespace ACE.Server.Entity
                             {
                                 case Skill.LightWeapons:
                                 case Skill.Axe:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_axe_hollow", "pvp_dmg_mod_high_axe_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_axe_hollow", "pvp_dmg_mod_high_axe_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.HeavyWeapons:
                                 case Skill.Sword:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_sword_hollow", "pvp_dmg_mod_high_sword_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_sword_hollow", "pvp_dmg_mod_high_sword_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.Mace:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_mace_hollow", "pvp_dmg_mod_high_mace_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_mace_hollow", "pvp_dmg_mod_high_mace_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.Spear:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_spear_hollow", "pvp_dmg_mod_high_spear_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_spear_hollow", "pvp_dmg_mod_high_spear_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.Staff:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_staff_hollow", "pvp_dmg_mod_high_staff_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_staff_hollow", "pvp_dmg_mod_high_staff_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.UnarmedCombat:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_unarmed_hollow", "pvp_dmg_mod_high_unarmed_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_unarmed_hollow", "pvp_dmg_mod_high_unarmed_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.FinesseWeapons:
                                 case Skill.Dagger:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_dagger_hollow", "pvp_dmg_mod_high_dagger_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_dagger_hollow", "pvp_dmg_mod_high_dagger_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.MissileWeapons:
                                 case Skill.Bow:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_bow_hollow", "pvp_dmg_mod_high_bow_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_bow_hollow", "pvp_dmg_mod_high_bow_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.Crossbow:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_crossbow_hollow", "pvp_dmg_mod_high_crossbow_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_crossbow_hollow", "pvp_dmg_mod_high_crossbow_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.ThrownWeapon:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_thrown_hollow", "pvp_dmg_mod_high_thrown_hollow", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_thrown_hollow", "pvp_dmg_mod_high_thrown_hollow", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
 
                             }
@@ -574,44 +574,44 @@ namespace ACE.Server.Entity
                             {
                                 case Skill.LightWeapons:
                                 case Skill.Axe:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_axe_phantom", "pvp_dmg_mod_high_axe_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_axe_phantom", "pvp_dmg_mod_high_axe_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.HeavyWeapons:
                                 case Skill.Sword:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_sword_phantom", "pvp_dmg_mod_high_sword_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_sword_phantom", "pvp_dmg_mod_high_sword_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.Mace:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_mace_phantom", "pvp_dmg_mod_high_mace_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_mace_phantom", "pvp_dmg_mod_high_mace_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.Spear:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_spear_phantom", "pvp_dmg_mod_high_spear_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_spear_phantom", "pvp_dmg_mod_high_spear_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.Staff:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_staff_phantom", "pvp_dmg_mod_high_staff_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_staff_phantom", "pvp_dmg_mod_high_staff_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.UnarmedCombat:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_unarmed_phantom", "pvp_dmg_mod_high_unarmed_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_unarmed_phantom", "pvp_dmg_mod_high_unarmed_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.FinesseWeapons:
                                 case Skill.Dagger:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_dagger_phantom", "pvp_dmg_mod_high_dagger_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_dagger_phantom", "pvp_dmg_mod_high_dagger_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.MissileWeapons:
                                 case Skill.Bow:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_bow_phantom", "pvp_dmg_mod_high_bow_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_bow_phantom", "pvp_dmg_mod_high_bow_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.Crossbow:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_crossbow_phantom", "pvp_dmg_mod_high_crossbow_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_crossbow_phantom", "pvp_dmg_mod_high_crossbow_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                                 case Skill.ThrownWeapon:
-                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_thrown_phantom", "pvp_dmg_mod_high_thrown_phantom", "pvp_dmg_mod_high_level", "pvp_dmg_mod_high_level");
+                                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_thrown_phantom", "pvp_dmg_mod_high_thrown_phantom", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                                     break;
                             }
                         }
                     }
 
                     if (SneakAttackMod > 1.0)
-                        pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_sneak", "pvp_dmg_mod_low_sneak", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                        pvpMod *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_sneak", "pvp_dmg_mod_high_sneak", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
 
                     Damage = Damage * pvpMod;
                 }
