@@ -321,6 +321,28 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            var result = CheckUseRequirements(player);
+            var resultTarget = target.CheckUseRequirements(player);
+
+            if (!result.Success)
+            {
+                if (result.Message != null)
+                    player.Session.Network.EnqueueSend(result.Message);
+                player.SendUseDoneEvent();
+                return;
+            }
+
+            if (target != null)
+            {
+                if (!resultTarget.Success)
+                {
+                    if (result.Message != null)
+                        player.Session.Network.EnqueueSend(result.Message);
+                    player.SendUseDoneEvent();
+                    return;
+                }
+            }
+
             if (RecipeManager.GetRecipe(player, this, target) != null) // if we have a recipe do that, otherwise redirect to ActOnUse with a target.
                 base.HandleActionUseOnTarget(player, target);
             else

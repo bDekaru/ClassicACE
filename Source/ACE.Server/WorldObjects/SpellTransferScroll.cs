@@ -9,6 +9,7 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
 using ACE.Server.Factories.Tables;
 using ACE.Server.Managers;
+using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using log4net;
 using System;
@@ -72,6 +73,13 @@ namespace ACE.Server.WorldObjects
             if (player.IsBusy)
             {
                 player.SendUseDoneEvent(WeenieError.YoureTooBusy);
+                return;
+            }
+
+            if (!player.VerifyGameplayMode(source, target))
+            {
+                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"These items cannot be used, incompatible gameplay mode!"));
+                player.SendUseDoneEvent();
                 return;
             }
 
