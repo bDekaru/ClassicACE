@@ -524,7 +524,7 @@ namespace ACE.Server.WorldObjects
             suicideInProgress = true;
 
             if (PropertyManager.GetBool("suicide_instant_death").Item)
-                Die(new DamageHistoryInfo(this), DamageHistory.TopDamager);
+                TakeDamage(this, DamageType.Health, Health.Current);
             else
                 HandleSuicide(NumDeaths);
         }
@@ -553,7 +553,7 @@ namespace ACE.Server.WorldObjects
                 suicideChain.EnqueueChain();
             }
             else
-                Die(new DamageHistoryInfo(this), DamageHistory.TopDamager);
+                TakeDamage(this, DamageType.Health, Health.Current);
         }
 
         public List<WorldObject> CalculateDeathItems(Corpse corpse, bool wasPvP)
