@@ -122,7 +122,6 @@ namespace ACE.Server.Factories
             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
                 wo.IgnoreMagicArmor = true;
-                wo.IgnoreMagicResist = true;
                 wo.Translucency = 0.7f;
                 wo.Name = $"Hollow {wo.Name}";
                 wo.IconOverlayId = 0x06005EBE;
