@@ -266,7 +266,7 @@ namespace ACE.Server.Entity
 
                 if (attackerTechniqueId == TacticAndTechniqueType.Reckless)
                 {
-                    if (CombatType == CombatType.Melee || attacker.GetDistance(defender) < 3) // Make sure we're close to each other.
+                    if (defender.GetEquippedWand() == null && (CombatType == CombatType.Melee || attacker.GetDistance(defender) < 3)) // Make sure we're close to each other.
                     {
                         CreatureSkill attackerMeleeDef = playerAttacker.GetCreatureSkill(Skill.MeleeDefense);
                         CreatureSkill defenderMeleeDef = defender.GetCreatureSkill(Skill.MeleeDefense);
