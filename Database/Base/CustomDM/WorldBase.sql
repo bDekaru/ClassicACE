@@ -289,6 +289,7 @@ CREATE TABLE `recipe_mod` (
   `data_Id` int NOT NULL,
   `unknown_9` int NOT NULL,
   `instance_Id` int NOT NULL,
+  `weenie_Class_Id` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `recipeId_Mod` (`recipe_Id`),
   CONSTRAINT `recipeId_Mod` FOREIGN KEY (`recipe_Id`) REFERENCES `recipe` (`id`) ON DELETE CASCADE
