@@ -172,6 +172,21 @@ namespace ACE.Server.Network
                                 PlayerCommands.HandleLeaderboardPvP(null, parameters);
                                 return Task.CompletedTask;
 
+                            case "hctopnpc":
+                                if (DateTime.UtcNow - PrevLeaderboardSSFCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                {
+                                    SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
+                                    return Task.CompletedTask;
+                                }
+                                PrevLeaderboardSSFCommandRequestTimestamp = DateTime.UtcNow;
+
+                                parameters = splitString.Skip(1).ToArray();
+                                parameters = parameters.AddToArray("discord");
+                                parameters = parameters.AddToArray(message.Channel.Id.ToString());
+
+                                PlayerCommands.HandleLeaderboardHCTopNPC(null, parameters);
+                                return Task.CompletedTask;
+
                             case "hot":
                                 PlayerCommands.ShowHotDungeon(null, false, message.Channel.Id);
                                 return Task.CompletedTask;
