@@ -125,7 +125,6 @@ namespace ACE.Server.Factories
                 wo.Translucency = 0.7f;
                 wo.Name = $"Hollow {wo.Name}";
                 wo.IconOverlayId = 0x06005EBE;
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
             return false;
