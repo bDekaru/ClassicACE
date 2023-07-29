@@ -1497,7 +1497,7 @@ namespace ACE.Server.Command.Handlers
                 DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
-        [CommandHandler("HCTopNPC", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 NPCs by total kills.", "HCTopNPC")]
+        [CommandHandler("HCTopNPC", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 NPCs by total kills.", "HCTopNPC [minLevel] [maxLevel]")]
         public static void HandleLeaderboardHCTopNPC(Session session, params string[] parameters)
         {
             if (session != null)
@@ -1510,14 +1510,25 @@ namespace ACE.Server.Command.Handlers
                 session.Player.PrevLeaderboardHCXPCommandRequestTimestamp = DateTime.UtcNow;
             }
 
+            int minLevel = 1;
+            if (parameters.Length > 0)
+                int.TryParse(parameters[0], out minLevel);
+
+            int maxLevel = 275;
+            if (parameters.Length > 1)
+                int.TryParse(parameters[1], out maxLevel);
+
             ulong discordChannel = 0;
-            if (parameters.Length > 1 && parameters[0] == "discord")
-                ulong.TryParse(parameters[1], out discordChannel);
+            if (parameters.Length > 2 && parameters[1] == "discord")
+                ulong.TryParse(parameters[2], out discordChannel);
 
             var leaderboard = new Dictionary<string, int>();
             var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeaths();
             foreach (var entry in obituaryEntries)
             {
+                if (entry.CharacterLevel < minLevel || entry.CharacterLevel > maxLevel)
+                    continue;
+
                 if (!entry.WasPvP)
                 {
                     if (!leaderboard.TryGetValue(entry.KillerName, out var kills))
@@ -1530,7 +1541,7 @@ namespace ACE.Server.Command.Handlers
             var sorted = from entry in leaderboard orderby entry.Value descending select entry;
 
             StringBuilder message = new StringBuilder();
-            message.Append($"Top Hardcore Character Killers: \n");
+            message.Append($"Top Hardcore Character Killers - Levels {minLevel} to {maxLevel}:\n");
             message.Append("-----------------------\n");
             uint counter = 1;
             foreach (var entry in sorted)

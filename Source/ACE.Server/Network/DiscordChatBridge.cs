@@ -26,6 +26,7 @@ namespace ACE.Server.Network
         public static DateTime PrevLeaderboardSSFCommandRequestTimestamp;
         public static DateTime PrevLeaderboardXPCommandRequestTimestamp;
         public static DateTime PrevLeaderboardPvPCommandRequestTimestamp;
+        public static DateTime PrevLeaderboardHCTopNPCCommandRequestTimestamp;
 
         public static async void Start()
         {
@@ -173,14 +174,18 @@ namespace ACE.Server.Network
                                 return Task.CompletedTask;
 
                             case "hctopnpc":
-                                if (DateTime.UtcNow - PrevLeaderboardSSFCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                if (DateTime.UtcNow - PrevLeaderboardHCTopNPCCommandRequestTimestamp < TimeSpan.FromMinutes(1))
                                 {
                                     SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
                                     return Task.CompletedTask;
                                 }
-                                PrevLeaderboardSSFCommandRequestTimestamp = DateTime.UtcNow;
+                                PrevLeaderboardHCTopNPCCommandRequestTimestamp = DateTime.UtcNow;
 
-                                parameters = splitString.Skip(1).ToArray();
+                                parameters = splitString.Skip(1).Take(2).ToArray();
+                                if (parameters.Length == 0)
+                                    parameters = parameters.AddToArray("1");
+                                if (parameters.Length == 1)
+                                    parameters = parameters.AddToArray("275");
                                 parameters = parameters.AddToArray("discord");
                                 parameters = parameters.AddToArray(message.Channel.Id.ToString());
 
