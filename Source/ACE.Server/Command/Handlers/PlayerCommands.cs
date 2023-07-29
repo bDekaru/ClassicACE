@@ -1519,8 +1519,8 @@ namespace ACE.Server.Command.Handlers
                 int.TryParse(parameters[1], out maxLevel);
 
             ulong discordChannel = 0;
-            if (parameters.Length > 2 && parameters[1] == "discord")
-                ulong.TryParse(parameters[2], out discordChannel);
+            if (parameters.Length > 3 && parameters[2] == "discord")
+                ulong.TryParse(parameters[3], out discordChannel);
 
             var leaderboard = new Dictionary<string, int>();
             var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeaths();
