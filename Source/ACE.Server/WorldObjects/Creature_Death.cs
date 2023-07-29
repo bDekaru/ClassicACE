@@ -241,13 +241,10 @@ namespace ACE.Server.WorldObjects
             {
                 var victimLevelXp = victim.GetXPToNextLevel(victimLevel);
 
-                if (levelDifference < 10)
-                {
-                    if(victimLevel > killerLevel)
-                        extraXp = victimLevelXp;
-                    else
-                        extraXp = victimLevelXp * ((10d - levelDifference) * 0.1);
-                }
+                if (victimLevel > killerLevel)
+                    extraXp = victimLevelXp;
+                else if (levelDifference < 10)
+                    extraXp = victimLevelXp * ((10d - levelDifference) * 0.1);
             }
 
             // Divide our extra xp with the multiplier so that it ends up the same no matter the xp modifier.
@@ -282,7 +279,7 @@ namespace ACE.Server.WorldObjects
 
                 if (victimLevel < playerDamagerLevel && victim.Level < 80 && levelDifference > 10)
                 {
-                    var penalty = (int)Math.Ceiling((double)levelDifference / 2 * damagePercent);
+                    var penalty = (int)Math.Ceiling((double)levelDifference * damagePercent);
                     playerDamager.InflictVitaePenalty(penalty);
                     playerDamager.Session.Network.EnqueueSend(new GameMessageSystemChat("Your cowardly actions weaken your vitae.", ChatMessageType.Broadcast));
                 }
