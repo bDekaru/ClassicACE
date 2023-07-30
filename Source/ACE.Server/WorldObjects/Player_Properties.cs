@@ -9,7 +9,7 @@ namespace ACE.Server.WorldObjects
 {
     partial class Player
     {
-        public const int LatestVersion = 2;
+        public const int LatestVersion = 3;
         public override string Name
         {
             get => IsPlussed && CloakStatus < CloakStatus.Player ? "+" + base.Name : base.Name;

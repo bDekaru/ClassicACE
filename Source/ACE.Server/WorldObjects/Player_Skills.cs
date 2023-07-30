@@ -1008,6 +1008,32 @@ namespace ACE.Server.WorldObjects
             actionChain.EnqueueChain();
         }
 
+        public void HandleMigrateCharacterVersion2To3()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            var version = GetProperty(PropertyInt.Version) ?? 0;
+
+            if (version != 2)
+                return;
+
+            var warMagic = GetCreatureSkill(Skill.WarMagic);
+
+            if (warMagic.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in War Magic skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(8);
+            }
+            else if (warMagic.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in War Magic skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(4);
+            }
+
+            SetProperty(PropertyInt.Version, 3);
+        }
+
         /// <summary>
         /// Resets the skill, refunds all experience and skill credits, if allowed.
         /// </summary>

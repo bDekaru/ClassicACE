@@ -137,6 +137,7 @@ namespace ACE.Server.WorldObjects
             HandleFreeAttributeResetRenewal();
             HandleFreeMasteryResetRenewal();
             HandleMigrateCharacterVersion1To2();
+            HandleMigrateCharacterVersion2To3();
 
             HandleDBUpdates();
 
