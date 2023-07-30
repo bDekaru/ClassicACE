@@ -32,7 +32,9 @@ namespace ACE.Server.Entity
         /// <summary>
         /// The magic school this spell belongs to
         /// </summary>
-        public MagicSchool School { get => _spellBase.School; }
+        public MagicSchool School { get => OverrideSchool == MagicSchool.None ? _spellBase.School : OverrideSchool; }
+        public MagicSchool BaseSchool { get => _spellBase.School; }
+        public MagicSchool OverrideSchool = MagicSchool.None;
 
         /// <summary>
         /// The spell icon ID for display in client
