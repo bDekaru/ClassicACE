@@ -46,9 +46,6 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if ((sourceItem.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Sneak)
-                EndSneaking();
-
             // Resolve the guid to an object that is either in our possession or on the Landblock
             var target = FindObject(targetObjectGuid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems | SearchLocations.Landblock);
 
@@ -58,6 +55,9 @@ namespace ACE.Server.WorldObjects
                 SendUseDoneEvent();
                 return;
             }
+
+            if ((sourceItem.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Sneak && (sourceItem.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Misdirect && target.WeenieType != WeenieType.Door)
+                EndSneaking();
 
             // handle objects with built-in spells
             if (sourceItem.SpellDID != null && sourceItem.WeenieType != WeenieType.Gem && sourceItem.WeenieType != WeenieType.SpellTransferScroll)
@@ -190,7 +190,7 @@ namespace ACE.Server.WorldObjects
 
             if (item != null)
             {
-                if ((item.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Sneak && item.WeenieType != WeenieType.Corpse)
+                if ((item.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Sneak && (item.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Misdirect && item.WeenieType != WeenieType.Corpse && item.WeenieType != WeenieType.Door)
                     EndSneaking();
 
                 if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))

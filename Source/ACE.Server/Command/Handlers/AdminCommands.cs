@@ -5013,7 +5013,7 @@ namespace ACE.Server.Command.Handlers
         }
 
         [CommandHandler("ClearMainPack", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
-        public static void HandleClearMainPakc(Session session, params string[] parameters)
+        public static void HandleClearMainPack(Session session, params string[] parameters)
         {
             var player = session?.Player;
 

@@ -79,18 +79,23 @@ namespace ACE.Server.WorldObjects
             if (!(activator is Player player))
                 return;
 
-            if (!NextActivationIsFromUse && ResistAwareness.HasValue && player.TestSneaking((uint)ResistAwareness, "You fail to avoid the trigger! You stop sneaking."))
+            var currentTime = DateTime.UtcNow;
+            if (currentTime < LastUseTime + TimeSpan.FromSeconds(2))
                 return;
+            LastUseTime = currentTime;
+
+            if (!NextActivationIsFromUse && ResistAwareness.HasValue)
+            {
+                if (player.TestSneaking((uint)ResistAwareness, "You fail to avoid the trigger! You stop sneaking."))
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You skillfully avoid triggering the {Name}!", ChatMessageType.Broadcast));
+                    return;
+                }
+            }
             NextActivationIsFromUse = false;
 
             // prevent continuous event stream
             // TODO: should this go in base.OnActivate()?
-
-            var currentTime = DateTime.UtcNow;
-            if (currentTime < LastUseTime + TimeSpan.FromSeconds(2))
-                return;
-
-            LastUseTime = currentTime;
 
             player.EnqueueBroadcast(new GameMessageSound(player.Guid, UseSound));
 

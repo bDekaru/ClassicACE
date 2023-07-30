@@ -234,6 +234,9 @@ namespace ACE.Server.WorldObjects
                             else
                                 player.EndSneaking();
                             break;
+                        case TacticAndTechniqueType.Misdirect:
+                            player.Misdirect();
+                            break;
                     }
                 }
             }
