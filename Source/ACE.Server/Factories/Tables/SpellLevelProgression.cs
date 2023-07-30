@@ -7912,16 +7912,16 @@ namespace ACE.Server.Factories.Tables
             SpellId.HoTOther8,
         };
 
-        public static readonly List<SpellId> DaggerBleed = new List<SpellId>()
+        public static readonly List<SpellId> Bleeding = new List<SpellId>()
         {
-            SpellId.DaggerBleed1,
-            SpellId.DaggerBleed2,
-            SpellId.DaggerBleed3,
-            SpellId.DaggerBleed4,
-            SpellId.DaggerBleed5,
-            SpellId.DaggerBleed6,
-            SpellId.DaggerBleed7,
-            SpellId.DaggerBleed8,
+            SpellId.Bleeding1,
+            SpellId.Bleeding2,
+            SpellId.Bleeding3,
+            SpellId.Bleeding4,
+            SpellId.Bleeding5,
+            SpellId.Bleeding6,
+            SpellId.Bleeding7,
+            SpellId.Bleeding8,
         };
 
         public static readonly List<SpellId> Burning = new List<SpellId>()
@@ -8707,7 +8707,7 @@ namespace ACE.Server.Factories.Tables
                 AddSpells(FellowshipHeal);
                 AddSpells(HotSelf);
                 AddSpells(HotOther);
-                AddSpells(DaggerBleed);
+                AddSpells(Bleeding);
                 AddSpells(Burning);
             }
         }

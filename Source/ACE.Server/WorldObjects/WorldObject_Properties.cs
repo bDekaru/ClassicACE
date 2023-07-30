@@ -3299,5 +3299,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyInt.MaxReachedLevel);
             set { if (!value.HasValue) RemoveProperty(PropertyInt.MaxReachedLevel); else SetProperty(PropertyInt.MaxReachedLevel, value.Value); }
         }
+
+        public double? AttacksCauseBleedChance
+        {
+            get => GetProperty(PropertyFloat.AttacksCauseBleedChance);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.AttacksCauseBleedChance); else SetProperty(PropertyFloat.AttacksCauseBleedChance, value.Value); }
+        }
     }
 }

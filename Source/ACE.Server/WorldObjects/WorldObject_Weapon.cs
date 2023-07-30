@@ -1523,59 +1523,68 @@ namespace ACE.Server.WorldObjects
                 {
                     var enchantments = target.EnchantmentManager.GetEnchantments(SpellCategory.DFBleedDamage);
                     var highest = enchantments?.OrderByDescending(i => i.PowerLevel).FirstOrDefault();
-                    if (skill.Current < 200)
+                    if (skill.Current < 100)
+                        procSpellId = SpellId.Bleeding1;
+                    else if (skill.Current < 150)
                     {
                         if (highest == null)
-                            procSpellId = SpellId.DaggerBleed1;
-                        else if(highest.SpellId == (int)SpellId.DaggerBleed1)
-                            procSpellId = SpellId.DaggerBleed2;
+                            procSpellId = SpellId.Bleeding1;
                         else
-                            procSpellId = SpellId.DaggerBleed3;
+                            procSpellId = SpellId.Bleeding2;
+                    }
+                    else if (skill.Current < 200)
+                    {
+                        if (highest == null)
+                            procSpellId = SpellId.Bleeding1;
+                        else if(highest.SpellId == (int)SpellId.Bleeding1)
+                            procSpellId = SpellId.Bleeding2;
+                        else
+                            procSpellId = SpellId.Bleeding3;
                     }
                     else if (skill.Current < 250)
                     {
                         if (highest == null)
-                            procSpellId = SpellId.DaggerBleed2;
-                        else if (highest.SpellId == (int)SpellId.DaggerBleed2)
-                            procSpellId = SpellId.DaggerBleed3;
+                            procSpellId = SpellId.Bleeding2;
+                        else if (highest.SpellId == (int)SpellId.Bleeding2)
+                            procSpellId = SpellId.Bleeding3;
                         else
-                            procSpellId = SpellId.DaggerBleed4;
+                            procSpellId = SpellId.Bleeding4;
                     }
                     else if (skill.Current < 300)
                     {
                         if (highest == null)
-                            procSpellId = SpellId.DaggerBleed3;
-                        else if (highest.SpellId == (int)SpellId.DaggerBleed3)
-                            procSpellId = SpellId.DaggerBleed4;
+                            procSpellId = SpellId.Bleeding3;
+                        else if (highest.SpellId == (int)SpellId.Bleeding3)
+                            procSpellId = SpellId.Bleeding4;
                         else
-                            procSpellId = SpellId.DaggerBleed5;
+                            procSpellId = SpellId.Bleeding5;
                     }
                     else if (skill.Current < 325)
                     {
                         if (highest == null)
-                            procSpellId = SpellId.DaggerBleed4;
-                        else if (highest.SpellId == (int)SpellId.DaggerBleed4)
-                            procSpellId = SpellId.DaggerBleed5;
+                            procSpellId = SpellId.Bleeding4;
+                        else if (highest.SpellId == (int)SpellId.Bleeding4)
+                            procSpellId = SpellId.Bleeding5;
                         else
-                            procSpellId = SpellId.DaggerBleed6;
+                            procSpellId = SpellId.Bleeding6;
                     }
                     else if (skill.Current < 350)
                     {
                         if (highest == null)
-                            procSpellId = SpellId.DaggerBleed5;
-                        else if (highest.SpellId == (int)SpellId.DaggerBleed5)
-                            procSpellId = SpellId.DaggerBleed6;
+                            procSpellId = SpellId.Bleeding5;
+                        else if (highest.SpellId == (int)SpellId.Bleeding5)
+                            procSpellId = SpellId.Bleeding6;
                         else
-                            procSpellId = SpellId.DaggerBleed7;
+                            procSpellId = SpellId.Bleeding7;
                     }
                     else
                     {
                         if (highest == null)
-                            procSpellId = SpellId.DaggerBleed6;
-                        else if (highest.SpellId == (int)SpellId.DaggerBleed6)
-                            procSpellId = SpellId.DaggerBleed7;
+                            procSpellId = SpellId.Bleeding6;
+                        else if (highest.SpellId == (int)SpellId.Bleeding6)
+                            procSpellId = SpellId.Bleeding7;
                         else
-                            procSpellId = SpellId.DaggerBleed8;
+                            procSpellId = SpellId.Bleeding8;
                     }
                 }
             }

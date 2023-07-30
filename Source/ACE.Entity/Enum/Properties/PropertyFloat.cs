@@ -237,6 +237,7 @@ namespace ACE.Entity.Enum.Properties
         ExtraStaminaRegenPool          = 10011,
         ExtraManaRegenPool             = 10012,
         ShieldDefense                  = 10013,
+        AttacksCauseBleedChance        = 10014,
     }
 
     public static class PropertyFloatExtensions
