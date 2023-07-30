@@ -2237,11 +2237,10 @@ namespace ACE.Server.WorldObjects
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                foreach (var wielded in EquippedObjects.Values)
-                {
-                    if (wielded.MaxLevel.HasValue && (Level ?? 1) > wielded.MaxLevel.Value)
-                        HandleActionPutItemInContainer(wielded.Guid.Full, Guid.Full);
-                }
+                var dequipItems = EquippedObjects.Values.Where(i => i.MaxLevel < Level);
+
+                foreach (var wielded in dequipItems)
+                    HandleActionPutItemInContainer(wielded.Guid.Full, Guid.Full);
             }
         }
 
@@ -4080,7 +4079,7 @@ namespace ACE.Server.WorldObjects
             // fixes any 'invisible' equipped items, where CurrentWieldedLocation is None
             // not sure how items could have gotten into this state, possibly from legacy bugs
 
-            var dequipItems = EquippedObjects.Values.Where(i => i.CurrentWieldedLocation == EquipMask.None);
+            var dequipItems = EquippedObjects.Values.Where(i => i.CurrentWieldedLocation == EquipMask.None || i.MaxLevel < Level);
 
             foreach (var dequipItem in dequipItems)
             {
