@@ -44,7 +44,7 @@ namespace ACE.Server.WorldObjects
                 //actionChain.AddAction(this, () => EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SneakingBegin)));
                 //actionChain.EnqueueChain();
             }
-            else if(result == SneakingTestResult.Failure)
+            else if (result == SneakingTestResult.Failure)
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You fail on your attempt to start sneaking.", ChatMessageType.Broadcast));
             else
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You are not trained in sneaking!", ChatMessageType.Broadcast));
@@ -137,7 +137,7 @@ namespace ACE.Server.WorldObjects
 
         public bool TestSneaking(uint difficulty, string failureMessage)
         {
-            if(TestSneakingInternal(difficulty) != SneakingTestResult.Success)
+            if (TestSneakingInternal(difficulty) != SneakingTestResult.Success)
             {
                 EndSneaking(failureMessage);
                 return false;
@@ -213,8 +213,13 @@ namespace ACE.Server.WorldObjects
                 if (GetDistance(creature) < 20 && creature.IsDirectVisible(this))
                 {
                     var difficulty = (uint)(EnterSneakingDifficulty + creature.Level ?? 1);
-                    if (TestSneakingInternal(difficulty) == SneakingTestResult.Success)
+                    if (TestSneaking(difficulty, $"{creature.Name} sees you! You stop sneaking."))
                         creature.TurnTo(Location);
+                    else
+                    {
+                        AlertMonster(creature);
+                        break;
+                    }
                 }
             }
         }
