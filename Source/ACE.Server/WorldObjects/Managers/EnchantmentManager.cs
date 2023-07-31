@@ -1359,71 +1359,82 @@ namespace ACE.Server.WorldObjects.Managers
                 //var totalTicks = GetNumTicks(enchantment);
                 var tickAmount = enchantment.StatModValue;
 
-                // run tick amount through damage calculation functions?
-                // it appears retail might have done an initial damage calc,
-                // and then applied that to the enchantment StatModVal beforehand
-                // for each damage tick, this pre-calc would then be multiplied
-                // against the realtime resistances
-
-                var damager = WorldObject.CurrentLandblock?.GetObject(enchantment.CasterObjectId);
-                if (damager == null)
+                WorldObject damager = enchantment.CachedCasterObject as WorldObject;
+                if (enchantment.CachedModifiedStatModValue != null)
+                    tickAmount = enchantment.CachedModifiedStatModValue.Value;
+                else
                 {
-                    Console.WriteLine($"{WorldObject.Name}.ApplyDamageTick() - couldn't find damager {enchantment.CasterObjectId:X8}");
-                    continue;
-                }
 
-                var resistanceMod = creature.GetResistanceMod(damageType, damager, null);
+                    // run tick amount through damage calculation functions?
+                    // it appears retail might have done an initial damage calc,
+                    // and then applied that to the enchantment StatModVal beforehand
+                    // for each damage tick, this pre-calc would then be multiplied
+                    // against the realtime resistances
 
-                var sourcePlayer = damager as Player;
-
-                bool isPvP = sourcePlayer != null && targetPlayer != null;
-
-                if (isPvP)
-                {
-                    // if a PKType with Enduring Enchantment has died, ensure they don't continue to take DoT from PK sources
-                    if (!targetPlayer.IsPKType)
+                    damager = WorldObject.CurrentLandblock?.GetObject(enchantment.CasterObjectId);
+                    if (damager == null)
+                    {
+                        Console.WriteLine($"{WorldObject.Name}.ApplyDamageTick() - couldn't find damager {enchantment.CasterObjectId:X8}");
                         continue;
-
-                    // void spell projectile direct damage was modified to apply this pvp modifier *on top of* the player's natural resistance to nether,
-                    // which supposedly brings the direct damage from void spells in pvp closer to retail
-
-                    // however, dots were already supposedly on par, so we replace resistanceMod with void_pvp_modifier for dots,
-                    // instead of applying it on top like direct damage
-
-                    if (damageType == DamageType.Nether)
-                        resistanceMod = (float)PropertyManager.GetDouble("void_pvp_modifier").Item;
-                }
-
-                // with the halvening, this actually seems like the fairest balance currently..
-                var useNetherDotDamageRating = targetPlayer != null;
-
-                var damageResistRatingMod = creature.GetDamageResistRatingMod(CombatType.Magic, useNetherDotDamageRating);   // df?
-
-                if (isPvP)
-                {
-                    var pkDamageResistRatingMod = Creature.GetNegativeRatingMod(targetPlayer.GetPKDamageResistRating());
-
-                    damageResistRatingMod = Creature.AdditiveCombine(damageResistRatingMod, pkDamageResistRatingMod);
-                }
-
-                var dotResistRatingMod = Creature.GetNegativeRatingMod(creature.GetDotResistanceRating());  // should this be here, or somewhere else?
-                                                                                                            // should this affect NetherDotDamageRating?
-
-                //Console.WriteLine("DR: " + Creature.ModToRating(damageRatingMod));
-                //Console.WriteLine("DRR: " + Creature.NegativeModToRating(damageResistRatingMod));
-                //Console.WriteLine("NRR: " + Creature.NegativeModToRating(netherResistRatingMod));
-
-                var pvpMod = 1.0f;
-                if (isPvP)
-                {
-                    pvpMod = (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low", "pvp_dmg_mod_high", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
-                    if (damageType == DamageType.Nether)
-                        pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_void_dot", "pvp_dmg_mod_high_void_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                    }
                     else
-                        pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_dot", "pvp_dmg_mod_high_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
-                }
+                        enchantment.CachedCasterObject = damager;
 
-                tickAmount *= resistanceMod * damageResistRatingMod * dotResistRatingMod * pvpMod;
+                    var resistanceMod = creature.GetResistanceMod(damageType, damager, null);
+
+                    var sourcePlayer = damager as Player;
+
+                    bool isPvP = sourcePlayer != null && targetPlayer != null;
+
+                    if (isPvP)
+                    {
+                        // if a PKType with Enduring Enchantment has died, ensure they don't continue to take DoT from PK sources
+                        if (!targetPlayer.IsPKType)
+                            continue;
+
+                        // void spell projectile direct damage was modified to apply this pvp modifier *on top of* the player's natural resistance to nether,
+                        // which supposedly brings the direct damage from void spells in pvp closer to retail
+
+                        // however, dots were already supposedly on par, so we replace resistanceMod with void_pvp_modifier for dots,
+                        // instead of applying it on top like direct damage
+
+                        if (damageType == DamageType.Nether)
+                            resistanceMod = (float)PropertyManager.GetDouble("void_pvp_modifier").Item;
+                    }
+
+                    // with the halvening, this actually seems like the fairest balance currently..
+                    var useNetherDotDamageRating = targetPlayer != null;
+
+                    var damageResistRatingMod = creature.GetDamageResistRatingMod(CombatType.Magic, useNetherDotDamageRating);   // df?
+
+                    if (isPvP)
+                    {
+                        var pkDamageResistRatingMod = Creature.GetNegativeRatingMod(targetPlayer.GetPKDamageResistRating());
+
+                        damageResistRatingMod = Creature.AdditiveCombine(damageResistRatingMod, pkDamageResistRatingMod);
+                    }
+
+                    var dotResistRatingMod = Creature.GetNegativeRatingMod(creature.GetDotResistanceRating());  // should this be here, or somewhere else?
+                                                                                                                // should this affect NetherDotDamageRating?
+
+                    //Console.WriteLine("DR: " + Creature.ModToRating(damageRatingMod));
+                    //Console.WriteLine("DRR: " + Creature.NegativeModToRating(damageResistRatingMod));
+                    //Console.WriteLine("NRR: " + Creature.NegativeModToRating(netherResistRatingMod));
+
+                    var pvpMod = 1.0f;
+                    if (isPvP)
+                    {
+                        pvpMod = (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low", "pvp_dmg_mod_high", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                        if (damageType == DamageType.Nether)
+                            pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_void_dot", "pvp_dmg_mod_high_void_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                        else
+                            pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_dot", "pvp_dmg_mod_high_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                    }
+
+                    tickAmount *= resistanceMod * damageResistRatingMod * dotResistRatingMod * pvpMod;
+
+                    enchantment.CachedModifiedStatModValue = tickAmount;
+                }
 
                 // make sure the target's current health is not exceeded
                 if (tickAmountTotal + tickAmount >= creature.Health.Current)
@@ -1432,12 +1443,15 @@ namespace ACE.Server.WorldObjects.Managers
                     isDead = true;
                 }
 
-                if (damagers.ContainsKey(damager))
-                    damagers[damager] += tickAmount;
-                else
-                    damagers.Add(damager, tickAmount);
+                if (damager != null)
+                {
+                    if (damagers.ContainsKey(damager))
+                        damagers[damager] += tickAmount;
+                    else
+                        damagers.Add(damager, tickAmount);
 
-                creature.DamageHistory.Add(damager, damageType, (uint)Math.Round(tickAmount));
+                    creature.DamageHistory.Add(damager, damageType, (uint)Math.Round(tickAmount));
+                }
 
                 tickAmountTotal += tickAmount;
 

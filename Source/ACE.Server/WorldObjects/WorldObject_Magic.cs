@@ -2164,6 +2164,15 @@ namespace ACE.Server.WorldObjects
 
             var enchantment_statModVal = statModVal;
 
+            var sourcePlayer = this as Player;
+            var sourceCreature = this as Creature;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if (sourcePlayer == null && sourceCreature != null)
+                    enchantment_statModVal /= 2; // Monsters do reduced dot damage, traps still do full damage.
+            }
+
             var creatureTarget = target as Creature;
 
             if (spell.Category == SpellCategory.AetheriaProcHealthOverTimeRaising)
@@ -2182,25 +2191,22 @@ namespace ACE.Server.WorldObjects
                 return enchantment_statModVal;
             }
 
-            var player = this as Player;
-            var creatureSource = this as Creature;
-
             var damageRatingMod = 1.0f;
 
-            if (creatureSource != null)
+            if (sourceCreature != null)
             {
                 // damage rating mod
-                var damageRating = creatureSource.GetDamageRating();
+                var damageRating = sourceCreature.GetDamageRating();
 
-                if (player != null)
+                if (sourcePlayer != null)
                 {
                     // TODO: merge this with damage rating
-                    var equippedWeapon = player.GetEquippedWeapon() ?? player.GetEquippedWand();
-                    if (player.GetHeritageBonus(equippedWeapon))
+                    var equippedWeapon = sourcePlayer.GetEquippedWeapon() ?? sourcePlayer.GetEquippedWand();
+                    if (sourcePlayer.GetHeritageBonus(equippedWeapon))
                         damageRating += 5;
 
                     if (target is Player)
-                        damageRating += player.GetPKDamageRating();
+                        damageRating += sourcePlayer.GetPKDamageRating();
                 }
                 damageRatingMod = Creature.GetPositiveRatingMod(damageRating);
             }
@@ -2228,17 +2234,17 @@ namespace ACE.Server.WorldObjects
             var elementalDamageMod = 1.0f;
             var skillMod = 1.0f;
 
-            if (creatureSource != null)
+            if (sourceCreature != null)
             {
                 // elemental damage mod
-                elementalDamageMod = GetCasterElementalDamageModifier(weapon, creatureSource, creatureTarget, spell.DamageType);
+                elementalDamageMod = GetCasterElementalDamageModifier(weapon, sourceCreature, creatureTarget, spell.DamageType);
 
                 // skillMod only applied to projectiles -- no destructive curse
-                if (player != null && spell.NumProjectiles > 0)
+                if (sourcePlayer != null && spell.NumProjectiles > 0)
                 {
                     // from SpellProjectile, slightly modified
                     // convert this to common function
-                    var magicSkill = player.GetCreatureSkill(spell.School).Current;
+                    var magicSkill = sourcePlayer.GetCreatureSkill(spell.School).Current;
 
                     if (magicSkill > spell.Power)
                     {
