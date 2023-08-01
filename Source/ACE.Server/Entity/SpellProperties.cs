@@ -115,6 +115,9 @@ namespace ACE.Server.Entity
         {
             get
             {
+                if (OverrideDuration.HasValue)
+                    return OverrideDuration.Value * IntensityMod;
+
                 if (_spell?.DotDuration != null)
                 {
                     if (HasExtraTick)
@@ -125,7 +128,10 @@ namespace ACE.Server.Entity
                 else
                     return _spellBase.Duration * IntensityMod;
             }
+            set { OverrideDuration = value; }
         }
+
+        public double? OverrideDuration;
 
         /// <summary>
         /// The DoT (damage over time) duration for the spell

@@ -295,6 +295,8 @@ namespace ACE.Server.WorldObjects
             // if player target, ensure matching PK status
             var targetPlayer = creatureTarget as Player;
 
+            bool isPvP = player != null && targetPlayer != null;
+
             var pkError = ProjectileSource?.CheckPKStatusVsTarget(creatureTarget, Spell);
             if (pkError != null)
             {
@@ -390,9 +392,26 @@ namespace ACE.Server.WorldObjects
                             switch (Spell.DamageType)
                             {
                                 case DamageType.Cold:
-                                    var freezingSpell = new Spell(SpellId.Freezing);
-                                    if (!freezingSpell.NotFound)
-                                        sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                                    if (isPvP)
+                                    {
+                                        // The regular freezing spell was found to change PvP dynamics too much so lower attack speed instead.
+                                        var leadenWeapon = new Spell(SpellId.LeadenWeapon5);
+                                        leadenWeapon.Duration = 10;
+                                        if (!leadenWeapon.NotFound)
+                                            sourceCreature.TryCastSpell(leadenWeapon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+
+                                        // And something negative for casters as well.
+                                        var hermeticVoid = new Spell(SpellId.HermeticVoid5);
+                                        hermeticVoid.Duration = 10;
+                                        if (!hermeticVoid.NotFound)
+                                            sourceCreature.TryCastSpell(hermeticVoid, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                                    }
+                                    else
+                                    {
+                                        var freezingSpell = new Spell(SpellId.Freezing);
+                                        if (!freezingSpell.NotFound)
+                                            sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                                    }
                                     break;
 
                                 case DamageType.Fire:
