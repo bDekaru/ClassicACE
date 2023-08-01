@@ -43,6 +43,7 @@ namespace ACE.Server.WorldObjects
 
         private double PvPInciteTickTimestamp;
         private const double PvPInciteTickInterval = 600;
+        private const double PvPInciteInitialDelay = 3600;
 
         public void Player_Tick(double currentUnixTime)
         {
@@ -121,11 +122,11 @@ namespace ACE.Server.WorldObjects
                 leyLineAmuletsTickTimestamp = Time.GetFutureUnixTime(leyLineAmuletsTickInterval);
             }
 
-            if (PvPInciteTickTimestamp == 0 || currentUnixTime > PvPInciteTickTimestamp)
+            if(PvPInciteTickTimestamp == 0)
+                PvPInciteTickTimestamp = Time.GetFutureUnixTime(PvPInciteInitialDelay);
+            else if (currentUnixTime > PvPInciteTickTimestamp)
             {
-                if(PvPInciteTickTimestamp != 0)
-                    PvPInciteTick(currentUnixTime);
-
+                PvPInciteTick(currentUnixTime);
                 PvPInciteTickTimestamp = Time.GetFutureUnixTime(PvPInciteTickInterval);
             }
 
