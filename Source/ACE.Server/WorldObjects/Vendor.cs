@@ -1054,7 +1054,7 @@ namespace ACE.Server.WorldObjects
                     case "Candeth Keep":
                     case "Fort Tethana":
                     case "Ayan Baqur":
-                    case "WaiJhou":
+                    case "Wai Jhou":
                     case "Stonehold":
                         Tier = 4;
                         ShopQualityMod = 0.0f;
@@ -1425,7 +1425,13 @@ namespace ACE.Server.WorldObjects
 
         public double? SellPrice
         {
-            get { return SellPriceBase != null ? SellPriceBase + SellPriceMod : null; }
+            get
+            {
+                var ourSellPrice = SellPriceBase != null ? SellPriceBase + SellPriceMod : null;
+                if (EventManager.FireSaleTownName != "" && EventManager.FireSaleTownName == GetProperty(PropertyString.TownName))
+                    return EventManager.FireSaleSellPrice < ourSellPrice ? EventManager.FireSaleSellPrice : ourSellPrice;
+                return ourSellPrice;
+            }
         }
 
         public double? BuyPriceBase

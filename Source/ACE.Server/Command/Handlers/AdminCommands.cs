@@ -5076,5 +5076,47 @@ namespace ACE.Server.Command.Handlers
 
             PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has given {(stackSize == 0 ? 1 : stackSize)} {weenie.GetName()} to all online players.");
         }
+
+        [CommandHandler("SwitchFireSaleTown", AccessLevel.Admin, CommandHandlerFlag.None, "")]
+        public static void HandleRefreshFireSaleTown(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
+            EventManager.RollFireSaleTown();
+        }
+
+        [CommandHandler("ForceFireSaleTown", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleForceFireSaleTown(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
+            var player = session?.Player;
+
+            if (player == null)
+                return;
+
+            var town = string.Join(" ", parameters);
+            if(!EventManager.PossibleFireSaleTowns.Contains(town))
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid town name.", ChatMessageType.Help));
+                return;
+            }
+
+            EventManager.RollFireSaleTown(town);
+        }
+
+        [CommandHandler("ProlongFireSaleTown", AccessLevel.Admin, CommandHandlerFlag.None, "")]
+        public static void HandleProlongFireSaleTown(Session session, params string[] parameters)
+        {
+            EventManager.ProlongFireSaleTown();
+        }
     }
 }

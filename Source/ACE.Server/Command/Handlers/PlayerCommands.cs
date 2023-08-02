@@ -1370,8 +1370,40 @@ namespace ACE.Server.Command.Handlers
             }
             else
             {
-                var timeRemaining = TimeSpan.FromSeconds(EventManager.NextHotDungeonSwitch - Time.GetUnixTime()).GetFriendlyString();
+                var timeRemaining = TimeSpan.FromSeconds(EventManager.NextHotDungeonEnd - Time.GetUnixTime()).GetFriendlyString();
                 var msg = $"{EventManager.HotDungeonDescription} Time Remaining: {timeRemaining}.";
+                if (discordChannel == 0)
+                    CommandHandlerHelper.WriteOutputInfo(session, msg);
+                else
+                    DiscordChatBridge.SendMessage(discordChannel, msg);
+            }
+        }
+
+
+        [CommandHandler("FireSaleTown", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "")]
+        [CommandHandler("FireSale", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleFireSaleTown(Session session, params string[] parameters)
+        {
+            ShowFireSaleTown(session, false);
+        }
+
+        public static void ShowFireSaleTown(Session session, bool failSilently, ulong discordChannel = 0)
+        {
+            if (EventManager.FireSaleTownName == "")
+            {
+                if (!failSilently)
+                {
+                    var msg = "There's no towns with an ongoing fire sale at the moment.";
+                    if (discordChannel == 0)
+                        CommandHandlerHelper.WriteOutputInfo(session, msg);
+                    else
+                        DiscordChatBridge.SendMessage(discordChannel, msg);
+                }
+            }
+            else
+            {
+                var timeRemaining = TimeSpan.FromSeconds(EventManager.NextFireSaleTownEnd - Time.GetUnixTime()).GetFriendlyString();
+                var msg = $"{EventManager.FireSaleTownDescription} Time Remaining: {timeRemaining}.";
                 if (discordChannel == 0)
                     CommandHandlerHelper.WriteOutputInfo(session, msg);
                 else

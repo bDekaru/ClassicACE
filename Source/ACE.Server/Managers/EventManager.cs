@@ -25,7 +25,8 @@ namespace ACE.Server.Managers
         {
             Events = new Dictionary<string, Event>(StringComparer.OrdinalIgnoreCase);
 
-            NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonRollDelay);
+            NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonRollDelay);
+            NextFireSaleTownRoll = Time.GetFutureUnixTime(FireSaleTownRollDelay);
         }
 
         public static void Initialize()
@@ -195,6 +196,7 @@ namespace ACE.Server.Managers
             NextEventManagerShortHeartbeat = Time.GetFutureUnixTime(EventManagerHeartbeatShortInterval);
 
             HotDungeonTick(currentUnixTime);
+            FireSaleTick(currentUnixTime);
 
             if (NextEventManagerLongHeartbeat > currentUnixTime)
                 return;
@@ -210,9 +212,11 @@ namespace ACE.Server.Managers
         public static int HotDungeonLandblock = 0;
         public static string HotDungeonName = "";
         public static string HotDungeonDescription = "";
-        public static double NextHotDungeonSwitch = 0;
+        public static double NextHotDungeonRoll = 0;
+        public static double NextHotDungeonEnd = 0;
 
-        private static double HotDungeonInterval = 7201;
+        private static double HotDungeonInterval = 7200;
+        private static double HotDungeonDuration = 7140;
         private static double HotDungeonRollDelay = 1200;
         private static double HotDungeonChance = 0.33;
         public static void HotDungeonTick(double currentUnixTime)
@@ -220,9 +224,10 @@ namespace ACE.Server.Managers
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            if (NextHotDungeonSwitch > currentUnixTime)
+            if (NextHotDungeonEnd != 0 && NextHotDungeonEnd > currentUnixTime)
                 return;
 
+            NextHotDungeonEnd = 0;
             if (HotDungeonLandblock != 0)
             {
                 var msg = $"{HotDungeonName} is no longer giving extra experience rewards.";
@@ -234,11 +239,14 @@ namespace ACE.Server.Managers
             HotDungeonName = "";
             HotDungeonDescription = "";
 
+            if (NextHotDungeonRoll > currentUnixTime)
+                return;
+
             var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
             if (roll > HotDungeonChance)
             {
                 // No hot dungeons for now!
-                NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonRollDelay);
+                NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonRollDelay);
                 return;
             }
 
@@ -250,7 +258,8 @@ namespace ACE.Server.Managers
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonInterval);
+            NextHotDungeonEnd = Time.GetFutureUnixTime(HotDungeonDuration);
+            NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonInterval);
 
             var msg = $"The current extra experience dungeon duration has been prolonged!";
             PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
@@ -262,7 +271,7 @@ namespace ACE.Server.Managers
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonInterval);
+            NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonInterval);
 
             var onlinePlayers = PlayerManager.GetAllOnline();
 
@@ -320,7 +329,9 @@ namespace ACE.Server.Managers
                         var dungeonLevel = Math.Clamp(dungeon.Level, dungeon.MinLevel, dungeon.MaxLevel != 0 ? dungeon.MaxLevel : int.MaxValue);
                         HotDungeonDescription = $"Extra experience rewards dungeon: {dungeonName} located {dungeonDirections}. Dungeon level: {dungeonLevel:N0}.";
 
-                        var timeRemaining = TimeSpan.FromSeconds(NextHotDungeonSwitch - Time.GetUnixTime()).GetFriendlyString();
+                        NextHotDungeonEnd = Time.GetFutureUnixTime(HotDungeonDuration);
+
+                        var timeRemaining = TimeSpan.FromSeconds(HotDungeonDuration).GetFriendlyString();
 
                         var msg = $"{dungeonName} will be giving extra experience rewards for the next {timeRemaining}! The dungeon level is {dungeonLevel:N0}. The entrance is located {dungeonDirections}!";
                         PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
@@ -331,7 +342,152 @@ namespace ACE.Server.Managers
                 }
             }
 
-            NextHotDungeonSwitch = Time.GetFutureUnixTime(HotDungeonRollDelay); // We failed to select a new hot dungeon, reschedule it.
+            NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonRollDelay); // We failed to select a new hot dungeon, reschedule it.
+        }
+
+        public static List<string> PossibleFireSaleTowns = new List<string>()
+        {
+            "Arwic",
+            "Eastham",
+            "Rithwic",
+            "Cragstone",
+            "Holtburg",
+            "Glenden Wood",
+            "Mayoi",
+            "Yanshi",
+            "Shoushi",
+            "Hebian-to",
+            "Underground City",
+            "Samsur",
+            "Zaikhal",
+            "Yaraq",
+            "Qalaba'r",
+            "Tufa",
+            "Xarabydun",
+            "Uziz",
+            "Dryreach",
+            "Baishi",
+            "Sawato",
+            "Fort Tethana",
+            "Crater Lake",
+            "Plateau",
+            "Stonehold",
+            "Kara",
+            "Wai Jhou",
+            "Lytelthorpe",
+            "Lin",
+            "Nanto",
+            "Tou-Tou",
+            "Al-Arqas",
+            "Al-Jalima",
+            "Khayyaban",
+            "Neydisa Castle",
+            "Ayan Baqur",
+            "Kryst",
+            "MacNiall's Freehold",
+            "Linvak Tukal",
+            "Danby's Outpost",
+            "Ahurenga",
+            "Bluespire",
+            "Greenspire",
+            "Redspire",
+            "Timaru",
+            "Qalabar",
+            "Candeth Keep",
+            "Bandit Castle"
+        };
+
+        public static string FireSaleTownName = "";
+        public static string FireSaleTownDescription = "";
+        public static double NextFireSaleTownRoll = 0;
+        public static double NextFireSaleTownEnd = 0;
+
+        private static double FireSaleTownInterval = 14400;
+        private static double FireSaleTownRollDelay = 1800;
+        private static double FireSaleTownDuration = 1200;
+        private static double FireSaleTownChance = 0.20;
+        public static double FireSaleSellPrice = 1.25;
+
+        public static void FireSaleTick(double currentUnixTime)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            if (NextFireSaleTownEnd != 0 && NextFireSaleTownEnd > currentUnixTime)
+                return;
+
+            NextFireSaleTownEnd = 0;
+            if (FireSaleTownName != "")
+            {
+                var msg = $"{FireSaleTownName} is no longer having a fire sale.";
+                PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
+                PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
+            }
+
+            FireSaleTownName = "";
+            FireSaleTownDescription = "";
+
+            if (NextFireSaleTownRoll > currentUnixTime)
+                return;
+
+            var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
+            if (roll > FireSaleTownChance)
+            {
+                // No fire sales for now!
+                NextFireSaleTownRoll = Time.GetFutureUnixTime(FireSaleTownRollDelay);
+                return;
+            }
+
+            RollFireSaleTown();
+        }
+
+        public static void RollFireSaleTown(string forceTown = "")
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            NextFireSaleTownRoll = Time.GetFutureUnixTime(FireSaleTownInterval);
+
+            var onlinePlayers = PlayerManager.GetAllOnline();
+
+            if (onlinePlayers.Count > 0 || forceTown != "")
+            {
+                if (forceTown == "")
+                    FireSaleTownName = PossibleFireSaleTowns[ThreadSafeRandom.Next(0, PossibleFireSaleTowns.Count - 1)];
+                else if (PossibleFireSaleTowns.Contains(forceTown))
+                    FireSaleTownName = forceTown;
+                else
+                    return;
+
+                if (FireSaleTownName != "")
+                {
+                    FireSaleTownDescription = $"Current Fire Sale Town: {FireSaleTownName}.";
+
+                    NextFireSaleTownEnd = Time.GetFutureUnixTime(FireSaleTownDuration);
+
+                    var timeRemaining = TimeSpan.FromSeconds(FireSaleTownDuration).GetFriendlyString();
+
+                    var msg = $"{FireSaleTownName} will be holding a fire sale for the next {timeRemaining}!";
+                    PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
+                    PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
+                    return;
+                }
+            }
+
+            NextFireSaleTownRoll = Time.GetFutureUnixTime(FireSaleTownRollDelay); // We failed to select a new fire sale town, reschedule it.
+        }
+
+        public static void ProlongFireSaleTown()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            NextFireSaleTownEnd = Time.GetFutureUnixTime(FireSaleTownDuration);
+            NextFireSaleTownRoll = Time.GetFutureUnixTime(FireSaleTownInterval);
+
+            var msg = $"The current fire sale duration has been prolonged!";
+            PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
+            PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
         }
     }
 }
