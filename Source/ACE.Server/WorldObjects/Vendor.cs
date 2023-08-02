@@ -395,16 +395,31 @@ namespace ACE.Server.WorldObjects
         {
             MoneyIncome += value;
             RecentMoneyIncome += value;
+
+            if (MoneyIncome < 0)
+                MoneyIncome = int.MaxValue;
+
+            if (RecentMoneyIncome < 0)
+                RecentMoneyIncome = int.MaxValue;
         }
 
         public void AddMoneyOutflow(int value)
         {
             MoneyOutflow += value;
             RecentMoneyOutflow += value;
+
+            if (MoneyOutflow < 0)
+                MoneyOutflow = int.MaxValue;
+
+            if (RecentMoneyOutflow < 0)
+                RecentMoneyOutflow = int.MaxValue;
         }
 
         public void UpdateHappyVendor()
         {
+            if (IsStarterOutpostVendor)
+                return;
+
             int vendorHappyMean = (VendorHappyMean ?? 0) * Math.Min(MerchandiseMaxValue ?? 3000, 50000) / 3;
             int vendorHappyVariance = (VendorHappyVariance ?? 0) * Math.Min(MerchandiseMaxValue ?? 3000, 50000) / 3;
             if (vendorHappyMean == 0)
@@ -415,9 +430,9 @@ namespace ACE.Server.WorldObjects
             }
 
             int currentVendorHappyThreshold = ThreadSafeRandom.Next(vendorHappyMean, vendorHappyMean + vendorHappyVariance);
-            double priceMod = Math.Clamp((RecentMoneyIncome + RecentMoneyOutflow) / (float)currentVendorHappyThreshold * 0.1f, 0.0f, 0.1f);
+            double priceMod = Math.Clamp(((long)RecentMoneyIncome + (long)RecentMoneyOutflow) / (float)currentVendorHappyThreshold * 0.1f, 0.0f, 0.1f);
 
-            SellPriceMod = priceMod;
+            SellPriceMod = -priceMod * 3;
             BuyPriceMod = 0.1f - priceMod;
         }
 
@@ -1053,6 +1068,9 @@ namespace ACE.Server.WorldObjects
                 Tier = Math.Max(GetHighestTierAroundObject(maxDistance), 1); // Fallback to tier 1 if there's nothing around us.
             }
 
+            if (IsStarterOutpostVendor)
+                MerchandiseItemTypes ^= (int)ItemType.Misc;
+
             sellsRandomArmor = ((ItemType)MerchandiseItemTypes & ItemType.Armor) == ItemType.Armor;
             sellsRandomMeleeWeapons = ((ItemType)MerchandiseItemTypes & ItemType.MeleeWeapon) == ItemType.MeleeWeapon;
             sellsRandomMissileWeapons = ((ItemType)MerchandiseItemTypes & ItemType.MissileWeapon) == ItemType.MissileWeapon;
@@ -1146,11 +1164,14 @@ namespace ACE.Server.WorldObjects
 
             RotUniques();
 
-            // Decay our recent income and outflow so prices can change accordingly.
-            int minutesSinceLastRestock = (int)(DateTime.UtcNow - LastRestockTime).TotalMinutes;
-            int decayAmount = ThreadSafeRandom.Next(VendorHappyMean ?? 125, VendorHappyMean ?? 125 + VendorHappyVariance ?? 125) * minutesSinceLastRestock;
-            RecentMoneyOutflow = Math.Max(RecentMoneyOutflow - decayAmount, 0);
-            RecentMoneyIncome = Math.Max(RecentMoneyIncome - decayAmount, 0);
+            if (LastRestockTime != DateTime.UnixEpoch)
+            {
+                // Decay our recent income and outflow so prices can change accordingly.
+                int minutesSinceLastRestock = (int)(DateTime.UtcNow - LastRestockTime).TotalMinutes;
+                int decayAmount = ThreadSafeRandom.Next(VendorHappyMean ?? 125, VendorHappyMean ?? 125 + VendorHappyVariance ?? 125) * minutesSinceLastRestock;
+                RecentMoneyOutflow = Math.Max(RecentMoneyOutflow - decayAmount, 0);
+                RecentMoneyIncome = Math.Max(RecentMoneyIncome - decayAmount, 0);
+            }
 
             LastRestockTime = DateTime.UtcNow;
 
