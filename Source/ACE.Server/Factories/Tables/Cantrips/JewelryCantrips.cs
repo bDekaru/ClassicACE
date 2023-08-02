@@ -185,7 +185,6 @@ namespace ACE.Server.Factories.Tables
 
                     ( SpellId.CantripSalvaging1,                   2.0f ),
                     ( SpellId.CantripShieldAptitude1,              2.0f ),
-                    ( SpellId.CantripDualWieldAptitude1,           2.0f ),
                     ( SpellId.CantripArmorAptitude1,               2.0f ),
                     ( SpellId.CantripAwarenessAptitude1,           2.0f ),
                     ( SpellId.CantripAppraiseAptitude1,            2.0f ),
