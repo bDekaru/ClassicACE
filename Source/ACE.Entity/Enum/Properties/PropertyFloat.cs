@@ -238,6 +238,8 @@ namespace ACE.Entity.Enum.Properties
         ExtraManaRegenPool             = 10012,
         ShieldDefense                  = 10013,
         AttacksCauseBleedChance        = 10014,
+        [ServerOnly]
+        VendorIncomeDecayTimestamp     = 10015,
     }
 
     public static class PropertyFloatExtensions

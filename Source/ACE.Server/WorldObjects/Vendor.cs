@@ -105,7 +105,8 @@ namespace ACE.Server.WorldObjects
                 { new PartialPersistanceEntry(PropertyInt.RecentMoneyOutflow) },
                 { new PartialPersistanceEntry(PropertyInt.NumItemsSold) },
                 { new PartialPersistanceEntry(PropertyInt.NumItemsBought) },
-                { new PartialPersistanceEntry(PropertyInt.NumServicesSold) }
+                { new PartialPersistanceEntry(PropertyInt.NumServicesSold) },
+                { new PartialPersistanceEntry(PropertyFloat.VendorIncomeDecayTimestamp) },
             };
 
             SetEphemeralValues();
@@ -130,6 +131,9 @@ namespace ACE.Server.WorldObjects
 
             LastRestockTime = DateTime.UnixEpoch;
             OpenForBusiness = ValidateVendorRequirements();
+
+            if (VendorIncomeDecayTimestamp == 0)
+                VendorIncomeDecayTimestamp = Time.GetUnixTime();
         }
 
         private bool ValidateVendorRequirements()
@@ -420,8 +424,8 @@ namespace ACE.Server.WorldObjects
             if (IsStarterOutpostVendor)
                 return;
 
-            int vendorHappyMean = (VendorHappyMean ?? 0) * Math.Min(MerchandiseMaxValue ?? 3000, 50000) / 3;
-            int vendorHappyVariance = (VendorHappyVariance ?? 0) * Math.Min(MerchandiseMaxValue ?? 3000, 50000) / 3;
+            int vendorHappyMean = ((VendorHappyMean ?? 0) * 20) + 400000;
+            int vendorHappyVariance = ((VendorHappyVariance ?? 0) * 20) + 200000;
             if (vendorHappyMean == 0)
             {
                 BuyPriceMod = 0.0f;
@@ -1157,23 +1161,23 @@ namespace ACE.Server.WorldObjects
             if ((Tier ?? 0) == 0)
                 return;
 
-            if (VendorRestockInterval == 0 && (DateTime.UtcNow - LastRestockTime).TotalSeconds < PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item)
+            var interval = VendorRestockInterval != 0 ? VendorRestockInterval : PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item;
+            if ((DateTime.UtcNow - LastRestockTime).TotalSeconds < interval)
                 return;
-            else if ((DateTime.UtcNow - LastRestockTime).TotalSeconds < VendorRestockInterval)
-                return;
+            LastRestockTime = DateTime.UtcNow;
 
             RotUniques();
 
-            if (LastRestockTime != DateTime.UnixEpoch)
+            // Decay our recent income and outflow so prices can change accordingly.
+            var currentTime = Time.GetUnixTime();
+            var minutesSinceLastDecay = (currentTime - VendorIncomeDecayTimestamp) / 60;
+            if (minutesSinceLastDecay > 0)
             {
-                // Decay our recent income and outflow so prices can change accordingly.
-                int minutesSinceLastRestock = (int)(DateTime.UtcNow - LastRestockTime).TotalMinutes;
-                int decayAmount = ThreadSafeRandom.Next(VendorHappyMean ?? 125, VendorHappyMean ?? 125 + VendorHappyVariance ?? 125) * minutesSinceLastRestock;
-                RecentMoneyOutflow = Math.Max(RecentMoneyOutflow - decayAmount, 0);
-                RecentMoneyIncome = Math.Max(RecentMoneyIncome - decayAmount, 0);
+                var decayAmount = Math.Abs(ThreadSafeRandom.Next(VendorHappyMean ?? 125, VendorHappyMean ?? 125 + VendorHappyVariance ?? 125) * minutesSinceLastDecay / 100);
+                RecentMoneyOutflow = (int)Math.Max(RecentMoneyOutflow - decayAmount, 0);
+                RecentMoneyIncome = (int)Math.Max(RecentMoneyIncome - decayAmount, 0);
+                VendorIncomeDecayTimestamp = currentTime;
             }
-
-            LastRestockTime = DateTime.UtcNow;
 
             UpdateHappyVendor();
 
@@ -1543,5 +1547,12 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyInt.VendorStockMaxAmount) ?? 0;
             set { if (value == 0) RemoveProperty(PropertyInt.VendorStockMaxAmount); else SetProperty(PropertyInt.VendorStockMaxAmount, value); }
         }
+
+        public double VendorIncomeDecayTimestamp
+        {
+            get => GetProperty(PropertyFloat.VendorIncomeDecayTimestamp) ?? 0.0;
+            set { if (value == 0.0) RemoveProperty(PropertyFloat.VendorIncomeDecayTimestamp); else SetProperty(PropertyFloat.VendorIncomeDecayTimestamp, value); }
+        }
+
     }
 }
