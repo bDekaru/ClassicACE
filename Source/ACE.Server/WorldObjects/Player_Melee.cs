@@ -431,7 +431,29 @@ namespace ACE.Server.WorldObjects
                 Attacking = false;
 
                 // powerbar refill timing
-                var refillMod = IsDualWieldAttack ? 0.8f : 1.0f;    // dual wield powerbar refills 20% faster
+                float refillMod;
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    refillMod = IsDualWieldAttack ? 0.8f : 1.0f;     // dual wield swing animation 20% faster
+                else
+                {
+                    WorldObject refillWeapon = null;
+                    if (IsDualWieldAttack)
+                    {
+                        if (!DualWieldAlternate)
+                            refillWeapon = GetEquippedMeleeWeapon(true);
+                        else
+                            refillWeapon = GetDualWieldWeapon();
+                    }
+                    else
+                        refillWeapon = GetEquippedMeleeWeapon(true);
+
+                    if (refillWeapon != null && refillWeapon.WeaponSkill == Skill.Dagger && refillWeapon.W_AttackType.IsMultiStrike())
+                        refillMod = 0.33f;
+                    else if (GetEquippedOffHand() == null)
+                        refillMod = 0.8f;
+                    else
+                        refillMod = 1.0f;
+                }
 
                 PowerLevel = AttackQueue.Fetch();
 
@@ -465,10 +487,26 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public float DoSwingMotion(WorldObject target, out List<(float time, AttackHook attackHook)> attackFrames)
         {
+            if (IsDualWieldAttack)
+                DualWieldAlternate = !DualWieldAlternate;
+
             // get the proper animation speed for this attack,
             // based on weapon speed and player quickness
             var baseSpeed = GetAnimSpeed();
-            var animSpeedMod = IsDualWieldAttack ? 1.2f : 1.0f;     // dual wield swing animation 20% faster
+            float animSpeedMod;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                animSpeedMod = IsDualWieldAttack ? 1.2f : 1.0f;     // dual wield swing animation 20% faster
+            else
+            {
+                var weapon = GetEquippedMeleeWeapon();
+                if (weapon != null && weapon.WeaponSkill == Skill.Dagger && weapon.W_AttackType.IsMultiStrike())
+                    animSpeedMod = 1.8f;
+                else if (GetEquippedOffHand() == null)
+                    animSpeedMod = 1.2f;
+                else
+                    animSpeedMod = 1.0f;
+            }
+
             var animSpeed = baseSpeed * animSpeedMod;
 
             var swingAnimation = GetSwingAnimation();
@@ -508,9 +546,6 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public MotionCommand GetSwingAnimation()
         {
-            if (IsDualWieldAttack)
-                DualWieldAlternate = !DualWieldAlternate;
-
             var offhand = IsDualWieldAttack && !DualWieldAlternate;
 
             var weapon = GetEquippedMeleeWeapon();
@@ -528,7 +563,7 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                AttackType = PowerLevel > KickThreshold ? AttackType.Kick : AttackType.Punch;
+                AttackType = PowerLevel > KickThreshold && !IsDualWieldAttack ? AttackType.Kick : AttackType.Punch;
             }
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)

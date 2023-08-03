@@ -734,6 +734,15 @@ namespace ACE.Server.WorldObjects
                     resistanceMod *= (float)PropertyManager.GetDouble("void_pvp_modifier").Item;
                 }
 
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && FromProc && sourcePlayer != null)
+                {
+                    var dmgScale = 0.5f + sourcePlayer.ScaleWithPowerAccuracyBar(0.5f);
+                    baseDamage = (int)(baseDamage * dmgScale);
+                    critDamageBonus = critDamageBonus * dmgScale;
+
+                    skillBonus *= 2;
+                }
+
                 finalDamage = baseDamage + critDamageBonus + skillBonus;
 
                 finalDamage *= elementalDamageMod * slayerMod * resistanceMod * absorbMod;
