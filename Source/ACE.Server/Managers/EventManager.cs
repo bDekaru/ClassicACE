@@ -408,6 +408,7 @@ namespace ACE.Server.Managers
         private static double FireSaleTownDuration = 1200;
         private static double FireSaleTownChance = 0.20;
         public static double FireSaleSellPrice = 1.25;
+        public static int FireSaleItemStockAmountMultiplier = 3;
 
         public static void FireSaleTick(double currentUnixTime)
         {

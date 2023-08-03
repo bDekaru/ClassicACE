@@ -452,7 +452,8 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            RotUniques();
+            bool isFireSale = EventManager.FireSaleTownName != "" && EventManager.FireSaleTownName == GetProperty(PropertyString.TownName);
+            RotUniques(!isFireSale);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 RestockRandomItems();
@@ -1092,7 +1093,7 @@ namespace ACE.Server.WorldObjects
 
             int categoriesSold = 0;
             if (sellsRandomArmor)
-                categoriesSold++;
+                categoriesSold += 2; // Armor counts as 2 to account for the huge variety.
             if (sellsRandomMeleeWeapons)
                 categoriesSold++;
             if (sellsRandomMissileWeapons)
@@ -1153,6 +1154,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        bool IsSetupForFireSale = false;
         private void RestockRandomItems()
         {
             if (!RandomItemGenerationInitialized)
@@ -1161,12 +1163,27 @@ namespace ACE.Server.WorldObjects
             if ((Tier ?? 0) == 0)
                 return;
 
-            var interval = VendorRestockInterval != 0 ? VendorRestockInterval : PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item;
+            double interval;
+            bool performFireSaleSetup = false;
+            bool isFireSale = EventManager.FireSaleTownName != "" && EventManager.FireSaleTownName == GetProperty(PropertyString.TownName);
+            if (isFireSale && !IsSetupForFireSale)
+            {
+                performFireSaleSetup = true;
+                IsSetupForFireSale = true;
+                interval = 0;
+            }
+            else
+            {
+                if (!isFireSale && IsSetupForFireSale)
+                    IsSetupForFireSale = false;
+                interval = VendorRestockInterval != 0 ? VendorRestockInterval : PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item;
+            }
+
             if ((DateTime.UtcNow - LastRestockTime).TotalSeconds < interval)
                 return;
             LastRestockTime = DateTime.UtcNow;
 
-            RotUniques();
+            RotUniques(!isFireSale);
 
             // Decay our recent income and outflow so prices can change accordingly.
             var currentTime = Time.GetUnixTime();
@@ -1181,10 +1198,16 @@ namespace ACE.Server.WorldObjects
 
             UpdateHappyVendor();
 
-            if (UniqueItemsForSale.Count >= ShopRandomItemStockAmount)
+            int randomItemStockAmount;
+            if (performFireSaleSetup)
+                randomItemStockAmount = ShopRandomItemStockAmount * EventManager.FireSaleItemStockAmountMultiplier;
+            else
+                randomItemStockAmount = ShopRandomItemStockAmount;
+
+            if (UniqueItemsForSale.Count >= randomItemStockAmount)
                 return;
 
-            int itemsToGenerate = ShopRandomItemStockAmount - UniqueItemsForSale.Count;
+            int itemsToGenerate = randomItemStockAmount - UniqueItemsForSale.Count;
 
             if (itemsToGenerate <= 0)
                 return;
@@ -1192,59 +1215,74 @@ namespace ACE.Server.WorldObjects
             int added = 0;
             while(added < itemsToGenerate)
             {
-                if (sellsRandomArmor && added < itemsToGenerate)
+                if (!sellsRandomMeleeWeapons && !sellsRandomMissileWeapons && !sellsRandomCasters && sellsRandomArmor && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsRandomMeleeWeapons && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Weapon, TreasureArmorType.Undef, TreasureWeaponType.MeleeWeapon);
+                    AddRandomItem(TreasureItemType_Orig.Weapon, TreasureArmorType.Undef, TreasureWeaponType.MeleeWeapon, isFireSale);
                     added++;
+                    if (sellsRandomArmor && added < itemsToGenerate)
+                    {
+                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                        added++;
+                    }
                 }
                 if (sellsRandomMissileWeapons && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Weapon, TreasureArmorType.Undef, TreasureWeaponType.MissileWeapon);
+                    AddRandomItem(TreasureItemType_Orig.Weapon, TreasureArmorType.Undef, TreasureWeaponType.MissileWeapon, isFireSale);
                     added++;
+                    if (sellsRandomArmor && added < itemsToGenerate)
+                    {
+                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                        added++;
+                    }
                 }
                 if (sellsRandomCasters && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Caster, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    AddRandomItem(TreasureItemType_Orig.Caster, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
+                    if (sellsRandomArmor && added < itemsToGenerate)
+                    {
+                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                        added++;
+                    }
                 }
                 if (sellsRandomClothing && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Clothing, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    AddRandomItem(TreasureItemType_Orig.Clothing, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                     if (added < itemsToGenerate)
                     {
-                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Cloth, TreasureWeaponType.Undef);
+                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Cloth, TreasureWeaponType.Undef, isFireSale);
                         added++;
                     }
                 }
                 if (sellsRandomJewelry && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Jewelry, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    AddRandomItem(TreasureItemType_Orig.Jewelry, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsRandomGems && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Gem, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    AddRandomItem(TreasureItemType_Orig.Gem, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsRandomScrolls && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Scroll, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    AddRandomItem(TreasureItemType_Orig.Scroll, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsSalvage && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Salvage, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    AddRandomItem(TreasureItemType_Orig.Salvage, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsSpecialItems && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.SpecialItem, TreasureArmorType.Undef, TreasureWeaponType.Undef);
+                    AddRandomItem(TreasureItemType_Orig.SpecialItem, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
             }
@@ -1305,10 +1343,14 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        private void AddRandomItem(TreasureItemType_Orig treasureItemType, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef)
+        private void AddRandomItem(TreasureItemType_Orig treasureItemType, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef, bool isFireSaleItem = false)
         {
             var itemTier = RollTier(Tier ?? 1);
             var item = LootGenerationFactory.CreateRandomLootObjects_New(itemTier, ShopQualityMod, (DealMagicalItems ?? false) ? TreasureItemCategory.MagicItem : TreasureItemCategory.Item, treasureItemType, armorType, weaponType, ShopHeritage);
+            if (item == null)
+                return;
+
+            item.IsFireSaleItem = isFireSaleItem;
 
             var amount = item.StackSize ?? 1;
             if (amount > 1)
@@ -1326,6 +1368,7 @@ namespace ACE.Server.WorldObjects
                         UniqueItemsForSale.Add(newItem.Guid, newItem);
 
                         newItem.SoldTimestamp = Time.GetUnixTime();
+                        newItem.IsFireSaleItem = isFireSaleItem;
                         newItem.RemoveBiotaFromDatabase();
                     }
                     item.Destroy();
@@ -1347,7 +1390,7 @@ namespace ACE.Server.WorldObjects
         /// Unique items in the vendor's inventory sold to the vendor by players
         /// expire after vendor_unique_rot_time seconds
         /// </summary>
-        private void RotUniques()
+        private void RotUniques(bool forceRotAllFireSaleItems)
         {
             List<WorldObject> itemsToRemove = null;
 
@@ -1369,6 +1412,13 @@ namespace ACE.Server.WorldObjects
                     rotTime = rotTime.AddSeconds(PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item);
 
                 if (DateTime.UtcNow >= rotTime)
+                {
+                    if (itemsToRemove == null)
+                        itemsToRemove = new List<WorldObject>();
+
+                    itemsToRemove.Add(uniqueItem);
+                }
+                else if(forceRotAllFireSaleItems && uniqueItem.IsFireSaleItem)
                 {
                     if (itemsToRemove == null)
                         itemsToRemove = new List<WorldObject>();

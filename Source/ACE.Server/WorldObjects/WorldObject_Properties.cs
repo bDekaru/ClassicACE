@@ -3099,6 +3099,8 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.SoldTimestamp); else SetProperty(PropertyFloat.SoldTimestamp, value.Value); }
         }
 
+        public bool IsFireSaleItem = false;
+
         public bool AllowGive
         {
             get => GetProperty(PropertyBool.AllowGive) ?? false;
