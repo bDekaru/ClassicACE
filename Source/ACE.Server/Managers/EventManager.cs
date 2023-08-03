@@ -215,8 +215,8 @@ namespace ACE.Server.Managers
         public static double NextHotDungeonRoll = 0;
         public static double NextHotDungeonEnd = 0;
 
-        private static double HotDungeonInterval = 7200;
-        private static double HotDungeonDuration = 7140;
+        private static double HotDungeonInterval = 7800;
+        private static double HotDungeonDuration = 7200;
         private static double HotDungeonRollDelay = 1200;
         private static double HotDungeonChance = 0.33;
         public static void HotDungeonTick(double currentUnixTime)
