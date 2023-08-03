@@ -330,6 +330,7 @@ namespace ACE.Server.Managers
                         HotDungeonDescription = $"Extra experience rewards dungeon: {dungeonName} located {dungeonDirections}. Dungeon level: {dungeonLevel:N0}.";
 
                         NextHotDungeonEnd = Time.GetFutureUnixTime(HotDungeonDuration);
+                        NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonInterval);
 
                         var timeRemaining = TimeSpan.FromSeconds(HotDungeonDuration).GetFriendlyString();
 
@@ -464,6 +465,7 @@ namespace ACE.Server.Managers
                     FireSaleTownDescription = $"Current Fire Sale Town: {FireSaleTownName}.";
 
                     NextFireSaleTownEnd = Time.GetFutureUnixTime(FireSaleTownDuration);
+                    NextFireSaleTownRoll = Time.GetFutureUnixTime(FireSaleTownInterval);
 
                     var timeRemaining = TimeSpan.FromSeconds(FireSaleTownDuration).GetFriendlyString();
 
