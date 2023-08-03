@@ -5902,21 +5902,6 @@
     <tod_req>0</tod_req>
   </location>
   <location>
-    <id>370</id>
-    <latitude>-18.4</latitude>
-    <longitude>62.1</longitude>
-    <name>Cave</name>
-    <type>Dungeon</type>
-    <arrival_latitude>0</arrival_latitude>
-    <arrival_longitude>0</arrival_longitude>
-    <description>Singles &amp; pairs of Manouga.  Nothing fancy. &lt;I&gt; -- Kelly Royal&lt;/i&gt;</description>
-    <date_added>1999-10-13T00:00:00.0000000-07:00</date_added>
-    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
-    <dungeon_id>01BD</dungeon_id>
-    <retired>N</retired>
-    <tod_req>0</tod_req>
-  </location>
-  <location>
     <id>371</id>
     <latitude>58.7</latitude>
     <longitude>55.3</longitude>
