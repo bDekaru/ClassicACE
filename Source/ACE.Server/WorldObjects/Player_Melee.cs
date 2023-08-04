@@ -449,7 +449,7 @@ namespace ACE.Server.WorldObjects
 
                     if (refillWeapon != null && refillWeapon.WeaponSkill == Skill.Dagger && refillWeapon.W_AttackType.IsMultiStrike())
                         refillMod = 0.33f;
-                    else if (GetEquippedOffHand() == null)
+                    else if (GetEquippedOffHand() == null && !TwoHandedCombat)
                         refillMod = 0.8f;
                     else
                         refillMod = 1.0f;
@@ -501,7 +501,7 @@ namespace ACE.Server.WorldObjects
                 var weapon = GetEquippedMeleeWeapon();
                 if (weapon != null && weapon.WeaponSkill == Skill.Dagger && weapon.W_AttackType.IsMultiStrike())
                     animSpeedMod = 1.8f;
-                else if (GetEquippedOffHand() == null)
+                else if (GetEquippedOffHand() == null && !TwoHandedCombat)
                     animSpeedMod = 1.2f;
                 else
                     animSpeedMod = 1.0f;
