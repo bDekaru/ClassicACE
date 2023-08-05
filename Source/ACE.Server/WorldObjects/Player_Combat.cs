@@ -576,13 +576,13 @@ namespace ACE.Server.WorldObjects
 
         public int TakeDamage(WorldObject source, DamageEvent damageEvent)
         {
-            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.AttackConditions, (int)Math.Floor(damageEvent.DamageBlocked));
+            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.AttackConditions, damageEvent.Blocked, (int)Math.Floor(damageEvent.DamageBlocked));
         }
 
         /// <summary>
         /// Applies damages to a player from a physical damage source
         /// </summary>
-        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, AttackConditions attackConditions = AttackConditions.None, int damageBlocked = 0)
+        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, AttackConditions attackConditions = AttackConditions.None, bool blocked = false, int damageBlocked = 0)
         {
             if (Invincible || IsDead || IsOnNoDamageLandblock) return 0;
 
@@ -656,9 +656,14 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventDefenderNotification(Session, creature.Name, damageType, percent, amount, damageLocation, crit, attackConditions));
                     if (damageBlocked > 0)
                     {
-                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.CombatSelf));
-                        var blockSound = new GameMessageSound(Guid, Sound.HitPlate1, 1.0f);
-                        EnqueueBroadcast(blockSound);
+                        if (blocked)
+                        {
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.CombatSelf));
+                            var blockSound = new GameMessageSound(Guid, Sound.HitPlate1, 1.0f);
+                            EnqueueBroadcast(blockSound);
+                        }
+                        else
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} damage!", ChatMessageType.CombatSelf));
                     }
                 }
     

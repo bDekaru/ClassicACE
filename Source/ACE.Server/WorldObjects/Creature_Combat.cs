@@ -837,17 +837,14 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Return the scalar damage absorbed by a shield
         /// </summary>
-        public float GetShieldMod(Creature attacker, DamageType damageType, WorldObject weapon, bool isPvP, out WorldObject shield)
+        public float GetShieldMod(Creature attacker, DamageType damageType, WorldObject weapon, bool isPvP, float shieldArmorLevelMod = 1.0f)
         {
             // ensure combat stance
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR && CombatMode == CombatMode.NonCombat)
-            {
-                shield = null;
                 return 1.0f;
-            }
 
             // does the player have a shield equipped?
-            shield = GetEquippedShield();
+            var shield = GetEquippedShield();
             if (shield == null)
                 return 1.0f;
 
@@ -925,6 +922,7 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine($"IgnoreShieldMod: {ignoreShieldMod}");
 
             effectiveLevel *= ignoreShieldMod;
+            effectiveLevel *= shieldArmorLevelMod;
 
             if (isPvP)
                 effectiveLevel *= (float)PropertyManager.GetInterpolatedDouble(attacker.Level ?? 1, "pvp_dmg_mod_low_shield_level", "pvp_dmg_mod_high_shield_level", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
