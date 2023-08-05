@@ -264,6 +264,9 @@ namespace ACE.Server.WorldObjects.Managers
                     entry.StatModValue = caster.CalculateDotEnchantment_StatModValue(spell, WorldObject, weapon, entry.StatModValue);
                 }
                 //Console.WriteLine($"enchantment_statModVal: {entry.StatModValue}");
+
+                if (spell.StatModKey == (int)PropertyInt.DamageOverTime || spell.StatModKey == (int)PropertyInt.NetherOverTime)
+                    CacheDamageTick(entry);
             }
 
             // handle equipment sets
@@ -1335,6 +1338,82 @@ namespace ACE.Server.WorldObjects.Managers
                 else
                     player.SendMessage($"You receive {healAmount} points of periodic healing.", ChatMessageType.Magic);
             }
+        }
+
+        public void CacheDamageTick(PropertiesEnchantmentRegistry enchantment)
+        {
+            var creature = WorldObject as Creature;
+            if (creature == null || creature.IsDead) return;
+
+            var targetPlayer = WorldObject as Player;
+            var tickAmount = enchantment.StatModValue;
+
+            var damager = WorldObject.CurrentLandblock?.GetObject(enchantment.CasterObjectId);
+            if (damager == null)
+            {
+                Console.WriteLine($"{WorldObject.Name}.CacheDamageTick() - couldn't find damager {enchantment.CasterObjectId:X8}");
+                return;
+            }
+            else
+                enchantment.CachedCasterObject = damager;
+
+            var damageType = DamageType.Undef;
+            if (enchantment.StatModKey == (int)PropertyInt.DamageOverTime)
+            {
+                if (enchantment.SpellCategory == SpellCategory.AetheriaProcDamageOverTimeRaising)
+                    damageType = DamageType.Undef;
+                else if (enchantment.SpellCategory == SpellCategory.FireDoT)
+                    damageType = DamageType.Fire;
+                else
+                    damageType = DamageType.Undef;
+            }
+            else if (enchantment.StatModKey == (int)PropertyInt.NetherOverTime)
+                damageType = DamageType.Nether;
+
+            var resistanceMod = creature.GetResistanceMod(damageType, damager, null);
+
+            var sourcePlayer = damager as Player;
+
+            bool isPvP = sourcePlayer != null && targetPlayer != null;
+
+            if (isPvP)
+            {
+                if (damageType == DamageType.Nether)
+                    resistanceMod = (float)PropertyManager.GetDouble("void_pvp_modifier").Item;
+            }
+
+            // with the halvening, this actually seems like the fairest balance currently..
+            var useNetherDotDamageRating = targetPlayer != null;
+
+            var damageResistRatingMod = creature.GetDamageResistRatingMod(CombatType.Magic, useNetherDotDamageRating);   // df?
+
+            if (isPvP)
+            {
+                var pkDamageResistRatingMod = Creature.GetNegativeRatingMod(targetPlayer.GetPKDamageResistRating());
+
+                damageResistRatingMod = Creature.AdditiveCombine(damageResistRatingMod, pkDamageResistRatingMod);
+            }
+
+            var dotResistRatingMod = Creature.GetNegativeRatingMod(creature.GetDotResistanceRating());  // should this be here, or somewhere else?
+                                                                                                        // should this affect NetherDotDamageRating?
+
+            //Console.WriteLine("DR: " + Creature.ModToRating(damageRatingMod));
+            //Console.WriteLine("DRR: " + Creature.NegativeModToRating(damageResistRatingMod));
+            //Console.WriteLine("NRR: " + Creature.NegativeModToRating(netherResistRatingMod));
+
+            var pvpMod = 1.0f;
+            if (isPvP)
+            {
+                pvpMod = (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low", "pvp_dmg_mod_high", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                if (damageType == DamageType.Nether)
+                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_void_dot", "pvp_dmg_mod_high_void_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                else
+                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_dot", "pvp_dmg_mod_high_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+            }
+
+            tickAmount *= resistanceMod * damageResistRatingMod * dotResistRatingMod * pvpMod;
+
+            enchantment.CachedModifiedStatModValue = tickAmount;
         }
 
         /// <summary>
