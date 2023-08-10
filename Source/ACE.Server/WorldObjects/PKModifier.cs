@@ -244,6 +244,8 @@ namespace ACE.Server.WorldObjects
                     return;
             }
 
+            player.SetMaxVitals();
+
             var inventory = player.GetAllPossessions();
             if (player.GameplayMode != GameplayModes.Limbo)
             {
