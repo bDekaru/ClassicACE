@@ -23,10 +23,10 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Tries to proc any relevant items for the attack
         /// </summary>
-        public void TryProcEquippedItems(WorldObject attacker, Creature target, bool selfTarget, WorldObject weapon)
+        public void TryProcEquippedItems(WorldObject attacker, Creature target, bool selfTarget, WorldObject weapon, DamageEvent damageEvent = null)
         {
-            if (!selfTarget && (AttacksCauseBleedChance ?? 0) > 0)
-                TryProcInnateBleed(attacker, target);
+            if (!selfTarget && damageEvent != null && (AttacksCauseBleedChance ?? 0) > 0)
+                TryProcInnateBleed(attacker, target, damageEvent);
 
             // handle procs directly on this item -- ie. phials
             // this could also be monsters with the proc spell directly on the creature
@@ -65,7 +65,7 @@ namespace ACE.Server.WorldObjects
 
         private double NextInnateBleedAttemptTime = 0;
         private static double InnateBleedAttemptInterval = 8;
-        public void TryProcInnateBleed(WorldObject attacker, Creature target)
+        public void TryProcInnateBleed(WorldObject attacker, Creature target, DamageEvent damageEvent)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
@@ -91,6 +91,15 @@ namespace ACE.Server.WorldObjects
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
             if (rng >= chance)
                 return;
+
+            if (damageEvent != null && damageEvent.Blocked)
+            {
+                if (playerAttacker != null)
+                    playerAttacker.Session.Network.EnqueueSend(new GameMessageSystemChat($"{target.Name}'s shield stops your attack from causing any bleeding.", ChatMessageType.Magic));
+                if (target is Player playerDefender)
+                    playerDefender.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield stops {attacker.Name}'s attack from causing any bleeding.", ChatMessageType.Magic));
+                return;
+            }
 
             bool showCastMessage = true;
 

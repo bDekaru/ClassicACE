@@ -1484,7 +1484,7 @@ namespace ACE.Server.WorldObjects
 
         private double NextInnateProcAttemptTime = 0;
         private static double InnateProcAttemptInterval = 8;
-        public void TryProcInnate(WorldObject attacker, Creature target, bool selfTarget)
+        public void TryProcInnate(WorldObject attacker, Creature target, bool selfTarget, DamageEvent damageEvent)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
@@ -1516,6 +1516,15 @@ namespace ACE.Server.WorldObjects
             bool showCastMessage = false;
             if (WeaponSkill == Skill.Dagger)
             {
+                if (damageEvent != null && damageEvent.Blocked)
+                {
+                    if (playerAttacker != null)
+                        playerAttacker.Session.Network.EnqueueSend(new GameMessageSystemChat($"{target.Name}'s shield stops your attack from causing any bleeding.", ChatMessageType.Magic));
+                    if (target is Player playerDefender)
+                        playerDefender.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield stops {attacker.Name}'s attack from causing any bleeding.", ChatMessageType.Magic));
+                    return;
+                }
+
                 showCastMessage = true;
 
                 var skill = creatureAttacker.GetCreatureSkill(Skill.Dagger);

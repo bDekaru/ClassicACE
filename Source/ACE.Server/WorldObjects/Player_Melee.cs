@@ -401,9 +401,9 @@ namespace ACE.Server.WorldObjects
                     if (damageEvent != null && damageEvent.HasDamage && !targetProc)
                     {
                         if (weapon != null)
-                            weapon.TryProcInnate(this, creature, false);
+                            weapon.TryProcInnate(this, creature, false, damageEvent);
 
-                        TryProcEquippedItems(this, creature, false, weapon);
+                        TryProcEquippedItems(this, creature, false, weapon, damageEvent);
                         targetProc = true;
                     }
 

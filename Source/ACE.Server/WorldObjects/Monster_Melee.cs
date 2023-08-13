@@ -154,7 +154,7 @@ namespace ACE.Server.WorldObjects
                         // handle target procs
                         if (!targetProc)
                         {
-                            TryProcEquippedItems(this, target, false, weapon);
+                            TryProcEquippedItems(this, target, false, weapon, damageEvent);
                             targetProc = true;
                         }
                     }
