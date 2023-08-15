@@ -609,6 +609,16 @@ namespace ACE.Server.WorldObjects
                         case ACE.Entity.Enum.CreatureType.Auroch:
                             creatureFamily = ACE.Entity.Enum.CreatureType.Cow;
                             break;
+                        case ACE.Entity.Enum.CreatureType.Ghost:
+                        case ACE.Entity.Enum.CreatureType.Mumiyah:
+                        case ACE.Entity.Enum.CreatureType.Skeleton:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Undead;
+                            break;
+                        case ACE.Entity.Enum.CreatureType.Doll:
+                        case ACE.Entity.Enum.CreatureType.HollowMinion:
+                        case ACE.Entity.Enum.CreatureType.Marionette:
+                            creatureFamily = ACE.Entity.Enum.CreatureType.Simulacrum;
+                            break;
                     }
 
                     if (weapon.SlayerCreatureType == creatureFamily)
