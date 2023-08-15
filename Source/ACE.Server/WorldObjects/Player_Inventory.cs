@@ -3108,33 +3108,36 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (sourceStack.GameplayMode != targetStack.GameplayMode)
+            if (sourceStack.GameplayMode != GameplayModes.InitialMode)
             {
-                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Cannot merge stacks of different gameplay modes!"));
-                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeFromGuid));
-
-                if (targetStack.Container != null)
+                if (sourceStack.GameplayMode != targetStack.GameplayMode)
                 {
-                    if(sourceStack.Container != targetStack.Container)
-                        HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.Container.Guid.Full, targetStack.PlacementPosition ?? 0); // Attempt a regular move instead of a merge.
-                    else
-                        HandleActionPutItemInContainer(sourceStack.Guid.Full, Guid.Full); // Redirect to main pack.
-                }
-                return;
-            }
-            else if(sourceStack.GameplayModeExtraIdentifier != targetStack.GameplayModeExtraIdentifier)
-            {
-                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Cannot merge stacks with different gameplay mode identifiers!"));
-                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeFromGuid));
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Cannot merge stacks of different gameplay modes!"));
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeFromGuid));
 
-                if (targetStack.Container != null)
-                {
-                    if (sourceStack.Container != targetStack.Container)
-                        HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.Container.Guid.Full, targetStack.PlacementPosition ?? 0); // Attempt a regular move instead of a merge.
-                    else
-                        HandleActionPutItemInContainer(sourceStack.Guid.Full, Guid.Full); // Redirect to main pack.
+                    if (targetStack.Container != null)
+                    {
+                        if (sourceStack.Container != targetStack.Container)
+                            HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.Container.Guid.Full, targetStack.PlacementPosition ?? 0); // Attempt a regular move instead of a merge.
+                        else
+                            HandleActionPutItemInContainer(sourceStack.Guid.Full, Guid.Full); // Redirect to main pack.
+                    }
+                    return;
                 }
-                return;
+                else if (sourceStack.GameplayModeExtraIdentifier != targetStack.GameplayModeExtraIdentifier)
+                {
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Cannot merge stacks with different gameplay mode identifiers!"));
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, mergeFromGuid));
+
+                    if (targetStack.Container != null)
+                    {
+                        if (sourceStack.Container != targetStack.Container)
+                            HandleActionPutItemInContainer(sourceStack.Guid.Full, targetStack.Container.Guid.Full, targetStack.PlacementPosition ?? 0); // Attempt a regular move instead of a merge.
+                        else
+                            HandleActionPutItemInContainer(sourceStack.Guid.Full, Guid.Full); // Redirect to main pack.
+                    }
+                    return;
+                }
             }
 
             if (sourceStack.StackSize == amount && sourceStack.MaterialType != null)
