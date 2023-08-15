@@ -99,20 +99,23 @@ namespace ACE.Server.Factories
                 wo.WeaponTime = (int)(wo.WeaponTime * weaponSpeedMod);
             }
 
-            if (!RollHollow(profile, wo))
+            if (profile.LootQualityMod >= 0)
             {
-                var counter = 0;
-                if (counter < 2 && RollShieldCleaving(profile, wo))
-                    counter++;
-                if (counter < 2 && RollArmorCleaving(profile, wo))
-                    counter++;
-                if (counter < 2 && RollResistanceCleaving(profile, wo))
-                    counter++;
-                if (counter < 2 && RollBitingStrike(profile, wo))
-                    counter++;
-                if (counter < 2 && RollCrushingBlow(profile, wo))
-                    counter++;
-                RollSlayer(profile, wo);
+                if (!RollHollow(profile, wo))
+                {
+                    var counter = 0;
+                    if (counter < 2 && RollShieldCleaving(profile, wo))
+                        counter++;
+                    if (counter < 2 && RollArmorCleaving(profile, wo))
+                        counter++;
+                    if (counter < 2 && RollResistanceCleaving(profile, wo))
+                        counter++;
+                    if (counter < 2 && RollBitingStrike(profile, wo))
+                        counter++;
+                    if (counter < 2 && RollCrushingBlow(profile, wo))
+                        counter++;
+                    RollSlayer(profile, wo);
+                }
             }
 
             // material type

@@ -144,14 +144,17 @@ namespace ACE.Server.Factories
                 mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
             }
 
-            var counter = 0;
-            if (counter < 2 && RollResistanceCleaving(profile, wo))
-                counter++;
-            if (counter < 2 && RollBitingStrike(profile, wo))
-                counter++;
-            if (counter < 2 && RollCrushingBlow(profile, wo))
-                counter++;
-            RollSlayer(profile, wo);
+            if (profile.LootQualityMod >= 0)
+            {
+                var counter = 0;
+                if (counter < 2 && RollResistanceCleaving(profile, wo))
+                    counter++;
+                if (counter < 2 && RollBitingStrike(profile, wo))
+                    counter++;
+                if (counter < 2 && RollCrushingBlow(profile, wo))
+                    counter++;
+                RollSlayer(profile, wo);
+            }
 
             // material type
             var materialType = GetMaterialType(wo, profile.Tier);
