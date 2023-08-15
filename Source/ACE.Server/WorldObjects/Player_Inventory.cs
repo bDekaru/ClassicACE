@@ -3108,7 +3108,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (sourceStack.GameplayMode != GameplayModes.InitialMode)
+            if (sourceStack.GameplayMode != GameplayModes.InitialMode || targetStack.GameplayMode != GameplayMode)
             {
                 if (sourceStack.GameplayMode != targetStack.GameplayMode)
                 {
