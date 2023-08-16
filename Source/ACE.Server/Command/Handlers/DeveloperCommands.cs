@@ -4191,5 +4191,14 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"TerrainType: 0x{terrainType:X4}");
             CommandHandlerHelper.WriteOutputInfo(session, $"SceneType: 0x{sceneType:X4}");
         }
+
+        [CommandHandler("RevertToLevel1", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Reverts character to level 1")]
+        public static void HandleRevertToLevel1(Session session, params string[] parameters)
+        {
+            if (session.Player == null)
+                return;
+            session.Player.RevertToBrandNewCharacter(true, true, true, true, true);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Reverted character to level 1.");
+        }
     }
 }

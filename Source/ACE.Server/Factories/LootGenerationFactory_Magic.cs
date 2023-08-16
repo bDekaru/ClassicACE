@@ -807,7 +807,8 @@ namespace ACE.Server.Factories
             if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
             {
                 TryMutate_HeritageRequirement(wo, profile, roll);
-                TryMutate_AllegianceRequirement(wo, profile, roll);
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    TryMutate_AllegianceRequirement(wo, profile, roll);
             }
 
             // Arcane Lore / ItemDifficulty
@@ -880,14 +881,42 @@ namespace ACE.Server.Factories
             {
                 var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
 
-                if (rng < 0.5f)
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 {
-                    skill = Skill.MeleeDefense;
+                    if (rng < 0.5f)
+                    {
+                        skill = Skill.MeleeDefense;
+                    }
+                    else
+                    {
+                        skill = Skill.MissileDefense;
+                        wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 0.7f);
+                    }
                 }
                 else
                 {
-                    skill = Skill.MissileDefense;
-                    wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 0.7f);
+                    if (rng < 0.33f)
+                    {
+                        skill = Skill.MeleeDefense;
+                    }
+                    else if (rng < 0.66f)
+                    {
+                        skill = Skill.MissileDefense;
+                        wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 0.7f);
+                    }
+                    else
+                    {
+                        if (wo.IsShield)
+                        {
+                            skill = Skill.Shield;
+                            wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 3f / 4f);
+                        }
+                        else
+                        {
+                            skill = Skill.Armor;
+                            wo.ItemSkillLevelLimit = (int)(((wo.ItemSkillLevelLimit * 3f) + 30) / 4f);
+                        }
+                    }
                 }
             }
             else
