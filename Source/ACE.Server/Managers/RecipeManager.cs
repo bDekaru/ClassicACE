@@ -1692,28 +1692,41 @@ namespace ACE.Server.Managers
             if (useMutateNative)
                 return TryMutateNative(player, source, target, recipe, dataId);
 
-            if (dataId == 0x38000042)
+            switch (dataId)
             {
-                // Can this be done with mutation script?
-                switch (target.ItemHeritageGroupRestriction)
-                {
-                    case "Aluvian":
-                        target.HeritageGroup = HeritageGroup.Aluvian;
-                        break;
+                case 0x38000042:
+                    // Can this be done with mutation script?
+                    switch (target.ItemHeritageGroupRestriction)
+                    {
+                        case "Aluvian":
+                            target.HeritageGroup = HeritageGroup.Aluvian;
+                            break;
 
-                    case "Gharu'ndim":
-                        target.HeritageGroup = HeritageGroup.Gharundim;
-                        break;
+                        case "Gharu'ndim":
+                            target.HeritageGroup = HeritageGroup.Gharundim;
+                            break;
 
-                    case "Sho":
-                        target.HeritageGroup = HeritageGroup.Sho;
-                        break;
+                        case "Sho":
+                            target.HeritageGroup = HeritageGroup.Sho;
+                            break;
 
-                    case "Viamontian":
-                        target.HeritageGroup = HeritageGroup.Viamontian;
-                        break;
-                }
-            }
+                        case "Viamontian":
+                            target.HeritageGroup = HeritageGroup.Viamontian;
+                            break;
+                    }
+                    break;
+                case 0x38000051:
+                case 0x38000052:
+                case 0x38000053:
+                case 0x38000054:
+                case 0x38000055:
+                case 0x38000056:
+                case 0x38000057:
+                    // If weapon is restance cleaving update cleaving element to match new weapon element.
+                    if (target.ResistanceModifierType.HasValue && target.ResistanceModifierType != DamageType.Undef)
+                        target.ResistanceModifierType = target.W_DamageType;
+                    break;
+            }            
 
             var numTimesTinkered = target.NumTimesTinkered;
 
