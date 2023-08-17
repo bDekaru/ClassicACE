@@ -448,7 +448,7 @@ namespace ACE.Server.WorldObjects
         /// It does not add it to inventory as you could be unwielding to the ground or a chest.<para />
         /// It will also decrease the EncumbranceVal and Value.
         /// </summary>
-        protected bool TryDequipObjectWithBroadcasting(ObjectGuid objectGuid, out WorldObject worldObject, out EquipMask wieldedLocation, bool droppingToLandscape = false)
+        protected bool TryDequipObjectWithBroadcasting(ObjectGuid objectGuid, out WorldObject worldObject, out EquipMask wieldedLocation, bool droppingToLandscapeOrCorpse = false)
         {
             if (!TryDequipObject(objectGuid, out worldObject, out wieldedLocation))
                 return false;
@@ -477,7 +477,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (!droppingToLandscape)
+            if (!droppingToLandscapeOrCorpse) // If this is sent when adding to corpse the item will be invisible in the loot window for a bit.
             {
                 // This should only be called if the object is going to the private storage, not when dropped on the landscape
                 var wo = worldObject;
