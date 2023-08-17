@@ -325,6 +325,9 @@ namespace ACE.Server.Managers
             if (quest.Name.StartsWith("ColoArena"))
                 return false;
 
+            if (quest.MinDelta < PropertyManager.GetLong("quest_mindelta_rate_shortest", 0).Item)
+                return false;
+
             return true;
         }
 
@@ -343,7 +346,11 @@ namespace ACE.Server.Managers
             uint scaledMinDelta;
 
             if (CanScaleQuestMinDelta(quest))
+            {
                 scaledMinDelta = (uint)(quest.MinDelta * PropertyManager.GetDouble("quest_mindelta_rate", 1).Item);
+                if (scaledMinDelta != quest.MinDelta)
+                    scaledMinDelta = Math.Max(scaledMinDelta, (uint)PropertyManager.GetLong("quest_mindelta_rate_shortest", 0).Item);
+            }
             else
                 scaledMinDelta = quest.MinDelta;
 
@@ -372,7 +379,13 @@ namespace ACE.Server.Managers
             uint nextSolveTime;
 
             if (CanScaleQuestMinDelta(quest))
-                nextSolveTime = playerQuest.LastTimeCompleted + (uint)(quest.MinDelta * PropertyManager.GetDouble("quest_mindelta_rate", 1).Item);
+            {
+                var scaledMinDelta = (uint)(quest.MinDelta * PropertyManager.GetDouble("quest_mindelta_rate", 1).Item);
+                if (scaledMinDelta != quest.MinDelta)
+                    scaledMinDelta = Math.Max(scaledMinDelta, (uint)PropertyManager.GetLong("quest_mindelta_rate_shortest", 0).Item);
+
+                nextSolveTime = playerQuest.LastTimeCompleted + scaledMinDelta;
+            }
             else
                 nextSolveTime = playerQuest.LastTimeCompleted + quest.MinDelta;
 

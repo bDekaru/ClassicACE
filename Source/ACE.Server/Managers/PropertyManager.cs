@@ -699,7 +699,8 @@ namespace ACE.Server.Managers
                 ("summoning_killtask_multicredit_cap", new Property<long>(2, "if allow_summoning_killtask_multicredit is enabled, the maximum # of killtask credits a player can receive from 1 kill")),
                 ("teleport_visibility_fix", new Property<long>(0, "Fixes some possible issues with invisible players and mobs. 0 = default / disabled, 1 = players only, 2 = creatures, 3 = all world objects")),
                 ("max_level", new Property<long>(275, "Set the max character level.")),
-                ("discord_channel_id", new Property<long>(0, "Messages posted to this Discord channel will be shown in General Chat"))
+                ("discord_channel_id", new Property<long>(0, "Messages posted to this Discord channel will be shown in General Chat")),
+                ("quest_mindelta_rate_shortest", new Property<long>(0, "Quest min deltas below this won't be affected by quest_mindelta_rate, additionally modified min deltas that would fall under this value will be set to this value instead."))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<double>> DefaultDoubleProperties =

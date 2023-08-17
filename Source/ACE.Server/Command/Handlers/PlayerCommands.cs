@@ -68,7 +68,12 @@ namespace ACE.Server.Command.Handlers
 
                 var minDelta = quest.MinDelta;
                 if (QuestManager.CanScaleQuestMinDelta(quest))
+                {
                     minDelta = (uint)(quest.MinDelta * PropertyManager.GetDouble("quest_mindelta_rate").Item);
+
+                    if (minDelta != quest.MinDelta)
+                        minDelta = Math.Max(minDelta, (uint)PropertyManager.GetLong("quest_mindelta_rate_shortest", 0).Item);
+                }
 
                 text += $"{playerQuest.QuestName.ToLower()} - {playerQuest.NumTimesCompleted} solves ({playerQuest.LastTimeCompleted})";
                 text += $"\"{quest.Message}\" {quest.MaxSolves} {minDelta}";
