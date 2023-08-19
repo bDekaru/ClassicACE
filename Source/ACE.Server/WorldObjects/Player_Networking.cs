@@ -266,7 +266,7 @@ namespace ACE.Server.WorldObjects
                     if (p.Session.EndPointC2S.Address.Equals(Session.EndPointC2S.Address) &&
                         !p.Session.Player.Name.Equals(Session.Player.Name)) // Launchers/Plugins sometimes make a 2nd connection
                     {
-                        if (p.IsHardcore && Session.Player.IsHardcore && !p.IsAdmin)
+                        if ((p.IsHardcore || Session.Player.IsHardcore) && !p.IsAdmin)
                         {
                             var rejectionReason = "Multiple Hardcore: " + p.Name + " and " + Session.Player.Name;
                             log.InfoFormat("Login Request from {0} rejected. {1}", Session.EndPointC2S.Address.ToString(), rejectionReason);
