@@ -1004,6 +1004,12 @@ namespace ACE.Server.Managers
                 ("hardcore_npk_xp_modifier", new Property<double>(1.0, "Scales the amount of xp received by hardcore NPK players.")),
                 ("hardcore_pk_xp_modifier", new Property<double>(1.0, "Scales the amount of xp received by hardcore PK players.")),
 
+                ("hot_dungeon_interval", new Property<double>(7800.0, "The minimum possible duration (in seconds) before a new hot dungeon can be automatically rolled after one was previously activated.")),
+                ("hot_dungeon_duration", new Property<double>(7200.0, "The total duration (in seconds) which a hot dungeon will be active.")),
+                ("hot_dungeon_roll_delay", new Property<double>(1200.0, "The duration (in seconds) between each chance to automatically roll a new hot dungeon (only applies while there are no hot dungeons active).")),
+                ("hot_dungeon_chance", new Property<double>(0.33, "The percentage chance (between 0 and 1) when the server will activate a hot dungeon at each roll interval.")),
+
+
                 ("surface_bonus_xp", new Property<double>(0.25, "Extra xp earned for kills when hunting outside dungeons. 1.0 means 100% more xp.")),
                 ("hot_dungeon_bonus_xp", new Property<double>(1.0, "Extra xp earned for kills when inside hot dungeons. 1.0 means 100% more xp.")),
                 ("exploration_bonus_xp", new Property<double>(0.5, "Extra xp earned while completing exploration assignment's objectives. 1.0 means 100% more xp.")),

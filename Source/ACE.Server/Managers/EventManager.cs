@@ -25,7 +25,7 @@ namespace ACE.Server.Managers
         {
             Events = new Dictionary<string, Event>(StringComparer.OrdinalIgnoreCase);
 
-            NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonRollDelay);
+            NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_roll_delay").Item);
             NextFireSaleTownRoll = Time.GetFutureUnixTime(FireSaleTownRollDelay);
         }
 
@@ -243,10 +243,10 @@ namespace ACE.Server.Managers
                 return;
 
             var roll = ThreadSafeRandom.Next(0.0f, 1.0f);
-            if (roll > HotDungeonChance)
+            if (roll > PropertyManager.GetDouble("hot_dungeon_chance").Item)
             {
                 // No hot dungeons for now!
-                NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonRollDelay);
+                NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_roll_delay").Item);
                 return;
             }
 
@@ -258,8 +258,8 @@ namespace ACE.Server.Managers
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            NextHotDungeonEnd = Time.GetFutureUnixTime(HotDungeonDuration);
-            NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonInterval);
+            NextHotDungeonEnd = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_duration").Item);
+            NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_interval").Item);
 
             var msg = $"The current extra experience dungeon duration has been prolonged!";
             PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
@@ -271,7 +271,7 @@ namespace ACE.Server.Managers
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonInterval);
+            NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_interval").Item);
 
             var onlinePlayers = PlayerManager.GetAllOnline();
 
@@ -329,10 +329,10 @@ namespace ACE.Server.Managers
                         var dungeonLevel = Math.Clamp(dungeon.Level, dungeon.MinLevel, dungeon.MaxLevel != 0 ? dungeon.MaxLevel : int.MaxValue);
                         HotDungeonDescription = $"Extra experience rewards dungeon: {dungeonName} located {dungeonDirections}. Dungeon level: {dungeonLevel:N0}.";
 
-                        NextHotDungeonEnd = Time.GetFutureUnixTime(HotDungeonDuration);
-                        NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonInterval);
+                        NextHotDungeonEnd = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_duration").Item);
+                        NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_interval").Item);
 
-                        var timeRemaining = TimeSpan.FromSeconds(HotDungeonDuration).GetFriendlyString();
+                        var timeRemaining = TimeSpan.FromSeconds(PropertyManager.GetDouble("hot_dungeon_duration").Item).GetFriendlyString();
 
                         var msg = $"{dungeonName} will be giving extra experience rewards for the next {timeRemaining}! The dungeon level is {dungeonLevel:N0}. The entrance is located {dungeonDirections}!";
                         PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
@@ -343,7 +343,7 @@ namespace ACE.Server.Managers
                 }
             }
 
-            NextHotDungeonRoll = Time.GetFutureUnixTime(HotDungeonRollDelay); // We failed to select a new hot dungeon, reschedule it.
+            NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_roll_delay").Item); // We failed to select a new hot dungeon, reschedule it.
         }
 
         public static List<string> PossibleFireSaleTowns = new List<string>()
