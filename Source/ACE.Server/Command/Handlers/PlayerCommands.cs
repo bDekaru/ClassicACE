@@ -1884,6 +1884,13 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"Fillcomps values updated. Please relog to see the updated values.");
         }
 
+
+        [CommandHandler("tickets", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Displays the count of your remaining apartment tickets")]
+        public static void HandleTickets(Session session, params string[] parameters)
+        {
+            session.Network.EnqueueSend(new GameMessageSystemChat($"You have {session.Player.QuestManager.GetCurrentSolves("ArcanumPortalAccess")} tickets remaining in the apartment portal hub.", ChatMessageType.Broadcast));
+        }
+
         [CommandHandler("Where", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Shows information about your current location")]
         public static void HandleWhere(Session session, params string[] parameters)
         {
