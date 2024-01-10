@@ -506,6 +506,7 @@ namespace ACE.Server.Entity
             SpellCategory.PoorVigorLowering,
             SpellCategory.GreaterIntellectRaising,
             SpellCategory.LessorIntellectLowering,
+            SpellCategory.ExtraManaConversionBonus
         };
 
         public bool IsCantrip
