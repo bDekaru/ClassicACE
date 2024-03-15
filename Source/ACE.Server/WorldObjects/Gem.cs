@@ -196,7 +196,16 @@ namespace ACE.Server.WorldObjects
                 // omitting the item caster here, so player is also used for enchantment registry caster,
                 // which could prevent some scenarios with spamming enchantments from multiple gem sources to protect against dispels
 
-                // TODO: figure this out better
+                if ((spell.Id == 1635 && player.LinkedLifestone == null) ||
+                    (spell.Id == 48 && player.LinkedPortalOneDID == null) ||
+                    (spell.Id == 2647 && player.LinkedPortalTwoDID == null))
+                {
+                    //player.Session.Network.EnqueueSend(new GameMessageSystemChat($"No linked destination!", ChatMessageType.Broadcast));
+                    player.SendTransientError("No linked destination!");
+                    return;
+                }
+
+                    // TODO: figure this out better
                 if (spell.MetaSpellType == SpellType.PortalSummon && (LinkedPortalOneDID != null || LinkedPortalTwoDID != null)) // if we're a summon portal gem and we have a linked portal use that, otherwise use the player's.
                     TryCastSpell(spell, player, this, tryResist: false);
                 else if (spell.IsImpenBaneType || spell.IsItemRedirectableType)
@@ -339,8 +348,8 @@ namespace ACE.Server.WorldObjects
             {
                 if (!resultTarget.Success)
                 {
-                    if (result.Message != null)
-                        player.Session.Network.EnqueueSend(result.Message);
+                    if (resultTarget.Message != null)
+                        player.Session.Network.EnqueueSend(resultTarget.Message);
                     player.SendUseDoneEvent();
                     return;
                 }
