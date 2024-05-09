@@ -1530,7 +1530,7 @@ namespace ACE.Server.Factories
                 wo.Tier = treasureDeath.Tier;
 
 
-                if (wo.MaxStackSize > 1)
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && wo.MaxStackSize > 1)
                 {
                     if (treasureRoll.ItemType == TreasureItemType_Orig.SpecialItem_Unmutated)
                         wo.SetStackSize(SpecialItemsWcids.GetAmount(wo.WeenieClassId));
