@@ -62,7 +62,7 @@ namespace ACE.Server.WorldObjects
 
         public static uint GetManaCost(uint difficulty, uint manaCost, uint manaConv, SkillAdvancementClass advancementClass)
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 // thanks to GDLE for this function!
                 if (manaConv == 0)
