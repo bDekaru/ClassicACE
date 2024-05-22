@@ -30,7 +30,8 @@ namespace ACE.Server.Factories
             InvalidSkillRequested,
             FailedToTrainSkill,
             FailedToSpecializeSkill,
-            ClientServerSkillsMismatch
+            ClientServerSkillsMismatch,
+            CustomGameplayModesDisabled
         }
 
         public static CreateResult Create(CharacterCreateInfo characterCreateInfo, Weenie weenie, ObjectGuid guid, uint accountId, WeenieType weenieType, out Player player)
@@ -371,6 +372,8 @@ namespace ACE.Server.Factories
                             player.Location = new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f); // Holtburg South
                         break;
                     case "Hardcore":
+                        if (!PropertyManager.GetBool("allow_custom_gameplay_modes").Item)
+                            return CreateResult.CustomGameplayModesDisabled;
                         player.Location = new Position(0x77060038, 163.226196f, 174.996063f, 0.005000f,0.000000f, 0.000000f, 0.980516f, -0.196438f); // Gameplay mode selection island
                         player.AddTitle((uint)CharacterTitle.DeadMeat, true, true, true); // This title was replaced with the "In Limbo" title.
                         player.SetProperty(PropertyBool.RecallsDisabled, true);

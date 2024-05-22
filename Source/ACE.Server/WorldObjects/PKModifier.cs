@@ -117,6 +117,12 @@ namespace ACE.Server.WorldObjects
 
         public void ConvertToGameplayMode(Player player, bool setStarterLocation)
         {
+            if (!PropertyManager.GetBool("allow_custom_gameplay_modes").Item && (PkLevelModifier == 10 || PkLevelModifier == 11 || PkLevelModifier == 12))
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat("This gameplay mode is currently disabled for new characters!", ChatMessageType.Broadcast));
+                return;
+            }
+
             switch (PkLevelModifier)
             {
                 case 10: // Hardcore NPK

@@ -148,6 +148,12 @@ namespace ACE.Server.Network.Handlers
                     session.Terminate(SessionTerminationReason.ClientVersionIncorrect, new GameMessageBootAccount(" because you do not have the correct data files for this server"));
                     return;
                 }
+                else if (result == PlayerFactory.CreateResult.CustomGameplayModesDisabled)
+                {
+                    SendCharacterCreateResponse(session, CharacterGenerationVerificationResponse.Pending);
+                    session.Network.EnqueueSend(new GameEvent.Events.GameEventPopupString(session, "Custom gameplay modes are currently disabled for new characters."));
+                    return;
+                }
 
                 SendCharacterCreateResponse(session, CharacterGenerationVerificationResponse.Corrupt);
                 return;
