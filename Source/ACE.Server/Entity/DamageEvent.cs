@@ -633,7 +633,7 @@ namespace ACE.Server.Entity
             }
 
             DamageMitigated = DamageBeforeMitigation - Damage;
-            if(ShieldMod != 1.0f)
+            if (ShieldMod != 1.0f && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 DamageBlocked = damageBeforeShieldMod - Damage;
 
             return Damage;
