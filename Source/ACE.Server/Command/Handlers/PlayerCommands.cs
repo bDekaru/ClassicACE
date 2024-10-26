@@ -1711,7 +1711,7 @@ namespace ACE.Server.Command.Handlers
             if (parameters.Length > 1 && parameters[0] == "discord")
                 ulong.TryParse(parameters[1], out discordChannel);
 
-            var leaderboard = PrepareLeaderboard(GameplayModes.Regular, true).OrderByDescending(b => b.XP).ToList();
+            var leaderboard = PrepareLeaderboard(GameplayModes.Regular, true).OrderByDescending(b => b.PKKills).ToList();
 
             StringBuilder message = new StringBuilder();
             message.Append($"Top Characters by Kills: \n");
