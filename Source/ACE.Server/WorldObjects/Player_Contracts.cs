@@ -268,7 +268,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (sourceObject != null && hasAssignments && (!assignment1Complete || !assignment1Complete || !assignment1Complete))
+            if (sourceObject != null && hasAssignments && (!assignment1Complete || !assignment2Complete || !assignment3Complete))
             {
                 GiveFromEmote(sourceObject, (uint)Factories.Enum.WeenieClassName.explorationContract); // Return contract if there's still unfinished contracts.
             }
