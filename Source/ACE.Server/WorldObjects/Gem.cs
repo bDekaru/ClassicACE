@@ -196,24 +196,26 @@ namespace ACE.Server.WorldObjects
                 // omitting the item caster here, so player is also used for enchantment registry caster,
                 // which could prevent some scenarios with spamming enchantments from multiple gem sources to protect against dispels
 
-                if ((spell.Id == 1635 && player.LinkedLifestone == null) ||
-                    (spell.Id == 48 && player.LinkedPortalOneDID == null) ||
-                    (spell.Id == 2647 && player.LinkedPortalTwoDID == null))
-                {
-                    //player.Session.Network.EnqueueSend(new GameMessageSystemChat($"No linked destination!", ChatMessageType.Broadcast));
-                    player.SendTransientError("No linked destination!");
-                    return;
-                }
-
-                    // TODO: figure this out better
-                if (spell.MetaSpellType == SpellType.PortalSummon && (LinkedPortalOneDID != null || LinkedPortalTwoDID != null)) // if we're a summon portal gem and we have a linked portal use that, otherwise use the player's.
+                if (spell.MetaSpellType == SpellType.PortalSummon && (LinkedPortalOneDID != null || LinkedPortalTwoDID != null)) // if we're a summon portal gem with a predetermined destination summon that.
                     TryCastSpell(spell, player, this, tryResist: false);
-                else if (spell.IsImpenBaneType || spell.IsItemRedirectableType)
-                    player.TryCastItemEnchantment_WithRedirects(spell, player, this);
-                else if(target != null)
-                    player.TryCastSpell(spell, target, this, tryResist: false);
                 else
-                    player.TryCastSpell(spell, player, this, tryResist: false);
+                {
+                    if ( (spell.Id == (uint)SpellId.LifestoneRecall1 && player.LinkedLifestone == null) ||
+                        ((spell.Id == (uint)SpellId.PortalTieRecall1 || spell.Id == (uint)SpellId.SummonPortal1 || spell.Id == (uint)SpellId.SummonPortal2 || spell.Id == (uint)SpellId.SummonPortal3) && player.LinkedPortalOneDID == null) ||
+                        ((spell.Id == (uint)SpellId.PortalTieRecall2 || spell.Id == (uint)SpellId.SummonSecondPortal1 || spell.Id == (uint)SpellId.SummonSecondPortal2 || spell.Id == (uint)SpellId.SummonSecondPortal3) && player.LinkedPortalTwoDID == null))
+                    {
+                        //player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You must have a linked destination in order to use this gem!", ChatMessageType.Magic));
+                        player.SendTransientError("You must have a linked destination in order to use this gem!");
+                        return;
+                    }
+
+                    if (spell.IsImpenBaneType || spell.IsItemRedirectableType)
+                        player.TryCastItemEnchantment_WithRedirects(spell, player, this);
+                    else if (target != null)
+                        player.TryCastSpell(spell, target, this, tryResist: false);
+                    else
+                        player.TryCastSpell(spell, player, this, tryResist: false);
+                }
             }
 
             if (UseCreateContractId > 0)
