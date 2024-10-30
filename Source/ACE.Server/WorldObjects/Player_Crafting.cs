@@ -361,7 +361,10 @@ namespace ACE.Server.WorldObjects
             // choose the best one
             var addStructure = Math.Max(salvageAmount, tinkeringAmount);
 
-            addStructure = (int)(addStructure * PropertyManager.GetDouble("salvage_amount_multiplier").Item);
+            addStructure = (int)Math.Round(addStructure * PropertyManager.GetDouble("salvage_amount_multiplier").Item);
+
+            // Ensure at least 1 unit
+            addStructure = Math.Max(addStructure, 1);
 
             var skill = salvageAmount > tinkeringAmount ? Skill.Salvaging : GetMaxSkill(TinkeringSkills).Skill;
 
