@@ -12,7 +12,7 @@ namespace ACE.Server.WorldObjects
 {
     partial class Player
     {
-        private static uint EnterSneakingDifficulty = 50;
+        private static uint EnterSneakingDifficulty = 25;
 
         public bool IsSneaking = false;
         public bool IsAttackFromSneaking = false;
@@ -78,6 +78,8 @@ namespace ACE.Server.WorldObjects
                     if (!Teleporting)
                         HandleRunRateUpdate(new Spell(propertiesEnchantmentRegistry.SpellId));
                 }
+
+                CheckMonsters();
             });
 
             RadarColor = null;
@@ -104,9 +106,9 @@ namespace ACE.Server.WorldObjects
             var difficulty = (uint)(EnterSneakingDifficulty + creature.Level ?? 1);
 
             var angle = Math.Abs(creature.GetAngle(this));
-            if (angle < 90)
+            if (angle < 70)
             {
-                if (distanceSquared < 2)
+                if (distanceSquared < 1.5)
                 {
                     EndSneaking(failureMessage);
                     return false;

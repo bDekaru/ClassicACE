@@ -486,7 +486,7 @@ namespace ACE.Server.WorldObjects
 
                 //var distSq = Location.SquaredDistanceTo(creature.Location);
                 var distSq = PhysicsObj.get_distance_sq_to_object(creature.PhysicsObj, true);
-                if (player != null && player.TestSneaking(this, distSq, $"{creature.Name} sees you! You stop sneaking."))
+                if (player != null && player.TestSneaking(this, distSq, $"{Name} sees you! You stop sneaking."))
                     continue;
 
                 if (distSq < closestDistSq)

@@ -318,7 +318,10 @@ namespace ACE.Server.Entity
                         {
                             CriticalChance = 1.0f;
                             if (playerDefender == null)
+                            {
                                 SneakAttackMod = 3.0f;
+                                defender.StunFor(5, playerAttacker);
+                            }
                         }
                         else if (attackerTechniqueId == TacticAndTechniqueType.Opportunist)
                         {

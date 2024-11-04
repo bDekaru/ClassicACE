@@ -1,5 +1,6 @@
 using ACE.Entity;
 using ACE.Entity.Enum;
+using ACE.Server.Network.GameMessages.Messages;
 using System;
 
 namespace ACE.Server.WorldObjects
@@ -33,6 +34,22 @@ namespace ACE.Server.WorldObjects
             {
                 pet.Tick(currentUnixTime);
                 return;
+            }
+
+            if (StunnedUntilTimestamp != 0)
+            {
+                if (StunnedUntilTimestamp >= currentUnixTime)
+                {
+                    if (NextStunEffectTimestamp <= currentUnixTime)
+                    {
+                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpLeftBack));
+                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpRightBack));
+                        NextStunEffectTimestamp = currentUnixTime + StunEffectFrequency;
+                    }
+                    return;
+                }
+                else
+                    StunnedUntilTimestamp = 0;
             }
 
             NextMonsterTickTime = currentUnixTime + monsterTickInterval;

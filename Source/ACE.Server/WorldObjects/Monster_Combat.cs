@@ -472,5 +472,18 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyBool.NeverAttack) ?? false;
             set { if (!value) RemoveProperty(PropertyBool.NeverAttack); else SetProperty(PropertyBool.NeverAttack, value); }
         }
+
+        private double StunnedUntilTimestamp;
+        private double NextStunEffectTimestamp;
+        private static double StunEffectFrequency = 0.5;
+
+        public void StunFor(double seconds, Player sourcePlayer = null)
+        {
+            StunnedUntilTimestamp = Time.GetFutureUnixTime(5);
+            NextStunEffectTimestamp = 0;
+
+            if (sourcePlayer != null && sourcePlayer.Session != null)
+                sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your attack stuns {Name}!", ChatMessageType.CombatEnemy));
+        }
     }
 }
