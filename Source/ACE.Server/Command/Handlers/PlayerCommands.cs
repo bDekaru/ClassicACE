@@ -1306,17 +1306,17 @@ namespace ACE.Server.Command.Handlers
             if (player.Exploration1LandblockId != 0 && player.Exploration1Description.Length > 0)
             {
                 hasAssignments = true;
-                assignment1Complete = player.Exploration1KillProgressTracker <= 0 && player.Exploration1MarkerProgressTracker <= 0;
+                assignment1Complete = player.Exploration1LandblockReached && player.Exploration1KillProgressTracker <= 0 && player.Exploration1MarkerProgressTracker <= 0;
             }
             if (player.Exploration2LandblockId != 0 && player.Exploration2Description.Length > 0)
             {
                 hasAssignments = true;
-                assignment2Complete = player.Exploration2KillProgressTracker <= 0 && player.Exploration2MarkerProgressTracker <= 0;
+                assignment2Complete = player.Exploration2LandblockReached && player.Exploration2KillProgressTracker <= 0 && player.Exploration2MarkerProgressTracker <= 0;
             }
             if (player.Exploration3LandblockId != 0 && player.Exploration3Description.Length > 0)
             {
                 hasAssignments = true;
-                assignment3Complete = player.Exploration3KillProgressTracker <= 0 && player.Exploration3MarkerProgressTracker <= 0;
+                assignment3Complete = player.Exploration3LandblockReached && player.Exploration3KillProgressTracker <= 0 && player.Exploration3MarkerProgressTracker <= 0;
             }
 
             if (!hasAssignments)
@@ -1327,11 +1327,11 @@ namespace ACE.Server.Command.Handlers
                 var msg2 = "";
                 var msg3 = "";
                 if (player.Exploration1LandblockId != 0 && player.Exploration1Description.Length > 0)
-                    msg1 = $"{player.Exploration1Description} {(assignment1Complete ? "Complete!" : $"Kills remaining: {player.Exploration1KillProgressTracker} Markers remaining: {player.Exploration1MarkerProgressTracker}")}";
+                    msg1 = $"{player.Exploration1Description} {(assignment1Complete ? "Complete!" : $"Reached: {(player.Exploration1LandblockReached ? "Yes" : "No")}. Kills remaining: {player.Exploration1KillProgressTracker} Markers remaining: {player.Exploration1MarkerProgressTracker}")}";
                 if (player.Exploration2LandblockId != 0 && player.Exploration2Description.Length > 0)
-                    msg2 = $"{player.Exploration2Description} {(assignment2Complete ? "Complete!" : $"Kills remaining: {player.Exploration2KillProgressTracker} Markers remaining: {player.Exploration2MarkerProgressTracker}")}";
+                    msg2 = $"{player.Exploration2Description} {(assignment2Complete ? "Complete!" : $"Reached: {(player.Exploration2LandblockReached ? "Yes" : "No")}. Kills remaining: {player.Exploration2KillProgressTracker} Markers remaining: {player.Exploration2MarkerProgressTracker}")}";
                 if (player.Exploration3LandblockId != 0 && player.Exploration3Description.Length > 0)
-                    msg3 = $"{player.Exploration3Description} {(assignment3Complete ? "Complete!" : $"Kills remaining: {player.Exploration3KillProgressTracker} Markers remaining: {player.Exploration3MarkerProgressTracker}")}";
+                    msg3 = $"{player.Exploration3Description} {(assignment3Complete ? "Complete!" : $"Reached: {(player.Exploration3LandblockReached ? "Yes" : "No")}. Kills remaining: {player.Exploration3KillProgressTracker} Markers remaining: {player.Exploration3MarkerProgressTracker}")}";
 
                 var count = 0;
                 CommandHandlerHelper.WriteOutputInfo(session, "Exploration Assignments:");

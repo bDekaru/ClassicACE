@@ -5,6 +5,7 @@ using ACE.Entity.Enum;
 using ACE.Server.Entity;
 using ACE.Server.Factories;
 using ACE.Server.Factories.Enum;
+using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 using System;
 using System.Linq;
@@ -65,16 +66,19 @@ namespace ACE.Server.WorldObjects
                 Exploration1KillProgressTracker = 0;
                 Exploration1MarkerProgressTracker = 0;
                 Exploration1Description = "";
+                Exploration1LandblockReached = false;
 
                 Exploration2LandblockId = 0;
                 Exploration2KillProgressTracker = 0;
                 Exploration2MarkerProgressTracker = 0;
                 Exploration2Description = "";
+                Exploration2LandblockReached = false;
 
                 Exploration3LandblockId = 0;
                 Exploration3KillProgressTracker = 0;
                 Exploration3MarkerProgressTracker = 0;
                 Exploration3Description = "";
+                Exploration3LandblockReached = false;
                 return;
             }
 
@@ -88,6 +92,7 @@ namespace ACE.Server.WorldObjects
             Exploration1LandblockId = entry.Landblock;
             Exploration1KillProgressTracker = explorationKillAmount;
             Exploration1MarkerProgressTracker = explorationMarkerAmount;
+            Exploration1LandblockReached = false;
 
             string entryName;
             string entryDirections;
@@ -121,6 +126,7 @@ namespace ACE.Server.WorldObjects
                 Exploration2LandblockId = entry.Landblock;
                 Exploration2KillProgressTracker = explorationKillAmount;
                 Exploration2MarkerProgressTracker = explorationMarkerAmount;
+                Exploration2LandblockReached = false;
 
                 entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
                 if (entryLandblock != null)
@@ -145,6 +151,7 @@ namespace ACE.Server.WorldObjects
                 Exploration2KillProgressTracker = 0;
                 Exploration2MarkerProgressTracker = 0;
                 Exploration2Description = "";
+                Exploration2LandblockReached = false;
             }
 
             if (explorationList.Count != 0)
@@ -158,6 +165,7 @@ namespace ACE.Server.WorldObjects
                 Exploration3LandblockId = entry.Landblock;
                 Exploration3KillProgressTracker = explorationKillAmount;
                 Exploration3MarkerProgressTracker = explorationMarkerAmount;
+                Exploration3LandblockReached = false;
 
                 entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)entry.Landblock).FirstOrDefault();
                 if (entryLandblock != null)
@@ -182,6 +190,7 @@ namespace ACE.Server.WorldObjects
                 Exploration3KillProgressTracker = 0;
                 Exploration3MarkerProgressTracker = 0;
                 Exploration3Description = "";
+                Exploration3LandblockReached = false;
             }
 
             if (sourceObject != null)
@@ -202,17 +211,17 @@ namespace ACE.Server.WorldObjects
             if (Exploration1LandblockId != 0 && Exploration1Description.Length > 0)
             {
                 hasAssignments = true;
-                assignment1Complete = Exploration1KillProgressTracker <= 0 && Exploration1MarkerProgressTracker <= 0;
+                assignment1Complete = Exploration1LandblockReached && Exploration1KillProgressTracker <= 0 && Exploration1MarkerProgressTracker <= 0;
             }
             if (Exploration2LandblockId != 0 && Exploration2Description.Length > 0)
             {
                 hasAssignments = true;
-                assignment2Complete = Exploration2KillProgressTracker <= 0 && Exploration2MarkerProgressTracker <= 0;
+                assignment2Complete = Exploration2LandblockReached && Exploration2KillProgressTracker <= 0 && Exploration2MarkerProgressTracker <= 0;
             }
             if (Exploration3LandblockId != 0 && Exploration3Description.Length > 0)
             {
                 hasAssignments = true;
-                assignment3Complete = Exploration3KillProgressTracker <= 0 && Exploration3MarkerProgressTracker <= 0;
+                assignment3Complete = Exploration3LandblockReached && Exploration3KillProgressTracker <= 0 && Exploration3MarkerProgressTracker <= 0;
             }
 
             if (useName)
@@ -243,6 +252,7 @@ namespace ACE.Server.WorldObjects
                     Exploration1KillProgressTracker = 0;
                     Exploration1MarkerProgressTracker = 0;
                     Exploration1Description = "";
+                    Exploration1LandblockReached = false;
                 }
                 if (assignment2Complete)
                 {
@@ -254,6 +264,7 @@ namespace ACE.Server.WorldObjects
                     Exploration2KillProgressTracker = 0;
                     Exploration2MarkerProgressTracker = 0;
                     Exploration2Description = "";
+                    Exploration2LandblockReached = false;
                 }
                 if (assignment3Complete)
                 {
@@ -265,12 +276,47 @@ namespace ACE.Server.WorldObjects
                     Exploration3KillProgressTracker = 0;
                     Exploration3MarkerProgressTracker = 0;
                     Exploration3Description = "";
+                    Exploration3LandblockReached = false;
                 }
             }
 
             if (sourceObject != null && hasAssignments && (!assignment1Complete || !assignment2Complete || !assignment3Complete))
             {
                 GiveFromEmote(sourceObject, (uint)Factories.Enum.WeenieClassName.explorationContract); // Return contract if there's still unfinished contracts.
+            }
+        }
+
+        private string GetCurrentLandblockName()
+        {
+            var landblockDescription = DatabaseManager.World.GetLandblockDescriptionsByLandblock(CurrentLandblock.Id.Landblock).FirstOrDefault();
+            if (landblockDescription != null)
+                return  landblockDescription.Name;
+            else
+                return null;
+        }
+
+        public void CheckExplorationLandblock()
+        {
+            var currentLandblockId = CurrentLandblock.Id.Raw >> 16;
+            if (!Exploration1LandblockReached && Exploration1LandblockId != 0 && Exploration1LandblockId == currentLandblockId)
+            {
+                Exploration1LandblockReached = true;
+                var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration1KillProgressTracker:N0} kill{(Exploration1KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration1MarkerProgressTracker:N0} marker{(Exploration1MarkerProgressTracker != 1 ? "s" : "")} remaining.";
+                EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+            }
+
+            if (!Exploration2LandblockReached && Exploration2LandblockId != 0 && Exploration2LandblockId == currentLandblockId)
+            {
+                Exploration2LandblockReached = true;
+                var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration2KillProgressTracker:N0} kill{(Exploration2KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration2MarkerProgressTracker:N0} marker{(Exploration2MarkerProgressTracker != 1 ? "s" : "")} remaining.";
+                EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+            }
+
+            if (!Exploration3LandblockReached && Exploration3LandblockId != 0 && Exploration3LandblockId == currentLandblockId)
+            {
+                Exploration3LandblockReached = true;
+                var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration3KillProgressTracker:N0} kill{(Exploration3KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration3MarkerProgressTracker:N0} marker{(Exploration3MarkerProgressTracker != 1 ? "s" : "")} remaining.";
+                EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
             }
         }
 

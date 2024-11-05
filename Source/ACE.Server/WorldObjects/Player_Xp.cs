@@ -1063,14 +1063,17 @@ namespace ACE.Server.WorldObjects
             Exploration1KillProgressTracker = 0;
             Exploration1MarkerProgressTracker = 0;
             Exploration1Description = "";
+            Exploration1LandblockReached = false;
             Exploration2LandblockId = 0;
             Exploration2KillProgressTracker = 0;
             Exploration2MarkerProgressTracker = 0;
             Exploration2Description = "";
+            Exploration2LandblockReached = false;
             Exploration3LandblockId = 0;
             Exploration3KillProgressTracker = 0;
             Exploration3MarkerProgressTracker = 0;
             Exploration3Description = "";
+            Exploration3LandblockReached = false;
 
             // Reset Attributes
             var propertyCount = Enum.GetNames(typeof(PropertyAttribute)).Length;

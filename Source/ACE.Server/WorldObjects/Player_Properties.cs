@@ -1496,6 +1496,24 @@ namespace ACE.Server.WorldObjects
             set { if (value == null) RemoveProperty(PropertyString.Exploration3Description); else SetProperty(PropertyString.Exploration3Description, value); }
         }
 
+        public bool Exploration1LandblockReached
+        {
+            get => GetProperty(PropertyBool.Exploration1LandblockReached) ?? false;
+            set { if (value == false) RemoveProperty(PropertyBool.Exploration1LandblockReached); else SetProperty(PropertyBool.Exploration1LandblockReached, value); }
+        }
+
+        public bool Exploration2LandblockReached
+        {
+            get => GetProperty(PropertyBool.Exploration2LandblockReached) ?? false;
+            set { if (value == false) RemoveProperty(PropertyBool.Exploration2LandblockReached); else SetProperty(PropertyBool.Exploration2LandblockReached, value); }
+        }
+
+        public bool Exploration3LandblockReached
+        {
+            get => GetProperty(PropertyBool.Exploration3LandblockReached) ?? false;
+            set { if (value == false) RemoveProperty(PropertyBool.Exploration3LandblockReached); else SetProperty(PropertyBool.Exploration3LandblockReached, value); }
+        }
+
         public string ChargenSkillsTrained
         {
             get => GetProperty(PropertyString.ChargenSkillsTrained);
