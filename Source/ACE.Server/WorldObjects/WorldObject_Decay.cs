@@ -76,7 +76,7 @@ namespace ACE.Server.WorldObjects
                 if (!corpse.InventoryLoaded)
                     return;
 
-                if (corpse.Inventory.Count == 0 && TimeToRot.Value > Corpse.EmptyDecayTime)
+                if (corpse.Inventory.Count == 0 && TimeToRot.Value > Corpse.EmptyDecayTime && (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || corpse.IsLooted || corpse.HasBeenResurrected))
                 {
                     TimeToRot = Corpse.EmptyDecayTime;
                     if (Level.HasValue && PropertyManager.GetBool("corpse_decay_tick_logging").Item)

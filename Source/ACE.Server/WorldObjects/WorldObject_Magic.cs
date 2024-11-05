@@ -767,6 +767,15 @@ namespace ACE.Server.WorldObjects
                 if (showMsg)
                     targetPlayer.SendChatMessage(this, targetMessage, ChatMessageType.Magic);
             }
+
+            var vitaeToRestore = targetCorpse.VitaeCpPool ?? 0;
+            if (vitaeToRestore > 0)
+                targetPlayer.ReduceVitae(vitaeToRestore);
+
+            if (targetCorpse.VitaeCpPool != 0)
+                targetCorpse.VitaeCpPool = 0;
+
+            targetPlayer.NextRessOfferTime = 0;
         }
 
         /// <summary>

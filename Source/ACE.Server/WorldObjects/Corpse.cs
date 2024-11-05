@@ -171,7 +171,7 @@ namespace ACE.Server.WorldObjects
         public void RecalculateDecayTime(Player player)
         {
             // empty corpses decay faster
-            if (Inventory.Count == 0)
+            if (Inventory.Count == 0 && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 TimeToRot = EmptyDecayTime;
             else
                 // a player corpse decays after 5 mins * playerLevel with a minimum of 1 hour
@@ -201,6 +201,20 @@ namespace ACE.Server.WorldObjects
                     player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"You do not yet have the right to loot the {Name}."));
                 return;
             }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if (!HasBeenResurrected && player.Guid.Full == VictimId)
+                {
+                    var vitaeToRestore = (int)Math.Floor((VitaeCpPool ?? 0) * 0.5);
+                    if (vitaeToRestore > 0)
+                        player.ReduceVitae(vitaeToRestore);
+
+                    if(VitaeCpPool != 0)
+                        VitaeCpPool = 0;
+                }
+            }
+
             base.Open(player);
         }
 
@@ -523,5 +537,11 @@ namespace ACE.Server.WorldObjects
         public static HashSet<ushort> DropRecentlyPurchasedItems_Landblocks = new HashSet<ushort>()
         {
         };
+
+        public int? VitaeCpPool
+        {
+            get => GetProperty(PropertyInt.VitaeCpPool);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.VitaeCpPool); else SetProperty(PropertyInt.VitaeCpPool, value.Value); }
+        }
     }
 }

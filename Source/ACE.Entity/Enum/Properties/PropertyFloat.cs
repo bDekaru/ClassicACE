@@ -240,6 +240,8 @@ namespace ACE.Entity.Enum.Properties
         AttacksCauseBleedChance        = 10014,
         [ServerOnly]
         VendorIncomeDecayTimestamp     = 10015,
+        [ServerOnly]
+        VitaeDecayTimestamp            = 10016,
     }
 
     public static class PropertyFloatExtensions

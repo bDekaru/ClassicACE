@@ -38,6 +38,9 @@ namespace ACE.Server.WorldObjects
         private double leyLineAmuletsTickTimestamp;
         private const double leyLineAmuletsTickInterval = 1800;
 
+        private double vitaeTickTimestamp;
+        private const double vitaeTickInterval = 300;
+
         private double enchantmentTickTimestamp;
         private const double enchantmentTickInterval = 0.5;
 
@@ -122,7 +125,20 @@ namespace ACE.Server.WorldObjects
                 leyLineAmuletsTickTimestamp = Time.GetFutureUnixTime(leyLineAmuletsTickInterval);
             }
 
-            if(PvPInciteTickTimestamp == 0)
+            if (currentUnixTime > vitaeTickTimestamp)
+            {
+                var vitae = EnchantmentManager.GetVitae();
+
+                if (vitae != null)
+                {
+                    ReduceVitae(1);
+                    VitaeDecayTimestamp = currentUnixTime;
+                }
+
+                vitaeTickTimestamp = Time.GetFutureUnixTime(vitaeTickInterval);
+            }
+
+            if (PvPInciteTickTimestamp == 0)
                 PvPInciteTickTimestamp = Time.GetFutureUnixTime(PvPInciteInitialDelay);
             else if (currentUnixTime > PvPInciteTickTimestamp)
             {

@@ -790,6 +790,9 @@ namespace ACE.Server.Network.Structure
                     hasExtraPropertiesText = true;
                 }
 
+                if (wo is Corpse corpse && !corpse.IsMonster)
+                    PropertiesString[PropertyString.LongDesc] += $"\n\nContains {corpse.VitaeCpPool} Vitae.\n";
+
                 if (hasExtraPropertiesText)
                     PropertiesString[PropertyString.Use] = extraPropertiesText.TrimEnd('\n');
             }

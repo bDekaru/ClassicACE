@@ -406,6 +406,20 @@ namespace ACE.Server.WorldObjects
             var totalXpCap = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? maxLevelXp : long.MaxValue; // At what value the total xp counter will stop counting.
             var availableXpCap = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration ? uint.MaxValue : long.MaxValue; // Max unassigned xp amount.
 
+
+            long vitaeRedirectedAmount;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                long xpLeft = amount;
+                if (HasVitae && IsHardcore && xpType == XpType.Kill)
+                    xpLeft = UpdateXpVitae(amount); // Only kill xp reduces hardcore vitae penalty.
+                else if (HasVitae && xpType != XpType.Allegiance)
+                    xpLeft = UpdateXpVitae(amount);
+
+                vitaeRedirectedAmount = amount - xpLeft;
+                amount = xpLeft;
+            }
+
             if (Level != maxLevel || allowXpAtMaxLevel)
             {
                 var addAmount = amount;
@@ -429,7 +443,7 @@ namespace ACE.Server.WorldObjects
                 CheckForLevelup();
             }
 
-            if(xpMessage != "")
+            if (xpMessage != "")
                 xpMessage = $" {xpMessage.Trim()}";
 
             if (xpType == XpType.Quest)
@@ -453,11 +467,11 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (HasVitae && IsHardcore && xpType != XpType.Kill)
-                return; // Only kill xp reduces hardcore vitae penalty.
-
-            if (HasVitae && xpType != XpType.Allegiance)
-                UpdateXpVitae(amount);
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                if (HasVitae && xpType != XpType.Allegiance)
+                    UpdateXpVitae(amount);
+            }
         }
 
         /// <summary>
@@ -470,41 +484,57 @@ namespace ACE.Server.WorldObjects
             AllegianceManager.PassXP(AllegianceNode, (ulong)amount, true);
         }
 
-        /// <summary>
-        /// Handles updating the vitae penalty through earned XP
-        /// </summary>
-        /// <param name="amount">The amount of XP to apply to the vitae penalty</param>
-        private void UpdateXpVitae(long amount)
+        private void HandleVitaeOnLogin(double currentUnixTime)
         {
+            vitaeTickTimestamp = currentUnixTime + vitaeTickInterval + 10;
+
+            var vitae = EnchantmentManager.GetVitae();
+
+            if (vitae == null || !VitaeDecayTimestamp.HasValue)
+                return;
+
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(10.0f);
+            actionChain.AddAction(this, () =>
+            {
+                var times = (int)Math.Floor((currentUnixTime - VitaeDecayTimestamp).Value / vitaeTickInterval);
+
+                ReduceVitae(times);
+            });
+        }
+
+        /// <summary>
+        /// Lowers vitae penalty directly
+        /// </summary>
+        /// <param name="amount">The amount of points to lower the vitae penalty by</param>
+        public void ReduceVitae(int amount)
+        {
+            if (amount <= 0)
+                return;
+
             var vitae = EnchantmentManager.GetVitae();
 
             if (vitae == null)
-            {
-                log.Error($"{Name}.UpdateXpVitae({amount}) vitae null, likely due to cross-thread operation or corrupt EnchantmentManager cache. Please report this.");
-                log.Error(Environment.StackTrace);
                 return;
-            }
 
             var vitaePenalty = vitae.StatModValue;
             var startPenalty = vitaePenalty;
 
-            var maxPool = (int)VitaeCPPoolThreshold(vitaePenalty, DeathLevel.Value);
-            var curPool = VitaeCpPool + amount;
-            while (curPool >= maxPool)
+            for(int i = 0; i < amount; i++)
             {
-                curPool -= maxPool;
                 vitaePenalty = EnchantmentManager.ReduceVitae();
                 if (vitaePenalty == 1.0f)
+                {
+                    VitaeCpPool = 0;
                     break;
-                maxPool = (int)VitaeCPPoolThreshold(vitaePenalty, DeathLevel.Value);
+                }
             }
-            VitaeCpPool = (int)curPool;
 
             Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.VitaeCpPool, VitaeCpPool.Value));
 
             if (vitaePenalty != startPenalty)
             {
-                Session.Network.EnqueueSend(new GameMessageSystemChat("Your experience has reduced your Vitae penalty!", ChatMessageType.Magic));
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your Vitae recovers! Your Vitae penalty is now {(int)(100 - (vitaePenalty * 100))}%.", ChatMessageType.Magic));
                 EnchantmentManager.SendUpdateVitae();
             }
 
@@ -524,6 +554,88 @@ namespace ACE.Server.WorldObjects
                 });
                 actionChain.EnqueueChain();
             }
+
+            return;
+        }
+
+        /// <summary>
+        /// Handles updating the vitae penalty through earned XP
+        /// </summary>
+        /// <param name="amount">The amount of XP to apply to the vitae penalty</param>
+        private long UpdateXpVitae(long amount)
+        {
+            var vitae = EnchantmentManager.GetVitae();
+
+            var isDecay = amount < 0;
+            amount = Math.Abs(amount);
+
+            long xpLeft = amount;
+
+            if (vitae == null)
+            {
+                log.Error($"{Name}.UpdateXpVitae({amount}) vitae null, likely due to cross-thread operation or corrupt EnchantmentManager cache. Please report this.");
+                log.Error(Environment.StackTrace);
+                return xpLeft;
+            }
+
+            var vitaePenalty = vitae.StatModValue;
+            var startPenalty = vitaePenalty;
+
+            var maxPool = (int)VitaeCPPoolThreshold(vitaePenalty, DeathLevel.Value);
+            var curPool = VitaeCpPool + amount;
+
+            xpLeft -= maxPool - (int)VitaeCpPool;
+            while (curPool >= maxPool)
+            {
+                curPool -= maxPool;
+                vitaePenalty = EnchantmentManager.ReduceVitae();
+                if (vitaePenalty == 1.0f)
+                    break;
+                maxPool = (int)VitaeCPPoolThreshold(vitaePenalty, DeathLevel.Value);
+
+                xpLeft -= maxPool;
+            }
+            VitaeCpPool = (int)curPool;
+
+            xpLeft = Math.Max(xpLeft, 0);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !isDecay)
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your Vitae penalty consumes {amount - xpLeft} experience!", ChatMessageType.Magic));
+
+            Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.VitaeCpPool, VitaeCpPool.Value));
+
+            if (vitaePenalty != startPenalty)
+            {
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    if(isDecay)
+                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Your Vitae recovers! Your Vitae penalty is now {(int)(100 - (vitaePenalty * 100))}%.", ChatMessageType.Magic));
+                    else
+                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Your experience has reduced your Vitae penalty! It is now {(int)(100 - (vitaePenalty * 100))}%.", ChatMessageType.Magic));
+                }
+                else
+                    Session.Network.EnqueueSend(new GameMessageSystemChat("Your experience has reduced your Vitae penalty!", ChatMessageType.Magic));
+                EnchantmentManager.SendUpdateVitae();
+            }
+
+            if (vitaePenalty.EpsilonEquals(1.0f) || vitaePenalty > 1.0f)
+            {
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(2.0f);
+                actionChain.AddAction(this, () =>
+                {
+                    var vitae = EnchantmentManager.GetVitae();
+                    if (vitae != null)
+                    {
+                        var curPenalty = vitae.StatModValue;
+                        if (curPenalty.EpsilonEquals(1.0f) || curPenalty > 1.0f)
+                            EnchantmentManager.RemoveVitae();
+                    }
+                });
+                actionChain.EnqueueChain();
+            }
+
+            return xpLeft;
         }
 
         /// <summary>
@@ -693,6 +805,9 @@ namespace ACE.Server.WorldObjects
                 VerifyWieldedLevelRequirements();
 
                 Session.Network.EnqueueSend(new GameMessageSystemChat(message, ChatMessageType.Advancement), currentCredits);
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    UpdateCustomSkillFormulae();
 
                 // Let's take the opportinity to send an activity recommendation to the player.
                 var recommendationChain = new ActionChain();

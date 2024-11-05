@@ -310,10 +310,12 @@ namespace ACE.Server.WorldObjects
 
             var hadVitae = HasVitae;
 
+            var prevVitae = Vitae;
             // update vitae
             // players who died in a PKLite fight do not accrue vitae
             if (!IsPKLiteDeath(topDamager) && !IsHardcore)
                 InflictVitaePenalty();
+            var vitaeDelta = Math.Abs((int)Math.Round(100 * (Vitae - prevVitae)));
 
             if (IsPKDeath(topDamager) || AugmentationSpellsRemainPastDeath == 0)
             {
@@ -356,7 +358,7 @@ namespace ACE.Server.WorldObjects
                 ReportCollisions = previousReportCollisions;
                 IsFrozen = previousIsFrozen;
 
-                CreateCorpse(topDamager, hadVitae);
+                CreateCorpse(topDamager, hadVitae, vitaeDelta);
 
                 if(IsHardcore)
                     Session.Network.EnqueueSend(new GameMessageSystemChat("Your corpse will release your soul in 30 seconds.", ChatMessageType.Broadcast));
@@ -701,7 +703,7 @@ namespace ACE.Server.WorldObjects
             var dropItems = new List<WorldObject>();
             var destroyedItems = new List<WorldObject>();
 
-            var numCoinsDropped = GetNumCoinsDropped(onDropAllPyrealsLandblock || IsHardcore);
+            var numCoinsDropped = GetNumCoinsDropped(onDropAllPyrealsLandblock || IsHardcore || ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM);
             if(onDropAllPyrealsLandblock || !onNoDropLandblock)
             {
                 if (numCoinsDropped > 0)
@@ -1020,6 +1022,8 @@ namespace ACE.Server.WorldObjects
             int numItemsDropped;
             if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
                 numItemsDropped = (level / 20) + ThreadSafeRandom.Next(0, 2);
+            else if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && !IsPKDeath(corpse.KillerId))
+                numItemsDropped = 0;
             else
                 numItemsDropped = (level / 10) + ThreadSafeRandom.Next(0, 2);
 

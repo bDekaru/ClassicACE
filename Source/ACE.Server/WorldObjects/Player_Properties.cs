@@ -1525,5 +1525,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyInt.ChargenTitleId) ?? 0;
             set { if (value == 0) RemoveProperty(PropertyInt.ChargenTitleId); else SetProperty(PropertyInt.ChargenTitleId, value); }
         }
+
+        public double? VitaeDecayTimestamp
+        {
+            get => GetProperty(PropertyFloat.VitaeDecayTimestamp);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.VitaeDecayTimestamp); else SetProperty(PropertyFloat.VitaeDecayTimestamp, value.Value); }
+        }
     }
 }

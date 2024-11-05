@@ -546,7 +546,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Create a corpse for both creatures and players currently
         /// </summary>
-        protected void CreateCorpse(DamageHistoryInfo killer, bool hadVitae = false)
+        protected void CreateCorpse(DamageHistoryInfo killer, bool hadVitae = false, int vitaeDelta = 0)
         {
             if (NoCorpse)
             {
@@ -626,6 +626,7 @@ namespace ACE.Server.WorldObjects
             corpse.GameplayMode = GameplayMode;
             corpse.GameplayModeExtraIdentifier = GameplayModeExtraIdentifier;
             corpse.GameplayModeIdentifierString = GameplayModeIdentifierString;
+            corpse.VitaeCpPool = vitaeDelta;
 
             // set 'killed by' for looting rights
             var killerName = "misadventure";
@@ -739,7 +740,7 @@ namespace ACE.Server.WorldObjects
                             player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your augmentation has reduced the number of items you can lose by {miserAug}!", ChatMessageType.Broadcast));
                     }
 
-                    if (dropped.Count == 0 && !isPKLdeath && !IsHardcore)
+                    if (dropped.Count == 0 && !isPKLdeath && !IsHardcore && (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || corpse.VitaeCpPool == 0))
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You have retained all your items. You do not need to recover your corpse!", ChatMessageType.Broadcast));
                 }
             }

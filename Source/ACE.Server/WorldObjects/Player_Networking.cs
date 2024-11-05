@@ -139,6 +139,8 @@ namespace ACE.Server.WorldObjects
             HandleMigrateCharacterVersion1To2();
             HandleMigrateCharacterVersion2To3();
 
+            HandleVitaeOnLogin(Time.GetUnixTime());
+
             HandleDBUpdates();
 
             if (ServerManager.ShutdownInitiated)
