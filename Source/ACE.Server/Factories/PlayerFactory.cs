@@ -411,6 +411,9 @@ namespace ACE.Server.Factories
 
             CharacterCreateSetDefaultCharacterOptions(player);
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                player.UpdateCustomSkillFormulae();
+
             return CreateResult.Success;
         }
 

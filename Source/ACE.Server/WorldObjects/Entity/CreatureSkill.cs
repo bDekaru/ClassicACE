@@ -157,6 +157,8 @@ namespace ACE.Server.WorldObjects.Entity
 
                 if (creature is Player player)
                     total += GetAugBonus_Base(player);
+                else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Skill == Skill.ArcaneLore) // Custom Arcane Lore formula.
+                    total += ((uint)creature.Level / 2) + 10;
 
                 return total;
             }
@@ -178,6 +180,8 @@ namespace ACE.Server.WorldObjects.Entity
                 // base gets scaled by vitae
                 if (player != null)
                     total += GetAugBonus_Base(player);
+                else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Skill == Skill.ArcaneLore) // Custom Arcane Lore formula.
+                    total += ((uint)creature.Level / 2) + 10;
 
                 // apply multiplicative enchantments
                 var multiplier = creature.EnchantmentManager.GetSkillMod_Multiplier(Skill);

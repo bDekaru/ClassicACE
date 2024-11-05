@@ -48,6 +48,9 @@ namespace ACE.Server.WorldObjects
         {
             var strength = Attributes[PropertyAttribute.Strength].Current;
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                strength += 40;
+
             return (int)((150 * strength) + (AugmentationIncreasedCarryingCapacity * 30 * strength));
         }
 
