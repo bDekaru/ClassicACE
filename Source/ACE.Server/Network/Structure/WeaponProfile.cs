@@ -53,17 +53,8 @@ namespace ACE.Server.Network.Structure
             Damage = GetDamage(weapon);
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (weapon.W_AttackType.IsMultiStrike())
-                {
-                    if (weapon.WeaponSkill == Skill.Dagger)
-                        Damage *= 3;
-                    else
-                        Damage *= 2;
-                }
-                else if(weapon.CleaveTargets > 0)
-                    Damage *= (uint)((weapon.CleaveTargets + 1) * 2);
-                else if(weapon.DefaultCombatStyle == CombatStyle.TwoHanded)
-                    Damage *= 2;
+                var numStrikes = weapon.GetWeaponMaxStrikes();
+                Damage *= (uint)numStrikes;
             }
             DamageVariance = GetDamageVariance(weapon);
             DamageMod = GetDamageMultiplier(weapon);

@@ -1958,5 +1958,22 @@ namespace ACE.Server.WorldObjects
             }
             return attackType;
         }
+
+        public int GetWeaponMaxStrikes()
+        {
+            if (W_AttackType.IsMultiStrike())
+            {
+                if (WeaponSkill == Skill.Dagger)
+                    return 3;
+                else
+                    return 2;
+            }
+            else if (CleaveTargets > 0)
+                return (CleaveTargets + 1) * 2;
+            else if (DefaultCombatStyle == CombatStyle.TwoHanded)
+                return 2;
+
+            return 1;
+        }
     }
 }

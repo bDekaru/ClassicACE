@@ -1692,10 +1692,71 @@ namespace ACE.Server.Managers
             if (useMutateNative)
                 return TryMutateNative(player, source, target, recipe, dataId);
 
+            var skipMutateScript = false;
+            var result = false;
             switch (dataId)
             {
-                case 0x38000042:
-                    // Can this be done with mutation script?
+                case 0x38000011: // Steel
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+                        var currentAL = target.ArmorLevel ?? 0;
+                        var newAL = (int)Math.Floor(currentAL * 1.25f);
+                        if (newAL - currentAL < 20)
+                            newAL = currentAL + 20;
+
+                        target.ArmorLevel = newAL;
+                        target.NumTimesTinkered++;
+                        result = true;
+                    }
+                    break;
+                case 0x3800001A: // Iron
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+                        var currentDmgPerSwing = target.Damage ?? 0;
+
+                        var numStrikes = target.GetWeaponMaxStrikes();
+
+                        if (numStrikes == 1)
+                            target.Damage += 4;
+                        else
+                            target.Damage += 2;
+
+                        target.NumTimesTinkered++;
+                        result = true;
+                    }
+                    break;
+                case 0x3800001F: // Gold
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+                        var currentValue = target.Value ?? 0;
+                        var newValue = currentValue * 2;
+                        if (newValue - currentValue < 5000)
+                            newValue = currentValue + 5000;
+
+                        target.Value = newValue;
+                        target.OriginalValue += newValue - currentValue;
+                        target.NumTimesTinkered++;
+                        result = true;
+                    }
+                    break;
+                case 0x3800002F: // Moonstone
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+                        var currentMana = target.ItemMaxMana ?? 0;
+                        var newMana = currentMana * 2;
+                        if (newMana - currentMana < 500)
+                            newMana = currentMana + 500;
+
+                        target.ItemMaxMana = newMana;
+                        target.NumTimesTinkered++;
+                        result = true;
+                    }
+                    break;
+                case 0x38000042: // Teak, Porcelain, Ebony
                     switch (target.ItemHeritageGroupRestriction)
                     {
                         case "Aluvian":
@@ -1730,15 +1791,18 @@ namespace ACE.Server.Managers
 
             var numTimesTinkered = target.NumTimesTinkered;
 
-            var mutationScript = MutationCache.GetMutation(dataId);
-
-            if (mutationScript == null)
+            if (!skipMutateScript)
             {
-                log.Error($"RecipeManager.TryApplyMutation({dataId:X8}, {target.Name}) - couldn't find mutation script");
-                return false;
-            }
+                var mutationScript = MutationCache.GetMutation(dataId);
 
-            var result = mutationScript.TryMutate(target);
+                if (mutationScript == null)
+                {
+                    log.Error($"RecipeManager.TryApplyMutation({dataId:X8}, {target.Name}) - couldn't find mutation script");
+                    return false;
+                }
+
+                result = mutationScript.TryMutate(target);
+            }
 
             if (numTimesTinkered != target.NumTimesTinkered)
                 HandleTinkerLog(source, target);
