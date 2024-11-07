@@ -120,6 +120,9 @@ namespace ACE.Server.WorldObjects
             if (item.WeenieType == WeenieType.Coin || item.WeenieType == WeenieType.Container)
                 UpdateCoinValue();
 
+            if (item.ItemType == ItemType.PromissoryNote || item.WeenieType == WeenieType.Container)
+                UpdateTradeNoteValue();
+
             item.SaveBiotaToDatabase();
 
             return true;
@@ -153,6 +156,9 @@ namespace ACE.Server.WorldObjects
 
             if (item.WeenieType == WeenieType.Coin)
                 UpdateCoinValue();
+
+            if (item.ItemType == ItemType.PromissoryNote)
+                UpdateTradeNoteValue();
 
             return true;
         }
@@ -244,6 +250,9 @@ namespace ACE.Server.WorldObjects
 
                 if (item.WeenieType == WeenieType.Coin || item.WeenieType == WeenieType.Container)
                     UpdateCoinValue();
+
+                if (item.ItemType == ItemType.PromissoryNote || item.WeenieType == WeenieType.Container)
+                    UpdateTradeNoteValue();
 
                 // We must update the database with the latest ContainerId and WielderId properties.
                 // If we don't, the player can drop the item, log out, and log back in. If the landblock hasn't queued a database save in that time,
@@ -1155,6 +1164,9 @@ namespace ACE.Server.WorldObjects
                             if (item.WeenieType == WeenieType.Coin || item.WeenieType == WeenieType.Container)
                                 UpdateCoinValue();
 
+                            if (item.ItemType == ItemType.PromissoryNote || item.WeenieType == WeenieType.Container)
+                                UpdateTradeNoteValue();
+
                             if (itemRootOwner == this)
                             {
                                 item.EmoteManager.OnDrop(this);
@@ -1479,6 +1491,9 @@ namespace ACE.Server.WorldObjects
 
                         if (item.WeenieType == WeenieType.Coin || item.WeenieType == WeenieType.Container)
                             UpdateCoinValue();
+
+                        if (item.ItemType == ItemType.PromissoryNote || item.WeenieType == WeenieType.Container)
+                            UpdateTradeNoteValue();
 
                         Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
                     }
@@ -2543,6 +2558,9 @@ namespace ACE.Server.WorldObjects
                             if (stack.WeenieType == WeenieType.Coin)
                                 UpdateCoinValue();
 
+                            if (stack.ItemType == ItemType.PromissoryNote)
+                                UpdateTradeNoteValue();
+
                             if (stackRootOwner == this)
                                 EnqueueBroadcast(new GameMessageSound(Guid, Sound.DropItem));
                             else if (containerRootOwner == this)
@@ -2714,6 +2732,9 @@ namespace ACE.Server.WorldObjects
                 if (stack.WeenieType == WeenieType.Coin)
                     UpdateCoinValue();
 
+                if (stack.ItemType == ItemType.PromissoryNote)
+                    UpdateTradeNoteValue();
+
                 if (TryDropItem(newStack))
                 {
                     EnqueueBroadcast(new GameMessageSound(Guid, Sound.DropItem));
@@ -2727,6 +2748,9 @@ namespace ACE.Server.WorldObjects
 
                         if (stack.WeenieType == WeenieType.Coin)
                             UpdateCoinValue();
+
+                        if (stack.ItemType == ItemType.PromissoryNote)
+                            UpdateTradeNoteValue();
                     }
                     else
                         log.WarnFormat("Partial stack 0x{0:X8}:{1} for player {2} lost from HandleActionStackableSplitTo3D failure.", stack.Guid.Full, stack.Name, Name);
@@ -2913,6 +2937,9 @@ namespace ACE.Server.WorldObjects
                             if (stack.WeenieType == WeenieType.Coin)
                                 UpdateCoinValue();
 
+                            if (stack.ItemType == ItemType.PromissoryNote)
+                                UpdateTradeNoteValue();
+
                             EnqueueBroadcast(new GameMessageSound(Guid, Sound.PickUpItem));
 
                             TrackObject(newStack);
@@ -2926,6 +2953,9 @@ namespace ACE.Server.WorldObjects
 
                                 if (stack.WeenieType == WeenieType.Coin)
                                     UpdateCoinValue();
+
+                                if (stack.ItemType == ItemType.PromissoryNote)
+                                    UpdateTradeNoteValue();
 
                                 if (stackRootOwner == null)
                                     EnqueueBroadcast(new GameMessageSetStackSize(stack));
@@ -2979,6 +3009,9 @@ namespace ACE.Server.WorldObjects
 
                         if (stack.WeenieType == WeenieType.Coin)
                             UpdateCoinValue();
+
+                        if (stack.ItemType == ItemType.PromissoryNote)
+                            UpdateTradeNoteValue();
 
                         Session.Network.EnqueueSend(new GameMessageSetStackSize(stack));
                     }
@@ -3247,6 +3280,9 @@ namespace ACE.Server.WorldObjects
 
                             if (sourceStack.WeenieType == WeenieType.Coin)
                                 UpdateCoinValue();
+
+                            if (sourceStack.ItemType == ItemType.PromissoryNote)
+                                UpdateTradeNoteValue();
 
                             if (sourceStackRootOwner == this)
                                 EnqueueBroadcast(new GameMessageSound(Guid, Sound.DropItem));
@@ -3794,6 +3830,9 @@ namespace ACE.Server.WorldObjects
                 if (item.WeenieType == WeenieType.Coin)
                     UpdateCoinValue();
 
+                if (item.ItemType == ItemType.PromissoryNote)
+                    UpdateTradeNoteValue();
+
                 itemToGive = newStack;
 
                 return true;
@@ -4144,6 +4183,9 @@ namespace ACE.Server.WorldObjects
 
             if (item.WeenieType == WeenieType.Coin)
                 UpdateCoinValue();
+
+            if (item.ItemType == ItemType.PromissoryNote)
+                UpdateTradeNoteValue();
 
             return true;
         }

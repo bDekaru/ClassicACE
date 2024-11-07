@@ -376,6 +376,62 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.CoinValue, CoinValue ?? 0));
         }
 
+        private static List<int> wealthRanks = new List<int>()
+        {
+            10000,      // rank  1 -   1 C note
+            100000,     // rank  2 -   1 M note
+            250000,     // rank  3 -   1 MMD note
+            1000000,    // rank  4 -   4 MMD notes
+            2000000,    // rank  5 -   8 MMD notes
+            3000000,    // rank  6 -  12 MMD notes
+            6250000,    // rank  7 -  25 MMD notes
+            12500000,   // rank  8 -  50 MMD notes
+            25000000,   // rank  9 - 100 MMD notes
+            50000000,   // rank 10 - 200 MMD notes
+        };
+
+        public void UpdateTradeNoteValue(bool sendUpdateMessageIfChanged = true)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            int totalValue = 0;
+
+            foreach (var tradeNote in GetTradeNotes(true))
+                totalValue += tradeNote.Value ?? 0;
+
+            if (TradeNoteValue != totalValue)
+            {
+                TradeNoteValue = totalValue;
+
+                var currRank = AllegianceRank;
+                var newRank = 0;
+                for(int i = 0; i < 10; i++)
+                {
+                    if (TradeNoteValue >= wealthRanks[i])
+                        newRank = i + 1;
+                    else
+                        break;
+                }
+
+                if (AllegianceRank != newRank)
+                {
+                    AllegianceRank = newRank;
+                    if (sendUpdateMessageIfChanged)
+                    {
+                        if (Session != null)
+                        {
+                            if (newRank == 0)
+                                Session.Network.EnqueueSend(new GameMessageSystemChat($"Due to your wealth you no longer have an Allegiance Rank!", ChatMessageType.Broadcast));
+                            else
+                                Session.Network.EnqueueSend(new GameMessageSystemChat($"Due to your wealth your Allegiance Rank has {(currRank < newRank ? "increased" : "decreased")} to {AllegianceTitle.GetTitle(this)}!", ChatMessageType.Broadcast));
+                            Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.AllegianceRank, AllegianceRank.Value));
+                        }
+                    }
+                }
+            }
+        }
+
         private List<WorldObject> SpendCurrency(uint currentWcid, uint amount, bool destroy = false)
         {
             if (currentWcid == 0 || amount == 0)

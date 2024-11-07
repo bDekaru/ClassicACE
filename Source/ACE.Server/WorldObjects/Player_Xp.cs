@@ -1329,6 +1329,7 @@ namespace ACE.Server.WorldObjects
 
             SendInventoryAndWieldedItems();
             UpdateCoinValue();
+            UpdateTradeNoteValue();
         }
     }
 }

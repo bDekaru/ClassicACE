@@ -387,20 +387,23 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns all of the trade notes from inventory + side packs
         /// </summary>
-        public List<WorldObject> GetTradeNotes()
+        public List<WorldObject> GetTradeNotes(bool respectGameplayMode = false)
         {
-            // FIXME: search by classname performance
             var items = new List<WorldObject>();
 
             // search main pack / creature
-            var localInventory = Inventory.Values.Where(i => i.WeenieClassName.StartsWith("tradenote")).OrderBy(i => i.PlacementPosition).ToList();
+            List<WorldObject> localInventory;
+            if (!respectGameplayMode)
+                localInventory = Inventory.Values.Where(i => i.ItemType == ItemType.PromissoryNote).OrderBy(i => i.PlacementPosition).ToList();
+            else
+                localInventory = Inventory.Values.Where(i => i.ItemType == ItemType.PromissoryNote && VerifyGameplayMode(i)).OrderBy(i => i.PlacementPosition).ToList();
 
             items.AddRange(localInventory);
 
             // next search any side containers
             var sideContainers = Inventory.Values.Where(i => i.WeenieType == WeenieType.Container).Select(i => i as Container).OrderBy(i => i.PlacementPosition).ToList();
             foreach (var container in sideContainers)
-                items.AddRange(container.GetTradeNotes());
+                items.AddRange(container.GetTradeNotes(respectGameplayMode));
 
             return items;
         }

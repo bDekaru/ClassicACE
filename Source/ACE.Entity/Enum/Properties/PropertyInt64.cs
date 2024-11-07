@@ -38,6 +38,8 @@ namespace ACE.Entity.Enum.Properties
         XpTrackerStartTimestamp     = 10001,
         [ServerOnly]
         GameplayModeExtraIdentifier = 10002,
+        [ServerOnly]
+        TradeNoteValue              = 10003,
     }
 
     public static class PropertyInt64Extensions

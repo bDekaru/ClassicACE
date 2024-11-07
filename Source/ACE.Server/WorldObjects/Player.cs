@@ -171,6 +171,7 @@ namespace ACE.Server.WorldObjects
             AddBiotasToEquippedObjects(wieldedItems);
 
             UpdateCoinValue(false);
+            UpdateTradeNoteValue(false);
         }
 
         public override void InitPhysicsObj()

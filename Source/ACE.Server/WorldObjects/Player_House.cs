@@ -433,6 +433,8 @@ namespace ACE.Server.WorldObjects
 
             if (item.WeenieType == WeenieType.Coin)
                 UpdateCoinValue();
+            else if (item.ItemType == ItemType.PromissoryNote)
+                UpdateTradeNoteValue();
 
             if (!slumlord.TryAddToInventory(newItem))
             {

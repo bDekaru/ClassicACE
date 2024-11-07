@@ -39,10 +39,13 @@ namespace ACE.Server.WorldObjects
             if (BarberActive)
                 BarberActive = false;
 
-            if (AllegianceNode != null)
-                AllegianceRank = (int)AllegianceNode.Rank;
-            else
-                AllegianceRank = null;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                if (AllegianceNode != null)
+                    AllegianceRank = (int)AllegianceNode.Rank;
+                else
+                    AllegianceRank = null;
+            }
 
             if (!Account15Days)
             {

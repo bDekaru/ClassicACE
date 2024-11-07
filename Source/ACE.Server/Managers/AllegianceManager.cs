@@ -384,7 +384,7 @@ namespace ACE.Server.Managers
                 updated = true;
             }
 
-            if (player.AllegianceRank != null)
+            if (player.AllegianceRank != null && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 player.AllegianceRank = null;
 

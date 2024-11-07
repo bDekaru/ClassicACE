@@ -1,9 +1,18 @@
 using ACE.Entity.Enum;
+using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Entity
 {
     public static class AllegianceTitle
     {
+        public static string GetTitle(Player player)
+        {
+            if(player != null)
+                return GetTitle((HeritageGroup)(player.Heritage ?? 0), (Gender)(player.Gender ?? 0), (uint)(player.AllegianceRank ?? 0));
+            return "";
+
+        }
+
         public static string GetTitle(HeritageGroup heritage, Gender gender, uint rank)
         {
             switch (gender)

@@ -2078,6 +2078,12 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyInt.CoinValue); else SetProperty(PropertyInt.CoinValue, value.Value); }
         }
 
+        public long? TradeNoteValue
+        {
+            get => GetProperty(PropertyInt64.TradeNoteValue);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt64.TradeNoteValue); else SetProperty(PropertyInt64.TradeNoteValue, value.Value); }
+        }
+
         public int? ChessGamesLost
         {
             get => GetProperty(PropertyInt.ChessGamesLost);

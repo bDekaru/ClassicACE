@@ -344,7 +344,7 @@ namespace ACE.Server.WorldObjects
                 }
 
                 // if changed, update rank
-                if ((player.AllegianceRank ?? 0) != member.Value.Rank)
+                if ((player.AllegianceRank ?? 0) != member.Value.Rank && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 {
                     player.AllegianceRank = (int)member.Value.Rank;
 
