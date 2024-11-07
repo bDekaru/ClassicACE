@@ -111,6 +111,20 @@ namespace ACE.Server.WorldObjects
                 proj.StackUnitEncumbrance = ammo.StackUnitEncumbrance;
                 proj.Value = ammo.StackUnitValue;
                 proj.StackUnitValue = ammo.StackUnitValue;
+
+                proj.CriticalMultiplier = ammo.CriticalMultiplier;
+                proj.CriticalFrequency = ammo.CriticalFrequency;
+                proj.SlayerCreatureType = ammo.SlayerCreatureType;
+                proj.SlayerDamageBonus = ammo.SlayerDamageBonus;
+                proj.IgnoreMagicResist = ammo.IgnoreMagicResist;
+                proj.IgnoreMagicArmor = ammo.IgnoreMagicArmor;
+                proj.Translucency = ammo.Translucency;
+                proj.IgnoreArmor = ammo.IgnoreArmor;
+                proj.IgnoreShield = ammo.IgnoreShield;
+                proj.AbsorbMagicDamage = ammo.AbsorbMagicDamage;
+                proj.ResistanceModifierType = ammo.ResistanceModifierType;
+                proj.ResistanceModifier = ammo.ResistanceModifier;
+                proj.ImbuedEffect = ammo.ImbuedEffect;
             }
 
             proj.ProjectileSource = this;
