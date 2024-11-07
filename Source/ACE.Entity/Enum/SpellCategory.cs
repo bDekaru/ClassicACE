@@ -749,5 +749,9 @@ namespace ACE.Entity.Enum
         ExtraSneakingSkillRaising = 748,
         ExtraSneakingSkillLowering = 749,
         FireDoT = 750,
+        BlockModRaising = 751,
+        BlockModLowering = 752,
+        ExtraBlockModRaising = 753,
+        ExtraBlockModLowering = 754,
     }
 }

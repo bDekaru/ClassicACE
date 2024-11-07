@@ -709,41 +709,34 @@ namespace ACE.Server.Entity
             var playerAttacker = attacker as Player;
             var playerDefender = defender as Player;
             var isPvP = playerAttacker != null && playerDefender != null;
-            if (playerDefender == null)
-                return 1.0f; // Creatures with shields always block.
+            var shieldSkill = defender.GetCreatureSkill(Skill.Shield);
+
+            if(playerDefender == null && shieldSkill.InitLevel == 0)
+                shieldSkill = defender.GetCreatureSkill(Skill.MeleeDefense); // Use the melee defense skill as a surrogate for creatures that have no shield skill defined.
+
+            var shieldBlockMod = (float)(shield.BlockMod ?? 0) + shield.EnchantmentManager.GetBlockMod();
+
+            if (shield.IsEnchantable)
+                shieldBlockMod += defender.EnchantmentManager.GetBlockMod();
+
+            if (shieldSkill.AdvancementClass > SkillAdvancementClass.Untrained)
+                EffectiveBlockSkill = (uint)Math.Round(shieldSkill.Current * shieldBlockMod);
             else
+                EffectiveBlockSkill = 0;
+
+            var combatTypeMod = CombatType == CombatType.Missile ? 1.0f : 1.333f;
+            EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod);
+
+            var blockChance = 1.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
+            blockChance += shieldBlockMod;
+
+            if (isPvP)
             {
-                var shieldSkill = defender.GetCreatureSkill(Skill.Shield);
-                if (shieldSkill.AdvancementClass > SkillAdvancementClass.Untrained)
-                {
-                    var shieldDefenseMod = (float)(shield.ShieldDefense ?? 1) + shield.EnchantmentManager.GetShieldDefenseMod();
-
-                    if (shield.IsEnchantable)
-                        shieldDefenseMod += defender.EnchantmentManager.GetAttackMod();
-
-                    EffectiveBlockSkill = (uint)Math.Round(shieldSkill.Current * shieldDefenseMod);
-                }
-                else
-                    EffectiveBlockSkill = 0;
-
-                var combatTypeMod = CombatType == CombatType.Missile ? 1.0f : 1.333f;
-                EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod);
-
-                var blockChance = 1.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
-
-                if (CombatType == CombatType.Missile)
-                    blockChance += blockChance * shield.GetShieldMissileBlockBonus();
-
-                if (isPvP)
-                {
-                    blockChance *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_shield_block_chance", "pvp_dmg_mod_high_shield_block_chance", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
-                    blockChance = Math.Max(blockChance, 0.2f);
-                }
-                else
-                    blockChance += 0.2f;
-
-                return (float)blockChance;
+                blockChance *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_shield_block_chance", "pvp_dmg_mod_high_shield_block_chance", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                blockChance = Math.Max(blockChance, 0.2f);
             }
+
+            return (float)blockChance;
         }
 
         /// <summary>

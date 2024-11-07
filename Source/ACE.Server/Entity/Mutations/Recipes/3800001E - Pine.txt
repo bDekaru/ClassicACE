@@ -4,6 +4,5 @@ Tier chances: 1
 
     - Chance: 100%:
         Value *= 0.75
-        OriginalValue *= 0.75
         NumTimesTinkered (>= 1 ? add : set) 1
 

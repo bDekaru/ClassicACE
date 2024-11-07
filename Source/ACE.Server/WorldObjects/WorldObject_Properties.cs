@@ -3296,10 +3296,10 @@ namespace ACE.Server.WorldObjects
             set { if (value == null) RemoveProperty(PropertyString.GameplayModeIdentifierString); else SetProperty(PropertyString.GameplayModeIdentifierString, value); }
         }
 
-        public double? ShieldDefense
+        public double? BlockMod
         {
-            get => GetProperty(PropertyFloat.ShieldDefense);
-            set { if (!value.HasValue) RemoveProperty(PropertyFloat.ShieldDefense); else SetProperty(PropertyFloat.ShieldDefense, value.Value); }
+            get => GetProperty(PropertyFloat.BlockMod);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.BlockMod); else SetProperty(PropertyFloat.BlockMod, value.Value); }
         }
 
         public int? MaxReachedLevel

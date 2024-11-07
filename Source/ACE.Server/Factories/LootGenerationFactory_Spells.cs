@@ -130,7 +130,7 @@ namespace ACE.Server.Factories
             else if (roll.HasArmorLevel(wo))
             {
                 if(roll.ArmorType != TreasureArmorType.Covenant || Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                    spells = ArmorSpells.Roll(profile);
+                    spells = ArmorSpells.Roll(profile, wo.IsShield);
             }
             else if (roll.IsMeleeWeapon)
             {
@@ -409,7 +409,7 @@ namespace ACE.Server.Factories
             {
                 // armor / clothing cantrip
                 // this table also applies to crowns (treasureitemtype.jewelry w/ al)
-                return ArmorCantrips.Roll();
+                return ArmorCantrips.Roll(wo.IsShield);
             }
             else if (roll.IsMeleeWeapon)
             {

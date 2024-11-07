@@ -637,21 +637,20 @@ namespace ACE.Server.Network.Structure
 
                 if (wo.IsShield)
                 {
-                    var shieldDefenseMod = ((wo.ShieldDefense ?? 1) - 1) * 100;
-                    if (shieldDefenseMod != 0)
-                    {
-                        if (hasExtraPropertiesText)
-                            extraPropertiesText += "\n";
-                        extraPropertiesText += $"Bonus to Shield Skill: {(shieldDefenseMod > 0 ? "+" : "")}{shieldDefenseMod.ToString("0.0")}%.";
-                        hasExtraPropertiesText = true;
-                    }
+                    var BlockModBase = (float)(wo.BlockMod ?? 1);
+                    var BlockModEnchanted = BlockModBase + wo.EnchantmentManager.GetBlockMod();
+                    var BlockModPercent = BlockModEnchanted * 100;
+                    var buffOrDebuff = 0;
+                    if (BlockModEnchanted > BlockModBase)
+                        buffOrDebuff = 1;
+                    else if (BlockModEnchanted < BlockModBase)
+                        buffOrDebuff = -1;
 
-                    var blockBonus = wo.GetShieldMissileBlockBonus() * 100;
-                    if (blockBonus != 0)
+                    if (BlockModPercent != 0)
                     {
                         if (hasExtraPropertiesText)
                             extraPropertiesText += "\n";
-                        extraPropertiesText += $"Missile Attack Bonus Block Chance: {(blockBonus > 0 ? "+" : "")}{blockBonus:N0}%.";
+                        extraPropertiesText += $"Bonus to Block Chance: {(BlockModPercent > 0 ? "+" : "")}{BlockModPercent.ToString("0.0")}%. {(buffOrDebuff > 0 ? "(Buffed)" : "")}{(buffOrDebuff < 0 ? "(Debuffed)" : "")}";
                         hasExtraPropertiesText = true;
                     }
                 }

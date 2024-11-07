@@ -7936,6 +7936,38 @@ namespace ACE.Server.Factories.Tables
             SpellId.Burning8,
         };
 
+        public static readonly List<SpellId> HeartBlocker = new List<SpellId>()
+        {
+            SpellId.HeartBlocker1,
+            SpellId.HeartBlocker2,
+            SpellId.HeartBlocker3,
+            SpellId.HeartBlocker4,
+            SpellId.HeartBlocker5,
+            SpellId.HeartBlocker6,
+            SpellId.HeartBlocker7,
+            SpellId.HeartBlocker8,
+        };
+
+        public static readonly List<SpellId> TurnShield = new List<SpellId>()
+        {
+            SpellId.TurnShield1,
+            SpellId.TurnShield2,
+            SpellId.TurnShield3,
+            SpellId.TurnShield4,
+            SpellId.TurnShield5,
+            SpellId.TurnShield6,
+            SpellId.TurnShield7,
+            SpellId.TurnShield8,
+        };
+
+        public static readonly List<SpellId> CantripHeartBlocker = new List<SpellId>()
+        {
+            SpellId.CantripHeartBlocker1,
+            SpellId.CantripHeartBlocker2,
+            SpellId.CantripHeartBlocker3,
+            SpellId.CantripHeartBlocker4,
+        };
+
         static SpellLevelProgression()
         {
             // takes ~5ms
@@ -8709,6 +8741,9 @@ namespace ACE.Server.Factories.Tables
                 AddSpells(HotOther);
                 AddSpells(Bleeding);
                 AddSpells(Burning);
+                AddSpells(HeartBlocker);
+                AddSpells(TurnShield);
+                AddSpells(CantripHeartBlocker);
             }
         }
 

@@ -215,20 +215,5 @@ namespace ACE.Server.WorldObjects
             else
                 attacker.TryCastSpell(spell, target, itemCaster, itemCaster, true, true, true, showCastMessage);
         }
-
-        public float GetShieldMissileBlockBonus()
-        {
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || !IsShield || !Mass.HasValue)
-                return 0;
-
-            if (Mass >= 600)
-                return 1.0f;
-            else if (Mass >= 400)
-                return 0.25f;
-            else if (Mass >= 200)
-                return 0.10f;
-            else
-                return 0;
-        }
     }
 }

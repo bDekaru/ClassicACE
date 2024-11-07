@@ -1692,6 +1692,7 @@ namespace ACE.Server.Managers
             if (useMutateNative)
                 return TryMutateNative(player, source, target, recipe, dataId);
 
+            var numTimesTinkered = target.NumTimesTinkered;
             var skipMutateScript = false;
             var result = false;
             switch (dataId)
@@ -1776,20 +1777,38 @@ namespace ACE.Server.Managers
                             break;
                     }
                     break;
-                case 0x38000051:
-                case 0x38000052:
-                case 0x38000053:
-                case 0x38000054:
-                case 0x38000055:
-                case 0x38000056:
-                case 0x38000057:
-                    // If weapon is restance cleaving update cleaving element to match new weapon element.
-                    if (target.ResistanceModifierType.HasValue && target.ResistanceModifierType != DamageType.Undef)
-                        target.ResistanceModifierType = target.W_DamageType;
+                case 0x38000051: // Tiger Eye
+                case 0x38000052: // White Quartz
+                case 0x38000053: // Serpentine
+                case 0x38000054: // Amethyst
+                case 0x38000055: // Yellow Garnet
+                case 0x38000056: // White Jade
+                case 0x38000057: // Obsidian
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        // If weapon is resistance cleaving update cleaving element to match new weapon element.
+                        if (target.ResistanceModifierType.HasValue && target.ResistanceModifierType != DamageType.Undef)
+                            target.ResistanceModifierType = target.W_DamageType;
+                    }
                     break;
-            }            
+                case 0x38000059: // Satin
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+                        target.MeleeDefenseCap += 5;
+                        target.MissileDefenseCap += 5;
 
-            var numTimesTinkered = target.NumTimesTinkered;
+                        if (target.MeleeDefenseCap > 0)
+                            target.MeleeDefenseCap = 0;
+
+                        if (target.MissileDefenseCap > 0)
+                            target.MissileDefenseCap = 0;
+
+                        target.NumTimesTinkered++;
+                        result = true;
+                    }
+                    break;
+            }
 
             if (!skipMutateScript)
             {

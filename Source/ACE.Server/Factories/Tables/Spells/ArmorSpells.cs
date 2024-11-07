@@ -124,6 +124,20 @@ namespace ACE.Server.Factories.Tables
                     ( SpellId.LightningBane1,   0.15f ),
                     ( SpellId.BludgeonBane1,    0.15f ),
                 };
+
+                shieldSpells = new List<(SpellId, float)>()
+                {
+                    ( SpellId.HeartBlocker1,    0.15f ),
+                    ( SpellId.PiercingBane1,    0.15f ),
+                    ( SpellId.FlameBane1,       0.15f ),
+                    ( SpellId.FrostBane1,       0.15f ),
+                    //( SpellId.Impenetrability1, 1.00f ),
+                    ( SpellId.AcidBane1,        0.15f ),
+                    ( SpellId.BladeBane1,       0.15f ),
+                    ( SpellId.LightningBane1,   0.15f ),
+                    ( SpellId.BludgeonBane1,    0.15f ),
+                };
+
             }
 
             // takes ~0.3ms
@@ -167,6 +181,7 @@ namespace ACE.Server.Factories.Tables
                     case SpellId.FrostBane1:
                     case SpellId.AcidBane1:
                     case SpellId.LightningBane1:
+                    case SpellId.HeartBlocker1:
                         break;
 
                     default:
@@ -192,7 +207,19 @@ namespace ACE.Server.Factories.Tables
             ( SpellId.BludgeonBane1,    0.15f ),
         };
 
-        public static List<SpellId> Roll(TreasureDeath treasureDeath)
+        private static readonly List<(SpellId spellId, float chance)> shieldSpells = new List<(SpellId, float)>()
+        {
+            ( SpellId.PiercingBane1,    0.15f ),
+            ( SpellId.FlameBane1,       0.15f ),
+            ( SpellId.FrostBane1,       0.15f ),
+            ( SpellId.Impenetrability1, 1.00f ),
+            ( SpellId.AcidBane1,        0.15f ),
+            ( SpellId.BladeBane1,       0.15f ),
+            ( SpellId.LightningBane1,   0.15f ),
+            ( SpellId.BludgeonBane1,    0.15f ),
+        };
+
+        public static List<SpellId> Roll(TreasureDeath treasureDeath, bool isShield)
         {
             // this roll also applies to clothing w/ AL!
             // ie., shirts and pants would never have item spells on them,
@@ -202,7 +229,9 @@ namespace ACE.Server.Factories.Tables
 
             var spells = new List<SpellId>();
 
-            foreach (var spell in armorSpells)
+            var possibleSpells = isShield ? shieldSpells : armorSpells;
+
+            foreach (var spell in possibleSpells)
             {
                 var rng = ThreadSafeRandom.NextInterval(treasureDeath.LootQualityMod);
 

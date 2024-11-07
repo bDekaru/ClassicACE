@@ -180,6 +180,7 @@ namespace ACE.Server.WorldObjects.Managers
             attackModCache = null;
             weaponSpeedModCache = null;
             defenseModCache = null;
+            BlockModCache = null;
             manaConvModCache = null;
             elementalDamageModCache = null;
             varianceModCache = null;
@@ -451,15 +452,15 @@ namespace ACE.Server.WorldObjects.Managers
             return defenseModCache.Value;
         }
 
-        private float? shieldDefenseModCache;
-        public override float GetShieldDefenseMod()
+        private float? BlockModCache;
+        public override float GetBlockMod()
         {
-            if (shieldDefenseModCache.HasValue)
-                return shieldDefenseModCache.Value;
+            if (BlockModCache.HasValue)
+                return BlockModCache.Value;
 
-            shieldDefenseModCache = base.GetShieldDefenseMod();
+            BlockModCache = base.GetBlockMod();
 
-            return shieldDefenseModCache.Value;
+            return BlockModCache.Value;
         }
 
         private float? manaConvModCache;

@@ -19,27 +19,29 @@ namespace ACE.Server.Factories.Tables.Wcids
             ( WeenieClassName.materialebony,            2.00f ), // Switch to Gharundim
             ( WeenieClassName.materialporcelain,        2.00f ), // Switch to Sho
 
-            ( WeenieClassName.materialgold,             2.00f ), // Value + 25%
-            ( WeenieClassName.materialpine,             2.00f ), // Value - 25%
-            ( WeenieClassName.materiallinen,            2.00f ), // Burden - 25%
-            ( WeenieClassName.materialmoonstone,        2.00f ), // Max Mana + 500
+            ( WeenieClassName.materialgold,             2.00f ), // Value + 100% or 5000
+            ( WeenieClassName.materialpine,             2.00f ), // Value - 50%
+            ( WeenieClassName.materiallinen,            2.00f ), // Burden - 50%
+            ( WeenieClassName.materialmoonstone,        2.00f ), // Max Mana + 100% or 500
 
-            ( WeenieClassName.materialsteel,            0.80f ), // AL + 20
-            ( WeenieClassName.materialalabaster,        1.00f ), // Armor Piercing Resist + 0.2
-            ( WeenieClassName.materialbronze,           1.00f ), // Armor Slashing Resist + 0.2
-            ( WeenieClassName.materialmarble,           1.00f ), // Armor Bludgeoning Resist + 0.2
-            ( WeenieClassName.materialceramic,          1.00f ), // Armor Fire Resist + 0.4
-            ( WeenieClassName.materialwool,             1.00f ), // Armor Cold Resist + 0.4
-            ( WeenieClassName.materialreedsharkhide,    1.00f ), // Armor Lightning Resist + 0.4
-            ( WeenieClassName.materialarmoredillohide,  1.00f ), // Armor Acid Resist + 0.4
+            ( WeenieClassName.materialsteel,            0.80f ), // AL + 25% or 20
+            ( WeenieClassName.materialalabaster,        1.00f ), // Armor Piercing Resist + 0.5
+            ( WeenieClassName.materialbronze,           1.00f ), // Armor Slashing Resist + 0.5
+            ( WeenieClassName.materialmarble,           1.00f ), // Armor Bludgeoning Resist + 0.5
+            ( WeenieClassName.materialceramic,          1.00f ), // Armor Fire Resist + 1.0
+            ( WeenieClassName.materialwool,             1.00f ), // Armor Cold Resist + 1.0
+            ( WeenieClassName.materialreedsharkhide,    1.00f ), // Armor Lightning Resist + 1.0
+            ( WeenieClassName.materialarmoredillohide,  1.00f ), // Armor Acid Resist + 1.0
 
-            ( WeenieClassName.materialiron,             0.80f ), // Weapon Damage + 1
-            ( WeenieClassName.materialmahogany,         0.80f ), // Missile Weapon Mod + 4%
+            ( WeenieClassName.materialiron,             0.80f ), // Weapon Damage + 4 for regular weapons and +2 for multi-strike weapons
+            ( WeenieClassName.materialmahogany,         0.80f ), // Missile Weapon Mod + 16%
 
-            ( WeenieClassName.materialgranite,          0.60f ), // Weapon Variance - 20%
-            ( WeenieClassName.materialoak,              0.60f ), // Weapon Speed - 15
-            ( WeenieClassName.materialbrass,            0.60f ), // Weapon Melee Defense + 1%
-            ( WeenieClassName.materialvelvet,           0.60f ), // Weapon Attack Skill + 1%
+            ( WeenieClassName.materialgranite,          0.60f ), // Weapon Variance - 50%
+            ( WeenieClassName.materialoak,              0.60f ), // Weapon Speed - 50
+            ( WeenieClassName.materialbrass,            0.60f ), // Weapon Melee Defense + 5%
+            ( WeenieClassName.materialvelvet,           0.60f ), // Weapon Attack Skill + 5%
+            ( WeenieClassName.materialonyx,             0.60f ), // Shield Block Chance + 5%
+            ( WeenieClassName.materialsatin,            0.60f ), // Armor Max Evasion Penalty - 5%
 
             ( WeenieClassName.materialopal,             0.80f ), // Mana Conversion + 1
             ( WeenieClassName.materialperidot,          0.80f ), // Melee Defense + 1
@@ -80,7 +82,6 @@ namespace ACE.Server.Factories.Tables.Wcids
             ( WeenieClassName.materialemerald,          0.25f ), // Acid Rend
 
             //( WeenieClassName.materialgreengarnet,      0.80f ), // Wand Damage + 1%
-            //( WeenieClassName.materialsatin,            2.00f ), // Switch to Viamontian
             //( WeenieClassName.materialdiamond,          1.00f ), // Armature
             //( WeenieClassName.materialamber,            1.00f ), // Armature
             //( WeenieClassName.materialgromniehide,      1.00f ), // Armature
@@ -88,7 +89,6 @@ namespace ACE.Server.Factories.Tables.Wcids
             //( WeenieClassName.materialruby,             1.00f ), // Armature
             //( WeenieClassName.materialsapphire,         1.00f ), // Armature
             //( WeenieClassName.materialgreenjade,        1.00f ), // Unused
-            //( WeenieClassName.materialonyx,             1.00f ), // Unused
             //( WeenieClassName.materialtourmaline,       1.00f ), // Unused
             //( WeenieClassName.materialturquoise,        1.00f ), // Unused
         };

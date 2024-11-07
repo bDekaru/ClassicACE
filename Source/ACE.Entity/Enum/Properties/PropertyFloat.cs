@@ -236,7 +236,7 @@ namespace ACE.Entity.Enum.Properties
         ExtraHealthRegenPool           = 10010,
         ExtraStaminaRegenPool          = 10011,
         ExtraManaRegenPool             = 10012,
-        ShieldDefense                  = 10013,
+        BlockMod                       = 10013,
         AttacksCauseBleedChance        = 10014,
         [ServerOnly]
         VendorIncomeDecayTimestamp     = 10015,

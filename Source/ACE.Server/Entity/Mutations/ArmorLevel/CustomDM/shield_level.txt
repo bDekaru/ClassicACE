@@ -255,159 +255,159 @@ Tier chances: 1, 0, 0, 0, 0, 0
     - Chance 5%:
 
     - Chance 15%:
-        ShieldDefense += 0.01
+        BlockMod += 0.01
 
     - Chance 30%:
-        ShieldDefense += 0.02
+        BlockMod += 0.02
 
     - Chance 30%:
-        ShieldDefense += 0.03
+        BlockMod += 0.03
 
     - Chance 15%:
-        ShieldDefense += 0.04
+        BlockMod += 0.04
 
     - Chance 5%:
-        ShieldDefense += 0.05
+        BlockMod += 0.05
 
 Shield Mutation #9:
 
 Tier chances: 0, 1, 0, 0, 0, 0
 
     - Chance 5%:
-        ShieldDefense += 0.02
+        BlockMod += 0.02
 
     - Chance 15%:
-        ShieldDefense += 0.03
+        BlockMod += 0.03
 
     - Chance 30%:
-        ShieldDefense += 0.04
+        BlockMod += 0.04
 
     - Chance 30%:
-        ShieldDefense += 0.05
+        BlockMod += 0.05
 
     - Chance 15%:
-        ShieldDefense += 0.06
+        BlockMod += 0.06
 
     - Chance 5%:
-        ShieldDefense += 0.07
+        BlockMod += 0.07
 
 Shield Mutation #10:
 
 Tier chances: 0, 0, 1, 0, 0, 0
 
     - Chance 2%:
-        ShieldDefense += 0.03
+        BlockMod += 0.03
 
     - Chance 5%:
-        ShieldDefense += 0.04
+        BlockMod += 0.04
 
     - Chance 15%:
-        ShieldDefense += 0.05
+        BlockMod += 0.05
 
     - Chance 25%:
-        ShieldDefense += 0.06
+        BlockMod += 0.06
 
     - Chance 30%:
-        ShieldDefense += 0.07
+        BlockMod += 0.07
 
     - Chance 15%:
-        ShieldDefense += 0.08
+        BlockMod += 0.08
 
     - Chance 5%:
-        ShieldDefense += 0.09
+        BlockMod += 0.09
 
     - Chance 3%:
-        ShieldDefense += 0.1
+        BlockMod += 0.1
 
 Shield Mutation #11:
 
 Tier chances: 0, 0, 0, 1, 0, 0
 
     - Chance 5%:
-        ShieldDefense += 0.05
+        BlockMod += 0.05
 
     - Chance 15%:
-        ShieldDefense += 0.06
+        BlockMod += 0.06
 
     - Chance 25%:
-        ShieldDefense += 0.07
+        BlockMod += 0.07
 
     - Chance 30%:
-        ShieldDefense += 0.08
+        BlockMod += 0.08
 
     - Chance 15%:
-        ShieldDefense += 0.09
+        BlockMod += 0.09
 
     - Chance 5%:
-        ShieldDefense += 0.1
+        BlockMod += 0.1
 
     - Chance 3%:
-        ShieldDefense += 0.11
+        BlockMod += 0.11
 
     - Chance 2%:
-        ShieldDefense += 0.12
+        BlockMod += 0.12
 
 Shield Mutation #12:
 
 Tier chances: 0, 0, 0, 0, 1, 0
 
     - Chance 3%:
-        ShieldDefense += 0.06
+        BlockMod += 0.06
 
     - Chance 5%:
-        ShieldDefense += 0.07
+        BlockMod += 0.07
 
     - Chance 15%:
-        ShieldDefense += 0.08
+        BlockMod += 0.08
 
     - Chance 25%:
-        ShieldDefense += 0.09
+        BlockMod += 0.09
 
     - Chance 25%:
-        ShieldDefense += 0.1
+        BlockMod += 0.1
 
     - Chance 15%:
-        ShieldDefense += 0.11
+        BlockMod += 0.11
 
     - Chance 5%:
-        ShieldDefense += 0.12
+        BlockMod += 0.12
 
     - Chance 3%:
-        ShieldDefense += 0.13
+        BlockMod += 0.13
 
     - Chance 2%:
-        ShieldDefense += 0.14
+        BlockMod += 0.14
 
     - Chance 2%:
-        ShieldDefense += 0.15
+        BlockMod += 0.15
 
 Shield Mutation #13:
 
 Tier chances: 0, 0, 0, 0, 0, 1
 
     - Chance 5%:
-        ShieldDefense += 0.07
+        BlockMod += 0.07
 
     - Chance 5%:
-        ShieldDefense += 0.08
+        BlockMod += 0.08
 
     - Chance 10%:
-        ShieldDefense += 0.09
+        BlockMod += 0.09
 
     - Chance 15%:
-        ShieldDefense += 0.1
+        BlockMod += 0.1
 
     - Chance 20%:
-        ShieldDefense += 0.11
+        BlockMod += 0.11
 
     - Chance 20%:
-        ShieldDefense += 0.12
+        BlockMod += 0.12
 
     - Chance 15%:
-        ShieldDefense += 0.13
+        BlockMod += 0.13
 
     - Chance 5%:
-        ShieldDefense += 0.14
+        BlockMod += 0.14
 
     - Chance 5%:
-        ShieldDefense += 0.15
+        BlockMod += 0.15

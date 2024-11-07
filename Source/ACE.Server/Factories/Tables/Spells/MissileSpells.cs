@@ -122,6 +122,7 @@ namespace ACE.Server.Factories.Tables
             ( SpellId.LeadenWeapon1,        1.0f ),
             ( SpellId.TurnBlade1,           1.0f ),
             ( SpellId.Brittlemail1,         1.0f ),
+            ( SpellId.TurnShield1,          1.0f ),
         };
 
         private static ChanceTable<SpellId> missileProcsCertain = new ChanceTable<SpellId>(ChanceTableType.Weight)
@@ -141,6 +142,7 @@ namespace ACE.Server.Factories.Tables
             ( SpellId.LeadenWeapon1,        1.0f ),
             ( SpellId.TurnBlade1,           1.0f ),
             ( SpellId.Brittlemail1,         1.0f ),
+            ( SpellId.TurnShield1,          1.0f ),
         };
 
         public static List<SpellId> Roll(TreasureDeath treasureDeath)

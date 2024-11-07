@@ -1054,11 +1054,11 @@ namespace ACE.Server.WorldObjects.Managers
             return auraDefenseMod + defenseMod;
         }
 
-        public virtual float GetShieldDefenseMod()
+        public virtual float GetBlockMod()
         {
-            var defenseMod = GetAdditiveMod(PropertyFloat.ShieldDefense);
+            var blockMod = GetAdditiveMod(PropertyFloat.BlockMod);
 
-            return defenseMod;
+            return blockMod;
         }
 
         /// <summary>
