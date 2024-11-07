@@ -1010,6 +1010,9 @@ namespace ACE.Server.WorldObjects
 
             // take augments into consideration?
 
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && !IsPKDeath(corpse.KillerId))
+                return 0;
+
             var level = Level ?? 1;
 
             if (level <= 10 && !IsHardcore)
@@ -1022,8 +1025,6 @@ namespace ACE.Server.WorldObjects
             int numItemsDropped;
             if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
                 numItemsDropped = (level / 20) + ThreadSafeRandom.Next(0, 2);
-            else if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && !IsPKDeath(corpse.KillerId))
-                numItemsDropped = 0;
             else
                 numItemsDropped = (level / 10) + ThreadSafeRandom.Next(0, 2);
 
