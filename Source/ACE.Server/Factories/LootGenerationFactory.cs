@@ -1442,6 +1442,11 @@ namespace ACE.Server.Factories
 
                     treasureRoll.Wcid = SpecialItemsWcids.Roll(treasureDeath, treasureRoll);
                     break;
+
+                case TreasureItemType_Orig.Ammo:
+
+                    treasureRoll.Wcid = AmmoWcids.Roll(treasureDeath);
+                    break;
             }
             return treasureRoll;
         }
@@ -1451,18 +1456,25 @@ namespace ACE.Server.Factories
         /// </summary>
         public static TreasureItemType_Orig RollItemType(TreasureDeath treasureDeath, TreasureItemCategory category)
         {
+            var result = TreasureItemType_Orig.Undef;
             switch (category)
             {
                 case TreasureItemCategory.Item:
-                    return TreasureProfile_Item.Roll(treasureDeath.ItemTreasureTypeSelectionChances);
+                    result = TreasureProfile_Item.Roll(treasureDeath.ItemTreasureTypeSelectionChances); break;
 
                 case TreasureItemCategory.MagicItem:
-                    return TreasureProfile_MagicItem.Roll(treasureDeath.MagicItemTreasureTypeSelectionChances);
+                    result = TreasureProfile_MagicItem.Roll(treasureDeath.MagicItemTreasureTypeSelectionChances); break;
 
                 case TreasureItemCategory.MundaneItem:
-                    return TreasureProfile_Mundane.Roll(treasureDeath.MundaneItemTypeSelectionChances);
+                    result = TreasureProfile_Mundane.Roll(treasureDeath.MundaneItemTypeSelectionChances); break;
             }
-            return TreasureItemType_Orig.Undef;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                if ((result == TreasureItemType_Orig.Lockpick || result == TreasureItemType_Orig.ManaStone || result == TreasureItemType_Orig.HealKit) && ThreadSafeRandom.Next(0, 1) != 1)
+                    result = TreasureItemType_Orig.Ammo; // Convert some of these drops to ammo drops.
+            }
+            return result;
         }
 
         public static WorldObject CreateRandomLootObjects_New(int tier, TreasureItemCategory category, TreasureItemType_Orig treasureItemType = TreasureItemType_Orig.Undef, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef)
@@ -1536,8 +1548,6 @@ namespace ACE.Server.Factories
                         wo.SetStackSize(SpecialItemsWcids.GetAmount(wo.WeenieClassId));
                     else if (treasureRoll.WeaponType == TreasureWeaponType.Thrown)
                         wo.SetStackSize(Math.Min(30, (int)(wo.MaxStackSize ?? 1)));
-                    else if (treasureRoll.ItemType == TreasureItemType_Orig.ArtObject)
-                        wo.SetStackSize(Math.Min(10, (int)(wo.MaxStackSize ?? 1)));
                     else if (treasureRoll.ItemType == TreasureItemType_Orig.Consumable)
                         wo.SetStackSize(Math.Min(3, (int)(wo.MaxStackSize ?? 1)));
                     else if (wo.ItemType == ItemType.SpellComponents)
@@ -1547,6 +1557,13 @@ namespace ACE.Server.Factories
                             wo.SetStackSize(Math.Min(2 * treasureDeath.Tier, wo.MaxStackSize ?? 1));
                         else if ((wo.GetProperty(PropertyDataId.SpellComponent) ?? 0) < 63) // scarabs and talismans
                             wo.SetStackSize(Math.Min(treasureDeath.Tier, wo.MaxStackSize ?? 1));
+                    }
+                    else if (treasureRoll.ItemType == TreasureItemType_Orig.Ammo)
+                    {
+                        if (wo.WeenieType == WeenieType.Missile)
+                            wo.SetStackSize(Math.Min(50, (int)(wo.MaxStackSize ?? 1)));
+                        else
+                            wo.SetStackSize(Math.Min(10, (int)(wo.MaxStackSize ?? 1)));
                     }
                 }
 
