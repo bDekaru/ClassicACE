@@ -281,7 +281,7 @@ namespace ACE.Server.Managers
                 var godCharactersCount = 0;
                 foreach (var player in onlinePlayers)
                 {
-                    if (player.GodState == null)
+                    if (player.GodState == null && !player.IsOvertlyPlussed)
                         averageLevel += player.Level ?? 1;
                     else
                         godCharactersCount++;

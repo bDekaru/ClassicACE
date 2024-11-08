@@ -75,6 +75,11 @@ namespace ACE.Server.WorldObjects
             get => (Character != null && Character.IsPlussed) || (Session != null && ConfigManager.Config.Server.Accounts.OverrideCharacterPermissions && Session.AccessLevel > AccessLevel.Advocate);
         }
 
+        public bool IsOvertlyPlussed
+        {
+            get => IsPlussed && CloakStatus != CloakStatus.Player;
+        }
+
         public bool IsOlthoiPlayer { get; set; }
 
 
