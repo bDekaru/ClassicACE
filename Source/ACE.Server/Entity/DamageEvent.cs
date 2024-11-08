@@ -720,7 +720,7 @@ namespace ACE.Server.Entity
                 shieldBlockMod += defender.EnchantmentManager.GetBlockMod();
 
             if (shieldSkill.AdvancementClass > SkillAdvancementClass.Untrained)
-                EffectiveBlockSkill = (uint)Math.Round(shieldSkill.Current * shieldBlockMod);
+                EffectiveBlockSkill = shieldSkill.Current;
             else
                 EffectiveBlockSkill = 0;
 
