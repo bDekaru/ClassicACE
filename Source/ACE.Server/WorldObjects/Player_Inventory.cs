@@ -3661,8 +3661,18 @@ namespace ACE.Server.WorldObjects
 
             if (target.HasGiveOrRefuseEmoteForItem(item, out var emoteResult) || acceptAll)
             {
-                if (acceptAll || (emoteResult.Category == EmoteCategory.Give && target.AllowGive))
+                if (acceptAll ||(emoteResult.Category == EmoteCategory.Give && target.AllowGive))
                 {
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !acceptAll && item.MaxStructure.HasValue && item.Structure < item.MaxStructure)
+                    {
+                        if(item.ItemType == ItemType.TinkeringMaterial)
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{target.Name} is not interested in partial bags of {item.NameWithMaterial.Substring(0,item.NameWithMaterial.LastIndexOf(' '))}.", ChatMessageType.Broadcast));
+                        else
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{target.Name} is not interested in the {item.NameWithMaterial} as it is partially used up.", ChatMessageType.Broadcast));
+                        Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeAiRefuseEmote));
+                        return;
+                    }
+
                     // for NPCs that accept items with EmoteCategory.Give,
                     // if stacked item, only give 1, ignoring amount indicated, unless they are AiAcceptEverything in which case, take full amount indicated
                     if (RemoveItemForGive(item, itemFoundInContainer, itemWasEquipped, itemRootOwner, acceptAll ? amount : 1, out WorldObject itemToGive))
