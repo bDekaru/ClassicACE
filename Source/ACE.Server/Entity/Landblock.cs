@@ -224,7 +224,7 @@ namespace ACE.Server.Entity
                 if(obj.Value is Creature creature)
                 {
                     if (!(creature is Player) && creature.PlayerKillerStatus != PlayerKillerStatus.RubberGlue && creature.PlayerKillerStatus != PlayerKillerStatus.Protected)
-                        PositionsForExplorationMarkers.Add(creature.Location.InFrontOf(-0.5f));
+                        PositionsForExplorationMarkers.Add(creature.Location);
                 }
             }
 
@@ -250,6 +250,9 @@ namespace ACE.Server.Entity
                     bool isVisible = false;
                     foreach(var player in players)
                     {
+                        if (player.IsOvertlyPlussed)
+                            continue;
+
                         var distSq = marker.PhysicsObj.get_distance_sq_to_object(player.PhysicsObj, true);
 
                         if (distSq < 2000)
