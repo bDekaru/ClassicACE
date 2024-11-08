@@ -1885,10 +1885,16 @@ namespace ACE.Server.Command.Handlers
         }
 
 
-        [CommandHandler("tickets", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Displays the count of your remaining apartment tickets")]
+        [CommandHandler("tickets", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Displays a count of your remaining Arcanum Portal Network tickets")]
         public static void HandleTickets(Session session, params string[] parameters)
         {
-            session.Network.EnqueueSend(new GameMessageSystemChat($"You have {session.Player.QuestManager.GetCurrentSolves("ArcanumPortalAccess")} tickets remaining in the apartment portal hub.", ChatMessageType.Broadcast));
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: Tickets", ChatMessageType.Help));
+                return;
+            }
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"You have {session.Player.QuestManager.GetCurrentSolves("ArcanumPortalAccess")} tickets remaining for the Arcanum Portal Network.", ChatMessageType.Broadcast));
         }
 
         [CommandHandler("Where", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Shows information about your current location")]
