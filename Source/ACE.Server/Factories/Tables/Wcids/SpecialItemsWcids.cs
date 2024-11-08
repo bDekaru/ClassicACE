@@ -31,21 +31,10 @@ namespace ACE.Server.Factories.Tables.Wcids
 
         private static ChanceTable<WeenieClassName> specialItemsSalvageWcids = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
         {
-            ( WeenieClassName.materialsteel,            3.00f ), // AL + 20
+            ( WeenieClassName.materialsteel,            3.00f ), // AL + 25% or 20
 
-            ( WeenieClassName.materialiron,             3.00f ), // Weapon Damage + 1
-            ( WeenieClassName.materialmahogany,         3.00f ), // Missile Weapon Mod + 4%
-
-            ( WeenieClassName.materialcarnelian,        2.00f ), // Minor Strength
-            ( WeenieClassName.materialsmokyquartz,      2.00f ), // Minor Coordination
-            ( WeenieClassName.materialbloodstone,       2.00f ), // Minor Endurance
-            ( WeenieClassName.materialrosequartz,       2.00f ), // Minor Quickness
-            ( WeenieClassName.materialagate,            2.00f ), // Minor Focus
-            ( WeenieClassName.materiallapislazuli,      2.00f ), // Minor Willpower
-
-            ( WeenieClassName.materialmalachite,        2.00f ), // Warrior's Vigor
-            ( WeenieClassName.materialhematite,         2.00f ), // Warrior's Vitality
-            ( WeenieClassName.materialazurite,          2.00f ), // Wizard's Intellect
+            ( WeenieClassName.materialiron,             3.00f ), // Weapon Damage + 4 for regular weapons and +2 for multi-strike weapons
+            ( WeenieClassName.materialmahogany,         3.00f ), // Missile Weapon Mod + 16%
 
             ( WeenieClassName.materialsunstone,         1.00f ), // Armor Rending
             ( WeenieClassName.materialblackopal,        1.00f ), // Critical Strike
