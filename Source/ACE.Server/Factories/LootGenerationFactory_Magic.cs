@@ -807,8 +807,7 @@ namespace ACE.Server.Factories
             if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
             {
                 TryMutate_HeritageRequirement(wo, profile, roll);
-                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                    TryMutate_AllegianceRequirement(wo, profile, roll);
+                TryMutate_AllegianceRequirement(wo, profile, roll);
             }
 
             // Arcane Lore / ItemDifficulty
