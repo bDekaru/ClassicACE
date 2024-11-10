@@ -108,6 +108,8 @@ namespace ACE.Server.Entity
         public float DamageMitigated;
         public float DamageBlocked;
 
+        public bool IsAttackFromSneaking;
+
         // creature attacker
         public MotionCommand? AttackMotion;
         public AttackHook AttackHook;
@@ -186,10 +188,10 @@ namespace ACE.Server.Entity
             AttackType = attacker.AttackType;
             AttackHeight = attacker.AttackHeight ?? AttackHeight.Medium;
 
-            var isAttackFromSneaking = false;
+            IsAttackFromSneaking = false;
             if (playerAttacker != null)
             {
-                isAttackFromSneaking = playerAttacker.IsAttackFromSneaking;
+                IsAttackFromSneaking = playerAttacker.IsAttackFromSneaking;
                 playerAttacker.IsAttackFromSneaking = false;
             }
 
@@ -314,7 +316,7 @@ namespace ACE.Server.Entity
                         if (Weapon != null && Weapon.IsTwoHanded)
                             CriticalChance += 0.05f + playerAttacker.ScaleWithPowerAccuracyBar(0.05f);
 
-                        if (isAttackFromSneaking)
+                        if (IsAttackFromSneaking)
                         {
                             CriticalChance = 1.0f;
                             if (playerDefender == null)
@@ -678,6 +680,9 @@ namespace ACE.Server.Entity
                         EffectiveAttackSkill = (uint)Math.Round(EffectiveAttackSkill * 1.10f);
                 }
 
+                if (IsAttackFromSneaking)
+                    EffectiveAttackSkill = (uint)Math.Round(EffectiveAttackSkill * 1.25f);
+
                 if (playerDefender != null)
                 {
                     var defenderTechnique = playerDefender.GetEquippedTrinket();
@@ -1007,6 +1012,8 @@ namespace ACE.Server.Entity
             info += $"Block Chance: {BlockChance}\n";
             info += $"Blocked: {Blocked}\n";
             info += $"Damage Blocked: {DamageBlocked}\n";
+
+            info += $"IsAttackFromSneaking: {IsAttackFromSneaking}\n";
 
             info += "----";
 
