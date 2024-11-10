@@ -5118,5 +5118,27 @@ namespace ACE.Server.Command.Handlers
         {
             EventManager.ProlongFireSaleTown();
         }
+
+        [CommandHandler("RevertToLevel1", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "Reverts character to level 1")]
+        public static void HandleRevertToLevel1(Session session, params string[] parameters)
+        {
+            if (session.Player == null)
+                return;
+            session.Player.RevertToBrandNewCharacter(true, true, true, true, true);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Reverted character to level 1.");
+        }
+
+        [CommandHandler("AutoSpendXP", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "Automatically distributes XP.")]
+        public static void HandleAutoSpendXP(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+            if (session.Player == null)
+                return;
+            session.Player.AutoSpendXp();
+        }
     }
 }

@@ -226,5 +226,32 @@ namespace ACE.Server.WorldObjects
 
             Session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute2ndLevel(this, Vital.Health, Health.Current));
         }
+
+        /// <summary>
+        /// Returns the remaining XP required to the next vital level
+        /// </summary>
+        public uint? GetXpToNextRank(CreatureVital vital)
+        {
+            var vitalXpTable = DatManager.PortalDat.XpTable.VitalXpList;
+            if (vitalXpTable == null)
+                return null;
+
+            if (vital.IsMaxRank)
+                return null;
+
+            return vitalXpTable[(int)vital.Ranks + 1] - vital.ExperienceSpent;
+        }
+
+        /// <summary>
+        /// Returns the attribute XP required to go between fromRank and toRank
+        /// </summary>
+        public ulong? GetXPBetweenVitalLevels(int fromRank, int toRank)
+        {
+            var vitalXpTable = DatManager.PortalDat.XpTable.VitalXpList;
+            if (vitalXpTable == null)
+                return null;
+
+            return vitalXpTable[toRank] - vitalXpTable[fromRank];
+        }
     }
 }

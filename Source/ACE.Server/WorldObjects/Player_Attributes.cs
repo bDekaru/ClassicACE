@@ -136,5 +136,32 @@ namespace ACE.Server.WorldObjects
             }
             return -1;
         }
+
+        /// <summary>
+        /// Returns the remaining XP required to the next attribute level
+        /// </summary>
+        public uint? GetXpToNextRank(CreatureAttribute attribute)
+        {
+            var attributeXpTable = DatManager.PortalDat.XpTable.AttributeXpList;
+            if (attributeXpTable == null)
+                return null;
+
+            if (attribute.IsMaxRank)
+                return null;
+
+            return attributeXpTable[(int)attribute.Ranks + 1] - attribute.ExperienceSpent;
+        }
+
+        /// <summary>
+        /// Returns the attribute XP required to go between fromRank and toRank
+        /// </summary>
+        public ulong? GetXPBetweenAttributeLevels(int fromRank, int toRank)
+        {
+            var attributeXpTable = DatManager.PortalDat.XpTable.AttributeXpList;
+            if (attributeXpTable == null)
+                return null;
+
+            return attributeXpTable[toRank] - attributeXpTable[fromRank];
+        }
     }
 }

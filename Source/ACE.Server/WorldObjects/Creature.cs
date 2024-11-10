@@ -17,6 +17,7 @@ using ACE.Server.WorldObjects.Entity;
 using Position = ACE.Entity.Position;
 using ACE.Server.Factories;
 using ACE.Server.Factories.Tables;
+using ACE.Server.Factories.Enum;
 
 namespace ACE.Server.WorldObjects
 {

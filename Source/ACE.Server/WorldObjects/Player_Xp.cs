@@ -4,6 +4,7 @@ using System.Linq;
 
 using ACE.Common.Extensions;
 using ACE.DatLoader;
+using ACE.DatLoader.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Command.Handlers;
@@ -13,6 +14,7 @@ using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.WorldObjects.Entity;
 
 namespace ACE.Server.WorldObjects
 {
@@ -1330,6 +1332,321 @@ namespace ACE.Server.WorldObjects
             SendInventoryAndWieldedItems();
             UpdateCoinValue();
             UpdateTradeNoteValue();
+        }
+
+        private CreatureAttribute GetCostToRaiseViaAttribute(Skill skill, PropertyAttribute2nd vital, out uint xpToSkillUpViaAttribute, out int ranksForSkillPoint)
+        {
+            var skillTable = DatManager.PortalDat.SkillTable;
+            var vitalTable = DatManager.PortalDat.SecondaryAttributeTable;
+
+            var attributeXpTable = DatManager.PortalDat.XpTable.AttributeXpList;
+
+            var maxRank = attributeXpTable.Count - 1;
+
+            DatLoader.Entity.SkillFormula formula;
+
+            if (skill != Skill.None)
+            {
+                if (!skillTable.SkillBaseHash.TryGetValue((uint)skill, out SkillBase skillBase))
+                {
+                    xpToSkillUpViaAttribute = uint.MaxValue;
+                    ranksForSkillPoint = 0;
+                    return null;
+                }
+                formula = skillBase.Formula;
+            }
+            else
+            {
+                switch (vital)
+                {
+                    case PropertyAttribute2nd.MaxHealth:  formula = vitalTable.MaxHealth.Formula; break;
+                    case PropertyAttribute2nd.MaxStamina: formula = vitalTable.MaxStamina.Formula; break;
+                    case PropertyAttribute2nd.MaxMana:    formula = vitalTable.MaxMana.Formula; break;
+                    default:
+                        xpToSkillUpViaAttribute = uint.MaxValue;
+                        ranksForSkillPoint = 0;
+                        return null;
+                }
+            }
+
+            var ranksForSkillPointAttr1 = (int)Math.Ceiling((float)formula.Z / formula.X);
+            var xpToSkillUpAttr1 = uint.MaxValue;
+            CreatureAttribute attribute1 = null;
+            if (formula.Attr1 != 0)
+            {
+                attribute1 = Attributes[(PropertyAttribute)formula.Attr1];
+                if (!attribute1.IsMaxRank)
+                {
+                    var startRank = (int)(attribute1.Base - attribute1.StartingValue);
+                    var destRank = Math.Min(startRank + ranksForSkillPointAttr1, maxRank);
+                    ranksForSkillPointAttr1 = destRank - startRank;
+
+                    xpToSkillUpAttr1 = (uint)GetXPBetweenAttributeLevels(startRank, destRank);
+                }
+            }
+
+            var ranksForSkillPointAttr2 = (int)Math.Ceiling((float)formula.Z / formula.Y);
+            var xpToSkillUpAttr2 = uint.MaxValue;
+            CreatureAttribute attribute2 = null;
+            if (formula.Attr2 != 0)
+            {
+                attribute2 = Attributes[(PropertyAttribute)formula.Attr2];
+                if (!attribute2.IsMaxRank)
+                {
+                    var startRank = (int)(attribute2.Base - attribute2.StartingValue);
+                    var destRank = Math.Min(startRank + ranksForSkillPointAttr2, maxRank);
+                    ranksForSkillPointAttr2 = destRank - startRank;
+
+                    xpToSkillUpAttr2 = (uint)GetXPBetweenAttributeLevels(startRank, destRank);
+                }
+            }
+
+            if (xpToSkillUpAttr1 <= xpToSkillUpAttr2)
+            {
+                xpToSkillUpViaAttribute = xpToSkillUpAttr1;
+                ranksForSkillPoint = ranksForSkillPointAttr1;
+                return attribute1;
+            }
+            else
+            {
+                xpToSkillUpViaAttribute = xpToSkillUpAttr2;
+                ranksForSkillPoint = ranksForSkillPointAttr2;
+                return attribute2;
+            }
+        }
+
+        private struct CreatureSkillAndVital
+        {
+            public CreatureSkill Skill;
+            public CreatureVital Vital;
+
+            public CreatureSkillAndVital(CreatureSkill skill)
+            {
+                Skill = skill;
+                Vital = null;
+            }
+
+            public CreatureSkillAndVital(CreatureVital vital)
+            {
+                Skill = null;
+                Vital = vital;
+            }
+
+            public bool IsVital()
+            {
+                return Vital != null;
+            }
+
+            public bool IsSkill()
+            {
+                return Skill != null;
+            }
+        }
+
+        public void AutoSpendXp()
+        {
+            List<Tuple<long, CreatureSkillAndVital>> currentPriorityList = new List<Tuple<long, CreatureSkillAndVital>>();
+
+            SortedDictionary<PropertyAttribute, int> spentMapAttribute = new SortedDictionary<PropertyAttribute, int>();
+            SortedDictionary<PropertyAttribute2nd, int> spentMapVital = new SortedDictionary<PropertyAttribute2nd, int>();
+            SortedDictionary<Skill, int> spentMapSkill = new SortedDictionary<Skill, int>();
+
+            Dictionary<Skill, float> autoSpendPriorities = new Dictionary<Skill, float>()
+            {
+                { Skill.Axe, 1.2f },
+                { Skill.Dagger, 1.2f },
+                { Skill.Spear, 1.2f },
+                { Skill.Sword, 1.2f },
+                { Skill.UnarmedCombat, 1.2f },
+                { Skill.Bow, 1.2f },
+                { Skill.ThrownWeapon, 1.2f },
+
+                { Skill.WarMagic, 1.2f },
+                { Skill.LifeMagic, 1.2f },
+                { Skill.ManaConversion, 1.0f },
+
+                { Skill.MeleeDefense, 1.0f },
+                { Skill.MissileDefense, 0.5f },
+                { Skill.MagicDefense, 0.8f },
+
+                { Skill.Armor, 0.5f },
+                { Skill.Shield, 0.5f },
+
+                { Skill.ArcaneLore, 0.9f },
+                { Skill.Healing, 0.5f },
+
+                { Skill.AssessCreature, 0.5f },
+                { Skill.Sneaking, 0.5f },
+                { Skill.Awareness, 0.5f },
+                { Skill.Deception, 0.2f },
+
+                { Skill.Salvaging, 0.2f },
+                { Skill.Appraise, 0.2f },
+                { Skill.Cooking, 0.2f },
+                { Skill.Alchemy, 0.2f },
+                { Skill.Fletching, 0.2f },
+                { Skill.Lockpick, 0.2f },
+
+                { Skill.Run, 0.5f },
+                { Skill.Jump, 0.2f },
+
+                { Skill.Leadership, 0.01f },
+                { Skill.Loyalty, 0.01f },
+
+                { (Skill)100, 0.5f }, // Stand-in for health.
+                { (Skill)101, 0.5f }, // Stand-in for stamina.
+                { (Skill)102, 0.5f }  // Stand-in for mana.
+            };
+
+            long totalExperienceSpent = 0;
+
+            while (true)
+            {
+                currentPriorityList.Clear();
+
+                foreach (var skill in Skills)
+                {
+                    if (skill.Value.AdvancementClass < SkillAdvancementClass.Trained)
+                        continue;
+
+                    if (autoSpendPriorities.TryGetValue(skill.Key, out var priority))
+                    {
+                        if (priority == 0)
+                            continue;
+
+                        var experienceSpent = (long)Math.Max(skill.Value.ExperienceSpent / priority, 1);
+
+                        currentPriorityList.Add(new Tuple<long, CreatureSkillAndVital>(experienceSpent, new CreatureSkillAndVital(skill.Value)));
+                    }
+                }
+
+                foreach (var vital in Vitals)
+                {
+                    var skill = Skill.None;
+                    switch(vital.Key)
+                    {
+                        case PropertyAttribute2nd.MaxHealth: skill = (Skill)100; break;
+                        case PropertyAttribute2nd.MaxStamina: skill = (Skill)101; break;
+                        case PropertyAttribute2nd.MaxMana: skill = (Skill)102; break;
+                        default:
+                            continue;
+                    }
+                    if (autoSpendPriorities.TryGetValue(skill, out var priority))
+                    {
+                        if (priority == 0)
+                            continue;
+
+                        var experienceSpent = (long)Math.Max(vital.Value.ExperienceSpent / priority, 1);
+                        currentPriorityList.Add(new Tuple<long, CreatureSkillAndVital>(experienceSpent, new CreatureSkillAndVital(vital.Value)));
+                    }
+                }
+
+                var skillIncreased = false;
+                currentPriorityList.Sort((x, y) => x.Item1.CompareTo(y.Item1));
+                foreach (var skillPriority in currentPriorityList)
+                {
+                    if (skillPriority.Item2.IsSkill())
+                    {
+                        var skill = skillPriority.Item2.Skill;
+                        var skillXPTable = GetSkillXPTable(skill.AdvancementClass);
+
+                        if (skill.AdvancementClass <= SkillAdvancementClass.Untrained)
+                            continue;
+
+                        var xpToNextRank = GetXpToNextRank(skill) ?? uint.MaxValue;
+
+                        var attribute = GetCostToRaiseViaAttribute(skill.Skill, PropertyAttribute2nd.Undef, out var xpToSkillUpViaAttribute, out var ranksForSkillPoint);
+
+                        if (!skill.IsMaxRank && xpToSkillUpViaAttribute > xpToNextRank)
+                        {
+                            if (AvailableExperience < xpToNextRank)
+                                continue;
+
+                            SpendSkillXp(skill, xpToNextRank, false);
+                            totalExperienceSpent += xpToNextRank;
+
+                            spentMapSkill.TryGetValue(skill.Skill, out var timesRaised);
+                            spentMapSkill[skill.Skill] = timesRaised + 1;
+
+                        }
+                        else if (attribute != null)
+                        {
+                            if (attribute.IsMaxRank || AvailableExperience < xpToSkillUpViaAttribute)
+                                continue;
+
+                            SpendAttributeXp(attribute, xpToSkillUpViaAttribute, false);
+                            totalExperienceSpent += xpToSkillUpViaAttribute;
+
+                            spentMapAttribute.TryGetValue(attribute.Attribute, out var timesRaised);
+                            spentMapAttribute[attribute.Attribute] = timesRaised + ranksForSkillPoint;
+                        }
+                        else
+                            continue;
+                    }
+                    else if (skillPriority.Item2.IsVital())
+                    {
+                        var vital = skillPriority.Item2.Vital;
+                        var vitalXPTable = DatManager.PortalDat.XpTable.VitalXpList;
+
+                        var xpToNextRank = GetXpToNextRank(vital) ?? uint.MaxValue;
+
+                        var attribute = GetCostToRaiseViaAttribute(Skill.None, vital.Vital, out var xpToSkillUpViaAttribute, out var ranksForSkillPoint);
+
+                        if (!vital.IsMaxRank && xpToSkillUpViaAttribute > xpToNextRank)
+                        {
+                            if (AvailableExperience < xpToNextRank)
+                                continue;
+
+                            SpendVitalXp(vital, xpToNextRank, false);
+                            totalExperienceSpent += xpToNextRank;
+
+                            spentMapVital.TryGetValue(vital.Vital, out var timesRaised);
+                            spentMapVital[vital.Vital] = timesRaised + 1;
+
+                        }
+                        else if (attribute != null)
+                        {
+                            if (attribute.IsMaxRank || AvailableExperience < xpToSkillUpViaAttribute)
+                                continue;
+
+                            SpendAttributeXp(attribute, xpToSkillUpViaAttribute, false);
+                            totalExperienceSpent += xpToSkillUpViaAttribute;
+
+                            spentMapAttribute.TryGetValue(attribute.Attribute, out var timesRaised);
+                            spentMapAttribute[attribute.Attribute] = timesRaised + ranksForSkillPoint;
+                        }
+                        else
+                            continue;
+                    }
+                    else
+                        continue;
+
+                    skillIncreased = true;
+                    break;
+                }
+
+                if (!skillIncreased)
+                    break;
+            }
+
+            Session.Network.EnqueueSend(new GameEventPlayerDescription(Session));
+
+            foreach (var entry in spentMapAttribute)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {entry.Key} has been raised {entry.Value} times.", ChatMessageType.Broadcast));
+            }
+
+            foreach (var entry in spentMapVital)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {entry.Key.ToSentence()} has been raised {entry.Value} times.", ChatMessageType.Broadcast));
+            }
+
+            foreach (var entry in spentMapSkill)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {entry.Key.ToSentence()} skill has been raised {entry.Value} times.", ChatMessageType.Broadcast));
+            }
+
+            Session.Network.EnqueueSend(new GameMessageSystemChat($"Total experience spent: {totalExperienceSpent:N0}.", ChatMessageType.Broadcast));
         }
     }
 }
