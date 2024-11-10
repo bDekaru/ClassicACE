@@ -5128,7 +5128,7 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"Reverted character to level 1.");
         }
 
-        [CommandHandler("AutoSpendXP", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "Automatically distributes XP.")]
+        [CommandHandler("AutoSpendXp", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, 1, "Automatically distributes XP according to a preset.", "AutoSpendXp <preset>. Valid Presets: caster, warrior")]
         public static void HandleAutoSpendXP(Session session, params string[] parameters)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
@@ -5138,7 +5138,126 @@ namespace ACE.Server.Command.Handlers
             }
             if (session.Player == null)
                 return;
-            session.Player.AutoSpendXp();
+
+            Dictionary<Skill, float> autoSpendPriorities = null;
+            if (parameters[0].ToLower() == "caster")
+            {
+                autoSpendPriorities = new Dictionary<Skill, float>()
+                {
+                    { Skill.WarMagic, 1.0f },
+                    { Skill.LifeMagic, 0.9f },
+                    { Skill.ManaConversion, 0.9f },
+
+                    { Skill.MeleeDefense, 0.9f },
+                    { Skill.MissileDefense, 0.5f },
+                    { Skill.MagicDefense, 0.8f },
+
+                    { Skill.Armor, 0.6f },
+                    { Skill.Shield, 0.5f },
+
+                    { Skill.ArcaneLore, 0.9f },
+                    { Skill.Healing, 0.5f },
+
+                    { Skill.Awareness, 0.5f },
+
+                    { Skill.Run, 0.5f },
+                    { Skill.Jump, 0.2f },
+
+                    { (Skill)100, 0.5f }, // Stand-in for health.
+                    { (Skill)101, 0.25f }, // Stand-in for stamina.
+                    { (Skill)102, 0.5f }  // Stand-in for mana.
+                };
+            }
+            else if (parameters[0].ToLower() == "warrior")
+            {
+                autoSpendPriorities = new Dictionary<Skill, float>()
+                {
+                    { Skill.Axe, 1.0f },
+                    { Skill.Dagger, 1.0f },
+                    { Skill.Spear, 1.0f },
+                    { Skill.Sword, 1.0f },
+                    { Skill.UnarmedCombat, 1.0f },
+                    { Skill.Bow, 1.0f },
+                    { Skill.ThrownWeapon, 1.0f },
+
+                    { Skill.MeleeDefense, 0.9f },
+                    { Skill.MissileDefense, 0.5f },
+                    { Skill.MagicDefense, 0.8f },
+
+                    { Skill.Armor, 0.6f },
+                    { Skill.Shield, 0.6f },
+
+                    { Skill.ArcaneLore, 0.9f },
+                    { Skill.Healing, 0.5f },
+
+                    { Skill.AssessCreature, 0.4f },
+                    { Skill.Awareness, 0.3f },
+                    { Skill.Sneaking, 0.3f },
+                    { Skill.Deception, 0.3f },
+                    { Skill.Lockpick, 0.2f },
+
+                    { Skill.Run, 0.2f },
+                    { Skill.Jump, 0.1f },
+
+                    { (Skill)100, 0.5f }, // Stand-in for health.
+                    { (Skill)101, 0.5f }, // Stand-in for stamina.
+                    { (Skill)102, 0.0f }  // Stand-in for mana.
+                };
+            }
+            else if (parameters[0].ToLower() == "test")
+            {
+                autoSpendPriorities = new Dictionary<Skill, float>()
+                {
+                    { Skill.Axe, 1.2f },
+                    { Skill.Dagger, 1.2f },
+                    { Skill.Spear, 1.2f },
+                    { Skill.Sword, 1.2f },
+                    { Skill.UnarmedCombat, 1.2f },
+                    { Skill.Bow, 1.2f },
+                    { Skill.ThrownWeapon, 1.2f },
+
+                    { Skill.WarMagic, 1.2f },
+                    { Skill.LifeMagic, 1.2f },
+                    { Skill.ManaConversion, 1.0f },
+
+                    { Skill.MeleeDefense, 1.0f },
+                    { Skill.MissileDefense, 0.5f },
+                    { Skill.MagicDefense, 0.8f },
+
+                    { Skill.Armor, 0.5f },
+                    { Skill.Shield, 0.5f },
+
+                    { Skill.ArcaneLore, 0.9f },
+                    { Skill.Healing, 0.5f },
+
+                    { Skill.AssessCreature, 0.5f },
+                    { Skill.Sneaking, 0.5f },
+                    { Skill.Awareness, 0.5f },
+                    { Skill.Deception, 0.2f },
+
+                    { Skill.Salvaging, 0.2f },
+                    { Skill.Appraise, 0.2f },
+                    { Skill.Cooking, 0.2f },
+                    { Skill.Alchemy, 0.2f },
+                    { Skill.Fletching, 0.2f },
+                    { Skill.Lockpick, 0.2f },
+
+                    { Skill.Run, 0.5f },
+                    { Skill.Jump, 0.2f },
+
+                    { Skill.Leadership, 0.01f },
+                    { Skill.Loyalty, 0.01f },
+
+                    { (Skill)100, 0.5f }, // Stand-in for health.
+                    { (Skill)101, 0.5f }, // Stand-in for stamina.
+                    { (Skill)102, 0.5f }  // Stand-in for mana.
+                };
+            }
+
+            if (autoSpendPriorities != null)
+                session.Player.AutoSpendXp(autoSpendPriorities);
+            else
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid preset.", ChatMessageType.Help));
         }
     }
 }

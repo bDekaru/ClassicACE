@@ -1443,60 +1443,16 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public void AutoSpendXp()
+        public void AutoSpendXp(Dictionary<Skill, float> prioritiesPreset)
         {
+            if (prioritiesPreset == null || prioritiesPreset.Count == 0)
+                return;
+
             List<Tuple<long, CreatureSkillAndVital>> currentPriorityList = new List<Tuple<long, CreatureSkillAndVital>>();
 
             SortedDictionary<PropertyAttribute, int> spentMapAttribute = new SortedDictionary<PropertyAttribute, int>();
             SortedDictionary<PropertyAttribute2nd, int> spentMapVital = new SortedDictionary<PropertyAttribute2nd, int>();
             SortedDictionary<Skill, int> spentMapSkill = new SortedDictionary<Skill, int>();
-
-            Dictionary<Skill, float> autoSpendPriorities = new Dictionary<Skill, float>()
-            {
-                { Skill.Axe, 1.2f },
-                { Skill.Dagger, 1.2f },
-                { Skill.Spear, 1.2f },
-                { Skill.Sword, 1.2f },
-                { Skill.UnarmedCombat, 1.2f },
-                { Skill.Bow, 1.2f },
-                { Skill.ThrownWeapon, 1.2f },
-
-                { Skill.WarMagic, 1.2f },
-                { Skill.LifeMagic, 1.2f },
-                { Skill.ManaConversion, 1.0f },
-
-                { Skill.MeleeDefense, 1.0f },
-                { Skill.MissileDefense, 0.5f },
-                { Skill.MagicDefense, 0.8f },
-
-                { Skill.Armor, 0.5f },
-                { Skill.Shield, 0.5f },
-
-                { Skill.ArcaneLore, 0.9f },
-                { Skill.Healing, 0.5f },
-
-                { Skill.AssessCreature, 0.5f },
-                { Skill.Sneaking, 0.5f },
-                { Skill.Awareness, 0.5f },
-                { Skill.Deception, 0.2f },
-
-                { Skill.Salvaging, 0.2f },
-                { Skill.Appraise, 0.2f },
-                { Skill.Cooking, 0.2f },
-                { Skill.Alchemy, 0.2f },
-                { Skill.Fletching, 0.2f },
-                { Skill.Lockpick, 0.2f },
-
-                { Skill.Run, 0.5f },
-                { Skill.Jump, 0.2f },
-
-                { Skill.Leadership, 0.01f },
-                { Skill.Loyalty, 0.01f },
-
-                { (Skill)100, 0.5f }, // Stand-in for health.
-                { (Skill)101, 0.5f }, // Stand-in for stamina.
-                { (Skill)102, 0.5f }  // Stand-in for mana.
-            };
 
             long totalExperienceSpent = 0;
 
@@ -1509,7 +1465,7 @@ namespace ACE.Server.WorldObjects
                     if (skill.Value.AdvancementClass < SkillAdvancementClass.Trained)
                         continue;
 
-                    if (autoSpendPriorities.TryGetValue(skill.Key, out var priority))
+                    if (prioritiesPreset.TryGetValue(skill.Key, out var priority))
                     {
                         if (priority == 0)
                             continue;
@@ -1531,7 +1487,7 @@ namespace ACE.Server.WorldObjects
                         default:
                             continue;
                     }
-                    if (autoSpendPriorities.TryGetValue(skill, out var priority))
+                    if (prioritiesPreset.TryGetValue(skill, out var priority))
                     {
                         if (priority == 0)
                             continue;
