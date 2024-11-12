@@ -1456,7 +1456,7 @@ namespace ACE.Server.WorldObjects
 
             long totalExperienceSpent = 0;
 
-            while (true)
+            for (var attemptCount = 0; attemptCount < 10000; attemptCount++)
             {
                 currentPriorityList.Clear();
 

@@ -5144,11 +5144,11 @@ namespace ACE.Server.Command.Handlers
             {
                 autoSpendPriorities = new Dictionary<Skill, float>()
                 {
-                    { Skill.WarMagic, 1.0f },
-                    { Skill.LifeMagic, 0.9f },
-                    { Skill.ManaConversion, 0.9f },
+                    { Skill.WarMagic, 2.0f },
+                    { Skill.LifeMagic, 1.8f },
+                    { Skill.ManaConversion, 1.0f },
 
-                    { Skill.MeleeDefense, 0.9f },
+                    { Skill.MeleeDefense, 1.5f },
                     { Skill.MissileDefense, 0.5f },
                     { Skill.MagicDefense, 0.8f },
 
@@ -5163,24 +5163,24 @@ namespace ACE.Server.Command.Handlers
                     { Skill.Run, 0.5f },
                     { Skill.Jump, 0.2f },
 
-                    { (Skill)100, 0.5f }, // Stand-in for health.
+                    { (Skill)100, 0.5f },  // Stand-in for health.
                     { (Skill)101, 0.25f }, // Stand-in for stamina.
-                    { (Skill)102, 0.5f }  // Stand-in for mana.
+                    { (Skill)102, 0.5f }   // Stand-in for mana.
                 };
             }
             else if (parameters[0].ToLower() == "warrior")
             {
                 autoSpendPriorities = new Dictionary<Skill, float>()
                 {
-                    { Skill.Axe, 1.0f },
-                    { Skill.Dagger, 1.0f },
-                    { Skill.Spear, 1.0f },
-                    { Skill.Sword, 1.0f },
-                    { Skill.UnarmedCombat, 1.0f },
-                    { Skill.Bow, 1.0f },
-                    { Skill.ThrownWeapon, 1.0f },
+                    { Skill.Axe, 2.0f },
+                    { Skill.Dagger, 2.0f },
+                    { Skill.Spear, 2.0f },
+                    { Skill.Sword, 2.0f },
+                    { Skill.UnarmedCombat, 2.0f },
+                    { Skill.Bow, 2.0f },
+                    { Skill.ThrownWeapon, 2.0f },
 
-                    { Skill.MeleeDefense, 0.9f },
+                    { Skill.MeleeDefense, 1.5f },
                     { Skill.MissileDefense, 0.5f },
                     { Skill.MagicDefense, 0.8f },
 
