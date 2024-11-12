@@ -57,18 +57,27 @@ namespace ACE.Server.WorldObjects
                     player.Exploration1MarkerProgressTracker--;
                     var msg = $"{player.Exploration1MarkerProgressTracker:N0} marker{(player.Exploration1MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                     player.EarnXP((int)(((-player.Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+
+                    if (player.Exploration1MarkerProgressTracker == 0)
+                        player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
                 }
                 else if (player.Exploration2LandblockId == landblockId && player.Exploration2MarkerProgressTracker > 0)
                 {
                     player.Exploration2MarkerProgressTracker--;
                     var msg = $"{player.Exploration2MarkerProgressTracker:N0} marker{(player.Exploration2MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                     player.EarnXP((int)(((-player.Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+
+                    if (player.Exploration2MarkerProgressTracker == 0)
+                        player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
                 }
                 else if (player.Exploration3LandblockId == landblockId && player.Exploration3MarkerProgressTracker > 0)
                 {
                     player.Exploration3MarkerProgressTracker--;
                     var msg = $"{player.Exploration3MarkerProgressTracker:N0} marker{(player.Exploration3MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                     player.EarnXP((int)(((-player.Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+
+                    if (player.Exploration3MarkerProgressTracker == 0)
+                        player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
 
                 }
                 else

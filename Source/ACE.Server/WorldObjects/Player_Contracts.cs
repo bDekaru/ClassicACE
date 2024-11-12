@@ -303,6 +303,7 @@ namespace ACE.Server.WorldObjects
                 Exploration1LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration1KillProgressTracker:N0} kill{(Exploration1KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration1MarkerProgressTracker:N0} marker{(Exploration1MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                 EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
             }
 
             if (!Exploration2LandblockReached && Exploration2LandblockId != 0 && Exploration2LandblockId == currentLandblockId)
@@ -310,6 +311,7 @@ namespace ACE.Server.WorldObjects
                 Exploration2LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration2KillProgressTracker:N0} kill{(Exploration2KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration2MarkerProgressTracker:N0} marker{(Exploration2MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                 EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
             }
 
             if (!Exploration3LandblockReached && Exploration3LandblockId != 0 && Exploration3LandblockId == currentLandblockId)
@@ -317,6 +319,7 @@ namespace ACE.Server.WorldObjects
                 Exploration3LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration3KillProgressTracker:N0} kill{(Exploration3KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration3MarkerProgressTracker:N0} marker{(Exploration3MarkerProgressTracker != 1 ? "s" : "")} remaining.";
                 EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
             }
         }
 
