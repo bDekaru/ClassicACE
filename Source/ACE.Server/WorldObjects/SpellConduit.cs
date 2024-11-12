@@ -43,16 +43,10 @@ namespace ACE.Server.WorldObjects
                     player.HandleActionMagicCastUnTargetedSpell(spell.Id, this, true);
                 else
                 {
-                    uint targetId = 0;
-
-                    var lastAttackTarget = player.LastAttackTarget;
-                    if (!spell.IsBeneficial && lastAttackTarget != null)
-                        targetId = lastAttackTarget.Guid.Full;
-                    else
-                        targetId = player.RequestedAppraisalTarget ?? 0;
+                    uint targetId = player.QueryTarget;
 
                     if (targetId == Guid.Full) // If the player activates the SpellConduit using the mouse the first click will select the SpellConduit, so we need this to actually get the real target.
-                        targetId = player.PreviousRequestedAppraisalTarget;
+                        targetId = player.PreviousQueryTarget;
 
                     if (targetId != 0 && targetId != player.Guid.Full)
                         player.HandleActionCastTargetedSpell(targetId, spell.Id, this, true);

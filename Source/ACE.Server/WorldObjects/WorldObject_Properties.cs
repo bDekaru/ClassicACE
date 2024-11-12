@@ -2461,18 +2461,6 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyInstanceId.CombatTarget); else SetProperty(PropertyInstanceId.CombatTarget, value.Value); }
         }
 
-        public uint? HealthQueryTarget
-        {
-            get => GetProperty(PropertyInstanceId.HealthQueryTarget);
-            set { if (!value.HasValue) RemoveProperty(PropertyInstanceId.HealthQueryTarget); else SetProperty(PropertyInstanceId.HealthQueryTarget, value.Value); }
-        }
-
-        public uint? ManaQueryTarget
-        {
-            get => GetProperty(PropertyInstanceId.ManaQueryTarget);
-            set { if (!value.HasValue) RemoveProperty(PropertyInstanceId.ManaQueryTarget); else SetProperty(PropertyInstanceId.ManaQueryTarget, value.Value); }
-        }
-
         public PKLevel PkLevel
         {
             get => (PKLevel)PkLevelModifier;

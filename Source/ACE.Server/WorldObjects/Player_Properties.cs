@@ -1289,6 +1289,49 @@ namespace ACE.Server.WorldObjects
             set { if (value == 0) RemoveProperty(PropertyInt.SquelchGlobal); else SetProperty(PropertyInt.SquelchGlobal, (int)value); }
         }
 
+        public uint QueryTarget
+        {
+            get
+            {
+                if (HealthQueryTarget.HasValue)
+                    return HealthQueryTarget.Value;
+                else if (ManaQueryTarget.HasValue)
+                    return ManaQueryTarget.Value;
+                else if (RequestedAppraisalTarget.HasValue)
+                    return RequestedAppraisalTarget.Value;
+                return 0;
+            }
+        }
+
+        public uint PreviousQueryTarget
+        {
+            get
+            {
+                if (PreviousHealthQueryTarget != 0)
+                    return PreviousHealthQueryTarget;
+                else if (PreviousManaQueryTarget != 0)
+                    return PreviousManaQueryTarget;
+                else if (PreviousRequestedAppraisalTarget != 0)
+                    return PreviousRequestedAppraisalTarget;
+                else
+                    return 0;
+            }
+        }
+
+        public uint PreviousHealthQueryTarget = 0;
+        public uint? HealthQueryTarget
+        {
+            get => GetProperty(PropertyInstanceId.HealthQueryTarget);
+            set { PreviousHealthQueryTarget = GetProperty(PropertyInstanceId.HealthQueryTarget) ?? 0; if (!value.HasValue) RemoveProperty(PropertyInstanceId.HealthQueryTarget); else SetProperty(PropertyInstanceId.HealthQueryTarget, value.Value); }
+        }
+
+        public uint PreviousManaQueryTarget = 0;
+        public uint? ManaQueryTarget
+        {
+            get => GetProperty(PropertyInstanceId.ManaQueryTarget);
+            set { PreviousManaQueryTarget = GetProperty(PropertyInstanceId.ManaQueryTarget) ?? 0; if (!value.HasValue) RemoveProperty(PropertyInstanceId.ManaQueryTarget); else SetProperty(PropertyInstanceId.ManaQueryTarget, value.Value); }
+        }
+
         public uint PreviousRequestedAppraisalTarget = 0;
         public uint? RequestedAppraisalTarget
         {
