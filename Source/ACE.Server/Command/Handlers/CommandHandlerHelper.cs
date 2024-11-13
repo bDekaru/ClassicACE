@@ -80,5 +80,26 @@ namespace ACE.Server.Command.Handlers
             }
             return target;
         }
+
+        /// <summary>
+        /// Returns the likely target of the command
+        /// </summary>
+        public static WorldObject GetQueryTarget(Session session)
+        {
+            var targetID = session.Player.QueryTarget;
+            if (targetID == 0)
+            {
+                WriteOutputInfo(session, "GetQueryTarget() - no target");
+                return null;
+            }
+
+            var target = session.Player.FindObject(targetID, Player.SearchLocations.Everywhere, out _, out _, out _);
+            if (target == null)
+            {
+                WriteOutputInfo(session, $"GetQueryTarget() - couldn't find {targetID:X8}");
+                return null;
+            }
+            return target;
+        }
     }
 }

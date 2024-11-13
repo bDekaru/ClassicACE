@@ -1343,7 +1343,7 @@ namespace ACE.Server.WorldObjects
             UpdateTradeNoteValue();
         }
 
-        private CreatureAttribute GetCostToRaiseViaAttribute(Skill skill, PropertyAttribute2nd vital, out uint xpToSkillUpViaAttribute, out int ranksForSkillPoint)
+        public CreatureAttribute GetCostToRaiseViaAttribute(Skill skill, PropertyAttribute2nd vital, out uint xpToSkillUpViaAttribute, out int ranksForSkillPoint)
         {
             var skillTable = DatManager.PortalDat.SkillTable;
             var vitalTable = DatManager.PortalDat.SecondaryAttributeTable;
@@ -1424,21 +1424,31 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        private struct CreatureSkillAndVital
+        private struct CreatureSkillVitalOrAttribute
         {
             public CreatureSkill Skill;
             public CreatureVital Vital;
+            public CreatureAttribute Attribute;
 
-            public CreatureSkillAndVital(CreatureSkill skill)
+            public CreatureSkillVitalOrAttribute(CreatureSkill skill)
             {
                 Skill = skill;
                 Vital = null;
+                Attribute = null;
             }
 
-            public CreatureSkillAndVital(CreatureVital vital)
+            public CreatureSkillVitalOrAttribute(CreatureVital vital)
             {
                 Skill = null;
                 Vital = vital;
+                Attribute = null;
+            }
+
+            public CreatureSkillVitalOrAttribute(CreatureAttribute attribute)
+            {
+                Skill = null;
+                Vital = null;
+                Attribute = attribute;
             }
 
             public bool IsVital()
@@ -1450,14 +1460,18 @@ namespace ACE.Server.WorldObjects
             {
                 return Skill != null;
             }
-        }
 
+            public bool IsAttribute()
+            {
+                return Attribute != null;
+            }
+        }
         public void AutoSpendXp(Dictionary<Skill, float> prioritiesPreset)
         {
             if (prioritiesPreset == null || prioritiesPreset.Count == 0)
                 return;
 
-            List<Tuple<long, CreatureSkillAndVital>> currentPriorityList = new List<Tuple<long, CreatureSkillAndVital>>();
+            List<Tuple<long, CreatureSkillVitalOrAttribute>> currentPriorityList = new List<Tuple<long, CreatureSkillVitalOrAttribute>>();
 
             SortedDictionary<PropertyAttribute, int> spentMapAttribute = new SortedDictionary<PropertyAttribute, int>();
             SortedDictionary<PropertyAttribute2nd, int> spentMapVital = new SortedDictionary<PropertyAttribute2nd, int>();
@@ -1481,7 +1495,7 @@ namespace ACE.Server.WorldObjects
 
                         var experienceSpent = (long)Math.Max(skill.Value.ExperienceSpent / priority, 1);
 
-                        currentPriorityList.Add(new Tuple<long, CreatureSkillAndVital>(experienceSpent, new CreatureSkillAndVital(skill.Value)));
+                        currentPriorityList.Add(new Tuple<long, CreatureSkillVitalOrAttribute>(experienceSpent, new CreatureSkillVitalOrAttribute(skill.Value)));
                     }
                 }
 
@@ -1502,7 +1516,31 @@ namespace ACE.Server.WorldObjects
                             continue;
 
                         var experienceSpent = (long)Math.Max(vital.Value.ExperienceSpent / priority, 1);
-                        currentPriorityList.Add(new Tuple<long, CreatureSkillAndVital>(experienceSpent, new CreatureSkillAndVital(vital.Value)));
+                        currentPriorityList.Add(new Tuple<long, CreatureSkillVitalOrAttribute>(experienceSpent, new CreatureSkillVitalOrAttribute(vital.Value)));
+                    }
+                }
+
+                foreach (var attribute in Attributes)
+                {
+                    var skill = Skill.None;
+                    switch (attribute.Key)
+                    {
+                        case PropertyAttribute.Strength: skill = (Skill)200; break;
+                        case PropertyAttribute.Endurance: skill = (Skill)201; break;
+                        case PropertyAttribute.Coordination: skill = (Skill)202; break;
+                        case PropertyAttribute.Quickness: skill = (Skill)203; break;
+                        case PropertyAttribute.Focus: skill = (Skill)204; break;
+                        case PropertyAttribute.Self: skill = (Skill)205; break;
+                        default:
+                            continue;
+                    }
+                    if (prioritiesPreset.TryGetValue(skill, out var priority))
+                    {
+                        if (priority == 0)
+                            continue;
+
+                        var experienceSpent = (long)Math.Max(attribute.Value.ExperienceSpent / priority, 1);
+                        currentPriorityList.Add(new Tuple<long, CreatureSkillVitalOrAttribute>(experienceSpent, new CreatureSkillVitalOrAttribute(attribute.Value)));
                     }
                 }
 
@@ -1579,6 +1617,27 @@ namespace ACE.Server.WorldObjects
 
                             spentMapAttribute.TryGetValue(attribute.Attribute, out var timesRaised);
                             spentMapAttribute[attribute.Attribute] = timesRaised + ranksForSkillPoint;
+                        }
+                        else
+                            continue;
+                    }
+                    else if (skillPriority.Item2.IsAttribute())
+                    {
+                        var attribute = skillPriority.Item2.Attribute;
+                        var attributeXPTable = DatManager.PortalDat.XpTable.AttributeXpList;
+
+                        var xpToNextRank = GetXpToNextRank(attribute) ?? uint.MaxValue;
+
+                        if (!attribute.IsMaxRank)
+                        {
+                            if (AvailableExperience < xpToNextRank)
+                                continue;
+
+                            SpendAttributeXp(attribute, xpToNextRank);
+                            totalExperienceSpent += xpToNextRank;
+
+                            spentMapAttribute.TryGetValue(attribute.Attribute, out var timesRaised);
+                            spentMapAttribute[attribute.Attribute] = timesRaised + 1;
                         }
                         else
                             continue;

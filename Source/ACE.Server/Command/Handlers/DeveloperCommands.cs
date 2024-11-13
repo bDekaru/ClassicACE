@@ -3446,7 +3446,7 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("showtier", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Shows the DeathTreasure tier for the last appraised monster, container or generator")]
         public static void HandleShowTier(Session session, params string[] parameters)
         {
-            var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
+            var obj = CommandHandlerHelper.GetQueryTarget(session);
             var creature = obj as Creature;
 
             if (creature != null)

@@ -5251,6 +5251,13 @@ namespace ACE.Server.Command.Handlers
                     { (Skill)100, 0.5f }, // Stand-in for health.
                     { (Skill)101, 0.5f }, // Stand-in for stamina.
                     { (Skill)102, 0.5f }  // Stand-in for mana.
+
+                    //{ (Skill)200, 0.0f }, // Stand-in for strength.
+                    //{ (Skill)201, 0.0f }, // Stand-in for endurance.
+                    //{ (Skill)202, 0.0f }, // Stand-in for coordination.
+                    //{ (Skill)203, 0.0f }, // Stand-in for quickness.
+                    //{ (Skill)204, 0.0f }, // Stand-in for focus.
+                    //{ (Skill)205, 0.0f }, // Stand-in for self.
                 };
             }
 
