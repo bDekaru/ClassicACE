@@ -1,6 +1,7 @@
 using System;
 
 using ACE.Common;
+using ACE.Common.Extensions;
 using ACE.Database.Models.Shard;
 using ACE.Entity;
 using ACE.Entity.Enum;
@@ -157,7 +158,7 @@ namespace ACE.Server.WorldObjects
                 actionChain.EnqueueChain();
             }
 
-            log.Debug($"[LOGIN] Account {Account.AccountName} entered the world with character {Name} (0x{Guid}) at {DateTime.Now}.");
+            log.DebugFormat("[LOGIN] Account {0} entered the world with character {1} (0x{2}) at {3}.", Account.AccountName, Name, Guid, DateTime.Now.ToCommonString());
         }
 
         public void SendTurbineChatChannels(bool breakAllegiance = false)
@@ -307,7 +308,7 @@ namespace ACE.Server.WorldObjects
             foreach (var item in EquippedObjects.Values)
             {
                 item.Wielder = this;
-                Session.Network.EnqueueSend(new GameMessageCreateObject(item));                
+                Session.Network.EnqueueSend(new GameMessageCreateObject(item));
             }
         }
 
@@ -320,28 +321,25 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Will send out GameEventFriendsListUpdate packets to everyone online that has this player as a friend.
         /// </summary>
-        public void SendFriendStatusUpdates()
+        public void SendFriendStatusUpdates(bool previouslyOnline, bool isOnline)
         {
-            var inverseFriends = PlayerManager.GetOnlineInverseFriends(Guid);
+            var appearOffline = GetAppearOffline();
+            var previouslyOnlineAndIsNowOffline = previouslyOnline && !isOnline;
+            var previouslyOfflineAndIsNowOnline = !previouslyOnline && isOnline;
+            var previouslyOfflineAndAppearOffline = !previouslyOnline && appearOffline;
 
-            foreach (var friend in inverseFriends)
+            if ((previouslyOfflineAndIsNowOnline && !previouslyOfflineAndAppearOffline) || previouslyOnlineAndIsNowOffline)
             {
-                var playerFriend = new CharacterPropertiesFriendList { CharacterId = friend.Guid.Full, FriendId = Guid.Full };
-                friend.Session.Network.EnqueueSend(new GameEventFriendsListUpdate(friend.Session, GameEventFriendsListUpdate.FriendsUpdateTypeFlag.FriendStatusChanged, playerFriend, true, !GetAppearOffline()));
-            }
-        }
+                var msg = $"{Name} has {(isOnline ? "come on" : "gone off")}line.";
 
-        /// <summary>
-        /// Will send out GameEventFriendsListUpdate packets to everyone online that has this player as a friend.
-        /// </summary>
-        public void SendFriendStatusUpdates(bool onlineStatus)
-        {
-            var inverseFriends = PlayerManager.GetOnlineInverseFriends(Guid);
+                var inverseFriends = PlayerManager.GetOnlineInverseFriends(Guid);
 
-            foreach (var friend in inverseFriends)
-            {
-                var playerFriend = new CharacterPropertiesFriendList { CharacterId = friend.Guid.Full, FriendId = Guid.Full };
-                friend.Session.Network.EnqueueSend(new GameEventFriendsListUpdate(friend.Session, GameEventFriendsListUpdate.FriendsUpdateTypeFlag.FriendStatusChanged, playerFriend, true, onlineStatus));
+                foreach (var friend in inverseFriends)
+                {
+                    var playerFriend = new CharacterPropertiesFriendList { CharacterId = friend.Guid.Full, FriendId = Guid.Full };
+                    friend.Session.Network.EnqueueSend(new GameEventFriendsListUpdate(friend.Session, GameEventFriendsListUpdate.FriendsUpdateTypeFlag.FriendStatusChanged, playerFriend, true, isOnline));
+                    friend.SendMessage(msg);
+                }
             }
         }
 

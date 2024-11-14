@@ -117,7 +117,7 @@ namespace ACE.Server.WorldObjects
         /// If a player tries to use 2 portals in under this amount of time,
         /// they receive an error message
         /// </summary>
-        private static readonly float minTimeSinceLastPortal = 3.5f;
+        private const float minTimeSinceLastPortal = 3.5f;
 
         public override ActivationResult CheckUseRequirements(WorldObject activator)
         {
@@ -180,7 +180,7 @@ namespace ACE.Server.WorldObjects
                     return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouAreNotPowerfulEnoughToUsePortal));
                 }
 
-                if (player.Level > MaxLevel && MaxLevel != 0)
+                if (player.Level > MaxLevel && MaxLevel != 0 && PropertyManager.GetBool("use_portal_max_level_requirement").Item)
                 {
                     // You are too powerful to interact with that portal!
                     return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouAreTooPowerfulToUsePortal));

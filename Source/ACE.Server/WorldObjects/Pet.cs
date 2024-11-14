@@ -9,6 +9,7 @@ using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity;
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
@@ -23,7 +24,15 @@ namespace ACE.Server.WorldObjects
     {
         public Player P_PetOwner;
 
+        public PetDevice P_PetDevice;
+
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        public uint? PetDevice
+        {
+            get => GetProperty(PropertyInstanceId.PetDevice);
+            set { if (value.HasValue) SetProperty(PropertyInstanceId.PetDevice, value.Value); else RemoveProperty(PropertyInstanceId.PetDevice); }
+        }
 
         /// <summary>
         /// A new biota be created taking all of its values from weenie.
@@ -93,6 +102,10 @@ namespace ACE.Server.WorldObjects
             }
 
             player.CurrentActivePet = this;
+
+            petDevice.Pet = Guid.Full;
+            PetDevice = petDevice.Guid.Full;
+            P_PetDevice = petDevice;
 
             if (IsPassivePet)
                 nextSlowTickTime = Time.GetUnixTime();
@@ -181,7 +194,7 @@ namespace ACE.Server.WorldObjects
                 SlowTick(currentUnixTime);
         }
 
-        private static readonly double slowTickSeconds = 1.0;
+        private const double slowTickSeconds = 1.0;
         private double nextSlowTickTime;
 
         /// <summary>
@@ -212,8 +225,8 @@ namespace ACE.Server.WorldObjects
         // if the passive pet is between min-max distance to owner,
         // it will turn and start running torwards its owner
 
-        private static readonly float MinDistance = 2.0f;
-        private static readonly float MaxDistance = 192.0f;
+        private const float MinDistance = 2.0f;
+        private const float MaxDistance = 192.0f;
 
         private void StartFollow()
         {

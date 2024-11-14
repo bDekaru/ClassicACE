@@ -67,7 +67,8 @@ namespace ACE.Server.Managers
                     Console.WriteLine($"Starting event {evnt.Name}");
             }
 
-            log.Debug($"[EVENT] {(source == null ? "SYSTEM" : $"{source.Name} (0x{source.Guid}|{source.WeenieClassId})")}{(target == null ? "" : $", triggered by {target.Name} (0x{target.Guid}|{target.WeenieClassId}),")} started an event: {evnt.Name}{((int)state == evnt.State ? (source == null ? ", which is the default state for this event." : ", which had already been started.") : "")}");
+            if (log.IsDebugEnabled)
+                log.Debug($"[EVENT] {(source == null ? "SYSTEM" : $"{source.Name} (0x{source.Guid}|{source.WeenieClassId})")}{(target == null ? "" : $", triggered by {target.Name} (0x{target.Guid}|{target.WeenieClassId}),")} started an event: {evnt.Name}{((int)state == evnt.State ? (source == null ? ", which is the default state for this event." : ", which had already been started.") : "")}");
 
             return true;
         }
@@ -95,7 +96,8 @@ namespace ACE.Server.Managers
                     Console.WriteLine($"Stopping event {evnt.Name}");
             }
 
-            log.Debug($"[EVENT] {(source == null ? "SYSTEM" : $"{source.Name} (0x{source.Guid}|{source.WeenieClassId})")}{(target == null ? "" : $", triggered by {target.Name} (0x{target.Guid}|{target.WeenieClassId}),")} stopped an event: {evnt.Name}{((int)state == evnt.State ? (source == null ? ", which is the default state for this event." : ", which had already been stopped.") : "")}");
+            if (log.IsDebugEnabled)
+                log.Debug($"[EVENT] {(source == null ? "SYSTEM" : $"{source.Name} (0x{source.Guid}|{source.WeenieClassId})")}{(target == null ? "" : $", triggered by {target.Name} (0x{target.Guid}|{target.WeenieClassId}),")} stopped an event: {evnt.Name}{((int)state == evnt.State ? (source == null ? ", which is the default state for this event." : ", which had already been stopped.") : "")}");
 
             return true;
         }
@@ -215,10 +217,6 @@ namespace ACE.Server.Managers
         public static double NextHotDungeonRoll = 0;
         public static double NextHotDungeonEnd = 0;
 
-        private static double HotDungeonInterval = 7800;
-        private static double HotDungeonDuration = 7200;
-        private static double HotDungeonRollDelay = 1200;
-        private static double HotDungeonChance = 0.33;
         public static void HotDungeonTick(double currentUnixTime)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)

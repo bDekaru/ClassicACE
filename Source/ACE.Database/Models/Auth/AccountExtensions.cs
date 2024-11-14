@@ -41,7 +41,7 @@ namespace ACE.Database.Models.Auth
             }
             else // Account password is using SHA512 salt
             {
-                log.Debug($"{account.AccountName} password verified using SHA512 hash/salt, migrating to bcrypt.");
+                log.DebugFormat("{0} password verified using SHA512 hash/salt, migrating to bcrypt.", account.AccountName);
 
                 var input = GetPasswordHash(account, password);
 
@@ -85,7 +85,7 @@ namespace ACE.Database.Models.Auth
             }
             else if (workFactor > 31)
             {
-                log.Warn("PasswordHashWorkFactor in config greater than minimum value of 31, using 31 and continuing.");
+                log.Warn("PasswordHashWorkFactor in config greater than maximum value of 31, using 31 and continuing.");
                 workFactor = 31;
             }
 

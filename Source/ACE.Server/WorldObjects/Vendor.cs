@@ -494,7 +494,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        private static readonly float closeInterval = 1.5f;
+        private const float closeInterval = 1.5f;
 
         /// <summary>
         /// After a player approaches a vendor, this is called every closeInterval seconds
@@ -1430,7 +1430,7 @@ namespace ACE.Server.WorldObjects
             {
                 foreach (var itemToRemove in itemsToRemove)
                 {
-                    log.Debug($"[VENDOR] Vendor {Name} has discontinued sale of {itemToRemove.Name} and removed it from its UniqueItemsForSale list.");
+                    log.DebugFormat("[VENDOR] Vendor {0} has discontinued sale of {1} and removed it from its UniqueItemsForSale list.", Name, itemToRemove.Name);
                     UniqueItemsForSale.Remove(itemToRemove.Guid);
 
                     itemToRemove.Destroy();     // even though it has already been removed from the db at this point, we want to mark as freed in guid manager now

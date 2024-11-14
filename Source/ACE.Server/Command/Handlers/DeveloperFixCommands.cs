@@ -1323,7 +1323,7 @@ namespace ACE.Server.Command.Handlers
             {
                 CommandHandlerHelper.WriteOutputInfo(session, $"Finding biotas for these wcids");
 
-                var biotas = ctx.Biota.Where(i => weenieEmoteCache.ContainsKey(i.WeenieClassId)).ToList();
+                var biotas = ctx.Biota.AsEnumerable().Where(i => weenieEmoteCache.ContainsKey(i.WeenieClassId)).ToList();
 
                 var distinct = biotas.Select(i => i.WeenieClassId).Distinct();
                 var counts = new Dictionary<uint, uint>();
@@ -1608,10 +1608,10 @@ namespace ACE.Server.Command.Handlers
         }
 
         // head / hands / feet
-        public static readonly int MaxArmorLevel_Extremity = 345;
+        public const int MaxArmorLevel_Extremity = 345;
 
         // everything else
-        public static readonly int MaxArmorLevel_NonExtremity = 315;
+        public const int MaxArmorLevel_NonExtremity = 315;
 
         public static int GetArmorLevel(int armorLevel, EquipMask equipMask, TinkerLog tinkerLog, int numTinkers, int imbuedEffect)
         {
@@ -1671,7 +1671,7 @@ namespace ACE.Server.Command.Handlers
                 }
 
                 // get shard spells
-                var _spells = ctx.BiotaPropertiesSpellBook.Where(i => clothing.ContainsKey(i.ObjectId)).ToList();
+                var _spells = ctx.BiotaPropertiesSpellBook.AsEnumerable().Where(i => clothing.ContainsKey(i.ObjectId)).ToList();
 
                 // filter clothing to those with epics/legendaries
                 var highTierClothing = new Dictionary<uint, int>();
@@ -1695,7 +1695,7 @@ namespace ACE.Server.Command.Handlers
                 }
 
                 // get wield level for these items
-                var wieldLevels = ctx.BiotaPropertiesInt.Where(i => i.Type == (ushort)PropertyInt.WieldDifficulty && highTierClothing.ContainsKey(i.ObjectId)).Select(i => i.ObjectId).ToHashSet();
+                var wieldLevels = ctx.BiotaPropertiesInt.AsEnumerable().Where(i => i.Type == (ushort)PropertyInt.WieldDifficulty && highTierClothing.ContainsKey(i.ObjectId)).Select(i => i.ObjectId).ToHashSet();
 
                 foreach (var kvp in highTierClothing)
                 {
@@ -1722,9 +1722,9 @@ namespace ACE.Server.Command.Handlers
                                 wieldLevel = 180;
                         }
 
-                        ctx.Database.ExecuteSqlRaw($"insert into biota_properties_int set object_Id={objectId}, `type`={(ushort)PropertyInt.WieldRequirements}, value={(int)WieldRequirement.Level};");
-                        ctx.Database.ExecuteSqlRaw($"insert into biota_properties_int set object_Id={objectId}, `type`={(ushort)PropertyInt.WieldSkillType}, value=1;");
-                        ctx.Database.ExecuteSqlRaw($"insert into biota_properties_int set object_Id={objectId}, `type`={(ushort)PropertyInt.WieldDifficulty}, value={wieldLevel};");
+                        ctx.Database.ExecuteSqlInterpolated($"insert into biota_properties_int set object_Id={objectId}, `type`={(ushort)PropertyInt.WieldRequirements}, value={(int)WieldRequirement.Level};");
+                        ctx.Database.ExecuteSqlInterpolated($"insert into biota_properties_int set object_Id={objectId}, `type`={(ushort)PropertyInt.WieldSkillType}, value=1;");
+                        ctx.Database.ExecuteSqlInterpolated($"insert into biota_properties_int set object_Id={objectId}, `type`={(ushort)PropertyInt.WieldDifficulty}, value={wieldLevel};");
                     }
 
                     var item = clothing[objectId];
@@ -2922,6 +2922,67 @@ namespace ACE.Server.Command.Handlers
                 player.SetProperty(PropertyInt.Version, 1);
 
                 player.SaveBiotaToDatabase();
+            }
+        }
+
+        [CommandHandler("verify-beneficial-enchantments", AccessLevel.Admin, CommandHandlerFlag.ConsoleInvoke, "Verifies enchantment registry has correct StatModType for Beneficial spells and optionally fixes")]
+        public static void HandleEnchantments(Session session, params string[] parameters)
+        {
+            var fix = parameters.Length > 0 && parameters[0].Equals("fix");
+            var fixStr = fix ? " -- fixed" : "";
+            var foundIssues = false;
+
+            using (var ctx = new ShardDbContext())
+            {
+                ctx.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
+
+                var numMissingBeneficialFlag = 0;
+                var numValid = 0;
+
+                foreach (var enchantment in ctx.BiotaPropertiesEnchantmentRegistry)
+                {
+                    if (enchantment.StatModType == 0)
+                    {
+                        //numValid++;
+                        continue;
+                    }
+
+                    var spell = new Entity.Spell(enchantment.SpellId);
+
+                    if (spell != null)
+                    {
+                        var statModType = (EnchantmentTypeFlags)enchantment.StatModType;
+
+                        if (spell.IsBeneficial && !statModType.HasFlag(EnchantmentTypeFlags.Beneficial))
+                        {
+                            foundIssues = true;
+
+                            numMissingBeneficialFlag++;
+
+                            if (fix)
+                            {
+                                statModType |= EnchantmentTypeFlags.Beneficial;
+                                enchantment.StatModType = (uint)statModType;
+                            }
+
+                            Console.WriteLine($"Spell {spell.Name} ({spell.Id}) on 0x{enchantment.ObjectId:X8} is missing Beneficial flag{fixStr}");
+                        }
+                        else
+                            numValid++;
+                    }
+                }
+
+                if (!fix && foundIssues)
+                    Console.WriteLine($"Dry run completed. Type 'verify-beneficial-enchantments fix' to fix {numMissingBeneficialFlag:N0} issues.");
+
+                if (fix)
+                {
+                    ctx.SaveChanges();
+                    Console.WriteLine($"Fixed {numMissingBeneficialFlag:N0} incorrect enchantments");
+                }
+
+                if (!foundIssues)
+                    Console.WriteLine($"Verified {ctx.BiotaPropertiesEnchantmentRegistry.Count():N0} enchantments");
             }
         }
     }

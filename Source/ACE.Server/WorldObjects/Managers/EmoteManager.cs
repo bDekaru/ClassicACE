@@ -84,7 +84,7 @@ namespace ACE.Server.WorldObjects.Managers
                     {
                         // ActOnUse delay?
                         var activationTarget = WorldObject.CurrentLandblock?.GetObject(WorldObject.ActivationTarget);
-                        activationTarget?.OnActivate(WorldObject);
+                        activationTarget?.OnActivate(player ?? WorldObject);
                     }
                     else if (WorldObject.GeneratorId.HasValue && WorldObject.GeneratorId > 0) // Fallback to linked generator
                     {
@@ -484,7 +484,7 @@ namespace ACE.Server.WorldObjects.Managers
                 case EmoteType.InqFellowNum:
 
                     // unused in PY16 - ensure # of fellows between min-max?
-                    var result = EmoteCategory.TestNoFellow;
+                    var result = HasValidTestNoFellow(emote.Message) ? EmoteCategory.TestNoFellow : EmoteCategory.NumFellowsFailure;
 
                     if (player?.Fellowship != null)
                     {
@@ -570,8 +570,12 @@ namespace ACE.Server.WorldObjects.Managers
 
                 case EmoteType.InqNumCharacterTitles:
 
-                    //if (player != null)
-                    //InqCategory(player.NumCharacterTitles != 0 ? EmoteCategory.TestSuccess : EmoteCategory.TestFailure, emote);
+                    if (player != null)
+                    {
+                        var numTitles = player.NumCharacterTitles;
+                        success = numTitles != null && numTitles >= (emote.Min ?? int.MinValue) && numTitles <= (emote.Max ?? int.MaxValue);
+                        ExecuteEmoteSet(success ? EmoteCategory.NumCharacterTitlesSuccess : EmoteCategory.NumCharacterTitlesFailure, emote.Message, targetObject, true);
+                    }
                     break;
 
                 case EmoteType.InqOwnsItems:
@@ -1547,7 +1551,7 @@ namespace ACE.Server.WorldObjects.Managers
                     }
 
                 default:
-                    log.Debug($"EmoteManager.Execute - Encountered Unhandled EmoteType {(EmoteType)emote.Type} for {WorldObject.Name} ({WorldObject.WeenieClassId})");
+                    log.DebugFormat("EmoteManager.Execute - Encountered Unhandled EmoteType {0} for {1} ({2})", (EmoteType)emote.Type, WorldObject.Name, WorldObject.WeenieClassId);
                     break;
             }
 
@@ -1789,6 +1793,8 @@ namespace ACE.Server.WorldObjects.Managers
         }
 
         public bool HasValidTestNoQuality(string testName) => GetEmoteSet(EmoteCategory.TestNoQuality, testName) != null;
+
+        public bool HasValidTestNoFellow(string testName) => GetEmoteSet(EmoteCategory.TestNoFellow, testName) != null;
 
         /// <summary>
         /// The maximum animation range of the client

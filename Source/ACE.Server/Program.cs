@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Runtime;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -9,13 +10,14 @@ using log4net;
 using log4net.Config;
 
 using ACE.Common;
+using ACE.Common.Extensions;
 using ACE.Database;
 using ACE.DatLoader;
 using ACE.Server.Command;
 using ACE.Server.Managers;
+using ACE.Server.Mods;
 using ACE.Server.Network.Managers;
 using ACE.Server.Physics;
-using ACE.Server.Mods;
 using ACE.Server.Network;
 
 namespace ACE.Server
@@ -27,7 +29,7 @@ namespace ACE.Server
         /// https://docs.microsoft.com/en-us/windows/desktop/api/timeapi/nf-timeapi-timebeginperiod
         /// Important note: This function affects a global Windows setting. Windows uses the lowest value (that is, highest resolution) requested by any process.
         /// </summary>
-        [DllImport("winmm.dll", EntryPoint="timeBeginPeriod")]
+        [DllImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
         public static extern uint MM_BeginPeriod(uint uMilliseconds);
 
         /// <summary>
@@ -87,7 +89,7 @@ namespace ACE.Server
                         File.Copy(log4netConfigExample, log4netConfig);
                     }
                     else
-                    {                        
+                    {
                         if (!File.Exists(log4netConfigContainer))
                         {
                             Console.WriteLine("log4net Configuration file is missing, ACEmulator is running in a container,  cloning from docker file.");
@@ -128,7 +130,7 @@ namespace ACE.Server
 
             if (IsRunningInContainer)
                 log.Info("ACEmulator is running in a container...");
-            
+
             var configFile = Path.Combine(exeLocation, "Config.js");
             var configConfigContainer = Path.Combine(containerConfigDirectory, "Config.js");
 
@@ -154,6 +156,9 @@ namespace ACE.Server
             log.Info("Initializing ConfigManager...");
             ConfigManager.Initialize();
 
+            log.Info("Initializing ModManager...");
+            ModManager.Initialize();
+
             if (ConfigManager.Config.Server.WorldName != "ACEmulator")
             {
                 consoleTitle = $"{ConfigManager.Config.Server.WorldName} | {consoleTitle}";
@@ -164,7 +169,7 @@ namespace ACE.Server
 
             if (ConfigManager.Config.Offline.PurgeDeletedCharacters)
             {
-                log.Info($"Purging deleted characters, and their possessions, older than {ConfigManager.Config.Offline.PurgeDeletedCharactersDays} days ({DateTime.Now.AddDays(-ConfigManager.Config.Offline.PurgeDeletedCharactersDays)})...");
+                log.Info($"Purging deleted characters, and their possessions, older than {ConfigManager.Config.Offline.PurgeDeletedCharactersDays} days ({DateTime.Now.AddDays(-ConfigManager.Config.Offline.PurgeDeletedCharactersDays).ToCommonString()})...");
                 ShardDatabaseOfflineTools.PurgeCharactersInParallel(ConfigManager.Config.Offline.PurgeDeletedCharactersDays, out var charactersPurged, out var playerBiotasPurged, out var possessionsPurged);
                 log.Info($"Purged {charactersPurged:N0} characters, {playerBiotasPurged:N0} player biotas and {possessionsPurged:N0} possessions.");
             }
@@ -328,15 +333,23 @@ namespace ACE.Server
 
             // Free up memory before the server goes online. This can free up 6 GB+ on larger servers.
             log.Info("Forcing .net garbage collection...");
-            for (int i = 0 ; i < 10 ; i++)
+            for (int i = 0; i < 10; i++)
+            {
+                // https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/fundamentals
+                // https://learn.microsoft.com/en-us/dotnet/api/system.runtime.gcsettings.largeobjectheapcompactionmode
+                GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+
                 GC.Collect();
+            }
 
             // This should be last
             log.Info("Initializing CommandManager...");
             CommandManager.Initialize();
 
-            log.Info("Initializing ModManager...");
-            ModManager.Initialize();
+            //Register mod commands
+            log.Info("Registering ModManager commands...");
+            ModManager.RegisterCommands();
+            ModManager.ListMods();
 
             DiscordChatBridge.Start();
 

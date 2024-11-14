@@ -110,39 +110,42 @@ namespace ACE.Server.Factories
             if (!player.IsOlthoiPlayer)
             {
                 string charGenClothing;
-                if (characterCreateInfo.Appearance.HeadgearStyle < uint.MaxValue) // No headgear is max UINT
+                if (player.Heritage != (int)HeritageGroup.Gearknight) // Gear Knights do not get clothing (pcap verified)
                 {
-                    charGenClothing = $"{sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle)}|{characterCreateInfo.Appearance.HeadgearColor}|{characterCreateInfo.Appearance.HeadgearHue}";
-                    var hat = GetClothingObject(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle), characterCreateInfo.Appearance.HeadgearColor, characterCreateInfo.Appearance.HeadgearHue);
-                    if (hat != null)
-                        player.TryEquipObject(hat, hat.ValidLocations ?? 0);
+                    if (characterCreateInfo.Appearance.HeadgearStyle < uint.MaxValue) // No headgear is max UINT
+                    {
+                        charGenClothing = $"{sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle)}|{characterCreateInfo.Appearance.HeadgearColor}|{characterCreateInfo.Appearance.HeadgearHue}";
+                        var hat = GetClothingObject(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle), characterCreateInfo.Appearance.HeadgearColor, characterCreateInfo.Appearance.HeadgearHue);
+                        if (hat != null)
+                            player.TryEquipObject(hat, hat.ValidLocations ?? 0);
+                        else
+                            player.TryAddToInventory(CreateIOU(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle)));
+                    }
                     else
-                        player.TryAddToInventory(CreateIOU(sex.GetHeadgearWeenie(characterCreateInfo.Appearance.HeadgearStyle)));
+                        charGenClothing = "0|0|0";
+
+                    charGenClothing += $"|{sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle)}|{characterCreateInfo.Appearance.ShirtColor}|{characterCreateInfo.Appearance.ShirtHue}";
+                    var shirt = GetClothingObject(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle), characterCreateInfo.Appearance.ShirtColor, characterCreateInfo.Appearance.ShirtHue);
+                    if (shirt != null)
+                        player.TryEquipObject(shirt, shirt.ValidLocations ?? 0);
+                    else
+                        player.TryAddToInventory(CreateIOU(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle)));
+
+                    charGenClothing += $"|{sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle)}|{characterCreateInfo.Appearance.PantsColor}|{characterCreateInfo.Appearance.PantsHue}";
+                    var pants = GetClothingObject(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle), characterCreateInfo.Appearance.PantsColor, characterCreateInfo.Appearance.PantsHue);
+                    if (pants != null)
+                        player.TryEquipObject(pants, pants.ValidLocations ?? 0);
+                    else
+                        player.TryAddToInventory(CreateIOU(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle)));
+
+                    charGenClothing += $"|{sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle)}|{characterCreateInfo.Appearance.FootwearColor}|{characterCreateInfo.Appearance.FootwearHue}";
+                    var shoes = GetClothingObject(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle), characterCreateInfo.Appearance.FootwearColor, characterCreateInfo.Appearance.FootwearHue);
+                    if (shoes != null)
+                        player.TryEquipObject(shoes, shoes.ValidLocations ?? 0);
+                    else
+                        player.TryAddToInventory(CreateIOU(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle)));
+                    player.ChargenClothing = charGenClothing;
                 }
-                else
-                    charGenClothing = "0|0|0";
-
-                charGenClothing += $"|{sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle)}|{characterCreateInfo.Appearance.ShirtColor}|{characterCreateInfo.Appearance.ShirtHue}";
-                var shirt = GetClothingObject(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle), characterCreateInfo.Appearance.ShirtColor, characterCreateInfo.Appearance.ShirtHue);
-                if (shirt != null)
-                    player.TryEquipObject(shirt, shirt.ValidLocations ?? 0);
-                else
-                    player.TryAddToInventory(CreateIOU(sex.GetShirtWeenie(characterCreateInfo.Appearance.ShirtStyle)));
-
-                charGenClothing += $"|{sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle)}|{characterCreateInfo.Appearance.PantsColor}|{characterCreateInfo.Appearance.PantsHue}";
-                var pants = GetClothingObject(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle), characterCreateInfo.Appearance.PantsColor, characterCreateInfo.Appearance.PantsHue);
-                if (pants != null)
-                    player.TryEquipObject(pants, pants.ValidLocations ?? 0);
-                else
-                    player.TryAddToInventory(CreateIOU(sex.GetPantsWeenie(characterCreateInfo.Appearance.PantsStyle)));
-
-                charGenClothing += $"|{sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle)}|{characterCreateInfo.Appearance.FootwearColor}|{characterCreateInfo.Appearance.FootwearHue}";
-                var shoes = GetClothingObject(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle), characterCreateInfo.Appearance.FootwearColor, characterCreateInfo.Appearance.FootwearHue);
-                if (shoes != null)
-                    player.TryEquipObject(shoes, shoes.ValidLocations ?? 0);
-                else
-                    player.TryAddToInventory(CreateIOU(sex.GetFootwearWeenie(characterCreateInfo.Appearance.FootwearStyle)));
-                player.ChargenClothing = charGenClothing;
 
                 string templateName = heritageGroup.Templates[characterCreateInfo.TemplateOption].Name;
                 player.SetProperty(PropertyString.Template, templateName);

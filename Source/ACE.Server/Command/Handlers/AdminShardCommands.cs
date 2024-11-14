@@ -2,6 +2,7 @@ using System;
 
 using log4net;
 
+using ACE.Common.Extensions;
 using ACE.Entity.Enum;
 using ACE.Server.Managers;
 using ACE.Server.Network;
@@ -29,7 +30,7 @@ namespace ACE.Server.Command.Handlers
         public static void HandleCancelShutdown(Session session, params string[] parameters)
         {
             var adminName = (session == null) ? "CONSOLE" : session.Player.Name;
-            var msg = $"{adminName} has requested the pending shut down @ {ServerManager.ShutdownTime.ToLocalTime()} ({ServerManager.ShutdownTime} UTC) be cancelled.";
+            var msg = $"{adminName} has requested the pending shut down @ {ServerManager.ShutdownTime.ToLocalTime().ToCommonString()} ({ServerManager.ShutdownTime.ToCommonString()} UTC) be cancelled.";
             log.Info(msg);
             PlayerManager.BroadcastToAuditChannel(session?.Player, msg);
 
@@ -97,6 +98,12 @@ namespace ACE.Server.Command.Handlers
             "\tSet the shutdown delay in seconds with @set-shutdown-interval < 0-99999 >")]
         public static void ShutdownServer(Session session, params string[] parameters)
         {
+            if (ServerManager.ShutdownInitiated)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "Shutdown is already in progress.", ChatMessageType.Broadcast);
+                return;
+            }
+
             var adminText = "";
             if (parameters.Length > 0)
                 adminText = string.Join(" ", parameters);
@@ -107,9 +114,9 @@ namespace ACE.Server.Command.Handlers
             var timeTillShutdown = TimeSpan.FromSeconds(ServerManager.ShutdownInterval);
             var timeRemaining = "The server will shut down in " + (timeTillShutdown.TotalSeconds > 120 ? $"{(int)timeTillShutdown.TotalMinutes} minutes." : $"{timeTillShutdown.TotalSeconds} seconds.");
 
-            log.Info($"{adminName} initiated a complete server shutdown @ {DateTime.Now} ({DateTime.UtcNow} UTC)");
+            log.Info($"{adminName} initiated a complete server shutdown @ {DateTime.Now.ToCommonString()} ({DateTime.UtcNow.ToCommonString()} UTC)");
             log.Info(timeRemaining);
-            PlayerManager.BroadcastToAuditChannel(session?.Player, $"{adminName} initiated a complete server shutdown @ {DateTime.Now} ({DateTime.UtcNow} UTC)");
+            PlayerManager.BroadcastToAuditChannel(session?.Player, $"{adminName} initiated a complete server shutdown @ {DateTime.Now.ToCommonString()} ({DateTime.UtcNow.ToCommonString()} UTC)");
 
             if (adminText.Length > 0)
             {
@@ -126,7 +133,7 @@ namespace ACE.Server.Command.Handlers
             if (adminName.Equals("CONSOLE"))
                 adminName = "System";
 
-            var genericMsgToPlayers = $"Broadcast from {(hideName ? "System": $"{adminName}")}> {(timeTillShutdown.TotalMinutes > 1.5 ? "ATTENTION" : "WARNING")} - This Asheron's Call Server is shutting down in {time}.{(timeTillShutdown.TotalMinutes <= 3 ? " Please log out." : "")}";
+            var genericMsgToPlayers = $"Broadcast from {(hideName ? "System": $"{adminName}")}> {(timeTillShutdown.TotalMinutes > 1.5 ? "ATTENTION" : "WARNING")} - This Asheron's Call Server will be shutting down in {time}{(sdt.TotalMinutes <= 1 ? "!" : ".")}{(timeTillShutdown.TotalMinutes <= 3 ? $" Please log out{(sdt.TotalMinutes <= 1 ? "!" : ".")}" : "")}";
 
             if (sdt.TotalMilliseconds == 0)
                 genericMsgToPlayers = $"Broadcast from {(hideName ? "System" : $"{adminName}")}> ATTENTION - This Asheron's Call Server is shutting down NOW!!!!";

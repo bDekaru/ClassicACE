@@ -193,7 +193,7 @@ namespace ACE.Server.WorldObjects
             {
                 var spellWords = spell._spellBase.GetSpellWords(DatManager.PortalDat.SpellComponentsTable);
                 if (!string.IsNullOrWhiteSpace(spellWords))
-                    EnqueueBroadcast(new GameMessageHearSpeech(spellWords, Name, Guid.Full, ChatMessageType.Spellcasting), LocalBroadcastRange, ChatMessageType.Spellcasting);
+                    EnqueueBroadcast(new GameMessageHearSpeech(spellWords, Name, Guid.Full, ChatMessageType.Spellcasting), LocalBroadcastRange);
             }
 
             var preCastTime = PreCastMotion(AttackTarget);
@@ -239,9 +239,9 @@ namespace ACE.Server.WorldObjects
             return true;
         }
 
-        private static readonly float PreCastSpeed = 2.0f;
-        private static readonly float PostCastSpeed = 1.0f;
-        private static readonly float PostCastSpeed_Ranged = 1.66f;  // ??
+        private const float PreCastSpeed = 2.0f;
+        private const float PostCastSpeed = 1.0f;
+        private const float PostCastSpeed_Ranged = 1.66f;  // ??
 
         /// <summary>
         /// Perform the first part of monster spell casting animation - spreading arms out

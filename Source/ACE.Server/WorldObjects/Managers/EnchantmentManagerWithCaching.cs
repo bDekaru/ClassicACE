@@ -47,9 +47,9 @@ namespace ACE.Server.WorldObjects.Managers
         /// <summary>
         /// Add/update an enchantment in this object's registry
         /// </summary>
-        public override AddEnchantmentResult Add(Spell spell, WorldObject caster, WorldObject weapon, bool equip = false)
+        public override AddEnchantmentResult Add(Spell spell, WorldObject caster, WorldObject weapon, bool equip = false, bool isWeaponSpell = false)
         {
-            var result = base.Add(spell, caster, weapon, equip);
+            var result = base.Add(spell, caster, weapon, equip, isWeaponSpell);
 
             ClearCache();
 
@@ -80,12 +80,23 @@ namespace ACE.Server.WorldObjects.Managers
         }
 
         /// <summary>
-        /// Removes all enchantments except for vitae
+        /// Removes all enchantments except for vitae and enchantments from items
         /// Called on player death
         /// </summary>
         public override void RemoveAllEnchantments()
         {
             base.RemoveAllEnchantments();
+
+            ClearCache();
+        }
+
+        /// <summary>
+        /// Removes all enchantments except for beneficial enchantments, vitae and enchantments from items
+        /// Called on player death
+        /// </summary>
+        public override void RemoveAllBadEnchantments()
+        {
+            base.RemoveAllBadEnchantments();
 
             ClearCache();
         }

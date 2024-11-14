@@ -520,7 +520,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// PvP damaged is halved, automatically displayed in the client
         /// </summary>
-        public static readonly float ElementalDamageBonusPvPReduction = 0.5f;
+        public const float ElementalDamageBonusPvPReduction = 0.5f;
 
         /// <summary>
         /// Returns a multiplicative elemental damage modifier for the magic caster weapon type
@@ -673,7 +673,7 @@ namespace ACE.Server.WorldObjects
             var rendDamageType = GetRendDamageType(damageType);
 
             if (rendDamageType == ImbuedEffectType.Undef)
-                log.Debug($"{wielder.Name}.GetRendDamageType({damageType}) unexpected damage type for {weapon.Name} ({weapon.Guid})");
+                log.DebugFormat("{0}.GetRendDamageType({1}) unexpected damage type for {2} ({3})", wielder.Name, damageType, weapon.Name, weapon.Guid);
 
             if (rendDamageType != ImbuedEffectType.Undef && weapon.HasImbuedEffect(rendDamageType) && skill != null)
             {
@@ -721,7 +721,7 @@ namespace ACE.Server.WorldObjects
                 case DamageType.Nether:
                     return ImbuedEffectType.NetherRending;
                 default:
-                    //log.Debug($"GetRendDamageType({damageType}) unexpected damage type");
+                    //log.DebugFormat("GetRendDamageType({0}) unexpected damage type", damageType);
                     return ImbuedEffectType.Undef;
             }
         }
@@ -1321,7 +1321,7 @@ namespace ACE.Server.WorldObjects
                     return ImbuedSkillType.Magic;
 
                 default:
-                    log.Debug($"WorldObject_Weapon.GetImbuedSkillType({skill?.Skill}): unexpected skill");
+                    log.DebugFormat("WorldObject_Weapon.GetImbuedSkillType({0}): unexpected skill", skill?.Skill);
                     return ImbuedSkillType.Undef;
             }
         }
@@ -1736,7 +1736,7 @@ namespace ACE.Server.WorldObjects
         // - 1/3 - 2/3 sec. Power-up Time = High Backhand
         // -       2/3 sec+ Power-up Time = High Slash
 
-        public static readonly float ThrustThreshold = 0.33f;
+        public const float ThrustThreshold = 0.33f;
 
         /// <summary>
         /// Returns TRUE if this is a thrust/slash weapon,

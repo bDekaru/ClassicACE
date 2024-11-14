@@ -2,11 +2,10 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
-using ACE.Common;
 
-using DouglasCrockford.JsMin;
-using Newtonsoft.Json;
+using ACE.Common;
 
 namespace ACE.Server
 {
@@ -15,57 +14,58 @@ namespace ACE.Server
         private static void DoOutOfBoxSetup(string configFile)
         {
             var exeLocation = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            string configJsExample;
+
             Ruleset ruleset = Ruleset.Infiltration;
-            if (!IsRunningInContainer)
+            Console.Write($"Enter the ruletset for your World (options: EoR, Infiltration, CustomDM (default: Infiltration): ");
+            var rulesetString = Console.ReadLine();
+            if (!string.IsNullOrWhiteSpace(rulesetString))
             {
-                Console.WriteLine("config.js Configuration file is missing,  cloning from example file.");
-                Console.WriteLine();
-
-                Console.Write($"Enter the ruletset for your World (options: EoR, Infiltration, CustomDM (default: Infiltration): ");
-                var rulesetString = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(rulesetString))
-                {
-                    rulesetString = rulesetString.Trim();
-                    if(!Enum.TryParse(rulesetString, true, out ruleset))
-                        Console.Write($"Invalid ruleset, defaulting to Infiltration.");
-                }
-                else
+                rulesetString = rulesetString.Trim();
+                if (!Enum.TryParse(rulesetString, true, out ruleset))
                     Console.Write($"Invalid ruleset, defaulting to Infiltration.");
-                Console.WriteLine();
+            }
+            else
+                Console.Write($"Invalid ruleset, defaulting to Infiltration.");
+            Console.WriteLine();
 
-                string configJsExample;
-                switch (ruleset)
-                {
-                    default:
-                    case Ruleset.Infiltration:
-                        configJsExample = Path.Combine(exeLocation, "Config.js.Infiltration.example");
-                        break;
-                    case Ruleset.CustomDM:
-                        configJsExample = Path.Combine(exeLocation, "Config.js.CustomDM.example");
-                        break;
-                    case Ruleset.EoR:
-                        configJsExample = Path.Combine(exeLocation, "Config.js.example");
-                        break;
-                }
+            switch (ruleset)
+            {
+                default:
+                case Ruleset.Infiltration:
+                    configJsExample = Path.Combine(exeLocation, "Config.js.Infiltration.example");
+                    break;
+                case Ruleset.CustomDM:
+                    configJsExample = Path.Combine(exeLocation, "Config.js.CustomDM.example");
+                    break;
+                case Ruleset.EoR:
+                    configJsExample = Path.Combine(exeLocation, "Config.js.example");
+                    break;
+            }
 
-                var exampleFile = new FileInfo(configJsExample);
-                if (!exampleFile.Exists)
-                {
-                    log.Error($"{configJsExample} Configuration file is missing.  Please copy the file {configJsExample} to config.js and edit it to match your needs before running ACE.");
-                    throw new Exception("missing config.js configuration file");
-                }
-
-                File.Copy(configJsExample, configFile, true);
+            MasterConfiguration config;
+            var exampleFile = new FileInfo(configJsExample);
+            if (!exampleFile.Exists)
+            {
+                config = new MasterConfiguration();
             }
             else
             {
-                Console.WriteLine("config.js Configuration file is missing, ACEmulator is running in a container,  cloning from docker file.");
-                var configJsDocker = Path.Combine(exeLocation, "Config.js.docker");
-                File.Copy(configJsDocker, configFile, true);
-            }
+                if (!IsRunningInContainer)
+                {
+                    Console.WriteLine("config.js Configuration file is missing, cloning from example file.");
+                    File.Copy(configJsExample, configFile, true);
+                }
+                else
+                {
+                    Console.WriteLine("config.js Configuration file is missing, ACEmulator is running in a container, cloning from docker file.");
+                    var configJsDocker = Path.Combine(exeLocation, "Config.js.docker");
+                    File.Copy(configJsDocker, configFile, true);
+                }
 
-            var fileText = File.ReadAllText(configFile);
-            var config = JsonConvert.DeserializeObject<MasterConfiguration>(new JsMinifier().Minify(fileText));
+                var fileText = File.ReadAllText(configFile);
+                config = JsonSerializer.Deserialize<MasterConfiguration>(fileText, ConfigManager.SerializerOptions);
+            }
 
             Console.WriteLine("Performing setup for ACEmulator...");
             Console.WriteLine();
@@ -75,9 +75,17 @@ namespace ACE.Server
             Console.WriteLine();
             Console.WriteLine();
 
+            var variable = string.Empty;
+            var nonInteractiveSetup = Convert.ToBoolean(Environment.GetEnvironmentVariable("ACE_NONINTERACTIVE_SETUP"));
+
             Console.Write($"Enter the name for your World (default: \"{config.Server.WorldName}\"): ");
-            var variable = Console.ReadLine();
-            if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_WORLD_NAME");
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = Environment.GetEnvironmentVariable("ACE_WORLD_NAME");
+                Console.WriteLine($"{variable}");
+            }
             if (!string.IsNullOrWhiteSpace(variable))
                 config.Server.WorldName = variable.Trim();
             Console.WriteLine();
@@ -88,13 +96,25 @@ namespace ACE.Server
             Console.WriteLine();
             Console.WriteLine();
             Console.Write($"Enter the Host address for your World (default: \"{config.Server.Network.Host}\"): ");
-            variable = Console.ReadLine();
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = "0.0.0.0";
+                Console.WriteLine($"{variable}");
+            }
             if (!string.IsNullOrWhiteSpace(variable))
                 config.Server.Network.Host = variable.Trim();
             Console.WriteLine();
 
             Console.Write($"Enter the Port for your World (default: \"{config.Server.Network.Port}\"): ");
-            variable = Console.ReadLine();
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = "9000";
+                Console.WriteLine($"{variable}");
+            }
             if (!string.IsNullOrWhiteSpace(variable))
                 config.Server.Network.Port = Convert.ToUInt32(variable.Trim());
             Console.WriteLine();
@@ -103,8 +123,13 @@ namespace ACE.Server
             Console.WriteLine();
 
             Console.Write($"Enter the directory location for your DAT files (default: \"{config.Server.DatFilesDirectory}\"): ");
-            variable = Console.ReadLine();
-            if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_DAT_FILES_DIRECTORY");
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = Environment.GetEnvironmentVariable("ACE_DAT_FILES_DIRECTORY");
+                Console.WriteLine($"{variable}");
+            }
             if (!string.IsNullOrWhiteSpace(variable))
             {
                 var path = Path.GetFullPath(variable.Trim());
@@ -126,22 +151,37 @@ namespace ACE.Server
             Console.WriteLine();
 
             Console.Write($"Enter the database name for your authentication database (default: \"{config.MySql.Authentication.Database}\"): ");
-            variable = Console.ReadLine();
-            if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_AUTH_DATABASE_NAME");
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = Environment.GetEnvironmentVariable("ACE_SQL_AUTH_DATABASE_NAME");
+                Console.WriteLine($"{variable}");
+            }
             if (!string.IsNullOrWhiteSpace(variable))
                 config.MySql.Authentication.Database = variable.Trim();
             Console.WriteLine();
 
             Console.Write($"Enter the database name for your shard database (default: \"{config.MySql.Shard.Database}\"): ");
-            variable = Console.ReadLine();
-            if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_SHARD_DATABASE_NAME");
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = Environment.GetEnvironmentVariable("ACE_SQL_SHARD_DATABASE_NAME");
+                Console.WriteLine($"{variable}");
+            }
             if (!string.IsNullOrWhiteSpace(variable))
                 config.MySql.Shard.Database = variable.Trim();
             Console.WriteLine();
 
             Console.Write($"Enter the database name for your world database (default: \"{config.MySql.World.Database}\"): ");
-            variable = Console.ReadLine();
-            if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_WORLD_DATABASE_NAME");
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = Environment.GetEnvironmentVariable("ACE_SQL_WORLD_DATABASE_NAME");
+                Console.WriteLine($"{variable}");
+            }
             if (!string.IsNullOrWhiteSpace(variable))
                 config.MySql.World.Database = variable.Trim();
             Console.WriteLine();
@@ -149,8 +189,13 @@ namespace ACE.Server
             Console.WriteLine();
             Console.WriteLine();
             Console.Write("Typically, all three databases will be on the same SQL server, is this how you want to proceed? (Y/n) ");
-            variable = Console.ReadLine();
-            if (IsRunningInContainer) variable = "n";
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = "n";
+                Console.WriteLine($"{variable}");
+            }
             if (!variable.Equals("n", StringComparison.OrdinalIgnoreCase) && !variable.Equals("no", StringComparison.OrdinalIgnoreCase))
             {
                 Console.Write($"Enter the Host address for your SQL server (default: \"{config.MySql.World.Host}\"): ");
@@ -176,43 +221,73 @@ namespace ACE.Server
             else
             {
                 Console.Write($"Enter the Host address for your authentication database (default: \"{config.MySql.Authentication.Host}\"): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_AUTH_DATABASE_HOST");
+                if (!nonInteractiveSetup)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Environment.GetEnvironmentVariable("ACE_SQL_AUTH_DATABASE_HOST");
+                    Console.WriteLine($"{variable}");
+                }
                 if (!string.IsNullOrWhiteSpace(variable))
                     config.MySql.Authentication.Host = variable.Trim();
                 Console.WriteLine();
 
                 Console.Write($"Enter the Port for your authentication database (default: \"{config.MySql.Authentication.Port}\"): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_AUTH_DATABASE_PORT");
+                if (!nonInteractiveSetup)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Environment.GetEnvironmentVariable("ACE_SQL_AUTH_DATABASE_PORT");
+                    Console.WriteLine($"{variable}");
+                }
                 if (!string.IsNullOrWhiteSpace(variable))
                     config.MySql.Authentication.Port = Convert.ToUInt32(variable.Trim());
                 Console.WriteLine();
 
                 Console.Write($"Enter the Host address for your shard database (default: \"{config.MySql.Shard.Host}\"): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_SHARD_DATABASE_HOST");
+                if (!IsRunningInContainer)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Environment.GetEnvironmentVariable("ACE_SQL_SHARD_DATABASE_HOST");
+                    Console.WriteLine($"{variable}");
+                }
                 if (!string.IsNullOrWhiteSpace(variable))
                     config.MySql.Shard.Host = variable.Trim();
                 Console.WriteLine();
 
                 Console.Write($"Enter the Port for your shard database (default: \"{config.MySql.Shard.Port}\"): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_SHARD_DATABASE_PORT");
+                if (!nonInteractiveSetup)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Environment.GetEnvironmentVariable("ACE_SQL_SHARD_DATABASE_PORT");
+                    Console.WriteLine($"{variable}");
+                }
                 if (!string.IsNullOrWhiteSpace(variable))
                     config.MySql.Shard.Port = Convert.ToUInt32(variable.Trim());
                 Console.WriteLine();
 
                 Console.Write($"Enter the Host address for your world database (default: \"{config.MySql.World.Host}\"): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_WORLD_DATABASE_HOST");
+                if (!nonInteractiveSetup)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Environment.GetEnvironmentVariable("ACE_SQL_WORLD_DATABASE_HOST");
+                    Console.WriteLine($"{variable}");
+                }
                 if (!string.IsNullOrWhiteSpace(variable))
                     config.MySql.World.Host = variable.Trim();
                 Console.WriteLine();
 
                 Console.Write($"Enter the Port for your world database (default: \"{config.MySql.World.Port}\"): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("ACE_SQL_WORLD_DATABASE_PORT");
+                if (!nonInteractiveSetup)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Environment.GetEnvironmentVariable("ACE_SQL_WORLD_DATABASE_PORT");
+                    Console.WriteLine($"{variable}");
+                }
                 if (!string.IsNullOrWhiteSpace(variable))
                     config.MySql.World.Port = Convert.ToUInt32(variable.Trim());
                 Console.WriteLine();
@@ -221,13 +296,23 @@ namespace ACE.Server
             Console.WriteLine();
             Console.WriteLine();
             Console.Write("Typically, all three databases will be on the using the same SQL server credentials, is this how you want to proceed? (Y/n) ");
-            variable = Console.ReadLine();
-            if (IsRunningInContainer) variable = "y";
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            else
+            {
+                variable = "y";
+                Console.WriteLine($"{variable}");
+            }
             if (!variable.Equals("n", StringComparison.OrdinalIgnoreCase) && !variable.Equals("no", StringComparison.OrdinalIgnoreCase))
             {
                 Console.Write($"Enter the username for your SQL server (default: \"{config.MySql.World.Username}\"): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("MYSQL_USER");
+                if (!nonInteractiveSetup)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Environment.GetEnvironmentVariable("MYSQL_USER");
+                    Console.WriteLine($"{variable}");
+                }
                 if (!string.IsNullOrWhiteSpace(variable))
                 {
                     config.MySql.Authentication.Username = variable.Trim();
@@ -237,8 +322,13 @@ namespace ACE.Server
                 Console.WriteLine();
 
                 Console.Write($"Enter the password for your SQL server (default: \"{config.MySql.World.Password}\"): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Environment.GetEnvironmentVariable("MYSQL_PASSWORD");
+                if (!nonInteractiveSetup)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Environment.GetEnvironmentVariable("MYSQL_PASSWORD");
+                    Console.WriteLine($"{variable}");
+                }
                 if (!string.IsNullOrWhiteSpace(variable))
                 {
                     config.MySql.Authentication.Password = variable.Trim();
@@ -284,15 +374,10 @@ namespace ACE.Server
                     config.MySql.World.Password = variable.Trim();
             }
 
-            Console.WriteLine("commiting configuration to memory...");
-            using (StreamWriter file = File.CreateText(configFile))
-            {
-                JsonSerializer serializer = new JsonSerializer();
-                serializer.Formatting = Formatting.Indented;
-                //serializer.NullValueHandling = NullValueHandling.Ignore;
-                //serializer.DefaultValueHandling = DefaultValueHandling.Ignore;
-                serializer.Serialize(file, config);
-            }
+            Console.WriteLine("commiting configuration to disk...");
+
+            var jsonString = JsonSerializer.Serialize(config, ConfigManager.SerializerOptions);
+            File.WriteAllText(configFile, jsonString);
 
 
             Console.WriteLine();
@@ -300,10 +385,15 @@ namespace ACE.Server
             Console.WriteLine();
             Console.WriteLine();
             Console.Write("Do you want to ACEmulator to attempt to initialize your SQL databases? This will erase any existing ACEmulator specific databases that may already exist on the server (Y/n): ");
-            variable = Console.ReadLine();
-            var sqlConnectInfo = $"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120";
+            if (!nonInteractiveSetup)
+                variable = Console.ReadLine();
+            var sqlConnectInfo = $"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};{config.MySql.World.ConnectionOptions}";
             var sqlConnect = new MySqlConnector.MySqlConnection(sqlConnectInfo);
-            if (IsRunningInContainer) variable = Convert.ToBoolean(Environment.GetEnvironmentVariable("ACE_SQL_INITIALIZE_DATABASES")) ? "y" : "n";
+            if (nonInteractiveSetup)
+            {
+                variable = Convert.ToBoolean(Environment.GetEnvironmentVariable("ACE_SQL_INITIALIZE_DATABASES")) ? "y" : "n";
+                Console.WriteLine($"{variable}");
+            }
             if (!variable.Equals("n", StringComparison.OrdinalIgnoreCase) && !variable.Equals("no", StringComparison.OrdinalIgnoreCase))
             {
                 Console.WriteLine();
@@ -313,7 +403,7 @@ namespace ACE.Server
                 {
                     try
                     {
-                        using (var sqlTestConnection = new MySqlConnector.MySqlConnection($"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120"))
+                        using (var sqlTestConnection = new MySqlConnector.MySqlConnection($"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};{config.MySql.World.ConnectionOptions}"))
                         {
                             Console.Write(".");
                             sqlTestConnection.Open();
@@ -331,8 +421,9 @@ namespace ACE.Server
 
                 if (IsRunningInContainer)
                 {
+                    // if using our supplied docker compose file which includes mysql server, mysql is initialized with a test database called ace%, we will delete this database if it exists
                     Console.Write("Clearing out temporary ace% database .... ");
-                    var sqlDBFile = "DROP DATABASE `ace%`;";
+                    var sqlDBFile = "DROP DATABASE IF EXISTS `ace%`;";
                     var script = new MySqlConnector.MySqlCommand(sqlDBFile, sqlConnect);
 
                     Console.Write($"Importing into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} .... ");
@@ -346,8 +437,6 @@ namespace ACE.Server
                     }
                     Console.WriteLine(" done!");
                 }
-
-                Console.WriteLine("Searching for base SQL scripts .... ");
 
                 string databaseSetupScriptsPath;
                 string databaseDefaultNameAuth;
@@ -376,6 +465,7 @@ namespace ACE.Server
                         break;
                 }
 
+                Console.WriteLine("Searching for base SQL scripts .... ");
                 foreach (var file in new DirectoryInfo(databaseSetupScriptsPath).GetFiles("*.sql").OrderBy(f => f.Name))
                 {
                     Console.Write($"Found {file.Name} .... ");
@@ -383,16 +473,16 @@ namespace ACE.Server
                     switch (file.Name)
                     {
                         case "AuthenticationBase.sql":
-                            sqlConnectInfo = $"server={config.MySql.Authentication.Host};port={config.MySql.Authentication.Port};user={config.MySql.Authentication.Username};password={config.MySql.Authentication.Password};DefaultCommandTimeout=120";
+                            sqlConnectInfo = $"server={config.MySql.Authentication.Host};port={config.MySql.Authentication.Port};user={config.MySql.Authentication.Username};password={config.MySql.Authentication.Password};{config.MySql.Shard.ConnectionOptions}";
                             sqlDBFile = sqlDBFile.Replace(databaseDefaultNameAuth, config.MySql.Authentication.Database);
                             break;
                         case "ShardBase.sql":
-                            sqlConnectInfo = $"server={config.MySql.Shard.Host};port={config.MySql.Shard.Port};user={config.MySql.Shard.Username};password={config.MySql.Shard.Password};DefaultCommandTimeout=120";
+                            sqlConnectInfo = $"server={config.MySql.Shard.Host};port={config.MySql.Shard.Port};user={config.MySql.Shard.Username};password={config.MySql.Shard.Password};{config.MySql.Shard.ConnectionOptions}";
                             sqlDBFile = sqlDBFile.Replace(databaseDefaultNameShard, config.MySql.Shard.Database);
                             break;
                         case "WorldBase.sql":
                         default:
-                            //sqlConnectInfo = $"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};DefaultCommandTimeout=120";
+                            //sqlConnectInfo = $"server={config.MySql.World.Host};port={config.MySql.World.Port};user={config.MySql.World.Username};password={config.MySql.World.Password};{config.MySql.Shard.ConnectionOptions}";
                             sqlDBFile = sqlDBFile.Replace(databaseDefaultNameWorld, config.MySql.World.Database);
                             break;
                     }
@@ -430,8 +520,13 @@ namespace ACE.Server
                 Console.WriteLine();
                 Console.WriteLine();
                 Console.Write("Do you want to download the latest world database and import it? (Y/n): ");
-                variable = Console.ReadLine();
-                if (IsRunningInContainer) variable = Convert.ToBoolean(Environment.GetEnvironmentVariable("ACE_SQL_DOWNLOAD_LATEST_WORLD_RELEASE")) ? "y" : "n";
+                if (!nonInteractiveSetup)
+                    variable = Console.ReadLine();
+                else
+                {
+                    variable = Convert.ToBoolean(Environment.GetEnvironmentVariable("ACE_SQL_DOWNLOAD_LATEST_WORLD_RELEASE")) ? "y" : "n";
+                    Console.WriteLine($"{variable}");
+                }
                 if (!variable.Equals("n", StringComparison.OrdinalIgnoreCase) && !variable.Equals("no", StringComparison.OrdinalIgnoreCase))
                 {
                     Console.WriteLine();
@@ -449,10 +544,10 @@ namespace ACE.Server
                     using var client = new WebClient();
                     var html = client.GetStringFromURL(url).Result;
 
-                    dynamic json = JsonConvert.DeserializeObject(html);
-                    string tag = json.tag_name;
-                    string dbURL = json.assets[0].browser_download_url;
-                    string dbFileName = json.assets[0].name;
+                    var json = JsonSerializer.Deserialize<JsonElement>(html);
+                    string tag = json.GetProperty("tag_name").GetString();
+                    string dbURL = json.GetProperty("assets")[0].GetProperty("browser_download_url").GetString();
+                    string dbFileName = json.GetProperty("assets")[0].GetProperty("name").GetString();
 
                     Console.WriteLine($"Found {tag} !");
 
@@ -468,12 +563,12 @@ namespace ACE.Server
                     File.Delete(dbFileName);
                     Console.WriteLine("Deleted!");
 
-                var sqlFile = dbFileName.Substring(0, dbFileName.Length - 4);
-                Console.Write($"Importing {sqlFile} into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} (This will take a while, please be patient) .... ");
-                using (var sr = File.OpenText(sqlFile))
-                {
-                    var line = string.Empty;
-                    var completeSQLline = string.Empty;
+                    var sqlFile = dbFileName.Substring(0, dbFileName.Length - 4);
+                    Console.Write($"Importing {sqlFile} into SQL server at {config.MySql.World.Host}:{config.MySql.World.Port} (This will take a while, please be patient) .... ");
+                    using (var sr = File.OpenText(sqlFile))
+                    {
+                        var line = string.Empty;
+                        var completeSQLline = string.Empty;
 
                         var dbname = config.MySql.World.Database;
 
@@ -485,13 +580,13 @@ namespace ACE.Server
                             {
                                 completeSQLline += line + Environment.NewLine;
 
-                            var script = new MySqlConnector.MySqlCommand(completeSQLline, sqlConnect);
-                            try
-                            {
-                                ExecuteScript(script);
-                            }
-                            catch (MySqlConnector.MySqlException)
-                            {
+                                var script = new MySqlConnector.MySqlCommand(completeSQLline, sqlConnect);
+                                try
+                                {
+                                    ExecuteScript(script);
+                                }
+                                catch (MySqlConnector.MySqlException)
+                                {
 
                                 }
                                 completeSQLline = string.Empty;

@@ -21,6 +21,7 @@ using ACE.Server.Factories;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Weenie = ACE.Entity.Models.Weenie;
 
 namespace ACE.Server.Managers
@@ -87,7 +88,7 @@ namespace ACE.Server.Managers
             }
 
             if (recipe.IsTinkering())
-                log.Debug($"[TINKERING] {player.Name}.UseObjectOnTarget({source.NameWithMaterial}, {target.NameWithMaterial}) | Status: {(confirmed ? "" : "un")}confirmed");
+                log.DebugFormat("[TINKERING] {0}.UseObjectOnTarget({1}, {2}) | Status: {3}confirmed", player.Name, source.NameWithMaterial, target.NameWithMaterial, (confirmed ? "" : "un"));
 
             var percentSuccess = GetRecipeChance(player, source, target, recipe);
 
@@ -1214,7 +1215,8 @@ namespace ACE.Server.Managers
 
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat(message, ChatMessageType.Craft));
 
-                log.Debug($"[CRAFTING] {player.Name} used {source.NameWithMaterial} on {target.NameWithMaterial} {(success ? "" : "un")}successfully. {(destroySource ? $"| {source.NameWithMaterial} was destroyed " : "")}{(destroyTarget ? $"| {target.NameWithMaterial} was destroyed " : "")}| {message}");
+                if (log.IsDebugEnabled)
+                    log.Debug($"[CRAFTING] {player.Name} used {source.NameWithMaterial} on {target.NameWithMaterial} {(success ? "" : "un")}successfully. {(destroySource ? $"| {source.NameWithMaterial} was destroyed " : "")}{(destroyTarget ? $"| {target.NameWithMaterial} was destroyed " : "")}| {message}");
             }
             else
                 BroadcastTinkering(player, source, target, successChance, success);
@@ -1224,15 +1226,27 @@ namespace ACE.Server.Managers
 
         public static void BroadcastTinkering(Player player, WorldObject tool, WorldObject target, double chance, bool success)
         {
+            // retail AC had some inconsistency with respect to the messages broadcast by tinkering.
+            //
+            // Largely this revolved around the name of the weenies that represented each of the salvage bags.
+            // First, there were name changes that were a result of the client side pre-pending of material type which resulted in bags being named "Salvage", "Salvaged"
+            // Second, these bags that were generated from loot by players always ended with the number of materials in the bag, such as (100), (88), (1)
+            // while non-lootgen bags did not include the number, so the name of the bag when displayed or broadcast varied like "Steel Salvage (100)", "Steel Salvaged (100)", "Steel Salvage"
+            // Third, Foolproof bags, again depending on weenie names, also had their own variations which resulted in display names like "Foolproof Black Garnet Gem", "Zircon Foolproof Zircon", "Imperial Topaz Foolproof Imperial Topaz"
+            // in many cases, there are multiple weenies of a particular salvage type, used by various systems, which resulted in each tinker operation having varied output even when doing essentially the same thing
+            // Finally, items that were inscribed were surprisingly identified in the broadcast like "Reed Shark Hide Studded Leather Sleeves inscribed by Callaway", "Copper Frost Bow inscribed by Mini Bonsai"
+            //
+            // ACE output, as seen below, has for the most part standardized the message due to weenie name changes, salvage coding and recipe handling differences
+            // 
             var sourceName = Regex.Replace(tool.NameWithMaterial, @" \(\d+\)$", "");
 
-            // send local broadcast
-            if (success)
-                player.EnqueueBroadcast(new GameMessageSystemChat($"{player.Name} successfully applies the {sourceName} (workmanship {(tool.Workmanship ?? 0):#.00}) to the {target.NameWithMaterial}.", ChatMessageType.Craft), WorldObject.LocalBroadcastRange, ChatMessageType.Craft);
-            else
-                player.EnqueueBroadcast(new GameMessageSystemChat($"{player.Name} fails to apply the {sourceName} (workmanship {(tool.Workmanship ?? 0):#.00}) to the {target.NameWithMaterial}. The target is destroyed.", ChatMessageType.Craft), WorldObject.LocalBroadcastRange, ChatMessageType.Craft);
+            var msg = $"{player.Name} {(success ? "successfully applies" : "fails to apply")} the {sourceName} (workmanship {(tool.Workmanship ?? 0):#.00}) to the {target.NameWithMaterial}{((target.Inscription != null && target.ScribeName != null) ? $" inscribed by {target.ScribeName}" : "")}.{(!success ? " The target is destroyed." : "")}";
 
-            log.Debug($"[TINKERING] {player.Name} {(success ? "successfully applies" : "fails to apply")} the {sourceName} (workmanship {(tool.Workmanship ?? 0):#.00}) to the {target.NameWithMaterial}.{(!success ? " The target is destroyed." : "")} | Chance: {chance}");
+            // send local broadcast
+            player.EnqueueBroadcast(new GameMessageSystemChat(msg, ChatMessageType.Craft), WorldObject.LocalBroadcastRange, ChatMessageType.Craft);
+
+            if (log.IsDebugEnabled)
+                log.Debug($"[TINKERING] {msg} | Chance: {chance}");
         }
 
         public static WorldObject CreateItem(Player player, uint wcid, uint amount)
@@ -1665,32 +1679,31 @@ namespace ACE.Server.Managers
             var newSetup = newWeenie.GetProperty(PropertyDataId.Setup);
 
             if (newDamageType != null)
-                target.SetProperty(PropertyInt.DamageType, (int) newDamageType);
+                target.SetProperty(PropertyInt.DamageType, (int)newDamageType);
             else
                 target.RemoveProperty(PropertyInt.DamageType);
 
             if (newUiEffects != null)
-                target.SetProperty(PropertyInt.UiEffects, (int) newUiEffects);
+                target.SetProperty(PropertyInt.UiEffects, (int)newUiEffects);
             else if (target.ProcSpell != null || target.Biota.HasKnownSpell(target.BiotaDatabaseLock))
-                target.SetProperty(PropertyInt.UiEffects, (int) UiEffects.Magical);
+                target.SetProperty(PropertyInt.UiEffects, (int)UiEffects.Magical);
             else
                 target.RemoveProperty(PropertyInt.UiEffects);
 
             if (newSetup != null)
-                target.SetProperty(PropertyDataId.Setup, (uint) newSetup);
+                target.SetProperty(PropertyDataId.Setup, (uint)newSetup);
             else
                 target.RemoveProperty(PropertyDataId.Setup);
         }
-
         /// <summary>
         /// flag to use c# logic instead of mutate script logic
         /// </summary>
-        private static readonly bool useMutateNative = false;
+        //private static readonly bool useMutateNative = false;
 
         public static bool TryMutate(Player player, WorldObject source, WorldObject target, Recipe recipe, uint dataId, HashSet<uint> modified)
         {
-            if (useMutateNative)
-                return TryMutateNative(player, source, target, recipe, dataId);
+            //if (useMutateNative)
+            //    return TryMutateNative(player, source, target, recipe, dataId);
 
             var numTimesTinkered = target.NumTimesTinkered;
             var skipMutateScript = false;

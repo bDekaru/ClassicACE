@@ -18,7 +18,7 @@ namespace ACE.Server.Factories.Entity
         private bool verified;
         private ChanceTableType TableType;
         private float TotalWeight = 1.0f;
-        private static readonly decimal threshold = 0.0000001M;
+        private const decimal threshold = 0.0000001M;
 
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 

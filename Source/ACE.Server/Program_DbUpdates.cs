@@ -1,13 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
-using System.Collections.Generic;
 
 using ACE.Common;
-
-using Newtonsoft.Json;
 
 namespace ACE.Server
 {
@@ -26,10 +25,10 @@ namespace ACE.Server
 
                 using var client = new WebClient();
                 var html = client.GetStringFromURL(url).Result;
-                dynamic json = JsonConvert.DeserializeObject(html);
-                string tag = json.tag_name;
-                string dbURL = json.assets[0].browser_download_url;
-                string dbFileName = json.assets[0].name;
+                var json = JsonSerializer.Deserialize<JsonElement>(html);
+                string tag = json.GetProperty("tag_name").GetString();
+                string dbURL = json.GetProperty("assets")[0].GetProperty("browser_download_url").GetString();
+                string dbFileName = json.GetProperty("assets")[0].GetProperty("name").GetString();
 
                 if (currentVersion.PatchVersion != tag)
                 {
@@ -104,7 +103,7 @@ namespace ACE.Server
             Console.Write($"Importing {sqlFile} into SQL server at {ConfigManager.Config.MySql.World.Host}:{ConfigManager.Config.MySql.World.Port} (This will take a while, please be patient) .... ");
             using (var sr = File.OpenText(sqlFile))
             {
-                var sqlConnect = new MySqlConnector.MySqlConnection($"server={ConfigManager.Config.MySql.World.Host};port={ConfigManager.Config.MySql.World.Port};user={ConfigManager.Config.MySql.World.Username};password={ConfigManager.Config.MySql.World.Password};DefaultCommandTimeout=120;SslMode=None;AllowPublicKeyRetrieval=true");
+                var sqlConnect = new MySqlConnector.MySqlConnection($"server={ConfigManager.Config.MySql.World.Host};port={ConfigManager.Config.MySql.World.Port};user={ConfigManager.Config.MySql.World.Username};password={ConfigManager.Config.MySql.World.Password};{ConfigManager.Config.MySql.World.ConnectionOptions}");
 
                 var line = string.Empty;
                 var completeSQLline = string.Empty;
@@ -144,7 +143,7 @@ namespace ACE.Server
 
         private static string GetContentFolder()
         {
-            var sqlConnect = new MySqlConnector.MySqlConnection($"server={ConfigManager.Config.MySql.Shard.Host};port={ConfigManager.Config.MySql.Shard.Port};user={ConfigManager.Config.MySql.Shard.Username};password={ConfigManager.Config.MySql.Shard.Password};database={ConfigManager.Config.MySql.Shard.Database};DefaultCommandTimeout=120;SslMode=None;AllowPublicKeyRetrieval=true");
+            var sqlConnect = new MySqlConnector.MySqlConnection($"server={ConfigManager.Config.MySql.Shard.Host};port={ConfigManager.Config.MySql.Shard.Port};user={ConfigManager.Config.MySql.Shard.Username};password={ConfigManager.Config.MySql.Shard.Password};database={ConfigManager.Config.MySql.Shard.Database};{ConfigManager.Config.MySql.Shard.ConnectionOptions}");
             var sqlQuery = "SELECT `value` FROM config_properties_string WHERE `key` = 'content_folder';";
             var sqlCommand = new MySqlConnector.MySqlCommand(sqlQuery, sqlConnect);
 
@@ -191,9 +190,9 @@ namespace ACE.Server
                 var contentDI = new DirectoryInfo(path);
                 if (contentDI.Exists)
                 {
-                    Console.Write($"Searching for SQL files within {path} .... ");
+                    Console.WriteLine($"Searching for SQL files within {path} .... ");
 
-                    var sqlConnect = new MySqlConnector.MySqlConnection($"server={ConfigManager.Config.MySql.World.Host};port={ConfigManager.Config.MySql.World.Port};user={ConfigManager.Config.MySql.World.Username};password={ConfigManager.Config.MySql.World.Password};database={ConfigManager.Config.MySql.World.Database};DefaultCommandTimeout=120;SslMode=None;AllowPublicKeyRetrieval=true");
+                    var sqlConnect = new MySqlConnector.MySqlConnection($"server={ConfigManager.Config.MySql.World.Host};port={ConfigManager.Config.MySql.World.Port};user={ConfigManager.Config.MySql.World.Username};password={ConfigManager.Config.MySql.World.Password};database={ConfigManager.Config.MySql.World.Database};{ConfigManager.Config.MySql.World.ConnectionOptions}");
                     foreach (var file in contentDI.GetFiles("*.sql", content_folders_search_option).OrderBy(f => f.FullName))
                     {
                         Console.Write($"Found {file.FullName} .... ");

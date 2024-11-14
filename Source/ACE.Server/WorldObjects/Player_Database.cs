@@ -14,7 +14,7 @@ namespace ACE.Server.WorldObjects
 {
     partial class Player
     {
-        public static readonly long DefaultPlayerSaveIntervalSecs = 300; // default to 5 minutes
+        public const long DefaultPlayerSaveIntervalSecs = 300; // default to 5 minutes
 
         public DateTime CharacterLastRequestedDatabaseSave { get; protected set; }
 
@@ -102,7 +102,7 @@ namespace ACE.Server.WorldObjects
 
             DatabaseManager.Shard.SaveBiotasInParallel(biotas, result =>
             {
-                log.Debug($"{Name} has been saved. It took {(DateTime.UtcNow - requestedTime).TotalMilliseconds:N0} ms to process the request.");
+                log.DebugFormat("{0} has been saved. It took {1:N0} ms to process the request.", Name, (DateTime.UtcNow - requestedTime).TotalMilliseconds);
 
                 if (!result)
                 {

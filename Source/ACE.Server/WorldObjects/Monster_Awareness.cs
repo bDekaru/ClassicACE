@@ -240,7 +240,7 @@ namespace ACE.Server.WorldObjects
 
         public virtual bool FindNextTarget()
         {
-            stopwatch.Restart();
+            //stopwatch.Restart();
 
             try
             {
@@ -350,7 +350,7 @@ namespace ACE.Server.WorldObjects
             }
             finally
             {
-                ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Monster_Awareness_FindNextTarget, stopwatch.Elapsed.TotalSeconds);
+                //ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Monster_Awareness_FindNextTarget, stopwatch.Elapsed.TotalSeconds);
             }
         }
 
@@ -505,12 +505,12 @@ namespace ACE.Server.WorldObjects
         /// The most common value from retail
         /// Some other common values are in the range of 12-25
         /// </summary>
-        public static readonly float VisualAwarenessRange_Default = 18.0f;
+        public const float VisualAwarenessRange_Default = 18.0f;
 
         /// <summary>
         /// The highest value found in the current database
         /// </summary>
-        public static readonly float VisualAwarenessRange_Highest = 75.0f;
+        public const float VisualAwarenessRange_Highest = 75.0f;
 
         public double? VisualAwarenessRange
         {

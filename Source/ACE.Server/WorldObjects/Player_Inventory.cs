@@ -206,7 +206,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            DatabaseManager.Shard.SaveBiotasInParallel(biotas, result => { });
+            DatabaseManager.Shard.SaveBiotasInParallel(biotas, null);
         }
 
         public enum RemoveFromInventoryAction
@@ -275,6 +275,10 @@ namespace ACE.Server.WorldObjects
 
             // do the appropriate combat stance shuffling, based on the item types
             // todo: instead of switching the weapon immediately, the weapon should be swapped in the middle of the animation chain
+
+            // todo: find better / more appropriate logic for this
+            // should this be based on something else, such as CombatUse?
+            if ((wieldedLocation & EquipMask.Selectable) == 0) return;
 
             if (CombatMode != CombatMode.NonCombat && CombatMode != CombatMode.Undef)
             {
@@ -903,6 +907,13 @@ namespace ACE.Server.WorldObjects
                     return false;
                 }
 
+                if (itemRootOwner == this && item is PetDevice petDevice && petDevice.Pet is not null)
+                {
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "You must unsummon your pet before you can transfer this item!"));
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.None));
+                    return false;
+                }
+
                 if (containerRootOwner != null && !containerRootOwner.IsOpen)
                 {
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.TheContainerIsClosed));
@@ -1090,71 +1101,11 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
-                        if (item.QuestRestriction != null && !QuestManager.HasQuest(item.QuestRestriction))
+                        if (!VerifyQuest(item, itemRootOwner, out bool questSolve, out bool isFromAPlayerCorpse))
                         {
-                            QuestManager.HandleNoQuestError(item);
+                            // InventoryServerSaveFailed previously sent in QuestManager
                             EnqueuePickupDone(pickupMotion);
                             return;
-                        }
-
-                        //var questSolve = false;
-                        //var isFromMyCorpse = false;
-                        //var isFromAPlayerCorpse = false;
-                        //var isFromMyHook = false;
-                        //var isFromMyStorage = false;
-
-                        //if (itemRootOwner != this && containerRootOwner == this && item.Quest != null) // We're picking up a quest item
-                        //{
-                        //    if ( itemRootOwner != null && (itemRootOwner.WeenieType == WeenieType.Corpse || itemRootOwner.WeenieType == WeenieType.Hook || itemRootOwner.WeenieType == WeenieType.Storage))
-                        //    {
-                        //        if (itemRootOwner is Corpse && itemRootOwner.VictimId.HasValue && itemRootOwner.VictimId.Value == Guid.Full)
-                        //            isFromMyCorpse = true;
-                        //        if (itemRootOwner is Hook && itemRootOwner.HouseOwner.HasValue && itemRootOwner.HouseOwner.Value == Guid.Full)
-                        //            isFromMyHook = true;
-                        //        if (itemRootOwner is Storage && itemRootOwner.HouseOwner.HasValue && itemRootOwner.HouseOwner.Value == Guid.Full)
-                        //            isFromMyStorage = true;
-                        //    }
-
-                        //    if (!QuestManager.CanSolve(item.Quest) && !isFromMyCorpse && !isFromMyHook && !isFromMyStorage)
-                        //    {
-                        //        QuestManager.HandleSolveError(item.Quest);
-                        //        EnqueuePickupDone(pickupMotion);
-                        //        return;
-                        //    }
-                        //    else
-                        //    {
-                        //        if (!isFromMyCorpse && !isFromMyHook && !isFromMyStorage)
-                        //            questSolve = true;
-                        //    }
-                        //}
-
-                        var itemFoundOnCorpse = itemRootOwner is Corpse;
-
-                        var isFromAPlayerCorpse = false;
-                        if (itemFoundOnCorpse && itemRootOwner.Level > 0)
-                            isFromAPlayerCorpse = true;
-
-                        var questSolve = false;
-                        if (item.Quest != null) // We're picking up an item with a quest stamp that can also be a timer/limiter
-                        {
-                            var itemFoundOnMyCorpse = itemFoundOnCorpse && (itemRootOwner.VictimId == Guid.Full);
-                            if (item.GeneratorId != null || (itemFoundOnCorpse && !itemFoundOnMyCorpse)) // item is controlled by a generator or is on a corpse that is not my own
-                            {
-                                if (GameplayMode == GameplayModes.Limbo && (item.Quest == "SkillForgetfulnessGemPickedUp" || item.Quest == "SkillEnlightenmentGemPickedUp" || item.Quest == "AttributeLoweringGemPickedUp" || item.Quest == "AttributeRaisingGemPickedUp" || item.Quest == "SkillPrimaryGemPickedUp" || item.Quest == "SkillSecondaryGemPickedUp"))
-                                {
-                                    questSolve = false;
-                                }
-                                else if (QuestManager.CanSolve(item.Quest))
-                                {
-                                    questSolve = true;
-                                }
-                                else
-                                {
-                                    QuestManager.HandleSolveError(item.Quest);
-                                    EnqueuePickupDone(pickupMotion);
-                                    return;
-                                }
-                            }
                         }
 
                         if (DoHandleActionPutItemInContainer(item, itemRootOwner, itemWasEquipped, container, containerRootOwner, placement))
@@ -1194,7 +1145,7 @@ namespace ACE.Server.WorldObjects
 
                                 if (isFromAPlayerCorpse)
                                 {
-                                    log.Debug($"[CORPSE] {Name} (0x{Guid}) picked up {item.Name} (0x{item.Guid}) from {itemRootOwner.Name} (0x{itemRootOwner.Guid})");
+                                    log.DebugFormat("[CORPSE] {0} (0x{1}) picked up {2} (0x{3}) from {4} (0x{5})", Name, Guid, item.Name, item.Guid, itemRootOwner.Name, itemRootOwner.Guid);
                                     item.SaveBiotaToDatabase();
                                 }
                             }
@@ -1292,6 +1243,76 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventWeenieErrorWithString(Session, WeenieErrorWithString.The_IsCurrentlyInUse, item.Name));
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
                     return false;
+                }
+            }
+            return true;
+        }
+
+        private bool VerifyQuest(WorldObject item, Container itemRootOwner, out bool questSolve, out bool isFromAPlayerCorpse)
+        {
+            questSolve = false;
+            isFromAPlayerCorpse = false;
+
+            if (item.QuestRestriction != null && !QuestManager.HasQuest(item.QuestRestriction))
+            {
+                QuestManager.HandleNoQuestError(item);
+                return false;
+            }
+
+            //var questSolve = false;
+            //var isFromMyCorpse = false;
+            //var isFromAPlayerCorpse = false;
+            //var isFromMyHook = false;
+            //var isFromMyStorage = false;
+
+            //if (itemRootOwner != this && containerRootOwner == this && item.Quest != null) // We're picking up a quest item
+            //{
+            //    if ( itemRootOwner != null && (itemRootOwner.WeenieType == WeenieType.Corpse || itemRootOwner.WeenieType == WeenieType.Hook || itemRootOwner.WeenieType == WeenieType.Storage))
+            //    {
+            //        if (itemRootOwner is Corpse && itemRootOwner.VictimId.HasValue && itemRootOwner.VictimId.Value == Guid.Full)
+            //            isFromMyCorpse = true;
+            //        if (itemRootOwner is Hook && itemRootOwner.HouseOwner.HasValue && itemRootOwner.HouseOwner.Value == Guid.Full)
+            //            isFromMyHook = true;
+            //        if (itemRootOwner is Storage && itemRootOwner.HouseOwner.HasValue && itemRootOwner.HouseOwner.Value == Guid.Full)
+            //            isFromMyStorage = true;
+            //    }
+
+            //    if (!QuestManager.CanSolve(item.Quest) && !isFromMyCorpse && !isFromMyHook && !isFromMyStorage)
+            //    {
+            //        QuestManager.HandleSolveError(item.Quest);
+            //        EnqueuePickupDone(pickupMotion);
+            //        return;
+            //    }
+            //    else
+            //    {
+            //        if (!isFromMyCorpse && !isFromMyHook && !isFromMyStorage)
+            //            questSolve = true;
+            //    }
+            //}
+
+            var itemFoundOnCorpse = itemRootOwner is Corpse;
+
+            if (itemFoundOnCorpse && itemRootOwner.Level > 0)
+                isFromAPlayerCorpse = true;
+
+            if (item.Quest != null) // We're picking up an item with a quest stamp that can also be a timer/limiter
+            {
+                var itemFoundOnMyCorpse = itemFoundOnCorpse && (itemRootOwner.VictimId == Guid.Full);
+                if (item.GeneratorId != null || (itemFoundOnCorpse && !itemFoundOnMyCorpse)) // item is controlled by a generator or is on a corpse that is not my own
+                {
+                    if (GameplayMode == GameplayModes.Limbo && (item.Quest == "SkillForgetfulnessGemPickedUp" || item.Quest == "SkillEnlightenmentGemPickedUp" || item.Quest == "AttributeLoweringGemPickedUp" || item.Quest == "AttributeRaisingGemPickedUp" || item.Quest == "SkillPrimaryGemPickedUp" || item.Quest == "SkillSecondaryGemPickedUp"))
+                    {
+                        questSolve = false;
+                    }
+                    else if (QuestManager.CanSolve(item.Quest))
+                    {
+                        questSolve = true;
+                    }
+                    else
+                    {
+                        QuestManager.HandleSolveError(item.Quest);
+                        return false;
+                    }
                 }
             }
             return true;
@@ -1435,6 +1456,13 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (item is PetDevice petDevice && petDevice.Pet is not null)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "You must unsummon your pet before you can drop this item!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.None));
+                return;
+            }
+
             if (IsTrading && item.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeItemBeingTraded));
@@ -1537,6 +1565,18 @@ namespace ACE.Server.WorldObjects
             }
             item.Ethereal = ethereal;
 
+            if (item.Ethereal == null)
+            {
+                var defaultPhysicsState = (PhysicsState)(item.GetProperty(PropertyInt.PhysicsState) ?? 0);
+
+                if (defaultPhysicsState.HasFlag(PhysicsState.Ethereal))
+                    item.Ethereal = true;
+                else
+                    item.Ethereal = false;
+            }
+
+            item.EnqueueBroadcastPhysicsState();
+
             return true;
         }
 
@@ -1637,6 +1677,13 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
+                        if (!VerifyQuest(item, rootOwner, out bool questSolve, out bool isFromAPlayerCorpse))
+                        {
+                            // InventoryServerSaveFailed previously sent in QuestManager
+                            EnqueuePickupDone(pickupMotion);
+                            return;
+                        }
+
                         if (DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation))
                         {
                             EndSneaking();
@@ -1647,6 +1694,15 @@ namespace ACE.Server.WorldObjects
 
                             item.EmoteManager.OnPickup(this);
                             item.NotifyOfEvent(RegenerationType.PickUp);
+
+                            if (questSolve)
+                                item.EmoteManager.OnQuest(this);
+
+                            if (isFromAPlayerCorpse)
+                            {
+                                log.DebugFormat("[CORPSE] {0} (0x{1}) picked up and wielded {2} (0x{3}) from {4} (0x{5})", Name, Guid, item.Name, item.Guid, rootOwner.Name, rootOwner.Guid);
+                                item.SaveBiotaToDatabase();
+                            }
                         }
                         EnqueuePickupDone(pickupMotion);
                     });
@@ -2217,6 +2273,12 @@ namespace ACE.Server.WorldObjects
                 if (heritageSpecificArmor == null || (HeritageGroup)heritageSpecificArmor != HeritageGroup)
                     return WeenieError.HeritageRequiresSpecificArmor;
             }
+            else if (IsGearKnightPlayer)
+            {
+                if (((item.ValidLocations & (EquipMask.Clothing | EquipMask.Armor)) != 0)
+                    && (heritageSpecificArmor == null || (HeritageGroup)heritageSpecificArmor != HeritageGroup))
+                    return WeenieError.HeritageRequiresSpecificArmor;
+            }    
             else
             {
                 if (heritageSpecificArmor != null && (HeritageGroup)heritageSpecificArmor != HeritageGroup)
@@ -3417,7 +3479,8 @@ namespace ACE.Server.WorldObjects
 
             if (isFromAPlayerCorpse)
             {
-                log.Debug($"[CORPSE] {Name} (0x{Guid}) merged {amount:N0} {(sourceStack.IsDestroyed ? $"which resulted in the destruction" : $"leaving behind {sourceStack.StackSize:N0}")} of {sourceStack.Name} (0x{sourceStack.Guid}) to {targetStack.Name} (0x{targetStack.Guid}) from {sourceStackRootOwner.Name} (0x{sourceStackRootOwner.Guid})");
+                if (log.IsDebugEnabled)
+                    log.Debug($"[CORPSE] {Name} (0x{Guid}) merged {amount:N0} {(sourceStack.IsDestroyed ? $"which resulted in the destruction" : $"leaving behind {sourceStack.StackSize:N0}")} of {sourceStack.Name} (0x{sourceStack.Guid}) to {targetStack.Name} (0x{targetStack.Guid}) from {sourceStackRootOwner.Name} (0x{sourceStackRootOwner.Guid})");
                 targetStack.SaveBiotaToDatabase();
             }
 
@@ -3511,6 +3574,13 @@ namespace ACE.Server.WorldObjects
         {
             if (item.IsAttunedOrContainsAttuned)
             {
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.AttunedItem));
+                return;
+            }
+
+            if (item is PetDevice petDevice && petDevice.Pet is not null)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "You must unsummon your pet before you can transfer this item!"));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.AttunedItem));
                 return;
             }
@@ -3639,6 +3709,13 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (item is PetDevice petDevice && petDevice.Pet is not null)
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "You must unsummon your pet before you can transfer this item!"));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.AttunedItem));
+                return;
+            }
+
             if (IsOlthoiPlayer && target.CreatureType != ACE.Entity.Enum.CreatureType.Olthoi)
             {
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
@@ -3761,7 +3838,7 @@ namespace ACE.Server.WorldObjects
                     {
                         var success = uint.TryParse(split[0], out var wcid);
 
-                        //Console.WriteLine($"{success.ToString()} {wcid}");
+                        //Console.WriteLine($"{success} {wcid}");
 
                         Session.Network.EnqueueSend(new GameEventTell(target, "Ahh, an IOU! You know, I collect these for some reason. Let me see if I have something for it somewhere in my pack...", this, ChatMessageType.Tell));
 
@@ -3788,7 +3865,7 @@ namespace ACE.Server.WorldObjects
                                     if (PropertyManager.GetBool("player_receive_immediate_save").Item)
                                         RushNextPlayerSave(5);
 
-                                    log.Debug($"[IOU] {Name} (0x{Guid}) traded in a IOU (0x{iouToTurnIn.Guid}) for {wcid} which became {item.Name} (0x{item.Guid}).");
+                                    log.DebugFormat("[IOU] {0} (0x{1}) traded in a IOU (0x{2}) for {3} which became {4} (0x{5}).", Name, Guid, iouToTurnIn.Guid, wcid, item.Name, item.Guid);
                                 }
                                 return;
                             }

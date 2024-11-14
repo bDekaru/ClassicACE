@@ -12,7 +12,6 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 using ACE.Server.WorldObjects.Entity;
 using log4net;
-using MySqlX.XDevAPI.Common;
 
 namespace ACE.Server.Entity
 {

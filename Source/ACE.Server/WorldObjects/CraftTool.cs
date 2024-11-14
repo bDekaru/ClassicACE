@@ -42,6 +42,12 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (CorePlating.IsCorePlatingDevice(this))
+            {
+                CorePlating.UseObjectOnTarget(player, this, target);
+                return;
+            }
+
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 if (MagnifyingGlass.IsMagnifyingGlass(this))

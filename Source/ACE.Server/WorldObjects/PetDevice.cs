@@ -12,8 +12,8 @@ using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
 using ACE.Server.Managers;
-using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Network.GameEvent.Events;
 
 namespace ACE.Server.WorldObjects
 {
@@ -28,6 +28,12 @@ namespace ACE.Server.WorldObjects
         {
             get => GetProperty(PropertyInt.PetClass);
             set { if (value.HasValue) SetProperty(PropertyInt.PetClass, value.Value); else RemoveProperty(PropertyInt.PetClass); }
+        }
+
+        public uint? Pet
+        {
+            get => GetProperty(PropertyInstanceId.Pet);
+            set { if (value.HasValue) SetProperty(PropertyInstanceId.Pet, value.Value); else RemoveProperty(PropertyInstanceId.Pet); }
         }
 
         /// <summary>
