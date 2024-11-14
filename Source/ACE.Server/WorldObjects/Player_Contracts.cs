@@ -86,8 +86,9 @@ namespace ACE.Server.WorldObjects
             var entry = explorationList[roll];
             explorationList.RemoveAt(roll);
 
-            var explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount, entry.CreatureCount * 2.0f), 10, 200);
-            var explorationMarkerAmount = Math.Clamp(explorationKillAmount / 30, 1, 10) + ThreadSafeRandom.Next(0, 4);
+            var modifiedCreatureCount = Math.Clamp(entry.CreatureCount, 10, 50);
+            var explorationKillAmount = (int)ThreadSafeRandom.Next(modifiedCreatureCount, modifiedCreatureCount * 2.0f);
+            var explorationMarkerAmount = Math.Clamp(1 + (int)Math.Floor(explorationKillAmount / 20f), 1, 5);
 
             Exploration1LandblockId = entry.Landblock;
             Exploration1KillProgressTracker = explorationKillAmount;
@@ -100,7 +101,7 @@ namespace ACE.Server.WorldObjects
             if (entryLandblock != null)
             {
                 entryName = entryLandblock.Name;
-                entryDirections = entryLandblock.Directions;
+                entryDirections = $"{entryLandblock.Reference} {entryLandblock.Directions}";
             }
             else
             {
@@ -120,8 +121,9 @@ namespace ACE.Server.WorldObjects
                 roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
                 entry = explorationList[roll];
                 explorationList.RemoveAt(roll);
-                explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount, entry.CreatureCount * 2.0f), 10, 200);
-                explorationMarkerAmount = Math.Clamp(explorationKillAmount / 30, 1, 10) + ThreadSafeRandom.Next(0, 4);
+                modifiedCreatureCount = Math.Clamp(entry.CreatureCount, 10, 50);
+                explorationKillAmount = (int)ThreadSafeRandom.Next(modifiedCreatureCount, modifiedCreatureCount * 2.0f);
+                explorationMarkerAmount = Math.Clamp(1 + (int)Math.Floor(explorationKillAmount / 20f), 1, 5);
 
                 Exploration2LandblockId = entry.Landblock;
                 Exploration2KillProgressTracker = explorationKillAmount;
@@ -132,7 +134,7 @@ namespace ACE.Server.WorldObjects
                 if (entryLandblock != null)
                 {
                     entryName = entryLandblock.Name;
-                    entryDirections = entryLandblock.Directions;
+                    entryDirections = $"{entryLandblock.Reference} {entryLandblock.Directions}";
                 }
                 else
                 {
@@ -159,8 +161,9 @@ namespace ACE.Server.WorldObjects
                 roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
                 entry = explorationList[roll];
                 explorationList.RemoveAt(roll);
-                explorationKillAmount = Math.Clamp((int)ThreadSafeRandom.Next(entry.CreatureCount, entry.CreatureCount * 2.0f), 10, 200);
-                explorationMarkerAmount = Math.Clamp(explorationKillAmount / 30, 1, 10) + ThreadSafeRandom.Next(0, 4);
+                modifiedCreatureCount = Math.Clamp(entry.CreatureCount, 10, 50);
+                explorationKillAmount = (int)ThreadSafeRandom.Next(modifiedCreatureCount, modifiedCreatureCount * 2.0f);
+                explorationMarkerAmount = Math.Clamp(1 + (int)Math.Floor(explorationKillAmount / 20f), 1, 5);
 
                 Exploration3LandblockId = entry.Landblock;
                 Exploration3KillProgressTracker = explorationKillAmount;
@@ -171,7 +174,7 @@ namespace ACE.Server.WorldObjects
                 if (entryLandblock != null)
                 {
                     entryName = entryLandblock.Name;
-                    entryDirections = entryLandblock.Directions;
+                    entryDirections = $"{entryLandblock.Reference} {entryLandblock.Directions}";
                 }
                 else
                 {
@@ -302,7 +305,7 @@ namespace ACE.Server.WorldObjects
             {
                 Exploration1LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration1KillProgressTracker:N0} kill{(Exploration1KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration1MarkerProgressTracker:N0} marker{(Exploration1MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                EarnXP((-Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
                 PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
             }
 
@@ -310,7 +313,7 @@ namespace ACE.Server.WorldObjects
             {
                 Exploration2LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration2KillProgressTracker:N0} kill{(Exploration2KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration2MarkerProgressTracker:N0} marker{(Exploration2MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                EarnXP((-Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
                 PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
             }
 
@@ -318,7 +321,7 @@ namespace ACE.Server.WorldObjects
             {
                 Exploration3LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration3KillProgressTracker:N0} kill{(Exploration3KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration3MarkerProgressTracker:N0} marker{(Exploration3MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                EarnXP((int)(((-Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                EarnXP((-Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
                 PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
             }
         }

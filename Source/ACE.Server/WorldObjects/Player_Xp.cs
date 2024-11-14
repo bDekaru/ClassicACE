@@ -26,7 +26,7 @@ namespace ACE.Server.WorldObjects
         /// <param name="amount">The amount of XP being added</param>
         /// <param name="xpType">The source of XP being added</param>
         /// <param name="shareable">True if this XP can be shared with Fellowship</param>
-        public void EarnXP(long amount, XpType xpType, int? xpSourceLevel, uint? xpSourceId, uint xpSourceCampValue, double? xpSourceTier, ShareType shareType = ShareType.All, string xpMessage = "")
+        public void EarnXP(long amount, XpType xpType, int? xpSourceLevel, uint? xpSourceId, uint xpSourceCampValue, double? xpSourceTier, ShareType shareType = ShareType.All, string xpMessage = "", double extraXpMultiplier = 1.0f)
         {
             //Console.WriteLine($"{Name}.EarnXP({amount}, {sharable}, {fixedAmount})");
 
@@ -117,6 +117,8 @@ namespace ACE.Server.WorldObjects
             // apply xp modifiers.  Quest XP is multiplicative with general XP modification
             var questModifier = PropertyManager.GetDouble("quest_xp_modifier").Item;
             var modifier = PropertyManager.GetDouble("xp_modifier").Item;
+
+            modifier *= extraXpMultiplier;
             if (xpType == XpType.Quest)
                 modifier *= questModifier;
 
@@ -266,7 +268,7 @@ namespace ACE.Server.WorldObjects
                     float totalNotSharedExtraXP = 0;
                     if (xpType == XpType.Quest || xpType == XpType.Exploration)
                     {
-                        if (Level < (MaxReachedLevel ?? 1))
+                        if (Level < (MaxReachedLevel ?? 1) && IsHardcore)
                         {
                             var extraXP = m_amount * (float)PropertyManager.GetDouble("relive_bonus_xp").Item;
                             totalNotSharedExtraXP += extraXP;
@@ -292,7 +294,7 @@ namespace ACE.Server.WorldObjects
                             xpMessage = $"Surface Bonus: +{extraXP:N0}xp {xpMessage}";
                         }
 
-                        if (Level < (MaxReachedLevel ?? 1))
+                        if (Level < (MaxReachedLevel ?? 1) && IsHardcore)
                         {
                             var extraXP = m_amount * (float)PropertyManager.GetDouble("relive_bonus_xp").Item;
                             totalNotSharedExtraXP += extraXP;

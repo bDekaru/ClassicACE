@@ -3,6 +3,7 @@ using System;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Models;
+using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 
@@ -56,7 +57,7 @@ namespace ACE.Server.WorldObjects
                 {
                     player.Exploration1MarkerProgressTracker--;
                     var msg = $"{player.Exploration1MarkerProgressTracker:N0} marker{(player.Exploration1MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                    player.EarnXP((int)(((-player.Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                    player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                     if (player.Exploration1MarkerProgressTracker == 0)
                         player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
@@ -65,7 +66,7 @@ namespace ACE.Server.WorldObjects
                 {
                     player.Exploration2MarkerProgressTracker--;
                     var msg = $"{player.Exploration2MarkerProgressTracker:N0} marker{(player.Exploration2MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                    player.EarnXP((int)(((-player.Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                    player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                     if (player.Exploration2MarkerProgressTracker == 0)
                         player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
@@ -74,7 +75,7 @@ namespace ACE.Server.WorldObjects
                 {
                     player.Exploration3MarkerProgressTracker--;
                     var msg = $"{player.Exploration3MarkerProgressTracker:N0} marker{(player.Exploration3MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                    player.EarnXP((int)(((-player.Level ?? -1) - 1000) * (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5)), XpType.Exploration, null, null, 0, null, ShareType.None, msg);
+                    player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                     if (player.Exploration3MarkerProgressTracker == 0)
                         player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
@@ -83,7 +84,11 @@ namespace ACE.Server.WorldObjects
                 else
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("You currently do not have any exploration assignments for this location.", ChatMessageType.Broadcast));
 
-                CurrentLandblock.SpawnExplorationMarker();
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(60);
+                actionChain.AddAction(CurrentLandblock, CurrentLandblock.SpawnExplorationMarker);
+                actionChain.EnqueueChain();
+
                 Destroy();
             }
         }
