@@ -51,6 +51,9 @@ namespace ACE.Server.Entity
         {
             patronVassals.TryGetValue(PlayerGuid.Full, out var vassals);
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                Rank = (uint)Player.AllegianceRank;
+
             Vassals = new Dictionary<uint, AllegianceNode>();
 
             if (vassals != null)
@@ -63,7 +66,9 @@ namespace ACE.Server.Entity
                     Vassals.Add(vassal.Guid.Full, node);
                 }
             }
-            CalculateRank();
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                CalculateRank();
         }
 
         public void CalculateRank()

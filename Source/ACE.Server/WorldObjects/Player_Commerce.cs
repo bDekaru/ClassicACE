@@ -417,6 +417,10 @@ namespace ACE.Server.WorldObjects
                 if (AllegianceRank != newRank)
                 {
                     AllegianceRank = newRank;
+
+                    if (HasAllegiance && Allegiance.Members.TryGetValue(Guid, out var ourNode))
+                        ourNode.Rank = (uint)newRank;
+
                     if (sendUpdateMessageIfChanged)
                     {
                         if (Session != null)
