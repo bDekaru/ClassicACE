@@ -583,7 +583,10 @@ namespace ACE.Server.WorldObjects
         public void Pathfind(float directionMinAngle, float directionMaxAngle, float duration)
         {
             if (AttackTarget == null)
+            {
+                PathfindingPending = false;
                 return;
+            }
 
             LastPathfindTime = Time.GetUnixTime();
 
