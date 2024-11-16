@@ -147,6 +147,8 @@ namespace ACE.Server.WorldObjects
                 {
                     if (player != null)
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat("Your missile attack hit the environment.", ChatMessageType.Broadcast));
+                    else
+                        MonsterProjectile_OnCollideEnvironment();
                 }
 
                 proj.Destroy();
