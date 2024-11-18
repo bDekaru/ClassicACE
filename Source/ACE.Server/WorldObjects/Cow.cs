@@ -40,9 +40,9 @@ namespace ACE.Server.WorldObjects
         {
             // handled in base.OnActivate -> EmoteManager.OnUse()
 
-            if (activator is Player player)
+            if (activator is Player player && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if(player.GetNumInventoryItemsOfWCID((uint)Factories.Enum.WeenieClassName.flask, true) > 0 && player.TryConsumeFromInventoryWithNetworking((int)Factories.Enum.WeenieClassName.flask))
+                if(player.GetNumInventoryItemsOfWCID((uint)Factories.Enum.WeenieClassName.flask, true) > 0 && player.TryConsumeFromInventoryWithNetworking((int)Factories.Enum.WeenieClassName.flask, 1))
                 {
                     var wo = WorldObjectFactory.CreateNewWorldObject((int)Factories.Enum.WeenieClassName.milk);
 
