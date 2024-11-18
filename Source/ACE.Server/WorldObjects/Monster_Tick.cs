@@ -1,5 +1,6 @@
 using ACE.Entity;
 using ACE.Entity.Enum;
+using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 using System;
 
@@ -69,7 +70,7 @@ namespace ACE.Server.WorldObjects
 
             if (EmoteManager.IsBusy) return;
 
-            HandleFindTarget();
+                HandleFindTarget();
 
             CheckMissHome();    // tickrate?
 
@@ -153,8 +154,40 @@ namespace ACE.Server.WorldObjects
             var targetDist = GetDistanceToTarget();
             //Console.WriteLine($"{Name} ({Guid}) - Dist: {targetDist}");
 
-            if (PathfindingPending)
+
+            PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
+            if (IsEmotePending)
+            {
+                Emote();
+                if (IsEmotePending)
+                    return;
+            }
+            if (IsEmoting)
                 return;
+
+            if (IsWanderingPending)
+            {
+                Wander();
+                if (IsWanderingPending)
+                    return;
+            }
+            if (IsWandering)
+                return;
+
+            if (IsRoutePending)
+            {
+                StartRoute();
+                if (IsRoutePending)
+                    return;
+            }
+            if (IsRouting)
+            {
+                if (AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null || (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count))
+                    EndRoute();
+                else if (CurrentRouteIndex > 1 && ((CurrentAttack == CombatType.Melee && IsMeleeVisible(AttackTarget)) || (CurrentAttack != CombatType.Melee && IsDirectVisible(AttackTarget))))
+                    EndRoute();
+                return;
+            }
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
@@ -204,10 +237,15 @@ namespace ACE.Server.WorldObjects
                     {
                         if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            if (HasRangedWeapon && CurrentAttack == CombatType.Melee && (targetDist > 20 || PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 10) && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime)
+                            if (HasRangedWeapon && CurrentAttack == CombatType.Melee && IsVisibleTarget(AttackTarget) && (targetDist > 20 || FailedMovementCount >= FailedMovementThreshold) && !SwitchWeaponsPending && LastWeaponSwitchTime + 5 < currentUnixTime)
                                 TrySwitchToMissileAttack();
-                            else if (PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 20 && !PathfindingPending && LastPathfindTime + 5 < currentUnixTime)
-                                TryPathfind(100, 260, 3);
+                            else if (FailedMovementCount >= FailedMovementThreshold && LastWanderTime + MaxWanderFrequency < currentUnixTime)
+                            {
+                                if (PathfindingEnabled && !LastAttemptWasNullRoute)
+                                    TryWandering(160, 200, 3);
+                                else
+                                    TryWandering(100, 260, 5);
+                            }
                             else
                                 Movement();
                         }

@@ -338,10 +338,14 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Sends a network message for moving a creature to a new position
         /// </summary>
-        public void MoveTo(Position position, float runRate = 1.0f, bool setLoc = true, float? walkRunThreshold = null, float? speed = null)
+        public void MoveTo(Position position, float runRate = 1.0f, bool setLoc = true, float? walkRunThreshold = null, float? speed = null, bool useFinalHeading = true)
         {
             // build and send MoveToPosition message to client
             var motion = GetMoveToPosition(position, runRate, walkRunThreshold, speed);
+
+            if (!useFinalHeading)
+                motion.MoveToParameters.MovementParameters &= ~MovementParams.UseFinalHeading;
+
             EnqueueBroadcastMotion(motion);
 
             if (!setLoc) return;
@@ -354,6 +358,8 @@ namespace ACE.Server.WorldObjects
             PhysicsObj.MoveToPosition(new Physics.Common.Position(position), mvp);
 
             AddMoveToTick();
+
+            StartMove();
         }
 
         private void AddMoveToTick()

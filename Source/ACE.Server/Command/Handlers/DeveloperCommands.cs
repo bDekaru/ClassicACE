@@ -36,6 +36,7 @@ using ACE.Server.WorldObjects.Entity;
 
 using Position = ACE.Entity.Position;
 using Spell = ACE.Server.Entity.Spell;
+using ACE.Server.Pathfinding;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -4207,6 +4208,29 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"Terrain: 0x{terrain:X4}");
             CommandHandlerHelper.WriteOutputInfo(session, $"TerrainType: 0x{terrainType:X4}");
             CommandHandlerHelper.WriteOutputInfo(session, $"SceneType: 0x{sceneType:X4}");
+        }
+
+        [CommandHandler("TestPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "")]
+        public static void HandleTestPathfinding(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Testing Pathfinding...");
+
+            var player = session.Player;
+            var creature = CommandHandlerHelper.GetQueryTarget(session) as Creature;
+
+            if (player == null|| creature == null)
+                return;
+
+            //creature.TryWandering(180, 180, 10);
+            //creature.TryEmoting();
+
+            //var destination = Pathfinder.GetRandomPointOnMesh(player.Location);
+            //var destination = new Position(0x019E014D, 39.844067f, -33.932358f, 6.005000f, 0.109867f, 0.000000f, 0.000000f, 0.993946f);
+            var route = Pathfinder.FindRoute(creature.Location, player.Location, true);
+            if (route == null)
+                CommandHandlerHelper.WriteOutputInfo(session, "Null route.");
+            else
+                creature.TryRoute(route);
         }
     }
 }

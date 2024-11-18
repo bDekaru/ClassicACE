@@ -1,7 +1,3 @@
-using System;
-using System.Linq;
-using System.Numerics;
-
 using ACE.Common;
 using ACE.Entity;
 using ACE.Entity.Enum;
@@ -9,9 +5,15 @@ using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
+using ACE.Server.Pathfinding;
 using ACE.Server.Physics.Animation;
 using ACE.Server.Physics.Common;
 using ACE.Server.Physics.Extensions;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
+using Position = ACE.Entity.Position;
 
 namespace ACE.Server.WorldObjects
 {
@@ -66,8 +68,8 @@ namespace ACE.Server.WorldObjects
         public double NextMoveTime;
         public double NextCancelTime;
 
-        public double LastPathfindTime = 0;
-        public bool PathfindingPending = false;
+        public int FailedMovementCount;
+        public const int FailedMovementThreshold = 2;
 
         /// <summary>
         /// Starts the process of monster turning towards target
@@ -145,8 +147,26 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}) - OnMoveComplete({status})");
 
+            if (IsWandering)
+                EndWandering();
+
             if (status != WeenieError.None)
+            {
+                FailedMovementCount++;
+                if (IsRouting)
+                {
+                    if (FailedMovementCount > FailedMovementThreshold)
+                        EndRoute();
+                    else
+                        RetryRoute();
+                }
                 return;
+            }
+            else
+                FailedMovementCount = 0;
+
+            if (IsRouting)
+                ContinueRoute();
 
             if (AiImmobile && CurrentAttack == CombatType.Melee)
             {
@@ -563,64 +583,226 @@ namespace ACE.Server.WorldObjects
             actionChain.EnqueueChain();
         }
 
-        public void TryPathfind(float directionMinAngle, float directionMaxAngle, float duration)
-        {
-            PathfindingPending = true;
-
-            if (NextMoveTime > Timers.RunningTime)
-            {
-                var actionChain = new ActionChain();
-                actionChain.AddDelaySeconds(NextMoveTime - Timers.RunningTime);
-                actionChain.AddAction(this, () => Pathfind(directionMinAngle, directionMaxAngle, duration));
-                actionChain.EnqueueChain();
-            }
-            else
-                Pathfind(directionMinAngle, directionMaxAngle, duration);
-        }
-
-
-        // VERY rudimentary pathfinding, basically just move in a random direction for a bit and try again.
-        public void Pathfind(float directionMinAngle, float directionMaxAngle, float duration)
-        {
-            if (AttackTarget == null)
-            {
-                PathfindingPending = false;
-                return;
-            }
-
-            LastPathfindTime = Time.GetUnixTime();
-
-            var offsetPosition = new ACE.Entity.Position(Location);
-            offsetPosition.Rotation = new Quaternion(0, 0, offsetPosition.RotationZ, offsetPosition.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(directionMinAngle.ToRadians(), directionMaxAngle.ToRadians()));
-            offsetPosition = offsetPosition.InFrontOf(25);
-            offsetPosition.SetLandblock();
-
-            var actionChain = new ActionChain();
-
-            if (IdleMotionsList == null)
-                BuildIdleMotionsList();
-
-            if (IdleMotionsList.Count() > 0)
-            {
-                var randomEmote = IdleMotionsList.ElementAt(ThreadSafeRandom.Next(0, IdleMotionsList.Count() - 1));
-                EnqueueMotion(actionChain, MotionStance.NonCombat, randomEmote);
-            }
-
-            actionChain.AddAction(this, () => MoveTo(offsetPosition, GetRunRate()));
-            actionChain.AddDelaySeconds(GetRotateDelay(GetAngle(GetDirection(Location.Pos, offsetPosition.Pos))) + duration);
-            actionChain.AddAction(this, () => PathfindingPending = false);
-            actionChain.AddAction(this, CancelMoveTo);
-            actionChain.EnqueueChain();
-        }
-
         public void FindNewHome(float directionMinAngle, float directionMaxAngle, float distance)
         {
-            var offsetPosition = new ACE.Entity.Position(Location);
+            var offsetPosition = new Position(Location);
             offsetPosition.Rotation = new Quaternion(0, 0, offsetPosition.RotationZ, offsetPosition.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(directionMinAngle.ToRadians(), directionMaxAngle.ToRadians()));
             offsetPosition = offsetPosition.InFrontOf(distance);
             offsetPosition.SetLandblock();
 
             Home = offsetPosition;
+        }
+
+        public bool HasPendingActions
+        {
+            get => SwitchWeaponsPending || IsWanderingPending || IsEmotePending || IsRoutePending;
+        }
+
+        public bool IsPerformingAction
+        {
+            get => IsWandering || IsEmoting || IsRouting;
+        }
+
+        private Position WanderTarget = null;
+        private double LastWanderTime = 0;
+        private bool IsWanderingPending = false;
+        private bool IsWandering = false;
+        private const double MaxWanderFrequency = 10;
+        private const double WanderChance = 0.5;
+
+        public void TryWandering(float directionMinAngle, float directionMaxAngle, float distance)
+        {
+            var offsetPosition = new Position(Location);
+            offsetPosition.Rotation = new Quaternion(0, 0, offsetPosition.RotationZ, offsetPosition.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(directionMinAngle.ToRadians(), directionMaxAngle.ToRadians()));
+            offsetPosition = offsetPosition.InFrontOf(distance);
+            offsetPosition.SetLandblock();
+
+            WanderTarget = offsetPosition;
+            IsWanderingPending = true;
+            LastAttemptWasNullRoute = false;
+
+            if (LastEmoteTime + MaxEmoteFrequency < Time.GetUnixTime() && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                TryEmoting();
+        }
+
+        private void Wander()
+        {
+            if (AttackTarget == null || WanderTarget == null)
+            {
+                EndWandering();
+                return;
+            }
+
+            if (IsWandering)
+                return;
+
+            if (!MoveReady())
+                return;
+
+            if (LastWanderTime + MaxWanderFrequency < Time.GetUnixTime() && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+            {
+                // Cancel any remaining moves that might be pending.
+                PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
+                PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
+
+                LastWanderTime = Time.GetUnixTime();
+                IsWanderingPending = false;
+                IsWandering = true;
+
+                MoveTo(WanderTarget, RunRate, true, 1.0f, null, false);
+            }
+            else
+                EndWandering();
+        }
+
+        private void EndWandering()
+        {
+            IsWanderingPending = false;
+            IsWandering = false;
+            WanderTarget = null;
+            FailedMovementCount = 0;
+
+            if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
+            {
+                var route = Pathfinder.FindRoute(Location, AttackTarget.Location);
+                if (route != null && route.Count > 0)
+                {
+                    LastAttemptWasNullRoute = false;
+                    TryRoute(route);
+                }
+                else
+                    LastAttemptWasNullRoute = true;
+            }
+        }
+
+        private MotionCommand DesiredEmote = MotionCommand.Invalid;
+        private double LastEmoteTime = 0;
+        private bool IsEmotePending = false;
+        private bool IsEmoting = false;
+        private const double MaxEmoteFrequency = 30;
+        private const double EmoteChance = 0.5;
+
+        public void TryEmoting(MotionCommand motion = MotionCommand.Invalid)
+        {
+            if (motion == MotionCommand.Invalid)
+            {
+                if (IdleMotionsList == null)
+                    BuildIdleMotionsList();
+
+                if (IdleMotionsList.Count() > 0)
+                    DesiredEmote = IdleMotionsList.ElementAt(ThreadSafeRandom.Next(0, IdleMotionsList.Count() - 1));
+                else
+                    return;
+            }
+            else
+                DesiredEmote = motion;
+            IsEmotePending = true;
+        }
+
+        private void Emote()
+        {
+            if (AttackTarget == null || DesiredEmote == MotionCommand.Invalid)
+            {
+                EndEmoting();
+                return;
+            }
+
+            if (IsEmoting)
+                return;
+
+            if (!MoveReady())
+                return;
+
+            LastEmoteTime = Time.GetUnixTime();
+            IsEmotePending = false;
+            IsEmoting = true;
+
+            var combatStance = GetCombatStance();
+            var actionChain = new ActionChain();
+            EnqueueBroadcastMotion(new Motion(MotionStance.NonCombat, DesiredEmote), null, true);
+            EnqueueBroadcastMotion(new Motion(combatStance, MotionCommand.Ready), null, true);
+
+            EndEmoting();
+        }
+
+        private void EndEmoting()
+        {
+            IsEmotePending = false;
+            IsEmoting = false;
+            DesiredEmote = MotionCommand.Invalid;
+        }
+
+        private bool PathfindingEnabled = false;
+        private double LastRouteTime = 0;
+        private WorldObject RouteAttackTarget = null;
+        private Position RoutePositionTarget;
+        private List<Position> CurrentRoute;
+        private int CurrentRouteIndex;
+        private bool IsRoutePending = false;
+        private bool IsRouting = false;
+        private bool LastAttemptWasNullRoute = false;
+
+        public void TryRoute(List<Position> route)
+        {
+            if (!PathfindingEnabled || route == null || route.Count == 0)
+                return;
+
+            RouteAttackTarget = AttackTarget;
+            RoutePositionTarget = null;
+            CurrentRoute = route;
+            CurrentRouteIndex = 0;
+            LastAttemptWasNullRoute = false;
+
+            IsRoutePending = true;
+        }
+
+        private void StartRoute()
+        {
+            LastRouteTime = Time.GetUnixTime();
+
+            if (!MoveReady())
+                return;
+
+            IsRoutePending = false;
+            IsRouting = true;
+
+            ContinueRoute();
+        }
+
+        private void ContinueRoute()
+        {
+            if (AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null || (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count))
+            {
+                EndRoute();
+                return;
+            }
+
+            RoutePositionTarget = CurrentRoute[CurrentRouteIndex];
+            CurrentRouteIndex++;
+
+            MoveTo(RoutePositionTarget, RunRate, true, 1.0f, null, false);
+        }
+
+        private void RetryRoute()
+        {
+            if (RoutePositionTarget == null || AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null || (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count))
+            {
+                EndRoute();
+                return;
+            }
+
+            MoveTo(RoutePositionTarget, RunRate, true, 1.0f, null, false);
+        }
+
+        private void EndRoute()
+        {
+            IsRoutePending = false;
+            IsRouting = false;
+            RoutePositionTarget = null;
+            RouteAttackTarget = null;
+            CurrentRoute = null;
+            CurrentRouteIndex = 0;
+            LastAttemptWasNullRoute = false;
         }
     }
 }

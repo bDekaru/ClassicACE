@@ -57,6 +57,10 @@ namespace ACE.Server.WorldObjects
             IsMoving = false;
             MonsterState = State.Idle;
 
+            EndRoute();
+            EndWandering();
+            EndEmoting();
+
             PhysicsObj.CachedVelocity = Vector3.Zero;
 
             ClearRetaliateTargets();

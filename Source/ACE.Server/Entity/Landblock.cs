@@ -12,6 +12,7 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages;
+using ACE.Server.Pathfinding;
 using ACE.Server.Physics.Common;
 using ACE.Server.WorldObjects;
 using log4net;
@@ -193,7 +194,7 @@ namespace ACE.Server.Entity
 
                 var actionChain = new ActionChain();
                 actionChain.AddDelaySeconds(5);
-                actionChain.AddAction(this, () => InitializeExplorationMarkers());
+                actionChain.AddAction(this, InitializeExplorationMarkers);
                 actionChain.EnqueueChain();
             });
 
@@ -1402,6 +1403,8 @@ namespace ACE.Server.Entity
             LScape.unload_landblock(landblockID);
 
             PhysicsLandblock.release_shadow_objs();
+
+            Pathfinder.TryUnloadMesh(this);
         }
 
         public void DestroyAllNonPlayerObjects()

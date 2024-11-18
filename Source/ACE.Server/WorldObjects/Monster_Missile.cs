@@ -71,7 +71,7 @@ namespace ACE.Server.WorldObjects
                 SwitchToMeleeAttack();
                 return;
             }*/
-            if (SwitchWeaponsPending || PathfindingPending)
+            if (HasPendingActions)
             {
                 NextAttackTime = Timers.RunningTime + 1.0f;
                 return;
@@ -219,8 +219,13 @@ namespace ACE.Server.WorldObjects
                         switch (roll)
                         {
                             case 1: TrySwitchToMeleeAttack(); break;
-                            case 2: TryPathfind(-45, 45, 2); break;
-                            case 3: MissileCombatMeleeRangeMode = true; break;
+                            case 2: TryWandering(-45, 45, 2); break;
+                            case 3:
+                                if (PathfindingEnabled && !LastAttemptWasNullRoute)
+                                    TryWandering(160, 200, 3);
+                                else
+                                    MissileCombatMeleeRangeMode = true;
+                                break;
                         }
                     }
                     else
@@ -229,8 +234,13 @@ namespace ACE.Server.WorldObjects
                         switch (roll)
                         {
                             case 1:
-                            case 2: TryPathfind(-45, 45, 2); break;
-                            case 3: MissileCombatMeleeRangeMode = true; break;
+                            case 2: TryWandering(-45, 45, 2); break;
+                            case 3:
+                                if (PathfindingEnabled && !LastAttemptWasNullRoute)
+                                    TryWandering(160, 200, 3);
+                                else
+                                    MissileCombatMeleeRangeMode = true;
+                                break;
                         }
                     }
                 }

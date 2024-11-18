@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-
-using log4net;
-
 using ACE.Common;
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
@@ -11,13 +6,15 @@ using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
-using ACE.Server.Managers;
-using ACE.Server.WorldObjects.Entity;
-
-using Position = ACE.Entity.Position;
 using ACE.Server.Factories;
 using ACE.Server.Factories.Tables;
-using ACE.Server.Factories.Enum;
+using ACE.Server.Managers;
+using ACE.Server.Pathfinding;
+using ACE.Server.WorldObjects.Entity;
+using log4net;
+using System;
+using System.Collections.Generic;
+using Position = ACE.Entity.Position;
 
 namespace ACE.Server.WorldObjects
 {
@@ -170,7 +167,14 @@ namespace ACE.Server.WorldObjects
             if (IsNPC)
                 GenerateNewFace(); // Now that we have our location we can generate our pseudo-random appearance.
 
-            UpdateDefenseCapBonus();
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                UpdateDefenseCapBonus();
+
+                PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
+                if (PathfindingEnabled && Location != null && Location.Indoors)
+                    Pathfinder.TryGetMesh(Location, out _);
+            }
         }
 
         public override void OnGeneration(WorldObject generator)

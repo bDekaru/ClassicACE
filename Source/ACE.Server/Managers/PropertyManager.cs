@@ -548,6 +548,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyDouble("quest_mindelta_rate", 0.2412);
 
                 PropertyManager.ModifyBool("useable_gems", false);
+                PropertyManager.ModifyBool("pathfinding", true);
             }
         }
 
@@ -683,7 +684,8 @@ namespace ACE.Server.Managers
                 ("useable_gems", new Property<bool>(true, "Allows loot generated gems to be used to cast their spells")),
                 ("allow_PKs_to_go_NPK", new Property<bool>(true, "Allows PKs to go back to being NPKs by using the appropriate altar")),
                 ("show_discord_chat_ingame", new Property<bool>(false, "Display messages posted to Discord in general chat")),
-                ("allow_custom_gameplay_modes", new Property<bool>(true, "CustomDM: Allow creation of new characters using gameplay modes such as hardcore and solo self-found"))
+                ("allow_custom_gameplay_modes", new Property<bool>(true, "CustomDM: Allow creation of new characters using gameplay modes such as hardcore and solo self-found")),
+                ("pathfinding", new Property<bool>(false, "CustomDM: Allows creatures to use pathfinding to navigate dungeons"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
