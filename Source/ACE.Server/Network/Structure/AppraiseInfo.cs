@@ -655,11 +655,14 @@ namespace ACE.Server.Network.Structure
                     }
                 }
 
+                bool hasMissileDefenseCap = PropertiesFloat.TryGetValue(PropertyFloat.MissileDefenseCap, out var missileDefenseCap);
+                bool combinedMeleeMissileCap = false;
                 if (PropertiesFloat.TryGetValue(PropertyFloat.MeleeDefenseCap, out var meleeDefenseCap) && meleeDefenseCap != 0)
                 {
-                    if (PropertiesFloat.TryGetValue(PropertyFloat.MissileDefenseCap, out var missileDefenseCap) && missileDefenseCap == meleeDefenseCap)
+                    if (hasMissileDefenseCap && missileDefenseCap == meleeDefenseCap)
                     {
                         // We have both melee and missile entries and they are the same value, group them up into "Evasion"
+                        combinedMeleeMissileCap = true;
                         if (hasExtraPropertiesText)
                             extraPropertiesText += "\n";
                         extraPropertiesText += $"Max Evasion Chance: {(meleeDefenseCap > 0 ? "+" : "")}{meleeDefenseCap.ToString("0.0")}%.";
@@ -673,7 +676,8 @@ namespace ACE.Server.Network.Structure
                         hasExtraPropertiesText = true;
                     }
                 }
-                else if (PropertiesFloat.TryGetValue(PropertyFloat.MissileDefenseCap, out var missileDefenseCap) && missileDefenseCap != 0)
+
+                if (!combinedMeleeMissileCap && hasMissileDefenseCap && missileDefenseCap != 0)
                 {
                     if (hasExtraPropertiesText)
                         extraPropertiesText += "\n";

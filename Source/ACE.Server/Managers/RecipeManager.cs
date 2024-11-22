@@ -1808,14 +1808,8 @@ namespace ACE.Server.Managers
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         skipMutateScript = true;
-                        target.MeleeDefenseCap += 5;
-                        target.MissileDefenseCap += 5;
-
-                        if (target.MeleeDefenseCap > 0)
-                            target.MeleeDefenseCap = 0;
-
-                        if (target.MissileDefenseCap > 0)
-                            target.MissileDefenseCap = 0;
+                        target.MeleeDefenseCap *= 0.5f;
+                        target.MissileDefenseCap *= 0.5f;
 
                         target.NumTimesTinkered++;
                         result = true;

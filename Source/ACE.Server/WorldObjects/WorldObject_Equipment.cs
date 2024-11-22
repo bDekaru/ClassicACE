@@ -196,7 +196,7 @@ namespace ACE.Server.WorldObjects
             EmoteManager.OnWield(creature);
 
             if(creature != null)
-                creature.UpdateDefenseCapBonus();
+                creature.UpdateDefenseCapBonus(false);
         }
 
         public virtual void OnUnWield(Creature creature)
@@ -204,7 +204,7 @@ namespace ACE.Server.WorldObjects
             EmoteManager.OnUnwield(creature);
 
             if (creature != null)
-                creature.UpdateDefenseCapBonus();
+                creature.UpdateDefenseCapBonus(false);
         }
     }
 }

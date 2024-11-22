@@ -838,8 +838,13 @@ namespace ACE.Server.WorldObjects
         public double CachedMissileDefenseCapBonus = 0.0f;
         public double CachedMagicDefenseCapBonus = 0.0f;
         public double CachedComponentBurnRateMod = 0.0f;
-        public void UpdateDefenseCapBonus()
+        public void UpdateDefenseCapBonus(bool silent = true)
         {
+            var previousCachedMeleeDefenseCapBonus = CachedMeleeDefenseCapBonus;
+            var previousCachedMissileDefenseCapBonus = CachedMissileDefenseCapBonus;
+            var previousCachedMagicDefenseCapBonus = CachedMagicDefenseCapBonus;
+            var previousCachedComponentBurnRateMod = CachedComponentBurnRateMod;
+
             CachedMeleeDefenseCapBonus = 0;
             CachedMissileDefenseCapBonus = 0;
             CachedMagicDefenseCapBonus = 0;
@@ -854,6 +859,26 @@ namespace ACE.Server.WorldObjects
             }
 
             CachedComponentBurnRateMod = Math.Clamp(CachedComponentBurnRateMod, -1, 1);
+
+            if(!silent && this is Player player)
+            {
+                if (CachedMeleeDefenseCapBonus == CachedMissileDefenseCapBonus)
+                {
+                    if (previousCachedMeleeDefenseCapBonus != CachedMeleeDefenseCapBonus || previousCachedMissileDefenseCapBonus != CachedMissileDefenseCapBonus)
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your max evasion chance is now {(0.90f + (CachedMeleeDefenseCapBonus * 0.01)) * 100:0.0}%.", ChatMessageType.Broadcast));
+                }
+                else
+                {
+                    if (previousCachedMeleeDefenseCapBonus != CachedMeleeDefenseCapBonus)
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your max melee evasion chance is now {(0.90f + (CachedMeleeDefenseCapBonus * 0.01)) * 100:0.0}%.", ChatMessageType.Broadcast));
+
+                    if (previousCachedMissileDefenseCapBonus != CachedMissileDefenseCapBonus)
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your max missile evasion chance is now {(0.90f + (CachedMissileDefenseCapBonus * 0.01)) * 100:0.0}%.", ChatMessageType.Broadcast));
+                }
+
+                if (previousCachedMagicDefenseCapBonus != CachedMagicDefenseCapBonus)
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your max magic resist chance is now {(0.90f + (CachedMagicDefenseCapBonus * 0.01)) * 100:0.0}%.", ChatMessageType.Broadcast));
+            }
         }
     }
 }

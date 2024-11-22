@@ -109,7 +109,7 @@ namespace ACE.Server.WorldObjects
             var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                chance = Math.Min(chance, 0.95f + (magicDefenseCapBonus * 0.01f));
+                chance = Math.Min(chance, 0.90f + (magicDefenseCapBonus * 0.01f));
 
             resistChance = (float)chance;
             return chance > rng;

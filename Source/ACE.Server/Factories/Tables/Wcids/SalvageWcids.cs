@@ -41,7 +41,7 @@ namespace ACE.Server.Factories.Tables.Wcids
             ( WeenieClassName.materialbrass,            1.00f ), // Weapon Melee Defense + 5%
             ( WeenieClassName.materialvelvet,           1.00f ), // Weapon Attack Skill + 5%
             ( WeenieClassName.materialonyx,             1.00f ), // Shield Block Chance + 5%
-            ( WeenieClassName.materialsatin,            1.00f ), // Armor Max Evasion Penalty - 5%
+            ( WeenieClassName.materialsatin,            1.00f ), // Armor Max Evasion Penalty - 50%
 
             ( WeenieClassName.materialopal,             0.50f ), // Mana Conversion + 1
             ( WeenieClassName.materialperidot,          0.50f ), // Melee Defense + 1
@@ -124,7 +124,7 @@ namespace ACE.Server.Factories.Tables.Wcids
             { WeenieClassName.materialreedsharkhide,    1.25f }, // Armor Lightning Resist + 1.0
             { WeenieClassName.materialarmoredillohide,  1.25f }, // Armor Acid Resist + 1.0
             { WeenieClassName.materialonyx,             1.50f }, // Shield Block Chance + 5%
-            { WeenieClassName.materialsatin,            1.50f }, // Armor Max Evasion Penalty - 5%
+            { WeenieClassName.materialsatin,            1.50f }, // Armor Max Evasion Penalty - 50%
 
             { WeenieClassName.materialiron,             2.00f }, // Weapon Damage + 4 for regular weapons and +2 for multi-strike weapons
             { WeenieClassName.materialmahogany,         2.00f }, // Missile Weapon Mod + 16%
