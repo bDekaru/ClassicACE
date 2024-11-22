@@ -424,7 +424,7 @@ namespace ACE.Database.SQLFormatters
 
         protected string GetValueForTreasureData(uint weenieOrType, bool isWeenieClassID = false)
         {
-            string label = "Random Loot: Unknown Tier";
+            string label = "DeathTreasureType: 0";
 
             uint? deathTreasureType = null;
             uint? wieldedTreasureType = null;
@@ -447,7 +447,7 @@ namespace ACE.Database.SQLFormatters
             {
                 if (TreasureDeath != null && TreasureDeath.ContainsKey(deathTreasureType.Value))
                 {
-                    label = $"Random Loot: Tier {TreasureDeath[deathTreasureType.Value].Tier} - DeathTreasureType: {deathTreasureType}({(TreasureDeathDesc)deathTreasureType})";
+                    label = $"DeathTreasureType: {(TreasureDeathDesc)deathTreasureType}(T{TreasureDeath[deathTreasureType.Value].Tier})";
                 }
                 else if (TreasureWielded != null && TreasureWielded.ContainsKey(wieldedTreasureType.Value))
                 {

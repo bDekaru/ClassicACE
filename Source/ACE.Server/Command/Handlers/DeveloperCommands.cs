@@ -3230,7 +3230,7 @@ namespace ACE.Server.Command.Handlers
         }
 
         [CommandHandler("reload-landblock", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Reloads the current landblock.")]
-        public static void HandleReloadLandblocks(Session session, params string[] parameters)
+        public static void HandleReloadLandblock(Session session, params string[] parameters)
         {
             var landblock = session.Player.CurrentLandblock;
 
@@ -3238,6 +3238,11 @@ namespace ACE.Server.Command.Handlers
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"Reloading 0x{landblockId:X8}", ChatMessageType.Broadcast));
 
+            ReloadLandblock(landblock);
+        }
+
+        public static void ReloadLandblock(Landblock landblock)
+        {
             // destroy all non-player server objects
             landblock.DestroyAllNonPlayerObjects();
 
@@ -3247,7 +3252,7 @@ namespace ACE.Server.Command.Handlers
             // reload landblock
             var actionChain = new ActionChain();
             actionChain.AddDelayForOneTick();
-            actionChain.AddAction(session.Player, () =>
+            actionChain.AddAction(WorldManager.ActionQueue, () =>
             {
                 landblock.Init(true);
             });

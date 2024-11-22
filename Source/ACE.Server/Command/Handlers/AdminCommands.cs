@@ -5187,17 +5187,17 @@ namespace ACE.Server.Command.Handlers
             {
                 autoSpendPriorities = new Dictionary<Skill, float>()
                 {
-                    { Skill.Axe, 2.0f },
-                    { Skill.Dagger, 2.0f },
-                    { Skill.Spear, 2.0f },
-                    { Skill.Sword, 2.0f },
-                    { Skill.UnarmedCombat, 2.0f },
-                    { Skill.Bow, 2.0f },
-                    { Skill.ThrownWeapon, 2.0f },
+                    { Skill.Axe, 10.0f },
+                    { Skill.Dagger, 10.0f },
+                    { Skill.Spear, 10.0f },
+                    { Skill.Sword, 10.0f },
+                    { Skill.UnarmedCombat, 10.0f },
+                    { Skill.Bow, 10.0f },
+                    { Skill.ThrownWeapon, 10.0f },
 
-                    { Skill.MeleeDefense, 1.5f },
-                    { Skill.MissileDefense, 0.5f },
-                    { Skill.MagicDefense, 0.8f },
+                    { Skill.MeleeDefense, 3.0f },
+                    { Skill.MissileDefense, 1.0f },
+                    { Skill.MagicDefense, 2.0f },
 
                     { Skill.Armor, 0.6f },
                     { Skill.Shield, 0.6f },

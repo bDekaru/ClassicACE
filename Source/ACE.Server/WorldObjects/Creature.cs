@@ -614,14 +614,14 @@ namespace ACE.Server.WorldObjects
                 return 1.0f;
             else if (level < 30) // Tier 1.0 to 2.0
                 return 1f + (float)Math.Pow((level - 10f) / 20f, 2);
-            else if (level < 50) // Tier 2.0 to 3.0
-                return 2f + (float)Math.Pow((level - 30f) / 20f, 2);
+            else if (level < 60) // Tier 2.0 to 3.0
+                return 2f + (float)Math.Pow((level - 30f) / 30f, 2);
             else if (level < 100) // Tier 3.0 to 4.0
-                return 3f + (float)Math.Pow((level - 50f) / 50f, 2);
-            else if (level < 120) // Tier 4.0 to 5.0
-                return 4f + (float)Math.Pow((level - 100f) / 20f, 2);
-            else if (level < 180) // Tier 5.0 to 6.0
-                return 5f + (float)Math.Pow((level - 120f) / 60f, 2);
+                return 3f + (float)Math.Pow((level - 60) / 40f, 2);
+            else if (level < 150) // Tier 4.0 to 5.0
+                return 4f + (float)Math.Pow((level - 100f) / 50f, 2);
+            else if (level < 200) // Tier 5.0 to 6.0
+                return 5f + (float)Math.Pow((level - 150) / 50f, 2);
             else // Tier 6.0
                 return 6f;
         }

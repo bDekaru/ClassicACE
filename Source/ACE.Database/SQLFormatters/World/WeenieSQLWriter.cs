@@ -24,6 +24,7 @@ namespace ACE.Database.SQLFormatters.World
             var level = input.WeeniePropertiesInt.FirstOrDefault(r => r.Type == (int)PropertyInt.Level);
 
             var fileName = input.ClassId.ToString("00000") + " " + (name != null ? name.Value : "") + " - " + input.ClassName;
+            //var fileName = $"{(name != null ? name.Value: "")}({input.ClassName}) - {input.ClassId.ToString("00000")}";
             if (appendText.Length > 0)
                 fileName += appendText;
             else if(level != null)
@@ -754,6 +755,25 @@ namespace ACE.Database.SQLFormatters.World
             ValuesWriter(input.Count, lineGenerator, writer);
         }
 
+        // Keep this in sync with Creature.CalculateExtendedTier
+        private static double CalculateExtendedTier(int level)
+        {
+            if (level < 10) // Tier 1.0
+                return 1.0f;
+            else if (level < 30) // Tier 1.0 to 2.0
+                return 1f + (float)Math.Pow((level - 10f) / 20f, 2);
+            else if (level < 60) // Tier 2.0 to 3.0
+                return 2f + (float)Math.Pow((level - 30f) / 30f, 2);
+            else if (level < 100) // Tier 3.0 to 4.0
+                return 3f + (float)Math.Pow((level - 60) / 40f, 2);
+            else if (level < 150) // Tier 4.0 to 5.0
+                return 4f + (float)Math.Pow((level - 100f) / 50f, 2);
+            else if (level < 200) // Tier 5.0 to 6.0
+                return 5f + (float)Math.Pow((level - 150) / 50f, 2);
+            else // Tier 6.0
+                return 6f;
+        }
+
         public void CreateSQLINSERTStatement(uint weenieClassID, IList<WeeniePropertiesGenerator> input, StreamWriter writer)
         {
             writer.WriteLine("INSERT INTO `weenie_properties_generator` (`object_Id`, `probability`, `weenie_Class_Id`, " +
@@ -762,6 +782,8 @@ namespace ACE.Database.SQLFormatters.World
 
             var lineGenerator = new Func<int, string>(i =>
             {
+                bool isCustomDM = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM;
+
                 string weenieName = null;
                 var level = 0;
 
@@ -777,21 +799,125 @@ namespace ACE.Database.SQLFormatters.World
                 else
                     label = weenieName + $" ({input[i].WeenieClassId})";
 
-                if (level > 0)
-                    label += $" - Level: {level}";
+                var weenie = DatabaseManager.World.GetCachedWeenie(input[i].WeenieClassId);
 
-                if ((input[i].WhereCreate & (int)RegenLocationType.Treasure) != 0)
+                if (weenie != null && level > 0)
                 {
-                    label = GetValueForTreasureData(input[i].WeenieClassId);
+                    var npcLooksLikeObject = ACE.Entity.Models.WeenieExtensions.GetProperty(weenie, PropertyBool.NpcLooksLikeObject) ?? false;
+                    if(!npcLooksLikeObject)
+                        label += $" - Level: {level}{(isCustomDM ? $" - Tier: {CalculateExtendedTier(level):0.00}" : "")}";
                 }
-                else if (TreasureDeath != null)
+
+                if (((RegenLocationType)input[i].WhereCreate).HasFlag(RegenLocationType.Treasure))
+                    label = GetValueForTreasureData(input[i].WeenieClassId);
+                else if(TreasureDeath != null)
                 {
-                    var weenie = DatabaseManager.World.GetCachedWeenie(input[i].WeenieClassId);
                     if (weenie != null)
                     {
                         var deathTreasureType = ACE.Entity.Models.WeenieExtensions.GetProperty(weenie, PropertyDataId.DeathTreasureType) ?? 0;
-                        if (deathTreasureType != 0 && TreasureDeath.TryGetValue(deathTreasureType, out var treasureDeath))
-                            label += $" - {(TreasureDeathDesc)treasureDeath.TreasureType} - {GetValueForTreasureData(treasureDeath.TreasureType)}";
+                        if (deathTreasureType != 0)
+                        {                            
+                            if (deathTreasureType != 0 && TreasureDeath.TryGetValue(deathTreasureType, out var treasureDeath))
+                                label += $" - DeathTreasureType: {(TreasureDeathDesc)treasureDeath.TreasureType}(T{treasureDeath.Tier})";
+                        }
+                        else if (weenie.PropertiesGenerator != null)
+                        {
+                            var lootTierList = new List<double>();
+                            foreach (var entry in weenie.PropertiesGenerator)
+                            {
+                                if (entry.WhereCreate.HasFlag(RegenLocationType.Treasure))
+                                    label += $" - {GetValueForTreasureData(entry.WeenieClassId)}";
+                                else
+                                {
+                                    var generatedWeenie = DatabaseManager.World.GetCachedWeenie(entry.WeenieClassId);
+                                    if (generatedWeenie != null)
+                                    {
+                                        var npcLooksLikeObject = ACE.Entity.Models.WeenieExtensions.GetProperty(generatedWeenie, PropertyBool.NpcLooksLikeObject) ?? false;
+                                        if (!isCustomDM)
+                                        {
+                                            var generatedDeathTreasureType = ACE.Entity.Models.WeenieExtensions.GetProperty(generatedWeenie, PropertyDataId.DeathTreasureType) ?? 0;
+                                            if (generatedDeathTreasureType != 0)
+                                            {
+                                                if (TreasureDeath.TryGetValue(generatedDeathTreasureType, out var treasureDeath))
+                                                {
+                                                    if (!lootTierList.Contains(treasureDeath.Tier))
+                                                        lootTierList.Add(treasureDeath.Tier);
+                                                }
+                                            }
+                                        }
+                                        else if(!npcLooksLikeObject && (generatedWeenie.WeenieType == WeenieType.Creature || generatedWeenie.WeenieType == WeenieType.Cow))
+                                        {
+                                            var generatedTier = CalculateExtendedTier(ACE.Entity.Models.WeenieExtensions.GetProperty(generatedWeenie, PropertyInt.Level) ?? 0);
+                                            if (!lootTierList.Contains(generatedTier))
+                                                lootTierList.Add(generatedTier);
+                                        }
+
+                                        if (generatedWeenie.PropertiesGenerator != null)
+                                        {
+                                            foreach (var entry2 in generatedWeenie.PropertiesGenerator)
+                                            {
+                                                if (entry2.WhereCreate.HasFlag(RegenLocationType.Treasure))
+                                                    label += $" - {GetValueForTreasureData(entry2.WeenieClassId)}";
+                                                else
+                                                {
+                                                    var generatedWeenie2 = DatabaseManager.World.GetCachedWeenie(entry2.WeenieClassId);
+                                                    if (generatedWeenie2 != null)
+                                                    {
+                                                        var npcLooksLikeObject2 = ACE.Entity.Models.WeenieExtensions.GetProperty(generatedWeenie2, PropertyBool.NpcLooksLikeObject) ?? false;
+                                                        if (!isCustomDM)
+                                                        {
+                                                            var generatedDeathTreasureType2 = ACE.Entity.Models.WeenieExtensions.GetProperty(generatedWeenie2, PropertyDataId.DeathTreasureType) ?? 0;
+                                                            if (generatedDeathTreasureType2 != 0)
+                                                            {
+                                                                if (TreasureDeath.TryGetValue(generatedDeathTreasureType2, out var treasureDeath2))
+                                                                {
+                                                                    if (!lootTierList.Contains(treasureDeath2.Tier))
+                                                                        lootTierList.Add(treasureDeath2.Tier);
+                                                                }
+                                                            }
+                                                        }
+                                                        else if (!npcLooksLikeObject2 && (generatedWeenie2.WeenieType == WeenieType.Creature || generatedWeenie2.WeenieType == WeenieType.Cow))
+                                                        {
+                                                            var generatedTier2 = CalculateExtendedTier(ACE.Entity.Models.WeenieExtensions.GetProperty(generatedWeenie2, PropertyInt.Level) ?? 0);
+                                                            if (!lootTierList.Contains(generatedTier2))
+                                                                lootTierList.Add(generatedTier2);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (lootTierList.Count > 0)
+                            {
+                                var lowestTier = double.MaxValue;
+                                var highestTier = 0d;
+                                foreach(var tierEntry in lootTierList)
+                                {
+                                    if (tierEntry < lowestTier)
+                                        lowestTier = tierEntry;
+                                    if (tierEntry > highestTier)
+                                        highestTier = tierEntry;
+                                }
+
+                                if (!isCustomDM)
+                                {
+                                    if (lowestTier == highestTier)
+                                        label += $" - Tier: {lowestTier:0}";
+                                    else
+                                        label += $" - Tier: {lowestTier:0} to {highestTier:0}";
+                                }
+                                else
+                                {
+                                    if (lowestTier == highestTier)
+                                        label += $" - Tier: {lowestTier:0.00}";
+                                    else
+                                        label += $" - Tier: {lowestTier:0.00} to {highestTier:0.00}";
+                                }
+                            }
+                        }
                     }
                     else
                     {
@@ -829,7 +955,7 @@ namespace ACE.Database.SQLFormatters.World
                         $"{TrimNegativeZero(input[i].AnglesX):0.######}, " +
                         $"{TrimNegativeZero(input[i].AnglesY):0.######}, " +
                         $"{TrimNegativeZero(input[i].AnglesZ):0.######})" +
-                        $" /* Generate {label} (x{input[i].InitCreate:N0} up to max of {input[i].MaxCreate:N0}) - Regenerate upon {Enum.GetName(typeof(RegenerationType), input[i].WhenCreate)} - Location to (re)Generate: {Enum.GetName(typeof(RegenLocationType), input[i].WhereCreate)} */";
+                        $" /* Generate {label} - (x{input[i].InitCreate:N0} up to max of {input[i].MaxCreate:N0}) - Regenerate upon {Enum.GetName(typeof(RegenerationType), input[i].WhenCreate)} - Location to (re)Generate: {Enum.GetName(typeof(RegenLocationType), input[i].WhereCreate)} */";
             });
             ValuesWriter(input.Count, lineGenerator, writer);
         }
