@@ -319,8 +319,12 @@ namespace ACE.Server.WorldObjects
                     xpMessage = $"{Exploration1KillProgressTracker:N0} kill{(Exploration1KillProgressTracker != 1 ? "s" : "")} remaining.";
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
 
-                    if(Exploration1KillProgressTracker == 0)
+                    if (Exploration1KillProgressTracker == 0)
+                    {
                         PlayParticleEffect(PlayScript.AugmentationUseSkill, Guid);
+                        if (Exploration1LandblockReached && Exploration1MarkerProgressTracker == 0)
+                            Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));
+                    }
                 }
                 else if (Exploration2LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration2KillProgressTracker > 0)
                 {
@@ -330,7 +334,11 @@ namespace ACE.Server.WorldObjects
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
 
                     if (Exploration2KillProgressTracker == 0)
+                    {
                         PlayParticleEffect(PlayScript.AugmentationUseSkill, Guid);
+                        if (Exploration2LandblockReached && Exploration2MarkerProgressTracker == 0)
+                            Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));
+                    }
                 }
                 else if (Exploration3LandblockId == CurrentLandblock.Id.Raw >> 16 && Exploration3KillProgressTracker > 0)
                 {
@@ -340,7 +348,11 @@ namespace ACE.Server.WorldObjects
                     GrantXP(explorationXP, XpType.Exploration, ShareType.None, xpMessage);
 
                     if (Exploration3KillProgressTracker == 0)
+                    {
                         PlayParticleEffect(PlayScript.AugmentationUseSkill, Guid);
+                        if (Exploration3LandblockReached && Exploration3MarkerProgressTracker == 0)
+                            Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));
+                    }
                 }
             }
         }

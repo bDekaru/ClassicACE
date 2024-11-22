@@ -60,7 +60,11 @@ namespace ACE.Server.WorldObjects
                     player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                     if (player.Exploration1MarkerProgressTracker == 0)
+                    {
                         player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
+                        if (player.Exploration1LandblockReached && player.Exploration1KillProgressTracker == 0)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));
+                    }
                 }
                 else if (player.Exploration2LandblockId == landblockId && player.Exploration2MarkerProgressTracker > 0)
                 {
@@ -69,7 +73,11 @@ namespace ACE.Server.WorldObjects
                     player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                     if (player.Exploration2MarkerProgressTracker == 0)
+                    {
                         player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
+                        if (player.Exploration2LandblockReached && player.Exploration2KillProgressTracker == 0)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));
+                    }
                 }
                 else if (player.Exploration3LandblockId == landblockId && player.Exploration3MarkerProgressTracker > 0)
                 {
@@ -78,7 +86,11 @@ namespace ACE.Server.WorldObjects
                     player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                     if (player.Exploration3MarkerProgressTracker == 0)
+                    {
                         player.PlayParticleEffect(PlayScript.AugmentationUseOther, player.Guid);
+                        if (player.Exploration3LandblockReached && player.Exploration3KillProgressTracker == 0)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));
+                    }
 
                 }
                 else
