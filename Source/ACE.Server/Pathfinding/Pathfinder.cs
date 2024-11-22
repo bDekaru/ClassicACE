@@ -197,13 +197,16 @@ namespace ACE.Server.Pathfinding
                     using (var stream = File.OpenRead(meshPath))
                     using (var reader = new BinaryReader(stream))
                     {
-                        var rcBytes = new RcByteBuffer(reader.ReadBytes((int)stream.Length));
-                        var meshData = meshReader.Read(rcBytes, VERTS_PER_POLY, true);
+                        if (stream.Length > 0)
+                        {
+                            var rcBytes = new RcByteBuffer(reader.ReadBytes((int)stream.Length));
+                            var meshData = meshReader.Read(rcBytes, VERTS_PER_POLY, true);
 
-                        var mesh = new DtNavMesh();
-                        mesh.Init(meshData, VERTS_PER_POLY, 0);
-                        Meshes.TryUpdate(pos.Cell & 0xFFFF0000, mesh, null);
-                        return;
+                            var mesh = new DtNavMesh();
+                            mesh.Init(meshData, VERTS_PER_POLY, 0);
+                            Meshes.TryUpdate(pos.Cell & 0xFFFF0000, mesh, null);
+                            return;
+                        }
                     }
                 }
 
@@ -212,12 +215,16 @@ namespace ACE.Server.Pathfinding
                 {
                     log.Warn($"Could not load cell geometry provider! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
                     return;
-
                 }
 
                 var builder = new NavMeshBuilder();
                 var settings = GetMeshSettings();
                 var res = builder.Build(geom, settings);
+                if (res is null)
+                {
+                    log.Warn($"Could not build the nav mesh! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
+                    return;
+                }
 
                 var meshWriter = new DtMeshDataWriter();
                 using (var stream = File.OpenWrite(meshPath))
