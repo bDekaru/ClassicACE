@@ -101,7 +101,12 @@ namespace ACE.Server.WorldObjects
             if (entryLandblock != null)
             {
                 entryName = entryLandblock.Name;
-                entryDirections = $"{entryLandblock.Reference} {entryLandblock.Directions}";
+                if (entryLandblock.MicroRegion != "")
+                    entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MicroRegion}";
+                else if (entryLandblock.MacroRegion != "" && entryLandblock.MacroRegion != "Dereth")
+                    entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MacroRegion}";
+                else
+                    entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference}";
             }
             else
             {
@@ -134,7 +139,12 @@ namespace ACE.Server.WorldObjects
                 if (entryLandblock != null)
                 {
                     entryName = entryLandblock.Name;
-                    entryDirections = $"{entryLandblock.Reference} {entryLandblock.Directions}";
+                    if (entryLandblock.MicroRegion != "")
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MicroRegion}";
+                    else if (entryLandblock.MacroRegion != "" && entryLandblock.MacroRegion != "Dereth")
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MacroRegion}";
+                    else
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference}";
                 }
                 else
                 {
@@ -174,7 +184,12 @@ namespace ACE.Server.WorldObjects
                 if (entryLandblock != null)
                 {
                     entryName = entryLandblock.Name;
-                    entryDirections = $"{entryLandblock.Reference} {entryLandblock.Directions}";
+                    if (entryLandblock.MicroRegion != "")
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MicroRegion}";
+                    else if (entryLandblock.MacroRegion != "" && entryLandblock.MacroRegion != "Dereth")
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MacroRegion}";
+                    else
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference}";
                 }
                 else
                 {
