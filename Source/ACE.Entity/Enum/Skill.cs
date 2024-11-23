@@ -156,9 +156,12 @@ namespace ACE.Entity.Enum
                 case Skill.Awareness:
                     return "Awareness";
                 case Skill.ArmsAndArmorRepair:
-                    return "Arms And Armor Repair";
+                    return "Arms and Armor Repair";
                 case Skill.AssessCreature:
-                    return "Assess Creature";
+                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                        return "Assess Creature";
+                    else
+                        return "Assess";
                 case Skill.WeaponTinkering:
                     return "Weapon Tinkering";
                 case Skill.ArmorTinkering:
@@ -213,6 +216,12 @@ namespace ACE.Entity.Enum
                     return "Challenge";
                 case Skill.Summoning:
                     return "Summoning";
+                case Skill.Armor:
+                    return "Armor";
+                case Skill.Appraise:
+                    return "Appraise";
+                case Skill.Sneaking:
+                    return "Sneaking";
             }
 
             // TODO we really should log this as a warning to indicate that we're missing a case up above, and that the inefficient (GC unfriendly) line below will be used
