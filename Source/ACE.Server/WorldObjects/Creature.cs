@@ -587,7 +587,7 @@ namespace ACE.Server.WorldObjects
             return RollTier(Tier ?? 1);
         }
 
-        public static int RollTier(double extendedTier)
+        public int RollTier(double extendedTier)
         {
             var extendedTierClamped = Math.Clamp(extendedTier, 1, 6);
 
@@ -595,7 +595,7 @@ namespace ACE.Server.WorldObjects
             var tierLevelUpRoll = ThreadSafeRandom.NextInterval(0);
 
             int tier;
-            if (tierLevelUpRoll < tierLevelUpChance)
+            if (tierLevelUpRoll < tierLevelUpChance || GetCreatureVital(PropertyAttribute2nd.Health).MaxValue >= 1500)
                 tier = (int)Math.Ceiling(extendedTierClamped);
             else
                 tier = (int)Math.Floor(extendedTierClamped);

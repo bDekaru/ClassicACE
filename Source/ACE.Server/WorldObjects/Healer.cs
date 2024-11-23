@@ -7,6 +7,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Factories.Tables;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics;
@@ -177,6 +178,83 @@ namespace ACE.Server.WorldObjects
             healer.NextUseTime = DateTime.UtcNow.AddSeconds(animLength);
         }
 
+        private double NextAlchemyProcAttemptTime = 0;
+        private static double AlchemyProcAttemptInterval = 120;
+        public void TryProcAlchemyHoT(Player healer, Creature target, int difficulty)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            if (target.IsDead)
+                return;
+
+            var isSelfTarget = healer == target;
+
+            var procSpellId = SpellId.Undef;
+
+            var currentTime = Time.GetUnixTime();
+            if (NextAlchemyProcAttemptTime > currentTime)
+                return;
+
+            bool showCastMessage = false;
+            var skill = healer.GetCreatureSkill(Skill.Alchemy);
+            if (skill.AdvancementClass >= SkillAdvancementClass.Trained)
+            {
+                var skillCheck = SkillCheck.GetSkillChance((int)skill.Current, difficulty);
+
+                var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
+                if (rng >= skillCheck)
+                    return;
+
+                int spellLevel;
+                if (skill.Current < 200)
+                    spellLevel = 1;
+                else if (skill.Current < 300)
+                    spellLevel = 2;
+                else if (skill.Current < 400)
+                    spellLevel = 3;
+                else
+                    spellLevel = 4;
+
+                if(isSelfTarget)
+                    procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.HoTSelf1, spellLevel);
+                else
+                    procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.HoTOther1, spellLevel);
+            }
+
+            if (procSpellId == SpellId.Undef)
+                return;
+
+            var spell = new Spell(procSpellId);
+
+            if (spell.NotFound)
+            {
+                if (healer is Player player)
+                {
+                    if (spell._spellBase == null)
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"SpellId {ProcSpell.Value} Invalid.", ChatMessageType.System));
+                    else
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} spell not implemented, yet!", ChatMessageType.System));
+                }
+                return;
+            }
+
+            if (spell.NonComponentTargetType == ItemType.None)
+                healer.TryCastSpell(spell, null, null, null, true, true, true, showCastMessage);
+            else if (spell.NonComponentTargetType == ItemType.Vestements)
+            {
+                // TODO: spell.NonComponentTargetType should probably always go through TryCastSpell_WithItemRedirects,
+                // however i don't feel like testing every possible known type of item procspell in the current db to ensure there are no regressions
+                // current test case: 33990 Composite Bow casting Tattercoat
+                healer.TryCastSpell_WithRedirects(spell, target, null, null, true, true);
+            }
+            else
+                healer.TryCastSpell(spell, target, null, null, true, true, true, showCastMessage);
+
+            NextAlchemyProcAttemptTime = currentTime + AlchemyProcAttemptInterval;
+            Proficiency.OnSuccessUse(healer, skill, difficulty);
+        }
+
         public void DoHealing(Player healer, Player target, uint missingVital)
         {
             if (target.IsDead || target.Teleporting) return;
@@ -228,6 +306,8 @@ namespace ACE.Server.WorldObjects
 
             var healingSkill = healer.GetCreatureSkill(Skill.Healing);
             Proficiency.OnSuccessUse(healer, healingSkill, difficulty);
+
+            TryProcAlchemyHoT(healer, target, difficulty);
 
             var pkLoweredMessage = "";
             //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && healer.PKTimerActive)
@@ -282,6 +362,12 @@ namespace ACE.Server.WorldObjects
             // chance for critical healing
             criticalHeal = ThreadSafeRandom.Next(0.0f, 1.0f) < 0.1f;
             if (criticalHeal) healAmount *= 2;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM || target.PKTimerActive)
+            {
+                var vital = target.GetCreatureVital(BoosterEnum);
+                missingVital = vital.Missing;
+            }
 
             // cap to missing vital
             if (healAmount > missingVital)

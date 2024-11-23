@@ -670,7 +670,7 @@ namespace ACE.Server.Entity
 
             //var attackType = attacker.GetCombatType();
 
-            EffectiveDefenseSkill = defender.GetEffectiveDefenseSkill(CombatType, isPvP);
+            EffectiveDefenseSkill = defender.GetEffectiveDefenseSkill(CombatType);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {

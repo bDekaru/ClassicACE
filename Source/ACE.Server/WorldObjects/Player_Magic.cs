@@ -643,7 +643,10 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            Proficiency.OnSuccessUse(this, GetCreatureSkill(Skill.ManaConversion), spell.PowerMod);
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                Proficiency.OnSuccessUse(this, GetCreatureSkill(Skill.ManaConversion), spell.PowerMod);
+            else
+                Proficiency.OnSuccessUse(this, GetCreatureSkill(Skill.ManaConversion), spell.Level * 25);
 
             return true;
         }

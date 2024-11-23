@@ -129,41 +129,75 @@ namespace ACE.Server.WorldObjects
         	}
         }
 
+        public float GetCookingMod(Player player)
+        {
+            var skillMod = 1.0f;
+            var playerSkill = player.GetCreatureSkill(Skill.Cooking);
+            if (playerSkill.AdvancementClass >= SkillAdvancementClass.Trained)
+            {
+                skillMod = Math.Max(1f + ((playerSkill.Current - 50) * 0.003f), 1.0f);
+                Proficiency.OnSuccessUse(player, playerSkill, BoostValue);
+            }
+
+            return skillMod;
+        }
+
         public void AddExtraRegen(Player player, CreatureVital vital)
         {
             var previousPoolValue = 0d;
             var newPoolvalue = 0d;
             var vitalString = "";
+            var amount = 0d;
+
+            switch (vital.Vital)
+            {
+                case PropertyAttribute2nd.MaxHealth:
+                    amount = ExtraHealthRegenPool ?? 0;
+                    break;
+                case PropertyAttribute2nd.MaxStamina:
+                    amount = ExtraStaminaRegenPool ?? 0;
+                    break;
+                case PropertyAttribute2nd.MaxMana:
+                    amount = ExtraManaRegenPool ?? 0;
+                    break;
+            }
+
+            if (amount > 0)
+            {
+                var cookingMod = GetCookingMod(player);
+                amount *= cookingMod;
+            }
+
             switch (vital.Vital)
             {
                 case PropertyAttribute2nd.MaxHealth:
                     previousPoolValue = player.ExtraHealthRegenPool ?? 0;
-                    newPoolvalue = Math.Clamp((player.ExtraHealthRegenPool ?? 0) + (ExtraHealthRegenPool ?? 0), 0, Creature.MaxRegenPoolValue);
+                    newPoolvalue = Math.Clamp((player.ExtraHealthRegenPool ?? 0) + amount, 0, Creature.MaxRegenPoolValue);
                     player.ExtraHealthRegenPool = newPoolvalue;
                     vitalString = "Health";
                     break;
                 case PropertyAttribute2nd.MaxStamina:
                     previousPoolValue = player.ExtraStaminaRegenPool ?? 0;
-                    newPoolvalue = Math.Clamp((player.ExtraStaminaRegenPool ?? 0) + (ExtraStaminaRegenPool ?? 0), 0, Creature.MaxRegenPoolValue);
+                    newPoolvalue = Math.Clamp((player.ExtraStaminaRegenPool ?? 0) + amount, 0, Creature.MaxRegenPoolValue);
                     player.ExtraStaminaRegenPool = newPoolvalue;
                     vitalString = "Stamina";
                     break;
                 case PropertyAttribute2nd.MaxMana:
                     previousPoolValue = player.ExtraManaRegenPool ?? 0;
-                    newPoolvalue = Math.Clamp((player.ExtraManaRegenPool ?? 0) + (ExtraManaRegenPool ?? 0), 0, Creature.MaxRegenPoolValue);
+                    newPoolvalue = Math.Clamp((player.ExtraManaRegenPool ?? 0) + amount, 0, Creature.MaxRegenPoolValue);
                     player.ExtraManaRegenPool = newPoolvalue;
                     vitalString = "Mana";
                     break;
             }
 
-            var amount = newPoolvalue - previousPoolValue;
+            var changedAmount = newPoolvalue - previousPoolValue;
             var verb = "adds";
             var complement = "to";
-            if (amount < 0)
+            if (changedAmount < 0)
             {
                 verb = "removes";
                 complement = "from";
-                amount = Math.Abs(amount);
+                changedAmount = Math.Abs(changedAmount);
             }
 
             var fullness = "";
@@ -178,7 +212,7 @@ namespace ACE.Server.WorldObjects
             else
                 fullness = $" You are still very hungry for {vitalString} food!";
 
-            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {Name} {verb} {amount:N0} points {complement} your {vitalString} extra regeneration pool.{fullness}", ChatMessageType.Broadcast));
+            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {Name} {verb} {changedAmount:N0} points {complement} your {vitalString} extra regeneration pool.{fullness}", ChatMessageType.Broadcast));
         }
 
         public void BoostVital(Player player)
@@ -195,6 +229,12 @@ namespace ACE.Server.WorldObjects
             var ratingMod = BoostValue > 0 ? player.GetHealingRatingMod() : 1.0f;
 
             var boostValue = (int)Math.Round(BoostValue * ratingMod);
+
+            if (boostValue > 0)
+            {
+                var cookingMod = GetCookingMod(player);
+                boostValue = (int)(boostValue * cookingMod);
+            }
 
             var vitalChange = (uint)Math.Abs(player.UpdateVitalDelta(vital, boostValue));
 

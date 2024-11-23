@@ -261,9 +261,9 @@ namespace ACE.Server.WorldObjects.Entity
                 InitLevel = primaryInitLevel;
 
                 if (AdvancementClass == SkillAdvancementClass.Specialized)
-                    Ranks = (ushort)(primaryRanks > 10 ? primaryRanks - 10 : 0);
+                    Ranks = (ushort)(primaryRanks > 5 ? primaryRanks - 5 : 0);
                 else
-                    Ranks = (ushort)(primaryRanks > 20 ? primaryRanks - 20 : 0);
+                    Ranks = (ushort)(primaryRanks > 10 ? primaryRanks - 10 : 0);
             }
 
             if (Ranks != oldValue && creature is Player player)

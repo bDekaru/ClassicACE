@@ -40,7 +40,7 @@ namespace ACE.Server.WorldObjects
                 return baseCost;
 
             uint difficulty;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 difficulty = spell.PowerMod;   // modified power difficulty
             else
                 difficulty = spell.Level * 25;
