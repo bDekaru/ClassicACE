@@ -4975,7 +4975,7 @@ namespace ACE.Server.Command.Handlers
             if (player == null)
                 return;
 
-            player.CurrentLandblock.RefreshExplorationMarkers();
+            player.CurrentLandblock.RefreshExplorationMarkers(true);
         }
 
         [CommandHandler("SwitchHotDungeon", AccessLevel.Admin, CommandHandlerFlag.None, "")]

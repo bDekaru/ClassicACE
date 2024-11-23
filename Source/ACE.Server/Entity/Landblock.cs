@@ -1,4 +1,5 @@
 using ACE.Common;
+using ACE.Common.Extensions;
 using ACE.Common.Performance;
 using ACE.Database;
 using ACE.Database.Models.World;
@@ -206,6 +207,7 @@ namespace ACE.Server.Entity
         private double ExplorationMarkerRefreshInterval = 300;
         private List<Position> PositionsForExplorationMarkers = new List<Position>();
         private int ExplorationMarkerCount;
+        private int ExplorationMarkerCurrentIndex;
         public void InitializeExplorationMarkers()
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
@@ -217,6 +219,7 @@ namespace ACE.Server.Entity
             {
                 PositionsForExplorationMarkers = new List<Position>();
                 ExplorationMarkerCount = 0;
+                ExplorationMarkerCurrentIndex = 0;
                 return;
             }
 
@@ -229,6 +232,9 @@ namespace ACE.Server.Entity
                 }
             }
 
+            PositionsForExplorationMarkers.Shuffle();
+            ExplorationMarkerCurrentIndex = 0;
+
             ExplorationMarkerCount = Math.Clamp(1 + PositionsForExplorationMarkers.Count / 50, 1, 5);
 
             for(int i = 0; i < ExplorationMarkerCount; i++)
@@ -237,7 +243,7 @@ namespace ACE.Server.Entity
             NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
         }
 
-        public void RefreshExplorationMarkers()
+        public void RefreshExplorationMarkers(bool forceRefresh = false)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
@@ -248,22 +254,25 @@ namespace ACE.Server.Entity
                 if (obj.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker)
                 {
                     var marker = obj.Value;
-                    bool isVisible = false;
-                    foreach(var player in players)
+                    bool isInRange = false;
+                    if (!forceRefresh)
                     {
-                        if (player.IsOvertlyPlussed)
-                            continue;
-
-                        var distSq = marker.PhysicsObj.get_distance_sq_to_object(player.PhysicsObj, true);
-
-                        if (distSq < 2000)
+                        foreach (var player in players)
                         {
-                            isVisible = true;
-                            break;
+                            if (player.IsOvertlyPlussed)
+                                continue;
+
+                            var distSq = marker.Location.SquaredDistanceTo(player.Location);
+
+                            if (distSq < 2000)
+                            {
+                                isInRange = true;
+                                break;
+                            }
                         }
                     }
 
-                    if (!isVisible) // Only refresh exploration markers that are not visible for any players at the moment.
+                    if (!isInRange) // Only refresh exploration markers that are not in range of any players at the moment.
                     {
                         marker.Destroy();
 
@@ -288,7 +297,11 @@ namespace ACE.Server.Entity
             if (PositionsForExplorationMarkers.Count > 0)
             {
                 var attempts = 0;
-                var entry = PositionsForExplorationMarkers[ThreadSafeRandom.Next(0, PositionsForExplorationMarkers.Count - 1)];
+                var entry = PositionsForExplorationMarkers[ExplorationMarkerCurrentIndex];
+
+                ExplorationMarkerCurrentIndex++;
+                if (ExplorationMarkerCurrentIndex >= PositionsForExplorationMarkers.Count)
+                    ExplorationMarkerCurrentIndex = 0;
 
                 var explorationMarker = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.explorationMarker);
                 explorationMarker.Location = entry;

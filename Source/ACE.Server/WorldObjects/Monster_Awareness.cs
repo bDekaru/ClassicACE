@@ -350,6 +350,12 @@ namespace ACE.Server.WorldObjects
                 if (AttackTarget != null && AttackTarget != prevAttackTarget)
                     EmoteManager.OnNewEnemy(AttackTarget);
 
+                if (AttackTarget != null && PathfindingEnabled)
+                {
+                    if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && !IsDirectVisible(AttackTarget)))
+                        TryRoute();
+                }
+
                 return AttackTarget != null;
             }
             finally

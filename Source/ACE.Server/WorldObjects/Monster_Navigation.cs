@@ -575,7 +575,7 @@ namespace ACE.Server.WorldObjects
 
             UpdatePosition_SyncLocation();
 
-            SendUpdatePosition();
+            SendUpdatePosition(true);
 
             var actionChain = new ActionChain();
             actionChain.AddDelaySeconds(0.5f);
@@ -662,17 +662,7 @@ namespace ACE.Server.WorldObjects
             WanderTarget = null;
             FailedMovementCount = 0;
 
-            if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
-            {
-                var route = Pathfinder.FindRoute(Location, AttackTarget.Location);
-                if (route != null && route.Count > 0)
-                {
-                    LastAttemptWasNullRoute = false;
-                    TryRoute(route);
-                }
-                else
-                    LastAttemptWasNullRoute = true;
-            }
+            TryRoute();
         }
 
         private MotionCommand DesiredEmote = MotionCommand.Invalid;
@@ -742,18 +732,26 @@ namespace ACE.Server.WorldObjects
         private bool IsRouting = false;
         private bool LastAttemptWasNullRoute = false;
 
-        public void TryRoute(List<Position> route)
+        public void TryRoute(List<Position> route = null)
         {
-            if (!PathfindingEnabled || route == null || route.Count == 0)
+            if (!PathfindingEnabled || !Location.Indoors || AttackTarget == null)
                 return;
 
-            RouteAttackTarget = AttackTarget;
-            RoutePositionTarget = null;
-            CurrentRoute = route;
-            CurrentRouteIndex = 0;
-            LastAttemptWasNullRoute = false;
+            if (route == null)
+                route = Pathfinder.FindRoute(Location, AttackTarget.Location);
 
-            IsRoutePending = true;
+            if (route == null || route.Count == 0)
+                LastAttemptWasNullRoute = true;
+            else
+            {
+                RouteAttackTarget = AttackTarget;
+                RoutePositionTarget = null;
+                CurrentRoute = route;
+                CurrentRouteIndex = 0;
+                LastAttemptWasNullRoute = false;
+
+                IsRoutePending = true;
+            }
         }
 
         private void StartRoute()
