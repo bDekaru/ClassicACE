@@ -184,7 +184,7 @@ namespace ACE.Server.WorldObjects
             {
                 if (AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null || (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count))
                     EndRoute();
-                else if (CurrentRouteIndex > 1 && ((CurrentAttack == CombatType.Melee && IsMeleeVisible(AttackTarget)) || (CurrentAttack != CombatType.Melee && IsDirectVisible(AttackTarget))))
+                else if ((CurrentAttack == CombatType.Melee && IsMeleeVisible(AttackTarget)) || (CurrentAttack != CombatType.Melee && IsDirectVisible(AttackTarget)))
                     EndRoute();
                 return;
             }

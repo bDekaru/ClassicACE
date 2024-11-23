@@ -213,34 +213,20 @@ namespace ACE.Server.WorldObjects
                 {
                     MonsterProjectile_OnCollideEnvironment_Counter = 0;
 
+                    int maxRoll = HasMeleeWeapon ? 3 : 2;
+                    var roll = ThreadSafeRandom.Next(1, maxRoll);
                     if (HasMeleeWeapon)
                     {
-                        var roll = ThreadSafeRandom.Next(1, 3);
                         switch (roll)
                         {
-                            case 1: TrySwitchToMeleeAttack(); break;
-                            case 2: TryWandering(-45, 45, 2); break;
-                            case 3:
+                            case 1: TryWandering(-45, 45, 2); break;
+                            case 2:
                                 if (PathfindingEnabled && !LastAttemptWasNullRoute)
                                     TryWandering(160, 200, 3);
                                 else
                                     MissileCombatMeleeRangeMode = true;
                                 break;
-                        }
-                    }
-                    else
-                    {
-                        var roll = ThreadSafeRandom.Next(1, 3);
-                        switch (roll)
-                        {
-                            case 1:
-                            case 2: TryWandering(-45, 45, 2); break;
-                            case 3:
-                                if (PathfindingEnabled && !LastAttemptWasNullRoute)
-                                    TryWandering(160, 200, 3);
-                                else
-                                    MissileCombatMeleeRangeMode = true;
-                                break;
+                            case 3: TrySwitchToMeleeAttack(); break;
                         }
                     }
                 }

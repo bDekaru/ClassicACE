@@ -166,7 +166,10 @@ namespace ACE.Server.WorldObjects
                 FailedMovementCount = 0;
 
             if (IsRouting)
+            {
                 ContinueRoute();
+                return;
+            }
 
             if (AiImmobile && CurrentAttack == CombatType.Melee)
             {
@@ -761,13 +764,14 @@ namespace ACE.Server.WorldObjects
             if (!MoveReady())
                 return;
 
+            FailedMovementCount = 0;
             IsRoutePending = false;
             IsRouting = true;
 
             ContinueRoute();
         }
 
-        private void ContinueRoute()
+        private void ContinueRoute(bool retry = false)
         {
             if (AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null || (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count))
             {
@@ -775,21 +779,24 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            RoutePositionTarget = CurrentRoute[CurrentRouteIndex];
-            CurrentRouteIndex++;
+            if (!retry)
+            {
+                RoutePositionTarget = CurrentRoute[CurrentRouteIndex];
+                CurrentRouteIndex++;
+            }
+
+            if (Location.DistanceTo(RoutePositionTarget) < 1.0f)
+            {
+                ContinueRoute();
+                return;
+            }
 
             MoveTo(RoutePositionTarget, RunRate, true, 1.0f, null, false);
         }
 
         private void RetryRoute()
         {
-            if (RoutePositionTarget == null || AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null || (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count))
-            {
-                EndRoute();
-                return;
-            }
-
-            MoveTo(RoutePositionTarget, RunRate, true, 1.0f, null, false);
+            ContinueRoute(true);
         }
 
         private void EndRoute()
@@ -801,6 +808,7 @@ namespace ACE.Server.WorldObjects
             CurrentRoute = null;
             CurrentRouteIndex = 0;
             LastAttemptWasNullRoute = false;
+            FailedMovementCount = 0;
         }
     }
 }
