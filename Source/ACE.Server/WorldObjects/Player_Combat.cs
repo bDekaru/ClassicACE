@@ -197,6 +197,9 @@ namespace ACE.Server.WorldObjects
                     targetPlayer.TakeDamage(this, damageEvent);
                 else
                     target.TakeDamage(this, damageEvent.DamageType, damageEvent.Damage, damageEvent.IsCritical);
+
+                if (!target.IsDead && this != target && damageEvent.DefenderStunned)
+                    target.StunFor(5);
             }
             else
             {
@@ -216,8 +219,12 @@ namespace ACE.Server.WorldObjects
 
                 if (!SquelchManager.Squelches.Contains(this, ChatMessageType.CombatSelf))
                 {
-                    if(this != target)
+                    if (this != target)
+                    {
                         Session.Network.EnqueueSend(new GameEventAttackerNotification(Session, target.Name, damageEvent.DamageType, (float)intDamage / target.Health.MaxValue, intDamage, damageEvent.IsCritical, damageEvent.AttackConditions));
+                        if (!target.IsDead && damageEvent.DefenderStunned)
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your attack stuns {target.Name}!", ChatMessageType.CombatSelf));
+                    }
                     else
                         Session.Network.EnqueueSend(new GameEventAttackerNotification(Session, "yourself", damageEvent.DamageType, (float)intDamage / target.Health.MaxValue, intDamage, damageEvent.IsCritical, damageEvent.AttackConditions));
                 }
@@ -576,17 +583,19 @@ namespace ACE.Server.WorldObjects
 
         public int TakeDamage(WorldObject source, DamageEvent damageEvent)
         {
-            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.AttackConditions, damageEvent.Blocked, (int)Math.Floor(damageEvent.DamageBlocked));
+            return TakeDamage(source, damageEvent.DamageType, damageEvent.Damage, damageEvent.BodyPart, damageEvent.IsCritical, damageEvent.AttackConditions, damageEvent.Blocked, (int)Math.Floor(damageEvent.DamageBlocked), damageEvent.IsPerfectBlock, damageEvent.AttackerStunned);
         }
 
         /// <summary>
         /// Applies damages to a player from a physical damage source
         /// </summary>
-        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, AttackConditions attackConditions = AttackConditions.None, bool blocked = false, int damageBlocked = 0)
+        public int TakeDamage(WorldObject source, DamageType damageType, float _amount, BodyPart bodyPart, bool crit = false, AttackConditions attackConditions = AttackConditions.None, bool blocked = false, int damageBlocked = 0, bool perfectblock = false, bool sourceStunned = false)
         {
             if (Invincible || IsDead || IsOnNoDamageLandblock) return 0;
 
-            if (source is Creature creatureAttacker)
+            var creatureAttacker = source as Creature;
+
+            if (creatureAttacker != null)
                 SetCurrentAttacker(creatureAttacker);
 
             // check lifestone protection
@@ -648,17 +657,22 @@ namespace ACE.Server.WorldObjects
             }
             var damageLocation = (DamageLocation)iDamageLocation;
 
-            // send network messages
-            if (source is Creature creature)
+            if (creatureAttacker != null)
             {
-                if (!SquelchManager.Squelches.Contains(source, ChatMessageType.CombatEnemy) && this != creature)
+                if (sourceStunned)
+                    creatureAttacker.StunFor(5);
+
+                // send network messages
+                if (!SquelchManager.Squelches.Contains(source, ChatMessageType.CombatEnemy) && this != creatureAttacker)
                 {
-                    Session.Network.EnqueueSend(new GameEventDefenderNotification(Session, creature.Name, damageType, percent, amount, damageLocation, crit, attackConditions));
+                    if(!perfectblock || amount > 0)
+                        Session.Network.EnqueueSend(new GameEventDefenderNotification(Session, creatureAttacker.Name, damageType, percent, amount, damageLocation, crit, attackConditions));
+
                     if (damageBlocked > 0)
                     {
                         if (blocked)
                         {
-                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.CombatSelf));
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{(perfectblock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} damage!{(sourceStunned ? $" The {source.Name} is stunned!" : "")}", ChatMessageType.CombatSelf));
                             var blockSound = new GameMessageSound(Guid, Sound.HitPlate1, 1.0f);
                             EnqueueBroadcast(blockSound);
                         }
@@ -668,7 +682,7 @@ namespace ACE.Server.WorldObjects
                 }
     
                 var hitSound = new GameMessageSound(Guid, GetHitSound(source, bodyPart), 1.0f);
-                var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creature.GetSplatterHeight() + creature.GetSplatterDir(this)));
+                var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creatureAttacker.GetSplatterHeight() + creatureAttacker.GetSplatterDir(this)));
                 EnqueueBroadcast(hitSound, splatter);
             }
 

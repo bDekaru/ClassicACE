@@ -45,6 +45,8 @@ namespace ACE.Server.WorldObjects
                     {
                         EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpLeftBack));
                         EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpRightBack));
+                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpLeftFront));
+                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpRightFront));
                         NextStunEffectTimestamp = currentUnixTime + StunEffectFrequency;
                     }
                     return;

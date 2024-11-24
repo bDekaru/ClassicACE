@@ -14,6 +14,7 @@ using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Network.Structure;
 using ACE.Server.Physics.Animation;
+using ACE.Server.WorldObjects.Entity;
 
 namespace ACE.Server.WorldObjects
 {
@@ -626,6 +627,35 @@ namespace ACE.Server.WorldObjects
             if (IsExhausted) effectiveDefense = 0;
 
             return effectiveDefense;
+        }
+
+        public CreatureSkill GetShieldSkill()
+        {
+            var shieldSkill = GetCreatureSkill(Skill.Shield);
+
+            if (!(this is Player) && shieldSkill.InitLevel == 0)
+                shieldSkill = GetCreatureSkill(Skill.MeleeDefense); // Use the melee defense skill as a surrogate for creatures that have no shield skill defined.
+
+            return shieldSkill;
+        }
+
+        public uint GetEffectiveShieldSkill(CombatType combatType)
+        {
+            var shield = GetEquippedShield();
+
+            if (shield == null)
+                return 0;
+
+            var shieldSkill = GetShieldSkill();
+
+            uint effectiveBlockSkill = 0;
+            if (shieldSkill.AdvancementClass > SkillAdvancementClass.Untrained)
+                effectiveBlockSkill = shieldSkill.Current;
+
+            var combatTypeMod = combatType == CombatType.Missile ? 1.0f : 1.333f;
+                effectiveBlockSkill = (uint)(effectiveBlockSkill * combatTypeMod);
+
+            return effectiveBlockSkill;
         }
 
 
@@ -1264,7 +1294,9 @@ namespace ACE.Server.WorldObjects
                 playerTarget.SendMessage(msg, ChatMessageType.Combat, this);
         }
 
-        private double NextAssessDebuffActivationTime = 0;
+        private double NextAssessDebuffMeleeActivationTime = 0;
+        private double NextAssessDebuffMissileActivationTime = 0;
+        private double NextAssessDebuffMagicActivationTime = 0;
         private static double AssessDebuffActivationInterval = 10;
         public void TryCastAssessDebuff(Creature target, CombatType combatType)
         {
@@ -1278,9 +1310,21 @@ namespace ACE.Server.WorldObjects
                 return; // Target is already dead, abort!
 
             var currentTime = Time.GetUnixTime();
-
-            if (NextAssessDebuffActivationTime > currentTime)
-                return;
+            switch (combatType)
+            {
+                case CombatType.Melee:
+                    if (target.NextAssessDebuffMeleeActivationTime > currentTime)
+                        return;
+                    break;
+                case CombatType.Missile:
+                    if (target.NextAssessDebuffMissileActivationTime > currentTime)
+                        return;
+                    break;
+                case CombatType.Magic:
+                    if (target.NextAssessDebuffMagicActivationTime > currentTime)
+                        return;
+                    break;
+            }
 
             var skill = GetCreatureSkill(Skill.AssessCreature);
             if (skill.AdvancementClass == SkillAdvancementClass.Untrained || skill.AdvancementClass == SkillAdvancementClass.Inactive)
@@ -1296,7 +1340,18 @@ namespace ACE.Server.WorldObjects
             if (activationChance < ThreadSafeRandom.Next(0.0f, 1.0f))
                 return;
 
-            NextAssessDebuffActivationTime = currentTime + AssessDebuffActivationInterval;
+            switch (combatType)
+            {
+                case CombatType.Melee:
+                    target.NextAssessDebuffMeleeActivationTime = currentTime + AssessDebuffActivationInterval;
+                    break;
+                case CombatType.Missile:
+                    target.NextAssessDebuffMissileActivationTime = currentTime + AssessDebuffActivationInterval;
+                    break;
+                case CombatType.Magic:
+                    target.NextAssessDebuffMagicActivationTime = currentTime + AssessDebuffActivationInterval;
+                    break;
+            }
 
             var defenseSkill = target.GetCreatureSkill(Skill.Deception);
             var effectiveDefenseSkill = defenseSkill.Current;
@@ -1322,46 +1377,22 @@ namespace ACE.Server.WorldObjects
                 Proficiency.OnSuccessUse(sourceAsPlayer, skill, defenseSkill.Current);
 
             string spellType;
-            // 1/5 chance of the vulnerability being explicity of the type of attack that was used, otherwise random 1/3 for each type
             SpellId spellId;
-            if (ThreadSafeRandom.Next(1, 5) != 5)
+            switch (combatType)
             {
-                switch (combatType)
-                {
-                    default:
-                    case CombatType.Melee:
-                        spellId = SpellId.VulnerabilityOther1;
-                        spellType = "melee";
-                        break;
-                    case CombatType.Missile:
-                        spellId = SpellId.DefenselessnessOther1;
-                        spellType = "missile";
-                        break;
-                    case CombatType.Magic:
-                        spellId = SpellId.MagicYieldOther1;
-                        spellType = "magic";
-                        break;
-                }
-            }
-            else
-            {
-                var spellRNG = ThreadSafeRandom.Next(1, 3);
-                switch (spellRNG)
-                {
-                    default:
-                    case 1:
-                        spellId = SpellId.VulnerabilityOther1;
-                        spellType = "melee";
-                        break;
-                    case 2:
-                        spellId = SpellId.DefenselessnessOther1;
-                        spellType = "missile";
-                        break;
-                    case 3:
-                        spellId = SpellId.MagicYieldOther1;
-                        spellType = "magic";
-                        break;
-                }
+                default:
+                case CombatType.Melee:
+                    spellId = SpellId.VulnerabilityOther1;
+                    spellType = "melee";
+                    break;
+                case CombatType.Missile:
+                    spellId = SpellId.DefenselessnessOther1;
+                    spellType = "missile";
+                    break;
+                case CombatType.Magic:
+                    spellId = SpellId.MagicYieldOther1;
+                    spellType = "magic";
+                    break;
             }
 
             var spellLevels = SpellLevelProgression.GetSpellLevels(spellId);

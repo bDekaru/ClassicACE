@@ -65,11 +65,7 @@ namespace ACE.Server.Entity
         public uint EffectiveDefenseSkill;
         public float AccuracyMod;
 
-        public float BlockChance;
-        public uint EffectiveBlockSkill;
-
         public bool Evaded;
-        public bool Blocked;
 
         public BaseDamageMod BaseDamageMod;
         public float BaseDamage { get; set; }
@@ -105,8 +101,17 @@ namespace ACE.Server.Entity
         public float DamageResistanceRatingMod;
         public float PkDamageResistanceMod;
 
+        public float BlockChance;
+        public float PerfectBlockChance;
+        public uint EffectiveBlockSkill;
+
+        public bool Blocked;
         public float DamageMitigated;
         public float DamageBlocked;
+
+        public bool IsPerfectBlock;
+        public bool AttackerStunned;
+        public bool DefenderStunned;
 
         public bool IsAttackFromSneaking;
 
@@ -322,7 +327,7 @@ namespace ACE.Server.Entity
                             if (playerDefender == null)
                             {
                                 SneakAttackMod = 3.0f;
-                                defender.StunFor(5, playerAttacker);
+                                DefenderStunned = true;
                             }
                         }
                         else if (attackerTechniqueId == TacticAndTechniqueType.Opportunist)
@@ -466,11 +471,24 @@ namespace ACE.Server.Entity
                 var shield = defender.GetEquippedShield();
                 if (shield != null)
                 {
-                    BlockChance = GetBlockChance(attacker, defender, shield, attackSkill);
+                    EffectiveBlockSkill = defender.GetEffectiveShieldSkill(CombatType);
+                    BlockChance = GetBlockChance(attacker, defender, shield, EffectiveAttackSkill, EffectiveBlockSkill);
                     if (attacker != defender && BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                     {
                         Blocked = true;
-                        ShieldMod = defender.GetShieldMod(attacker, DamageType, Weapon, pkBattle);
+
+                        var shieldSkill = defender.GetShieldSkill();
+                        PerfectBlockChance = WorldObject.GetWeaponCriticalChance(shield, defender, shieldSkill, attacker, pkBattle);
+                        if (PerfectBlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                        {
+                            IsPerfectBlock = true;
+                            ShieldMod = 0.0f;
+
+                            if (playerAttacker == null && playerDefender != null && CombatType == CombatType.Melee)
+                                AttackerStunned = true;
+                        }
+                        else
+                            ShieldMod = defender.GetShieldMod(attacker, DamageType, Weapon, pkBattle);
                     }
                     else
                     {
@@ -706,7 +724,7 @@ namespace ACE.Server.Entity
             return (float)evadeChance;
         }
 
-        public float GetBlockChance(Creature attacker, Creature defender, WorldObject shield, CreatureSkill attackSkill)
+        public float GetBlockChance(Creature attacker, Creature defender, WorldObject shield, uint effectiveAttackSkill, uint effectiveBlockSkill)
         {
             if (defender == null || defender.IsExhausted)
                 return 0.0f;
@@ -714,25 +732,12 @@ namespace ACE.Server.Entity
             var playerAttacker = attacker as Player;
             var playerDefender = defender as Player;
             var isPvP = playerAttacker != null && playerDefender != null;
-            var shieldSkill = defender.GetCreatureSkill(Skill.Shield);
-
-            if(playerDefender == null && shieldSkill.InitLevel == 0)
-                shieldSkill = defender.GetCreatureSkill(Skill.MeleeDefense); // Use the melee defense skill as a surrogate for creatures that have no shield skill defined.
 
             var shieldBlockMod = (float)(shield.BlockMod ?? 0) + shield.EnchantmentManager.GetBlockMod();
-
             if (shield.IsEnchantable)
                 shieldBlockMod += defender.EnchantmentManager.GetBlockMod();
 
-            if (shieldSkill.AdvancementClass > SkillAdvancementClass.Untrained)
-                EffectiveBlockSkill = shieldSkill.Current;
-            else
-                EffectiveBlockSkill = 0;
-
-            var combatTypeMod = CombatType == CombatType.Missile ? 1.0f : 1.333f;
-            EffectiveBlockSkill = (uint)(EffectiveBlockSkill * combatTypeMod);
-
-            var blockChance = 1.0f - SkillCheck.GetSkillChance(attackSkill.Current, EffectiveBlockSkill);
+            var blockChance = 1.0f - SkillCheck.GetSkillChance(effectiveAttackSkill, effectiveBlockSkill);
             blockChance += shieldBlockMod;
 
             if (isPvP)
@@ -1009,9 +1014,13 @@ namespace ACE.Server.Entity
             info += $"DamageMitigated: {DamageMitigated}\n";
             info += $"Damage: {Damage}\n";
 
-            info += $"Block Chance: {BlockChance}\n";
+            info += $"BlockChance: {BlockChance}\n";
             info += $"Blocked: {Blocked}\n";
-            info += $"Damage Blocked: {DamageBlocked}\n";
+            info += $"PerfectBlockChance: {PerfectBlockChance}\n";
+            info += $"PerfectBlock: {IsPerfectBlock}\n";
+            info += $"DamageBlocked: {DamageBlocked}\n";
+            info += $"AttackerStunned: {AttackerStunned}\n";
+            info += $"DefenderStunned: {DefenderStunned}\n";
 
             info += $"IsAttackFromSneaking: {IsAttackFromSneaking}\n";
 
