@@ -55,6 +55,25 @@ namespace ACE.Server.WorldObjects
                 return 0.0f;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var knownDoors = target.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
+
+                bool nearDoor = false;
+                foreach (var entry in knownDoors)
+                {
+                    var door = entry.WeenieObj.WorldObject;
+                    if (!door.IsOpen && (Location.DistanceTo(door.Location) < 2f || target.Location.DistanceTo(door.Location) < 2f))
+                    {
+                        nearDoor = true;
+                        break;
+                    }
+                }
+
+                if (nearDoor && !IsDirectVisible(target))
+                    return 0.0f;
+            }
+
             if (CurrentMotionState.Stance == MotionStance.NonCombat)
                 DoAttackStance();
 
@@ -95,9 +114,6 @@ namespace ACE.Server.WorldObjects
                 actionChain.AddAction(this, () =>
                 {
                     if (AttackTarget == null || IsDead || target.IsDead) return;
-
-                    //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !IsDirectVisible(target))
-                    //    return;
 
                     if (WeenieType == WeenieType.GamePiece)
                     {

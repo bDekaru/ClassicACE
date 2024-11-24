@@ -34,6 +34,25 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var knownDoors = target.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
+
+                bool nearDoor = false;
+                foreach (var entry in knownDoors)
+                {
+                    var door = entry.WeenieObj.WorldObject;
+                    if (!door.IsOpen && (Location.DistanceTo(door.Location) < 2f || target.Location.DistanceTo(door.Location) < 2f))
+                    {
+                        nearDoor = true;
+                        break;
+                    }
+                }
+
+                if (nearDoor && !IsDirectVisible(target))
+                    return;
+            }
+
             var weapon = GetEquippedMissileWeapon();
             var ammo = GetEquippedAmmo();
 
