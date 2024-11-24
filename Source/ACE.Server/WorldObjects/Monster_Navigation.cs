@@ -665,6 +665,15 @@ namespace ACE.Server.WorldObjects
             WanderTarget = null;
             FailedMovementCount = 0;
 
+            if (IsMoving)
+            {
+                PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
+                PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
+                IsMoving = false;
+
+                EnqueueBroadcastMotion(new Motion(CurrentMotionState.Stance, MotionCommand.Ready));
+            }
+
             TryRoute();
         }
 
@@ -740,7 +749,7 @@ namespace ACE.Server.WorldObjects
             if (!PathfindingEnabled || !Location.Indoors || AttackTarget == null)
                 return;
 
-            if (route == null)
+            if (route == null && (Location.Cell & 0xFFFF0000) == (AttackTarget.Location.Cell & 0xFFFF0000)) // Making sure both locations are in the same landblock for now.
                 route = Pathfinder.FindRoute(Location, AttackTarget.Location);
 
             if (route == null || route.Count == 0)
@@ -809,6 +818,15 @@ namespace ACE.Server.WorldObjects
             CurrentRouteIndex = 0;
             LastAttemptWasNullRoute = false;
             FailedMovementCount = 0;
+
+            if (IsMoving)
+            {
+                PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
+                PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
+                IsMoving = false;
+
+                EnqueueBroadcastMotion(new Motion(CurrentMotionState.Stance, MotionCommand.Ready));
+            }
         }
     }
 }
