@@ -1,5 +1,7 @@
 using System;
 using System.Threading;
+using RandN;
+using RandN.Rngs;
 
 namespace ACE.Common
 {
@@ -7,7 +9,9 @@ namespace ACE.Common
     // todo: implement exactly the way AC handles it.. which we'll never know unless we get original source code
     public static class ThreadSafeRandom
     {
-        static readonly ThreadLocal<Random> random = new ThreadLocal<Random>(() => new Random());
+        //static readonly ThreadLocal<Random> random = new ThreadLocal<Random>(() => new Random());
+        //static readonly ThreadLocal<Random> random = new ThreadLocal<Random>(() => RandN.Compat.RandomShim.Create(SmallRng.Create()));
+        static readonly Random random = RandN.Compat.RandomShim.Create(ThreadLocalRng.Instance);
 
         /// <summary>
         /// Returns a random floating-point number that is greater than or equal to 'min', and less than 'max'.
@@ -17,7 +21,7 @@ namespace ACE.Common
         public static double Next(float min, float max)
         {
             // for ranges other than 1, (max - upper bound) will be scaled by the range
-            return random.Value.NextDouble() * (max - min) + min;
+            return random./*Value.*/NextDouble() * (max - min) + min;
         }
 
         /// <summary>
@@ -27,12 +31,12 @@ namespace ACE.Common
         /// <param name="max">The maximum possible value to return</param>
         public static int Next(int min, int max)
         {
-            return random.Value.Next(min, max + 1);
+            return random./*Value.*/Next(min, max + 1);
         }
 
         public static double NextInterval(float qualityMod)
         {
-            return Math.Min(Math.Max(0.0, random.Value.NextDouble() - qualityMod), 1.0);
+            return Math.Min(Math.Max(0.0, random./*Value.*/NextDouble() - qualityMod), 1.0);
         }
 
         /// <summary>
@@ -42,7 +46,7 @@ namespace ACE.Common
 
         public static double NextIntervalMax(float qualityMod)
         {
-            return Math.Min(maxExclusive, random.Value.NextDouble() + qualityMod);
+            return Math.Min(maxExclusive, random./*Value.*/NextDouble() + qualityMod);
         }
     }
 }
