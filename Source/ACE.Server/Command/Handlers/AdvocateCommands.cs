@@ -38,6 +38,7 @@ namespace ACE.Server.Command.Handlers
                 default:
                     session.Player.UpdateProperty(session.Player, PropertyBool.Attackable, true, true);
                     session.Network.EnqueueSend(new GameMessageSystemChat("Monsters will attack you normally.", ChatMessageType.Broadcast));
+                    session.Player.CheckMonsters();
                     break;
             }
         }
