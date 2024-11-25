@@ -673,6 +673,13 @@ namespace ACE.Server.WorldObjects
                         if (blocked)
                         {
                             Session.Network.EnqueueSend(new GameMessageSystemChat($"{(perfectblock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} damage!{(sourceStunned ? $" The {source.Name} is stunned!" : "")}", ChatMessageType.CombatSelf));
+
+                            if (sourceStunned)
+                            {
+                                var painSound = (Sound)Enum.Parse(typeof(Sound), "Wound" + ThreadSafeRandom.Next(1, 3), true);
+                                creatureAttacker.EnqueueBroadcast(new GameMessageSound(creatureAttacker.Guid, painSound, 1.0f));
+                            }
+
                             var blockSound = new GameMessageSound(Guid, Sound.HitPlate1, 1.0f);
                             EnqueueBroadcast(blockSound);
                         }
