@@ -254,36 +254,24 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// This is called by the monster AI system for ranged attacks
         /// It is mostly a duplicate of Rotate(), and should be refactored eventually...
-        /// It sets CurrentMotionState and AttackTarget here
+        /// It sets CurrentMotionState here
         /// </summary>
-        public float TurnTo(WorldObject target, bool debug = false)
+        public void TurnTo(WorldObject target, bool debug = false)
         {
             if (DebugMove)
                 Console.WriteLine($"{Name}.TurnTo({target.Name})");
 
-            if (this is Player) return 0.0f;
+            if (this is Player)
+                return;
 
             var turnToMotion = new Motion(this, target, MovementType.TurnToObject);
             EnqueueBroadcastMotion(turnToMotion);
 
             CurrentMotionState = turnToMotion;
 
-            AttackTarget = target;
-            var rotateDelay = EstimateTurnTo();
-            if (debug)
-                Console.WriteLine("TurnTime = " + rotateDelay);
-            var actionChain = new ActionChain();
-            actionChain.AddDelaySeconds(rotateDelay);
-            actionChain.AddAction(this, () =>
-            {
-                // fix me: in progress turn
-                //var targetDir = GetDirection(Location.ToGlobal(), target.Location.ToGlobal());
-                //Location.Rotate(targetDir);
-                if (debug)
-                    Console.WriteLine("Finished turning - " + rotateDelay + "s");
-            });
-            actionChain.EnqueueChain();
-            return rotateDelay;
+            StartTurn();
+
+            return;
         }
 
         /// <summary>
@@ -299,6 +287,8 @@ namespace ACE.Server.WorldObjects
             CurrentMotionState = motion;
 
             EnqueueBroadcastMotion(motion);
+
+            StartMove();
         }
 
         public Motion GetMoveToMotion(WorldObject target, float runRate)
@@ -357,42 +347,10 @@ namespace ACE.Server.WorldObjects
             var mvp = new MovementParameters(motion.MoveToParameters);
             PhysicsObj.MoveToPosition(new Physics.Common.Position(position), mvp);
 
-            AddMoveToTick();
-
             StartMove();
         }
 
-        private void AddMoveToTick()
-        {
-            var actionChain = new ActionChain();
-            actionChain.AddDelaySeconds(monsterTickInterval);
-            actionChain.AddAction(this, () =>
-            {
-                if (!IsDead && PhysicsObj?.MovementManager?.MoveToManager != null && PhysicsObj.IsMovingTo())
-                {
-                    PhysicsObj.update_object();
-                    UpdatePosition_SyncLocation();
-                    SendUpdatePosition();
 
-                    if (PhysicsObj?.MovementManager?.MoveToManager?.FailProgressCount < 5)
-                    {
-                        AddMoveToTick();
-                    }
-                    else
-                    {
-                        if (PhysicsObj?.MovementManager?.MoveToManager != null)
-                        {
-                            PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
-                            PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
-                        }
-                        EnqueueBroadcastMotion(new Motion(CurrentMotionState.Stance, MotionCommand.Ready));
-                    }
-
-                    //Console.WriteLine($"{Name}.Position: {Location}");
-                }
-            });
-            actionChain.EnqueueChain();
-        }
 
         public Motion GetMoveToPosition(Position position, float runRate = 1.0f, float? walkRunThreshold = null, float? speed = null)
         {

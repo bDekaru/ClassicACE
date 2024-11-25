@@ -240,7 +240,7 @@ namespace ACE.Server.WorldObjects
                         {
                             case 1: TryWandering(-45, 45, 2); break;
                             case 2:
-                                if (PathfindingEnabled && !LastAttemptWasNullRoute)
+                                if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
                                     TryWandering(160, 200, 3);
                                 else
                                     MissileCombatMeleeRangeMode = true;
@@ -283,6 +283,8 @@ namespace ACE.Server.WorldObjects
 
             if (weapon == null && ammo == null)
                 return;
+
+            TryRoute();
 
             var actionChain = new ActionChain();
 
@@ -378,6 +380,8 @@ namespace ACE.Server.WorldObjects
 
             var weapon = GetEquippedMeleeWeapon();
             var shield = GetEquippedShield();
+
+            TryRoute();
 
             var actionChain = new ActionChain();
 

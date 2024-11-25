@@ -340,7 +340,7 @@ namespace ACE.Server.WorldObjects.Managers
                 {
                     var actionChain = new ActionChain();
                     actionChain.AddDelayForOneTick();
-                    actionChain.AddAction(creature, () => creature.UpdateMoveSpeed());
+                    actionChain.AddAction(creature, creature.UpdateMoveSpeed);
                     actionChain.EnqueueChain();
                 }
 

@@ -253,12 +253,10 @@ namespace ACE.Server.WorldObjects
 
                 LastPhysicsUpdate = PhysicsTimer.CurrentTime;
 
-                // monsters have separate physics updates,
-                // except during the first frame of spawning, idle emotes, and dying
                 isDying = creature.IsDead;
 
                 // determine if updates should be run for object
-                var runUpdate = PhysicsObj.IsAnimating && (!creature.IsMonster || !creature.IsAwake) || isDying || PhysicsObj.InitialUpdates <= 1;
+                var runUpdate = PhysicsObj.IsAnimating || isDying || PhysicsObj.InitialUpdates <= 1 || PhysicsObj.MovementManager.MoveToManager.PendingActions.Count > 0;
 
                 if (!runUpdate)
                     return false;

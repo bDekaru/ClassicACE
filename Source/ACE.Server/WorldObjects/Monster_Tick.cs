@@ -67,14 +67,30 @@ namespace ACE.Server.WorldObjects
 
                 return;
             }
+            else if (!IsDead && PhysicsObj?.MovementManager?.MoveToManager != null && PhysicsObj.IsMovingTo())
+            {
+                UpdatePosition();
+
+                if (PhysicsObj?.MovementManager?.MoveToManager?.FailProgressCount >= 5)
+                    CancelMoveTo();
+            }
 
             if (IsDead) return;
 
             if (EmoteManager.IsBusy) return;
 
-                HandleFindTarget();
+            HandleFindTarget();
 
             CheckMissHome();    // tickrate?
+
+            if (IsMoveToHomePending)
+                MoveToHome();
+            if (IsMovingToHome || IsMoveToHomePending)
+            {
+                if (PendingEndMoveToHome)
+                    EndMoveToHome();
+                return;
+            }
 
             if (AttackTarget == null && MonsterState != State.Return)
             {
@@ -156,39 +172,60 @@ namespace ACE.Server.WorldObjects
             var targetDist = GetDistanceToTarget();
             //Console.WriteLine($"{Name} ({Guid}) - Dist: {targetDist}");
 
-
             PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
-            if (IsEmotePending)
+
+            if ((IsEmotePending || IsWanderingPending || IsRouteStartPending || IsEmoting || IsWandering || IsRouting) && ((CurrentAttack == CombatType.Melee && IsMeleeVisible(AttackTarget)) || (CurrentAttack != CombatType.Melee && IsDirectVisible(AttackTarget))))
             {
-                Emote();
+                // If we can see our target abort everything and go for it.
+                //Console.WriteLine("Pathfinding: Target Sighted!");
+
+                IsEmotePending = false;
+                IsWanderingPending = false;
+                IsRouteStartPending = false;
+
+                if (IsEmoting)
+                    EndEmoting();
+
+                if (IsWandering)
+                    EndWandering();
+
+                if (IsRouting)
+                    EndRoute();
+            }
+            else
+            {
                 if (IsEmotePending)
+                    Emote();
+                if (IsEmoting || IsEmotePending)
                     return;
-            }
-            if (IsEmoting)
-                return;
 
-            if (IsWanderingPending)
-            {
-                Wander();
                 if (IsWanderingPending)
+                    Wander();
+                if (IsWandering || IsWanderingPending)
+                {
+                    if (PendingEndWandering)
+                        EndWandering();
                     return;
-            }
-            if (IsWandering)
-                return;
+                }
 
-            if (IsRoutePending)
-            {
-                StartRoute();
-                if (IsRoutePending)
-                    return;
-            }
-            if (IsRouting)
-            {
-                if (AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null || (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count))
-                    EndRoute();
-                else if ((CurrentAttack == CombatType.Melee && IsMeleeVisible(AttackTarget)) || (CurrentAttack != CombatType.Melee && IsDirectVisible(AttackTarget)))
-                    EndRoute();
-                return;
+                if (IsRouteStartPending)
+                {
+                    StartRoute();
+                    if (IsRouteStartPending)
+                        return;
+                }
+                if (IsRouting)
+                {
+                    if (PendingEndRoute)
+                        EndRoute();
+                    else if (PendingRetryRoute)
+                        RetryRoute();
+                    else if (PendingContinueRoute)
+                        ContinueRoute();
+
+                    if (IsRouting)
+                        return;
+                }
             }
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
@@ -221,7 +258,7 @@ namespace ACE.Server.WorldObjects
                         else
                         {
                             FindNewHome(100, 260, 100);
-                            MoveToHome();
+                            TryMoveToHome();
                             return;
                         }
                     }
@@ -234,7 +271,7 @@ namespace ACE.Server.WorldObjects
                 {
                     // turn / move towards
                     if (!IsTurning && !IsMoving)
-                        StartTurn();
+                        StartMovement();
                     else
                     {
                         if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
@@ -243,7 +280,7 @@ namespace ACE.Server.WorldObjects
                                 TrySwitchToMissileAttack();
                             else if (FailedMovementCount >= FailedMovementThreshold && LastWanderTime + MaxWanderFrequency < currentUnixTime)
                             {
-                                if (PathfindingEnabled && !LastAttemptWasNullRoute)
+                                if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
                                     TryWandering(160, 200, 3);
                                 else
                                     TryWandering(100, 260, 5);
@@ -272,7 +309,7 @@ namespace ACE.Server.WorldObjects
 
                 if (!IsFacing(AttackTarget))
                 {
-                    StartTurn();
+                    StartMovement();
                 }
                 else if (targetDist <= MaxRange)
                 {

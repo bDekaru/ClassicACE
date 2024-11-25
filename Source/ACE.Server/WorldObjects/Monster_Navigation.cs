@@ -72,12 +72,10 @@ namespace ACE.Server.WorldObjects
         public const int FailedMovementThreshold = 2;
 
         /// <summary>
-        /// Starts the process of monster turning towards target
+        /// Starts the process of monster turning and moving towards target
         /// </summary>
-        public void StartTurn()
+        public void StartMovement()
         {
-            //if (Timers.RunningTime < NextMoveTime)
-            //return;
             if (!MoveReady())
                 return;
 
@@ -87,10 +85,6 @@ namespace ACE.Server.WorldObjects
             if (MoveSpeed == 0.0f)
                 GetMovementSpeed();
 
-            //Console.WriteLine($"[{Timers.RunningTime}] - {Name} ({Guid}) - starting turn");
-
-            IsTurning = true;
-
             // send network actions
             var targetDist = GetDistanceToTarget();
             var turnTo = (IsRanged && targetDist <= MaxRange) || (CurrentAttack == CombatType.Magic && targetDist <= GetSpellMaxRange()) || AiImmobile;
@@ -99,35 +93,13 @@ namespace ACE.Server.WorldObjects
             else
                 MoveTo(AttackTarget, RunRate);
 
-            // need turning listener?
-            IsTurning = false;
-            IsMoving = true;
-            LastMoveTime = Timers.RunningTime;
-            NextCancelTime = LastMoveTime + ThreadSafeRandom.Next(2, 4);
-            moveBit = false;
-
-            var mvp = GetMovementParameters();
             if (turnTo)
-                PhysicsObj.TurnToObject(AttackTarget.PhysicsObj, mvp);
+                PhysicsObj.TurnToObject(AttackTarget.PhysicsObj, GetMovementParameters(true));
             else
-                PhysicsObj.MoveToObject(AttackTarget.PhysicsObj, mvp);
+                PhysicsObj.MoveToObject(AttackTarget.PhysicsObj, GetMovementParameters(false));
 
             // prevent initial snap
             PhysicsObj.UpdateTime = PhysicsTimer.CurrentTime;
-        }
-
-        /// <summary>
-        /// Called when the TurnTo process has completed
-        /// </summary>
-        public void OnTurnComplete()
-        {
-            var dir = Vector3.Normalize(AttackTarget.Location.ToGlobal() - Location.ToGlobal());
-            Location.Rotate(dir);
-
-            IsTurning = false;
-
-            if (!IsRanged)
-                StartMove();
         }
 
         /// <summary>
@@ -135,8 +107,39 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void StartMove()
         {
-            LastMoveTime = Timers.RunningTime;
             IsMoving = true;
+
+            LastMoveTime = Timers.RunningTime;
+            NextCancelTime = LastMoveTime + ThreadSafeRandom.Next(2, 4);
+            moveBit = false;
+        }
+
+        public void StartTurn()
+        {
+            IsTurning = true;
+
+            LastMoveTime = Timers.RunningTime;
+            NextCancelTime = LastMoveTime + ThreadSafeRandom.Next(2, 4);
+            moveBit = false;
+        }
+
+        /// <summary>
+        /// Called when the TurnTo process has completed
+        /// </summary>
+        public void OnTurnComplete(bool success)
+        {
+            IsTurning = false;
+        }
+
+        public override void HandleMotionDone(uint motionID, bool success)
+        {
+            MotionCommand motion = (MotionCommand)motionID;
+
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}) - OnMotionComplete({motion} {success})");
+
+            if (motion == MotionCommand.TurnRight || motion == MotionCommand.TurnLeft)
+                OnTurnComplete(success);
         }
 
         /// <summary>
@@ -147,8 +150,16 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}) - OnMoveComplete({status})");
 
+            //Console.WriteLine($"Pathfinding: OnMoveComplete - {status}");
+
+            if (status == WeenieError.ObjectGone)
+                return;
+
             if (IsWandering)
-                EndWandering();
+                PendingEndWandering = true;
+
+            if(IsMovingToHome)
+                PendingEndMoveToHome = true;
 
             if (status != WeenieError.None)
             {
@@ -156,9 +167,9 @@ namespace ACE.Server.WorldObjects
                 if (IsRouting)
                 {
                     if (FailedMovementCount > FailedMovementThreshold)
-                        EndRoute();
+                        PendingEndRoute = true;
                     else
-                        RetryRoute();
+                        PendingRetryRoute = true;
                 }
                 return;
             }
@@ -167,7 +178,7 @@ namespace ACE.Server.WorldObjects
 
             if (IsRouting)
             {
-                ContinueRoute();
+                PendingContinueRoute = true;
                 return;
             }
 
@@ -177,9 +188,6 @@ namespace ACE.Server.WorldObjects
                 if (targetDist > MaxRange)
                     ResetAttack();
             }
-
-            if (MonsterState == State.Return)
-                Sleep();
 
             PhysicsObj.CachedVelocity = Vector3.Zero;
             IsMoving = false;
@@ -277,13 +285,16 @@ namespace ACE.Server.WorldObjects
             }
 
             if (PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 0 && Timers.RunningTime > NextCancelTime)
+            {
                 CancelMoveTo();
+                FindNextTarget();
+            }
         }
 
         public void UpdatePosition(bool netsend = true)
         {
             //stopwatch.Restart();
-            PhysicsObj.update_object();
+            //PhysicsObj.update_object();
             //ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Monster_Navigation_UpdatePosition_PUO, stopwatch.Elapsed.TotalSeconds);
             UpdatePosition_SyncLocation();
 
@@ -294,8 +305,8 @@ namespace ACE.Server.WorldObjects
                 //Console.WriteLine($"{Name} ({Guid}) - UpdatePosition (velocity: {PhysicsObj.CachedVelocity.Length()})");
                 Console.WriteLine($"{Name} ({Guid}) - UpdatePosition: {Location.ToLOCString()}");
 
-            if (MonsterState == State.Return && PhysicsObj.MovementManager.MoveToManager.PendingActions.Count == 0)
-                Sleep();
+            //if (MonsterState == State.Return && PhysicsObj.MovementManager.MoveToManager.PendingActions.Count == 0)
+            //    Sleep();
 
             if (MonsterState == State.Awake && IsMoving && PhysicsObj.MovementManager.MoveToManager.PendingActions.Count == 0)
                 IsMoving = false;
@@ -431,16 +442,14 @@ namespace ACE.Server.WorldObjects
             return angle < threshold;
         }
 
-        public MovementParameters GetMovementParameters()
+        public MovementParameters GetMovementParameters(bool isTurning = false)
         {
             var mvp = new MovementParameters();
 
             // set non-default params for monster movement
             mvp.Flags &= ~MovementParamFlags.CanWalk;
 
-            var turnTo = IsRanged || (CurrentAttack == CombatType.Magic && GetDistanceToTarget() <= GetSpellMaxRange()) || AiImmobile;
-
-            if (!turnTo)
+            if (!isTurning)
                 mvp.Flags |= MovementParamFlags.FailWalk | MovementParamFlags.UseFinalHeading | MovementParamFlags.Sticky | MovementParamFlags.MoveAway;
 
             return mvp;
@@ -489,13 +498,54 @@ namespace ACE.Server.WorldObjects
             var homeDistSq = Vector3.DistanceSquared(globalHomePos, globalPos);
 
             if (homeDistSq > HomeRadiusSq)
-                MoveToHome();
+                TryMoveToHome();
+        }
+
+        private bool IsMoveToHomePending = false;
+        private bool IsMovingToHome = false;
+        private bool PendingEndMoveToHome = false;
+
+        public void TryMoveToHome()
+        {
+            //Console.WriteLine("Pathfinding: TryMoveToHome");
+
+            if (IsMovingToHome)
+                return;
+
+            IsEmotePending = false;
+            IsWanderingPending = false;
+            IsRouteStartPending = false;
+
+            if (IsEmoting)
+                EndEmoting();
+
+            if (IsWandering)
+                EndWandering();
+
+            if (IsRouting)
+                EndRoute();
+
+            IsMoveToHomePending = true;
         }
 
         public void MoveToHome()
         {
             if (DebugMove)
                 Console.WriteLine($"{Name}.MoveToHome()");
+
+            if (IsMovingToHome)
+                return;
+
+            if (!MoveReady())
+                return;
+
+            //Console.WriteLine("Pathfinding: MoveToHome");
+
+            if (HasPendingMovement)
+                ClearMoveTo();
+
+            IsMoveToHomePending = false;
+            IsMovingToHome = true;
 
             var prevAttackTarget = AttackTarget;
 
@@ -506,24 +556,37 @@ namespace ACE.Server.WorldObjects
 
             if (Location.Equals(home))
             {
-                Sleep();
+                EndMoveToHome();
                 return;
             }
 
             NextCancelTime = Timers.RunningTime + 5.0f;
 
-            MoveTo(home, RunRate, false, 1.0f);
-
-            var homePos = new Physics.Common.Position(home);
-
-            var mvp = GetMovementParameters();
-            mvp.DistanceToObject = 0.6f;
-            mvp.DesiredHeading = homePos.Frame.get_heading();
-
-            PhysicsObj.MoveToPosition(homePos, mvp);
-            IsMoving = true;
+            MoveTo(home, RunRate, true, 1.0f);
 
             EmoteManager.OnHomeSick(prevAttackTarget);
+        }
+
+        private void EndMoveToHome()
+        {
+            //Console.WriteLine("Pathfinding: EndMoveToHome");
+
+            PendingEndMoveToHome = false;
+
+            if (HasPendingMovement)
+                ClearMoveTo();
+
+            IsMoveToHomePending = false;
+            IsMovingToHome = false;
+
+            var home = GetPosition(PositionType.Home);
+            if (Location.Equals(home))
+            {
+                if(IsAwake)
+                    Sleep();
+            }
+            else
+                ForceHome();
         }
 
         public void UpdateMoveSpeed()
@@ -532,15 +595,7 @@ namespace ACE.Server.WorldObjects
             GetMovementSpeed();
 
             if (IsMoving && previousMoveSpeed != MoveSpeed)
-            {
-                PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
-                PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
-
-                if (AttackTarget != null)
-                    MoveTo(AttackTarget, RunRate);
-                else
-                    MoveToHome();
-            }
+                ClearMoveTo();
         }
 
         public void CancelMoveTo()
@@ -550,8 +605,19 @@ namespace ACE.Server.WorldObjects
             PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
             PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
 
-            if (MonsterState == State.Return)
-                ForceHome();
+            EnqueueBroadcastMotion(new Motion(CurrentMotionState.Stance, MotionCommand.Ready));
+
+            IsMoving = false;
+            NextMoveTime = Timers.RunningTime + 1.0f;
+
+            ResetAttack();
+        }
+
+        public void ClearMoveTo()
+        {
+            // This uses a different weenie error than above so it is not registered as a failed movement.
+            PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ObjectGone);
+            PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
 
             EnqueueBroadcastMotion(new Motion(CurrentMotionState.Stance, MotionCommand.Ready));
 
@@ -559,8 +625,6 @@ namespace ACE.Server.WorldObjects
             NextMoveTime = Timers.RunningTime + 1.0f;
 
             ResetAttack();
-
-            FindNextTarget();
         }
 
         public void ForceHome()
@@ -569,6 +633,8 @@ namespace ACE.Server.WorldObjects
 
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}) - ForceHome({homePos.ToLOCString()})");
+
+            //Console.WriteLine("Pathfinding: ForceHome");
 
             var setPos = new SetPosition();
             setPos.Pos = new Physics.Common.Position(homePos);
@@ -580,10 +646,13 @@ namespace ACE.Server.WorldObjects
 
             SendUpdatePosition(true);
 
-            var actionChain = new ActionChain();
-            actionChain.AddDelaySeconds(0.5f);
-            actionChain.AddAction(this, Sleep);
-            actionChain.EnqueueChain();
+            if (IsAwake)
+            {
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(10.0f);
+                actionChain.AddAction(this, Sleep);
+                actionChain.EnqueueChain();
+            }
         }
 
         public void FindNewHome(float directionMinAngle, float directionMaxAngle, float distance)
@@ -598,23 +667,24 @@ namespace ACE.Server.WorldObjects
 
         public bool HasPendingActions
         {
-            get => SwitchWeaponsPending || IsWanderingPending || IsEmotePending || IsRoutePending;
-        }
-
-        public bool IsPerformingAction
-        {
-            get => IsWandering || IsEmoting || IsRouting;
+            get => SwitchWeaponsPending || IsWanderingPending || IsEmotePending || IsRouteStartPending || IsMoveToHomePending;
         }
 
         private Position WanderTarget = null;
         private double LastWanderTime = 0;
         private bool IsWanderingPending = false;
         private bool IsWandering = false;
-        private const double MaxWanderFrequency = 10;
+        private const double MaxWanderFrequency = 5;
         private const double WanderChance = 0.5;
+        private bool PendingEndWandering = false;
 
         public void TryWandering(float directionMinAngle, float directionMaxAngle, float distance)
         {
+            //Console.WriteLine("Pathfinding: TryWandering");
+
+            if (IsWandering)
+                return;
+
             var offsetPosition = new Position(Location);
             offsetPosition.Rotation = new Quaternion(0, 0, offsetPosition.RotationZ, offsetPosition.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(directionMinAngle.ToRadians(), directionMaxAngle.ToRadians()));
             offsetPosition = offsetPosition.InFrontOf(distance);
@@ -622,7 +692,6 @@ namespace ACE.Server.WorldObjects
 
             WanderTarget = offsetPosition;
             IsWanderingPending = true;
-            LastAttemptWasNullRoute = false;
 
             if (LastEmoteTime + MaxEmoteFrequency < Time.GetUnixTime() && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                 TryEmoting();
@@ -642,11 +711,12 @@ namespace ACE.Server.WorldObjects
             if (!MoveReady())
                 return;
 
+            //Console.WriteLine("Pathfinding: Wander");
+
             if (LastWanderTime + MaxWanderFrequency < Time.GetUnixTime() && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
-                // Cancel any remaining moves that might be pending.
-                PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
-                PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
+                if (HasPendingMovement)
+                    ClearMoveTo();
 
                 LastWanderTime = Time.GetUnixTime();
                 IsWanderingPending = false;
@@ -660,19 +730,16 @@ namespace ACE.Server.WorldObjects
 
         private void EndWandering()
         {
+            //Console.WriteLine("Pathfinding: EndWandering");
+
+            PendingEndWandering = false;
+
+            if (HasPendingMovement)
+                ClearMoveTo();
+
             IsWanderingPending = false;
             IsWandering = false;
             WanderTarget = null;
-            FailedMovementCount = 0;
-
-            if (IsMoving)
-            {
-                PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
-                PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
-                IsMoving = false;
-
-                EnqueueBroadcastMotion(new Motion(CurrentMotionState.Stance, MotionCommand.Ready));
-            }
 
             TryRoute();
         }
@@ -686,6 +753,11 @@ namespace ACE.Server.WorldObjects
 
         public void TryEmoting(MotionCommand motion = MotionCommand.Invalid)
         {
+            //Console.WriteLine("Pathfinding: TryEmoting");
+
+            if (IsEmoting)
+                return;
+
             if (motion == MotionCommand.Invalid)
             {
                 if (IdleMotionsList == null)
@@ -715,6 +787,11 @@ namespace ACE.Server.WorldObjects
             if (!MoveReady())
                 return;
 
+            //Console.WriteLine("Pathfinding: Emote");
+
+            if (HasPendingMovement)
+                ClearMoveTo();
+
             LastEmoteTime = Time.GetUnixTime();
             IsEmotePending = false;
             IsEmoting = true;
@@ -729,6 +806,8 @@ namespace ACE.Server.WorldObjects
 
         private void EndEmoting()
         {
+            //Console.WriteLine("Pathfinding: EndEmoting");
+
             IsEmotePending = false;
             IsEmoting = false;
             DesiredEmote = MotionCommand.Invalid;
@@ -740,41 +819,54 @@ namespace ACE.Server.WorldObjects
         private Position RoutePositionTarget;
         private List<Position> CurrentRoute;
         private int CurrentRouteIndex;
-        private bool IsRoutePending = false;
         private bool IsRouting = false;
-        private bool LastAttemptWasNullRoute = false;
+        private bool LastRouteStartAttemptWasNullRoute = false;
+        private bool IsRouteStartPending = false;
+        private bool PendingEndRoute = false;
+        private bool PendingRetryRoute = false;
+        private bool PendingContinueRoute = false;
 
         public void TryRoute(List<Position> route = null)
         {
-            if (!PathfindingEnabled || !Location.Indoors || AttackTarget == null)
+            if (!PathfindingEnabled || !Location.Indoors || AttackTarget == null || IsRouting)
                 return;
 
-            if (route == null && (Location.Cell & 0xFFFF0000) == (AttackTarget.Location.Cell & 0xFFFF0000)) // Making sure both locations are in the same landblock for now.
+            //Console.WriteLine("Pathfinding: TryRoute");
+
+            if (route == null && (Location.Cell & 0xFFFF0000) == (AttackTarget.Location.Cell & 0xFFFF0000)) // The pathfinder currently only supports pathing between locations in the same landblock.
                 route = Pathfinder.FindRoute(Location, AttackTarget.Location);
 
             if (route == null || route.Count == 0)
-                LastAttemptWasNullRoute = true;
+                LastRouteStartAttemptWasNullRoute = true;
             else
             {
                 RouteAttackTarget = AttackTarget;
                 RoutePositionTarget = null;
                 CurrentRoute = route;
                 CurrentRouteIndex = 0;
-                LastAttemptWasNullRoute = false;
+                LastRouteStartAttemptWasNullRoute = false;
 
-                IsRoutePending = true;
+                IsRouteStartPending = true;
             }
         }
 
         private void StartRoute()
         {
+            if (IsRouting)
+                return;
+
             LastRouteTime = Time.GetUnixTime();
 
             if (!MoveReady())
                 return;
 
+            //Console.WriteLine("Pathfinding: StartRoute");
+
+            if (HasPendingMovement)
+                ClearMoveTo();
+
             FailedMovementCount = 0;
-            IsRoutePending = false;
+            IsRouteStartPending = false;
             IsRouting = true;
 
             ContinueRoute();
@@ -782,7 +874,12 @@ namespace ACE.Server.WorldObjects
 
         private void ContinueRoute(bool retry = false)
         {
-            if (AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null || (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count))
+            //if (!retry)
+            //    Console.WriteLine("Pathfinding: ContinueRoute");
+
+            PendingContinueRoute = false;
+
+            if (AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null)
             {
                 EndRoute();
                 return;
@@ -790,6 +887,22 @@ namespace ACE.Server.WorldObjects
 
             if (!retry)
             {
+                if (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count)
+                {
+                    EndRoute();
+                    return;
+                }
+
+                if (GetDistanceToTarget() >= MaxChaseRange)
+                {
+                    EndRoute();
+                    FindNextTarget();
+                    return;
+                }
+
+                if (CurrentRouteIndex == 0 && CurrentRoute.Count > 1 && Location.DistanceTo(CurrentRoute[0]) < 1.0f)
+                    CurrentRouteIndex++;
+
                 RoutePositionTarget = CurrentRoute[CurrentRouteIndex];
                 CurrentRouteIndex++;
             }
@@ -800,33 +913,43 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (HasPendingMovement)
+                ClearMoveTo();
+
             MoveTo(RoutePositionTarget, RunRate, true, 1.0f, null, false);
         }
 
         private void RetryRoute()
         {
+            //Console.WriteLine("Pathfinding: RetryRoute");
+
+            PendingRetryRoute = false;
             ContinueRoute(true);
         }
 
         private void EndRoute()
         {
-            IsRoutePending = false;
+            //Console.WriteLine("Pathfinding: EndRoute");
+
+            PendingEndRoute = false;
+            PendingContinueRoute = false;
+            PendingRetryRoute = false;
+
+            if (HasPendingMovement)
+                ClearMoveTo();
+
+            IsRouteStartPending = false;
             IsRouting = false;
             RoutePositionTarget = null;
             RouteAttackTarget = null;
             CurrentRoute = null;
             CurrentRouteIndex = 0;
-            LastAttemptWasNullRoute = false;
-            FailedMovementCount = 0;
+            LastRouteStartAttemptWasNullRoute = false;
+        }
 
-            if (IsMoving)
-            {
-                PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(WeenieError.ActionCancelled);
-                PhysicsObj.MovementManager.MoveToManager.FailProgressCount = 0;
-                IsMoving = false;
-
-                EnqueueBroadcastMotion(new Motion(CurrentMotionState.Stance, MotionCommand.Ready));
-            }
+        public bool HasPendingMovement
+        {
+            get => PhysicsObj.MovementManager.MoveToManager.PendingActions.Count > 0;
         }
     }
 }

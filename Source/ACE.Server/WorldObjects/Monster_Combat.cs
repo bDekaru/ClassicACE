@@ -241,8 +241,8 @@ namespace ACE.Server.WorldObjects
             if (Timers.RunningTime < NextMoveTime)
                 return false;
 
-            PhysicsObj.update_object();
-            UpdatePosition_SyncLocation();
+            //PhysicsObj.update_object();
+            //UpdatePosition_SyncLocation();
 
             return !PhysicsObj.IsAnimating;
         }
@@ -258,8 +258,8 @@ namespace ACE.Server.WorldObjects
             if (Timers.RunningTime < nextAttackTime || !IsAttackRange())
                 return false;
 
-            PhysicsObj.update_object();
-            UpdatePosition_SyncLocation();
+            //PhysicsObj.update_object();
+            //UpdatePosition_SyncLocation();
 
             return !PhysicsObj.IsAnimating;
         }
@@ -297,13 +297,6 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void ResetAttack()
         {
-            // wait for missile to strike
-            //if (CurrentAttack == CombatType.Missile)
-                //return;
-
-            IsTurning = false;
-            IsMoving = false;
-
             CurrentAttack = null;
             MaxRange = 0.0f;
         }

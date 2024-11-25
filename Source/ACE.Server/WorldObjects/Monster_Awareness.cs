@@ -38,6 +38,12 @@ namespace ACE.Server.WorldObjects
 
             if (alertNearby)
                 AlertFriendly();
+
+            if (PathfindingEnabled && !IsRouting && AttackTarget != null)
+            {
+                if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && !IsDirectVisible(AttackTarget)))
+                    TryRoute();
+            }
         }
 
         /// <summary>
@@ -48,6 +54,8 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).Sleep()");
 
+            //Console.WriteLine("Pathfinder: Sleep");
+
             SetCombatMode(CombatMode.NonCombat);
 
             CurrentAttack = null;
@@ -57,9 +65,14 @@ namespace ACE.Server.WorldObjects
             IsMoving = false;
             MonsterState = State.Idle;
 
-            EndRoute();
-            EndWandering();
-            EndEmoting();
+            if (IsEmoting)
+                EndEmoting();
+            if (IsWandering)
+                EndWandering();
+            if (IsRouting)
+                EndRoute();
+            if (IsMovingToHome)
+                EndMoveToHome();
 
             PhysicsObj.CachedVelocity = Vector3.Zero;
 
@@ -255,7 +268,7 @@ namespace ACE.Server.WorldObjects
                 if (visibleTargets.Count == 0)
                 {
                     if (MonsterState != State.Return)
-                        MoveToHome();
+                        TryMoveToHome();
 
                     return false;
                 }
@@ -350,7 +363,7 @@ namespace ACE.Server.WorldObjects
                 if (AttackTarget != null && AttackTarget != prevAttackTarget)
                     EmoteManager.OnNewEnemy(AttackTarget);
 
-                if (AttackTarget != null && PathfindingEnabled)
+                if (PathfindingEnabled && !IsRouting && AttackTarget != null && AttackTarget != prevAttackTarget)
                 {
                     if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && !IsDirectVisible(AttackTarget)))
                         TryRoute();
