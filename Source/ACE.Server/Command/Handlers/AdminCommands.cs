@@ -696,7 +696,7 @@ namespace ACE.Server.Command.Handlers
             // TODO: output
         }
 
-        [CommandHandler("smite", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0, "Kills the selected target or all monsters in radar range if \"all\" is specified.", "[all, Player's Name]")]
+        [CommandHandler("smite", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0, "Kills the selected target or all monsters in radar range if \"all\" is specified or non-selected monsters if \"notselected\" is specified.", "[all, notselected, Player's Name]")]
         public static void HandleSmite(Session session, params string[] parameters)
         {
             // @smite [all] - Kills the selected target or all monsters in radar range if "all" is specified.
@@ -719,6 +719,34 @@ namespace ACE.Server.Command.Handlers
                     }
 
                     PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used smite all.");
+                }
+                else if (parameters[0] == "notselected")
+                {
+                    if (session.Player.HealthQueryTarget.HasValue) // Only Creatures will trigger this.. Excludes vendors automatically as a result (Can change design to mimic @delete command)
+                    {
+                        var objectId = new ObjectGuid((uint)session.Player.HealthQueryTarget);
+
+                        var selectedTarget = session.Player.CurrentLandblock?.GetObject(objectId) as Creature;
+
+                        foreach (var obj in session.Player.PhysicsObj.ObjMaint.GetVisibleObjectsValues())
+                        {
+                            var wo = obj.WeenieObj.WorldObject;
+
+                            if (wo is Player) // I don't recall if @smite all would kill players in range, assuming it didn't
+                                continue;
+
+                            var useTakeDamage = PropertyManager.GetBool("smite_uses_takedamage").Item;
+
+                            if (wo is Creature creature && creature.Attackable && wo != selectedTarget)
+                                creature.Smite(session.Player, useTakeDamage);
+                        }
+
+                        PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} used smite notselected.");
+                    }
+                    else
+                    {
+                        ChatPacket.SendServerMessage(session, "Select a target and use @smite, or use @smite all to kill all creatures in radar range or @smite [players' name] or @smite notselected to kill all creatures in radar range besides the selected target.", ChatMessageType.Broadcast);
+                    }
                 }
                 else
                 {
@@ -752,7 +780,7 @@ namespace ACE.Server.Command.Handlers
                         return;
                     }
 
-                    ChatPacket.SendServerMessage(session, "Select a target and use @smite, or use @smite all to kill all creatures in radar range or @smite [player's name].", ChatMessageType.Broadcast);
+                    ChatPacket.SendServerMessage(session, "Select a target and use @smite, or use @smite all to kill all creatures in radar range or @smite [players' name] or @smite notselected to kill all creatures in radar range besides the selected target.", ChatMessageType.Broadcast);
                 }
             }
             else
