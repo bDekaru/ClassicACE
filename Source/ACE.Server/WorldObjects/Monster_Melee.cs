@@ -41,37 +41,33 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Performs a melee attack for the monster
         /// </summary>
-        /// <returns>The length in seconds for the attack animation</returns>
-        public float MeleeAttack()
+        public void MeleeAttack()
         {
-            var target = AttackTarget as Creature;
+            var targetCreature = AttackTarget as Creature;
             var targetPlayer = AttackTarget as Player;
             var targetPet = AttackTarget as CombatPet;
             var combatPet = this as CombatPet;
 
-            if (target == null || !target.IsAlive)
-            {
-                FindNextTarget();
-                return 0.0f;
-            }
-
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                var knownDoors = target.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
+                var knownDoors = targetCreature.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
 
                 bool nearDoor = false;
                 foreach (var entry in knownDoors)
                 {
                     var door = entry.WeenieObj.WorldObject;
-                    if (!door.IsOpen && (Location.DistanceTo(door.Location) < 2f || target.Location.DistanceTo(door.Location) < 2f))
+                    if (!door.IsOpen && (Location.DistanceTo(door.Location) < 2f || targetCreature.Location.DistanceTo(door.Location) < 2f))
                     {
                         nearDoor = true;
                         break;
                     }
                 }
 
-                if (nearDoor && !IsDirectVisible(target))
-                    return 0.0f;
+                if (nearDoor && !IsDirectVisible(targetCreature))
+                {
+                    EndAttack();
+                    return;
+                }
             }
 
             if (CurrentMotionState.Stance == MotionStance.NonCombat)
@@ -82,12 +78,14 @@ namespace ACE.Server.WorldObjects
             // select combat maneuver
             var motionCommand = GetCombatManeuver();
             if (motionCommand == null)
-                return 0.0f;
-
-            DoSwingMotion(AttackTarget, motionCommand.Value, out float animLength, out var attackFrames);
+            {
+                EndAttack();
+                return;
+            }
 
             if (!AiImmobile)
                 PhysicsObj.stick_to_object(AttackTarget.PhysicsObj.ID);
+            DoSwingMotion(AttackTarget, motionCommand.Value, out float animLength, out var attackFrames);
 
             var extraStaminaUsage = 0;
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && weapon == null)
@@ -113,18 +111,23 @@ namespace ACE.Server.WorldObjects
 
                 actionChain.AddAction(this, () =>
                 {
-                    if (AttackTarget == null || IsDead || target.IsDead) return;
-
-                    if (WeenieType == WeenieType.GamePiece)
+                    if (AttackTarget == null || IsDead || targetCreature.IsDead || targetCreature != NextSwingAttackTarget)
                     {
-                        target.TakeDamage(this, DamageType.Slash, target.Health.Current);
-                        (this as GamePiece).OnDealtDamage();
+                        EndAttack();
                         return;
                     }
 
-                    var damageEvent = DamageEvent.CalculateDamage(this, target, weapon, motionCommand, attackFrames[0].attackHook);
+                    if (WeenieType == WeenieType.GamePiece)
+                    {
+                        targetCreature.TakeDamage(this, DamageType.Slash, targetCreature.Health.Current);
+                        (this as GamePiece).OnDealtDamage();
+                        EndAttack();
+                        return;
+                    }
 
-                    target.OnAttackReceived(this, CombatType.Melee, damageEvent.IsCritical, damageEvent.Evaded);
+                    var damageEvent = DamageEvent.CalculateDamage(this, targetCreature, weapon, motionCommand, attackFrames[0].attackHook);
+
+                    targetCreature.OnAttackReceived(this, CombatType.Melee, damageEvent.IsCritical, damageEvent.Evaded);
 
                     //var damage = CalculateDamage(ref damageType, maneuver, bodyPart, ref critical, ref shieldMod);
 
@@ -154,33 +157,33 @@ namespace ACE.Server.WorldObjects
                             if (GetCreatureSkill(Skill.DirtyFighting).AdvancementClass >= SkillAdvancementClass.Trained)
                                 FightDirty(targetPlayer, damageEvent.Weapon);
                         }
-                        else if (combatPet != null || targetPet != null || Faction1Bits != null || target.Faction1Bits != null || PotentialFoe(target))
+                        else if (combatPet != null || targetPet != null || Faction1Bits != null || targetCreature.Faction1Bits != null || PotentialFoe(targetCreature))
                         {
                             // combat pet inflicting or receiving damage
                             //Console.WriteLine($"{target.Name} taking {Math.Round(damage)} {damageType} damage from {Name}");
-                            target.TakeDamage(this, damageEvent.DamageType, damageEvent.Damage);
+                            targetCreature.TakeDamage(this, damageEvent.DamageType, damageEvent.Damage);
 
-                            EmitSplatter(target, damageEvent.Damage);
+                            EmitSplatter(targetCreature, damageEvent.Damage);
 
                             // handle Dirty Fighting
                             if (GetCreatureSkill(Skill.DirtyFighting).AdvancementClass >= SkillAdvancementClass.Trained)
-                                FightDirty(target, damageEvent.Weapon);
+                                FightDirty(targetCreature, damageEvent.Weapon);
                         }
 
                         // handle target procs
                         if (!targetProc)
                         {
-                            TryProcEquippedItems(this, target, false, weapon, damageEvent);
+                            TryProcEquippedItems(this, targetCreature, false, weapon, damageEvent);
                             targetProc = true;
                         }
                     }
                     else
-                        target.OnEvade(this, CombatType.Melee);
+                        targetCreature.OnEvade(this, CombatType.Melee);
 
                     if (combatPet != null)
-                        combatPet.PetOnAttackMonster(target);
+                        combatPet.PetOnAttackMonster(targetCreature);
                     else if (targetPlayer == null)
-                        MonsterOnAttackMonster(target);
+                        MonsterOnAttackMonster(targetCreature);
                 });
             }
             actionChain.EnqueueChain();
@@ -192,7 +195,7 @@ namespace ACE.Server.WorldObjects
 
             NextAttackTime = PrevAttackTime + animLength + meleeDelay;
 
-            return animLength;
+            return;
         }
 
         /// <summary>
@@ -371,6 +374,8 @@ namespace ACE.Server.WorldObjects
 
         private bool moveBit;
 
+
+        MotionCommand CurrentAttackMotionCommand;
         /// <summary>
         /// Perform the melee attack swing animation
         /// </summary>
@@ -404,16 +409,20 @@ namespace ACE.Server.WorldObjects
                 attackFrames = defaultAttackFrames;
             }
 
+            CurrentAttackMotionCommand = motionCommand;
+
             var motion = new Motion(this, motionCommand, animSpeed);
             motion.MotionState.TurnSpeed = 2.25f;
 
             if (!AiImmobile)
                 motion.MotionFlags |= MotionFlags.StickToObject;
 
+            var prevMotion = CurrentMotionState;
+
             motion.TargetGuid = target.Guid;
             CurrentMotionState = motion;
 
-            EnqueueBroadcastMotion(motion);
+            EnqueueBroadcastMotion(motion, null, true);
         }
 
         /// <summary>
@@ -421,7 +430,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public BaseDamageMod GetBaseDamage(PropertiesBodyPart attackPart)
         {
-            if (CurrentAttack == CombatType.Missile && GetMissileAmmo() != null)
+            if (CurrentAttackType == CombatType.Missile && GetMissileAmmo() != null)
                 return GetMissileDamage();
 
             // use weapon damage for every attack?

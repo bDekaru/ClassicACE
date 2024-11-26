@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-
 using ACE.Common;
 using ACE.Database;
 using ACE.DatLoader;
@@ -12,7 +11,6 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
-using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 
 namespace ACE.Server.WorldObjects
@@ -48,7 +46,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// The next type of attack (melee/range/magic)
         /// </summary>
-        public CombatType? CurrentAttack;
+        public CombatType? CurrentAttackType;
 
         /// <summary>
         /// The maximum distance for the next attack
@@ -190,7 +188,7 @@ namespace ACE.Server.WorldObjects
             var it = 0;
             bool? isVisible = null;
 
-            while (CurrentAttack == CombatType.Magic)
+            while (CurrentAttackType == CombatType.Magic)
             {
                 // select a magic spell
                 //CurrentSpell = GetRandomSpell();
@@ -203,14 +201,14 @@ namespace ACE.Server.WorldObjects
                     if (!isVisible.Value)
                     {
                         // reroll attack type
-                        CurrentAttack = GetNextAttackType();
+                        CurrentAttackType = GetNextAttackType();
                         it++;
 
                         // max iterations to melee?
                         if (it >= 10)
                         {
                             //log.Warn($"{Name} ({Guid}) reached max iterations");
-                            CurrentAttack = CombatType.Melee;
+                            CurrentAttackType = CombatType.Melee;
 
                             var powerupTime = (float)(PowerupTime ?? 1.0f);
                             var failDelay = ThreadSafeRandom.Next(0.0f, powerupTime);
@@ -223,7 +221,7 @@ namespace ACE.Server.WorldObjects
                 return GetSpellMaxRange();
             }
 
-            if (CurrentAttack == CombatType.Missile)
+            if (CurrentAttackType == CombatType.Missile)
             {
                 /*var weapon = GetEquippedWeapon();
                 if (weapon == null) return MaxMissileRange;
@@ -244,7 +242,7 @@ namespace ACE.Server.WorldObjects
             //PhysicsObj.update_object();
             //UpdatePosition_SyncLocation();
 
-            return !PhysicsObj.IsAnimating;
+            return !PhysicsObj.IsAnimating && !HasPendingMovement;
         }
 
         /// <summary>
@@ -253,7 +251,7 @@ namespace ACE.Server.WorldObjects
         /// <returns></returns>
         public bool AttackReady()
         {
-            var nextAttackTime = CurrentAttack == CombatType.Magic ? NextMagicAttackTime : NextAttackTime;
+            var nextAttackTime = CurrentAttackType == CombatType.Magic ? NextMagicAttackTime : NextAttackTime;
 
             if (Timers.RunningTime < nextAttackTime || !IsAttackRange())
                 return false;
@@ -264,15 +262,79 @@ namespace ACE.Server.WorldObjects
             return !PhysicsObj.IsAnimating;
         }
 
+
+        private bool IsAttackPending = false;
+        private bool IsAttacking = false;
+        private bool PendingEndAttack = false;
+        private Creature NextSwingAttackTarget = null;
+
+        public void TryAttack()
+        {
+            //Console.WriteLine("Pathfinding: TryAttack");
+
+            if (IsAttacking)
+                return;
+
+            NextSwingAttackTarget = AttackTarget as Creature;
+
+            IsAttackPending = true;
+        }
+
         /// <summary>
         /// Performs the current attack on the target
         /// </summary>
-        public void Attack()
+        private void Attack()
         {
             if (DebugMove)
                 Console.WriteLine($"[{Timers.RunningTime}] - {Name} ({Guid}) - Attack");
 
-            switch (CurrentAttack)
+            if (IsAttacking)
+                return;
+
+            if (!MoveReady() || !AttackReady())
+                return;
+
+            //Console.WriteLine("Pathfinding: Attack");
+
+            if (HasPendingMovement)
+                CancelMoveTo(WeenieError.ObjectGone);
+
+            IsAttackPending = false;
+            IsAttacking = true;
+
+            if (CurrentAttackType == null)
+            {
+                EndAttack();
+                return;
+            }
+
+            var targetCreature = AttackTarget as Creature;
+            if (targetCreature == null || IsDead || targetCreature.IsDead)
+            {
+                EndAttack();
+                return;
+            }
+
+            if (AiImmobile && CurrentAttackType == CombatType.Melee)
+            {
+                var targetDist = GetDistanceToTarget();
+                if (targetDist > MaxRange)
+                {
+                    EndAttack();
+                    return;
+                }
+            }
+
+            if(AttackTarget != NextSwingAttackTarget)
+            {
+                // We changed targets since we initiated our attack attempt.
+                EndAttack();
+                return;
+            }
+
+            FailedMovementCount = 0;
+
+            switch (CurrentAttackType)
             {
                 case CombatType.Melee:
                     MeleeAttack();
@@ -283,21 +345,31 @@ namespace ACE.Server.WorldObjects
                 case CombatType.Magic:
                     MagicAttack();
                     break;
+                default:
+                    EndAttack();
+                    return;
             }
 
             EmoteManager.OnAttack(AttackTarget);
 
-            ResetAttack();
-
             AttacksReceivedWithoutBeingAbleToCounter = 0;
         }
 
-        /// <summary>
-        /// Called after attack has completed
-        /// </summary>
-        public void ResetAttack()
+        private void EndAttack(bool forced = true)
         {
-            CurrentAttack = null;
+            //Console.WriteLine("Pathfinding: EndAttack");
+
+            if (!forced && !MoveReady())
+                return;
+
+            if (HasPendingMovement)
+                CancelMoveTo(WeenieError.ObjectGone);
+
+            IsAttackPending = false;
+            IsAttacking = false;
+
+            NextSwingAttackTarget = null;
+            CurrentAttackType = null;
             MaxRange = 0.0f;
         }
 

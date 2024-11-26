@@ -163,7 +163,7 @@ namespace ACE.Server.WorldObjects
 
         private bool IsSelfCast()
         {
-            if (CurrentAttack != CombatType.Magic)
+            if (CurrentAttackType != CombatType.Magic)
                 return false;
 
             return GetSpellMaxRange() == float.PositiveInfinity;
@@ -175,18 +175,16 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private void MagicAttack()
         {
-            var target = AttackTarget as Creature;
-
-            if (target == null || !target.IsAlive)
-            {
-                FindNextTarget();
-                return;
-            }
+            var targetCreature = AttackTarget as Creature;
 
             var spell = CurrentSpell;
 
             // turn to?
-            if (AiUsesMana && !UseMana()) return;
+            if (AiUsesMana && !UseMana())
+            {
+                EndAttack();
+                return;
+            }
 
             // spell words
             if (AiUseHumanMagicAnimations)
@@ -202,8 +200,11 @@ namespace ACE.Server.WorldObjects
             actionChain.AddDelaySeconds(preCastTime);
             actionChain.AddAction(this, () =>
             {
-                if (IsDead || AttackTarget == null || target.IsDead)
+                if (AttackTarget == null || IsDead || targetCreature.IsDead || targetCreature != NextSwingAttackTarget)
+                {
+                    EndAttack();
                     return;
+                }
 
                 CastSpell(spell);
 
@@ -257,7 +258,9 @@ namespace ACE.Server.WorldObjects
             //motion.TargetGuid = target.Guid;
             CurrentMotionState = motion;
 
-            EnqueueBroadcastMotion(motion);
+            CurrentAttackMotionCommand = MotionCommand.CastSpell;
+
+            EnqueueBroadcastMotion(motion, null, true);
 
             return MotionTable.GetAnimationLength(MotionTableId, CurrentMotionState.Stance, MotionCommand.CastSpell, PreCastSpeed);
         }
@@ -287,7 +290,7 @@ namespace ACE.Server.WorldObjects
                 motion.MotionState.TurnSpeed = 2.25f;
                 CurrentMotionState = motion;
 
-                EnqueueBroadcastMotion(motion);
+                EnqueueBroadcastMotion(motion, null, true);
 
                 animTime += MotionTable.GetAnimationLength(MotionTableId, CurrentMotionState.Stance, windupGesture, PreCastSpeed);
             }
@@ -296,7 +299,9 @@ namespace ACE.Server.WorldObjects
             castMotion.MotionState.TurnSpeed = 2.25f;
             CurrentMotionState = castMotion;
 
-            EnqueueBroadcastMotion(castMotion);
+            EnqueueBroadcastMotion(castMotion, null, true);
+
+            CurrentAttackMotionCommand = CurrentSpell.Formula.CastGesture;
 
             animTime += castAnimTime;
 
@@ -410,7 +415,7 @@ namespace ACE.Server.WorldObjects
             //motion.TargetGuid = target.Guid;
             CurrentMotionState = motion;
 
-            EnqueueBroadcastMotion(motion);
+            EnqueueBroadcastMotion(motion, null, true);
         }
 
         public float GetPostCastTime(Spell spell, bool fallback = false)

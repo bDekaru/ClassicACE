@@ -37,6 +37,7 @@ namespace ACE.Server.Network.Structure
                 MovementParams.CanRun |
                 MovementParams.CanSideStep |
                 MovementParams.CanWalkBackwards |
+                MovementParams.CanCharge |
                 MovementParams.MoveTowards |
                 MovementParams.UseSpheres |
                 MovementParams.SetHoldKey |
@@ -48,7 +49,8 @@ namespace ACE.Server.Network.Structure
             MinDistance = 0.0f;
             FailDistance = float.MaxValue;
             Speed = 1.0f;
-            WalkRunThreshold = 15.0f;
+            //WalkRunThreshold = 15.0f;
+            WalkRunThreshold = 1.0f;
             DesiredHeading = 0.0f;
             DistanceToObject = 0.6f;
         }

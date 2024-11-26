@@ -295,8 +295,7 @@ namespace ACE.Server.WorldObjects
             if (status != WeenieError.None)
                 return;
 
-            PhysicsObj.CachedVelocity = Vector3.Zero;
-            IsMoving = false;
+            OnMovementStopped();
         }
 
         public static Dictionary<uint, float> PetRadiusCache = new Dictionary<uint, float>();

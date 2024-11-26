@@ -54,16 +54,17 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).Sleep()");
 
-            //Console.WriteLine("Pathfinder: Sleep");
+            //Console.WriteLine("Pathfinding: Sleep");
 
             SetCombatMode(CombatMode.NonCombat);
 
-            CurrentAttack = null;
+            CurrentAttackType = null;
             firstUpdate = true;
             AttackTarget = null;
             IsAwake = false;
-            IsMoving = false;
             MonsterState = State.Idle;
+
+            OnMovementStopped();
 
             if (IsEmoting)
                 EndEmoting();
@@ -74,9 +75,14 @@ namespace ACE.Server.WorldObjects
             if (IsMovingToHome)
                 EndMoveToHome();
 
-            PhysicsObj.CachedVelocity = Vector3.Zero;
+            if (HasPendingMovement)
+                CancelMoveTo(WeenieError.ObjectGone);
 
             ClearRetaliateTargets();
+
+            var home = GetPosition(PositionType.Home);
+            if (!Location.Equals(home))
+                ForceHome();
         }
 
         public Tolerance Tolerance
@@ -267,9 +273,7 @@ namespace ACE.Server.WorldObjects
                 var visibleTargets = GetAttackTargets();
                 if (visibleTargets.Count == 0)
                 {
-                    if (MonsterState != State.Return)
-                        TryMoveToHome();
-
+                    TryMoveToHome();
                     return false;
                 }
 
@@ -360,13 +364,17 @@ namespace ACE.Server.WorldObjects
                 if (player != null && !Visibility && player.AddTrackedObject(this))
                     log.Error($"Fixed invisible attacker on player {player.Name}. (Landblock:{CurrentLandblock.Id} - {Name} ({Guid})");
 
-                if (AttackTarget != null && AttackTarget != prevAttackTarget)
+                if (AttackTarget == null)
+                    TryMoveToHome();
+                else if (AttackTarget != null && AttackTarget != prevAttackTarget)
+                {
                     EmoteManager.OnNewEnemy(AttackTarget);
 
-                if (PathfindingEnabled && !IsRouting && AttackTarget != null && AttackTarget != prevAttackTarget)
-                {
-                    if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && !IsDirectVisible(AttackTarget)))
-                        TryRoute();
+                    if (PathfindingEnabled && !IsRouting)
+                    {
+                        if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && !IsDirectVisible(AttackTarget)))
+                            TryRoute();
+                    }
                 }
 
                 return AttackTarget != null;

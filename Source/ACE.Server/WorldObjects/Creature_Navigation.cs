@@ -269,9 +269,7 @@ namespace ACE.Server.WorldObjects
 
             CurrentMotionState = turnToMotion;
 
-            StartTurn();
-
-            return;
+            OnMovementStarted();
         }
 
         /// <summary>
@@ -288,14 +286,16 @@ namespace ACE.Server.WorldObjects
 
             EnqueueBroadcastMotion(motion);
 
-            StartMove();
+            OnMovementStarted();
         }
 
         public Motion GetMoveToMotion(WorldObject target, float runRate)
         {
             var motion = new Motion(this, target, MovementType.MoveToObject);
-            motion.MoveToParameters.MovementParameters |= MovementParams.CanCharge | MovementParams.FailWalk | MovementParams.UseFinalHeading | MovementParams.Sticky | MovementParams.MoveAway;
-            motion.MoveToParameters.WalkRunThreshold = 1.0f;
+
+            // set non-default params for monster movement
+            motion.MoveToParameters.MovementParameters &= ~MovementParams.CanWalk;
+            motion.MoveToParameters.MovementParameters |= MovementParams.FailWalk | MovementParams.UseFinalHeading | MovementParams.Sticky | MovementParams.MoveAway;
 
             if (runRate > 0)
                 motion.RunRate = runRate;
@@ -347,7 +347,7 @@ namespace ACE.Server.WorldObjects
             var mvp = new MovementParameters(motion.MoveToParameters);
             PhysicsObj.MoveToPosition(new Physics.Common.Position(position), mvp);
 
-            StartMove();
+            OnMovementStarted();
         }
 
 

@@ -471,7 +471,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public virtual CombatType GetCombatType()
         {
-            return CurrentAttack ?? CombatType.Melee;
+            return CurrentAttackType ?? CombatType.Melee;
         }
 
         /// <summary>

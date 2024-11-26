@@ -38,8 +38,7 @@ namespace ACE.Server.WorldObjects
 
             onDeathEntered = true;
 
-            IsTurning = false;
-            IsMoving = false;
+            OnMovementStopped();
 
             //QuestManager.OnDeath(lastDamager?.TryGetAttacker());
 
