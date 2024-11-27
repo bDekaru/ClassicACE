@@ -1,5 +1,6 @@
 using System;
 using ACE.Entity.Enum;
+using ACE.Server.Entity;
 using ACE.Server.Network.Structure;
 
 namespace ACE.Server.Physics.Animation
@@ -213,14 +214,18 @@ namespace ACE.Server.Physics.Animation
                 command = 0;
         }
 
-        public MovementParameters(MoveToParameters mvp)
+        public MovementParameters(Motion motion)
         {
+            var mvp = motion.MoveToParameters;
             Flags = (MovementParamFlags)mvp.MovementParameters;
 
             DistanceToObject = mvp.DistanceToObject;
             MinDistance = mvp.MinDistance;
             DesiredHeading = mvp.DesiredHeading;
-            Speed = mvp.Speed;
+            if(motion.MovementType == MovementType.MoveToObject || motion.MovementType == MovementType.MoveToPosition)
+                Speed = motion.RunRate * mvp.Speed;
+            else
+                Speed = mvp.Speed;
             FailDistance = mvp.FailDistance;
             WalkRunThreshold = mvp.WalkRunThreshold;
         }

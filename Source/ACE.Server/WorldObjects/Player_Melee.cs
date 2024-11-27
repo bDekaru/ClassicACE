@@ -197,7 +197,7 @@ namespace ACE.Server.WorldObjects
                     //log.Info($"{Name}.MoveTo({target.Name})");
 
                     // charge attack
-                    MoveTo(target);
+                    ChargeTo(target);
                 }
                 else
                 {

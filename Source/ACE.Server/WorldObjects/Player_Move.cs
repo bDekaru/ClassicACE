@@ -153,25 +153,27 @@ namespace ACE.Server.WorldObjects
 
         public Position StartJump;
 
-        public override void MoveTo(WorldObject target, float runRate = 0.0f)
+        public void ChargeTo(WorldObject target)
         {
-            if (runRate == 0.0f)
-                runRate = GetRunRate();
-
-            //Console.WriteLine($"{Name}.MoveTo({target.Name})");
+            //Console.WriteLine($"{Name}.ChargeTo({target.Name})");
 
             var motion = new Motion(this, target, MovementType.MoveToObject);
+
+            // set non-default params for player melee charge
+            motion.MoveToParameters.MovementParameters &= ~MovementParams.CanWalk;
             motion.MoveToParameters.MovementParameters |= MovementParams.CanCharge | MovementParams.FailWalk | MovementParams.UseFinalHeading | MovementParams.Sticky | MovementParams.MoveAway;
             motion.MoveToParameters.WalkRunThreshold = 1.0f;
             motion.MoveToParameters.Speed = 1.5f;   // charge modifier
             motion.MoveToParameters.FailDistance = 15.0f;
-            motion.RunRate = runRate;
+            motion.RunRate = GetRunRate();
 
             CurrentMotionState = motion;
 
             EnqueueBroadcastMotion(motion);
 
-            var mvp = GetChargeParameters();
+            var mvp = new MovementParameters(motion);
+            mvp.HoldKeyToApply = HoldKey.Run;
+
             PhysicsObj.MoveToObject(target.PhysicsObj, mvp);
 
             IsMoving = true;
@@ -228,20 +230,6 @@ namespace ACE.Server.WorldObjects
                     HandleActionCancelAttack();
                     break;
             }
-        }
-
-        public MovementParameters GetChargeParameters()
-        {
-            var mvp = new MovementParameters();
-
-            // set non-default params for player melee charge
-            mvp.Flags &= ~MovementParamFlags.CanWalk;
-            mvp.Flags |= MovementParamFlags.CanCharge | MovementParamFlags.FailWalk | MovementParamFlags.UseFinalHeading | MovementParamFlags.Sticky | MovementParamFlags.MoveAway;
-            mvp.HoldKeyToApply = HoldKey.Run;
-            mvp.FailDistance = 15.0f;
-            mvp.Speed = 1.5f;
-
-            return mvp;
         }
 
         public void HandleFallingDamage(EnvCollisionProfile collision)

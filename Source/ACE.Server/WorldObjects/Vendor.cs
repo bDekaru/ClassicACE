@@ -556,7 +556,7 @@ namespace ACE.Server.WorldObjects
                 }
                 else
                 {
-                    MoveTo(Home, GetRunRate(), true, null, 1);
+                    MoveTo(Home);
                 }
             }
         }

@@ -67,6 +67,9 @@ namespace ACE.Server.WorldObjects
         public const int FailedMovementThreshold = 3;
         public const int FailedRoutingThreshold = 3;
 
+        public int FailedSightCount;
+        public const int FailedSightThreshold = 10;
+
         /// <summary>
         /// Starts the process of monster turning and moving towards target
         /// </summary>
@@ -79,7 +82,7 @@ namespace ACE.Server.WorldObjects
                 Console.WriteLine($"{Name} ({Guid}) - StartTurn, ranged={IsRanged}");
 
             if (MoveSpeed == 0.0f)
-                GetMovementSpeed();
+                UpdateMovementSpeed();
 
             // send network actions
             var targetDist = GetDistanceToTarget();
@@ -87,17 +90,9 @@ namespace ACE.Server.WorldObjects
             if (turnTo)
                 TurnTo(AttackTarget);
             else
-                MoveTo(AttackTarget, RunRate);
+                MoveTo(AttackTarget);
 
             moveBit = false;
-
-            if (turnTo)
-                PhysicsObj.TurnToObject(AttackTarget.PhysicsObj, GetMovementParameters(true));
-            else
-                PhysicsObj.MoveToObject(AttackTarget.PhysicsObj, GetMovementParameters(false));
-
-            // prevent initial snap
-            PhysicsObj.UpdateTime = PhysicsTimer.CurrentTime;
         }
 
         protected void OnMovementStarted()
@@ -121,7 +116,7 @@ namespace ACE.Server.WorldObjects
             MotionCommand motion = (MotionCommand)motionID;
 
             if (DebugMove)
-                Console.WriteLine($"{Name} ({Guid}) - OnMotionComplete({motion} {success})");
+                Console.WriteLine($"{Name} ({Guid}) - HandleMotionDone({motion} {success})");
 
             if (motion == MotionCommand.Invalid)
                 return;
@@ -178,38 +173,6 @@ namespace ACE.Server.WorldObjects
         }
 
         /// <summary>
-        /// Estimates the time it will take the monster to turn and move towards target
-        /// </summary>
-        public float EstimateTargetTime()
-        {
-            return EstimateTurnTo() + EstimateMoveTo();
-        }
-
-        /// <summary>
-        /// Estimates the time it will take the monster to turn towards target
-        /// </summary>
-        public float EstimateTurnTo()
-        {
-            return GetRotateDelay(AttackTarget);
-        }
-
-        /// <summary>
-        /// Estimates the time it will take the monster to move towards target
-        /// </summary>
-        public float EstimateMoveTo()
-        {
-            return GetDistanceToTarget() / MoveSpeed;
-        }
-
-        /// <summary>
-        /// Returns TRUE if monster is within target melee range
-        /// </summary>
-        public bool IsMeleeRange()
-        {
-            return GetDistanceToTarget() <= MaxMeleeRange;
-        }
-
-        /// <summary>
         /// Returns TRUE if monster in range for current attack type
         /// </summary>
         public bool IsAttackRange()
@@ -247,31 +210,27 @@ namespace ACE.Server.WorldObjects
             return cylDist;
         }
 
-        public void UpdatePosition(bool netsend = true)
+        public void UpdatePosition(bool netSend = true, bool adminMove = false)
         {
             //stopwatch.Restart();
-            //PhysicsObj.update_object();
             //ServerPerformanceMonitor.AddToCumulativeEvent(ServerPerformanceMonitor.CumulativeEventHistoryType.Monster_Navigation_UpdatePosition_PUO, stopwatch.Elapsed.TotalSeconds);
             UpdatePosition_SyncLocation();
 
-            if (netsend)
-                SendUpdatePosition();
+            if (netSend)
+                SendUpdatePosition(adminMove);
 
             if (DebugMove)
                 //Console.WriteLine($"{Name} ({Guid}) - UpdatePosition (velocity: {PhysicsObj.CachedVelocity.Length()})");
                 Console.WriteLine($"{Name} ({Guid}) - UpdatePosition: {Location.ToLOCString()}");
 
-            //if (MonsterState == State.Return && PhysicsObj.MovementManager.MoveToManager.PendingActions.Count == 0)
-            //    Sleep();
-
-            if (MonsterState == State.Awake && IsMoving && PhysicsObj.MovementManager.MoveToManager.PendingActions.Count == 0)
-                OnMovementStopped();
+            //if (MonsterState == State.Awake && IsMoving && !HasPendingMovement && !PhysicsObj.IsSticky)
+            //    OnMovementStopped();
         }
 
         /// <summary>
         /// Synchronizes the WorldObject Location with the Physics Location
         /// </summary>
-        public void UpdatePosition_SyncLocation()
+        private void UpdatePosition_SyncLocation()
         {
             // was the position successfully moved to?
             // use the physics position as the source-of-truth?
@@ -312,7 +271,7 @@ namespace ACE.Server.WorldObjects
                 DebugDistance();
         }
 
-        public void DebugDistance()
+        private void DebugDistance()
         {
             if (AttackTarget == null) return;
 
@@ -322,10 +281,11 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine("Angle: " + angle);
         }
 
-        public void GetMovementSpeed()
+        public void UpdateMovementSpeed()
         {
             var moveSpeed = MotionTable.GetRunSpeed(MotionTableId);
-            if (moveSpeed == 0) moveSpeed = 2.5f;
+            if (moveSpeed == 0)
+                moveSpeed = 2.5f;
             var scale = ObjScale ?? 1.0f;
 
             RunRate = GetRunRate();
@@ -363,18 +323,6 @@ namespace ACE.Server.WorldObjects
         }
 
         /// <summary>
-        /// Sets the corpse to the final position
-        /// </summary>
-        public void SetFinalPosition()
-        {
-            if (AttackTarget == null) return;
-
-            var playerDir = AttackTarget.Location.GetCurrentDir();
-            Location.Pos = AttackTarget.Location.Pos + playerDir * (AttackTarget.PhysicsObj.GetRadius() + PhysicsObj.GetRadius());
-            SendUpdatePosition();
-        }
-
-        /// <summary>
         /// Returns TRUE if monster is facing towards the target
         /// </summary>
         public bool IsFacing(WorldObject target)
@@ -396,24 +344,6 @@ namespace ACE.Server.WorldObjects
                 Console.WriteLine($"{Name}.IsFacing({target.Name}): Angle={angle}, Dist={dist}, Threshold={threshold}, {angle < threshold}");
 
             return angle < threshold;
-        }
-
-        public MovementParameters GetMovementParameters(bool forTurnTo = false)
-        {
-            var mvp = new MovementParameters();
-
-            // set non-default params for monster movement
-            mvp.Flags &= ~MovementParamFlags.CanWalk;
-
-            if (!forTurnTo)
-                mvp.Flags |= MovementParamFlags.FailWalk | MovementParamFlags.UseFinalHeading | MovementParamFlags.Sticky | MovementParamFlags.MoveAway;
-
-            if (RunRate > 0)
-                mvp.Speed = RunRate;
-            else
-                mvp.Flags &= ~MovementParamFlags.CanRun;
-
-            return mvp;
         }
 
         /// <summary>
@@ -526,7 +456,7 @@ namespace ACE.Server.WorldObjects
 
             //NextCancelTime = Timers.RunningTime + 5.0f;
 
-            MoveTo(home, RunRate, true, 1.0f);
+            MoveTo(home);
 
             EmoteManager.OnHomeSick(prevAttackTarget);
         }
@@ -553,7 +483,7 @@ namespace ACE.Server.WorldObjects
         public void UpdateMoveSpeed()
         {
             var previousMoveSpeed = MoveSpeed;
-            GetMovementSpeed();
+            UpdateMovementSpeed();
 
             if (IsMoving && previousMoveSpeed != MoveSpeed)
                 CancelMoveTo(WeenieError.ObjectGone);
@@ -585,9 +515,7 @@ namespace ACE.Server.WorldObjects
 
             PhysicsObj.SetPosition(setPos);
 
-            UpdatePosition_SyncLocation();
-
-            SendUpdatePosition(true);
+            UpdatePosition(true, true);
         }
 
         public void FindNewHome(float directionMinAngle, float directionMaxAngle, float distance)
@@ -598,11 +526,6 @@ namespace ACE.Server.WorldObjects
             offsetPosition.SetLandblock();
 
             Home = offsetPosition;
-        }
-
-        public bool HasPendingActions
-        {
-            get => IsSwitchWeaponsPending || IsWanderingPending || IsEmotePending || IsRouteStartPending || IsMoveToHomePending;
         }
 
         private Position WanderTarget = null;
@@ -648,11 +571,14 @@ namespace ACE.Server.WorldObjects
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
 
+            FailedMovementCount = 0;
+            FailedSightCount = 0;
+
             LastWanderTime = Time.GetUnixTime();
             IsWanderingPending = false;
             IsWandering = true;
 
-            MoveTo(WanderTarget, RunRate, true, 1.0f, null, false);
+            MoveTo(WanderTarget, 1.0f, false);
         }
 
         private void EndWandering(bool forced = true)
@@ -790,6 +716,7 @@ namespace ACE.Server.WorldObjects
                 CancelMoveTo(WeenieError.ObjectGone);
 
             FailedMovementCount = 0;
+            FailedSightCount = 0;
             IsRouteStartPending = false;
             IsRouting = true;
 
@@ -855,7 +782,7 @@ namespace ACE.Server.WorldObjects
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
 
-            MoveTo(RoutePositionTarget, RunRate, true, 1.0f, null, false);
+            MoveTo(RoutePositionTarget, 1.0f, false);
         }
 
         private void RetryRoute()
@@ -891,7 +818,14 @@ namespace ACE.Server.WorldObjects
 
         public bool HasPendingMovement
         {
-            get => PhysicsObj.MovementManager.MoveToManager.PendingActions.Count > 0;
+            get => PhysicsObj.MovementManager?.MoveToManager?.PendingActions?.Count > 0;
         }
+
+        public bool HasPendingAnimations
+        {
+            get => PhysicsObj.PartArray?.MotionTableManager?.PendingAnimations?.Count > 0;
+        }
+
+        
     }
 }

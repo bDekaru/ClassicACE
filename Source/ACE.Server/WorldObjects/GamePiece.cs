@@ -5,6 +5,7 @@ using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Entity.Chess;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Physics.Animation;
 
 namespace ACE.Server.WorldObjects
 {
@@ -147,36 +148,28 @@ namespace ACE.Server.WorldObjects
         public void MoveWeenie(Position to, float distanceToObject, bool finalHeading)
         {
             if (MoveSpeed == 0.0f)
-                GetMovementSpeed();
+                UpdateMovementSpeed();
 
-            var moveToPosition = new Motion(this, to);
-            moveToPosition.MoveToParameters.DistanceToObject = distanceToObject;
-            moveToPosition.MoveToParameters.MovementParameters &= ~MovementParams.UseSpheres;
+            var motion = new Motion(this, to);
+            motion.MoveToParameters.DistanceToObject = distanceToObject;
+            motion.MoveToParameters.MovementParameters &= ~MovementParams.UseSpheres;
 
             if (finalHeading)
-                moveToPosition.MoveToParameters.MovementParameters |= MovementParams.UseFinalHeading;
+                motion.MoveToParameters.MovementParameters |= MovementParams.UseFinalHeading;
 
-            var physPos = new Physics.Common.Position(to);
-            moveToPosition.MoveToParameters.DesiredHeading = physPos.Frame.get_heading();
+            SetWalkRunThreshold(motion, to);
 
-            SetWalkRunThreshold(moveToPosition, to);
+            var mvp = new MovementParameters(motion);
 
-            var mvp = GetMovementParameters();
-            mvp.CanWalk = true;
-            mvp.StopCompletely = true;
-            mvp.UseSpheres = false;
-            mvp.DistanceToObject = distanceToObject;
-            mvp.UseFinalHeading = finalHeading;
-            mvp.DesiredHeading = physPos.Frame.get_heading();
+            PhysicsObj.MoveToPosition(new Physics.Common.Position(to), mvp);
 
-            PhysicsObj.MoveToPosition(physPos, mvp);
             IsMoving = true;
             MonsterState = State.Awake;
             IsAwake = true;
 
-            LastMoveTo = moveToPosition;
+            LastMoveTo = motion;
 
-            EnqueueBroadcastMotion(moveToPosition);
+            EnqueueBroadcastMotion(motion);
         }
 
         public override void BroadcastMoveTo(Player player)

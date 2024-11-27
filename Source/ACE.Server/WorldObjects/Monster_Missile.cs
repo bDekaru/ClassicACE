@@ -340,6 +340,8 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            CurrentAttackType = null;
+
             var weapon = GetEquippedMissileWeapon();
             var ammo = GetEquippedAmmo();
 
@@ -406,9 +408,6 @@ namespace ACE.Server.WorldObjects
 
                     // end inline
 
-                    TryRoute();
-
-                    EndSwitchWeapons();
                     LastWeaponSwitchTime = Time.GetUnixTime();
 
                     // this is an unfortunate hack to fix the following scenario:
@@ -426,6 +425,10 @@ namespace ACE.Server.WorldObjects
 
                 });
                 innerChain.EnqueueChain();
+
+                TryRoute();
+
+                EndSwitchWeapons();
             });
             actionChain.EnqueueChain();
         }
@@ -454,6 +457,8 @@ namespace ACE.Server.WorldObjects
                 EndSwitchWeapons();
                 return;
             }
+
+            CurrentAttackType = null;
 
             var weapon = GetEquippedMeleeWeapon();
             var shield = GetEquippedShield();
@@ -515,9 +520,6 @@ namespace ACE.Server.WorldObjects
 
                     // end inline
 
-                    TryRoute();
-
-                    EndSwitchWeapons();
                     LastWeaponSwitchTime = Time.GetUnixTime();
 
                     // this is an unfortunate hack to fix the following scenario:
@@ -535,6 +537,10 @@ namespace ACE.Server.WorldObjects
 
                 });
                 innerChain.EnqueueChain();
+
+                TryRoute();
+
+                EndSwitchWeapons();
             });
             actionChain.EnqueueChain();
         }

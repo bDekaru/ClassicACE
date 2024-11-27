@@ -253,137 +253,187 @@ namespace ACE.Server.WorldObjects
 
         /// <summary>
         /// This is called by the monster AI system for ranged attacks
-        /// It is mostly a duplicate of Rotate(), and should be refactored eventually...
         /// It sets CurrentMotionState here
         /// </summary>
-        public void TurnTo(WorldObject target, bool debug = false)
+        public void TurnTo(WorldObject target, float speed = 1.0f, bool clientOnly = false)
         {
             if (DebugMove)
-                Console.WriteLine($"{Name}.TurnTo({target.Name})");
+                Console.WriteLine($"{Name}.TurnTo({target.Name}, {speed}, {clientOnly})");
 
             if (this is Player)
                 return;
 
-            var turnToMotion = new Motion(this, target, MovementType.TurnToObject);
-            EnqueueBroadcastMotion(turnToMotion);
+            var motion = GetTurnToMotion(target, speed);
 
-            CurrentMotionState = turnToMotion;
+            EnqueueBroadcastMotion(motion);
+
+            if (clientOnly)
+                return;
+
+            CurrentMotionState = motion;
 
             OnMovementStarted();
+
+            // prevent initial snap forward
+            if (!PhysicsObj.IsMovingOrAnimating)
+                PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
+
+            var mvp = new MovementParameters(motion);
+            PhysicsObj.TurnToObject(target.PhysicsObj, mvp);
         }
 
         /// <summary>
         /// Used by the monster AI system to start turning / running towards a target
         /// </summary>
-        public virtual void MoveTo(WorldObject target, float runRate = 1.0f)
+        public virtual void MoveTo(WorldObject target, float speed = 1.0f, bool clientOnly = false)
         {
             if (DebugMove)
-                Console.WriteLine($"{Name}.MoveTo({target.Name}, {runRate}) - CurPos: {Location.ToLOCString()} - DestPos: {AttackTarget.Location.ToLOCString()} - TargetDist: {Vector3.Distance(Location.ToGlobal(), AttackTarget.Location.ToGlobal())}");
+                Console.WriteLine($"{Name}.MoveTo({target.Name}, {speed}, {clientOnly}) - CurPos: {Location.ToLOCString()} - DestPos: {AttackTarget.Location.ToLOCString()} - TargetDist: {Vector3.Distance(Location.ToGlobal(), AttackTarget.Location.ToGlobal())}");
 
-            var motion = GetMoveToMotion(target, runRate);
+            var motion = GetMoveToMotion(target, speed);
+
+            EnqueueBroadcastMotion(motion);
+
+            if (clientOnly)
+                return;
 
             CurrentMotionState = motion;
 
+            OnMovementStarted();
+
+            // prevent initial snap forward
+            if (!PhysicsObj.IsMovingOrAnimating)
+                PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
+
+            var mvp = new MovementParameters(motion);
+            PhysicsObj.MoveToObject(target.PhysicsObj, mvp);
+        }
+
+        /// <summary>
+        /// Used by the monster AI system to start turning / running towards a position
+        /// </summary>
+        public void MoveTo(Position position, float speedMod = 1.0f, bool useFinalHeading = true, bool clientOnly = false)
+        {
+            // build and send MoveToPosition message to client
+            var motion = GetMoveToMotion(position, speedMod, useFinalHeading);
+
             EnqueueBroadcastMotion(motion);
+
+            if (clientOnly)
+                return;
+
+            CurrentMotionState = motion;
+
+            // start executing MoveTo iterator on server
+            if (!PhysicsObj.IsMovingOrAnimating)
+                PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
+
+            var mvp = new MovementParameters(motion);
+            PhysicsObj.MoveToPosition(new Physics.Common.Position(position), mvp);
 
             OnMovementStarted();
         }
 
-        public Motion GetMoveToMotion(WorldObject target, float runRate)
+        private Motion GetMoveToMotion(WorldObject target, float speed = 1.0f)
         {
             var motion = new Motion(this, target, MovementType.MoveToObject);
 
-            // set non-default params for monster movement
-            motion.MoveToParameters.MovementParameters &= ~MovementParams.CanWalk;
-            motion.MoveToParameters.MovementParameters |= MovementParams.FailWalk | MovementParams.UseFinalHeading | MovementParams.Sticky | MovementParams.MoveAway;
+            motion.MoveToParameters.MovementParameters =
+                //MovementParams.CanWalk |
+                MovementParams.CanRun |
+                //MovementParams.CanCharge |
+                //MovementParams.CanSideStep |
+                MovementParams.CanWalkBackwards |
+                MovementParams.FailWalk |
+                MovementParams.MoveAway |
+                MovementParams.MoveTowards |
+                MovementParams.UseSpheres |
+                MovementParams.SetHoldKey |
+                MovementParams.ModifyRawState |
+                MovementParams.ModifyInterpretedState |
+                MovementParams.CancelMoveTo |
+                MovementParams.StopCompletely |
+                MovementParams.Sticky |
+                MovementParams.UseFinalHeading;
 
-            if (runRate > 0)
-                motion.RunRate = runRate;
-            else
-                motion.MoveToParameters.MovementParameters &= ~MovementParams.CanRun;
+            motion.MoveToParameters.Speed = speed;
+            motion.MoveToParameters.DistanceToObject = 2.0f;
+
+            motion.RunRate = RunRate;
+
+            return motion;
+        }
+
+        private Motion GetMoveToMotion(Position position, float speed = 1.0f, bool useFinalHeading = true)
+        {
+            var motion = new Motion(this, position);
+
+            motion.MoveToParameters.MovementParameters =
+                MovementParams.CanWalk |
+                MovementParams.CanRun |
+                //MovementParams.CanSideStep |
+                //MovementParams.CanWalkBackwards |
+                MovementParams.FailWalk |
+                //MovementParams.MoveAway |
+                MovementParams.MoveTowards |
+                MovementParams.UseSpheres |
+                MovementParams.SetHoldKey |
+                MovementParams.ModifyRawState |
+                MovementParams.ModifyInterpretedState |
+                MovementParams.CancelMoveTo |
+                MovementParams.StopCompletely;
+
+            motion.MoveToParameters.Speed = speed;
+            motion.RunRate = RunRate;
+
+            if (useFinalHeading)
+                motion.MoveToParameters.MovementParameters |= MovementParams.UseFinalHeading;
+
+            return motion;
+        }
+
+        private Motion GetTurnToMotion(WorldObject target, float speed = 1.0f)
+        {
+            var motion = new Motion(this, target, MovementType.TurnToObject);
+
+            motion.MoveToParameters.MovementParameters =
+                MovementParams.UseSpheres |
+                MovementParams.SetHoldKey |
+                MovementParams.ModifyRawState |
+                MovementParams.ModifyInterpretedState |
+                MovementParams.CancelMoveTo |
+                MovementParams.StopCompletely;
+
+            motion.MoveToParameters.Speed = speed;
 
             return motion;
         }
 
         public virtual void BroadcastMoveTo(Player player)
         {
+            Position position = null;
+            if (IsMovingToHome)
+                position = GetPosition(PositionType.Home);
+            else if (IsWandering && WanderTarget != null)
+                position = WanderTarget;
+            else if (IsRouting && RoutePositionTarget != null)
+                position = RoutePositionTarget;
+
             Motion motion = null;
-
-            if (AttackTarget != null)
-            {
-                // move to object
-                motion = GetMoveToMotion(AttackTarget, RunRate);
-            }
-            else
-            {
-                // move to position
-                var home = GetPosition(PositionType.Home);
-
-                motion = GetMoveToPosition(home, RunRate, 1.0f);
-            }
+            if (position != null)
+                motion = GetMoveToMotion(position);
+            else if (AttackTarget != null)
+                motion = GetMoveToMotion(AttackTarget);
 
             player.Session.Network.EnqueueSend(new GameMessageUpdateMotion(this, motion));
         }
 
         /// <summary>
-        /// Sends a network message for moving a creature to a new position
-        /// </summary>
-        public void MoveTo(Position position, float runRate = 1.0f, bool setLoc = true, float? walkRunThreshold = null, float? speed = null, bool useFinalHeading = true)
-        {
-            // build and send MoveToPosition message to client
-            var motion = GetMoveToPosition(position, runRate, walkRunThreshold, speed);
-
-            if (!useFinalHeading)
-                motion.MoveToParameters.MovementParameters &= ~MovementParams.UseFinalHeading;
-
-            EnqueueBroadcastMotion(motion);
-
-            if (!setLoc) return;
-
-            // start executing MoveTo iterator on server
-            if (!PhysicsObj.IsMovingOrAnimating)
-                PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
-
-            var mvp = new MovementParameters(motion.MoveToParameters);
-            PhysicsObj.MoveToPosition(new Physics.Common.Position(position), mvp);
-
-            OnMovementStarted();
-        }
-
-
-
-        public Motion GetMoveToPosition(Position position, float runRate = 1.0f, float? walkRunThreshold = null, float? speed = null)
-        {
-            // TODO: change parameters to accept an optional MoveToParameters
-
-            var motion = new Motion(this, position);
-            motion.MovementType = MovementType.MoveToPosition;
-            //motion.Flag |= MovementParams.CanCharge | MovementParams.FailWalk | MovementParams.UseFinalHeading | MovementParams.MoveAway;
-            if (walkRunThreshold != null)
-                motion.MoveToParameters.WalkRunThreshold = walkRunThreshold.Value;
-            if (speed != null)
-                motion.MoveToParameters.Speed = speed.Value;
-
-            // always use final heading?
-            var frame = new AFrame(position.Pos, position.Rotation);
-            motion.MoveToParameters.DesiredHeading = frame.get_heading();
-            motion.MoveToParameters.MovementParameters |= MovementParams.UseFinalHeading;
-            motion.MoveToParameters.DistanceToObject = 0.6f;
-
-            if (runRate > 0)
-                motion.RunRate = runRate;
-            else
-                motion.MoveToParameters.MovementParameters &= ~MovementParams.CanRun;
-
-            return motion;
-        }
-
-        /// <summary>
         /// For monsters only -- blips to a new position within the same landblock
         /// </summary>
-        public void FakeTeleport(Position _newPosition)
+        public void FakeTeleport(Position toPosition)
         {
-            var newPosition = new Position(_newPosition);
+            var newPosition = new Position(toPosition);
 
             newPosition.PositionZ += 0.005f * (ObjScale ?? 1.0f);
 

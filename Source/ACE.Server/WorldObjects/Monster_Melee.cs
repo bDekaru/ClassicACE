@@ -31,14 +31,6 @@ namespace ACE.Server.WorldObjects
 
 
         /// <summary>
-        /// Returns TRUE if creature can perform a melee attack
-        /// </summary>
-        public bool MeleeReady()
-        {
-            return IsMeleeRange() && Timers.RunningTime >= NextAttackTime;
-        }
-
-        /// <summary>
         /// Performs a melee attack for the monster
         /// </summary>
         public void MeleeAttack()

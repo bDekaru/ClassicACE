@@ -58,7 +58,7 @@ namespace ACE.Server.WorldObjects
                     StunnedUntilTimestamp = 0;
             }
 
-            NextMonsterTickTime = currentUnixTime + ThreadSafeRandom.Next((float)monsterTickInterval * 0.8f, (float)monsterTickInterval * 1.2f); // Add some randomization here to keep creatures from acting in perfect synch.
+            NextMonsterTickTime = currentUnixTime + ThreadSafeRandom.Next((float)monsterTickInterval * 0.5f, (float)monsterTickInterval * 1.5f); // Add some randomization here to keep creatures from acting in perfect synch.
 
             if (!IsAwake)
             {
@@ -200,32 +200,49 @@ namespace ACE.Server.WorldObjects
                     return;
             }
 
-            PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
+            bool isMeleeVisible = true;
+            bool isDirectiVisible = true;
 
-            if ((/*IsEmotePending ||*/ IsWanderingPending || IsRouteStartPending /*|| IsEmoting*/ || IsWandering || IsRouting) && ((CurrentAttackType == CombatType.Melee && IsMeleeVisible(AttackTarget)) || (CurrentAttackType != CombatType.Melee && IsDirectVisible(AttackTarget))))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                // If we can see our target abort everything and go for it.
+                PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
 
-                //Console.WriteLine("Pathfinding: Target Sighted!");
+                isMeleeVisible = IsMeleeVisible(AttackTarget);
+                isDirectiVisible = IsDirectVisible(AttackTarget);
 
-                FailedMovementCount = 0;
+                if ((CurrentAttackType == CombatType.Melee && isMeleeVisible) || (CurrentAttackType != CombatType.Melee && isDirectiVisible))
+                {
+                    //Console.WriteLine("Pathfinding: Target Sighted!");
 
-                IsEmotePending = false;
-                IsWanderingPending = false;
-                IsRouteStartPending = false;
+                    FailedSightCount = 0;
+                    FailedMovementCount = 0;
 
-                // Figure out a way to cancel motions so they will actually stop mid-play client-side. MotionCommand.Dead does it but I haven't been able to figure out why.
-                //if (IsEmoting)
-                //    PendingEndEmoting = true;
+                    if ((/*IsEmotePending ||*/ IsWanderingPending || IsRouteStartPending /*|| IsEmoting*/ || IsWandering || IsRouting))
+                    {
+                        // If we can see our target abort everything and go for it.
 
-                if (IsWandering)
-                    PendingEndWandering = true;
+                        IsEmotePending = false;
+                        IsWanderingPending = false;
+                        IsRouteStartPending = false;
 
-                if (IsRouting)
-                    PendingEndRoute = true;
-            }
-            else
-            {
+                        // Figure out a way to cancel motions so they will actually stop mid-play client-side. MotionCommand.Dead does it but I haven't been able to figure out why.
+                        //if (IsEmoting)
+                        //    PendingEndEmoting = true;
+
+                        if (IsWandering)
+                            PendingEndWandering = true;
+
+                        if (IsRouting)
+                            PendingEndRoute = true;
+                    }
+                }
+                else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
+                {
+                    FailedSightCount++;
+                    if (FailedSightCount >= FailedSightThreshold && HasPendingMovement)
+                        CancelMoveTo(WeenieError.ObjectGone);
+                }
+
                 if (IsEmotePending)
                     Emote();
                 if (IsEmoting || IsEmotePending)
@@ -272,10 +289,7 @@ namespace ACE.Server.WorldObjects
                     if (IsRouting)
                         return;
                 }
-            }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-            {
                 if (NextNoCounterResetTime <= currentUnixTime)
                 {
                     AttacksReceivedWithoutBeingAbleToCounter = 0;
@@ -316,36 +330,45 @@ namespace ACE.Server.WorldObjects
             {
                 if (!PhysicsObj.IsSticky && targetDist > MaxRange || (!IsFacing(AttackTarget) && !IsSelfCast()))
                 {
-                    // turn / move towards
-                    if (!IsMoving)
+                    bool failedThresholds = FailedMovementCount >= FailedMovementThreshold || FailedSightCount >= FailedSightThreshold;
+
+                    if (!IsMoving && !failedThresholds)
                         StartMovement();
                     else
                     {
                         if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            if (FailedMovementCount >= FailedMovementThreshold)
+                            if (failedThresholds)
                             {
-                                if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && IsVisibleTarget(AttackTarget))
-                                    TrySwitchToMissileAttack();
-                                else
+                                FailedMovementCount = 0;
+                                FailedSightCount = 0;
+
+                                var currentTarget = AttackTarget;
+                                FindNextTarget();
+                                if (currentTarget == AttackTarget)
                                 {
-                                    if (LastEmoteTime + MaxEmoteFrequency < currentUnixTime && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                        TryEmoting();
-
-                                    if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                    if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
+                                        TrySwitchToMissileAttack();
+                                    else
                                     {
-                                        if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
-                                            TryWandering(160, 200, 3);
-                                        else
-                                            TryWandering(100, 260, 5);
-                                    }
+                                        if (LastEmoteTime + MaxEmoteFrequency < currentUnixTime && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                            TryEmoting();
 
-                                    if(PathfindingEnabled)
-                                        TryRoute();
+                                        if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                        {
+                                            if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
+                                                TryWandering(160, 200, 3);
+                                            else
+                                                TryWandering(100, 260, 5);
+                                        }
+
+                                        if (PathfindingEnabled)
+                                            TryRoute();
+                                    }
                                 }
+                                else if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && targetDist > 20 && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
+                                    TrySwitchToMissileAttack();
                             }
-                            else if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && targetDist > 20 && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && IsVisibleTarget(AttackTarget))
-                                TrySwitchToMissileAttack();
                         }
                     }
                 }

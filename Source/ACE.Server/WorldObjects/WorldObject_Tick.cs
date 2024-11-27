@@ -256,7 +256,7 @@ namespace ACE.Server.WorldObjects
                 isDying = creature.IsDead;
 
                 // determine if updates should be run for object
-                var runUpdate = PhysicsObj.IsAnimating || isDying || PhysicsObj.InitialUpdates <= 1 || PhysicsObj.MovementManager.MoveToManager.PendingActions.Count > 0;
+                var runUpdate = PhysicsObj.IsAnimating || isDying || PhysicsObj.InitialUpdates <= 1 || PhysicsObj.MovementManager.MoveToManager.PendingActions.Count > 0 || PhysicsObj.IsSticky;
 
                 if (!runUpdate)
                     return false;

@@ -239,9 +239,6 @@ namespace ACE.Server.WorldObjects
             if (Timers.RunningTime < NextMoveTime)
                 return false;
 
-            //PhysicsObj.update_object();
-            //UpdatePosition_SyncLocation();
-
             return !PhysicsObj.IsAnimating && !HasPendingMovement;
         }
 
@@ -253,13 +250,10 @@ namespace ACE.Server.WorldObjects
         {
             var nextAttackTime = CurrentAttackType == CombatType.Magic ? NextMagicAttackTime : NextAttackTime;
 
-            if (Timers.RunningTime < nextAttackTime || !IsAttackRange())
+            if (Timers.RunningTime < nextAttackTime)
                 return false;
 
-            //PhysicsObj.update_object();
-            //UpdatePosition_SyncLocation();
-
-            return !PhysicsObj.IsAnimating;
+            return !PhysicsObj.IsAnimating || !HasPendingMovement;
         }
 
 
@@ -302,14 +296,8 @@ namespace ACE.Server.WorldObjects
             IsAttackPending = false;
             IsAttacking = true;
 
-            if (CurrentAttackType == null)
-            {
-                EndAttack();
-                return;
-            }
-
             var targetCreature = AttackTarget as Creature;
-            if (targetCreature == null || IsDead || targetCreature.IsDead)
+            if (!IsAttackRange() || CurrentAttackType == null || targetCreature == null || IsDead || targetCreature.IsDead || targetCreature != NextSwingAttackTarget)
             {
                 EndAttack();
                 return;
@@ -325,14 +313,8 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if(AttackTarget != NextSwingAttackTarget)
-            {
-                // We changed targets since we initiated our attack attempt.
-                EndAttack();
-                return;
-            }
-
             FailedMovementCount = 0;
+            FailedSightCount = 0;
 
             switch (CurrentAttackType)
             {

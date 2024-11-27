@@ -81,6 +81,9 @@ namespace ACE.Server.Entity
             }
             MovementType = MovementType.MoveToPosition;
             Position = new Position(position);
+
+            var frame = new Physics.Animation.AFrame(position.Pos, position.Rotation);
+            MoveToParameters.DesiredHeading = frame.get_heading();
         }
 
         /// <summary>

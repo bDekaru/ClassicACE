@@ -53,7 +53,7 @@ namespace ACE.Server.WorldObjects
 
             HasFoeType = IsMonster && FoeType != null;
 
-            GetMovementSpeed();
+            UpdateMovementSpeed();
         }
 
         List<MotionCommand> IdleMotionsList = null;

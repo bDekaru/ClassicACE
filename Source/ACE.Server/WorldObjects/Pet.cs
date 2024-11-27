@@ -185,9 +185,7 @@ namespace ACE.Server.WorldObjects
             {
                 PhysicsObj.update_object();
 
-                UpdatePosition_SyncLocation();
-
-                SendUpdatePosition();
+                UpdatePosition();
             }
 
             if (currentUnixTime >= nextSlowTickTime)
@@ -237,46 +235,45 @@ namespace ACE.Server.WorldObjects
             IsMoving = true;
 
             // broadcast to clients
-            MoveTo(P_PetOwner, RunRate);
-
-            // perform movement on server
-            var mvp = new MovementParameters();
-            mvp.DistanceToObject = MinDistance;
-            mvp.WalkRunThreshold = 0.0f;
-
-            //mvp.UseFinalHeading = true;
-
-            PhysicsObj.MoveToObject(P_PetOwner.PhysicsObj, mvp);
-
-            // prevent snap forward
-            PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
+            MoveTo(P_PetOwner);
         }
 
         /// <summary>
         /// Broadcasts passive pet movement to clients
         /// </summary>
-        public override void MoveTo(WorldObject target, float runRate = 1.0f)
+        public override void MoveTo(WorldObject target, float speed = 1.0f, bool clientOnly = false)
         {
             if (!IsPassivePet)
             {
-                base.MoveTo(target, runRate);
+                base.MoveTo(target, speed, clientOnly);
                 return;
             }
 
             if (MoveSpeed == 0.0f)
-                GetMovementSpeed();
+                UpdateMovementSpeed();
 
             var motion = new Motion(this, target, MovementType.MoveToObject);
 
             motion.MoveToParameters.MovementParameters |= MovementParams.CanCharge;
             motion.MoveToParameters.DistanceToObject = MinDistance;
             motion.MoveToParameters.WalkRunThreshold = 0.0f;
+            motion.MoveToParameters.Speed = speed;
 
             motion.RunRate = RunRate;
 
+            EnqueueBroadcastMotion(motion);
+
+            if (clientOnly)
+                return;
+
             CurrentMotionState = motion;
 
-            EnqueueBroadcastMotion(motion);
+            // prevent initial snap forward
+            if (!PhysicsObj.IsMovingOrAnimating)
+                PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
+
+            var mvp = new MovementParameters(motion);
+            PhysicsObj.MoveToObject(P_PetOwner.PhysicsObj, mvp);
         }
 
         /// <summary>

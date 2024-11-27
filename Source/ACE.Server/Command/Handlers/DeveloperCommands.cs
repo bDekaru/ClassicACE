@@ -1462,7 +1462,7 @@ namespace ACE.Server.Command.Handlers
                 Console.WriteLine(target.Name + " is not a creature / monster");
                 return;
             }
-            creature.TurnTo(session.Player, true);
+            creature.TurnTo(session.Player);
         }
 
         [CommandHandler("debugmove", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Toggles movement debugging for the last appraised monster", "<on/off>")]
