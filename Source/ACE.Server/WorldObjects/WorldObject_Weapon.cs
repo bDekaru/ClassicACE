@@ -379,7 +379,10 @@ namespace ACE.Server.WorldObjects
             {
                 var criticalStrikeBonus = GetCriticalStrikeMod(wielder, skill, isPvP);
 
-                critRate = Math.Max(critRate, criticalStrikeBonus);
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    critRate = Math.Max(critRate, criticalStrikeBonus);
+                else if(critRate > defaultPhysicalCritFrequency)
+                    critRate = 0.25f;
             }
 
             if (wielder != null)
@@ -433,9 +436,12 @@ namespace ACE.Server.WorldObjects
 
             if (weapon.HasImbuedEffect(ImbuedEffectType.CriticalStrike))
             {
-                var criticalStrikeMod = GetCriticalStrikeMod(wielder, skill, isPvP);
+                var criticalStrikeBonus = GetCriticalStrikeMod(wielder, skill, isPvP);
 
-                critRate = Math.Max(critRate, criticalStrikeMod);
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    critRate = Math.Max(critRate, criticalStrikeBonus);
+                else if (critRate > defaultMagicCritFrequency)
+                    critRate = 0.20f;
             }
 
             critRate += wielder.GetCritRating() * 0.01f;
@@ -454,7 +460,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public static float GetWeaponCritDamageMod(WorldObject weapon, Creature wielder, CreatureSkill skill, Creature target, bool isPvP)
         {
-            var critDamageMod = (float)(weapon?.GetProperty(PropertyFloat.CriticalMultiplier) ?? defaultCritDamageMultiplier);
+            var critDamageMod = (float)(weapon?.CriticalMultiplier ?? defaultCritDamageMultiplier);
 
             if (isPvP && critDamageMod > defaultCritDamageMultiplier)
             {
@@ -512,7 +518,15 @@ namespace ACE.Server.WorldObjects
             {
                 var cripplingBlowMod = GetCripplingBlowMod(wielder, skill, isPvP);
 
-                critDamageMod = Math.Max(critDamageMod, cripplingBlowMod);
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    critDamageMod = Math.Max(critDamageMod, cripplingBlowMod);
+                else if(critDamageMod > defaultCritDamageMultiplier)
+                {
+                    if (GetImbuedSkillType(skill) == ImbuedSkillType.Magic)
+                        critDamageMod = 2.5f;
+                    else
+                        critDamageMod = 3.0f;
+                }
             }
             return critDamageMod;
         }
@@ -679,7 +693,10 @@ namespace ACE.Server.WorldObjects
             {
                 var rendingMod = GetRendingMod(skill);
 
-                resistMod = Math.Max(resistMod, rendingMod);
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    resistMod = Math.Max(resistMod, rendingMod);
+                else if(resistMod > defaultModifier)
+                    resistMod = 2.0f; // Equivalent to level V Elemental Vulnerability.
             }
 
             return resistMod;
@@ -814,7 +831,12 @@ namespace ACE.Server.WorldObjects
             float criticalStrikeMod;
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                criticalStrikeMod = 0.2f;
+            {
+                if (GetImbuedSkillType(skill) == ImbuedSkillType.Magic)
+                    criticalStrikeMod = 0.15f;
+                else
+                    criticalStrikeMod = 0.20f;
+            }
             else
             {
                 var skillType = GetImbuedSkillType(skill);
@@ -823,7 +845,7 @@ namespace ACE.Server.WorldObjects
 
                 var defaultCritFrequency = skillType == ImbuedSkillType.Magic ? defaultMagicCritFrequency : defaultPhysicalCritFrequency;
 
-                
+
                 var baseMod = 0.0f;
 
                 switch (skillType)
@@ -960,14 +982,6 @@ namespace ACE.Server.WorldObjects
                 var baseSkill = GetBaseSkillImbued(skill);
 
                 var baseMod = 1.0f;
-
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                {
-                    if (GetImbuedSkillType(skill) == ImbuedSkillType.Magic)
-                        return 2.0f;
-                    else
-                        return 2.5f;
-                }
 
                 switch (GetImbuedSkillType(skill))
                 {

@@ -26,5 +26,9 @@ namespace ACE.Entity.Enum
         IgnoreSomeMagicProjectileDamage = 0x20000000,
         AlwaysCritical                  = 0x40000000,
         IgnoreAllArmor                  = 0x80000000,
+
+        // helpers
+        PhysicalRending = SlashRending | PierceRending | BludgeonRending,
+        ElementalRending = ColdRending | FireRending | AcidRending | ElectricRending,
     }
 }

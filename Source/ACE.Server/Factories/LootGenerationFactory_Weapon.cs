@@ -63,9 +63,8 @@ namespace ACE.Server.Factories
                 else
                     amount = 2.0f;
 
-                wo.SetProperty(PropertyFloat.CriticalMultiplier, amount);
+                wo.CriticalMultiplier = amount;
                 wo.IconOverlayId = 0x06005EBC;
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
             else
@@ -88,7 +87,6 @@ namespace ACE.Server.Factories
                     amount = 0.15f;
                 wo.CriticalFrequency = amount;
                 wo.IconOverlayId = 0x06005EBD;
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
             else
@@ -124,7 +122,6 @@ namespace ACE.Server.Factories
                 // 0.0 = ignore 100% of all armor.
                 wo.IgnoreArmor = 0.75f; // Equivalent of Imperil III for 300 AL armor.
                 wo.IconOverlayId = 0x06005EBF;
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
             return false;
@@ -146,7 +143,6 @@ namespace ACE.Server.Factories
                 wo.IgnoreShield = 0.50f; // Equivalent of Brittlemail V for 300 AL shields.
                 wo.IconOverlayId = 0x06005EC2;
                 wo.Name = $"{wo.Name} of Shield Cleaving";
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
             return false;
@@ -161,26 +157,9 @@ namespace ACE.Server.Factories
             chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
-                var damageType = wo.W_DamageType;
-                if (damageType == DamageType.Undef)
-                {
-                    var roll = ThreadSafeRandom.Next(0, 6);
-                    switch (roll)
-                    {
-                        case 0: damageType = DamageType.Slash; break;
-                        case 1: damageType = DamageType.Pierce; break;
-                        case 2: damageType = DamageType.Bludgeon; break;
-                        case 3: damageType = DamageType.Fire; break;
-                        case 4: damageType = DamageType.Cold; break;
-                        case 5: damageType = DamageType.Electric; break;
-                        case 6: damageType = DamageType.Acid; break;
-                    }
-                }
-
-                wo.ResistanceModifierType = damageType;
+                wo.ResistanceModifierType = DamageType.Elemental;
                 wo.ResistanceModifier = 1.5f; // Equivalent to level III Elemental Vulnerability.
                 wo.IconOverlayId = 0x06005EC1;
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
             return false;

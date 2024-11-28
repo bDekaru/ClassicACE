@@ -106,8 +106,6 @@ namespace ACE.Server.Factories
                     counter++;
                 if (counter < 2 && RollArmorCleaving(profile, wo))
                     counter++;
-                if (counter < 2 && RollResistanceCleaving(profile, wo))
-                    counter++;
                 if (counter < 2 && RollBitingStrike(profile, wo))
                     counter++;
                 if (counter < 2 && RollCrushingBlow(profile, wo))

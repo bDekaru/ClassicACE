@@ -1790,13 +1790,13 @@ namespace ACE.Server.Managers
                             break;
                     }
                     break;
-                case 0x38000051: // Tiger Eye
-                case 0x38000052: // White Quartz
-                case 0x38000053: // Serpentine
-                case 0x38000054: // Amethyst
-                case 0x38000055: // Yellow Garnet
-                case 0x38000056: // White Jade
-                case 0x38000057: // Obsidian
+                case 0x3800003A: // Emerald
+                case 0x3800003B: // White Sapphire
+                case 0x3800003C: // Aquamarine
+                case 0x3800003D: // Jet
+                case 0x3800003E: // Red Garnet
+                case 0x3800003F: // Black Garnet
+                case 0x38000040: // Imperial Topaz
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         // If weapon is resistance cleaving update cleaving element to match new weapon element.
@@ -1804,7 +1804,7 @@ namespace ACE.Server.Managers
                             target.ResistanceModifierType = target.W_DamageType;
                     }
                     break;
-                case 0x38000059: // Satin
+                case 0x38000101: // Satin
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         skipMutateScript = true;
@@ -1813,6 +1813,16 @@ namespace ACE.Server.Managers
 
                         target.NumTimesTinkered++;
                         result = true;
+                    }
+                    break;
+                case 0x3800004B: // Green Garnet
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        if (!target.ElementalDamageMod.HasValue || target.ElementalDamageMod == 0)
+                        {
+                            target.W_DamageType = DamageType.Elemental;
+                            target.ElementalDamageMod = 1.0;
+                        }
                     }
                     break;
             }

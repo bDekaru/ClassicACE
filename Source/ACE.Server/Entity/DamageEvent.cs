@@ -396,13 +396,17 @@ namespace ACE.Server.Entity
             }
 
             // armor rending and cleaving
-            var armorRendingMod = 1.0f;
+            var ignoreArmorMod = attacker.GetArmorCleavingMod(attacker, Weapon, attackSkill, pkBattle);
+
             if (Weapon != null && Weapon.HasImbuedEffect(ImbuedEffectType.ArmorRending))
-                armorRendingMod = WorldObject.GetArmorRendingMod(attacker, attackSkill, pkBattle);
+            {
+                var armorRendingMod = WorldObject.GetArmorRendingMod(attacker, attackSkill, pkBattle);
 
-            var armorCleavingMod = attacker.GetArmorCleavingMod(attacker, Weapon, attackSkill, pkBattle);
-
-            var ignoreArmorMod = Math.Min(armorRendingMod, armorCleavingMod);
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    ignoreArmorMod = Math.Min(ignoreArmorMod, armorRendingMod);
+                else if (ignoreArmorMod < 1.0f)
+                    ignoreArmorMod = 0.5f; // Equivalent to Imperil V for 300 AL armor.
+            }
 
             // get body part / armor pieces / armor modifier
             if (playerDefender != null)

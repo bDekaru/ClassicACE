@@ -645,7 +645,7 @@ namespace ACE.Server.Factories
                     LegendaryCantripCount++;
                 }
 
-                if (testItem.GetProperty(PropertyFloat.CriticalMultiplier) > 0)
+                if (testItem.CriticalMultiplier > 0)
                     CrushingBlowCount++;
                 if (testItem.CriticalFrequency > 0)
                     BitingStrikeCount++;
