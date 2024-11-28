@@ -298,7 +298,7 @@ namespace ACE.Database.SQLFormatters.World
         {
             writer.WriteLine("INSERT INTO `recipe_mods_d_i_d` (`recipe_Mod_Id`, `index`, `stat`, `value`, `enum`, `source`)");
 
-            var lineGenerator = new Func<int, string>(i => $"@parent_id, {input[i].Index}, {input[i].Stat.ToString().PadLeft(3)}, {input[i].Value}, {input[i].Enum}, {input[i].Source}) /* On {((RecipeSourceType)input[i].Source).ToString()}.{((ModificationType)input[i].Index).ToString()} {((ModificationOperation)input[i].Enum).ToString()} {Enum.GetName(typeof(PropertyDataId), input[i].Stat)} to {((ModificationType)input[i].Index).ToString().Substring(7)} */");
+            var lineGenerator = new Func<int, string>(i => $"@parent_id, {input[i].Index}, {input[i].Stat.ToString().PadLeft(3)}, 0x{input[i].Value:X8}, {input[i].Enum}, {input[i].Source}) /* On {((RecipeSourceType)input[i].Source).ToString()}.{((ModificationType)input[i].Index).ToString()} {((ModificationOperation)input[i].Enum).ToString()} {Enum.GetName(typeof(PropertyDataId), input[i].Stat)} to {((ModificationType)input[i].Index).ToString().Substring(7)} */");
 
             ValuesWriter(input.Count, lineGenerator, writer);
         }
@@ -307,7 +307,7 @@ namespace ACE.Database.SQLFormatters.World
         {
             writer.WriteLine("INSERT INTO `recipe_mods_i_i_d` (`recipe_Mod_Id`, `index`, `stat`, `value`, `enum`, `source`)");
 
-            var lineGenerator = new Func<int, string>(i => $"@parent_id, {input[i].Index}, {input[i].Stat.ToString().PadLeft(3)}, {input[i].Value}, {input[i].Enum}, {input[i].Source}) /* On {((RecipeSourceType)input[i].Source).ToString()}.{((ModificationType)input[i].Index).ToString()} {((ModificationOperation)input[i].Enum).ToString()} {Enum.GetName(typeof(PropertyInstanceId), input[i].Stat)} to {((ModificationType)input[i].Index).ToString().Substring(7)} */");
+            var lineGenerator = new Func<int, string>(i => $"@parent_id, {input[i].Index}, {input[i].Stat.ToString().PadLeft(3)}, 0x{input[i].Value:X8}, {input[i].Enum}, {input[i].Source}) /* On {((RecipeSourceType)input[i].Source).ToString()}.{((ModificationType)input[i].Index).ToString()} {((ModificationOperation)input[i].Enum).ToString()} {Enum.GetName(typeof(PropertyInstanceId), input[i].Stat)} to {((ModificationType)input[i].Index).ToString().Substring(7)} */");
 
             ValuesWriter(input.Count, lineGenerator, writer);
         }
