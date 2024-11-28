@@ -469,11 +469,11 @@ namespace ACE.Server.Entity
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 var shield = defender.GetEquippedShield();
-                if (shield != null)
+                if (shield != null && attacker != defender)
                 {
                     EffectiveBlockSkill = defender.GetEffectiveShieldSkill(CombatType);
-                    BlockChance = GetBlockChance(attacker, defender, shield, EffectiveAttackSkill, EffectiveBlockSkill);
-                    if (attacker != defender && BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                    BlockChance = Creature.GetBlockChance(attacker, defender, shield, EffectiveAttackSkill, EffectiveBlockSkill);
+                    if (BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                     {
                         Blocked = true;
 
@@ -722,31 +722,6 @@ namespace ACE.Server.Entity
                 evadeChance = Math.Min(evadeChance, 0.90f + ((CombatType == CombatType.Missile ? playerDefender.CachedMissileDefenseCapBonus : playerDefender.CachedMeleeDefenseCapBonus) * 0.01));
 
             return (float)evadeChance;
-        }
-
-        public float GetBlockChance(Creature attacker, Creature defender, WorldObject shield, uint effectiveAttackSkill, uint effectiveBlockSkill)
-        {
-            if (defender == null || defender.IsExhausted)
-                return 0.0f;
-
-            var playerAttacker = attacker as Player;
-            var playerDefender = defender as Player;
-            var isPvP = playerAttacker != null && playerDefender != null;
-
-            var shieldBlockMod = (float)(shield.BlockMod ?? 0) + shield.EnchantmentManager.GetBlockMod();
-            if (shield.IsEnchantable)
-                shieldBlockMod += defender.EnchantmentManager.GetBlockMod();
-
-            var blockChance = 1.0f - SkillCheck.GetSkillChance(effectiveAttackSkill, effectiveBlockSkill);
-            blockChance += shieldBlockMod;
-
-            if (isPvP)
-            {
-                blockChance *= (float)PropertyManager.GetInterpolatedDouble(playerAttacker.Level ?? 1, "pvp_dmg_mod_low_shield_block_chance", "pvp_dmg_mod_high_shield_block_chance", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
-                blockChance = Math.Max(blockChance, 0.2f);
-            }
-
-            return (float)blockChance;
         }
 
         /// <summary>

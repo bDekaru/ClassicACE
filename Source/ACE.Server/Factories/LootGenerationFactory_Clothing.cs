@@ -166,12 +166,6 @@ namespace ACE.Server.Factories
             //if (wo.HasMutateFilter(MutateFilter.Value))   // fixme: data
                 MutateValue(wo, profile.Tier, roll);
 
-            if (wo.IsShield)
-            {
-                if (RollAbsorbMagic(profile, wo))
-                    wo.ArmorLevel /= 2;
-            }
-
             wo.LongDesc = GetLongDesc(wo);
         }
 

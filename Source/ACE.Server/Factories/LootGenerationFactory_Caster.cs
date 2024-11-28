@@ -147,6 +147,8 @@ namespace ACE.Server.Factories
             if (profile.LootQualityMod >= 0)
             {
                 var counter = 0;
+                if (counter < 2 && RollShieldCleaving(profile, wo))
+                    counter++;
                 if (counter < 2 && RollResistanceCleaving(profile, wo))
                     counter++;
                 if (counter < 2 && RollBitingStrike(profile, wo))

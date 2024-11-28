@@ -313,8 +313,11 @@ namespace ACE.Server.WorldObjects
             var critDefended = false;
             var overpower = false;
             var resisted = false;
+            var blocked = false;
+            var isPerfectBlock = false;
+            var damageBlocked = 0f;
 
-            var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower, ref resisted);
+            var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower, ref resisted, ref blocked, ref isPerfectBlock, ref damageBlocked);
 
             creatureTarget.OnAttackReceived(sourceCreature, CombatType.Magic, critical, resisted);
 
@@ -327,7 +330,7 @@ namespace ACE.Server.WorldObjects
                 }
                 else
                 {
-                    DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower);
+                    DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower, blocked, isPerfectBlock, damageBlocked);
 
                     if (player != null && player != creatureTarget)
                     {
@@ -345,10 +348,13 @@ namespace ACE.Server.WorldObjects
                                     var critDefendedSelf = false;
                                     var overpowerSelf = false;
                                     var resistedSelf = false;
+                                    var blockedSelf = false;
+                                    var isPerfectBlockSelf = false;
+                                    var damageBlockedSelf = 0f;
 
-                                    var damage2 = CalculateDamage(ProjectileSource, player, ref criticalSelf, ref critDefendedSelf, ref overpowerSelf, ref resistedSelf);
+                                    var damage2 = CalculateDamage(ProjectileSource, player, ref criticalSelf, ref critDefendedSelf, ref overpowerSelf, ref resistedSelf, ref blockedSelf, ref isPerfectBlockSelf, ref damageBlockedSelf);
                                     if(damage2 != null)
-                                        DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf);
+                                        DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf, blocked, isPerfectBlock, damageBlocked);
 
                                     player.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
                                 }
@@ -524,10 +530,11 @@ namespace ACE.Server.WorldObjects
         /// Calculates the damage for a spell projectile
         /// Used by war magic, void magic, and life magic projectiles
         /// </summary>
-        public float? CalculateDamage(WorldObject source, Creature target, ref bool criticalHit, ref bool critDefended, ref bool overpower, ref bool resisted)
+        public float? CalculateDamage(WorldObject source, Creature target, ref bool criticalHit, ref bool critDefended, ref bool overpower, ref bool resisted, ref bool blocked, ref bool isPerfectBlock, ref float damageBlocked)
         {
             var sourcePlayer = source as Player;
             var targetPlayer = target as Player;
+            var isPvP = sourcePlayer != null && targetPlayer != null;
 
             if (source == null || target == null || target.IsDead || target.Invincible || target.IsOnNoDamageLandblock)
                 return null;
@@ -569,6 +576,42 @@ namespace ACE.Server.WorldObjects
             if (resisted && !overpower)
                 return null;
 
+            var shieldMod = 1.0f;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var shield = target.GetEquippedShield();
+                if (shield != null && target != source)
+                {
+                    var magicSkill = sourceCreature.GetCreatureSkill(Spell.School).Current;
+                    var effectiveBlockSkill = target.GetEffectiveShieldSkill(CombatType.Magic);
+                    var blockChance = Creature.GetBlockChance(sourceCreature, target, shield, magicSkill, effectiveBlockSkill);
+                    if (blockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                    {
+                        blocked = true;
+
+                        var shieldSkill = target.GetShieldSkill();
+                        var perfectBlockChance = GetWeaponCriticalChance(shield, target, shieldSkill, sourceCreature, isPvP);
+                        if (perfectBlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                        {
+                            isPerfectBlock = true;
+                            shieldMod = 0.0f;
+                        }
+                        else
+                            shieldMod = target.GetShieldMod(sourceCreature, Spell.DamageType, weapon, isPvP);
+                    }
+                    else
+                    {
+                        blocked = false;
+                        shieldMod = target.GetShieldMod(sourceCreature, Spell.DamageType, weapon, isPvP, 0.1f);
+                    }
+                }
+                else
+                {
+                    blocked = false;
+                    shieldMod = 1.0f;
+                }
+            }
+
             CreatureSkill attackSkill = null;
             if (sourceCreature != null)
                 attackSkill = sourceCreature.GetCreatureSkill(Spell.School);
@@ -582,8 +625,6 @@ namespace ACE.Server.WorldObjects
                 if (techniqueTrinket != null)
                     techniqueId = (TacticAndTechniqueType)techniqueTrinket.TacticAndTechniqueId;
             }
-
-            bool isPvP = sourcePlayer != null && targetPlayer != null;
 
             // critical hit
             var criticalChance = GetWeaponMagicCritFrequency(weapon, sourceCreature, attackSkill, target, isPvP);
@@ -746,6 +787,14 @@ namespace ACE.Server.WorldObjects
                 finalDamage = baseDamage + critDamageBonus + skillBonus;
 
                 finalDamage *= elementalDamageMod * slayerMod * resistanceMod * absorbMod;
+            }
+
+            if (shieldMod != 1.0f && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var damageBeforeShieldMod = finalDamage;
+                finalDamage *= shieldMod;
+
+                damageBlocked = damageBeforeShieldMod - finalDamage;
             }
 
             //Apply pvp dmg mods for war and void (not including DOTs which are in EnchantmentManager.ApplyDamageTick)
@@ -946,7 +995,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Called for a spell projectile to damage its target
         /// </summary>
-        public void DamageTarget(Creature target, float damage, bool critical, bool critDefended, bool overpower)
+        public void DamageTarget(Creature target, float damage, bool critical, bool critDefended, bool overpower, bool blocked, bool isPerfectBlock, float damageBlocked)
         {
             var targetPlayer = target as Player;
 
@@ -1104,7 +1153,22 @@ namespace ACE.Server.WorldObjects
                     }
 
                     if (!targetPlayer.SquelchManager.Squelches.Contains(ProjectileSource, ChatMessageType.Magic))
+                    {
                         targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat(defenderMsg, ChatMessageType.Magic));
+
+                        if (damageBlocked > 0)
+                        {
+                            if (blocked)
+                            {
+                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{(isPerfectBlock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.Magic));
+
+                                var blockSound = new GameMessageSound(Guid, Sound.HitLeather1, 1.0f);
+                                EnqueueBroadcast(blockSound);
+                            }
+                            else
+                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} damage!", ChatMessageType.Magic));
+                        }
+                    }
 
                     if (sourceCreature != null)
                         targetPlayer.SetCurrentAttacker(sourceCreature);

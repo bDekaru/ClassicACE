@@ -112,26 +112,6 @@ namespace ACE.Server.Factories
             return false;
         }
 
-        private static bool RollHollow(TreasureDeath treasureDeath, WorldObject wo)
-        {
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                return false;
-
-            var chance = ExtraMutationEffects.GetHollowChanceForTier(treasureDeath.Tier);
-            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
-            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
-            {
-                wo.IgnoreMagicResist = true;
-                wo.IgnoreMagicArmor = true;
-                wo.Translucency = 0.7f;
-                wo.Name = $"Hollow {wo.Name}";
-                wo.IconOverlayId = 0x06005EBE;
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
-                return true;
-            }
-            return false;
-        }
-
         private static bool RollArmorCleaving(TreasureDeath treasureDeath, WorldObject wo)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
@@ -166,25 +146,6 @@ namespace ACE.Server.Factories
                 wo.IgnoreShield = 0.50f; // Equivalent of Brittlemail V for 300 AL shields.
                 wo.IconOverlayId = 0x06005EC2;
                 wo.Name = $"{wo.Name} of Shield Cleaving";
-                wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
-                return true;
-            }
-            return false;
-        }
-
-        private static bool RollAbsorbMagic(TreasureDeath treasureDeath, WorldObject wo)
-        {
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                return false;
-
-            var chance = ExtraMutationEffects.GetAbsorbMagicChanceForTier(treasureDeath.Tier);
-            chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
-            if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
-            {
-                wo.AbsorbMagicDamage = 0.25f;
-                wo.Translucency = 0.7f;
-                wo.Name = $"Hollow {wo.Name}";
-                wo.IconOverlayId = 0x06005EBE;
                 wo.ImbuedEffect = ImbuedEffectType.CustomImbue; // This stops other imbues from being applied.
                 return true;
             }
