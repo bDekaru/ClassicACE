@@ -255,7 +255,7 @@ namespace ACE.Server.Physics.Common
 
         public void OnMotionDone(uint motionID, bool success)
         {
-            WorldObject.HandleMotionDone(motionID, success);
+            WorldObject.OnMotionDone(motionID, success);
         }
 
         public void OnMoveComplete(WeenieError status)

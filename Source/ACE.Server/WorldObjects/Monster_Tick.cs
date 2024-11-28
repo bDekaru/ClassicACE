@@ -72,17 +72,10 @@ namespace ACE.Server.WorldObjects
             }
             else if (!IsDead)
             {
-                //if (PhysicsObj.MovementManager.MoveToManager.FailProgressCount > 0 && Timers.RunningTime > NextCancelTime)
-                //{
-                //    Console.WriteLine("CancelTime");
-                //    CancelMoveTo(WeenieError.ActionCancelled);
-                //    return;
-                //}
-
                 if (NextFailedMovementDecayTime < currentUnixTime && PhysicsObj?.MovementManager?.MoveToManager?.FailProgressCount > 0)
                 {
                     PhysicsObj.MovementManager.MoveToManager.FailProgressCount--;
-                    NextFailedMovementDecayTime = currentUnixTime + 3;
+                    NextFailedMovementDecayTime = currentUnixTime + 5;
                 }
 
                 if (PhysicsObj?.MovementManager?.MoveToManager?.FailProgressCount >= 5)
@@ -212,12 +205,10 @@ namespace ACE.Server.WorldObjects
 
                 if ((CurrentAttackType == CombatType.Melee && isMeleeVisible) || (CurrentAttackType != CombatType.Melee && isDirectiVisible))
                 {
-                    //Console.WriteLine("Pathfinding: Target Sighted!");
+                    //Console.WriteLine("Pathfinding: Target in Sight!");
 
                     FailedSightCount = 0;
-                    FailedMovementCount = 0;
-
-                    if ((/*IsEmotePending ||*/ IsWanderingPending || IsRouteStartPending /*|| IsEmoting*/ || IsWandering || IsRouting))
+                    if (IsEmotePending || IsWanderingPending || IsRouteStartPending || IsEmoting || IsWandering || IsRouting)
                     {
                         // If we can see our target abort everything and go for it.
 
@@ -247,6 +238,13 @@ namespace ACE.Server.WorldObjects
                     Emote();
                 if (IsEmoting || IsEmotePending)
                 {
+                    if (IsEmoting && !HasPendingAnimations && (ExpectedEmoteEndTime + 5) < currentUnixTime)
+                    {
+                        // In rare cases it seems OnMotionDone for an emote never gets triggered. This is a failsafe that gets the creature moving again.
+                        log.Warn($"[Monster_Tick] 0x{Guid.Full:X8} {Name}: Fixed stuck IsEmoting.");
+                        EndEmoting();
+                    }
+
                     if (PendingEndEmoting)
                     {
                         EndEmoting(false);
@@ -345,6 +343,7 @@ namespace ACE.Server.WorldObjects
 
                                 var currentTarget = AttackTarget;
                                 FindNextTarget();
+
                                 if (currentTarget == AttackTarget)
                                 {
                                     if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
@@ -366,9 +365,9 @@ namespace ACE.Server.WorldObjects
                                             TryRoute();
                                     }
                                 }
-                                else if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && targetDist > 20 && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
-                                    TrySwitchToMissileAttack();
                             }
+                            else if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && targetDist > 20 && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
+                                TrySwitchToMissileAttack();
                         }
                     }
                 }

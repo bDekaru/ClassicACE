@@ -1104,7 +1104,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public virtual void HandleMotionDone(uint motionID, bool success)
+        public virtual void OnMotionDone(uint motionID, bool success)
         {
             // empty base
         }

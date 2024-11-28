@@ -61,7 +61,6 @@ namespace ACE.Server.WorldObjects
         public bool DebugMove;
 
         public double NextMoveTime;
-        public double NextCancelTime;
 
         public int FailedMovementCount;
         public const int FailedMovementThreshold = 3;
@@ -100,7 +99,6 @@ namespace ACE.Server.WorldObjects
             IsMoving = true;
 
             LastMoveTime = Timers.RunningTime;
-            //NextCancelTime = LastMoveTime + ThreadSafeRandom.Next(2, 4);
         }
 
         protected void OnMovementStopped()
@@ -111,7 +109,7 @@ namespace ACE.Server.WorldObjects
             NextMoveTime = Timers.RunningTime + ThreadSafeRandom.Next(0, 0.5f);
         }
 
-        public override void HandleMotionDone(uint motionID, bool success)
+        public override void OnMotionDone(uint motionID, bool success)
         {
             MotionCommand motion = (MotionCommand)motionID;
 
@@ -139,36 +137,40 @@ namespace ACE.Server.WorldObjects
 
             OnMovementStopped();
 
-            if (IsWandering)
-                PendingEndWandering = true;
-
-            if(IsMovingToHome)
+            if (IsMovingToHome)
                 PendingEndMoveToHome = true;
 
-            if (status != WeenieError.None)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (status != WeenieError.ObjectGone)
+                if (IsWandering)
+                    PendingEndWandering = true;
+
+                switch (status)
                 {
-                    FailedMovementCount++;
+                    case WeenieError.ObjectGone:
+                        FailedMovementCount = 0;
+                        return;
+                    case WeenieError.None:
+                        FailedMovementCount = 0;
 
-                    if (IsRouting)
-                    {
-                        if (FailedMovementCount >= FailedRoutingThreshold)
-                            PendingEndRoute = true;
-                        else
-                            PendingRetryRoute = true;
-                    }
+                        if (IsRouting)
+                        {
+                            PendingContinueRoute = true;
+                            return;
+                        }
+                        return;
+                    default:
+                        FailedMovementCount++;
+
+                        if (IsRouting)
+                        {
+                            if (FailedMovementCount >= FailedRoutingThreshold)
+                                PendingEndRoute = true;
+                            else
+                                PendingRetryRoute = true;
+                        }
+                        return;
                 }
-                return;
-            }
-
-            if(status == WeenieError.None || status == WeenieError.ObjectGone)
-                FailedMovementCount = 0;
-
-            if (IsRouting)
-            {
-                PendingContinueRoute = true;
-                return;
             }
         }
 
@@ -454,7 +456,8 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            //NextCancelTime = Timers.RunningTime + 5.0f;
+            FailedMovementCount = 0;
+            FailedSightCount = 0;
 
             MoveTo(home);
 
@@ -570,7 +573,6 @@ namespace ACE.Server.WorldObjects
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
-
             FailedMovementCount = 0;
             FailedSightCount = 0;
 
@@ -600,6 +602,7 @@ namespace ACE.Server.WorldObjects
 
         private MotionCommand DesiredEmote = MotionCommand.Invalid;
         private double LastEmoteTime = 0;
+        private double ExpectedEmoteEndTime = 0;
         private bool IsEmotePending = false;
         private bool IsEmoting = false;
         private bool PendingEndEmoting = false;
@@ -652,9 +655,10 @@ namespace ACE.Server.WorldObjects
             IsEmoting = true;
 
             var combatStance = GetCombatStance();
-            var actionChain = new ActionChain();
             EnqueueBroadcastMotion(new Motion(MotionStance.NonCombat, DesiredEmote), null, true);
             EnqueueBroadcastMotion(new Motion(combatStance, MotionCommand.Ready), null, true);
+
+            ExpectedEmoteEndTime = Time.GetFutureUnixTime(MotionTable.GetAnimationLength(MotionTableId, MotionStance.NonCombat, DesiredEmote));
         }
 
         private void EndEmoting(bool forced = true)
@@ -669,6 +673,7 @@ namespace ACE.Server.WorldObjects
             IsEmotePending = false;
             IsEmoting = false;
             DesiredEmote = MotionCommand.Invalid;
+            ExpectedEmoteEndTime = 0;
         }
 
         private bool PathfindingEnabled = false;
@@ -712,11 +717,6 @@ namespace ACE.Server.WorldObjects
 
             //Console.WriteLine("Pathfinding: StartRoute");
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
-
-            FailedMovementCount = 0;
-            FailedSightCount = 0;
             IsRouteStartPending = false;
             IsRouting = true;
 
@@ -727,14 +727,19 @@ namespace ACE.Server.WorldObjects
             {
                 LastRouteStartAttemptWasNullRoute = true;
                 EndRoute();
+                return;
             }
             else
-            {
-                RouteAttackTarget = AttackTarget;
-                RoutePositionTarget = null;
-                CurrentRouteIndex = 0;
                 LastRouteStartAttemptWasNullRoute = false;
-            }
+
+            if (HasPendingMovement)
+                CancelMoveTo(WeenieError.ObjectGone);
+            FailedMovementCount = 0;
+            FailedSightCount = 0;
+
+            RouteAttackTarget = AttackTarget;
+            RoutePositionTarget = null;
+            CurrentRouteIndex = 0;
 
             ContinueRoute();
         }
@@ -781,6 +786,7 @@ namespace ACE.Server.WorldObjects
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
+            FailedSightCount = 0;
 
             MoveTo(RoutePositionTarget, 1.0f, false);
         }

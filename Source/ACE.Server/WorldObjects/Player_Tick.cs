@@ -1087,7 +1087,7 @@ namespace ACE.Server.WorldObjects
             item.OnSpellsDeactivated();
         }
 
-        public override void HandleMotionDone(uint motionID, bool success)
+        public override void OnMotionDone(uint motionID, bool success)
         {
             //Console.WriteLine($"{Name}.HandleMotionDone({(MotionCommand)motionID}, {success})");
 
