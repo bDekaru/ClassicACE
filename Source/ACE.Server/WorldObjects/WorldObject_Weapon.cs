@@ -383,6 +383,8 @@ namespace ACE.Server.WorldObjects
                     critRate = Math.Max(critRate, criticalStrikeBonus);
                 else if(critRate > defaultPhysicalCritFrequency)
                     critRate = 0.25f;
+                else
+                    critRate = Math.Max(critRate, criticalStrikeBonus);
             }
 
             if (wielder != null)
@@ -442,6 +444,8 @@ namespace ACE.Server.WorldObjects
                     critRate = Math.Max(critRate, criticalStrikeBonus);
                 else if (critRate > defaultMagicCritFrequency)
                     critRate = 0.20f;
+                else
+                    critRate = Math.Max(critRate, criticalStrikeBonus);
             }
 
             critRate += wielder.GetCritRating() * 0.01f;
@@ -695,8 +699,10 @@ namespace ACE.Server.WorldObjects
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                     resistMod = Math.Max(resistMod, rendingMod);
-                else if(resistMod > defaultModifier)
+                else if (resistMod > defaultModifier)
                     resistMod = 2.0f; // Equivalent to level V Elemental Vulnerability.
+                else
+                    resistMod = Math.Max(resistMod, rendingMod);
             }
 
             return resistMod;

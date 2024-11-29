@@ -406,6 +406,8 @@ namespace ACE.Server.Entity
                     ignoreArmorMod = Math.Min(ignoreArmorMod, armorRendingMod);
                 else if (ignoreArmorMod < 1.0f)
                     ignoreArmorMod = 0.5f; // Equivalent to Imperil V for 300 AL armor.
+                else
+                    ignoreArmorMod = Math.Min(ignoreArmorMod, armorRendingMod);
             }
 
             // get body part / armor pieces / armor modifier
