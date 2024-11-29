@@ -89,7 +89,7 @@ namespace ACE.Server.WorldObjects
             if (turnTo)
                 TurnTo(AttackTarget);
             else
-                MoveTo(AttackTarget);
+                MoveTo(AttackTarget, 2.0f);
 
             moveBit = false;
         }
@@ -104,6 +104,16 @@ namespace ACE.Server.WorldObjects
         protected void OnMovementStopped()
         {
             IsMoving = false;
+
+            MonsterMovementLock.EnterWriteLock();
+            try
+            {
+                LastMoveTo = null;
+            }
+            finally
+            {
+                MonsterMovementLock.ExitWriteLock();
+            }
 
             PhysicsObj.CachedVelocity = Vector3.Zero;
             NextMoveTime = Timers.RunningTime + ThreadSafeRandom.Next(0, 0.5f);
@@ -580,7 +590,7 @@ namespace ACE.Server.WorldObjects
             IsWanderingPending = false;
             IsWandering = true;
 
-            MoveTo(WanderTarget, 1.0f, false);
+            MoveTo(WanderTarget, 2.0f, 1.0f, false);
         }
 
         private void EndWandering(bool forced = true)
@@ -788,7 +798,7 @@ namespace ACE.Server.WorldObjects
                 CancelMoveTo(WeenieError.ObjectGone);
             FailedSightCount = 0;
 
-            MoveTo(RoutePositionTarget, 1.0f, false);
+            MoveTo(RoutePositionTarget, 0.3f, 1.0f, false);
         }
 
         private void RetryRoute()

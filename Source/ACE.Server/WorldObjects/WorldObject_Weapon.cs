@@ -391,8 +391,11 @@ namespace ACE.Server.WorldObjects
                 critRate += wielder.GetCritRating() * 0.01f;
 
             // mitigation
-            var critResistRatingMod = Creature.GetNegativeRatingMod(target.GetCritResistRating());
-            critRate *= critResistRatingMod;
+            if (target != null)
+            {
+                var critResistRatingMod = Creature.GetNegativeRatingMod(target.GetCritResistRating());
+                critRate *= critResistRatingMod;
+            }
 
             return critRate;
         }
@@ -1277,7 +1280,7 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.IgnoreShield); else SetProperty(PropertyFloat.IgnoreShield, value.Value); }
         }
 
-        public float GetIgnoreShieldMod(Creature wielder, WorldObject weapon, bool isPvP)
+        public float GetIgnoreShieldMod(WorldObject wielder, WorldObject weapon, bool isPvP)
         {
             var creatureMod = IgnoreShield ?? 0.0f;
             double weaponMod;

@@ -582,9 +582,14 @@ namespace ACE.Server.WorldObjects
                 var shield = target.GetEquippedShield();
                 if (shield != null && target != source)
                 {
-                    var magicSkill = sourceCreature.GetCreatureSkill(Spell.School).Current;
+                    uint magicSkill;
+                    if (sourceCreature != null)
+                        magicSkill = sourceCreature.GetCreatureSkill(Spell.School).Current;
+                    else
+                        magicSkill = (uint)(source.ItemSpellcraft ?? 100);
+
                     var effectiveBlockSkill = target.GetEffectiveShieldSkill(CombatType.Magic);
-                    var blockChance = Creature.GetBlockChance(sourceCreature, target, shield, magicSkill, effectiveBlockSkill);
+                    var blockChance = Creature.GetBlockChance(shield, target, magicSkill, effectiveBlockSkill, isPvP);
                     if (blockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                     {
                         blocked = true;
@@ -597,12 +602,12 @@ namespace ACE.Server.WorldObjects
                             shieldMod = 0.0f;
                         }
                         else
-                            shieldMod = target.GetShieldMod(sourceCreature, Spell.DamageType, weapon, isPvP);
+                            shieldMod = target.GetShieldMod(source, Spell.DamageType, weapon, isPvP);
                     }
                     else
                     {
                         blocked = false;
-                        shieldMod = target.GetShieldMod(sourceCreature, Spell.DamageType, weapon, isPvP, 0.1f);
+                        shieldMod = target.GetShieldMod(source, Spell.DamageType, weapon, isPvP, 0.1f);
                     }
                 }
                 else

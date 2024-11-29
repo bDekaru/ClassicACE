@@ -669,25 +669,21 @@ namespace ACE.Server.WorldObjects
             return effectiveBlockSkill;
         }
 
-        public static float GetBlockChance(Creature attacker, Creature defender, WorldObject shield, uint effectiveAttackSkill, uint effectiveBlockSkill)
+        public static float GetBlockChance(WorldObject shield, Creature wielder, uint effectiveAttackSkill, uint effectiveBlockSkill, bool isPvP)
         {
-            if (defender == null || defender.IsExhausted)
+            if (wielder == null || wielder.IsExhausted)
                 return 0.0f;
-
-            var playerAttacker = attacker as Player;
-            var playerDefender = defender as Player;
-            var isPvP = playerAttacker != null && playerDefender != null;
 
             var shieldBlockMod = (float)(shield.BlockMod ?? 0) + shield.EnchantmentManager.GetBlockMod();
             if (shield.IsEnchantable)
-                shieldBlockMod += defender.EnchantmentManager.GetBlockMod();
+                shieldBlockMod += wielder.EnchantmentManager.GetBlockMod();
 
             var blockChance = 1.0f - SkillCheck.GetSkillChance(effectiveAttackSkill, effectiveBlockSkill);
             blockChance += shieldBlockMod;
 
             if (isPvP)
             {
-                blockChance *= (float)PropertyManager.GetInterpolatedDouble(playerDefender.Level ?? 1, "pvp_dmg_mod_low_shield_block_chance", "pvp_dmg_mod_high_shield_block_chance", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
+                blockChance *= (float)PropertyManager.GetInterpolatedDouble(wielder.Level ?? 1, "pvp_dmg_mod_low_shield_block_chance", "pvp_dmg_mod_high_shield_block_chance", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
                 blockChance = Math.Max(blockChance, 0.2f);
             }
 
@@ -898,7 +894,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Return the scalar damage absorbed by a shield
         /// </summary>
-        public float GetShieldMod(Creature attacker, DamageType damageType, WorldObject weapon, bool isPvP, float shieldArmorLevelMod = 1.0f)
+        public float GetShieldMod(WorldObject attacker, DamageType damageType, WorldObject weapon, bool isPvP, float shieldArmorLevelMod = 1.0f)
         {
             // ensure combat stance
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR && CombatMode == CombatMode.NonCombat)
@@ -906,7 +902,7 @@ namespace ACE.Server.WorldObjects
 
             // does the player have a shield equipped?
             var shield = GetEquippedShield();
-            if (shield == null)
+            if (shield == null || attacker == null)
                 return 1.0f;
 
             var player = this as Player;

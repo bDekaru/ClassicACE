@@ -478,7 +478,7 @@ namespace ACE.Server.Entity
                 if (shield != null && attacker != defender)
                 {
                     EffectiveBlockSkill = defender.GetEffectiveShieldSkill(CombatType);
-                    BlockChance = Creature.GetBlockChance(attacker, defender, shield, EffectiveAttackSkill, EffectiveBlockSkill);
+                    BlockChance = Creature.GetBlockChance(shield, defender, EffectiveAttackSkill, EffectiveBlockSkill, pkBattle);
                     if (BlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                     {
                         Blocked = true;

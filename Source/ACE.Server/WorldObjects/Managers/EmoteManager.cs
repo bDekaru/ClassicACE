@@ -1004,8 +1004,10 @@ namespace ACE.Server.WorldObjects.Managers
                         // get new cell
                         newPos.LandblockId = new LandblockId(PositionExtensions.GetCell(newPos));
 
+                        var useFinalHeading = newPos.Rotation != Quaternion.Identity;
+
                         // TODO: handle delay for this?
-                        creature.MoveTo(newPos, emote.Extent);
+                        creature.MoveTo(newPos, 2.0f, emote.Extent, useFinalHeading);
                     }
                     break;
 
@@ -1036,7 +1038,7 @@ namespace ACE.Server.WorldObjects.Managers
                                 Console.Write($" - {creature.Home.ToLOCString()}");
 
                             // how to get delay with this, callback required?
-                            creature.MoveTo(creature.Home, emote.Extent);
+                            creature.MoveTo(creature.Home, 2.0f, emote.Extent);
                         }
                     }
                     break;
@@ -1062,8 +1064,10 @@ namespace ACE.Server.WorldObjects.Managers
 
                         newPos.LandblockId = new LandblockId(PositionExtensions.GetCell(newPos));
 
+                        var useFinalHeading = newPos.Rotation != Quaternion.Identity;
+
                         // TODO: handle delay for this?
-                        creature.MoveTo(newPos, emote.Extent);
+                        creature.MoveTo(newPos, 2.0f, emote.Extent, useFinalHeading);
                     }
                     break;
 

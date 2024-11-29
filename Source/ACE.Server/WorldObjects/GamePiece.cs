@@ -143,8 +143,6 @@ namespace ACE.Server.WorldObjects
                 GamePieceState = GamePieceState.MoveToSquare;
         }
 
-        public Motion LastMoveTo;
-
         public void MoveWeenie(Position to, float distanceToObject, bool finalHeading)
         {
             if (MoveSpeed == 0.0f)
@@ -167,14 +165,17 @@ namespace ACE.Server.WorldObjects
             MonsterState = State.Awake;
             IsAwake = true;
 
-            LastMoveTo = motion;
+            MonsterMovementLock.EnterWriteLock();
+            try
+            {
+                LastMoveTo = motion;
+            }
+            finally
+            {
+                MonsterMovementLock.ExitWriteLock();
+            }
 
             EnqueueBroadcastMotion(motion);
-        }
-
-        public override void BroadcastMoveTo(Player player)
-        {
-            player.Session.Network.EnqueueSend(new GameMessageUpdateMotion(this, LastMoveTo));
         }
     }
 }

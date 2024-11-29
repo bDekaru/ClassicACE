@@ -356,9 +356,9 @@ namespace ACE.Server.WorldObjects
                                         if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                         {
                                             if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
-                                                TryWandering(160, 200, 3);
+                                                TryWandering(160, 200, 5);
                                             else
-                                                TryWandering(100, 260, 5);
+                                                TryWandering(100, 260, 7);
                                         }
 
                                         if (PathfindingEnabled)

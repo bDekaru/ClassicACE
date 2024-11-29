@@ -228,7 +228,7 @@ namespace ACE.Server.WorldObjects
                             if (LastEmoteTime + MaxEmoteFrequency < currentUnixTime && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                 TryEmoting();
                             if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                TryWandering(-45, 45, 2);
+                                TryWandering(-45, 45, 4);
                             break;
                         case 2:
                             if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
@@ -236,7 +236,7 @@ namespace ACE.Server.WorldObjects
                                 if (LastEmoteTime + MaxEmoteFrequency < currentUnixTime && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                     TryEmoting();
                                 if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                    TryWandering(160, 200, 3);
+                                    TryWandering(160, 200, 5);
                                 TryRoute();
                             }
                             else

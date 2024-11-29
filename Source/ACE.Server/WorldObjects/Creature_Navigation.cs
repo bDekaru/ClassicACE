@@ -8,6 +8,7 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Physics.Animation;
 using ACE.Server.Physics.Extensions;
 using ACE.Server.Network.GameMessages.Messages;
+using System.Threading;
 
 namespace ACE.Server.WorldObjects
 {
@@ -285,18 +286,27 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Used by the monster AI system to start turning / running towards a target
         /// </summary>
-        public virtual void MoveTo(WorldObject target, float speed = 1.0f, bool clientOnly = false)
+        public virtual void MoveTo(WorldObject target, float distanceToObject = 2.0f, float speed = 1.0f, bool clientOnly = false)
         {
             if (DebugMove)
-                Console.WriteLine($"{Name}.MoveTo({target.Name}, {speed}, {clientOnly}) - CurPos: {Location.ToLOCString()} - DestPos: {AttackTarget.Location.ToLOCString()} - TargetDist: {Vector3.Distance(Location.ToGlobal(), AttackTarget.Location.ToGlobal())}");
+                Console.WriteLine($"{Name}.MoveTo({target.Name}, {distanceToObject}, {speed}, {clientOnly}) - CurPos: {Location.ToLOCString()} - DestPos: {AttackTarget.Location.ToLOCString()} - TargetDist: {Vector3.Distance(Location.ToGlobal(), AttackTarget.Location.ToGlobal())}");
 
-            var motion = GetMoveToMotion(target, speed);
+            var motion = GetMoveToMotion(target, distanceToObject);
 
             EnqueueBroadcastMotion(motion);
 
             if (clientOnly)
                 return;
 
+            MonsterMovementLock.EnterWriteLock();
+            try
+            {
+                LastMoveTo = motion;
+            }
+            finally
+            {
+                MonsterMovementLock.ExitWriteLock();
+            }
             CurrentMotionState = motion;
 
             OnMovementStarted();
@@ -312,16 +322,27 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Used by the monster AI system to start turning / running towards a position
         /// </summary>
-        public void MoveTo(Position position, float speedMod = 1.0f, bool useFinalHeading = true, bool clientOnly = false)
+        public void MoveTo(Position position, float distanceToObject = 2.0f, float speed = 1.0f, bool useFinalHeading = true, bool clientOnly = false)
         {
-            // build and send MoveToPosition message to client
-            var motion = GetMoveToMotion(position, speedMod, useFinalHeading);
+            if (!position.Indoors)
+                position.AdjustMapCoords();
+
+            var motion = GetMoveToMotion(position, distanceToObject, speed,  useFinalHeading);
 
             EnqueueBroadcastMotion(motion);
 
             if (clientOnly)
                 return;
 
+            MonsterMovementLock.EnterWriteLock();
+            try
+            {
+                LastMoveTo = motion;
+            }
+            finally
+            {
+                MonsterMovementLock.ExitWriteLock();
+            }
             CurrentMotionState = motion;
 
             // start executing MoveTo iterator on server
@@ -334,7 +355,7 @@ namespace ACE.Server.WorldObjects
             OnMovementStarted();
         }
 
-        private Motion GetMoveToMotion(WorldObject target, float speed = 1.0f)
+        private Motion GetMoveToMotion(WorldObject target, float distanceToObject = 0.6f, float speed = 1.0f)
         {
             var motion = new Motion(this, target, MovementType.MoveToObject);
 
@@ -356,15 +377,15 @@ namespace ACE.Server.WorldObjects
                 MovementParams.Sticky |
                 MovementParams.UseFinalHeading;
 
+            motion.MoveToParameters.DistanceToObject = distanceToObject;
             motion.MoveToParameters.Speed = speed;
-            motion.MoveToParameters.DistanceToObject = 2.0f;
 
             motion.RunRate = RunRate;
 
             return motion;
         }
 
-        private Motion GetMoveToMotion(Position position, float speed = 1.0f, bool useFinalHeading = true)
+        private Motion GetMoveToMotion(Position position, float distanceToObject = 0.6f, float speed = 1.0f, bool useFinalHeading = true)
         {
             var motion = new Motion(this, position);
 
@@ -383,6 +404,7 @@ namespace ACE.Server.WorldObjects
                 MovementParams.CancelMoveTo |
                 MovementParams.StopCompletely;
 
+            motion.MoveToParameters.DistanceToObject = distanceToObject;
             motion.MoveToParameters.Speed = speed;
             motion.RunRate = RunRate;
 
@@ -409,23 +431,20 @@ namespace ACE.Server.WorldObjects
             return motion;
         }
 
+        public readonly ReaderWriterLockSlim MonsterMovementLock = new ReaderWriterLockSlim();
+        public Motion LastMoveTo;
         public virtual void BroadcastMoveTo(Player player)
         {
-            Position position = null;
-            if (IsMovingToHome)
-                position = GetPosition(PositionType.Home);
-            else if (IsWandering && WanderTarget != null)
-                position = WanderTarget;
-            else if (IsRouting && RoutePositionTarget != null)
-                position = RoutePositionTarget;
-
-            Motion motion = null;
-            if (position != null)
-                motion = GetMoveToMotion(position);
-            else if (AttackTarget != null)
-                motion = GetMoveToMotion(AttackTarget);
-
-            player.Session.Network.EnqueueSend(new GameMessageUpdateMotion(this, motion));
+            MonsterMovementLock.EnterReadLock();
+            try
+            {
+                if (LastMoveTo != null)
+                    player.Session.Network.EnqueueSend(new GameMessageUpdateMotion(this, LastMoveTo));
+            }
+            finally
+            {
+                MonsterMovementLock.ExitReadLock();
+            }
         }
 
         /// <summary>
