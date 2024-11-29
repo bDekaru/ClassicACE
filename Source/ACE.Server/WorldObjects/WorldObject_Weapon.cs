@@ -684,7 +684,11 @@ namespace ACE.Server.WorldObjects
                 if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                     resistMod = 1.0f + (float)(weapon.ResistanceModifier ?? defaultModifier);       // 1.0 in the data, equivalent to a level 5 vuln
                 else
-                    resistMod = (float)(weapon.ResistanceModifier ?? 1.5f); // Equivalent to level III Elemental Vulnerability.
+                {
+                    var multiplier = (float)(weapon.ResistanceModifier ?? 0.6f);
+
+                    resistMod = GetRendingMod(skill, multiplier);
+                }
             }
 
             // handle elemental resistance rending
@@ -700,7 +704,10 @@ namespace ACE.Server.WorldObjects
                 if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                     resistMod = Math.Max(resistMod, rendingMod);
                 else if (resistMod > defaultModifier)
-                    resistMod = 2.0f; // Equivalent to level V Elemental Vulnerability.
+                {
+                    var multiplier = CustomDMDefaultRendingMultiplier + Math.Abs(CustomDMDefaultRendingMultiplier - (float)(weapon.ResistanceModifier ?? 0.6f));
+                    resistMod = GetRendingMod(skill, multiplier);
+                }
                 else
                     resistMod = Math.Max(resistMod, rendingMod);
             }
@@ -1063,8 +1070,8 @@ namespace ACE.Server.WorldObjects
 
         // elemental rending cap, equivalent to level 6 vuln
         public static float MaxRendingMod = 2.5f;
-
-        public static float GetRendingMod(CreatureSkill skill)
+        public const float CustomDMDefaultRendingMultiplier = 0.8f;
+        public static float GetRendingMod(CreatureSkill skill, float multiplier = CustomDMDefaultRendingMultiplier)
         {
             var baseSkill = GetBaseSkillImbued(skill);
 
@@ -1072,7 +1079,17 @@ namespace ACE.Server.WorldObjects
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                rendingMod = 1.75f; // Equivalent to level IV Elemental Vulnerability.
+                switch (GetImbuedSkillType(skill))
+                {
+                    case ImbuedSkillType.Melee:
+                        rendingMod = 1 + (baseSkill / 400f * multiplier);
+                        break;
+
+                    case ImbuedSkillType.Missile:
+                    case ImbuedSkillType.Magic:
+                        rendingMod = 1 + (baseSkill / 360f * multiplier);
+                        break;
+                }
             }
             else
             {
@@ -1103,7 +1120,7 @@ namespace ACE.Server.WorldObjects
             var armorRendingMod = 1.0f;
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                armorRendingMod -= 1.0f / 3.0f; // Equivalent to Imperil IV for 300 AL armor.
+                armorRendingMod = 0.5f; // Equivalent to -100 at 200 AL armor.
             else
             {
                 // % of armor ignored, min 0%, max 60%

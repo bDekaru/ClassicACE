@@ -797,7 +797,7 @@ namespace ACE.Server.Network.Structure
                     PropertiesString[PropertyString.LongDesc] += $"\n\nContains {corpse.VitaeCpPool} Vitae.\n";
 
                 if (wo.ImbuedEffect == ImbuedEffectType.ElementalRending)
-                    PropertiesInt[PropertyInt.ImbuedEffect] = (int)ImbuedEffectType.NetherRending; // The client has been modified to read "Elemental Rend" instead.
+                    PropertiesInt[PropertyInt.ImbuedEffect] = (int)ImbuedEffectType.NetherRending; // The client has been modified to read "Elem. Rending" instead.
 
                 if (hasExtraPropertiesText)
                     PropertiesString[PropertyString.Use] = extraPropertiesText.TrimEnd('\n');

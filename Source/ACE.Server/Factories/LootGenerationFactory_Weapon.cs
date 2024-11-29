@@ -120,7 +120,7 @@ namespace ACE.Server.Factories
             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
                 // 0.0 = ignore 100% of all armor.
-                wo.IgnoreArmor = 0.75f; // Equivalent of Imperil III for 300 AL armor.
+                wo.IgnoreArmor = 0.625f; // Equivalent to -75 at 200 AL armor.
                 wo.IconOverlayId = 0x06005EBF;
                 return true;
             }
@@ -158,7 +158,7 @@ namespace ACE.Server.Factories
             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
                 wo.ResistanceModifierType = DamageType.Elemental;
-                wo.ResistanceModifier = 1.5f; // Equivalent to level III Elemental Vulnerability.
+                wo.ResistanceModifier = 0.6f; // This is used as the multiplier in the rending formula.
                 wo.IconOverlayId = 0x06005EC1;
                 return true;
             }
