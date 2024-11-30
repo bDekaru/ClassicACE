@@ -25,6 +25,12 @@ using System.Reflection;
 
 namespace ACE.Server.Pathfinding
 {
+    public enum AgentWidth
+    {
+        Narrow,
+        Wide
+    }
+
     public static class Pathfinder
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
@@ -78,9 +84,9 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         /// <param name="end">The ending position</param>
         /// <returns>A list of positions</returns>
-        public static List<Position>? FindRoute(Position start, Position end, bool drawRoute = false)
+        public static List<Position>? FindRoute(Position start, Position end, AgentWidth agentWidth, bool drawRoute = false)
         {
-            if (!TryGetMesh(start, out var mesh) || mesh is null)
+            if (!TryGetMesh(start, agentWidth, out var mesh) || mesh is null)
             {
                 return null;
             }
@@ -128,9 +134,9 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         /// <param name="start"></param>
         /// <returns></returns>
-        public static Position? GetRandomPointOnMesh(Position start)
+        public static Position? GetRandomPointOnMesh(Position start, AgentWidth agentWidth)
         {
-            if (!TryGetMesh(start, out var mesh) || mesh is null) {
+            if (!TryGetMesh(start, agentWidth, out var mesh) || mesh is null) {
                 return null;
             }
 
@@ -143,14 +149,12 @@ namespace ACE.Server.Pathfinding
             return new Position(start.Landblock, new Vector3(randomPt.X, randomPt.Z, randomPt.Y), Quaternion.Identity);
         }
 
-        public static bool TryGetMesh(Position pos, out DtNavMesh? mesh)
+        private static bool TryGetMesh(Position pos, AgentWidth agentWidth, out DtNavMesh? mesh)
         {
-            if (Meshes.TryGetValue(pos.Cell & 0xFFFF0000, out mesh))
-            {
-                return mesh is not null;
-            }
+            var meshId = (pos.Cell & 0xFFFF0000) + (uint)agentWidth;
 
-            Meshes.TryAdd(pos.Cell & 0xFFFF0000, null);
+            if (Meshes.TryGetValue(meshId, out mesh))
+                return mesh is not null;
 
             TryLoadMesh(pos);
             return false;
@@ -158,17 +162,24 @@ namespace ACE.Server.Pathfinding
 
         public static void TryUnloadMesh(Position pos)
         {
-            uint landblockId = pos.Cell & 0xFFFF0000;
-            Meshes.TryRemove(landblockId, out _);
+            foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
+            {
+                var meshId = (pos.Cell & 0xFFFF0000) + (uint)agentWidth;
+                Meshes.TryRemove(meshId, out _);
+            }
         }
 
         public static void TryUnloadMesh(Landblock landblock)
         {
-            uint landblockId = landblock.Id.Raw & 0xFFFF0000;
-            Meshes.TryRemove(landblockId, out _);
+            foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
+            {
+                var meshId = (landblock.Id.Raw & 0xFFFF0000) + (uint)agentWidth;
+
+                Meshes.TryRemove(meshId, out _);
+            }
         }
 
-        private static void TryLoadMesh(Position pos)
+        public static void TryLoadMesh(Position pos)
         {
             if (!pos.Indoors)
             {
@@ -176,84 +187,115 @@ namespace ACE.Server.Pathfinding
                 return;
             }
 
-            var geometry = new LandblockGeometry(pos.Cell & 0xFFFF0000);
-            if (!geometry.DungeonCells.TryGetValue(pos.Cell, out var cellGeometry))
+            foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
             {
-                log.Warn($"Could not load cell geometry! {pos} cellGeometry:{cellGeometry}");
-                return;
-            }
+                var meshId = (pos.Cell & 0xFFFF0000) + (uint)agentWidth;
 
-            Dictionary<uint, bool> checkedCells = new();
-            var cells = geometry.DungeonCells.Values.ToList();
+                if (!Meshes.TryAdd(meshId, null))
+                    continue;
 
-            var meshPath = Path.Combine(InsideMeshDirectory, $"{pos.Cell & 0xFFFF0000:X8}.mesh");
-            if (File.Exists(meshPath))
-            {
-                var meshReader = new DtMeshDataReader();
-
-                using (var stream = File.OpenRead(meshPath))
-                using (var reader = new BinaryReader(stream))
+                var geometry = new LandblockGeometry(meshId);
+                if (!geometry.DungeonCells.TryGetValue(pos.Cell, out var cellGeometry))
                 {
-                    if (stream.Length > 0)
-                    {
-                        var rcBytes = new RcByteBuffer(reader.ReadBytes((int)stream.Length));
-                        var meshData = meshReader.Read(rcBytes, VERTS_PER_POLY, true);
+                    log.Warn($"Could not load cell geometry! {pos} cellGeometry:{cellGeometry}");
+                    return;
+                }
 
-                        var mesh = new DtNavMesh();
-                        mesh.Init(meshData, VERTS_PER_POLY, 0);
-                        Meshes.TryUpdate(pos.Cell & 0xFFFF0000, mesh, null);
-                        return;
+                Dictionary<uint, bool> checkedCells = new();
+                var cells = geometry.DungeonCells.Values.ToList();
+
+                var meshPath = Path.Combine(InsideMeshDirectory, $"{meshId:X8}.mesh");
+                if (File.Exists(meshPath))
+                {
+                    var meshReader = new DtMeshDataReader();
+
+                    using (var stream = File.OpenRead(meshPath))
+                    using (var reader = new BinaryReader(stream))
+                    {
+                        if (stream.Length > 0)
+                        {
+                            var rcBytes = new RcByteBuffer(reader.ReadBytes((int)stream.Length));
+                            var meshData = meshReader.Read(rcBytes, VERTS_PER_POLY, true);
+
+                            var mesh = new DtNavMesh();
+                            mesh.Init(meshData, VERTS_PER_POLY, 0);
+                            Meshes.TryUpdate(meshId, mesh, null);
+                            return;
+                        }
                     }
                 }
-            }
 
-            var geom = CellGeometryProvider.LoadGeometry(geometry, cells);
-            if (geom is null)
-            {
-                log.Warn($"Could not load cell geometry provider! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
-                return;
-            }
+                var geom = CellGeometryProvider.LoadGeometry(geometry, cells);
+                if (geom is null)
+                {
+                    log.Warn($"Could not load cell geometry provider! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
+                    return;
+                }
 
-            var builder = new NavMeshBuilder();
-            var settings = GetMeshSettings();
-            var res = builder.Build(geom, settings);
-            if (res is null)
-            {
-                log.Warn($"Could not build the nav mesh! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
-                return;
-            }
+                var builder = new NavMeshBuilder();
+                var settings = GetMeshSettings(agentWidth);
+                var res = builder.Build(geom, settings);
+                if (res is null)
+                {
+                    log.Warn($"Could not build the nav mesh! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
+                    return;
+                }
 
-            var meshWriter = new DtMeshDataWriter();
-            using (var stream = File.OpenWrite(meshPath))
-            using (var writer = new BinaryWriter(stream))
-            {
-                meshWriter.Write(writer, res, RcByteOrder.LITTLE_ENDIAN, false);
-            }
+                var meshWriter = new DtMeshDataWriter();
+                using (var stream = File.OpenWrite(meshPath))
+                using (var writer = new BinaryWriter(stream))
+                {
+                    meshWriter.Write(writer, res, RcByteOrder.LITTLE_ENDIAN, false);
+                }
 
-            var meshNew = new DtNavMesh();
-            meshNew.Init(res, VERTS_PER_POLY, 0);
-            Meshes.TryUpdate(pos.Cell & 0xFFFF0000, meshNew, null);
+                var meshNew = new DtNavMesh();
+                meshNew.Init(res, VERTS_PER_POLY, 0);
+                Meshes.TryUpdate(meshId, meshNew, null);
+            }
         }
 
-        private static RcNavMeshBuildSettings GetMeshSettings()
+        private static RcNavMeshBuildSettings GetMeshSettings(AgentWidth type)
         {
-            return new RcNavMeshBuildSettings()
+            switch (type)
             {
-                agentHeight = 2f, // made this a little extra, just to try and account for bigger mobs...
-                agentMaxClimb = 0.95f,
-                agentMaxSlope = 50f,
-                cellHeight = 0.1f,
-                cellSize = 0.1f,
-                agentRadius = 0.7f,//0.45f,
-                detailSampleDist = 6.0f,
-                detailSampleMaxError = 1.0f,
-                edgeMaxError = 1f,
-                edgeMaxLen = 12.0f,
-                mergedRegionSize = 20,
-                minRegionSize = 8,
-                vertsPerPoly = VERTS_PER_POLY,
-                partitioning = (int)RcPartition.WATERSHED
-            };
+                case AgentWidth.Narrow:
+                    return new RcNavMeshBuildSettings()
+                    {
+                        agentHeight = 2f,
+                        agentMaxClimb = 0.95f,
+                        agentMaxSlope = 50f,
+                        cellHeight = 0.1f,
+                        cellSize = 0.1f,
+                        agentRadius = 0.7f,//0.45f,
+                        detailSampleDist = 6.0f,
+                        detailSampleMaxError = 1.0f,
+                        edgeMaxError = 1f,
+                        edgeMaxLen = 12.0f,
+                        mergedRegionSize = 20,
+                        minRegionSize = 8,
+                        vertsPerPoly = VERTS_PER_POLY,
+                        partitioning = (int)RcPartition.WATERSHED
+                    };
+                case AgentWidth.Wide:
+                default:
+                    return new RcNavMeshBuildSettings()
+                    {
+                        agentHeight = 2f,
+                        agentMaxClimb = 0.95f,
+                        agentMaxSlope = 50f,
+                        cellHeight = 0.1f,
+                        cellSize = 0.1f,
+                        agentRadius = 1.4f,
+                        detailSampleDist = 6.0f,
+                        detailSampleMaxError = 1.0f,
+                        edgeMaxError = 1f,
+                        edgeMaxLen = 12.0f,
+                        mergedRegionSize = 20,
+                        minRegionSize = 8,
+                        vertsPerPoly = VERTS_PER_POLY,
+                        partitioning = (int)RcPartition.WATERSHED
+                    };
+            }
         }
     }
 }

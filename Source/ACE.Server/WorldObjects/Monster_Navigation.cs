@@ -731,7 +731,14 @@ namespace ACE.Server.WorldObjects
             IsRouting = true;
 
             if (CurrentRoute == null && (Location.Cell & 0xFFFF0000) == (AttackTarget.Location.Cell & 0xFFFF0000)) // The pathfinder currently only supports pathing between locations in the same landblock.
-                CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location);
+            {
+                CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Wide);
+
+                if(CurrentRoute == null || CurrentRoute.Count == 0)
+                    CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Narrow); // If no route found on the wide mesh try the narrow mesh.
+                else if (AttackTarget.Location.DistanceTo(CurrentRoute[CurrentRoute.Count - 1]) > 2f)
+                    CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Narrow); // If a route is found but it does not lead all the way then also try the narrow mesh.
+            }
 
             if (CurrentRoute == null || CurrentRoute.Count == 0)
             {

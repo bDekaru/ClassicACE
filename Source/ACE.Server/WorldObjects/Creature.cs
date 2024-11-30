@@ -173,7 +173,7 @@ namespace ACE.Server.WorldObjects
 
                 PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
                 if (PathfindingEnabled && Location != null && Location.Indoors)
-                    Pathfinder.TryGetMesh(Location, out _);
+                    Pathfinder.TryLoadMesh(Location);
             }
         }
 

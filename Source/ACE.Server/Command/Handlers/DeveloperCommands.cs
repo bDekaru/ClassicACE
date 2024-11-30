@@ -4231,7 +4231,7 @@ namespace ACE.Server.Command.Handlers
 
             //var destination = Pathfinder.GetRandomPointOnMesh(player.Location);
             //var destination = new Position(0x019E014D, 39.844067f, -33.932358f, 6.005000f, 0.109867f, 0.000000f, 0.000000f, 0.993946f);
-            var route = Pathfinder.FindRoute(creature.Location, player.Location, true);
+            var route = Pathfinder.FindRoute(creature.Location, player.Location, AgentWidth.Narrow, true);
             if (route == null)
                 CommandHandlerHelper.WriteOutputInfo(session, "Null route.");
             else
