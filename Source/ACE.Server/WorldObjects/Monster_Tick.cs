@@ -13,7 +13,7 @@ namespace ACE.Server.WorldObjects
 
         public double NextMonsterTickTime;
 
-        public double NextFailedMovementDecayTime;
+        public double NextFailureCountersDecayTime;
 
         private bool firstUpdate = true;
 
@@ -72,10 +72,18 @@ namespace ACE.Server.WorldObjects
             }
             else if (!IsDead)
             {
-                if (NextFailedMovementDecayTime < currentUnixTime && PhysicsObj?.MovementManager?.MoveToManager?.FailProgressCount > 0)
+                if (NextFailureCountersDecayTime < currentUnixTime)
                 {
-                    PhysicsObj.MovementManager.MoveToManager.FailProgressCount--;
-                    NextFailedMovementDecayTime = currentUnixTime + 5;
+                    if (FailedMovementCount > 0)
+                        FailedMovementCount--;
+
+                    if (PhysicsObj?.MovementManager?.MoveToManager?.FailProgressCount > 0)
+                        PhysicsObj.MovementManager.MoveToManager.FailProgressCount--;
+
+                    if (MonsterProjectile_OnCollideEnvironment_Counter > 0)
+                        MonsterProjectile_OnCollideEnvironment_Counter--;
+
+                    NextFailureCountersDecayTime = currentUnixTime + 10;
                 }
 
                 if (PhysicsObj?.MovementManager?.MoveToManager?.FailProgressCount >= 5)
@@ -97,9 +105,7 @@ namespace ACE.Server.WorldObjects
                     playerTarget.EndSneaking($"{Name} can still see you! You stop sneaking!");
             }
 
-            if (IsAttackPending)
-                Attack();
-            if (IsAttacking || IsAttackPending)
+            if (IsAttacking)
             {
                 if (PendingEndAttack)
                 {
@@ -418,7 +424,7 @@ namespace ACE.Server.WorldObjects
                                                 TryWandering(100, 260, 7);
                                         }
 
-                                        if (PathfindingEnabled)
+                                        if (PathfindingEnabled && Location.Indoors)
                                             TryRoute();
                                     }
                                 }
@@ -429,7 +435,7 @@ namespace ACE.Server.WorldObjects
                     }
                 }
                 else
-                    TryAttack();
+                    Attack();
             }
             else
             {
@@ -439,7 +445,7 @@ namespace ACE.Server.WorldObjects
                 if (!IsFacing(AttackTarget))
                     StartMovement();
                 else if (distanceToTarget <= MaxRange)
-                    TryAttack();
+                    Attack();
                 else
                 {
                     // monster switches to melee combat immediately,

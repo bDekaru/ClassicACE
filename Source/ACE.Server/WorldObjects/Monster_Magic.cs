@@ -200,7 +200,7 @@ namespace ACE.Server.WorldObjects
             actionChain.AddDelaySeconds(preCastTime);
             actionChain.AddAction(this, () =>
             {
-                if (AttackTarget == null || IsDead || targetCreature.IsDead || targetCreature != NextSwingAttackTarget)
+                if (AttackTarget == null || IsDead || targetCreature.IsDead)
                 {
                     EndAttack();
                     return;

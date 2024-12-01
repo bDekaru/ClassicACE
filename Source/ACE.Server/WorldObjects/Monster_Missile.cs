@@ -102,7 +102,7 @@ namespace ACE.Server.WorldObjects
             // launch projectile
             actionChain.AddAction(this, () =>
             {
-                if (AttackTarget == null || IsDead || targetCreature.IsDead || targetCreature != NextSwingAttackTarget)
+                if (AttackTarget == null || IsDead || targetCreature.IsDead)
                 {
                     EndAttack();
                     return;
@@ -209,7 +209,7 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                if (MonsterProjectile_OnCollideEnvironment_Counter > 1 && ThreadSafeRandom.Next(1, 3) != 3)
+                if (MonsterProjectile_OnCollideEnvironment_Counter >= 2 && ThreadSafeRandom.Next(1, 3) != 3)
                 {
                     MonsterProjectile_OnCollideEnvironment_Counter = 0;
 
@@ -225,7 +225,7 @@ namespace ACE.Server.WorldObjects
                                 TryWandering(-45, 45, 4);
                             break;
                         case 2:
-                            if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
+                            if (PathfindingEnabled && Location.Indoors && !LastRouteStartAttemptWasNullRoute)
                             {
                                 if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                     TryWandering(160, 200, 5);
@@ -419,7 +419,11 @@ namespace ACE.Server.WorldObjects
                 });
                 innerChain.EnqueueChain();
 
-                TryRoute();
+                if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
+                {
+                    if (!IsMeleeVisible(AttackTarget))
+                        TryRoute();
+                }
 
                 EndSwitchWeapons();
             });
@@ -529,7 +533,11 @@ namespace ACE.Server.WorldObjects
                 });
                 innerChain.EnqueueChain();
 
-                TryRoute();
+                if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
+                {
+                    if (!IsDirectVisible(AttackTarget) || GetDistanceToTarget() > GetMaxMissileRange())
+                        TryRoute();
+                }
 
                 EndSwitchWeapons();
             });

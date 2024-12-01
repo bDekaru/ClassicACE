@@ -256,24 +256,8 @@ namespace ACE.Server.WorldObjects
             return !PhysicsObj.IsAnimating || !HasPendingMovement;
         }
 
-
-        private bool IsAttackPending = false;
         private bool IsAttacking = false;
         private bool PendingEndAttack = false;
-        private Creature NextSwingAttackTarget = null;
-
-        public void TryAttack()
-        {
-            if (IsAttacking)
-                return;
-
-            if (DebugMove)
-                Console.WriteLine($"{Name} ({Guid}).TryAttack()");
-
-            NextSwingAttackTarget = AttackTarget as Creature;
-
-            IsAttackPending = true;
-        }
 
         /// <summary>
         /// Performs the current attack on the target
@@ -292,11 +276,10 @@ namespace ACE.Server.WorldObjects
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
 
-            IsAttackPending = false;
             IsAttacking = true;
 
             var targetCreature = AttackTarget as Creature;
-            if (!IsAttackRange() || CurrentAttackType == null || targetCreature == null || IsDead || targetCreature.IsDead || targetCreature != NextSwingAttackTarget)
+            if (!IsAttackRange() || CurrentAttackType == null || targetCreature == null || IsDead || targetCreature.IsDead)
             {
                 EndAttack();
                 return;
@@ -349,10 +332,8 @@ namespace ACE.Server.WorldObjects
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
 
-            IsAttackPending = false;
             IsAttacking = false;
 
-            NextSwingAttackTarget = null;
             CurrentAttackType = null;
             MaxRange = 0.0f;
         }
