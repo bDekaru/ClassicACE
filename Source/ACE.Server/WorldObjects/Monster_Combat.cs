@@ -177,7 +177,7 @@ namespace ACE.Server.WorldObjects
             }
 
             if (DebugMove)
-                Console.WriteLine($"[{Timers.RunningTime}] - {Name} ({Guid}) - DoAttackStance - stanceTime: {stanceTime}, isAnimating: {IsAnimating}");
+                Console.WriteLine($"{Name} ({Guid}).DoAttackStance() - stanceTime: {stanceTime}, isAnimating: {IsAnimating}");
 
             PhysicsObj.StartTimer();
         }
@@ -264,10 +264,11 @@ namespace ACE.Server.WorldObjects
 
         public void TryAttack()
         {
-            //Console.WriteLine("Pathfinding: TryAttack");
-
             if (IsAttacking)
                 return;
+
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).TryAttack()");
 
             NextSwingAttackTarget = AttackTarget as Creature;
 
@@ -279,16 +280,14 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private void Attack()
         {
-            if (DebugMove)
-                Console.WriteLine($"[{Timers.RunningTime}] - {Name} ({Guid}) - Attack");
-
-            if (IsAttacking)
-                return;
-
             if (!MoveReady() || !AttackReady())
                 return;
 
-            //Console.WriteLine("Pathfinding: Attack");
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).Attack()");
+
+            if (IsAttacking)
+                return;
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
@@ -339,10 +338,13 @@ namespace ACE.Server.WorldObjects
 
         private void EndAttack(bool forced = true)
         {
-            //Console.WriteLine("Pathfinding: EndAttack");
-
             if (!forced && !MoveReady())
                 return;
+
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).EndAttack()");
+
+            PendingEndAttack = false;
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);

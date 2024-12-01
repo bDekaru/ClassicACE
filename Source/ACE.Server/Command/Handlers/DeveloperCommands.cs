@@ -1468,8 +1468,7 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("debugmove", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Toggles movement debugging for the last appraised monster", "<on/off>")]
         public static void ToggleMovementDebug(Session session, params string[] parameters)
         {
-            // get the last appraised object
-            var creature = CommandHandlerHelper.GetLastAppraisedObject(session) as Creature;
+            var creature = CommandHandlerHelper.GetQueryTarget(session) as Creature;
 
             if (creature == null)
                 return;
@@ -4213,6 +4212,26 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"Terrain: 0x{terrain:X4}");
             CommandHandlerHelper.WriteOutputInfo(session, $"TerrainType: 0x{terrainType:X4}");
             CommandHandlerHelper.WriteOutputInfo(session, $"SceneType: 0x{sceneType:X4}");
+        }
+
+        [CommandHandler("teleCreatureToMe", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Teleports selected creature to your current location.")]
+        public static void HandleTeleCreatureToMe(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+            var creature = CommandHandlerHelper.GetQueryTarget(session) as Creature;
+
+            if (player == null || creature == null)
+                return;
+
+            if (player.Location.Landblock != creature.Location.Landblock)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"The {creature.Name} cannot be teleported to a different landblock.");
+                return;
+            }
+
+            creature.FakeTeleport(session.Player.Location.InFrontOf(2, true));
+
+            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has teleported {creature.Name} to them.");
         }
 
         [CommandHandler("TestPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "")]

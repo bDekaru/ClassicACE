@@ -209,13 +209,13 @@ namespace ACE.Server.WorldObjects
         /// Used by the emote system, which has the target rotation stored in positions
         /// </summary>
         /// <returns>The amount of time in seconds for the rotation to complete</returns>
-        public float TurnTo(Position position)
+        public float TurnTo(Position position, float speed = 1.0f, bool clientOnly = false)
         {
-            var frame = new AFrame(position.Pos, position.Rotation);
-            var heading = frame.get_heading();
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).TurnTo({position.ToLOCString()}, {speed}, {clientOnly})");
 
             // send network message to start turning creature
-            var turnToMotion = new Motion(this, position, heading);
+            var turnToMotion = GetTurnToMotion(position, speed);
             EnqueueBroadcastMotion(turnToMotion);
 
             var angle = GetAngle(position);
@@ -225,17 +225,25 @@ namespace ACE.Server.WorldObjects
             var rotateDelay = GetRotateDelay(angle);
             //Console.WriteLine("RotateTime: " + rotateTime);
 
-            // update server object rotation on completion
-            // TODO: proper incremental rotation
-            var actionChain = new ActionChain();
-            actionChain.AddDelaySeconds(rotateDelay);
-            actionChain.AddAction(this, () =>
+            if (!clientOnly)
             {
-                var targetDir = position.GetCurrentDir();
-                Location.Rotate(targetDir);
-                PhysicsObj.Position.Frame.Orientation = Location.Rotation;
-            });
-            actionChain.EnqueueChain();
+                OnMovementStarted(true);
+                // update server object rotation on completion
+                // TODO: proper incremental rotation
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(rotateDelay);
+                actionChain.AddAction(this, () =>
+                {
+                    var targetDir = position.GetCurrentDir();
+                    Location.Rotate(targetDir);
+                    PhysicsObj.Position.Frame.Orientation = Location.Rotation;
+
+                    OnMovementStopped();
+                    if (!IsAwake)
+                        UpdatePosition();
+                });
+                actionChain.EnqueueChain();
+            }
 
             return rotateDelay;
         }
@@ -259,7 +267,7 @@ namespace ACE.Server.WorldObjects
         public void TurnTo(WorldObject target, float speed = 1.0f, bool clientOnly = false)
         {
             if (DebugMove)
-                Console.WriteLine($"{Name}.TurnTo({target.Name}, {speed}, {clientOnly})");
+                Console.WriteLine($"{Name} ({Guid}).TurnTo({target.Name}, {speed}, {clientOnly})");
 
             if (this is Player)
                 return;
@@ -273,7 +281,7 @@ namespace ACE.Server.WorldObjects
 
             CurrentMotionState = motion;
 
-            OnMovementStarted();
+            OnMovementStarted(true);
 
             // prevent initial snap forward
             if (!PhysicsObj.IsMovingOrAnimating)
@@ -289,7 +297,7 @@ namespace ACE.Server.WorldObjects
         public virtual void MoveTo(WorldObject target, float distanceToObject = 2.0f, float speed = 1.0f, bool clientOnly = false)
         {
             if (DebugMove)
-                Console.WriteLine($"{Name}.MoveTo({target.Name}, {distanceToObject}, {speed}, {clientOnly}) - CurPos: {Location.ToLOCString()} - DestPos: {AttackTarget.Location.ToLOCString()} - TargetDist: {Vector3.Distance(Location.ToGlobal(), AttackTarget.Location.ToGlobal())}");
+                Console.WriteLine($"{Name} ({Guid}).MoveTo({target.Name}, {distanceToObject}, {speed}, {clientOnly})");
 
             var motion = GetMoveToMotion(target, distanceToObject);
 
@@ -324,6 +332,9 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void MoveTo(Position position, float distanceToObject = 2.0f, float speed = 1.0f, bool useFinalHeading = true, bool clientOnly = false)
         {
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).MoveTo({position.ToLOCString()}, {distanceToObject}, {speed}, {clientOnly})");
+
             if (!position.Indoors)
                 position.AdjustMapCoords();
 
@@ -417,6 +428,26 @@ namespace ACE.Server.WorldObjects
         private Motion GetTurnToMotion(WorldObject target, float speed = 1.0f)
         {
             var motion = new Motion(this, target, MovementType.TurnToObject);
+
+            motion.MoveToParameters.MovementParameters =
+                MovementParams.UseSpheres |
+                MovementParams.SetHoldKey |
+                MovementParams.ModifyRawState |
+                MovementParams.ModifyInterpretedState |
+                MovementParams.CancelMoveTo |
+                MovementParams.StopCompletely;
+
+            motion.MoveToParameters.Speed = speed;
+
+            return motion;
+        }
+
+        private Motion GetTurnToMotion(Position position, float speed = 1.0f)
+        {
+            var frame = new AFrame(position.Pos, position.Rotation);
+            var heading = frame.get_heading();
+
+            var motion = new Motion(this, position, heading);
 
             motion.MoveToParameters.MovementParameters =
                 MovementParams.UseSpheres |

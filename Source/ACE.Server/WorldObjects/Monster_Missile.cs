@@ -80,9 +80,6 @@ namespace ACE.Server.WorldObjects
             var dist = GetDistanceToTarget();
             //Console.WriteLine("RangeAttack: " + dist);
 
-            if (DebugMove)
-                Console.WriteLine($"[{Timers.RunningTime}] - {Name} ({Guid}) - LaunchMissile");
-
             var projectileSpeed = GetProjectileSpeed();
 
             // get z-angle for aim motion
@@ -216,8 +213,7 @@ namespace ACE.Server.WorldObjects
                 {
                     MonsterProjectile_OnCollideEnvironment_Counter = 0;
 
-                    var canSwitch = HasMeleeWeapon && !IsSwitchWeaponsPending;
-                    int maxRoll = canSwitch ? 3 : 2;
+                    int maxRoll = HasMeleeWeapon ? 3 : 2;
 
                     var currentUnixTime = Time.GetUnixTime();
 
@@ -225,16 +221,12 @@ namespace ACE.Server.WorldObjects
                     switch (roll)
                     {
                         case 1:
-                            if (LastEmoteTime + MaxEmoteFrequency < currentUnixTime && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                TryEmoting();
                             if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                 TryWandering(-45, 45, 4);
                             break;
                         case 2:
                             if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
                             {
-                                if (LastEmoteTime + MaxEmoteFrequency < currentUnixTime && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                    TryEmoting();
                                 if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                     TryWandering(160, 200, 5);
                                 TryRoute();
@@ -259,7 +251,8 @@ namespace ACE.Server.WorldObjects
 
         public void TrySwitchToMeleeAttack()
         {
-            //Console.WriteLine("Pathfinding: TrySwitchToMeleeAttack");
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).TrySwitchToMeleeAttack()");
 
             if (IsSwitchingWeapons)
                 return;
@@ -270,7 +263,8 @@ namespace ACE.Server.WorldObjects
 
         public void TrySwitchToMissileAttack()
         {
-            //Console.WriteLine("Pathfinding: TrySwitchToMissileAttack");
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).TrySwitchToMissileAttack()");
 
             if (IsSwitchingWeapons)
                 return;
@@ -281,7 +275,8 @@ namespace ACE.Server.WorldObjects
 
         private void EndSwitchWeapons()
         {
-            //Console.WriteLine("Pathfinding: EndSwitchWeapons");
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).EndSwitchWeapons()");
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
@@ -310,8 +305,11 @@ namespace ACE.Server.WorldObjects
 
         private void SwitchToMeleeAttack()
         {
+            if (!MoveReady())
+                return;
+
             if (DebugMove)
-                Console.WriteLine($"{Name}.SwitchToMeleeAttack()");
+                Console.WriteLine($"{Name} ({Guid}).SwitchToMeleeAttack()");
 
             // 24139 - Invisible Assailant never switches to melee?
             if (AiAllowedCombatStyle == CombatStyle.StubbornMissile || Visibility)
@@ -322,11 +320,6 @@ namespace ACE.Server.WorldObjects
 
             if (IsSwitchingWeapons)
                 return;
-
-            if (!MoveReady())
-                return;
-
-            //Console.WriteLine("Pathfinding: SwitchToMeleeAttack");
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
@@ -435,16 +428,14 @@ namespace ACE.Server.WorldObjects
 
         private void SwitchToMissileAttack()
         {
-            if (DebugMove)
-                Console.WriteLine($"{Name}.SwitchToMissileAttack()");
-
-            if (IsSwitchingWeapons)
-                return;
-
             if (!MoveReady())
                 return;
 
-            //Console.WriteLine("Pathfinding: SwitchToMissileAttack");
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).SwitchToMissileAttack()");
+
+            if (IsSwitchingWeapons)
+                return;
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);

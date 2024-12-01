@@ -373,11 +373,11 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void DoSwingMotion(WorldObject target, MotionCommand motionCommand, out float animLength, out List<(float time, AttackHook attackHook)> attackFrames)
         {
-            if (!moveBit)
-            {
-                SendUpdatePosition(true);
-                moveBit = true;
-            }
+            //if (!moveBit)
+            //{
+            //    SendUpdatePosition(true);
+            //    moveBit = true;
+            //}
 
             //Console.WriteLine($"{maneuver.Style} - {maneuver.Motion} - {maneuver.AttackHeight}");
 
@@ -407,9 +407,10 @@ namespace ACE.Server.WorldObjects
             motion.MotionState.TurnSpeed = 2.25f;
 
             if (!AiImmobile)
+            {
                 motion.MotionFlags |= MotionFlags.StickToObject;
-
-            var prevMotion = CurrentMotionState;
+                motion.MoveToParameters.MovementParameters |= MovementParams.Sticky;
+            }
 
             motion.TargetGuid = target.Guid;
             CurrentMotionState = motion;

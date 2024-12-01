@@ -548,6 +548,8 @@ namespace ACE.Server.WorldObjects
                 door.OnCollideObject(this);
             else if (target is Hotspot hotspot)
                 hotspot.OnCollideObject(this);
+            else if (target is Creature creature && creature.IsMonster)
+                TryRequestPassage(creature);
         }
 
         /// <summary>

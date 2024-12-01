@@ -41,7 +41,7 @@ namespace ACE.Server.WorldObjects
 
             if (PathfindingEnabled && !IsRouting && AttackTarget != null)
             {
-                if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && !IsDirectVisible(AttackTarget)))
+                if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && (!IsDirectVisible(AttackTarget) || GetDistanceToTarget() > GetMaxMissileRange())))
                     TryRoute();
             }
         }
@@ -54,8 +54,6 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).Sleep()");
 
-            //Console.WriteLine("Pathfinding: Sleep");
-
             SetCombatMode(CombatMode.NonCombat);
 
             CurrentAttackType = null;
@@ -63,8 +61,7 @@ namespace ACE.Server.WorldObjects
             AttackTarget = null;
             IsAwake = false;
             MonsterState = State.Idle;
-
-            OnMovementStopped();
+            AwakeJustToGrantPassage = false;
 
             if (IsEmoting)
                 EndEmoting();
@@ -77,12 +74,15 @@ namespace ACE.Server.WorldObjects
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
+            OnMovementStopped();
 
             ClearRetaliateTargets();
 
             var home = GetPosition(PositionType.Home);
-            if (!Location.Equals(home))
+            if (Location.DistanceTo(home) > 2.0f)
                 ForceHome();
+            else
+                TurnTo(home);
         }
 
         public Tolerance Tolerance
@@ -372,7 +372,7 @@ namespace ACE.Server.WorldObjects
 
                     if (PathfindingEnabled && !IsRouting)
                     {
-                        if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && !IsDirectVisible(AttackTarget)))
+                        if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && (!IsDirectVisible(AttackTarget) || GetDistanceToTarget() > GetMaxMissileRange())))
                             TryRoute();
                     }
                 }

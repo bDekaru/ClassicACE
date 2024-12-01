@@ -86,15 +86,31 @@ namespace ACE.Server.WorldObjects
             else
                 return;
 
+            var combatPet = this as CombatPet;
+
+            var creatureTarget = AttackTarget as Creature;
+            var playerTarget = AttackTarget as Player;
+
+            if (playerTarget != null && playerTarget.IsSneaking)
+            {
+                if (IsDirectVisible(playerTarget))
+                    playerTarget.EndSneaking($"{Name} can still see you! You stop sneaking!");
+            }
+
+            if (IsAttackPending)
+                Attack();
+            if (IsAttacking || IsAttackPending)
+            {
+                if (PendingEndAttack)
+                {
+                    EndAttack(false);
+                    if (PendingEndAttack)
+                        return;
+                }
+            }
+
             if (EmoteManager.IsBusy)
                 return;
-
-            HandleFindTarget();
-
-            if (AttackTarget == null && !IsMoveToHomePending && !IsMovingToHome)
-                TryMoveToHome();
-
-            CheckMissHome();    // tickrate?
 
             if (IsMoveToHomePending)
                 MoveToHome();
@@ -105,15 +121,21 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            var combatPet = this as CombatPet;
+            CheckMissHome();    // tickrate?
 
-            var creatureTarget = AttackTarget as Creature;
-            var playerTarget = AttackTarget as Player;
+            if (IsMoveToHomePending)
+                return;
 
-            if (playerTarget != null && playerTarget.IsSneaking)
+            if (!AwakeJustToGrantPassage)
+                HandleFindTarget();
+
+            if (IsMoveToHomePending)
+                return;
+
+            if (AttackTarget == null && !AwakeJustToGrantPassage)
             {
-                if (IsDirectVisible(playerTarget))
-                    playerTarget.EndSneaking($"{Name} can still see you! You stop sneaking!");
+                TryMoveToHome();
+                return;
             }
 
             if (creatureTarget != null && (creatureTarget.IsDead || (combatPet == null && !IsVisibleTarget(creatureTarget))) || (playerTarget != null && playerTarget.IsSneaking))
@@ -137,7 +159,8 @@ namespace ACE.Server.WorldObjects
                 firstUpdate = false;
             }
 
-            if (MonsterState == State.Awake && GetDistanceToTarget() >= MaxChaseRange)
+            var distanceToTarget = GetDistanceToTarget();
+            if (MonsterState == State.Awake && !AwakeJustToGrantPassage && distanceToTarget >= MaxChaseRange)
             {
                 if (HasPendingMovement)
                     CancelMoveTo(WeenieError.ObjectGone);
@@ -179,59 +202,77 @@ namespace ACE.Server.WorldObjects
                 //MaxRange = MaxMeleeRange;   // FIXME: server position sync
             }
 
-            if (IsAttackPending)
-                Attack();
-            if (IsAttacking || IsAttackPending)
-            {
-                if (PendingEndAttack)
-                {
-                    EndAttack(false);
-                    if (PendingEndAttack)
-                        return;
-                }
-                else
-                    return;
-            }
-
-            bool isMeleeVisible = true;
-            bool isDirectiVisible = true;
+            var isMeleeVisible = true;
+            var isDirectiVisible = true;
+            var isInSight = true;
+            var isMelee = CurrentAttackType == CombatType.Melee;
+            var inRange = distanceToTarget < MaxRange;
+            var inRangeToStop = distanceToTarget < MaxRange * 0.8f;
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
 
-                isMeleeVisible = IsMeleeVisible(AttackTarget);
-                isDirectiVisible = IsDirectVisible(AttackTarget);
-
-                if ((CurrentAttackType == CombatType.Melee && isMeleeVisible) || (CurrentAttackType != CombatType.Melee && isDirectiVisible))
+                if (!AwakeJustToGrantPassage)
                 {
-                    //Console.WriteLine("Pathfinding: Target in Sight!");
+                    isMeleeVisible = IsMeleeVisible(AttackTarget);
+                    isDirectiVisible = IsDirectVisible(AttackTarget);
 
-                    FailedSightCount = 0;
-                    if (IsEmotePending || IsWanderingPending || IsRouteStartPending || IsEmoting || IsWandering || IsRouting)
+                    if (isMelee)
+                        isInSight = isMeleeVisible;
+                    else
+                        isInSight = isDirectiVisible;
+
+                    if ((isMelee && isInSight) || (!isMelee && isInSight && inRange))
                     {
-                        // If we can see our target abort everything and go for it.
+                        FailedSightCount = 0;
 
-                        IsEmotePending = false;
-                        IsWanderingPending = false;
-                        IsRouteStartPending = false;
+                        if (IsEmotePending || IsRouteStartPending || IsEmoting || IsRouting)
+                        {
+                            // If we can see our target abort everything and go for it.
+                            if (DebugMove)
+                                Console.WriteLine($"{Name} ({Guid}) Target in Sight!");
 
-                        // Figure out a way to cancel motions so they will actually stop mid-play client-side. MotionCommand.Dead does it but I haven't been able to figure out why.
-                        //if (IsEmoting)
-                        //    PendingEndEmoting = true;
+                            IsEmotePending = false;
+                            IsWanderingPending = false;
+                            IsRouteStartPending = false;
 
-                        if (IsWandering)
-                            PendingEndWandering = true;
+                            // Figure out a way to cancel motions so they will actually stop mid-play client-side. MotionCommand.Dead does it but I haven't been able to figure out why.
+                            //if (IsEmoting)
+                            //    PendingEndEmoting = true;
 
-                        if (IsRouting)
-                            PendingEndRoute = true;
+                            if (IsWandering)
+                                PendingEndWandering = true;
+
+                            if (IsRouting)
+                                PendingEndRoute = true;
+                        }
+                        else if(!isMelee && isInSight && inRangeToStop && IsMoving && !IsTurning && !IsWandering) // Not necessary for melee as the range is close enough to the target that we never have to cancel the moveTo.
+                        {
+                            if (DebugMove)
+                                Console.WriteLine($"{Name} ({Guid}) Target in Range!");
+
+                            if (HasPendingMovement)
+                                CancelMoveTo(WeenieError.ObjectGone);
+                        }
                     }
-                }
-                else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
-                {
-                    FailedSightCount++;
-                    if (FailedSightCount >= FailedSightThreshold && HasPendingMovement)
-                        CancelMoveTo(WeenieError.ObjectGone);
+                    else if (!isMelee && isInSight && !inRange)
+                    {
+                        if (DebugMove)
+                            Console.WriteLine($"{Name} ({Guid}) Target Out of Range!");
+                    }
+                    else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
+                    {
+                        FailedSightCount++;
+                        if (FailedSightCount >= FailedSightThreshold && HasPendingMovement)
+                        {
+                            if (DebugMove)
+                                Console.WriteLine($"{Name} ({Guid}) Target Lost!");
+
+                            if (HasPendingMovement)
+                                CancelMoveTo(WeenieError.ObjectGone);
+                        }
+                    }
                 }
 
                 if (IsEmotePending)
@@ -254,6 +295,23 @@ namespace ACE.Server.WorldObjects
                     else
                         return;
                 }
+
+                if (IsGrantPassagePending)
+                    GrantPassage();
+                if (IsGrantingPassage || IsGrantPassagePending)
+                {
+                    if (PendingEndGrantPassage)
+                    {
+                        EndGrantPassage(false);
+                        if (PendingEndGrantPassage)
+                            return;
+                    }
+                    else
+                        return;
+                }
+
+                if (AwakeJustToGrantPassage)
+                    return;
 
                 if (IsWanderingPending)
                     Wander();
@@ -323,10 +381,9 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            var targetDist = GetDistanceToTarget();
             if (CurrentAttackType != CombatType.Missile || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (!PhysicsObj.IsSticky && targetDist > MaxRange || (!IsFacing(AttackTarget) && !IsSelfCast()))
+                if (!PhysicsObj.IsSticky && distanceToTarget > MaxRange || (!IsFacing(AttackTarget) && !IsSelfCast()))
                 {
                     bool failedThresholds = FailedMovementCount >= FailedMovementThreshold || FailedSightCount >= FailedSightThreshold;
 
@@ -366,7 +423,7 @@ namespace ACE.Server.WorldObjects
                                     }
                                 }
                             }
-                            else if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && targetDist > 20 && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
+                            else if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && distanceToTarget > 20 && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
                                 TrySwitchToMissileAttack();
                         }
                     }
@@ -381,7 +438,7 @@ namespace ACE.Server.WorldObjects
 
                 if (!IsFacing(AttackTarget))
                     StartMovement();
-                else if (targetDist <= MaxRange)
+                else if (distanceToTarget <= MaxRange)
                     TryAttack();
                 else
                 {
