@@ -169,6 +169,12 @@ namespace ACE.Server.WorldObjects
                 player.EnqueueBroadcast(new GameMessageSystemChat($"{player.Name} used the rare item {Name}", ChatMessageType.Broadcast));
             }
 
+            if(MaxStructure.HasValue && MaxStructure > 0 && Structure == 0)
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {NameWithMaterial} has no uses left!", ChatMessageType.Craft));
+                return;
+            }
+
             bool usesMana = false;
             if (SpellDID.HasValue)
             {
@@ -284,8 +290,21 @@ namespace ACE.Server.WorldObjects
             if (UseSound > 0)
                 player.Session.Network.EnqueueSend(new GameMessageSound(player.Guid, UseSound));
 
-            if (!usesMana && (GetProperty(PropertyBool.UnlimitedUse) ?? false) == false)
-                player.TryConsumeFromInventoryWithNetworking(this, 1);
+            var unlimitedUses = GetProperty(PropertyBool.UnlimitedUse) ?? false;
+            if (!unlimitedUses)
+            {
+                if (Structure.HasValue)
+                {
+                    if (Structure > 0)
+                        Structure--;
+                    else
+                        Structure = 0;
+
+                    player.Session.Network.EnqueueSend(new GameMessagePublicUpdatePropertyInt(this, PropertyInt.Structure, (int)Structure));
+                }
+                else if (!usesMana)
+                    player.TryConsumeFromInventoryWithNetworking(this, 1);
+            }
         }
 
         public bool HandleUseCreateItem(Player player)

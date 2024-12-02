@@ -85,6 +85,30 @@ namespace ACE.Server.Factories
                     125,   // T7
                     140,   // T8
                 };
+
+                EnchantmentChances_Armor_MeleeMissileWeapon = new List<float>()
+                {
+                    0.15f,  // T1
+                    0.15f,  // T2
+                    0.20f,  // T3
+                    0.30f,  // T4
+                    0.40f,  // T5
+                    0.60f,  // T6
+                    0.60f,  // T7
+                    0.60f,  // T8
+                };
+
+                EnchantmentChances_Caster = new List<float>()
+                {
+                    0.60f,  // T1
+                    0.60f,  // T2
+                    0.60f,  // T3
+                    0.60f,  // T4
+                    0.60f,  // T5
+                    0.75f,  // T6
+                    0.75f,  // T7
+                    0.75f,  // T8
+                };
             }
         }
 

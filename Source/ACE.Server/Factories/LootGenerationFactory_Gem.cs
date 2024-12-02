@@ -62,10 +62,7 @@ namespace ACE.Server.Factories
 
                 wo.UiEffects = UiEffects.Magical;
 
-                if (PropertyManager.GetBool("useable_gems").Item)
-                    wo.ItemUseable = Usable.Contained;
-                else
-                    wo.ItemUseable = Usable.No;
+                wo.ItemUseable = Usable.Contained;
             }
 
             // item value
@@ -125,39 +122,35 @@ namespace ACE.Server.Factories
 
             var _spell = new Server.Entity.Spell(finalSpellId);
 
-            bool useableGem = PropertyManager.GetBool("useable_gems").Item;
-            if (useableGem)
-            {
-                // retail spellcraft was capped at 370
-                wo.ItemSpellcraft = Math.Min(GetSpellPower(_spell), 370);
-            }
-
-            var castableMana = (int)_spell.BaseMana * 5;
-
-            wo.ItemMaxMana = RollItemMaxMana_New(wo, roll, castableMana);
-            wo.ItemCurMana = wo.ItemMaxMana;
+            // retail spellcraft was capped at 370
+            wo.ItemSpellcraft = Math.Min(GetSpellPower(_spell), 370);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
-                if (useableGem)
-                {
-                    // verified
-                    wo.ItemManaCost = castableMana;
-                }
+                var castableMana = (int)_spell.BaseMana * 5;
+
+                wo.ItemMaxMana = RollItemMaxMana_New(wo, roll, castableMana);
+                wo.ItemCurMana = wo.ItemMaxMana;
+
+                // verified
+                wo.ItemManaCost = castableMana;
             }
             else
             {
-                if (useableGem)
-                {
-                    wo.ItemManaCost = (int)_spell.BaseMana;
+                wo.MaxStructure = RollItemMaxStructure(wo);
+                wo.Structure = wo.MaxStructure;
 
-                    AddActivationRequirements(wo, profile, roll);
-                }
-                else
-                    wo.Use = "Use a Spell Extraction Scroll to extract this gem's spell without chance of failure.\n";
+                AddActivationRequirements(wo, profile, roll);
             }
 
             return true;
+        }
+
+        public static ushort RollItemMaxStructure(WorldObject wo)
+        {
+            var maxStructure = (ushort)ThreadSafeRandom.Next(10, 20 + (int)(wo.ItemWorkmanship * 2));
+
+            return maxStructure;
         }
 
         private static bool GetMutateGemData(uint wcid)

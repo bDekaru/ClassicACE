@@ -52,7 +52,7 @@ namespace ACE.Server.WorldObjects
             log.Debug($"[SpellTransfer] {player.Name} {(success ? "successfully transfers" : "fails to transfer")} {spellName} to the {target.NameWithMaterial}.{(!success ? " The target is destroyed." : "")} | Chance: {chance}");
         }
 
-        public static void BroadcastSpellExtraction(Player player, string spellName, WorldObject target, double chance, bool success)
+        public static void BroadcastSpellExtraction(Player player, string spellName, WorldObject target, double chance = 1.0f, bool success = true)
         {
             // send local broadcast
             if (success)
@@ -120,12 +120,6 @@ namespace ACE.Server.WorldObjects
                 var isGem = false;
                 if(target.ItemType == ItemType.Gem)
                 {
-                    if (!PropertyManager.GetBool("useable_gems").Item)
-                    {
-                        player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
-                        return;
-                    }
-
                     isGem = true;
                     if(spellToAdd.IsCantrip)
                     {
@@ -317,15 +311,26 @@ namespace ACE.Server.WorldObjects
                     {
                         var tinkers = target.TinkerLog.Split(",");
                         var appliedMoonstoneCount = tinkers.Count(s => s == "31");
-                        newMaxMana += 500 * appliedMoonstoneCount;
+
+                        for (int i = 0; i < appliedMoonstoneCount; i++)
+                        {
+                            var currentMana = newMaxMana;
+
+                            newMaxMana = currentMana * 2;
+                            if (newMaxMana - currentMana < 500)
+                                newMaxMana = currentMana + 500;
+                        }
                     }
 
                     if (isGem)
                     {
                         target.ItemUseable = Usable.Contained;
-                        target.ItemManaCost = (int)spellToAdd.BaseMana;
-                        target.ItemMaxMana = newMaxMana;
-                        target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
+
+                        if (!target.MaxStructure.HasValue)
+                        {
+                            target.MaxStructure = LootGenerationFactory.RollItemMaxStructure(target);
+                            target.Structure = target.MaxStructure;
+                        }
 
                         var baseWeenie = DatabaseManager.World.GetCachedWeenie(target.WeenieClassId);
                         if (baseWeenie != null)
@@ -335,12 +340,15 @@ namespace ACE.Server.WorldObjects
                             target.Name = target.LongDesc;
                         }
                     }
-                    else if (newMaxMana > (target.ItemMaxMana ?? 0))
+                    else
                     {
-                        target.ItemMaxMana = newMaxMana;
-                        target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
+                        if (newMaxMana > (target.ItemMaxMana ?? 0))
+                        {
+                            target.ItemMaxMana = newMaxMana;
+                            target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
+                            target.ManaRate = newManaRate;
+                        }
 
-                        target.ManaRate = newManaRate;
                         target.LongDesc = LootGenerationFactory.GetLongDesc(target);
                     }
 
@@ -420,27 +428,21 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                var chance = Math.Clamp(0.25 + ((spellCount - 1) * 0.1), 0.25, 1.0);
-
-                if (target.ItemType == ItemType.Gem && target.ItemUseable == Usable.No)
-                    chance = 1; // Non-useable gems have 100% extraction chance.
-
-                var percent = chance * 100;
                 var showDialog = player.GetCharacterOption(CharacterOption.UseCraftingChanceOfSuccessDialog);
                 if (showDialog && !confirmed)
                 {
-                    if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), $"Extracting a spell from {target.NameWithMaterial}.\nIt will be destroyed in the process.\n\nYou determine that you have a {percent.Round()} percent chance to succeed.\n\n"))
+                    string msg;
+                    if (spellCount == 1)
+                    {
+                        var spell = new Spell(spells[0]);
+                        msg = $"Extracting {spell.Name} from {target.NameWithMaterial}.\nIt will be destroyed in the process.\n\n";
+                    }
+                    else
+                        msg = $"Extracting a random spell from {target.NameWithMaterial}.\nIt will be destroyed in the process.\n\n";
+                    if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), msg))
                         player.SendUseDoneEvent(WeenieError.ConfirmationInProgress);
                     else
                         player.SendUseDoneEvent();
-
-
-                    if (PropertyManager.GetBool("craft_exact_msg").Item)
-                    {
-                        var exactMsg = $"You have a {(float)percent} percent chance of extracting a spell from {target.NameWithMaterial}.";
-
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat(exactMsg, ChatMessageType.Craft));
-                    }
                     return;
                 }
 
@@ -469,34 +471,25 @@ namespace ACE.Server.WorldObjects
                         return;
                     }
 
-                    var success = ThreadSafeRandom.Next(0.0f, 1.0f) < chance;
                     var spellName = "a spell";
-                    if (success)
-                    {
-                        var spellToExtractRoll = ThreadSafeRandom.Next(0, spellCount - 1);
-                        var spellToExtractId = spells[spellToExtractRoll];
+                    var spellToExtractRoll = ThreadSafeRandom.Next(0, spellCount - 1);
+                    var spellToExtractId = spells[spellToExtractRoll];
 
-                        if (player.TryConsumeFromInventoryWithNetworking(source, 1)) // Consume the scroll
-                        {
-                            Spell spell = new Spell(spellToExtractId);
-                            spellName = spell.Name;
-
-                            var newScroll = WorldObjectFactory.CreateNewWorldObject(50130); // Spell Transfer Scroll
-                            newScroll.SpellDID = (uint)spellToExtractId;
-                            newScroll.Name += spellName;
-                            if (player.TryCreateInInventoryWithNetworking(newScroll)) // Create the transfer scroll
-                                player.TryConsumeFromInventoryWithNetworking(target); // Destroy the item
-                            else
-                                newScroll.Destroy(); // Clean up on creation failure
-                        }
-                    }
-                    else
+                    if (player.TryConsumeFromInventoryWithNetworking(source, 1)) // Consume the scroll
                     {
-                        player.TryConsumeFromInventoryWithNetworking(source, 1); // Consume the scroll
-                        player.TryConsumeFromInventoryWithNetworking(target); // Destroy the item
+                        Spell spell = new Spell(spellToExtractId);
+                        spellName = spell.Name;
+
+                        var newScroll = WorldObjectFactory.CreateNewWorldObject(50130); // Spell Transfer Scroll
+                        newScroll.SpellDID = (uint)spellToExtractId;
+                        newScroll.Name += spellName;
+                        if (player.TryCreateInInventoryWithNetworking(newScroll)) // Create the transfer scroll
+                            player.TryConsumeFromInventoryWithNetworking(target); // Destroy the item
+                        else
+                            newScroll.Destroy(); // Clean up on creation failure
                     }
 
-                    BroadcastSpellExtraction(player, spellName, target, chance, success);
+                    BroadcastSpellExtraction(player, spellName, target);
                 });
 
                 player.EnqueueMotion(actionChain, MotionCommand.Ready);
@@ -604,9 +597,6 @@ namespace ACE.Server.WorldObjects
             var isGem = false;
             if (target.ItemType == ItemType.Gem)
             {
-                if (!PropertyManager.GetBool("useable_gems").Item)
-                    return false;
-
                 isGem = true;
                 if (spellToAdd.IsCantrip)
                     return false;
@@ -701,13 +691,27 @@ namespace ACE.Server.WorldObjects
             {
                 var tinkers = target.TinkerLog.Split(",");
                 var appliedMoonstoneCount = tinkers.Count(s => s == "31");
-                newMaxMana += 500 * appliedMoonstoneCount;
+
+                for (int i = 0; i < appliedMoonstoneCount; i++)
+                {
+                    var currentMana = newMaxMana;
+
+                    newMaxMana = currentMana * 2;
+                    if (newMaxMana - currentMana < 500)
+                        newMaxMana = currentMana + 500;
+                }
             }
 
             if (isGem)
             {
                 target.ItemUseable = Usable.Contained;
-                target.ItemManaCost = (int)spellToAdd.BaseMana;
+
+                if (!target.MaxStructure.HasValue)
+                {
+                    target.MaxStructure = LootGenerationFactory.RollItemMaxStructure(target);
+                    target.Structure = target.MaxStructure;
+                }
+
                 var baseWeenie = DatabaseManager.World.GetCachedWeenie(target.WeenieClassId);
                 if (baseWeenie != null)
                 {
@@ -716,17 +720,20 @@ namespace ACE.Server.WorldObjects
                     target.Name = target.LongDesc;
                 }
             }
-            else if (newMaxMana > (target.ItemMaxMana ?? 0))
+            else
             {
-                target.ManaRate = newManaRate;
+                if (newMaxMana > (target.ItemMaxMana ?? 0))
+                {
+                    target.ItemMaxMana = newMaxMana;
+                    target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
+                    target.ManaRate = newManaRate;
+                }
+
                 target.LongDesc = LootGenerationFactory.GetLongDesc(target);
             }
 
             if (spellToReplace == null || (isProc && target.ProcSpell == null))
                 target.ExtraSpellsCount = (target.ExtraSpellsCount ?? 0) + 1;
-
-            target.ItemMaxMana = newMaxMana;
-            target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
 
             var newRollDiff = LootGenerationFactory.RollEnchantmentDifficulty(enchantments);
             newRollDiff += LootGenerationFactory.RollCantripDifficulty(cantrips);
