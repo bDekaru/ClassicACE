@@ -82,6 +82,12 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
+                return;
+            }
+
             var house = House ?? GetAccountHouse();
 
             if (house == null)
@@ -155,6 +161,12 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
+                return;
+            }
+
             // FIXME(ddevec): I should probably make a better interface for this
             UpdateVital(Mana, Mana.Current / 2);
 
@@ -219,6 +231,12 @@ namespace ACE.Server.WorldObjects
             if (TooBusyToRecall)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YoureTooBusy));
+                return;
+            }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
             }
 
@@ -288,6 +306,12 @@ namespace ACE.Server.WorldObjects
             if (TooBusyToRecall)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YoureTooBusy));
+                return;
+            }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
             }
 
@@ -381,6 +405,12 @@ namespace ACE.Server.WorldObjects
             if (TooBusyToRecall)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YoureTooBusy));
+                return;
+            }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
             }
 
@@ -505,6 +535,12 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
+                return;
+            }
+
             if (CombatMode != CombatMode.NonCombat)
             {
                 // this should be handled by a different thing, probably a function that forces player into peacemode
@@ -586,6 +622,12 @@ namespace ACE.Server.WorldObjects
             if (TooBusyToRecall)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YoureTooBusy));
+                return;
+            }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
             }
 

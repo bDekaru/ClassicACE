@@ -73,6 +73,29 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && player.CurrentLandblock.IsDungeon || (player.CurrentLandblock.HasDungeon && player.Location.Indoors))
+            {
+                switch((SpellId)SpellDID)
+                {
+                    case SpellId.SummonPortal1:
+                    case SpellId.SummonPortal2:
+                    case SpellId.SummonPortal3:
+                    case SpellId.SummonSecondPortal1:
+                    case SpellId.SummonSecondPortal2:
+                    case SpellId.SummonSecondPortal3:
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat("You may not summon portals from this location.", ChatMessageType.Broadcast));
+                        return;
+                    default:
+                        var spell = ((SpellId)SpellDID).ToString().ToLower();
+                        if (spell.Contains("recall"))
+                        {
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
+                            return;
+                        }
+                        break;
+                }
+            }
+
             // handle rare gems
             if (RareId != null && player.GetCharacterOption(CharacterOption.ConfirmUseOfRareGems) && !confirmed)
             {
