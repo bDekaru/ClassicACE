@@ -78,11 +78,11 @@ namespace ACE.Server.WorldObjects
 
                 if (xpSourceId != null && xpSourceId != 0)
                 {
-                    CampManager.GetCurrentCampBonus(xpSourceId.Value ^ 0xFFFF0000, null, out var typeCampBonus, out _, out _);
+                    var typeCampBonus = xpSourceCampValue / 100f;
 
                     totalXP = totalXP * typeCampBonus;
 
-                    xpMessage = $"T: {(typeCampBonus * 100).ToString("0")}%";
+                    xpMessage = $"T: {xpSourceCampValue.ToString("0")}%";
                 }
 
                 amount = (long)Math.Round(totalXP);
@@ -99,6 +99,10 @@ namespace ACE.Server.WorldObjects
                 if (xpSourceId != null && xpSourceId != 0)
                 {
                     CampManager.HandleCampInteraction(xpSourceId.Value, CurrentLandblock, xpSourceCampValue, out var typeCampBonus, out var areaCampBonus, out var restCampBonus);
+
+                    typeCampBonus = (float)Math.Round(typeCampBonus, 2);
+                    areaCampBonus = (float)Math.Round(areaCampBonus, 2);
+                    restCampBonus = (float)Math.Round(restCampBonus, 2);
 
                     float thirdXP = totalXP / 3.0f;
                     totalXP = (thirdXP * typeCampBonus) + (thirdXP * areaCampBonus) + (thirdXP * restCampBonus);

@@ -3765,10 +3765,11 @@ namespace ACE.Server.WorldObjects
                         Session.Network.EnqueueSend(new GameMessageSystemChat($"You give {target.Name} {stackMsg}{itemName}.", ChatMessageType.Broadcast));
                         target.EnqueueBroadcast(new GameMessageSound(target.Guid, Sound.ReceiveItem));
 
-                        target.EmoteManager.ExecuteEmoteSet(emoteResult, this);
+                        var campBonus = 1.0f;
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                            CampManager.HandleCampInteraction(itemToGive.WeenieClassId ^ 0xFFFF0000, null, 1, out campBonus, out _, out _);
 
-                        if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                            CampManager.HandleCampInteraction(itemToGive.WeenieClassId ^ 0xFFFF0000, null, 1, out _, out _, out _);
+                        target.EmoteManager.ExecuteEmoteSet(emoteResult, this, false, campBonus);
 
                         itemToGive.Destroy();
                     }

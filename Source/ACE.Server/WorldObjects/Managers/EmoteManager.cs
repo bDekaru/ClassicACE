@@ -56,7 +56,7 @@ namespace ACE.Server.WorldObjects.Managers
         /// <param name="emote">The emote to execute</param>
         /// <param name="targetObject">A target object, usually player</param>
         /// <param name="actionChain">Only used for passing to further sets</param>
-        public float ExecuteEmote(PropertiesEmote emoteSet, PropertiesEmoteAction emote, WorldObject targetObject = null)
+        public float ExecuteEmote(PropertiesEmote emoteSet, PropertiesEmoteAction emote, WorldObject targetObject = null, float campBonus = 1.0f)
         {
             var player = targetObject as Player;
             var creature = WorldObject as Creature;
@@ -142,8 +142,17 @@ namespace ACE.Server.WorldObjects.Managers
                 case EmoteType.AwardNoShareXP:
 
                     if (player != null)
-                        player.EarnXP(emote.Amount64 ?? emote.Amount ?? 0, XpType.Quest, player.Level, emoteSet.WeenieClassId, 0, null, ShareType.None);
-
+                    {
+                        var amt = emote.Amount64 ?? emote.Amount ?? 0;
+                        if (amt > 0 || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
+                            player.EarnXP(amt, XpType.Quest, player.Level, emoteSet.WeenieClassId, (uint)(Math.Round(campBonus, 2) * 100f), null, ShareType.None);
+                        }
+                        else if (amt < 0)
+                        {
+                            player.SpendXP(-amt);
+                        }
+                    }
                     break;
 
                 case EmoteType.AwardSkillPoints:
@@ -174,7 +183,7 @@ namespace ACE.Server.WorldObjects.Managers
                         var amt = emote.Amount64 ?? emote.Amount ?? 0;
                         if (amt > 0 || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            player.EarnXP(amt, XpType.Quest, player.Level, emoteSet.WeenieClassId, 0, null, ShareType.All);
+                            player.EarnXP(amt, XpType.Quest, player.Level, emoteSet.WeenieClassId, (uint)(Math.Round(campBonus, 2) * 100f), null, ShareType.All);
                         }
                         else if (amt < 0)
                         {
@@ -384,11 +393,10 @@ namespace ACE.Server.WorldObjects.Managers
                         var extraMessage = "";
                         if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (emoteSet?.WeenieClassId ?? 0) != (emote?.WeenieClassId ?? 0))
                         {
-                            player.CampManager.GetCurrentCampBonus((emoteSet?.WeenieClassId ?? 0) ^ 0xFFFF0000, null, out var typeCampBonus, out _, out _);
+                            var roundedCampBonus = Math.Round(campBonus, 2);
+                            stackSize = (int)Math.Ceiling(stackSize * roundedCampBonus);
 
-                            stackSize = (int)Math.Ceiling(stackSize * Math.Round(typeCampBonus, 1));
-
-                            extraMessage = $"T: {(typeCampBonus * 100).ToString("0")}%";
+                            extraMessage = $"T: {(roundedCampBonus * 100).ToString("0")}%";
 
                             if (stackSize == 0)
                             {
@@ -422,7 +430,7 @@ namespace ACE.Server.WorldObjects.Managers
 
                     // TODO: revisit if nested chains need to back-propagate timers
                     var gotoSet = GetEmoteSet(EmoteCategory.GotoSet, emote.Message);
-                    ExecuteEmoteSet(gotoSet, targetObject, true);
+                    ExecuteEmoteSet(gotoSet, targetObject, true, campBonus);
                     break;
 
                 /* increments a PropertyInt stat by some amount */
@@ -1653,7 +1661,7 @@ namespace ACE.Server.WorldObjects.Managers
         /// <param name="emoteSet">A list of emotes to execute</param>
         /// <param name="targetObject">An optional target, usually player</param>
         /// <param name="actionChain">For adding delays between emotes</param>
-        public bool ExecuteEmoteSet(PropertiesEmote emoteSet, WorldObject targetObject = null, bool nested = false)
+        public bool ExecuteEmoteSet(PropertiesEmote emoteSet, WorldObject targetObject = null, bool nested = false, float campBonus = 1.0f)
         {
             //if (Debug) Console.WriteLine($"{WorldObject.Name}.EmoteManager.ExecuteEmoteSet({emoteSet}, {targetObject}, {nested})");
 
@@ -1664,12 +1672,12 @@ namespace ACE.Server.WorldObjects.Managers
 
             // start action chain
             Nested++;
-            Enqueue(emoteSet, targetObject);
+            Enqueue(emoteSet, targetObject, 0, 0.0f, campBonus);
 
             return true;
         }
 
-        public void Enqueue(PropertiesEmote emoteSet, WorldObject targetObject, int emoteIdx = 0, float delay = 0.0f)
+        public void Enqueue(PropertiesEmote emoteSet, WorldObject targetObject, int emoteIdx = 0, float delay = 0.0f, float campBonus = 1.0f)
         {
             //if (Debug) Console.WriteLine($"{WorldObject.Name}.EmoteManager.Enqueue({emoteSet}, {targetObject}, {emoteIdx}, {delay})");
 
@@ -1710,19 +1718,19 @@ namespace ACE.Server.WorldObjects.Managers
                 // emote.Delay = pre-delay for current emote
                 actionChain.AddDelaySeconds(delay + emote.Delay);
 
-                actionChain.AddAction(WorldObject, () => DoEnqueue(emoteSet, targetObject, emoteIdx, emote));
+                actionChain.AddAction(WorldObject, () => DoEnqueue(emoteSet, targetObject, emoteIdx, emote, campBonus));
                 actionChain.EnqueueChain();
             }
             else
             {
-                DoEnqueue(emoteSet, targetObject, emoteIdx, emote);
+                DoEnqueue(emoteSet, targetObject, emoteIdx, emote, campBonus);
             }
         }
 
         /// <summary>
         /// This should only be called by Enqueue
         /// </summary>
-        private void DoEnqueue(PropertiesEmote emoteSet, WorldObject targetObject, int emoteIdx, PropertiesEmoteAction emote)
+        private void DoEnqueue(PropertiesEmote emoteSet, WorldObject targetObject, int emoteIdx, PropertiesEmoteAction emote, float campBonus)
         {
             if (Debug)
                 Console.Write($"{(EmoteType)emote.Type}");
@@ -1739,13 +1747,13 @@ namespace ACE.Server.WorldObjects.Managers
             //    return;
             //}
 
-            var nextDelay = ExecuteEmote(emoteSet, emote, targetObject);
+            var nextDelay = ExecuteEmote(emoteSet, emote, targetObject, campBonus);
 
             if (Debug)
                 Console.WriteLine($" - { nextDelay}");
 
             if (emoteIdx < emoteSet.PropertiesEmoteAction.Count - 1)
-                Enqueue(emoteSet, targetObject, emoteIdx + 1, nextDelay);
+                Enqueue(emoteSet, targetObject, emoteIdx + 1, nextDelay, campBonus);
             else
             {
                 if (nextDelay > 0)
