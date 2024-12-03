@@ -1585,6 +1585,13 @@ namespace ACE.Server.WorldObjects.Managers
                         break;
                     }
 
+                case EmoteType.AcademyExplorationAssignment:
+                    {
+                        if (player != null)
+                            player.RefreshExplorationAssignments(WorldObject, false, true);
+                        break;
+                    }
+
                 default:
                     log.DebugFormat("EmoteManager.Execute - Encountered Unhandled EmoteType {0} for {1} ({2})", (EmoteType)emote.Type, WorldObject.Name, WorldObject.WeenieClassId);
                     break;

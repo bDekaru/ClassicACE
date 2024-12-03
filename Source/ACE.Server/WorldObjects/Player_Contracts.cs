@@ -19,12 +19,12 @@ namespace ACE.Server.WorldObjects
             ContractManager.Abandon(contractId);
         }
 
-        public void RefreshExplorationAssignments(WorldObject sourceObject = null, bool confirmed = false)
+        public void RefreshExplorationAssignments(WorldObject sourceObject = null, bool confirmed = false, bool fromAcademy = false)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            if (!confirmed && Exploration1KillProgressTracker != 0)
+            if (!fromAcademy && !confirmed && Exploration1KillProgressTracker != 0)
             {
                 if (sourceObject != null)
                 {
@@ -58,7 +58,9 @@ namespace ACE.Server.WorldObjects
 
             if (explorationList.Count == 0)
             {
-                Session.Network.EnqueueSend(new GameMessageSystemChat(msg, useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
+                if(!fromAcademy)
+                    Session.Network.EnqueueSend(new GameMessageSystemChat(msg, useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
+
                 if (sourceObject != null)
                     GiveFromEmote(sourceObject, (uint)Factories.Enum.WeenieClassName.blankExplorationContract); // Return Blank Contract.
 
@@ -117,11 +119,11 @@ namespace ACE.Server.WorldObjects
             Exploration1Description = $"Explore {entryName} by killing {explorationKillAmount:N0} {entry.ContentDescription} and finding {explorationMarkerAmount:N0} exploration marker{(explorationMarkerAmount > 1 ? "s" : "")}. It is located {entryDirections}.";
             msg = $"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{Exploration1Description}{(useName ? $"\"" : "")}";
 
-            if (useName)
+            if (useName && !fromAcademy)
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourceObject.Name} tells you, \"Here's your assignments:\"", ChatMessageType.Tell));
             Session.Network.EnqueueSend(new GameMessageSystemChat(msg, useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
 
-            if (explorationList.Count != 0)
+            if (explorationList.Count != 0 && !fromAcademy)
             {
                 roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
                 entry = explorationList[roll];
@@ -166,7 +168,7 @@ namespace ACE.Server.WorldObjects
                 Exploration2LandblockReached = false;
             }
 
-            if (explorationList.Count != 0)
+            if (explorationList.Count != 0 && !fromAcademy)
             {
                 roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
                 entry = explorationList[roll];
@@ -213,7 +215,8 @@ namespace ACE.Server.WorldObjects
 
             if (sourceObject != null)
             {
-                QuestManager.Stamp("ExplorationAssignmentsGiven");
+                if(!fromAcademy)
+                    QuestManager.Stamp("ExplorationAssignmentsGiven");
                 GiveFromEmote(sourceObject, (uint)Factories.Enum.WeenieClassName.explorationContract); // Give new contract.
             }
         }

@@ -135,5 +135,6 @@ namespace ACE.Entity.Enum
         VendorBroadcastStockWorld     = 9003,
         RefreshExplorationAssignments = 9004,
         RewardExplorationAssignments  = 9005,
+        AcademyExplorationAssignment  = 9006,
     }
 }
