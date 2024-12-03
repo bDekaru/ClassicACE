@@ -182,7 +182,6 @@
     <None Remove="Entity\Mutations\Recipes\3800001D - Oak.txt" />
     <None Remove="Entity\Mutations\Recipes\3800001E - Pine - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\3800001E - Pine.txt" />
-    <None Remove="Entity\Mutations\Recipes\3800001F - Gold - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\3800001F - Gold.txt" />
     <None Remove="Entity\Mutations\Recipes\38000020 - Brass - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\38000020 - Brass.txt" />
@@ -380,7 +379,6 @@
     <EmbeddedResource Include="Entity\Mutations\Recipes\3800001D - Oak.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\3800001E - Pine - CustomDM.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\3800001E - Pine.txt" />
-    <EmbeddedResource Include="Entity\Mutations\Recipes\3800001F - Gold - CustomDM.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\3800001F - Gold.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000020 - Brass.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000021 - Velvet.txt" />
