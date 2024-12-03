@@ -78,8 +78,7 @@ namespace ACE.Server.WorldObjects
 
                 if (xpSourceId != null && xpSourceId != 0)
                 {
-                    float typeCampBonus;
-                    CampManager.HandleCampInteraction(xpSourceId.Value ^ 0xFFFF0000, null, xpSourceCampValue, out typeCampBonus, out _, out _);
+                    CampManager.GetCurrentCampBonus(xpSourceId.Value ^ 0xFFFF0000, null, out var typeCampBonus, out _, out _);
 
                     totalXP = totalXP * typeCampBonus;
 
@@ -95,15 +94,11 @@ namespace ACE.Server.WorldObjects
             }
             else if (xpType == XpType.Kill && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                float typeCampBonus;
-                float areaCampBonus;
-                float restCampBonus;
-
                 float totalXP = amount;
 
                 if (xpSourceId != null && xpSourceId != 0)
                 {
-                    CampManager.HandleCampInteraction(xpSourceId.Value, CurrentLandblock, xpSourceCampValue, out typeCampBonus, out areaCampBonus, out restCampBonus);
+                    CampManager.HandleCampInteraction(xpSourceId.Value, CurrentLandblock, xpSourceCampValue, out var typeCampBonus, out var areaCampBonus, out var restCampBonus);
 
                     float thirdXP = totalXP / 3.0f;
                     totalXP = (thirdXP * typeCampBonus) + (thirdXP * areaCampBonus) + (thirdXP * restCampBonus);
@@ -960,7 +955,7 @@ namespace ACE.Server.WorldObjects
                 scaledXP = Math.Max(scaledXP, min);
 
             // apply xp modifiers?
-            EarnXP(scaledXP, XpType.Quest, Level, null, 1, null, ShareType.Allegiance);
+            EarnXP(scaledXP, XpType.Quest, Level, null, 0, null, ShareType.Allegiance);
         }
 
         /// <summary>

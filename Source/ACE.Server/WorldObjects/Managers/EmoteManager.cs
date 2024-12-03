@@ -142,7 +142,7 @@ namespace ACE.Server.WorldObjects.Managers
                 case EmoteType.AwardNoShareXP:
 
                     if (player != null)
-                        player.EarnXP(emote.Amount64 ?? emote.Amount ?? 0, XpType.Quest, player.Level, emoteSet.WeenieClassId, 1, null, ShareType.None);
+                        player.EarnXP(emote.Amount64 ?? emote.Amount ?? 0, XpType.Quest, player.Level, emoteSet.WeenieClassId, 0, null, ShareType.None);
 
                     break;
 
@@ -174,7 +174,7 @@ namespace ACE.Server.WorldObjects.Managers
                         var amt = emote.Amount64 ?? emote.Amount ?? 0;
                         if (amt > 0 || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            player.EarnXP(amt, XpType.Quest, player.Level, emoteSet.WeenieClassId, 1, null, ShareType.All);
+                            player.EarnXP(amt, XpType.Quest, player.Level, emoteSet.WeenieClassId, 0, null, ShareType.All);
                         }
                         else if (amt < 0)
                         {
@@ -381,6 +381,29 @@ namespace ACE.Server.WorldObjects.Managers
 
                     if (player != null && emote.WeenieClassId != null)
                     {
+                        var extraMessage = "";
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
+                            player.CampManager.GetCurrentCampBonus((emoteSet?.WeenieClassId ?? 0) ^ 0xFFFF0000, null, out var typeCampBonus, out _, out _);
+
+                            stackSize = (int)Math.Ceiling(stackSize * Math.Round(typeCampBonus, 1));
+
+                            extraMessage = $"T: {(typeCampBonus * 100).ToString("0")}%";
+
+                            if (stackSize == 0)
+                            {
+                                var motionChain2 = new ActionChain();
+                                if (!WorldObject.DontTurnOrMoveWhenGiving && creature != null && targetCreature != null)
+                                {
+                                    delay = creature.Rotate(targetCreature);
+                                    motionChain2.AddDelaySeconds(delay);
+                                }
+                                motionChain2.AddAction(WorldObject, () => player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your item reward amount has been reduced to zero! {extraMessage}", ChatMessageType.Broadcast)));
+                                motionChain2.EnqueueChain();
+                                break;
+                            }
+                        }
+
                         var motionChain = new ActionChain();
 
                         if (!WorldObject.DontTurnOrMoveWhenGiving && creature != null && targetCreature != null)
@@ -388,7 +411,7 @@ namespace ACE.Server.WorldObjects.Managers
                             delay = creature.Rotate(targetCreature);
                             motionChain.AddDelaySeconds(delay);
                         }
-                        motionChain.AddAction(WorldObject, () => player.GiveFromEmote(WorldObject, emote.WeenieClassId ?? 0, stackSize > 0 ? stackSize : 1, emote.Palette ?? 0, emote.Shade ?? 0));
+                        motionChain.AddAction(WorldObject, () => player.GiveFromEmote(WorldObject, emote.WeenieClassId ?? 0, stackSize > 0 ? stackSize : 1, emote.Palette ?? 0, emote.Shade ?? 0, extraMessage));
                         motionChain.EnqueueChain();
                     }
 

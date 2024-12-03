@@ -3767,6 +3767,9 @@ namespace ACE.Server.WorldObjects
 
                         target.EmoteManager.ExecuteEmoteSet(emoteResult, this);
 
+                        if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                            CampManager.HandleCampInteraction(itemToGive.WeenieClassId ^ 0xFFFF0000, null, 1, out _, out _, out _);
+
                         itemToGive.Destroy();
                     }
                 }
@@ -4057,7 +4060,7 @@ namespace ACE.Server.WorldObjects
             Prev_PutItemInContainer[0] = new PutItemInContainerEvent(itemGuid, containerGuid, placement);
         }
         
-        public void GiveFromEmote(WorldObject emoter, uint weenieClassId, int amount = 1, int palette = 0, float shade = 0)
+        public void GiveFromEmote(WorldObject emoter, uint weenieClassId, int amount = 1, int palette = 0, float shade = 0, string extraMessage = "")
         {
             if (emoter is null || weenieClassId == 0)
             {
@@ -4120,7 +4123,7 @@ namespace ACE.Server.WorldObjects
                     if (shade > 0)
                         item.Shade = shade;
 
-                    TryCreateForGive(emoter, item);
+                    TryCreateForGive(emoter, item, extraMessage);
                 }
             }
             else
@@ -4130,26 +4133,26 @@ namespace ACE.Server.WorldObjects
                 if (PropertyManager.GetBool("iou_trades").Item)
                 {
                     var item = PlayerFactory.CreateIOU(weenieClassId);
-                    TryCreateForGive(emoter, item);
+                    TryCreateForGive(emoter, item, extraMessage);
                 }
             }
         }
 
-        public bool TryCreateForGive(WorldObject giver, WorldObject itemBeingGiven)
+        public bool TryCreateForGive(WorldObject giver, WorldObject itemBeingGiven, string extraMessage = "")
         {
             if (itemBeingGiven.IsUniqueOrContainsUnique && !CheckUniques(itemBeingGiven, giver))
                 return false;
 
             if (!TryCreateInInventoryWithNetworking(itemBeingGiven, out _, true))
             {
-                var msg = new GameMessageSystemChat($"{giver.Name} tries to give you {(itemBeingGiven.StackSize > 1 ? $"{itemBeingGiven.StackSize} " : "")}{itemBeingGiven.GetNameWithMaterial(itemBeingGiven.StackSize)}.", ChatMessageType.Broadcast);
+                var msg = new GameMessageSystemChat($"{giver.Name} tries to give you {(itemBeingGiven.StackSize > 1 ? $"{itemBeingGiven.StackSize} " : "")}{itemBeingGiven.GetNameWithMaterial(itemBeingGiven.StackSize)}.{(extraMessage.Length > 0 ? $" {extraMessage}" : "")}", ChatMessageType.Broadcast);
                 Session.Network.EnqueueSend(msg);
                 return false;
             }
 
             if (!(giver.GetProperty(PropertyBool.NpcInteractsSilently) ?? false))
             {
-                var msg = new GameMessageSystemChat($"{giver.Name} gives you {(itemBeingGiven.StackSize > 1 ? $"{itemBeingGiven.StackSize} " : "")}{itemBeingGiven.GetNameWithMaterial(itemBeingGiven.StackSize)}.", ChatMessageType.Broadcast);
+                var msg = new GameMessageSystemChat($"{giver.Name} gives you {(itemBeingGiven.StackSize > 1 ? $"{itemBeingGiven.StackSize} " : "")}{itemBeingGiven.GetNameWithMaterial(itemBeingGiven.StackSize)}.{(extraMessage.Length > 0 ? $" {extraMessage}" : "")}", ChatMessageType.Broadcast);
                 Session.Network.EnqueueSend(msg);
 
                 EnqueueBroadcast(new GameMessageSound(Guid, Sound.ReceiveItem));
