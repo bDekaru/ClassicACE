@@ -382,7 +382,7 @@ namespace ACE.Server.WorldObjects.Managers
                     if (player != null && emote.WeenieClassId != null)
                     {
                         var extraMessage = "";
-                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (emoteSet?.WeenieClassId ?? 0) != (emote?.WeenieClassId ?? 0))
                         {
                             player.CampManager.GetCurrentCampBonus((emoteSet?.WeenieClassId ?? 0) ^ 0xFFFF0000, null, out var typeCampBonus, out _, out _);
 
