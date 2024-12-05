@@ -203,7 +203,7 @@ namespace ACE.Server.Entity
         }
 
 
-        private double NextExplorationMarkerRefresh;
+        public double NextExplorationMarkerRefresh;
         private double ExplorationMarkerRefreshInterval = 300;
         private List<Position> PositionsForExplorationMarkers = new List<Position>();
         private int ExplorationMarkerCount;
@@ -213,32 +213,31 @@ namespace ACE.Server.Entity
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            var explorationSites = DatabaseManager.World.GetExplorationSitesByLandblock(Id.Landblock);
+            PositionsForExplorationMarkers = new List<Position>();
+            ExplorationMarkerCount = 0;
+            ExplorationMarkerCurrentIndex = 0;
 
+            var explorationSites = DatabaseManager.World.GetExplorationSitesByLandblock(Id.Landblock);
             if (explorationSites.Count == 0)
-            {
-                PositionsForExplorationMarkers = new List<Position>();
-                ExplorationMarkerCount = 0;
-                ExplorationMarkerCurrentIndex = 0;
                 return;
-            }
 
             foreach (var obj in worldObjects)
             {
-                if(obj.Value is Creature creature)
-                {
-                    if (!(creature is Player) && creature.PlayerKillerStatus != PlayerKillerStatus.RubberGlue && creature.PlayerKillerStatus != PlayerKillerStatus.Protected)
-                        PositionsForExplorationMarkers.Add(creature.Location);
-                }
+                if(obj.Value is Creature creature && creature.IsMonster)
+                    PositionsForExplorationMarkers.Add(creature.Location);
             }
 
             PositionsForExplorationMarkers.Shuffle();
-            ExplorationMarkerCurrentIndex = 0;
-
             ExplorationMarkerCount = Math.Clamp(1 + PositionsForExplorationMarkers.Count / 50, 1, 5);
 
-            for(int i = 0; i < ExplorationMarkerCount; i++)
-                SpawnExplorationMarker();
+            var actionChain = new ActionChain();
+            for (int i = 0; i < ExplorationMarkerCount; i++)
+            {
+                if (i > 0)
+                    actionChain.AddDelaySeconds(5);
+                actionChain.AddAction(this, () => SpawnExplorationMarker());
+            }
+            actionChain.EnqueueChain();
 
             NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
         }
@@ -249,75 +248,92 @@ namespace ACE.Server.Entity
                 return;
 
             var currentMarkerCount = 0;
-            foreach (var obj in worldObjects)
+            foreach (var obj in worldObjects.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker).ToList())
             {
-                if (obj.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker)
+                var marker = obj.Value;
+                bool isInRange = false;
+                if (!forceRefresh)
                 {
-                    var marker = obj.Value;
-                    bool isInRange = false;
-                    if (!forceRefresh)
+                    foreach (var player in players)
                     {
-                        foreach (var player in players)
+                        if (player.IsOvertlyPlussed)
+                            continue;
+
+                        if (marker.Location.DistanceTo(player.Location) < 50)
                         {
-                            if (player.IsOvertlyPlussed)
-                                continue;
-
-                            var distSq = marker.Location.SquaredDistanceTo(player.Location);
-
-                            if (distSq < 2000)
-                            {
-                                isInRange = true;
-                                break;
-                            }
+                            isInRange = true;
+                            break;
                         }
                     }
-
-                    if (!isInRange) // Only refresh exploration markers that are not in range of any players at the moment.
-                    {
-                        marker.Destroy();
-
-                        if (currentMarkerCount < ExplorationMarkerCount)
-                            SpawnExplorationMarker();
-                    }
-                    currentMarkerCount++;
                 }
+
+                if (!isInRange) // Only refresh exploration markers that are not in range of any players at the moment.
+                    marker.Destroy();
+                else
+                    currentMarkerCount++;
             }
 
+            var spawnedCount = 0;
             if (currentMarkerCount < ExplorationMarkerCount)
             {
+                var actionChain = new ActionChain();
                 for (int i = currentMarkerCount; i < ExplorationMarkerCount; i++)
-                    SpawnExplorationMarker();
+                {
+                    spawnedCount++;
+                    if (i > currentMarkerCount)
+                        actionChain.AddDelaySeconds(5);
+                    actionChain.AddAction(this, () => SpawnExplorationMarker());
+                }
+                actionChain.EnqueueChain();
             }
 
             NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
         }
 
-        public void SpawnExplorationMarker()
+        public void SpawnExplorationMarker(int attempts = 0)
         {
             if (PositionsForExplorationMarkers.Count > 0)
             {
-                var attempts = 0;
-                var entry = PositionsForExplorationMarkers[ExplorationMarkerCurrentIndex];
+                var entryPos = new Position(PositionsForExplorationMarkers[ExplorationMarkerCurrentIndex]);
 
                 ExplorationMarkerCurrentIndex++;
                 if (ExplorationMarkerCurrentIndex >= PositionsForExplorationMarkers.Count)
                     ExplorationMarkerCurrentIndex = 0;
 
-                var explorationMarker = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.explorationMarker);
-                explorationMarker.Location = entry;
-                explorationMarker.Location.LandblockId = new LandblockId(explorationMarker.Location.GetCell());
-                if (explorationMarker.EnterWorld())
+                if (PropertyManager.GetBool("pathfinding").Item && entryPos.Indoors)
                 {
-                    AddWorldObject(explorationMarker);
+                    var randomPos = Pathfinder.GetRandomPointWithinCircle(entryPos, 15, AgentWidth.Wide);
+                    if (randomPos != null)
+                        entryPos = randomPos;
                 }
-                else if (explorationMarker != null)
+
+                foreach (var obj in worldObjects.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker).ToList())
+                {
+                    var marker = obj.Value;
+
+                    if (entryPos.DistanceTo(marker.Location) < 25)
+                    {
+                        attempts++;
+                        if (attempts < 10)
+                            SpawnExplorationMarker(attempts);
+                        else
+                            log.Warn($"Landblock 0x{Id} failed to find position to spawn exploration marker that was not too close to another exploration marker.");
+                        return;
+                    }
+                }
+
+                var explorationMarker = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.explorationMarker);
+                explorationMarker.Location = entryPos;
+                explorationMarker.Location.LandblockId = new LandblockId(explorationMarker.Location.GetCell());
+                if (!explorationMarker.EnterWorld() && explorationMarker != null)
                 {
                     attempts++;
                     explorationMarker.Destroy();
                     if(attempts < 10)
-                        SpawnExplorationMarker();
+                        SpawnExplorationMarker(attempts);
                     else
-                        log.Error($"Landblock 0x{Id} failed to spawn exploration marker");
+                        log.Warn($"Landblock 0x{Id} failed to spawn exploration marker.");
+                    return;
                 }
             }
         }

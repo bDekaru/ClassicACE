@@ -1,5 +1,5 @@
 using System;
-
+using ACE.Common;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Models;
@@ -96,10 +96,10 @@ namespace ACE.Server.WorldObjects
                 else
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat("You currently do not have any exploration assignments for this location.", ChatMessageType.Broadcast));
 
-                var actionChain = new ActionChain();
-                actionChain.AddDelaySeconds(60);
-                actionChain.AddAction(CurrentLandblock, CurrentLandblock.SpawnExplorationMarker);
-                actionChain.EnqueueChain();
+                // Antecipate next refresh if it is further than 60 seconds away.
+                var nextRefresh = Time.GetFutureUnixTime(60);
+                if (CurrentLandblock.NextExplorationMarkerRefresh > nextRefresh)
+                    CurrentLandblock.NextExplorationMarkerRefresh = nextRefresh;
 
                 Destroy();
             }

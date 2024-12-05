@@ -7,6 +7,7 @@ using ACE.Server.Entity;
 using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Pathfinding.Geometry;
+using ACE.Server.WorldObjects;
 using DotRecast.Core;
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
@@ -47,25 +48,25 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        private static bool CreateMarker(Position position)
+        public static WorldObject CreateMarker(Position position, string customName = "")
         {
             var marker = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.pathfinderHelper);
 
             if (marker == null)
-                return false;
+                return null;
+
+            if (customName != "")
+                marker.Name = customName;
 
             marker.Location = position;
             marker.Location.LandblockId = new LandblockId(marker.Location.GetCell());
             var landblock = LandblockManager.GetLandblock(marker.Location.LandblockId, false);
 
             if (marker.EnterWorld())
-            {
-                if (landblock.AddWorldObject(marker))
-                    return true;
-            }
+                return marker;
 
             marker.Destroy();
-            return false;
+            return null;
         }
 
         public static void DrawRoute(List<Position> route)
@@ -146,7 +147,55 @@ namespace ACE.Server.Pathfinding
 
             query.FindRandomPoint(m_filter, frand, out long randomRef, out var randomPt);
 
-            return new Position(start.Landblock, new Vector3(randomPt.X, randomPt.Z, randomPt.Y), Quaternion.Identity);
+            return new Position(start.Cell, new Vector3(randomPt.X, randomPt.Z, randomPt.Y), Quaternion.Identity);
+        }
+
+        public static Position? GetRandomPointWithinCircle(Position location, float radius, AgentWidth agentWidth)
+        {
+            if (!TryGetMesh(location, agentWidth, out var mesh) || mesh is null)
+            {
+                return null;
+            }
+
+            var query = new DtNavMeshQuery(mesh);
+            var m_filter = new DtQueryDefaultFilter();
+            var frand = new RcRand(DateTime.Now.Ticks);
+
+            var halfExtents = new RcVec3f(1.25f, 1.25f, 1.25f);
+
+            var startStatus = query.FindNearestPoly(new RcVec3f(location.PositionX, location.PositionZ, location.PositionY), halfExtents, m_filter, out long startRef, out var startPt, out bool isStartOverPoly);
+
+            query.FindRandomPointWithinCircle(startRef, startPt, radius, m_filter, frand, out long randomRef, out var randomPt);
+
+            return new Position(location.Cell, new Vector3(randomPt.X, randomPt.Z, randomPt.Y), Quaternion.Identity);
+        }
+
+        public static Position? GetNearestWallPosition(Position location, float radius, AgentWidth agentWidth, out float distance, bool inverseNormal = false)
+        {
+            if (!TryGetMesh(location, agentWidth, out var mesh) || mesh is null)
+            {
+                distance = float.MaxValue;
+                return null;
+            }
+
+            var query = new DtNavMeshQuery(mesh);
+            var m_filter = new DtQueryDefaultFilter();
+            var frand = new RcRand(DateTime.Now.Ticks);
+
+            var halfExtents = new RcVec3f(1.25f, 1.25f, 1.25f);
+
+            var startStatus = query.FindNearestPoly(new RcVec3f(location.PositionX, location.PositionZ, location.PositionY), halfExtents, m_filter, out long startRef, out var startPt, out bool isStartOverPoly);
+
+            var queryStatus = query.FindDistanceToWall(startRef, startPt, radius, m_filter, out distance, out var wallPt, out var wallNormal);
+
+            var position = new Position(location.Cell, new Vector3(wallPt.X, wallPt.Z, wallPt.Y), Quaternion.Identity);
+
+            if(inverseNormal)
+                position.Rotate(new Vector3(-wallNormal.X, -wallNormal.Z, -wallNormal.Y));
+            else
+                position.Rotate(new Vector3(wallNormal.X, wallNormal.Z, wallNormal.Y));
+
+            return position;
         }
 
         private static bool TryGetMesh(Position pos, AgentWidth agentWidth, out DtNavMesh? mesh)

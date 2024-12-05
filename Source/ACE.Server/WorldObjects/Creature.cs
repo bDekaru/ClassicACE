@@ -6,6 +6,7 @@ using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
+using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
 using ACE.Server.Factories.Tables;
 using ACE.Server.Managers;
@@ -14,6 +15,7 @@ using ACE.Server.WorldObjects.Entity;
 using log4net;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Position = ACE.Entity.Position;
 
 namespace ACE.Server.WorldObjects
@@ -181,24 +183,30 @@ namespace ACE.Server.WorldObjects
         {
             base.OnGeneration(generator);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Location != null && CurrentLandblock != null && Tolerance == Tolerance.None && PlayerKillerStatus != PlayerKillerStatus.RubberGlue && PlayerKillerStatus != PlayerKillerStatus.Protected)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Location != null && CurrentLandblock != null && IsMonster && Tolerance == Tolerance.None)
             {
-                int seed = Time.GetDateTimeFromTimestamp(Time.GetUnixTime()).DayOfYear + (CurrentLandblock.Id.LandblockX << 8 | CurrentLandblock.Id.LandblockY);
-
-                Random pseudoRandom = new Random(seed);
-                var trapExtraChance = pseudoRandom.NextSingle();
-                var chestExtraChance = pseudoRandom.NextSingle();
-
-                if (CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(5);
+                actionChain.AddAction(this, () =>
                 {
-                    var trapRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
-                    if (trapRoll < 0.05 + (0.15 * trapExtraChance))
-                        DeployRandomTrap();
-                }
+                    int seed = Time.GetDateTimeFromTimestamp(Time.GetUnixTime()).DayOfYear + (CurrentLandblock.Id.LandblockX << 8 | CurrentLandblock.Id.LandblockY);
 
-                var chestRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
-                if (chestRoll < 0.015 + (0.015 * chestExtraChance))
-                    DeployHiddenChest();
+                    Random pseudoRandom = new Random(seed);
+                    var trapExtraChance = pseudoRandom.NextSingle();
+                    var chestExtraChance = pseudoRandom.NextSingle();
+
+                    if (CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+                    {
+                        var trapRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                        if (trapRoll < 0.05 + (0.15 * trapExtraChance))
+                            DeployRandomTrap();
+                    }
+
+                    var chestRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                    if (chestRoll < 0.015 + (0.015 * chestExtraChance))
+                        DeployHiddenChest();
+                });
+                actionChain.EnqueueChain();
             }
         }
 
@@ -230,8 +238,30 @@ namespace ACE.Server.WorldObjects
             if (hiddenChest == null)
                 return;
 
-            hiddenChest.Location = Location.InFrontOf(-1, true);
+            var chestLocation = new Position(Location);
+            if (PropertyManager.GetBool("pathfinding").Item && Location.Indoors)
+            {
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Wide);
+                if (randomPos != null)
+                    chestLocation = randomPos;
+                else
+                    chestLocation = chestLocation.InFrontOf(-1);
+
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Narrow, out _, true);
+                if (randomPos != null)
+                    chestLocation = randomPos;
+                else
+                {
+                    var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)ThreadSafeRandom.Next(0f, (float)(2 * Math.PI)));
+                    chestLocation.Rotation = Quaternion.Normalize(rotation);
+                }
+            }
+            else
+                chestLocation = chestLocation.InFrontOf(-1, true);
+
+            hiddenChest.Location = chestLocation;
             hiddenChest.Location.LandblockId = new LandblockId(hiddenChest.Location.GetCell());
+
             hiddenChest.Generator = this;
             hiddenChest.Tier = tier;
             hiddenChest.ResistAwareness = (int)(unmodTier * 65);
@@ -267,8 +297,33 @@ namespace ACE.Server.WorldObjects
             var trapObject = WorldObjectFactory.CreateNewWorldObject(50143);
             var trapTrigger = WorldObjectFactory.CreateNewWorldObject(2131);
 
-            trapObject.Location = Location.InFrontOf(8);
-            trapObject.Location.PositionZ += 2;
+            var triggerLocation = new Position(Location);
+            if (PropertyManager.GetBool("pathfinding").Item && Location.Indoors)
+            {
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(triggerLocation, 40, AgentWidth.Narrow);
+                if (randomPos != null)
+                    triggerLocation = randomPos;
+                else
+                    triggerLocation = triggerLocation.InFrontOf(2);
+            }
+            else
+                triggerLocation = triggerLocation.InFrontOf(2);
+
+            var trapLocation = new Position(triggerLocation);
+            if (PropertyManager.GetBool("pathfinding").Item && Location.Indoors)
+            {
+                var randomPos = Pathfinder.GetNearestWallPosition(trapLocation, 20, AgentWidth.Narrow, out _);
+                if (randomPos != null)
+                    trapLocation = randomPos;
+                else
+                    trapLocation = trapLocation.InFrontOf(8);
+            }
+            else
+                trapLocation = trapLocation.InFrontOf(8);
+            trapLocation.Rotate(GetDirection(trapLocation.ToGlobal(), triggerLocation.ToGlobal()));
+
+            trapObject.Location = trapLocation;
+            trapObject.Location.PositionZ += 2.5f;
             trapObject.Location.LandblockId = new LandblockId(trapObject.Location.GetCell());
             trapObject.Generator = this;
             var tier = RollTier();
@@ -278,7 +333,7 @@ namespace ACE.Server.WorldObjects
 
             if (trapObject.EnterWorld())
             {
-                trapTrigger.Location = Location.InFrontOf(2);
+                trapTrigger.Location = triggerLocation;
                 trapTrigger.Location.LandblockId = new LandblockId(trapTrigger.Location.GetCell());
                 trapTrigger.ActivationTarget = trapObject.Guid.Full;
                 trapTrigger.Generator = this;

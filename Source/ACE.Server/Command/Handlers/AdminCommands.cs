@@ -4990,7 +4990,7 @@ namespace ACE.Server.Command.Handlers
         }
 
         [CommandHandler("RefreshExpMarkers", AccessLevel.Admin, CommandHandlerFlag.RequiresWorld, "")]
-        public static void RefreshExpMarkers(Session session, params string[] parameters)
+        public static void HandleRefreshExpMarkers(Session session, params string[] parameters)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
