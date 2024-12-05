@@ -743,7 +743,7 @@ namespace ACE.Server.WorldObjects
             {
                 CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Wide);
 
-                if(CurrentRoute == null || CurrentRoute.Count == 0)
+                if (CurrentRoute == null || CurrentRoute.Count == 0)
                     CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Narrow); // If no route found on the wide mesh try the narrow mesh.
                 else if (AttackTarget.Location.DistanceTo(CurrentRoute[CurrentRoute.Count - 1]) > 2f)
                     CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Narrow); // If a route is found but it does not lead all the way then also try the narrow mesh.
@@ -767,15 +767,21 @@ namespace ACE.Server.WorldObjects
             RoutePositionTarget = null;
             CurrentRouteIndex = 0;
 
-            ContinueRoute();
+            PendingContinueRoute = true;
         }
 
         private void ContinueRoute(bool retry = false)
         {
+            if (!MoveReady())
+                return;
+
             if (DebugMove && !retry)
                 Console.WriteLine($"{Name} ({Guid}).ContinueRoute()");
 
-            PendingContinueRoute = false;
+            if(retry)
+                PendingRetryRoute = false;
+            else
+                PendingContinueRoute = false;
 
             if (AttackTarget == null || AttackTarget != RouteAttackTarget || CurrentRoute == null)
             {
@@ -798,17 +804,44 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                if (CurrentRouteIndex == 0 && CurrentRoute.Count > 1 && Location.DistanceTo(CurrentRoute[0]) < 1.0f)
-                    CurrentRouteIndex++;
+                for (var skipIndex = CurrentRouteIndex; skipIndex < CurrentRoute.Count; skipIndex++)
+                {
+                    // Skip insignificant distance steps.
+                    if (Location.DistanceTo(CurrentRoute[skipIndex]) > 2.0f)
+                    {
+                        CurrentRouteIndex = skipIndex;
+                        break;
+                    }
+                }
 
                 RoutePositionTarget = CurrentRoute[CurrentRouteIndex];
                 CurrentRouteIndex++;
             }
-
-            if (Location.DistanceTo(RoutePositionTarget) < 1.0f)
+            else
             {
-                ContinueRoute();
-                return;
+                int retryIndex;
+                Position retryPos = RoutePositionTarget;
+                for(retryIndex = Math.Max(CurrentRouteIndex - 1, 0); retryIndex > 0; retryIndex--)
+                {
+                    // Rewind our route to the previous significant distance step.
+                    retryPos = CurrentRoute[retryIndex];
+                    if (Location.DistanceTo(retryPos) > 2.0f)
+                        continue;
+                    else
+                        break;
+                }
+
+                var nearbyWallPos = Pathfinder.GetNearestWallPosition(retryPos, 1.0f, AgentWidth.Narrow, out _, false);
+                if (nearbyWallPos != null)
+                {
+                    var wallAvoidingPos = nearbyWallPos.InFrontOf(1.2f);
+                    if (HasPendingMovement)
+                        CancelMoveTo(WeenieError.ObjectGone);
+                    FailedSightCount = 0;
+
+                    MoveTo(wallAvoidingPos, 0.6f, 1.0f, false);
+                    return;
+                }
             }
 
             if (HasPendingMovement)
@@ -823,7 +856,6 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).RetryRoute()");
 
-            PendingRetryRoute = false;
             ContinueRoute(true);
         }
 

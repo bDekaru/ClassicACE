@@ -167,6 +167,9 @@ namespace ACE.Server.Pathfinding
 
             query.FindRandomPointWithinCircle(startRef, startPt, radius, m_filter, frand, out long randomRef, out var randomPt);
 
+            if (randomPt.X == 0 && randomPt.Y == 0 && randomPt.Z == 0)
+                return null;
+
             return new Position(location.Cell, new Vector3(randomPt.X, randomPt.Z, randomPt.Y), Quaternion.Identity);
         }
 
@@ -186,7 +189,10 @@ namespace ACE.Server.Pathfinding
 
             var startStatus = query.FindNearestPoly(new RcVec3f(location.PositionX, location.PositionZ, location.PositionY), halfExtents, m_filter, out long startRef, out var startPt, out bool isStartOverPoly);
 
-            var queryStatus = query.FindDistanceToWall(startRef, startPt, radius, m_filter, out distance, out var wallPt, out var wallNormal);
+            query.FindDistanceToWall(startRef, startPt, radius, m_filter, out distance, out var wallPt, out var wallNormal);
+
+            if (wallPt.X == 0 && wallPt.Y == 0 && wallPt.Z == 0 && wallNormal.X == 0 && wallNormal.Y == 0 && wallNormal.Z == 0)
+                return null;
 
             var position = new Position(location.Cell, new Vector3(wallPt.X, wallPt.Z, wallPt.Y), Quaternion.Identity);
 
