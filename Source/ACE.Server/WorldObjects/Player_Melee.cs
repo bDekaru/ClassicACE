@@ -139,7 +139,8 @@ namespace ACE.Server.WorldObjects
 
             // reset PrevMotionCommand / DualWieldAlternate each time button is clicked
             PrevMotionCommand = MotionCommand.Invalid;
-            DualWieldAlternate = false;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                DualWieldAlternate = false;
 
             var attackSequence = ++AttackSequence;
 
