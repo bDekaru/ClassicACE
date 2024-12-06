@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-
+using ACE.Common;
 using ACE.DatLoader.Entity.AnimationHooks;
 using ACE.Entity.Enum;
 using ACE.Server.Entity;
@@ -45,6 +45,8 @@ namespace ACE.Server.WorldObjects
         }
 
         public AttackQueue AttackQueue;
+
+        private double NextDualWieldAlternateReset;
 
         /// <summary>
         /// Called when a player first initiates a melee attack
@@ -139,7 +141,7 @@ namespace ACE.Server.WorldObjects
 
             // reset PrevMotionCommand / DualWieldAlternate each time button is clicked
             PrevMotionCommand = MotionCommand.Invalid;
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || NextDualWieldAlternateReset < Time.GetUnixTime())
                 DualWieldAlternate = false;
 
             var attackSequence = ++AttackSequence;
@@ -506,7 +508,10 @@ namespace ACE.Server.WorldObjects
         public float DoSwingMotion(WorldObject target, out List<(float time, AttackHook attackHook)> attackFrames)
         {
             if (IsDualWieldAttack)
+            {
                 DualWieldAlternate = !DualWieldAlternate;
+                NextDualWieldAlternateReset = Time.GetFutureUnixTime(4);
+            }
 
             // get the proper animation speed for this attack,
             // based on weapon speed and player quickness
