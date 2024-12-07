@@ -521,13 +521,14 @@ namespace ACE.Server.WorldObjects
                 animSpeedMod = IsDualWieldAttack ? 1.2f : 1.0f;     // dual wield swing animation 20% faster
             else
             {
-                var weapon = GetEquippedMeleeWeapon();
-                if (weapon != null && weapon.WeaponSkill == Skill.Dagger && weapon.W_AttackType.IsMultiStrike())
-                    animSpeedMod = 1.8f;
-                else if (GetEquippedOffHand() == null && !TwoHandedCombat)
+                if (GetEquippedOffHand() == null && !TwoHandedCombat)
                     animSpeedMod = 1.2f;
                 else
                     animSpeedMod = 1.0f;
+
+                var weapon = GetEquippedMeleeWeapon();
+                if (weapon != null && weapon.WeaponSkill == Skill.Dagger && weapon.W_AttackType.IsMultiStrike())
+                    animSpeedMod += 0.8f;
             }
 
             var animSpeed = baseSpeed * animSpeedMod;

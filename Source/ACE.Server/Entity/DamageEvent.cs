@@ -713,8 +713,14 @@ namespace ACE.Server.Entity
                     if (defenderTechnique != null && defenderTechnique.TacticAndTechniqueId == (int)TacticAndTechniqueType.Reckless)
                         return 0.0f; // No evasion while using Reckless technique.
 
+                    var evadeMod = 1.0f;
                     if (playerDefender != null && playerDefender.AttackHeight == AttackHeight.Low) // While using low height attacks players get an extra defence skill bonus.
-                        EffectiveDefenseSkill = (uint)Math.Round(EffectiveDefenseSkill * 1.10f);
+                        evadeMod += 0.1f;
+
+                    if (playerDefender.GetEquippedOffHand() == null) // Having a free off-hand will grant players an extra defence skill bonus.
+                        evadeMod += 0.1f;
+
+                    EffectiveDefenseSkill = (uint)Math.Round(EffectiveDefenseSkill * evadeMod);
                 }
 
                 // Evasion penalty for receiving too many attacks per second.

@@ -382,7 +382,22 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine($"{maneuver.Style} - {maneuver.Motion} - {maneuver.AttackHeight}");
 
             var baseSpeed = GetAnimSpeed();
-            var animSpeedMod = IsDualWieldAttack ? 1.2f : 1.0f;     // dual wield swing animation 20% faster
+
+            float animSpeedMod;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                animSpeedMod = IsDualWieldAttack ? 1.2f : 1.0f;     // dual wield swing animation 20% faster
+            else
+            {
+                if (GetEquippedOffHand() == null && !TwoHandedCombat)
+                    animSpeedMod = 1.2f;
+                else
+                    animSpeedMod = 1.0f;
+
+                var weapon = GetEquippedMeleeWeapon();
+                if (weapon != null && weapon.WeaponSkill == Skill.Dagger && weapon.W_AttackType.IsMultiStrike())
+                    animSpeedMod += 0.8f;
+            }
+
             var animSpeed = baseSpeed * animSpeedMod;
 
             animLength = MotionTable.GetAnimationLength(MotionTableId, CurrentMotionState.Stance, motionCommand, animSpeed);
