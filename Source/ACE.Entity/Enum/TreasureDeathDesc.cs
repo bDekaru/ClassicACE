@@ -126,6 +126,13 @@ namespace ACE.Entity.Enum
         T3_Magic = 462,
         T2_Magic = 463,
         T5_Magic = 464,
-        T1_Magic = 465
+        T1_Magic = 465,
+        //CustomDM
+        T1_TreasureChest = 1000,
+        T2_TreasureChest = 1001,
+        T3_TreasureChest = 1002,
+        T4_TreasureChest = 1003,
+        T5_TreasureChest = 1004,
+        T6_TreasureChest = 1005,
     }
 }

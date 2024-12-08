@@ -508,6 +508,18 @@ namespace ACE.Database
         // Encounter
         // =====================================
 
+        public List<Encounter> GetEncountersByWcid(uint wcid)
+        {
+            using (var context = new WorldDbContext())
+            {
+                var results = context.Encounter
+                    .AsNoTracking()
+                    .Where(r => r.WeenieClassId == wcid)
+                    .ToList();
+
+                return results;
+            }
+        }
 
         // =====================================
         // Event

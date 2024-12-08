@@ -222,39 +222,44 @@ namespace ACE.Server.Factories
                 if (deathTreasure == null)
                     return deathTreasure;
 
-                if (tweakedFor is Container container)
+                if (deathTreasure.TreasureType < 1000)// leave custom deathTreasures unmodified
                 {
-                    // Some overrides to make chests more interesting, ideally this should be done in the data but as a quick tweak this will do.
-                    tweakedDeathTreasure = new TreasureDeathExtended(deathTreasure);
-                    tweakedDeathTreasure.ForContainer = true;
+                    if (tweakedFor is Container container)
+                    {
+                        // Some overrides to make chests more interesting, ideally this should be done in the data but as a quick tweak this will do.
+                        tweakedDeathTreasure = new TreasureDeathExtended(deathTreasure);
+                        tweakedDeathTreasure.ForContainer = true;
 
-                    if (container.ResistAwareness.HasValue && tweakedDeathTreasure.LootQualityMod < 0.4f)
-                        tweakedDeathTreasure.LootQualityMod = 0.4f;
-                    else if (tweakedDeathTreasure.LootQualityMod < 0.2f)
-                        tweakedDeathTreasure.LootQualityMod = 0.2f;
+                        if (container.ResistAwareness.HasValue && tweakedDeathTreasure.LootQualityMod < 0.4f)
+                            tweakedDeathTreasure.LootQualityMod = 0.4f;
+                        else if (tweakedDeathTreasure.LootQualityMod < 0.2f)
+                            tweakedDeathTreasure.LootQualityMod = 0.2f;
 
-                    tweakedDeathTreasure.MundaneItemChance = 0;
+                        tweakedDeathTreasure.MundaneItemChance = 0;
 
-                    if (tweakedDeathTreasure.ItemMaxAmount == 1)
-                        tweakedDeathTreasure.ItemMaxAmount = 3;
-                    tweakedDeathTreasure.ItemMaxAmount = (int)Math.Ceiling(tweakedDeathTreasure.ItemMaxAmount * 1.5f);
+                        if (tweakedDeathTreasure.ItemMaxAmount == 1)
+                            tweakedDeathTreasure.ItemMaxAmount = 3;
+                        tweakedDeathTreasure.ItemMaxAmount = (int)Math.Ceiling(tweakedDeathTreasure.ItemMaxAmount * 1.5f);
 
-                    if (tweakedDeathTreasure.MagicItemMaxAmount == 1)
-                        tweakedDeathTreasure.MagicItemMaxAmount = 3;
-                    tweakedDeathTreasure.MagicItemMaxAmount = (int)Math.Ceiling(tweakedDeathTreasure.MagicItemMaxAmount * 1.5);
+                        if (tweakedDeathTreasure.MagicItemMaxAmount == 1)
+                            tweakedDeathTreasure.MagicItemMaxAmount = 3;
+                        tweakedDeathTreasure.MagicItemMaxAmount = (int)Math.Ceiling(tweakedDeathTreasure.MagicItemMaxAmount * 1.5);
 
-                    return tweakedDeathTreasure;
-                }
-                else if (tweakedFor is GenericObject generic && generic.GeneratorProfiles != null) // Ground item spawners
-                {
-                    tweakedDeathTreasure = new TreasureDeathExtended(deathTreasure);
-                    if (tweakedDeathTreasure.LootQualityMod < 0.2f)
-                        tweakedDeathTreasure.LootQualityMod = 0.2f;
+                        return tweakedDeathTreasure;
+                    }
+                    else if (tweakedFor is GenericObject generic && generic.GeneratorProfiles != null) // Ground item spawners
+                    {
+                        tweakedDeathTreasure = new TreasureDeathExtended(deathTreasure);
+                        if (tweakedDeathTreasure.LootQualityMod < 0.2f)
+                            tweakedDeathTreasure.LootQualityMod = 0.2f;
 
-                    if(tweakedDeathTreasure.ItemChance != 0 || tweakedDeathTreasure.MagicItemChance != 0)
-                        tweakedDeathTreasure.MundaneItemChance = 0; // If we can spawn something besides mundanes suppress mundane items.
+                        if (tweakedDeathTreasure.ItemChance != 0 || tweakedDeathTreasure.MagicItemChance != 0)
+                            tweakedDeathTreasure.MundaneItemChance = 0; // If we can spawn something besides mundanes suppress mundane items.
 
-                    return tweakedDeathTreasure;
+                        return tweakedDeathTreasure;
+                    }
+                    else
+                        return deathTreasure;
                 }
                 else
                     return deathTreasure;

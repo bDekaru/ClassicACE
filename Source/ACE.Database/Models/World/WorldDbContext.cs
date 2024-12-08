@@ -186,9 +186,7 @@ public partial class WorldDbContext : DbContext
 
         modelBuilder.Entity<ExplorationSite>(entity =>
         {
-            entity.ToTable("exploration_sites");
-
-            entity.HasComment("List of Exploration Sites");
+            entity.ToTable("exploration_sites", tb => tb.HasComment("List of Exploration Sites"));
 
             entity.HasIndex(e => e.Level, "level_idx");
 

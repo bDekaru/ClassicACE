@@ -516,5 +516,101 @@ namespace ACE.Entity
         {
             return Cell == p.Cell && Pos.Equals(p.Pos) && Rotation.Equals(p.Rotation);
         }
+
+        public string GetCardinalDirectionsTo(Position p)
+        {
+            var offset = GetOffset(p);
+
+            var minDist = 2;
+            var aBitDistance = 200;
+            var aBitThresholdDistance = 400;
+            var farDistance = 900;
+            var veryFarDistance = 1800;
+
+            var isNorthSouth = false;
+            var isEastWest = false;
+
+            var directionEastWestString = "";
+            if (offset.X > minDist)
+            {
+                isEastWest = true;
+                directionEastWestString += "east";
+            }
+            else if (offset.X < -minDist)
+            {
+                isEastWest = true;
+                directionEastWestString += "west";
+            }
+
+            var directionNorthSouthString = "";
+            if (offset.Y > minDist)
+            {
+                isNorthSouth = true;
+                directionNorthSouthString += "north";
+            }
+            else if (offset.Y < -minDist)
+            {
+                isNorthSouth = true;
+                directionNorthSouthString += "south";
+            }
+
+            if (directionEastWestString.Length == 0 && directionNorthSouthString.Length == 0)
+                return "";
+            else
+            {
+                var eastWestDist = Math.Abs(offset.X);
+                var northSouthDist = Math.Abs(offset.Y);
+
+                if (northSouthDist > aBitThresholdDistance && eastWestDist < aBitDistance)
+                    isEastWest = false;
+                else if (eastWestDist > aBitThresholdDistance && northSouthDist < aBitDistance)
+                    isNorthSouth = false;
+
+                string eastWestDistanceString = "";
+                if (isEastWest)
+                {
+                    if (eastWestDist < aBitDistance)
+                        eastWestDistanceString = "a bit to the ";
+                    else if (eastWestDist < farDistance)
+                        eastWestDistanceString = "";
+                    else if (eastWestDist < veryFarDistance)
+                        eastWestDistanceString = "far to the ";
+                    else
+                        eastWestDistanceString = "very far to the ";
+                }
+
+                string northSouthDistanceString = "";
+                if (isNorthSouth)
+                {
+                    if (northSouthDist < aBitDistance)
+                        northSouthDistanceString = "a bit to the ";
+                    else if (northSouthDist < farDistance)
+                        northSouthDistanceString = "";
+                    else if (northSouthDist < veryFarDistance)
+                        northSouthDistanceString = "far to the ";
+                    else
+                        northSouthDistanceString = "very far to the ";
+                }
+
+                string direction;
+                if (isEastWest && isNorthSouth)
+                {
+                    if (eastWestDistanceString == northSouthDistanceString)
+                        direction = $"{northSouthDistanceString}{directionNorthSouthString}{directionEastWestString}";
+                    else if (northSouthDist > eastWestDist)
+                        direction = $"{northSouthDistanceString}{directionNorthSouthString} and {eastWestDistanceString}{directionEastWestString}";
+                    else
+                        direction = $"{eastWestDistanceString}{directionEastWestString} and {northSouthDistanceString}{directionNorthSouthString}";
+                }
+                else if (isEastWest && !isNorthSouth)
+                    direction = $"{eastWestDistanceString}{directionEastWestString}";
+                else if (isNorthSouth && !isEastWest)
+                    direction = $"{northSouthDistanceString}{directionNorthSouthString}";
+                else
+                    direction = "";
+
+                return direction;
+            }
+        }
     }
 }

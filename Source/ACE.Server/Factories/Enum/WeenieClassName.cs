@@ -41896,6 +41896,7 @@ namespace ACE.Server.Factories.Enum
         pkTrophyHigh = 50184,
         pkTrophyExtreme = 50185,
         ringHardcore = 50189,
-        pathfinderHelper = 50201
+        pathfinderHelper = 50201,
+        treasureMap = 50206
     }
 }

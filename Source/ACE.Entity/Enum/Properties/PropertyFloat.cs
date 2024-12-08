@@ -242,6 +242,10 @@ namespace ACE.Entity.Enum.Properties
         VendorIncomeDecayTimestamp     = 10015,
         [ServerOnly]
         VitaeDecayTimestamp            = 10016,
+        [ServerOnly]
+        NSCoordinates                  = 10017,
+        [ServerOnly]
+        EWCoordinates                  = 10018,
     }
 
     public static class PropertyFloatExtensions

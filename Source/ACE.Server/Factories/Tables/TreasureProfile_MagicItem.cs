@@ -343,7 +343,6 @@ namespace ACE.Server.Factories.Tables
                 {
                     ( TreasureItemType_Orig.Jewelry,            1.0f ),
                     ( TreasureItemType_Orig.Gem,                1.0f ),
-                    ( TreasureItemType_Orig.ArtObject,          1.0f ),
                 };
 
                 magicItemProfile12 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)

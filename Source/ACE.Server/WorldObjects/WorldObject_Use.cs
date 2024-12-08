@@ -29,7 +29,7 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.ResetInterval); else SetProperty(PropertyFloat.ResetInterval, value.Value); }
         }
 
-        protected bool DefaultLocked
+        public bool DefaultLocked
         {
             get => GetProperty(PropertyBool.DefaultLocked) ?? false;
             set { if (!value) RemoveProperty(PropertyBool.DefaultLocked); else SetProperty(PropertyBool.DefaultLocked, value); }

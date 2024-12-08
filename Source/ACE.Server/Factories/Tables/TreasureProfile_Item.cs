@@ -182,6 +182,12 @@ namespace ACE.Server.Factories.Tables
                     ( TreasureItemType_Orig.Armor,     1.0f ),
                 };
 
+                itemProfile11 = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+                {
+                    ( TreasureItemType_Orig.Jewelry,   2.0f ),
+                    ( TreasureItemType_Orig.Gem,       1.0f ),
+                };
+
                 // we have to refresh this list or it will still contain the previous values.
                 itemProfiles = new List<ChanceTable<TreasureItemType_Orig>>()
                 {

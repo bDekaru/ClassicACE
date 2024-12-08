@@ -827,6 +827,16 @@ namespace ACE.Server.WorldObjects
 
                     DoCantripLogging(killer, wo);
                 }
+
+                if (CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+                {
+                    if (IsMonster && 0.002 > ThreadSafeRandom.Next(0.0f, 1.0f))
+                    {
+                        var map = TreasureMap.TryCreateTreasureMap(this);
+                        if (map != null)
+                            corpse.TryAddToInventory(map);
+                    }
+                }
             }
 
             // move wielded treasure over, which also should include Wielded objects not marked for destroy on death.

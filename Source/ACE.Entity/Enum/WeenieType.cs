@@ -77,5 +77,6 @@ namespace ACE.Entity.Enum
         LeyLineAmulet,
         SpellConduit,
         SpellTransferScroll,
+        TreasureMap,
     }
 }

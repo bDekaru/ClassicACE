@@ -639,27 +639,6 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public int RollTier()
-        {
-            return RollTier(Tier ?? 1);
-        }
-
-        public int RollTier(double extendedTier)
-        {
-            var extendedTierClamped = Math.Clamp(extendedTier, 1, 6);
-
-            var tierLevelUpChance = extendedTierClamped % 1;
-            var tierLevelUpRoll = ThreadSafeRandom.NextInterval(0);
-
-            int tier;
-            if (tierLevelUpRoll < tierLevelUpChance || GetCreatureVital(PropertyAttribute2nd.Health).MaxValue >= 1500)
-                tier = (int)Math.Ceiling(extendedTierClamped);
-            else
-                tier = (int)Math.Floor(extendedTierClamped);
-
-            return tier;
-        }
-
         public double CalculateExtendedTier()
         {
             return CalculateExtendedTier(Level ?? 1);
