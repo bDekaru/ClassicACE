@@ -127,18 +127,35 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (AwakeJustToGrantPassage)
+            {
+                if (IsGrantPassagePending)
+                    GrantPassage();
+                if (IsGrantingPassage || IsGrantPassagePending)
+                {
+                    if (PendingEndGrantPassage)
+                    {
+                        EndGrantPassage(false);
+                        if (PendingEndGrantPassage)
+                            return;
+                    }
+                    else
+                        return;
+                }
+                return;
+            }
+
             CheckMissHome();    // tickrate?
 
             if (IsMoveToHomePending)
                 return;
 
-            if (!AwakeJustToGrantPassage)
-                HandleFindTarget();
+            HandleFindTarget();
 
             if (IsMoveToHomePending)
                 return;
 
-            if (AttackTarget == null && !AwakeJustToGrantPassage)
+            if (AttackTarget == null)
             {
                 TryMoveToHome();
                 return;
@@ -166,7 +183,7 @@ namespace ACE.Server.WorldObjects
             }
 
             var distanceToTarget = GetDistanceToTarget();
-            if (MonsterState == State.Awake && !AwakeJustToGrantPassage && distanceToTarget >= MaxChaseRange)
+            if (MonsterState == State.Awake && distanceToTarget >= MaxChaseRange)
             {
                 if (HasPendingMovement)
                     CancelMoveTo(WeenieError.ObjectGone);
@@ -219,65 +236,62 @@ namespace ACE.Server.WorldObjects
             {
                 PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
 
-                if (!AwakeJustToGrantPassage)
+                isMeleeVisible = IsMeleeVisible(AttackTarget);
+                isDirectiVisible = IsDirectVisible(AttackTarget);
+
+                if (isMelee)
+                    isInSight = isMeleeVisible;
+                else
+                    isInSight = isDirectiVisible;
+
+                if ((isMelee && isInSight) || (!isMelee && isInSight && inRange))
                 {
-                    isMeleeVisible = IsMeleeVisible(AttackTarget);
-                    isDirectiVisible = IsDirectVisible(AttackTarget);
+                    FailedSightCount = 0;
 
-                    if (isMelee)
-                        isInSight = isMeleeVisible;
-                    else
-                        isInSight = isDirectiVisible;
-
-                    if ((isMelee && isInSight) || (!isMelee && isInSight && inRange))
+                    if (IsEmotePending || IsRouteStartPending || IsEmoting || IsRouting)
                     {
-                        FailedSightCount = 0;
+                        // If we can see our target abort everything and go for it.
+                        if (DebugMove)
+                            Console.WriteLine($"{Name} ({Guid}) Target in Sight!");
 
-                        if (IsEmotePending || IsRouteStartPending || IsEmoting || IsRouting)
-                        {
-                            // If we can see our target abort everything and go for it.
-                            if (DebugMove)
-                                Console.WriteLine($"{Name} ({Guid}) Target in Sight!");
+                        IsEmotePending = false;
+                        IsWanderingPending = false;
+                        IsRouteStartPending = false;
 
-                            IsEmotePending = false;
-                            IsWanderingPending = false;
-                            IsRouteStartPending = false;
+                        // Figure out a way to cancel motions so they will actually stop mid-play client-side. MotionCommand.Dead does it but I haven't been able to figure out why.
+                        //if (IsEmoting)
+                        //    PendingEndEmoting = true;
 
-                            // Figure out a way to cancel motions so they will actually stop mid-play client-side. MotionCommand.Dead does it but I haven't been able to figure out why.
-                            //if (IsEmoting)
-                            //    PendingEndEmoting = true;
+                        if (IsWandering)
+                            PendingEndWandering = true;
 
-                            if (IsWandering)
-                                PendingEndWandering = true;
-
-                            if (IsRouting)
-                                PendingEndRoute = true;
-                        }
-                        else if(!isMelee && isInSight && inRangeToStop && IsMoving && !IsTurning && !IsWandering) // Not necessary for melee as the range is close enough to the target that we never have to cancel the moveTo.
-                        {
-                            if (DebugMove)
-                                Console.WriteLine($"{Name} ({Guid}) Target in Range!");
-
-                            if (HasPendingMovement)
-                                CancelMoveTo(WeenieError.ObjectGone);
-                        }
+                        if (IsRouting)
+                            PendingEndRoute = true;
                     }
-                    else if (!isMelee && isInSight && !inRange)
+                    else if (!isMelee && isInSight && inRangeToStop && IsMoving && !IsTurning && !IsWandering) // Not necessary for melee as the range is close enough to the target that we never have to cancel the moveTo.
                     {
                         if (DebugMove)
-                            Console.WriteLine($"{Name} ({Guid}) Target Out of Range!");
-                    }
-                    else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
-                    {
-                        FailedSightCount++;
-                        if (FailedSightCount >= FailedSightThreshold && HasPendingMovement)
-                        {
-                            if (DebugMove)
-                                Console.WriteLine($"{Name} ({Guid}) Target Lost!");
+                            Console.WriteLine($"{Name} ({Guid}) Target in Range!");
 
-                            if (HasPendingMovement)
-                                CancelMoveTo(WeenieError.ObjectGone);
-                        }
+                        if (HasPendingMovement)
+                            CancelMoveTo(WeenieError.ObjectGone);
+                    }
+                }
+                else if (!isMelee && isInSight && !inRange)
+                {
+                    if (DebugMove)
+                        Console.WriteLine($"{Name} ({Guid}) Target Out of Range!");
+                }
+                else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
+                {
+                    FailedSightCount++;
+                    if (FailedSightCount >= FailedSightThreshold && HasPendingMovement)
+                    {
+                        if (DebugMove)
+                            Console.WriteLine($"{Name} ({Guid}) Target Lost!");
+
+                        if (HasPendingMovement)
+                            CancelMoveTo(WeenieError.ObjectGone);
                     }
                 }
 
@@ -315,9 +329,6 @@ namespace ACE.Server.WorldObjects
                     else
                         return;
                 }
-
-                if (AwakeJustToGrantPassage)
-                    return;
 
                 if (IsWanderingPending)
                     Wander();
