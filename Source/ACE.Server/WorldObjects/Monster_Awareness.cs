@@ -41,7 +41,7 @@ namespace ACE.Server.WorldObjects
 
             if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
             {
-                if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && (!IsDirectVisible(AttackTarget) || GetDistanceToTarget() > GetMaxMissileRange())))
+                if ((!IsRanged && !IsMeleeVisible(AttackTarget, true)) || (IsRanged && (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())))
                     TryRoute();
             }
         }
@@ -166,7 +166,7 @@ namespace ACE.Server.WorldObjects
             var manaCost = 2; // Taunting uses mana!
 
             Player target = AttackTarget as Player;
-            if (target != null && target.IsAttemptingToTaunt && IsDirectVisible(target))
+            if (target != null && target.IsAttemptingToTaunt && IsDirectVisible(target, true))
             {
                 // Current target is already trying to taunt and is visible, so he has priority over everyone else and we also skip the activation chance step.
 
@@ -219,7 +219,7 @@ namespace ACE.Server.WorldObjects
                 {
                     if (target.Mana.Current < manaCost)
                         continue;
-                    if (!IsDirectVisible(target))
+                    if (!IsDirectVisible(target, true))
                         continue;
 
                     Entity.CreatureSkill skill = target.GetCreatureSkill(Skill.Deception);
@@ -372,7 +372,7 @@ namespace ACE.Server.WorldObjects
 
                     if (PathfindingEnabled && Location.Indoors)
                     {
-                        if ((!IsRanged && !IsMeleeVisible(AttackTarget)) || (IsRanged && (!IsDirectVisible(AttackTarget) || GetDistanceToTarget() > GetMaxMissileRange())))
+                        if ((!IsRanged && !IsMeleeVisible(AttackTarget, true)) || (IsRanged && (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())))
                             TryRoute();
                     }
                 }

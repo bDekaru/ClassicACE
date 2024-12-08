@@ -325,7 +325,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns TRUE if this object has direct line-of-sight visibility to input object
         /// </summary>
-        public bool IsDirectVisible(WorldObject wo)
+        public bool IsDirectVisible(WorldObject wo, bool ethereal = false)
         {
             if (PhysicsObj == null || wo.PhysicsObj == null)
                 return false;
@@ -351,6 +351,9 @@ namespace ACE.Server.WorldObjects
             SightObj.CurCell = PhysicsObj.CurCell;
             SightObj.ProjectileTarget = wo.PhysicsObj;
 
+            if (ethereal)
+                SightObj.set_ethereal(true, false);
+
             // perform line of sight test
             var transition = SightObj.transition(startPos, targetPos, false);
 
@@ -363,7 +366,7 @@ namespace ACE.Server.WorldObjects
             return isVisible;
         }
 
-        public bool IsDirectVisible(Position pos)
+        public bool IsDirectVisible(Position pos, bool ethereal = false)
         {
             if (PhysicsObj == null)
                 return false;
@@ -389,6 +392,9 @@ namespace ACE.Server.WorldObjects
             SightObj.CurCell = PhysicsObj.CurCell;
             SightObj.ProjectileTarget = PhysicsObj;
 
+            if (ethereal)
+                SightObj.set_ethereal(true, false);
+
             // perform line of sight test
             var transition = SightObj.transition(targetPos, startPos, false);
 
@@ -401,7 +407,7 @@ namespace ACE.Server.WorldObjects
             return isVisible;
         }
 
-        public bool IsMeleeVisible(WorldObject wo)
+        public bool IsMeleeVisible(WorldObject wo, bool ethereal = false)
         {
             if (PhysicsObj == null || wo.PhysicsObj == null)
                 return false;
@@ -411,8 +417,15 @@ namespace ACE.Server.WorldObjects
 
             PhysicsObj.ProjectileTarget = wo.PhysicsObj;
 
+            bool isEthereal = PhysicsObj.State.HasFlag(PhysicsState.Ethereal);
+            if (ethereal && !isEthereal)
+                PhysicsObj.set_ethereal(true, false);
+
             // perform line of sight test
             var transition = PhysicsObj.transition(startPos, targetPos, false);
+
+            if (ethereal && !isEthereal)
+                PhysicsObj.set_ethereal(false, false);
 
             PhysicsObj.ProjectileTarget = null;
 

@@ -236,8 +236,8 @@ namespace ACE.Server.WorldObjects
             {
                 PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
 
-                isMeleeVisible = IsMeleeVisible(AttackTarget);
-                isDirectiVisible = IsDirectVisible(AttackTarget);
+                isMeleeVisible = IsMeleeVisible(AttackTarget, true);
+                isDirectiVisible = IsDirectVisible(AttackTarget, true);
 
                 if (isMelee)
                     isInSight = isMeleeVisible;

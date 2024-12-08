@@ -421,7 +421,7 @@ namespace ACE.Server.WorldObjects
 
                 if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
                 {
-                    if (!IsMeleeVisible(AttackTarget))
+                    if (!IsMeleeVisible(AttackTarget, true))
                         TryRoute();
                 }
 
@@ -535,7 +535,7 @@ namespace ACE.Server.WorldObjects
 
                 if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
                 {
-                    if (!IsDirectVisible(AttackTarget) || GetDistanceToTarget() > GetMaxMissileRange())
+                    if (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())
                         TryRoute();
                 }
 
