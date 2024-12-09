@@ -4,11 +4,11 @@ using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity;
 using ACE.Entity.Enum;
-using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
+using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics.Common;
 using System;
@@ -164,6 +164,7 @@ namespace ACE.Server.WorldObjects
 
             wo.Name = $"{creature.Name}'s Treasure Map";
             wo.LongDesc = $"{wo.LongDesc}\n\nThe map was found in the corpse of a level {creature.Level} {creature.Name}.{(wo.DefaultLocked ? "\n\nThe map indicates that the treasure chest is locked." : "")}";
+            wo.Level = creature.Level;
             wo.Tier = tier;
             wo.EWCoordinates = coords.Value.X;
             wo.NSCoordinates = coords.Value.Y;
@@ -269,12 +270,14 @@ namespace ACE.Server.WorldObjects
                     if (!Damage.HasValue)
                         Damage = 0;
 
-                    if (Damage < 10)
+                    if (Damage < 7)
                     {
+                        string msg;
                         if (Damage == 0)
-                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You start to dig for treasure!", ChatMessageType.Broadcast));
+                            msg = "You start to dig for treasure!";
                         else
-                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You continue to dig for treasure!", ChatMessageType.Broadcast));
+                            msg = "You continue to dig for treasure!";
+
                         Damage++;
 
                         var animTime = DatManager.PortalDat.ReadFromDat<MotionTable>(player.MotionTableId).GetAnimationLength(MotionCommand.Pickup);
@@ -283,6 +286,9 @@ namespace ACE.Server.WorldObjects
                         actionChain.AddDelaySeconds(animTime);
                         actionChain.AddAction(player, () =>
                         {
+                            var level = Math.Min(player.Level ?? 1, Level ?? 1);
+                            player.EarnXP(-level - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
+
                             EnqueueBroadcast(new GameMessageSound(player.Guid, Sound.HitLeather1, 1.0f));
                             player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance));
 
@@ -297,31 +303,43 @@ namespace ACE.Server.WorldObjects
                     }
                     else
                     {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You unearth a treasure chest!", ChatMessageType.Broadcast));
-
-                        var tier = RollTier(Tier ?? 1);
-                        var treasureChest = WorldObjectFactory.CreateNewWorldObject(TreasureChests[tier - 1]);
-
-                        if (treasureChest == null)
-                            return;
-
-                        treasureChest.Location = player.Location.InFrontOf(1, false);
-
-                        treasureChest.Tier = tier;
-
-                        if (DefaultLocked)
-                            treasureChest.IsLocked = true;
-
-                        if (treasureChest.EnterWorld())
+                        var animTime = DatManager.PortalDat.ReadFromDat<MotionTable>(player.MotionTableId).GetAnimationLength(MotionCommand.Pickup);
+                        var actionChain = new ActionChain();
+                        actionChain.AddAction(player, () => player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance, MotionCommand.Pickup)));
+                        actionChain.AddDelaySeconds(animTime);
+                        actionChain.AddAction(player, () =>
                         {
-                            if (!player.TryConsumeFromInventoryWithNetworking(this, 1))
+                            var level = Math.Min(player.Level ?? 1, Level ?? 1);
+                            player.EarnXP(-level - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, "You unearth a treasure chest!", (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
+
+                            EnqueueBroadcast(new GameMessageSound(player.Guid, Sound.HitLeather1, 1.0f));
+                            player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance));
+
+                            var tier = RollTier(Tier ?? 1);
+                            var treasureChest = WorldObjectFactory.CreateNewWorldObject(TreasureChests[tier - 1]);
+
+                            if (treasureChest == null)
+                                return;
+
+                            treasureChest.Location = player.Location.InFrontOf(1, false);
+
+                            treasureChest.Tier = tier;
+
+                            if (DefaultLocked)
+                                treasureChest.IsLocked = true;
+
+                            if (treasureChest.EnterWorld())
                             {
-                                if (treasureChest != null)
-                                    treasureChest.Destroy();
+                                if (!player.TryConsumeFromInventoryWithNetworking(this, 1))
+                                {
+                                    if (treasureChest != null)
+                                        treasureChest.Destroy();
+                                }
                             }
-                        }
-                        else if (treasureChest != null)
-                            treasureChest.Destroy();
+                            else if (treasureChest != null)
+                                treasureChest.Destroy();
+                        });
+                        actionChain.EnqueueChain();
                     }
                 }
             }
