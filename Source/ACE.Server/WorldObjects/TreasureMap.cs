@@ -178,11 +178,14 @@ namespace ACE.Server.WorldObjects
             if (!(activator is Player player))
                 return;
 
+            player.SyncLocation();
+            player.EnqueueBroadcast(new GameMessageUpdatePosition(player));
+
             var position = new Position((float)(NSCoordinates ?? 0), (float)(EWCoordinates ?? 0f));
             position.AdjustMapCoords();
 
-            var distance = position.DistanceTo(player.Location);
-            if (distance > 3600)
+            var distance = Math.Abs(position.GetLargestOffset(player.Location));
+            if (distance > 5000)
             {
                 var animTime = DatManager.PortalDat.ReadFromDat<MotionTable>(player.MotionTableId).GetAnimationLength(MotionCommand.Reading);
                 var actionChain = new ActionChain();
@@ -235,23 +238,25 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                if (distance > 3f || !DamageMod.HasValue)
+                if (distance > 2 || !DamageMod.HasValue)
                 {
-                    var animTime = DatManager.PortalDat.ReadFromDat<MotionTable>(player.MotionTableId).GetAnimationLength(MotionCommand.Reading);
+                    var animTime = DatManager.PortalDat.ReadFromDat<MotionTable>(player.MotionTableId).GetAnimationLength(MotionCommand.ScanHorizon);
                     var actionChain = new ActionChain();
                     actionChain.AddAction(player, () => player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance, MotionCommand.ScanHorizon)));
                     actionChain.AddDelaySeconds(animTime);
                     actionChain.AddAction(player, () =>
                     {
+                        player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance));
+
                         var direction = player.Location.GetCardinalDirectionsTo(position);
 
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The treasure map points {(direction == "" ? "at" : $"{direction} of")} your current location.", ChatMessageType.Broadcast));
 
-                        if (distance <= 3 && !DamageMod.HasValue)
+                        if (distance <= 2 && !DamageMod.HasValue)
                         {
-                            player.EnqueueBroadcast(new GameMessageUpdatePosition(player));
                             DamageMod = 1;
                             player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance, MotionCommand.Cheer));
+                            player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance));
                         }
                         else
                             DamageMod = null;
@@ -265,8 +270,6 @@ namespace ACE.Server.WorldObjects
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You cannot dig for treasure while in combat!", ChatMessageType.Broadcast));
                         return;
                     }
-
-                    player.EnqueueBroadcast(new GameMessageUpdatePosition(player));
 
                     if (!Damage.HasValue)
                         Damage = 0;
@@ -287,11 +290,11 @@ namespace ACE.Server.WorldObjects
                         actionChain.AddDelaySeconds(animTime);
                         actionChain.AddAction(player, () =>
                         {
+                            player.EnqueueBroadcast(new GameMessageSound(player.Guid, Sound.HitLeather1, 1.0f));
+                            player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance));
+
                             var level = Math.Min(player.Level ?? 1, Level ?? 1);
                             player.EarnXP(-level - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
-
-                            EnqueueBroadcast(new GameMessageSound(player.Guid, Sound.HitLeather1, 1.0f));
-                            player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance));
 
                             var visibleCreatures = player.PhysicsObj.ObjMaint.GetVisibleObjectsValuesOfTypeCreature();
                             foreach (var creature in visibleCreatures)
@@ -310,11 +313,11 @@ namespace ACE.Server.WorldObjects
                         actionChain.AddDelaySeconds(animTime);
                         actionChain.AddAction(player, () =>
                         {
+                            player.EnqueueBroadcast(new GameMessageSound(player.Guid, Sound.HitPlate1, 1.0f));
+                            player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance));
+
                             var level = Math.Min(player.Level ?? 1, Level ?? 1);
                             player.EarnXP(-level - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, "You unearth a treasure chest!", (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
-
-                            EnqueueBroadcast(new GameMessageSound(player.Guid, Sound.HitLeather1, 1.0f));
-                            player.EnqueueBroadcastMotion(new Motion(player.CurrentMotionState.Stance));
 
                             var tier = RollTier(Tier ?? 1);
                             var treasureChest = WorldObjectFactory.CreateNewWorldObject(TreasureChests[tier - 1]);

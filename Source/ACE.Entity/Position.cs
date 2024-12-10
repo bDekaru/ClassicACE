@@ -517,11 +517,33 @@ namespace ACE.Entity
             return Cell == p.Cell && Pos.Equals(p.Pos) && Rotation.Equals(p.Rotation);
         }
 
+        public float GetLargestOffset(Position p)
+        {
+            var offset = GetOffset(p);
+            var absOffset = new Vector3(Math.Abs(offset.X), Math.Abs(offset.Y), Math.Abs(offset.Z));
+
+            if (absOffset.X > absOffset.Y)
+            {
+                if (absOffset.X > absOffset.Z)
+                    return offset.X;
+            }
+            else
+            {
+                if (absOffset.Y > absOffset.Z)
+                    return offset.Y;
+            }
+            return offset.Z;
+        }
+
         public string GetCardinalDirectionsTo(Position p)
         {
             var offset = GetOffset(p);
 
             var minDist = 2;
+            var aCoupleStepsDistance = 5;
+            var aCoupleStepsThresholdDistance = 10;
+            var aFewStepsDistance = 20;
+            var aFewStepsThresholdDistance = 40;
             var aBitDistance = 200;
             var aBitThresholdDistance = 400;
             var farDistance = 900;
@@ -561,7 +583,15 @@ namespace ACE.Entity
                 var eastWestDist = Math.Abs(offset.X);
                 var northSouthDist = Math.Abs(offset.Y);
 
-                if (northSouthDist > aBitThresholdDistance && eastWestDist < aBitDistance)
+                if (northSouthDist > aCoupleStepsThresholdDistance && eastWestDist < aCoupleStepsDistance)
+                    isEastWest = false;
+                else if (eastWestDist > aCoupleStepsThresholdDistance && northSouthDist < aCoupleStepsDistance)
+                    isNorthSouth = false;
+                else if (northSouthDist > aFewStepsThresholdDistance && eastWestDist < aFewStepsDistance)
+                    isEastWest = false;
+                else if (eastWestDist > aFewStepsThresholdDistance && northSouthDist < aFewStepsDistance)
+                    isNorthSouth = false;
+                else if (northSouthDist > aBitThresholdDistance && eastWestDist < aBitDistance)
                     isEastWest = false;
                 else if (eastWestDist > aBitThresholdDistance && northSouthDist < aBitDistance)
                     isNorthSouth = false;
@@ -569,7 +599,11 @@ namespace ACE.Entity
                 string eastWestDistanceString = "";
                 if (isEastWest)
                 {
-                    if (eastWestDist < aBitDistance)
+                    if (eastWestDist < aCoupleStepsDistance)
+                        eastWestDistanceString = "a couple steps to the ";
+                    else if (eastWestDist < aFewStepsDistance)
+                        eastWestDistanceString = "a few steps to the ";
+                    else if (eastWestDist < aBitDistance)
                         eastWestDistanceString = "a bit to the ";
                     else if (eastWestDist < farDistance)
                         eastWestDistanceString = "";
@@ -582,7 +616,11 @@ namespace ACE.Entity
                 string northSouthDistanceString = "";
                 if (isNorthSouth)
                 {
-                    if (northSouthDist < aBitDistance)
+                    if (northSouthDist < aCoupleStepsDistance)
+                        northSouthDistanceString = "a couple steps to the ";
+                    else if (northSouthDist < aFewStepsDistance)
+                        northSouthDistanceString = "a few steps to the ";
+                    else if (northSouthDist < aBitDistance)
                         northSouthDistanceString = "a bit to the ";
                     else if (northSouthDist < farDistance)
                         northSouthDistanceString = "";
