@@ -118,13 +118,14 @@ namespace ACE.Server.WorldObjects
             if (TreasureEncounters == null)
                 InitializeTreasureMaps();
 
-            var tier = creature.RollTier();
-            var index = tier - 1;
+            var landblockTier = (int)Math.Floor((float)(creature.Tier ?? 1));
+            var treatureTier = creature.RollTier();
+            var treasureEncounterIndex = landblockTier - 1;
 
-            if (TreasureEncounters.Count < index)
+            if (treasureEncounterIndex < 0 || TreasureEncounters.Count < treasureEncounterIndex)
                 return null;
 
-            var possibleEncounterWcids = TreasureEncounters[index];
+            var possibleEncounterWcids = TreasureEncounters[treasureEncounterIndex];
             if (possibleEncounterWcids.Count == 0)
                 return null;
 
@@ -165,7 +166,7 @@ namespace ACE.Server.WorldObjects
             wo.Name = $"{creature.Name}'s Treasure Map";
             wo.LongDesc = $"{wo.LongDesc}\n\nThe map was found in the corpse of a level {creature.Level} {creature.Name}.{(wo.DefaultLocked ? "\n\nThe map indicates that the treasure chest is locked." : "")}";
             wo.Level = creature.Level;
-            wo.Tier = tier;
+            wo.Tier = treatureTier;
             wo.EWCoordinates = coords.Value.X;
             wo.NSCoordinates = coords.Value.Y;
 
