@@ -71,6 +71,8 @@ namespace ACE.Entity.Models
                 if (casterGuid != null)
                     results = results.Where(e => e.CasterObjectId == casterGuid);
 
+                results = results.OrderByDescending(c => c.StartTime);
+
                 return results.FirstOrDefault();
             }
             finally

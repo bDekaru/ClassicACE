@@ -60,6 +60,16 @@ namespace ACE.Server.WorldObjects.Managers
             return WorldObject.Biota.PropertiesEnchantmentRegistry.HasEnchantment(spellId, WorldObject.BiotaDatabaseLock);
         }
 
+        public float GetEnchantmentDurationLeft(uint spellId, uint? casterGuid = null)
+        {
+            var spell = GetEnchantment(spellId, casterGuid);
+
+            if (spell == null)
+                return 0.0f;
+
+            return (float)(spell.Duration - Math.Abs(spell.StartTime));
+        }
+
         /// <summary>
         /// Returns the enchantments for a specific spell
         /// </summary>

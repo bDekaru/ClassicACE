@@ -88,7 +88,13 @@ namespace ACE.Server.WorldObjects
 
                 if (rng < probability)
                 {
-                    CurrentSpell = new Spell(spell.Key);
+                    var spellToCast = new Spell(spell.Key);
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && AttackTarget != null && !spellToCast.NotFound && !spellToCast.IsSelfTargeted && (spellToCast.MetaSpellType == SpellType.Enchantment || spellToCast.MetaSpellType == SpellType.EnchantmentProjectile))
+                    {
+                        if (AttackTarget.EnchantmentManager.GetEnchantmentDurationLeft(spellToCast.Id) > spellToCast.Duration / 3)
+                            continue; // Do not reapply currently active debuffs unless they are almost expiring.
+                    }
+                    CurrentSpell = spellToCast;
                     return true;
                 }
             }
@@ -122,7 +128,13 @@ namespace ACE.Server.WorldObjects
 
                 if (rng < probability)
                 {
-                    CurrentSpell = new Spell(spell.Key);
+                    var spellToCast = new Spell(spell.Key);
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && AttackTarget != null && !spellToCast.NotFound && !spellToCast.IsSelfTargeted && (spellToCast.MetaSpellType == SpellType.Enchantment || spellToCast.MetaSpellType == SpellType.EnchantmentProjectile))
+                    {
+                        if (AttackTarget.EnchantmentManager.GetEnchantmentDurationLeft(spellToCast.Id) > spellToCast.Duration / 3)
+                            continue; // Do not reapply currently active debuffs unless they are almost expiring.
+                    }
+                    CurrentSpell = spellToCast;
                     return true;
                 }
             }
