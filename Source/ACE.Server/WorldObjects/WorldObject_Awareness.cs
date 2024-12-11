@@ -77,6 +77,20 @@ namespace ACE.Server.WorldObjects
 
         public bool IsAware(Player player)
         {
+            if (WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker)
+            {
+                if (CurrentLandblock == null)
+                    return true;
+
+                var landblockId = CurrentLandblock.Id.Landblock;
+                if ((player.Exploration1LandblockId == landblockId && player.Exploration1MarkerProgressTracker > 0)
+                 || (player.Exploration2LandblockId == landblockId && player.Exploration2MarkerProgressTracker > 0)
+                 || (player.Exploration3LandblockId == landblockId && player.Exploration3MarkerProgressTracker > 0))
+                    return true;
+                else
+                    return false;
+            }
+
             if (AwareList == null)
                 return false;
 
