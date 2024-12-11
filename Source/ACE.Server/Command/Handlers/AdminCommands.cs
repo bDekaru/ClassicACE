@@ -5167,7 +5167,7 @@ namespace ACE.Server.Command.Handlers
         {
             if (session.Player == null)
                 return;
-            session.Player.RevertToBrandNewCharacter(true, true, true, true, true);
+            session.Player.RevertToBrandNewCharacter(true, true, true, false, false);
             CommandHandlerHelper.WriteOutputInfo(session, $"Reverted character to level 1.");
         }
 

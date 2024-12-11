@@ -473,7 +473,7 @@ namespace ACE.Server.WorldObjects
                     // Stand back up
                     SetCombatMode(CombatMode.NonCombat);
 
-                    RevertToBrandNewCharacter(false, true, true, true, true, true, (long)xpToRetain);
+                    RevertToBrandNewCharacter(false, PropertyManager.GetBool("hardcore_death_keep_allegiance").Item, PropertyManager.GetBool("hardcore_death_keep_housing").Item, PropertyManager.GetBool("hardcore_death_keep_bonded").Item, PropertyManager.GetBool("hardcore_death_keep_spells").Item, true, (long)xpToRetain);
 
                     var teleportChain = new ActionChain();
                     if (!IsLoggingOut) // If we're in the process of logging out, we skip the delay
