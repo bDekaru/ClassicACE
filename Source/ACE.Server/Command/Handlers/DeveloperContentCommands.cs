@@ -56,6 +56,8 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 if (fileType.StartsWith("landblock"))
                     return FileType.LandblockInstance;
+                else if (fileType.StartsWith("encounter"))
+                    return FileType.Encounter;
                 else if (fileType.StartsWith("quest"))
                     return FileType.Quest;
                 else if (fileType.StartsWith("recipe"))
@@ -455,7 +457,7 @@ namespace ACE.Server.Command.Handlers.Processors
             ImportSQLWeenie(session, param, true);
         }
 
-        [CommandHandler("import-sql", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Imports sql data from the Content folder", "<type> <wcid>\n<type> - landblock, quest, recipe, spell, weenie (default if not specified)\n<wcid> - filename prefix to search for. can be 'all' to import all files for this content type")]
+        [CommandHandler("import-sql", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Imports sql data from the Content folder", "<type> <wcid>\n<type> - landblock, encounter, quest, recipe, spell, weenie (default if not specified)\n<wcid> - filename prefix to search for. can be 'all' to import all files for this content type")]
         public static void HandleImportSQL(Session session, params string[] parameters)
         {
             var param = parameters[0];
@@ -477,6 +479,10 @@ namespace ACE.Server.Command.Handlers.Processors
                 {
                     case FileType.LandblockInstance:
                         ImportSQLLandblock(session, param);
+                        break;
+
+                    case FileType.Encounter:
+                        ImportSQLEncounter(session, param);
                         break;
 
                     case FileType.Quest:
@@ -587,6 +593,34 @@ namespace ACE.Server.Command.Handlers.Processors
 
             foreach (var file in files)
                 ImportSQLLandblock(session, sql_folder, file.Name);
+        }
+
+        public static void ImportSQLEncounter(Session session, string landblockId)
+        {
+            DirectoryInfo di = VerifyContentFolder(session);
+            if (!di.Exists) return;
+
+            var sep = Path.DirectorySeparatorChar;
+
+            var sql_folder = $"{di.FullName}{sep}sql{sep}encounters{sep}";
+
+            var prefix = landblockId;
+
+            if (landblockId.Equals("all", StringComparison.OrdinalIgnoreCase))
+                prefix = "";
+
+            di = new DirectoryInfo(sql_folder);
+
+            var files = di.Exists ? di.GetFiles($"{prefix}*.sql") : null;
+
+            if (files == null || files.Length == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find {sql_folder}{prefix}*.sql");
+                return;
+            }
+
+            foreach (var file in files)
+                ImportSQLEncounter(session, sql_folder, file.Name);
         }
 
         public static void ImportSQLQuest(Session session, string questName)
@@ -1208,6 +1242,22 @@ namespace ACE.Server.Command.Handlers.Processors
 
             // convert to json file
             //sql2json_landblock(session, instances, sql_folder, sql_file);
+        }
+
+        private static void ImportSQLEncounter(Session session, string sql_folder, string sql_file)
+        {
+            if (!ushort.TryParse(Regex.Match(sql_file, @"[0-9A-F]{4}", RegexOptions.IgnoreCase).Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var landblockId))
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find landblock id from {sql_file}");
+                return;
+            }
+
+            // import sql to db
+            ImportSQL(sql_folder + sql_file);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Imported {sql_file}");
+
+            // clear any cached encounters for this landblock
+            DatabaseManager.World.ClearCachedEncountersByLandblock(landblockId);
         }
 
         private static void ImportSQLQuest(Session session, string sql_folder, string sql_file)
@@ -2859,7 +2909,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 ExportSQLWeenie(session, param, true);
         }
 
-        [CommandHandler("export-sql", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Exports content from database to SQL file", "<optional type> <id>\n<optional type> - landblock, quest, recipe, spell, weenie (default if not specified)\n<id> - wcid or content id to export")]
+        [CommandHandler("export-sql", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Exports content from database to SQL file", "<optional type> <id>\n<optional type> - landblock, encounter, quest, recipe, spell, weenie (default if not specified)\n<id> - wcid or content id to export")]
         public static void HandleExportSql(Session session, params string[] parameters)
         {
             var param = parameters[0];
@@ -2879,6 +2929,10 @@ namespace ACE.Server.Command.Handlers.Processors
             {
                 case FileType.LandblockInstance:
                     ExportSQLLandblock(session, param);
+                    break;
+
+                case FileType.Encounter:
+                    ExportSQLEncounter(session, param);
                     break;
 
                 case FileType.Quest:
@@ -3307,6 +3361,12 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var encounters = DatabaseManager.World.GetCachedEncountersByLandblock(landblockId, out _);
 
+            if (encounters == null || encounters.Count == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find encounters for landblock {landblockId:X4}");
+                return;
+            }
+
             var sql_folder = $"{di.FullName}{sep}sql{sep}encounters{sep}";
 
             di = new DirectoryInfo(sql_folder);
@@ -3318,25 +3378,22 @@ namespace ACE.Server.Command.Handlers.Processors
 
             try
             {
-                if (encounters.Count > 0)
+                if (LandblockEncounterWriter == null)
                 {
-                    if (LandblockEncounterWriter == null)
-                    {
-                        LandblockEncounterWriter = new EncounterSQLWriter();
-                        LandblockEncounterWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
-                        LandblockEncounterWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
-                        LandblockEncounterWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
-                        LandblockEncounterWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
-                    }
+                    LandblockEncounterWriter = new EncounterSQLWriter();
+                    LandblockEncounterWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
+                    LandblockEncounterWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
+                    LandblockEncounterWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
+                    LandblockEncounterWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
+                }
 
-                    var sqlFile = new StreamWriter(sql_folder + sql_filename);
-
+                using (var sqlFile = new StreamWriter(sql_folder + sql_filename))
+                {
                     LandblockEncounterWriter.CreateSQLDELETEStatement(encounters, sqlFile);
+
                     sqlFile.WriteLine();
 
                     LandblockEncounterWriter.CreateSQLINSERTStatement(encounters, sqlFile);
-
-                    sqlFile.Close();
                 }
             }
             catch (Exception e)

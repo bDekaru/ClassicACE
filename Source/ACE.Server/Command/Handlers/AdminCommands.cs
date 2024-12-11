@@ -3594,18 +3594,25 @@ namespace ACE.Server.Command.Handlers
                 foreach (var possession in possessions)
                     possessedBiotas.Add((possession.Biota, possession.BiotaDatabaseLock));
 
-                DatabaseManager.Shard.AddCharacterInParallel(player.Biota, player.BiotaDatabaseLock, possessedBiotas, player.Character, player.CharacterDatabaseLock, null);
-
-                var actionChain = new ActionChain();
-                actionChain.AddDelaySeconds(5.0f);
-                actionChain.AddAction(session.Player, () =>
+                // We must await here -- 
+                DatabaseManager.Shard.AddCharacterInParallel(player.Biota, player.BiotaDatabaseLock, possessedBiotas, player.Character, player.CharacterDatabaseLock, saveSuccess =>
                 {
+                    if (!saveSuccess)
+                    {
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Failed to create a morph based on {weenie.ClassName} to a new character \"{player.Name}\" for the account \"{player.Account.AccountName}\"!", ChatMessageType.Broadcast);
+                        return;
+                    }
+
                     PlayerManager.AddOfflinePlayer(player);
+
                     session.Characters.Add(player.Character);
+
+                    var msg = $"Successfully created a morph based on {weenie.ClassName} to a new character \"{player.Name}\" for the account \"{player.Account.AccountName}\".";
+                    CommandHandlerHelper.WriteOutputInfo(session, msg, ChatMessageType.Broadcast);
+                    PlayerManager.BroadcastToAuditChannel(session.Player, msg);
 
                     session.LogOffPlayer();
                 });
-                actionChain.EnqueueChain();
             });
         }
 
