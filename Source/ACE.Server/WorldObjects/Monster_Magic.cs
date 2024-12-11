@@ -89,10 +89,16 @@ namespace ACE.Server.WorldObjects
                 if (rng < probability)
                 {
                     var spellToCast = new Spell(spell.Key);
-                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && AttackTarget != null && !spellToCast.NotFound && !spellToCast.IsSelfTargeted && (spellToCast.MetaSpellType == SpellType.Enchantment || spellToCast.MetaSpellType == SpellType.EnchantmentProjectile))
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !spellToCast.NotFound && (spellToCast.MetaSpellType == SpellType.Enchantment || spellToCast.MetaSpellType == SpellType.EnchantmentProjectile))
                     {
-                        if (AttackTarget.EnchantmentManager.GetEnchantmentDurationLeft(spellToCast.Id) > spellToCast.Duration / 3)
-                            continue; // Do not reapply currently active debuffs unless they are almost expiring.
+                        float durationLeft = 0;
+                        if (spellToCast.IsSelfTargeted)
+                            durationLeft = EnchantmentManager.GetEnchantmentDurationLeft(spellToCast.Id);
+                        else if (AttackTarget != null)
+                            durationLeft = AttackTarget.EnchantmentManager.GetEnchantmentDurationLeft(spellToCast.Id);
+
+                        if (durationLeft > spellToCast.Duration / 3)
+                            continue; // Do not reapply currently active enchantments unless they are almost expiring.
                     }
                     CurrentSpell = spellToCast;
                     return true;
@@ -129,10 +135,16 @@ namespace ACE.Server.WorldObjects
                 if (rng < probability)
                 {
                     var spellToCast = new Spell(spell.Key);
-                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && AttackTarget != null && !spellToCast.NotFound && !spellToCast.IsSelfTargeted && (spellToCast.MetaSpellType == SpellType.Enchantment || spellToCast.MetaSpellType == SpellType.EnchantmentProjectile))
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !spellToCast.NotFound && (spellToCast.MetaSpellType == SpellType.Enchantment || spellToCast.MetaSpellType == SpellType.EnchantmentProjectile))
                     {
-                        if (AttackTarget.EnchantmentManager.GetEnchantmentDurationLeft(spellToCast.Id) > spellToCast.Duration / 3)
-                            continue; // Do not reapply currently active debuffs unless they are almost expiring.
+                        float durationLeft = 0;
+                        if (spellToCast.IsSelfTargeted)
+                            durationLeft = EnchantmentManager.GetEnchantmentDurationLeft(spellToCast.Id);
+                        else if (AttackTarget != null)
+                            durationLeft = AttackTarget.EnchantmentManager.GetEnchantmentDurationLeft(spellToCast.Id);
+
+                        if (durationLeft > spellToCast.Duration / 3)
+                            continue; // Do not reapply currently active enchantments unless they are almost expiring.
                     }
                     CurrentSpell = spellToCast;
                     return true;
