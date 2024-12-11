@@ -368,10 +368,10 @@ namespace ACE.Server.WorldObjects.Managers
                             case StackType.Surpass:
                             case StackType.Refresh:
                             case StackType.Surpassed:
-                                if (remainingSpell != null && remainingSpell.Power != spell.Power)
-                                    Player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} has expired but it is surpassed by {remainingSpell.Name}.", ChatMessageType.Magic));
+                                if (remainingSpell != null && remainingSpell.Power < spell.Power)
+                                    Player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} has expired, but it is surpassed by {remainingSpell.Name}.", ChatMessageType.Magic));
                                 else
-                                    sound = false; // Suppress expire notifications that are surpassed by a spell that has the same power.
+                                    sound = false; // Suppress expire notifications that are surpassed by a spell that has the same or higher power.
                                 break;
                             default:
                                 Player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} has expired.", ChatMessageType.Magic));
