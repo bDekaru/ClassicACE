@@ -331,13 +331,55 @@ namespace ACE.Server.WorldObjects.Managers
             if (entry == null)
                 return;
 
-            var spellID = entry.SpellId;
-
             if (WorldObject.Biota.PropertiesEnchantmentRegistry.TryRemoveEnchantment(entry.SpellId, entry.CasterObjectId, WorldObject.BiotaDatabaseLock))
                 WorldObject.ChangesDetected = true;
 
+            var spell = new Spell(entry.SpellId);
+
             if (Player != null)
             {
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    if (entry.SpellId == (uint)SpellId.Vitae)
+                        Player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Vitae penalty has expired.", ChatMessageType.Magic));
+                    else if (entry.SpellCategory != (SpellCategory)SpellCategory_Cooldown)
+                    {
+                        var otherEntries = GetEnchantments(entry.SpellCategory);
+
+                        var result = new AddEnchantmentResult();
+                        result.BuildStack(otherEntries, spell, null);
+
+                        Spell remainingSpell = null;
+                        switch (result.StackType)
+                        {
+                            case StackType.Surpass:
+                                remainingSpell = result.SurpassSpell;
+                                break;
+                            case StackType.Refresh:
+                                remainingSpell = result.RefreshSpell;
+                                break;
+                            case StackType.Surpassed:
+                                remainingSpell = result.SurpassedSpell;
+                                break;
+                        }
+
+                        switch (result.StackType)
+                        {
+                            case StackType.Surpass:
+                            case StackType.Refresh:
+                            case StackType.Surpassed:
+                                if (remainingSpell != null && remainingSpell.Power != spell.Power)
+                                    Player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} has expired but it is surpassed by {remainingSpell.Name}.", ChatMessageType.Magic));
+                                else
+                                    sound = false; // Suppress expire notifications that are surpassed by a spell that has the same power.
+                                break;
+                            default:
+                                Player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} has expired.", ChatMessageType.Magic));
+                                break;
+                        }
+                    }
+                }
+
                 var layer = (entry.SpellId == (uint)SpellId.Vitae) ? (ushort)0 : entry.LayerId; // this line is to force vitae to be layer 0 to match retail pcaps. We save it as layer 1 to make EF Core happy.
                 Player.Session.Network.EnqueueSend(new GameEventMagicRemoveEnchantment(Player.Session, (ushort)entry.SpellId, layer));
 
@@ -362,8 +404,6 @@ namespace ACE.Server.WorldObjects.Managers
 
                     if (owner != null)
                     {
-                        var spell = new Spell(spellID);
-
                         owner.Session.Network.EnqueueSend(new GameMessageSystemChat($"The spell {spell.Name} on {WorldObject.Name} has expired.", ChatMessageType.Magic));
 
                         if (sound)
