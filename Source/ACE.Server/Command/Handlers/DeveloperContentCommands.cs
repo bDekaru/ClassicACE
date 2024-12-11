@@ -2950,10 +2950,6 @@ namespace ACE.Server.Command.Handlers.Processors
                 case FileType.Weenie:
                     ExportSQLWeenie(session, param);
                     break;
-
-                case FileType.Encounter:
-                    ExportSQLEncounter(session, param);
-                    break;
             }
         }
 
