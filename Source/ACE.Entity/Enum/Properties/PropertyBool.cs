@@ -220,6 +220,8 @@ namespace ACE.Entity.Enum.Properties
         Exploration2LandblockReached     = 9023,
         [ServerOnly]
         Exploration3LandblockReached     = 9024,
+        [ServerOnly]
+        UsesWeightAsGeneratorProbabilities = 9025,
     }
 
     public static class PropertyBoolExtensions

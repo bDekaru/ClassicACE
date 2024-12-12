@@ -5976,5 +5976,135 @@ namespace ACE.Server.Command.Handlers.Processors
 
         //    CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         //}
+
+
+        [CommandHandler("ConvertGenToWeightBasedProbabilities", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Converts a weenie's generator table to use weight based probabilities.", "<wcid or classname>")]
+        public static void HandleConvertGenToWeightBasedProbabilities(Session session, params string[] parameters)
+        {
+            var param = parameters[0];
+
+            Weenie weenie = null;
+
+            if (uint.TryParse(param, out var wcid))
+                weenie = DatabaseManager.World.GetWeenie(wcid);   // wcid
+            else
+                weenie = DatabaseManager.World.GetWeenie(param);  // classname
+
+            if (weenie == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find weenie {param}", ChatMessageType.Broadcast);
+                return;
+            }
+
+            if (weenie.GetProperty(PropertyBool.UsesWeightAsGeneratorProbabilities) ?? false)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"{weenie.ClassName}({weenie.ClassId}) already uses weight based probabilities.", ChatMessageType.Broadcast);
+                return;
+            }
+
+            if (weenie.WeeniePropertiesGenerator == null || weenie.WeeniePropertiesGenerator.Count == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"{weenie.ClassName}({weenie.ClassId}) has no generator table.", ChatMessageType.Broadcast);
+                return;
+            }
+
+            var chancesTable = new Dictionary<float, int>();
+            var weightsTable = new Dictionary<float, float>();
+
+            var previousProbability = 0f;
+            foreach (var entry in weenie.WeeniePropertiesGenerator)
+            {
+                if (entry.Probability == -1)
+                    continue;
+
+                var chance = (float)Math.Round(entry.Probability - previousProbability, 5);
+
+                previousProbability = entry.Probability;
+
+                if (!chancesTable.TryGetValue(chance, out var count))
+                    chancesTable.Add(chance, 1);
+                else
+                    chancesTable[chance] = ++count;
+            }
+
+            if (chancesTable.Count == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"{weenie.ClassName}({weenie.ClassId}) has no entries that are not -1.", ChatMessageType.Broadcast);
+                return;
+            }
+
+            var mostCommonChance = chancesTable.OrderByDescending(x => x.Value).First().Key;
+
+            foreach (var entry in chancesTable)
+            {
+                var weight = (float)Math.Round(entry.Key / mostCommonChance, 5);
+                weightsTable.Add(entry.Key, weight);
+            }
+
+            weenie.WeeniePropertiesBool.Add(new WeeniePropertiesBool { Type = (ushort)PropertyBool.UsesWeightAsGeneratorProbabilities, Value = true });
+
+            previousProbability = 0f;
+            foreach (var entry in weenie.WeeniePropertiesGenerator)
+            {
+                if (entry.Probability == -1)
+                    continue;
+
+                var chance = (float)Math.Round(entry.Probability - previousProbability, 5);
+                previousProbability = entry.Probability;
+
+                if (weightsTable.TryGetValue(chance, out var weight))
+                    entry.Probability = weight;
+                else
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"{weenie.ClassName}({weenie.ClassId}): Error translating probability to weight: {chance}.", ChatMessageType.Broadcast);
+                    return;
+                }
+            }
+
+            weenie.WeeniePropertiesGenerator = weenie.WeeniePropertiesGenerator.OrderByDescending(x => x.Probability == -1 ? float.MaxValue : x.Probability).ToList();
+
+            // serialize to .sql file
+            DirectoryInfo di = VerifyContentFolder(session);
+            if (!di.Exists)
+                return;
+
+            var sep = Path.DirectorySeparatorChar;
+            di = new DirectoryInfo($"{di.FullName}{sep}sql{sep}weenies{sep}");
+
+            if (!di.Exists)
+                di.Create();
+
+            if (WeenieSQLWriter == null)
+            {
+                WeenieSQLWriter = new WeenieSQLWriter();
+                WeenieSQLWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
+                WeenieSQLWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
+                WeenieSQLWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
+                WeenieSQLWriter.SpellNames = DatabaseManager.World.GetAllSpellNames();
+                WeenieSQLWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
+                WeenieSQLWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
+                WeenieSQLWriter.PacketOpCodes = PacketOpCodeNames.Values;
+            }
+
+            var sql_filename = $"{di.FullName}{WeenieSQLWriter.GetDefaultFileName(weenie)}";
+
+            var writer = new StreamWriter(sql_filename);
+
+            try
+            {
+                WeenieSQLWriter.CreateSQLDELETEStatement(weenie, writer);
+                writer.WriteLine();
+                WeenieSQLWriter.CreateSQLINSERTStatement(weenie, writer);
+                writer.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {sql_filename}");
+                return;
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Exported {sql_filename}");
+        }
     }
 }

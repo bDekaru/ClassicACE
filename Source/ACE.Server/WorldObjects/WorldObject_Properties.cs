@@ -3540,5 +3540,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyFloat.EWCoordinates);
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.EWCoordinates); else SetProperty(PropertyFloat.EWCoordinates, value.Value); }
         }
+
+        public bool UsesWeightAsGeneratorProbabilities
+        {
+            get => GetProperty(PropertyBool.UsesWeightAsGeneratorProbabilities) ?? false;
+            set { if (value == false) RemoveProperty(PropertyBool.UsesWeightAsGeneratorProbabilities); else SetProperty(PropertyBool.UsesWeightAsGeneratorProbabilities, value); }
+        }
     }
 }

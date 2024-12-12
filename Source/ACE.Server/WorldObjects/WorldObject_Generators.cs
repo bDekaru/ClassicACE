@@ -36,6 +36,11 @@ namespace ACE.Server.WorldObjects
         public List<GeneratorProfile> GeneratorProfiles;
 
         /// <summary>
+        /// Generators that use weight based probabilities rely on the total weight to calculate individual item probabilities.
+        /// </summary>
+        private float GeneratorTotalWeight;
+
+        /// <summary>
         /// Creates a list of active generator profiles
         /// from a list of biota generators
         /// </summary>
@@ -46,8 +51,14 @@ namespace ACE.Server.WorldObjects
 
             if (Biota.PropertiesGenerator != null)
             {
+                GeneratorTotalWeight = 0f;
                 foreach (var generator in Biota.PropertiesGenerator)
+                {
+                    if(UsesWeightAsGeneratorProbabilities && generator.Probability != -1)
+                        GeneratorTotalWeight += generator.Probability;
+
                     GeneratorProfiles.Add(new GeneratorProfile(this, generator, i++));
+                }
             }
         }
 
@@ -199,6 +210,10 @@ namespace ACE.Server.WorldObjects
 
                     continue;
                 }
+
+                if (UsesWeightAsGeneratorProbabilities)
+                    probability = (float)Math.Round(lastProbability + (probability / GeneratorTotalWeight), 5);
+
                 //if (!profile.IsMaxed)
                 if (!profile.IsMaxed && profile.IsAvailable)
                 {
@@ -220,14 +235,20 @@ namespace ACE.Server.WorldObjects
         public float GetMaxProbability()
         {
             var maxProbability = float.MinValue;
+            var lastProbability = 0.0f;
 
             // note: this will also include maxed generator profiles!
             foreach (var profile in GeneratorProfiles)
             {
                 var probability = profile.Biota.Probability;
 
+                if (UsesWeightAsGeneratorProbabilities && probability != -1)
+                    probability = (float)Math.Round(lastProbability + (probability / GeneratorTotalWeight), 5);
+
                 if (probability > maxProbability)
                     maxProbability = probability;
+
+                lastProbability = probability;
             }
             return maxProbability;
         }
@@ -261,6 +282,9 @@ namespace ACE.Server.WorldObjects
 
                 if (probability == -1)
                     continue;
+
+                if(UsesWeightAsGeneratorProbabilities)
+                    probability = (float)Math.Round(lastProbability + (probability / GeneratorTotalWeight), 5);
 
                 //if (!profile.IsMaxed)
                 if (!profile.IsMaxed && profile.IsAvailable)
