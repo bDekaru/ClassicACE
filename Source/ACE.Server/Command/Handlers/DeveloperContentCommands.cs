@@ -28,6 +28,7 @@ using ACE.Server.Physics.Extensions;
 using ACE.Server.WorldObjects;
 using WeenieClassName = ACE.Server.Factories.Enum.WeenieClassName;
 using System.Threading;
+using System.Diagnostics;
 
 namespace ACE.Server.Command.Handlers.Processors
 {
@@ -3201,6 +3202,9 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             CommandHandlerHelper.WriteOutputInfo(session, $"Exported {sql_folder}{sql_filename}");
+
+            if (!withFolders &&  (session == null || session.State != Network.Enum.SessionState.WorldConnected))
+                Process.Start(new ProcessStartInfo(sql_folder + sql_filename) { UseShellExecute = true });
         }
 
         public static void ExportSQLRecipe(Session session, string param)
@@ -6061,7 +6065,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 }
             }
 
-            weenie.WeeniePropertiesGenerator = weenie.WeeniePropertiesGenerator.OrderByDescending(x => x.Probability == -1 ? float.MaxValue : x.Probability).ToList();
+            //weenie.WeeniePropertiesGenerator = weenie.WeeniePropertiesGenerator.OrderByDescending(x => x.Probability == -1 ? float.MaxValue : x.Probability).ToList();
 
             // serialize to .sql file
             DirectoryInfo di = VerifyContentFolder(session);
