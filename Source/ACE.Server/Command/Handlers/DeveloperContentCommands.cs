@@ -3024,10 +3024,6 @@ namespace ACE.Server.Command.Handlers.Processors
 
         public static void ExportSQLWeenie(Session session, string param, bool withFolders = false)
         {
-            DirectoryInfo di = VerifyContentFolder(session, false);
-
-            var sep = Path.DirectorySeparatorChar;
-
             Weenie weenie = null;
 
             if (uint.TryParse(param, out var wcid))
@@ -3040,6 +3036,21 @@ namespace ACE.Server.Command.Handlers.Processors
                 CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find weenie {param}");
                 return;
             }
+
+            ExportSQLWeenie(weenie, session, withFolders, !withFolders && (session == null || session.State != Network.Enum.SessionState.WorldConnected));
+        }
+
+        public static void ExportSQLWeenie(Weenie weenie, Session session = null, bool withFolders = false, bool openAfterExport = false)
+        {
+            if (weenie == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Null weenie.");
+                return;
+            }
+
+            DirectoryInfo di = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
 
             string sql_folder = null;
             if (withFolders)
@@ -3203,7 +3214,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             CommandHandlerHelper.WriteOutputInfo(session, $"Exported {sql_folder}{sql_filename}");
 
-            if (!withFolders &&  (session == null || session.State != Network.Enum.SessionState.WorldConnected))
+            if (openAfterExport)
                 Process.Start(new ProcessStartInfo(sql_folder + sql_filename) { UseShellExecute = true });
         }
 
@@ -6067,48 +6078,63 @@ namespace ACE.Server.Command.Handlers.Processors
 
             //weenie.WeeniePropertiesGenerator = weenie.WeeniePropertiesGenerator.OrderByDescending(x => x.Probability == -1 ? float.MaxValue : x.Probability).ToList();
 
-            // serialize to .sql file
-            DirectoryInfo di = VerifyContentFolder(session);
-            if (!di.Exists)
-                return;
+            ExportSQLWeenie(weenie, session);
+        }
 
-            var sep = Path.DirectorySeparatorChar;
-            di = new DirectoryInfo($"{di.FullName}{sep}sql{sep}weenies{sep}");
+        [CommandHandler("updateCreatureLootTiers", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        public static void HandleUpdateCreatureLootTiers(Session session, params string[] parameters)
+        {
+            var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+            var treasureDeath = DatabaseManager.World.GetAllTreasureDeath();
 
-            if (!di.Exists)
-                di.Create();
-
-            if (WeenieSQLWriter == null)
+            foreach (var weenieTypeEntry in WeenieTypes)
             {
-                WeenieSQLWriter = new WeenieSQLWriter();
-                WeenieSQLWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
-                WeenieSQLWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
-                WeenieSQLWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
-                WeenieSQLWriter.SpellNames = DatabaseManager.World.GetAllSpellNames();
-                WeenieSQLWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
-                WeenieSQLWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
-                WeenieSQLWriter.PacketOpCodes = PacketOpCodeNames.Values;
+                if (weenieTypeEntry.Value != (int)WeenieType.Creature)
+                    continue;
+
+                var weenie = DatabaseManager.World.GetWeenie(weenieTypeEntry.Key);
+                var deathTreasure = (TreasureDeathDesc)(weenie.GetProperty(PropertyDataId.DeathTreasureType) ?? 0);
+                var level = weenie.GetProperty(PropertyInt.Level) ?? 0;
+
+                if (level != 0 && deathTreasure != 0)
+                {
+                    if(!treasureDeath.ContainsKey((uint)deathTreasure))
+                    {
+                        CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Invalid deathTreasure: {deathTreasure}.", ChatMessageType.Broadcast);
+                        continue;
+                    }
+
+                    if (!Enum.IsDefined(typeof(TreasureDeathDesc), deathTreasure))
+                    {
+                        CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Non-mapped deathTreasure: {deathTreasure}.", ChatMessageType.Broadcast);
+                        continue;
+                    }
+
+                    var maxHealth = weenie.GetProperty(PropertyAttribute2nd.MaxHealth);
+                    int calculatedTier;
+                    if(maxHealth != null && maxHealth.CurrentLevel >= 1500)
+                        calculatedTier = (int)Math.Ceiling(Creature.CalculateExtendedTier(level));
+                    else
+                        calculatedTier = (int)Math.Floor(Creature.CalculateExtendedTier(level));
+                    var deathTreasureString = deathTreasure.ToString();
+                    var calculatedDeathTreasureString = $"T{calculatedTier}_{deathTreasureString.Remove(0, 3)}";
+
+                    if (deathTreasureString == calculatedDeathTreasureString)
+                        continue;
+
+                    if (Enum.TryParse(calculatedDeathTreasureString, out TreasureDeathDesc calculatedDeathTreasure))
+                    {
+                        var property = weenie.WeeniePropertiesDID.FirstOrDefault(x => x.Type == (uint)PropertyDataId.DeathTreasureType);
+                        property.Value = (uint)calculatedDeathTreasure;
+
+                        CommandHandlerHelper.WriteOutputInfo(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Updated deathTreasure: {deathTreasureString} -> {calculatedDeathTreasureString}.", ChatMessageType.Broadcast);
+
+                        ExportSQLWeenie(weenie, session);
+                    }
+                    else
+                        CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Invalid deathTreasure conversion: {deathTreasureString} -> {calculatedDeathTreasureString}.", ChatMessageType.Broadcast);
+                }
             }
-
-            var sql_filename = $"{di.FullName}{WeenieSQLWriter.GetDefaultFileName(weenie)}";
-
-            var writer = new StreamWriter(sql_filename);
-
-            try
-            {
-                WeenieSQLWriter.CreateSQLDELETEStatement(weenie, writer);
-                writer.WriteLine();
-                WeenieSQLWriter.CreateSQLINSERTStatement(weenie, writer);
-                writer.Close();
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {sql_filename}");
-                return;
-            }
-
-            CommandHandlerHelper.WriteOutputInfo(session, $"Exported {sql_filename}");
         }
     }
 }

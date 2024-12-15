@@ -166,7 +166,7 @@ namespace ACE.Database.SQLFormatters.World
                 if(weenie == null)
                 {
                     var landblockId = value.ObjCellId >> 16;
-                    log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId:X4}: LandblockInstance has entry to unknown weeniedClassId: {value.WeenieClassId}");
+                    log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId:X4}: LandblockInstance has entry to unknown weenieClassId: {value.WeenieClassId}");
                 }
                 else
                 {
@@ -224,7 +224,7 @@ namespace ACE.Database.SQLFormatters.World
                                             content += $"({entry.WeenieClassId})";
                                             
                                             var landblockId = value.ObjCellId >> 16;
-                                            log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: Generator has entry to unknown weeniedClassId: {entry.WeenieClassId}");
+                                            log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: Generator has entry to unknown weenieClassId: {entry.WeenieClassId}");
                                         }
                                     }
                                 }
@@ -268,7 +268,7 @@ namespace ACE.Database.SQLFormatters.World
                                         content += $"({entry.WeenieClassId})";
 
                                         var landblockId = value.ObjCellId >> 16;
-                                        log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: CreateList has entry to unknown weeniedClassId: {entry.WeenieClassId}");
+                                        log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: CreateList has entry to unknown weenieClassId: {entry.WeenieClassId}");
                                     }
                                 }
                             }
@@ -321,7 +321,7 @@ namespace ACE.Database.SQLFormatters.World
                                             generated += $"({entry.WeenieClassId})";
 
                                             var landblockId = value.ObjCellId >> 16;
-                                            log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: Generator has entry to unknown weeniedClassId: {entry.WeenieClassId}");
+                                            log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: Generator has entry to unknown weenieClassId: {entry.WeenieClassId}");
                                         }
                                     }
                                 }
@@ -365,7 +365,7 @@ namespace ACE.Database.SQLFormatters.World
                                         generated += $"({entry.WeenieClassId})";
 
                                         var landblockId = value.ObjCellId >> 16;
-                                        log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: CreateList has entry to unknown weeniedClassId: {entry.WeenieClassId}");
+                                        log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: CreateList has entry to unknown weenieClassId: {entry.WeenieClassId}");
                                     }
                                 }
                             }

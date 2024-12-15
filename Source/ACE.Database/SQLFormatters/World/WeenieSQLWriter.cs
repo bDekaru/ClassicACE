@@ -721,17 +721,23 @@ namespace ACE.Database.SQLFormatters.World
             var lineGenerator = new Func<int, string>(i =>
             {
                 string weenieName = null;
+                string weenieClassName = null;
 
                 if (WeenieNames != null)
                     WeenieNames.TryGetValue(input[i].WeenieClassId, out weenieName);
 
-                var label = weenieName + $" ({input[i].WeenieClassId})";
+                if (WeenieClassNames != null)
+                    WeenieClassNames.TryGetValue(input[i].WeenieClassId, out weenieClassName);
+
+                var label = weenieName + $" ({input[i].WeenieClassId}/{weenieClassName})";
 
                 if (input[i].WeenieClassId == 0)
                 {
                     //label = GetValueForTreasureData(weenieClassID, true);
                     label = "nothing";
                 }
+                else if (weenieName == null)
+                    log.Warn($"[SQLWRITER] {label}: Create List has entry to unknown weenieClassId: {input[i].WeenieClassId}");
 
                 return $"{weenieClassID}, {input[i].DestinationType}, {input[i].WeenieClassId.ToString().PadLeft(5)}, {input[i].StackSize.ToString().PadLeft(2)}, {input[i].Palette}, {input[i].Shade:0.######}, {input[i].TryToBond}) /* Create {label ?? "Unknown"} for {Enum.GetName(typeof(DestinationType), input[i].DestinationType)} */";
             });
@@ -932,7 +938,7 @@ namespace ACE.Database.SQLFormatters.World
                         else
                             parentLabel = parentWeenieName + $" ({weenieClassID})";
 
-                        log.Warn($"[SQLWRITER] {parentLabel}: Generator has entry to unknown weeniedClassId: {input[i].WeenieClassId}");
+                        log.Warn($"[SQLWRITER] {parentLabel}: Generator has entry to unknown weenieClassId: {input[i].WeenieClassId}");
                     }
                 }
 
