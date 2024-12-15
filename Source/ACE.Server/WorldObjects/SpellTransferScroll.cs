@@ -400,6 +400,46 @@ namespace ACE.Server.WorldObjects
                 else if (target.ItemType == ItemType.Gem)
                     allSpells.Add((int)target.SpellDID);
 
+                if (target.TinkerLog != null)
+                {
+                    var tinkers = target.TinkerLog.Split(",");
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Carnelian).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPSTRENGTH1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Bloodstone).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPENDURANCE1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.SmokeyQuartz).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPCOORDINATION1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.RoseQuartz).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPQUICKNESS1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Agate).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPFOCUS1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.LapisLazuli).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPWILLPOWER1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.RedJade).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPHEALTHGAIN1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Citrine).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPSTAMINAGAIN1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.LavenderJade).ToString()))
+                        allSpells.Remove((int)SpellId.CANTRIPMANAGAIN1);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Hematite).ToString()))
+                        allSpells.Remove((int)SpellId.WarriorsVitality);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Malachite).ToString()))
+                        allSpells.Remove((int)SpellId.WarriorsVigor);
+
+                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Azurite).ToString()))
+                        allSpells.Remove((int)SpellId.WizardsIntellect);
+                }
+
                 var spells = new List<int>();
                 if (source.Level.HasValue)
                 {

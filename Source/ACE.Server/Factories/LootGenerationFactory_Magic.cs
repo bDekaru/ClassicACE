@@ -754,7 +754,53 @@ namespace ACE.Server.Factories
 
             if (wo.Biota.PropertiesSpellBook != null)
             {
-                foreach (var spellId in wo.Biota.PropertiesSpellBook.Keys)
+                IDictionary<int, float> spellBook;
+
+                if (wo.TinkerLog != null)
+                {
+                    spellBook = new Dictionary<int, float>(wo.Biota.PropertiesSpellBook);
+
+                    var tinkers = wo.TinkerLog.Split(",");
+                    if (tinkers.Contains(((uint)MaterialType.Carnelian).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPSTRENGTH1);
+
+                    if (tinkers.Contains(((uint)MaterialType.Bloodstone).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPENDURANCE1);
+
+                    if (tinkers.Contains(((uint)MaterialType.SmokeyQuartz).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPCOORDINATION1);
+
+                    if (tinkers.Contains(((uint)MaterialType.RoseQuartz).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPQUICKNESS1);
+
+                    if (tinkers.Contains(((uint)MaterialType.Agate).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPFOCUS1);
+
+                    if (tinkers.Contains(((uint)MaterialType.LapisLazuli).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPWILLPOWER1);
+
+                    if (tinkers.Contains(((uint)MaterialType.RedJade).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPHEALTHGAIN1);
+
+                    if (tinkers.Contains(((uint)MaterialType.Citrine).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPSTAMINAGAIN1);
+
+                    if (tinkers.Contains(((uint)MaterialType.LavenderJade).ToString()))
+                        spellBook.Remove((int)SpellId.CANTRIPMANAGAIN1);
+
+                    if (tinkers.Contains(((uint)MaterialType.Hematite).ToString()))
+                        spellBook.Remove((int)SpellId.WarriorsVitality);
+
+                    if (tinkers.Contains(((uint)MaterialType.Malachite).ToString()))
+                        spellBook.Remove((int)SpellId.WarriorsVigor);
+
+                    if (tinkers.Contains(((uint)MaterialType.Azurite).ToString()))
+                        spellBook.Remove((int)SpellId.WizardsIntellect);
+                }
+                else
+                    spellBook = wo.Biota.PropertiesSpellBook;
+
+                foreach (var spellId in spellBook.Keys)
                 {
                     var spell = new Server.Entity.Spell(spellId);
 
