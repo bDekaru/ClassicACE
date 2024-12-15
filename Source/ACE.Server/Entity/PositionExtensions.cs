@@ -162,6 +162,27 @@ namespace ACE.Server.Entity
                 return p.Cell;
         }
 
+        public static bool IsValidIndoorCell(this Position p)
+        {
+            var adjustCell = AdjustCell.Get(p.Landblock);
+            var envCell = adjustCell.GetCell(p.Pos);
+            return envCell != null;
+        }
+
+        public static bool IsValidIndoorCell(this Position p, float objHeight)
+        {
+            var adjustCell = AdjustCell.Get(p.Landblock);
+            var envCell = adjustCell.GetCell(p.Pos);
+
+            var heightPos = new Position(p);
+            heightPos.PositionZ += objHeight;
+
+            var adjustCell2 = AdjustCell.Get(heightPos.Landblock);
+            var envCell2 = adjustCell.GetCell(heightPos.Pos);
+
+            return envCell != null && envCell2 != null;
+        }
+
         /// <summary>
         /// Returns the greatest single-dimension square distance between 2 positions
         /// </summary>

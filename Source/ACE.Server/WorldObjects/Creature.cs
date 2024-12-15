@@ -160,8 +160,13 @@ namespace ACE.Server.WorldObjects
             numRecentAttacksReceived = 0;
             attacksReceivedPerSecond = 0.0f;
 
-            if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !Tier.HasValue && WeenieType != WeenieType.Vendor)
-                Tier = CalculateExtendedTier();
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                PathfindingEnabled = Pathfinder.PathfindingEnabled;
+
+                if (!Tier.HasValue && WeenieType != WeenieType.Vendor)
+                    Tier = CalculateExtendedTier();
+            }
         }
 
         public override void BeforeEnterWorld()
@@ -173,7 +178,6 @@ namespace ACE.Server.WorldObjects
             {
                 UpdateDefenseCapBonus();
 
-                PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
                 if (PathfindingEnabled && Location != null && Location.Indoors)
                     Pathfinder.TryLoadMesh(Location);
             }
@@ -239,7 +243,7 @@ namespace ACE.Server.WorldObjects
                 return;
 
             var chestLocation = new Position(Location);
-            if (PropertyManager.GetBool("pathfinding").Item && Location.Indoors)
+            if (PathfindingEnabled && Location.Indoors)
             {
                 var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Wide);
                 if (randomPos != null)
@@ -298,7 +302,7 @@ namespace ACE.Server.WorldObjects
             var trapTrigger = WorldObjectFactory.CreateNewWorldObject(2131);
 
             var triggerLocation = new Position(Location);
-            if (PropertyManager.GetBool("pathfinding").Item && Location.Indoors)
+            if (PathfindingEnabled && Location.Indoors)
             {
                 var randomPos = Pathfinder.GetRandomPointWithinCircle(triggerLocation, 40, AgentWidth.Narrow);
                 if (randomPos != null)
@@ -310,7 +314,7 @@ namespace ACE.Server.WorldObjects
                 triggerLocation = triggerLocation.InFrontOf(2);
 
             var trapLocation = new Position(triggerLocation);
-            if (PropertyManager.GetBool("pathfinding").Item && Location.Indoors)
+            if (PathfindingEnabled && Location.Indoors)
             {
                 var randomPos = Pathfinder.GetNearestWallPosition(trapLocation, 20, AgentWidth.Narrow, out _);
                 if (randomPos != null)

@@ -16,6 +16,8 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Managers;
+using ACE.Server.Network.Sequence;
+using ACE.Server.Pathfinding;
 
 namespace ACE.Server.WorldObjects
 {
@@ -846,6 +848,74 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"{itemCaster.Name} teleports you with {spell.Name}.", ChatMessageType.Magic));
             //else if (itemCaster is Gem)
             //    Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.ITeleported));
+        }
+
+        /// <summary>
+        /// This is not thread-safe. Consider using WorldManager.ThreadSafeBlink() instead if you're calling this from a multi-threaded subsection.
+        /// </summary>
+        public void Blink(float distance)
+        {
+            if (distance == 0 || Teleporting)
+                return;
+
+            var isDungeon = CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors);
+
+            var blinkLoc = Location.InFrontOf(distance);
+            if (!isDungeon)
+                blinkLoc.AdjustMapCoords();
+            else
+            {
+                AdjustDungeon(blinkLoc);
+
+                var height = PhysicsObj.GetHeight();
+                if (!blinkLoc.IsValidIndoorCell(height))
+                {
+                    if (Pathfinder.PathfindingEnabled)
+                    {
+                        blinkLoc = Pathfinder.GetClosestPointOnMesh(blinkLoc, AgentWidth.Narrow);
+
+                        if (blinkLoc == null || !blinkLoc.IsValidIndoorCell(height))
+                            return;
+                    }
+                    else
+                        return;
+                }
+            }
+
+            if (!blinkLoc.IsWalkable())
+                return;
+
+            Teleporting = true;
+
+            var setPos = new Physics.Common.SetPosition(blinkLoc.PhysPosition(), Physics.Common.SetPositionFlags.Teleport | Physics.Common.SetPositionFlags.Slide);
+            var result = PhysicsObj.SetPosition(setPos);
+
+            if (result == Physics.Common.SetPositionError.OK)
+            {
+                Location = PhysicsObj.Position.ACEPosition(); // Update our location to wherever the physics says we ended up. This takes care of slightly invalid destination locations that both the server and client physics will autocorrect.
+                SnapPos = Location;
+                PrevMovementUpdateMaxSpeed = 0.0f;
+                LastPlayerMovementCheckTime = Time.GetUnixTime();
+                HasPerformedActionsSinceLastMovementUpdate = false;
+
+                // force out of hotspots
+                PhysicsObj.report_collision_end(true);
+
+                if (UnderLifestoneProtection)
+                    LifestoneProtectionDispel();
+
+                CheckMonsters();
+                CheckHouse();
+                CheckExplorationLandblock();
+
+                Sequences.GetNextSequence(SequenceType.ObjectForcePosition);
+                SendUpdatePosition();
+
+                if (!InUpdate)
+                    LandblockManager.RelocateObjectForPhysics(this, distance <= 192 && !isDungeon);
+            }
+
+            Teleporting = false;
         }
 
         public void NotifyLandblocks()

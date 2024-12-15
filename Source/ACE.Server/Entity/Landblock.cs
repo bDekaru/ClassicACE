@@ -300,7 +300,7 @@ namespace ACE.Server.Entity
                 if (ExplorationMarkerCurrentIndex >= PositionsForExplorationMarkers.Count)
                     ExplorationMarkerCurrentIndex = 0;
 
-                if (PropertyManager.GetBool("pathfinding").Item && entryPos.Indoors)
+                if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
                 {
                     var randomPos = Pathfinder.GetRandomPointWithinCircle(entryPos, 15, AgentWidth.Wide);
                     if (randomPos != null)

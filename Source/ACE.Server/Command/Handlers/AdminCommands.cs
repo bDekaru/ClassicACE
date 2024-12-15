@@ -5316,5 +5316,22 @@ namespace ACE.Server.Command.Handlers
             else
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid preset.", ChatMessageType.Help));
         }
+
+        [CommandHandler("blink", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Teleport yourself forward without entering portal space.", "[distance], defaults to one landblock's length(192).")]
+        public static void HandleBlink(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+            var distance = 192;
+            if (parameters.Length > 0)
+            {
+                if (!int.TryParse(parameters[0], out distance))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, "Invalid distance for blink.");
+                    return;
+                }
+            }
+
+            WorldManager.ThreadSafeBlink(player, distance);
+        }
     }
 }

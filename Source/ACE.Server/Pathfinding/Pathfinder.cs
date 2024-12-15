@@ -48,6 +48,8 @@ namespace ACE.Server.Pathfinding
             }
         }
 
+        public static bool PathfindingEnabled { get => PropertyManager.GetBool("pathfinding").Item; }
+
         public static WorldObject CreateMarker(Position position, string customName = "")
         {
             var marker = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.pathfinderHelper);
@@ -171,6 +173,27 @@ namespace ACE.Server.Pathfinding
                 return null;
 
             return new Position(location.Cell, new Vector3(randomPt.X, randomPt.Z, randomPt.Y), Quaternion.Identity);
+        }
+
+        public static Position? GetClosestPointOnMesh(Position location, AgentWidth agentWidth)
+        {
+            if (!TryGetMesh(location, agentWidth, out var mesh) || mesh is null)
+            {
+                return null;
+            }
+
+            var query = new DtNavMeshQuery(mesh);
+            var m_filter = new DtQueryDefaultFilter();
+            var frand = new RcRand(DateTime.Now.Ticks);
+
+            var halfExtents = new RcVec3f(1.25f, 1.25f, 1.25f);
+
+            var startStatus = query.FindNearestPoly(new RcVec3f(location.PositionX, location.PositionZ, location.PositionY), halfExtents, m_filter, out long startRef, out var startPt, out bool isStartOverPoly);
+
+            if (startPt.X == 0 && startPt.Y == 0 && startPt.Z == 0)
+                return null;
+
+            return new Position(location.Cell, new Vector3(startPt.X, startPt.Z, startPt.Y), Quaternion.Identity);
         }
 
         public static Position? GetNearestWallPosition(Position location, float radius, AgentWidth agentWidth, out float distance, bool inverseNormal = false)

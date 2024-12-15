@@ -3,6 +3,7 @@ using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Pathfinding;
 using System;
 
 namespace ACE.Server.WorldObjects
@@ -234,7 +235,7 @@ namespace ACE.Server.WorldObjects
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                PathfindingEnabled = PropertyManager.GetBool("pathfinding").Item;
+                PathfindingEnabled = Pathfinder.PathfindingEnabled;
 
                 isMeleeVisible = IsMeleeVisible(AttackTarget, true);
                 isDirectiVisible = IsDirectVisible(AttackTarget, true);
