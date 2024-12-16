@@ -2029,23 +2029,28 @@ namespace ACE.Server.Command.Handlers.Processors
 
             uint startLandblockId = (ushort)pos.Landblock;
 
-            byte startX = (byte)(startLandblockId >> 8);
-            byte startY = (byte)startLandblockId;
-            byte endX = startX;
-            byte endY = startY;
+            int startX = (byte)(startLandblockId >> 8);
+            int startY = (byte)startLandblockId;
+            int endX = startX;
+            int endY = startY;
 
             var radius = 1;
             var erodeCorners = false;
 
-            startX -= (byte)radius;
-            startY -= (byte)radius;
-            endX += (byte)radius;
-            endY += (byte)radius;
+            startX -= radius;
+            startY -= radius;
+            endX += radius;
+            endY += radius;
+
+            startX = Math.Clamp(startX, 0, 255);
+            startY = Math.Clamp(startY, 0, 255);
+            endX = Math.Clamp(endX, 0, 255);
+            endY = Math.Clamp(endY, 0, 255);
 
             var encounters = new List<Encounter>();
-            for (byte x = startX; x <= endX; x++)
+            for (byte x = (byte)startX; x <= endX; x++)
             {
-                for (byte y = startY; y <= endY; y++)
+                for (byte y = (byte)startY; y <= endY; y++)
                 {
                     if (erodeCorners && ((x == startX && y == startY) || (x == endX && y == endY) || (x == startX && y == endY) || (x == endX && y == startY)))
                         continue;
@@ -2316,23 +2321,28 @@ namespace ACE.Server.Command.Handlers.Processors
 
             uint startLandblockId = (ushort)pos.Landblock;
 
-            byte startX = (byte)(startLandblockId >> 8);
-            byte startY = (byte)startLandblockId;
-            byte endX = startX;
-            byte endY = startY;
+            int startX = (byte)(startLandblockId >> 8);
+            int startY = (byte)startLandblockId;
+            int endX = startX;
+            int endY = startY;
 
             var radius = 1;
             var erodeCorners = false;
 
-            startX -= (byte)radius;
-            startY -= (byte)radius;
-            endX += (byte)radius;
-            endY += (byte)radius;
+            startX -= radius;
+            startY -= radius;
+            endX += radius;
+            endY += radius;
+
+            startX = Math.Clamp(startX, 0, 255);
+            startY = Math.Clamp(startY, 0, 255);
+            endX = Math.Clamp(endX, 0, 255);
+            endY = Math.Clamp(endY, 0, 255);
 
             var counter = 0;
-            for (byte x = startX; x <= endX; x++)
+            for (byte x = (byte)startX; x <= endX; x++)
             {
-                for (byte y = startY; y <= endY; y++)
+                for (byte y = (byte)startY; y <= endY; y++)
                 {
                     if (erodeCorners && ((x == startX && y == startY) || (x == endX && y == endY) || (x == startX && y == endY) || (x == endX && y == startY)))
                         continue;
@@ -2605,6 +2615,38 @@ namespace ACE.Server.Command.Handlers.Processors
 
             // this is needed for any generators that don't have GeneratorDestructionType
             DestroyAll(obj);
+        }
+
+        [CommandHandler("clearlandblockencounters", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Removes all encounters from the current landblock.")]
+        public static void HandleClearLandblockEncounters(Session session, params string[] parameters)
+        {
+            var pos = session.Player.Location;
+
+            if ((pos.Cell & 0xFFFF) >= 0x100)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("You must be outdoors to remove encounters!", ChatMessageType.Broadcast));
+                return;
+            }
+
+            var landblock = (ushort)pos.Landblock;
+
+            // clear any cached encounters for this landblock so we get the unmodified entries
+            DatabaseManager.World.ClearCachedEncountersByLandblock(landblock);
+
+            // get existing encounters for this landblock
+            var encounters = DatabaseManager.World.GetCachedEncountersByLandblock(landblock, out _);
+
+            if (encounters.Count == 0)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"{pos.Landblock:X4} has no encounters!", ChatMessageType.Broadcast));
+                return;
+            }
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Removed {encounters.Count} encounters @ landblock {pos.Landblock:X4}.", ChatMessageType.Broadcast));
+            encounters.Clear();
+
+            SyncEncounters(session, landblock, encounters);
+            DeveloperCommands.HandleReloadLandblock(session);
         }
 
         /// <summary>

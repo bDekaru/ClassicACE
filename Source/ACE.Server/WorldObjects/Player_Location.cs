@@ -882,8 +882,6 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (!blinkLoc.IsWalkable())
-                return;
 
             Teleporting = true;
 
