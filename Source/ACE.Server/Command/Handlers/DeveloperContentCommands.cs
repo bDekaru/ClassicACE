@@ -29,6 +29,11 @@ using ACE.Server.WorldObjects;
 using WeenieClassName = ACE.Server.Factories.Enum.WeenieClassName;
 using System.Threading;
 using System.Diagnostics;
+using ACE.Entity.Models;
+using Weenie = ACE.Database.Models.World.Weenie;
+using ACE.Server.WorldObjects.Entity;
+using ACE.DatLoader.FileTypes;
+using ACE.DatLoader;
 
 namespace ACE.Server.Command.Handlers.Processors
 {
@@ -5256,7 +5261,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var fileWriter = new StreamWriter(filename);
 
-            fileWriter.WriteLine("Name\tLevel\tCalculatedLevel\tType\tWeenieClassId\tWeenieClassName");
+            fileWriter.WriteLine("Name\tLevel\tCalculatedLevel\tCalculatedTier\tType\tWeenieClassId\tWeenieClassName");
 
             var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
             foreach (var entry in WeenieTypes)
@@ -5272,17 +5277,19 @@ namespace ACE.Server.Command.Handlers.Processors
                     var name = weenie.GetProperty(PropertyString.Name);
                     var level = weenie.GetProperty(PropertyInt.Level);
                     var calculatedLevel = 0;
+                    var calculatedTier = 0d;
 
                     var obj = WorldObjectFactory.CreateNewWorldObject(weenie.ClassId);
                     if (obj != null)
                     {
                         calculatedLevel = CalculateLevel(obj as Creature);
+                        calculatedTier = Creature.CalculateExtendedTier(calculatedLevel);
                         obj.Destroy();
                     }
 
                     var creatureType = (CreatureType?)weenie.GetProperty(PropertyInt.CreatureType);
 
-                    fileWriter.WriteLine($"{name}\t{level}\t{calculatedLevel}\t{creatureType}\t{weenie.ClassId}\t{weenie.ClassName}");
+                    fileWriter.WriteLine($"{name}\t{level}\t{calculatedLevel}\t{calculatedTier:0.00}\t{creatureType}\t{weenie.ClassId}\t{weenie.ClassName}");
                     fileWriter.Flush();
                 }
             }
@@ -5294,7 +5301,7 @@ namespace ACE.Server.Command.Handlers.Processors
         [CommandHandler("calculatelevel", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "", "")]
         public static void HandleCalculateLevel(Session session, params string[] parameters)
         {
-            var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
+            var obj = CommandHandlerHelper.GetQueryTarget(session);
 
             Creature creature = obj as Creature;
 
@@ -5311,14 +5318,13 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, $"Calculated Level: {level}");
         }
 
-        public static int CalculateLevel(Creature creature)
+        private static int CalculateLevelInternal(Creature creature, double simulatedBuffedAmount)
         {
-            if (creature == null)
-                return 0;
-
             var xpTable = DatLoader.DatManager.PortalDat.XpTable.CharacterLevelXPList;
-            var skillTable = DatLoader.DatManager.PortalDat.XpTable.SpecializedSkillXpList;
+            var attributeTable = DatLoader.DatManager.PortalDat.XpTable.AttributeXpList;
             var vitalTable = DatLoader.DatManager.PortalDat.XpTable.VitalXpList;
+            var skillTableTrained = DatLoader.DatManager.PortalDat.XpTable.TrainedSkillXpList;
+            //var skillTableSpecialized = DatLoader.DatManager.PortalDat.XpTable.SpecializedSkillXpList;t;
 
             ulong totalXp = 0;
 
@@ -5327,9 +5333,9 @@ namespace ACE.Server.Command.Handlers.Processors
             var magic = creature.GetCreatureSkill(Skill.MagicDefense);
 
             var lowestDefenseSkillXP = ulong.MaxValue;
-            var meleeXP = GetTotalXP(skillTable, melee.Base);
-            var missileXP = GetTotalXP(skillTable, missile.Base);
-            var magicXP = GetTotalXP(skillTable, magic.Base);
+            var meleeXP = GetTotalXP(skillTableTrained, (uint)Math.Max((int)(melee.InitLevel + melee.Ranks) - simulatedBuffedAmount, 0));
+            var missileXP = GetTotalXP(skillTableTrained, (uint)Math.Max((int)(missile.InitLevel + missile.Ranks) - simulatedBuffedAmount, 0));
+            var magicXP = GetTotalXP(skillTableTrained, (uint)Math.Max((int)(magic.InitLevel + magic.Ranks) - simulatedBuffedAmount, 0));
 
             if (meleeXP < lowestDefenseSkillXP)
                 lowestDefenseSkillXP = meleeXP;
@@ -5348,6 +5354,7 @@ namespace ACE.Server.Command.Handlers.Processors
             foreach (var skillEntry in creature.Skills)
             {
                 var skill = skillEntry.Value;
+                var value = (uint)Math.Max((int)(skill.InitLevel + skill.Ranks) - simulatedBuffedAmount, 0);
                 switch (skill.Skill)
                 {
                     case Skill.Axe:
@@ -5360,28 +5367,60 @@ namespace ACE.Server.Command.Handlers.Processors
                     case Skill.Bow:
                     case Skill.Crossbow:
                     case Skill.ThrownWeapon:
-                        if (skill.Base > highestCombatSkillValue)
-                            highestCombatSkillValue = skill.Base;
+                        if (value > highestCombatSkillValue)
+                            highestCombatSkillValue = value;
                         break;
                     case Skill.CreatureEnchantment:
                     case Skill.ItemEnchantment:
                     case Skill.LifeMagic:
                     case Skill.WarMagic:
-                        if (skill.Base > highestMagicSkillValue)
-                            highestMagicSkillValue = skill.Base;
+                        if (value > highestMagicSkillValue)
+                            highestMagicSkillValue = value;
                         break;
                 }
             }
 
-            var combatSkillXP = GetTotalXP(skillTable, highestCombatSkillValue);
-            var magicSkillXP = GetTotalXP(skillTable, highestMagicSkillValue);
+            var combatSkillXP = GetTotalXP(skillTableTrained, highestCombatSkillValue);
+            var magicSkillXP = GetTotalXP(skillTableTrained, highestMagicSkillValue);
 
             if (combatSkillXP > magicSkillXP)
                 totalXp += combatSkillXP;
             else
                 totalXp += magicSkillXP;
 
-            int level = 1;
+            var attributesCopy = new Dictionary<PropertyAttribute, CreatureAttribute>(creature.Attributes);
+            attributesCopy = attributesCopy.OrderByDescending(a => a.Value.StartingValue + a.Value.Ranks).ToDictionary();
+            var highestAttribute = attributesCopy.First().Value;
+            var highestAttributeValue = highestAttribute.StartingValue + highestAttribute.Ranks;
+
+            var innatePool = 270;
+            //if (highestAttributeValue < 100)
+            //    innatePool = (int)(highestAttributeValue * 2);
+
+            foreach (var attribute in attributesCopy.Values)
+            {
+                var value = (uint)Math.Max((int)(attribute.StartingValue + attribute.Ranks) - simulatedBuffedAmount, 0);
+
+                if (innatePool > 0)
+                {
+                    var innateValue = Math.Min(innatePool, 100);
+                    if (value >= innateValue)
+                    {
+                        value -= (uint)innateValue;
+                        innatePool -= innateValue;
+                    }
+                    else
+                    {
+                        innatePool -= (int)value;
+                        value = 0;
+                    }
+                }
+
+                if (value > 0)
+                    totalXp += GetTotalXP(attributeTable, value);
+            }
+
+            var level = 1;
             while (totalXp >= xpTable[level + 1])
             {
                 level++;
@@ -5390,37 +5429,20 @@ namespace ACE.Server.Command.Handlers.Processors
                 {
                     ulong lastLevelTotalXP = xpTable[xpTable.Count - 1];
                     ulong lastLevelXpDiff = xpTable[xpTable.Count - 1] - xpTable[xpTable.Count - 2];
-                    int extraLevels = (int)((totalXp - lastLevelTotalXP) / lastLevelXpDiff);
+                    int levelsAboveTable = (int)((totalXp - lastLevelTotalXP) / lastLevelXpDiff);
 
-                    level += extraLevels;
+                    level += levelsAboveTable;
                     break;
                 }
             }
 
-            if (level > 1)
+            if (level < 10)
             {
-                var bodyPartHighestDmg = 0;
-                foreach (var bodyPart in creature.Biota.PropertiesBodyPart)
-                {
-                    if (bodyPart.Value.DVal > bodyPartHighestDmg)
-                        bodyPartHighestDmg = bodyPart.Value.DVal;
-                }
+                // For the lowest level creatures lets use HP to create more granularity between creature levels.
+                var healthXP = GetTotalXP(vitalTable, Math.Min(creature.Health.Base, 100));
+                healthXP = (ulong)(healthXP * ((10.0 - level) / 9.0));
+                totalXp += healthXP;
 
-                var damageXP = (ulong)(level * level * 100 * bodyPartHighestDmg);
-
-                totalXp += damageXP;
-
-                if (level < 10)
-                {
-                    // For the lowest level creatures lets use HP to create more granularity between creature levels.
-                    var healthXP = Math.Min(GetTotalXP(vitalTable, creature.Health.Base), 100);
-
-                    healthXP = (ulong)(2 * healthXP * ((10.0 - level) / 9.0));
-
-                    totalXp += healthXP;
-                }
-
-                level = 1;
                 while (totalXp >= xpTable[level + 1])
                 {
                     level++;
@@ -5429,13 +5451,311 @@ namespace ACE.Server.Command.Handlers.Processors
                     {
                         ulong lastLevelTotalXP = xpTable[xpTable.Count - 1];
                         ulong lastLevelXpDiff = xpTable[xpTable.Count - 1] - xpTable[xpTable.Count - 2];
-                        int extraLevels = (int)((totalXp - lastLevelTotalXP) / lastLevelXpDiff);
+                        int levelsAboveTable = (int)((totalXp - lastLevelTotalXP) / lastLevelXpDiff);
 
-                        level += extraLevels;
+                        level += levelsAboveTable;
                         break;
                     }
                 }
             }
+
+            return level;
+        }
+
+        public static int CalculateLevel(Creature creature)
+        {
+            if (creature == null)
+                return 0;
+
+            // First we determine out general tier.
+            var level = CalculateLevelInternal(creature, 0);
+            var floatTier = Creature.CalculateExtendedTier(level);
+            var tier = (int)floatTier;
+
+            // Now that we have our tier we restart for the proper calculations.
+            var simulatedBuffedAmount = 5 + ((floatTier - 0.5) * 5);
+            level = CalculateLevelInternal(creature, simulatedBuffedAmount);
+
+            // Add extra levels on top depending on the creature's damage, spells and other properties.
+            var damageList = new List<Tuple<int, ACE.Entity.Models.Weenie>>();
+
+            var hasSpecialAttack = false;
+            if (creature.CombatTableDID.HasValue)
+            {
+                var motionTable = DatManager.PortalDat.ReadFromDat<MotionTable>(creature.MotionTableId);
+                var combatTable = DatManager.PortalDat.ReadFromDat<CombatManeuverTable>(creature.CombatTableDID.Value);
+                combatTable.Stances.TryGetValue(MotionStance.HandCombat, out var stanceManeuvers);
+
+                foreach (var combatManeuvers in stanceManeuvers.Table.Values)
+                {
+                    foreach (var attackTypes in combatManeuvers.Table)
+                    {
+                        foreach (var motion in attackTypes.Value)
+                        {
+                            var attackFrames = motionTable.GetAttackFrames(creature.MotionTableId, MotionStance.HandCombat, motion);
+                            foreach (var attackFrame in attackFrames)
+                            {
+                                var attackPart = creature.GetAttackPart(motion, attackFrame.attackHook);
+                                if (attackPart.Key == CombatBodyPart.Breath)
+                                    hasSpecialAttack = true;
+                                damageList.Add(Tuple.Create(attackPart.Value.DVal, (ACE.Entity.Models.Weenie)null));
+                            }
+                        }
+                    }
+                }
+            }
+
+            var meleeWeapons = new List<ACE.Entity.Models.Weenie>();
+            var missileWeapons = new List<ACE.Entity.Models.Weenie>();
+            var ammo = new List<ACE.Entity.Models.Weenie>();
+            if (creature.WieldedTreasure != null)
+            {
+                foreach (var item in creature.WieldedTreasure)
+                {
+                    if (item.WeenieClassId == 0)
+                        continue;
+
+                    var weenie = DatabaseManager.World.GetCachedWeenie(item.WeenieClassId);
+                    switch(weenie.WeenieType)
+                    {
+                        case WeenieType.MeleeWeapon:
+                        case WeenieType.Missile:
+                            meleeWeapons.Add(weenie);
+                            break;
+                        case WeenieType.MissileLauncher:
+                            missileWeapons.Add(weenie);
+                            break;
+                        case WeenieType.Ammunition:
+                            ammo.Add(weenie);
+                            break;
+                    }
+                }
+            }
+
+            if (creature.Biota.PropertiesCreateList != null)
+            {
+                foreach (var item in creature.Biota.PropertiesCreateList.Where(x => x.DestinationType == DestinationType.Wield || x.DestinationType == DestinationType.WieldTreasure))
+                {
+                    if (item.WeenieClassId == 0)
+                        continue;
+
+                    var weenie = DatabaseManager.World.GetCachedWeenie(item.WeenieClassId);
+                    switch (weenie.WeenieType)
+                    {
+                        case WeenieType.MeleeWeapon:
+                        case WeenieType.Missile:
+                            meleeWeapons.Add(weenie);
+                            break;
+                        case WeenieType.MissileLauncher:
+                            missileWeapons.Add(weenie);
+                            break;
+                        case WeenieType.Ammunition:
+                            ammo.Add(weenie);
+                            break;
+                    }
+                }
+            }
+
+            if (creature.Biota.PropertiesGenerator != null)
+            {
+                foreach (var item in creature.Biota.PropertiesGenerator.Where(x => x.WhereCreate == RegenLocationType.Wield || x.WhereCreate == RegenLocationType.WieldTreasure))
+                {
+                    if (item.WeenieClassId == 0)
+                        continue;
+
+                    var weenie = DatabaseManager.World.GetCachedWeenie(item.WeenieClassId);
+                    switch (weenie.WeenieType)
+                    {
+                        case WeenieType.MeleeWeapon:
+                        case WeenieType.Missile:
+                            meleeWeapons.Add(weenie);
+                            break;
+                        case WeenieType.MissileLauncher:
+                            missileWeapons.Add(weenie);
+                            break;
+                        case WeenieType.Ammunition:
+                            ammo.Add(weenie);
+                            break;
+                    }
+                }
+            }
+
+            foreach (var weapon in meleeWeapons)
+            {
+                var damage = weapon.GetProperty(PropertyInt.Damage).Value;
+                var attackType = (AttackType)(weapon.GetProperty(PropertyInt.AttackType) ?? 0);
+                var weaponType = (WeaponType)(weapon.GetProperty(PropertyInt.WeaponType) ?? 0);
+                var cleaveTargets = weapon.GetProperty(PropertyInt.Cleaving);
+
+                if ((attackType & AttackType.TripleStrike) != 0)
+                    damage *= 3;
+                else if ((attackType & AttackType.DoubleStrike) != 0)
+                    damage *= 2;
+
+                if (weaponType == WeaponType.TwoHanded)
+                    damage *= 2;
+
+                if (cleaveTargets != null)
+                    damage *= cleaveTargets.Value - 1;
+
+                if (weapon.PropertiesSpellBook != null)
+                {
+                    var highestDamageRaising = 0;
+                    var highestDamageRaisingRare = 0;
+                    var highestMaxDamageRaising = 0;
+                    foreach (var spellId in weapon.PropertiesSpellBook)
+                    {
+                        var spell = new Entity.Spell(spellId.Key);
+                        if(spell.Category == SpellCategory.DamageRaising && spell.StatModVal > highestDamageRaising)
+                            highestDamageRaising = (int)spell.StatModVal;
+                        else if (spell.Category == SpellCategory.DamageRaisingRare && spell.StatModVal > highestDamageRaisingRare)
+                            highestDamageRaisingRare = (int)spell.StatModVal;
+                        else if (spell.Category == SpellCategory.MaxDamageRaising && spell.StatModVal > highestMaxDamageRaising)
+                            highestMaxDamageRaising = (int)spell.StatModVal;
+                    }
+
+                    damage += highestDamageRaising + highestDamageRaisingRare + highestMaxDamageRaising;
+                }
+
+                damageList.Add(Tuple.Create(damage, weapon));
+            }
+
+            var highestMissileWeaponMod = 0.0;
+            var highestMissileWeaponDamage = 0;
+            if (missileWeapons.Count > 0)
+            {
+                var bestMissileWeapon = missileWeapons.OrderByDescending(w => w.GetProperty(PropertyFloat.DamageMod)).First();
+                highestMissileWeaponMod = bestMissileWeapon.GetProperty(PropertyFloat.DamageMod).Value;
+                highestMissileWeaponDamage = bestMissileWeapon.GetProperty(PropertyInt.Damage).Value;
+
+                if (bestMissileWeapon.PropertiesSpellBook != null)
+                {
+                    var highestDamageRaising = 0;
+                    var highestDamageRaisingRare = 0;
+                    var highestMaxDamageRaising = 0;
+                    foreach (var spellId in bestMissileWeapon.PropertiesSpellBook)
+                    {
+                        var spell = new Entity.Spell(spellId.Key);
+                        if (spell.Category == SpellCategory.DamageRaising && spell.StatModVal > highestDamageRaising)
+                            highestDamageRaising = (int)spell.StatModVal;
+                        else if (spell.Category == SpellCategory.DamageRaisingRare && spell.StatModVal > highestDamageRaisingRare)
+                            highestDamageRaisingRare = (int)spell.StatModVal;
+                        else if (spell.Category == SpellCategory.MaxDamageRaising && spell.StatModVal > highestMaxDamageRaising)
+                            highestMaxDamageRaising = (int)spell.StatModVal;
+                    }
+
+                    highestMissileWeaponDamage += highestDamageRaising + highestDamageRaisingRare + highestMaxDamageRaising;
+                }
+
+                var highestAmmoDamage = 0;
+                if (ammo.Count > 0)
+                    highestAmmoDamage = ammo.OrderByDescending(w => w.GetProperty(PropertyInt.Damage)).First().GetProperty(PropertyInt.Damage).Value;
+
+                damageList.Add(Tuple.Create((int)(highestMissileWeaponMod * (highestMissileWeaponDamage + highestAmmoDamage)), bestMissileWeapon));
+            }
+
+            bool? weaponIgnoreMagicArmor = null;
+            bool? weaponIgnoreMagicResist = null;
+            double? weaponIgnoreArmor = null;
+            double? weaponIgnoreShield = null;
+            double? weaponResistanceModifier = null;
+            double? weaponSlayerDamageBonus = null;
+
+            var highestMeleeAndMissileDamage = 0;
+            if (damageList.Count > 0)
+            {
+                damageList = damageList.OrderByDescending(w => w.Item1).ToList();
+                foreach(var entry in damageList)
+                {
+                    if (highestMeleeAndMissileDamage == 0)
+                        highestMeleeAndMissileDamage = entry.Item1;
+
+                    var weapon = entry.Item2;
+                    if (weapon != null)
+                    {
+                        if (weapon.GetProperty(PropertyBool.IgnoreMagicArmor) == true) // Bypasses Banes
+                            weaponIgnoreMagicArmor = true;
+
+                        if (weapon.GetProperty(PropertyBool.IgnoreMagicResist) == true) // Bypasses Protections
+                            weaponIgnoreMagicResist = true;
+
+                        var property = weapon.GetProperty(PropertyFloat.IgnoreArmor);
+                        if (property.HasValue && property < 1.0 && (!weaponIgnoreArmor.HasValue || property < weaponIgnoreArmor.Value)) // Armor Cleaving: 0.0 = ignore 100% of armor AL.
+                            weaponIgnoreArmor = property;
+
+                        property = weapon.GetProperty(PropertyFloat.IgnoreShield);
+                        if (property.HasValue && property > 0.0 && (!weaponIgnoreShield.HasValue || property > weaponIgnoreShield.Value)) // Shield Cleaving: 1.0 = Ignore 100% shield AL.
+                            weaponIgnoreShield = property;
+
+                        property = weapon.GetProperty(PropertyFloat.ResistanceModifier);
+                        if (property.HasValue && property < 1.0 && (!weaponResistanceModifier.HasValue || property < weaponResistanceModifier.Value)) // Resistance Cleaving: 0.0 = Ignore 100% resists.
+                            weaponResistanceModifier = property;
+
+                        property = weapon.GetProperty(PropertyInt.SlayerCreatureType).HasValue && (CreatureType)weapon.GetProperty(PropertyInt.SlayerCreatureType) == CreatureType.Human ? weapon.GetProperty(PropertyFloat.SlayerDamageBonus) : null;
+                        if (property.HasValue && property > 1.0 && (!weaponSlayerDamageBonus.HasValue || property > weaponSlayerDamageBonus.Value)) // Slayer: 2.0 = 200% damage against SlayerCreatureType.
+                            weaponSlayerDamageBonus = property;
+                    }
+                }
+            }
+
+            var highestLevelProjectileSpellKnown = 0;
+            if (creature.Biota.PropertiesSpellBook != null)
+            {
+                foreach (var item in creature.Biota.PropertiesSpellBook)
+                {
+                    var spell = new Entity.Spell(item.Key);
+                    if (!spell.IsProjectile)
+                        continue;
+
+                    if (spell.Level > highestLevelProjectileSpellKnown)
+                        highestLevelProjectileSpellKnown = (int)spell.Level;
+                }
+            }
+
+            var attacksCauseBleeding = creature.AttacksCauseBleedChance.HasValue ? creature.AttacksCauseBleedChance > 0 : false;
+
+            var extraLevels = 0d;
+
+            var averageMaxDamage = 16 + (tier > 1 ? 4 : 0) + ((tier - 1) * 4);
+            var damageLevelMod = (highestMeleeAndMissileDamage - averageMaxDamage) / 2;
+            if (damageLevelMod < 0)
+                damageLevelMod /= 2;
+
+            // Very low level creatures with projectile spells or bleeding attacks are difficult enough that their below average physical damage does not matter.
+            if (level < 10 && damageLevelMod < 0 && (highestLevelProjectileSpellKnown > 0) || attacksCauseBleeding)
+                damageLevelMod = 0;
+
+            extraLevels += damageLevelMod;
+
+            if (hasSpecialAttack)
+                extraLevels += 2.5f;
+
+            extraLevels += highestLevelProjectileSpellKnown;
+
+            if (creature.IgnoreMagicArmor || weaponIgnoreMagicArmor == true) // Bypasses Banes
+                extraLevels += 2.5f;
+
+            if (creature.IgnoreMagicResist || weaponIgnoreMagicResist == true) // Bypasses Protections
+                extraLevels += 2.5f;
+
+            var ignoreArmor = creature.IgnoreArmor.HasValue ? creature.IgnoreArmor : weaponIgnoreArmor;
+            if (ignoreArmor.HasValue && ignoreArmor < 1.0) // Armor Cleaving: 0.0 = ignore 100% of armor AL.
+                extraLevels += (1.0 - ignoreArmor.Value) * 5;
+
+            var ignoreShield = creature.IgnoreShield.HasValue ? creature.IgnoreShield : weaponIgnoreShield;
+            if (ignoreShield.HasValue) // Shield Cleaving: 1.0 = Ignore 100% shield AL.
+                extraLevels += ignoreShield.Value * 5;
+
+            var resistanceModifier = creature.ResistanceModifier.HasValue ? creature.ResistanceModifier : weaponResistanceModifier;
+            if (resistanceModifier.HasValue && resistanceModifier < 1.0) // Resistance Cleaving: 0.0 = Ignore 100% resists.
+                extraLevels += (1.0 - resistanceModifier.Value) * 5;
+
+            var slayerDamageBonus = creature.SlayerCreatureType == CreatureType.Human && creature.SlayerDamageBonus.HasValue ? creature.SlayerDamageBonus : weaponSlayerDamageBonus;
+            if (slayerDamageBonus.HasValue && slayerDamageBonus > 1.0f) // Slayer: 2.0 = 200% damage against SlayerCreatureType.
+                extraLevels += (slayerDamageBonus.Value - 1.0f) / 0.5 * 5;
+
+            level += (int)extraLevels;
+            level = Math.Max(level, 1);
 
             return level;
         }
@@ -6175,6 +6495,99 @@ namespace ACE.Server.Command.Handlers.Processors
                     }
                     else
                         CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Invalid deathTreasure conversion: {deathTreasureString} -> {calculatedDeathTreasureString}.", ChatMessageType.Broadcast);
+                }
+            }
+        }
+
+        [CommandHandler("updateCreatureLevelsAndTiers", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        public static void HandleUpdateCreatureLevelsAndTiers(Session session, params string[] parameters)
+        {
+            var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+            var treasureDeath = DatabaseManager.World.GetAllTreasureDeath();
+
+            var ignoreList = new List<uint>()
+            {
+                (uint)WeenieClassName.human,
+                (uint)WeenieClassName.admin,
+                (uint)WeenieClassName.sentinel,
+                (uint)WeenieClassName.chickenrooster,
+                (uint)WeenieClassName.undeadhauntedmansionwandering,
+                (uint)WeenieClassName.mysterioussarcophagus,
+                (uint)WeenieClassName.rabbitdancingsteele,
+                (uint)WeenieClassName.rabbitwhite,
+                (uint)WeenieClassName.pillarice,
+                (uint)WeenieClassName.pillarfire,
+                (uint)WeenieClassName.pillaracid,
+                (uint)WeenieClassName.pillarlightning,
+            };
+
+            foreach (var weenieTypeEntry in WeenieTypes)
+            {
+                if (weenieTypeEntry.Value != (int)WeenieType.Creature && weenieTypeEntry.Value != (int)WeenieType.Cow)
+                    continue;
+
+                if (ignoreList.Contains(weenieTypeEntry.Key))
+                    continue;
+
+                var weenie = DatabaseManager.World.GetWeenie(weenieTypeEntry.Key);
+                var playerKillerStatus = (PlayerKillerStatus?)weenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
+                var npcLooksLikeObject = weenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
+                if (playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
+                {
+                    var deathTreasure = (TreasureDeathDesc)(weenie.GetProperty(PropertyDataId.DeathTreasureType) ?? 0);
+                    var level = 0;
+
+                    var obj = WorldObjectFactory.CreateNewWorldObject(weenie.ClassId);
+                    if (obj != null)
+                    {
+                        level = CalculateLevel(obj as Creature);
+                        obj.Destroy();
+                    }
+
+                    if (level != 0)
+                    {
+                        var levelProperty = weenie.WeeniePropertiesInt.FirstOrDefault(x => x.Type == (uint)PropertyInt.Level);
+                        levelProperty.Value = level;
+
+                        if (deathTreasure != 0)
+                        {
+                            if (!treasureDeath.ContainsKey((uint)deathTreasure))
+                                CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Invalid deathTreasure: {deathTreasure}.", ChatMessageType.Broadcast);
+                            else if (!Enum.IsDefined(typeof(TreasureDeathDesc), deathTreasure))
+                                CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Non-mapped deathTreasure: {deathTreasure}.", ChatMessageType.Broadcast);
+                            else
+                            {
+                                var maxHealth = weenie.GetProperty(PropertyAttribute2nd.MaxHealth);
+                                int calculatedTier;
+                                if (maxHealth != null && maxHealth.CurrentLevel >= 1500)
+                                    calculatedTier = (int)Math.Ceiling(Creature.CalculateExtendedTier(level));
+                                else
+                                    calculatedTier = (int)Math.Floor(Creature.CalculateExtendedTier(level));
+                                var deathTreasureString = deathTreasure.ToString();
+                                if (deathTreasureString.Length < 3)
+                                    CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Cannot convert deathTreasure: {deathTreasureString}.", ChatMessageType.Broadcast);
+                                else
+                                {
+                                    var calculatedDeathTreasureString = $"T{calculatedTier}_{deathTreasureString.Remove(0, 3)}";
+
+                                    if (deathTreasureString != calculatedDeathTreasureString)
+                                    {
+                                        if (Enum.TryParse(calculatedDeathTreasureString, out TreasureDeathDesc calculatedDeathTreasure))
+                                        {
+                                            var property = weenie.WeeniePropertiesDID.FirstOrDefault(x => x.Type == (uint)PropertyDataId.DeathTreasureType);
+                                            property.Value = (uint)calculatedDeathTreasure;
+                                        }
+                                        else
+                                            CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}) - Level {level}: Invalid deathTreasure conversion: {deathTreasureString} -> {calculatedDeathTreasureString}.", ChatMessageType.Broadcast);
+                                    }
+                                }
+                            }
+                        }
+
+                        ExportSQLWeenie(weenie, session);
+                    }
+                    else
+                        CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}): Error calculating level.", ChatMessageType.Broadcast);
                 }
             }
         }

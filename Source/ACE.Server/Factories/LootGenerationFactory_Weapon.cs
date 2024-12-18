@@ -119,7 +119,7 @@ namespace ACE.Server.Factories
             chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
-                // 0.0 = ignore 100% of all armor.
+                // 0.0 = ignore 100% of armor AL.
                 wo.IgnoreArmor = 0.625f; // Equivalent to -75 at 200 AL armor.
                 wo.IconOverlayId = 0x06005EBF;
                 return true;
@@ -139,7 +139,7 @@ namespace ACE.Server.Factories
             chance = ApplyQualityModToExtraMutationChance(chance, treasureDeath.LootQualityMod);
             if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
             {
-                // 1.0 = ignore 100% of the armor from shields.
+                // 1.0 = ignore 100% of shield AL.
                 wo.IgnoreShield = 0.50f; // Equivalent of Brittlemail V for 300 AL shields.
                 wo.IconOverlayId = 0x06005EC2;
                 wo.Name = $"{wo.Name} of Shield Cleaving";
