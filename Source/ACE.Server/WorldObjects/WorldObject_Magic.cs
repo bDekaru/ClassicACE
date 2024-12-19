@@ -2086,7 +2086,20 @@ namespace ACE.Server.WorldObjects
             if (!weenie.PropertiesFloat.TryGetValue(PropertyFloat.DefaultScale, out var scale))
                 scale = 1.0f;
 
-            var result = (float)(setup.Spheres[0].Radius * scale);
+            //var result = (float)(setup.Spheres[0].Radius * scale);
+
+            var setupRadius = setup.Radius;
+
+            // Fix projectiles spawning behind the caster.
+            if (weenie.PropertiesDID.TryGetValue(PropertyDataId.PhysicsEffectTable, out var physicsEffectTable))
+            {
+                if (physicsEffectTable == 0x34000005)
+                    setupRadius += 1.5f;
+                else if (physicsEffectTable == 0x34000007)
+                    setupRadius += 0.5f;
+            }
+
+            var result = (float)(setupRadius * scale);
 
             ProjectileRadiusCache.TryAdd(projectileWcid, result);
 

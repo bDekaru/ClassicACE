@@ -4013,7 +4013,7 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("castspell", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Casts a spell on the last appraised object", "spell id")]
         public static void HandleCastSpell(Session session, params string[] parameters)
         {
-            if (!uint.TryParse(parameters[0], out var spellId))
+            if (!Enum.TryParse(parameters[0], true, out SpellId spellId))
             {
                 CommandHandlerHelper.WriteOutputInfo(session, $"Invalid spell id {parameters[0]}");
                 return;
