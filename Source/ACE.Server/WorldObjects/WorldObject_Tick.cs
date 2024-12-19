@@ -19,7 +19,7 @@ namespace ACE.Server.WorldObjects
         // Used for cumulative ServerPerformanceMonitor event recording
         protected readonly Stopwatch stopwatch = new Stopwatch();
 
-        private const int heartbeatSpreadInterval = 5;
+        private const int heartbeatSpreadInterval = 20;
 
         protected double CachedHeartbeatInterval;
         /// <summary>
