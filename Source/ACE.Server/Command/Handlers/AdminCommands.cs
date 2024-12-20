@@ -3390,42 +3390,24 @@ namespace ACE.Server.Command.Handlers
             }
         }
 
-        // heal
-        [CommandHandler("heal", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0,
-            "Heals yourself (or the selected creature)",
-            "\n" + "This command fully restores your(or the selected creature's) health, mana, and stamina")]
+        [CommandHandler("heal", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0, "Restores the selected creature's health, mana, and stamina.")]
         public static void HandleHeal(Session session, params string[] parameters)
         {
-            // usage: @heal
-            // This command fully restores your(or the selected creature's) health, mana, and stamina.
-            // @heal - Heals yourself(or the selected creature).
+            var creature = CommandHandlerHelper.GetQueryTarget(session) as Creature;
 
-            var objectId = ObjectGuid.Invalid;
-
-            if (session.Player.HealthQueryTarget.HasValue)
-                objectId = new ObjectGuid((uint)session.Player.HealthQueryTarget);
-            else if (session.Player.ManaQueryTarget.HasValue)
-                objectId = new ObjectGuid((uint)session.Player.ManaQueryTarget);
-            else if (session.Player.CurrentAppraisalTarget.HasValue)
-                objectId = new ObjectGuid((uint)session.Player.CurrentAppraisalTarget);
-
-            if (objectId == ObjectGuid.Invalid)
-                objectId = session.Player.Guid;
-
-            var wo = session.Player.CurrentLandblock?.GetObject(objectId);
-
-            if (wo is null)
-            {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Unable to locate what you have selected.", ChatMessageType.Broadcast));
-            }
-            else if (wo is Player player)
-            {
-                player.SetMaxVitals();
-            }
+            if (creature != null)
+                creature.SetMaxVitals();
             else
-            {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"You cannot heal {wo.Name} because it is not a player.", ChatMessageType.Broadcast));
-            }
+                CommandHandlerHelper.WriteOutputInfo(session, $"You cannot heal that.", ChatMessageType.Broadcast);
+        }
+
+        [CommandHandler("healSelf", AccessLevel.Envoy, CommandHandlerFlag.RequiresWorld, 0, "Restores your health, mana, and stamina.")]
+        public static void HandleHealSelf(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+
+            if (player != null)
+                player.SetMaxVitals();
         }
 
         // housekeep
