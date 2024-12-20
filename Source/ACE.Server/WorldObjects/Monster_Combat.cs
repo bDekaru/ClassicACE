@@ -478,8 +478,10 @@ namespace ACE.Server.WorldObjects
 
         private static readonly ConcurrentDictionary<uint, BodyPartTable> BPTableCache = new ConcurrentDictionary<uint, BodyPartTable>();
 
+
         public static BodyPartTable GetBodyParts(uint wcid)
         {
+            // get cached body parts table
             if (!BPTableCache.TryGetValue(wcid, out var bpTable))
             {
                 var weenie = DatabaseManager.World.GetCachedWeenie(wcid);
@@ -490,9 +492,21 @@ namespace ACE.Server.WorldObjects
             return bpTable;
         }
 
-        public static BodyPartTable GetBodyParts(Creature creature)
+        private BodyPartTable ModifiedBodyPartTable = null;
+        public BodyPartTable GetBodyParts()
         {
-            return new BodyPartTable(creature.Weenie);
+           if (IsModified) // If we're modified(our level has been altered) get our custom body parts instead of the generic ones.
+            {
+                if (ModifiedBodyPartTable == null)
+                    ModifiedBodyPartTable = new BodyPartTable(Biota);
+                return ModifiedBodyPartTable;
+            }
+            else
+                return GetBodyParts(WeenieClassId);
+        }
+        public void ClearModifiedBodyPartTable()
+        {
+            ModifiedBodyPartTable = null;
         }
 
         /// <summary>

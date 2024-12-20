@@ -4586,9 +4586,10 @@ namespace ACE.Server.Command.Handlers.Processors
                     }
                 }
 
-                creature.Weenie.PropertiesBodyPart = newBodyParts;
+                creature.Biota.PropertiesBodyPart = newBodyParts;
+                creature.ClearModifiedBodyPartTable();
 
-                if (creature.Weenie.PropertiesSpellBook != null)
+                if (creature.Biota.PropertiesSpellBook != null)
                 {
                     uint warMagicSkill = 0;
                     uint lifeMagicSkill = 0;
@@ -4601,7 +4602,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                     var newSpells = new Dictionary<int, float>();
 
-                    foreach (var entry in creature.Weenie.PropertiesSpellBook)
+                    foreach (var entry in creature.Biota.PropertiesSpellBook)
                     {
                         Entity.Spell currentSpell = new Entity.Spell(entry.Key);
 
@@ -4633,7 +4634,7 @@ namespace ACE.Server.Command.Handlers.Processors
                                 SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, level, true);
                                 Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
 
-                                if (newMana >= newSpellAttempt.BaseMana && magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power + 50 : (int)newSpellAttempt.Power + 30)) // Creatures tend to cast lower level self spells.
+                                if (newSelf + newMana >= newSpellAttempt.BaseMana && magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power + 50 : (int)newSpellAttempt.Power + 30)) // Creatures tend to cast lower level self spells.
                                 {
                                     newSpellId = newSpellIdAttempt;
                                     newSpellLevel = level;
@@ -4662,7 +4663,7 @@ namespace ACE.Server.Command.Handlers.Processors
                         }
                     }
 
-                    creature.Weenie.PropertiesSpellBook = newSpells;
+                    creature.Biota.PropertiesSpellBook = newSpells;
                 }
             }
             else
@@ -4761,7 +4762,7 @@ namespace ACE.Server.Command.Handlers.Processors
                                 SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, level, true);
                                 Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
 
-                                if (newMana >= newSpellAttempt.BaseMana && magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power + 50 : (int)newSpellAttempt.Power + 30)) // Creatures tend to cast lower level self spells.
+                                if (newSelf + newMana >= newSpellAttempt.BaseMana && magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power + 50 : (int)newSpellAttempt.Power + 30)) // Creatures tend to cast lower level self spells.
                                 {
                                     newSpellId = newSpellIdAttempt;
                                     newSpellLevel = level;

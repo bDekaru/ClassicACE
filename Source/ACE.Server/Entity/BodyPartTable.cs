@@ -13,24 +13,53 @@ namespace ACE.Server.Entity
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public Weenie Weenie;
-
         public readonly List<BodyPartProbability>[] Quadrants = new List<BodyPartProbability>[12];
 
-        public BodyPartTable(Weenie weenie)
+        public BodyPartTable(Biota biota)
         {
-            Weenie = weenie;
-
             for (var i = 0; i < Quadrants.Length; i++)
                 Quadrants[i] = new List<BodyPartProbability>();
 
-            if (Weenie.PropertiesBodyPart == null)
+            if (biota.PropertiesBodyPart == null)
+            {
+                log.Error($"BodyPartTable is null for {biota.GetName()}({biota.WeenieClassId})");
+                return;
+            }
+
+            foreach (var kvp in biota.PropertiesBodyPart)
+            {
+                var bodyPart = kvp.Value;
+
+                if (bodyPart.HLF > 0.0f) Quadrants[0].Add(new BodyPartProbability(kvp.Key, bodyPart.HLF));
+                if (bodyPart.MLF > 0.0f) Quadrants[1].Add(new BodyPartProbability(kvp.Key, bodyPart.MLF));
+                if (bodyPart.LLF > 0.0f) Quadrants[2].Add(new BodyPartProbability(kvp.Key, bodyPart.LLF));
+
+                if (bodyPart.HRF > 0.0f) Quadrants[3].Add(new BodyPartProbability(kvp.Key, bodyPart.HRF));
+                if (bodyPart.MRF > 0.0f) Quadrants[4].Add(new BodyPartProbability(kvp.Key, bodyPart.MRF));
+                if (bodyPart.LRF > 0.0f) Quadrants[5].Add(new BodyPartProbability(kvp.Key, bodyPart.LRF));
+
+                if (bodyPart.HLB > 0.0f) Quadrants[6].Add(new BodyPartProbability(kvp.Key, bodyPart.HLB));
+                if (bodyPart.MLB > 0.0f) Quadrants[7].Add(new BodyPartProbability(kvp.Key, bodyPart.MLB));
+                if (bodyPart.LLB > 0.0f) Quadrants[8].Add(new BodyPartProbability(kvp.Key, bodyPart.LLB));
+
+                if (bodyPart.HRB > 0.0f) Quadrants[9].Add(new BodyPartProbability(kvp.Key, bodyPart.HRB));
+                if (bodyPart.MRB > 0.0f) Quadrants[10].Add(new BodyPartProbability(kvp.Key, bodyPart.MRB));
+                if (bodyPart.LRB > 0.0f) Quadrants[11].Add(new BodyPartProbability(kvp.Key, bodyPart.LRB));
+            }
+        }
+
+        public BodyPartTable(Weenie weenie)
+        {
+            for (var i = 0; i < Quadrants.Length; i++)
+                Quadrants[i] = new List<BodyPartProbability>();
+
+            if (weenie.PropertiesBodyPart == null)
             {
                 log.Error($"BodyPartTable is null for {weenie.WeenieClassId} - {weenie.ClassName}!");
                 return;
             }
 
-            foreach (var kvp in Weenie.PropertiesBodyPart)
+            foreach (var kvp in weenie.PropertiesBodyPart)
             {
                 var bodyPart = kvp.Value;
 
