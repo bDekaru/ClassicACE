@@ -107,8 +107,8 @@ namespace ACE.Entity.Enum
         T4_RunedChest = 412,
         T5_RunedChest = 413,
         T1_RunedChest = 414,
-        T5_ReinforcedMahoganyChest = 421,
-        T4_ReinforcedOakenChest = 422,
+        T6_ReinforcedMahoganyChest = 421,
+        T6_ReinforcedOakenChest = 422,
         T4_General = 448,
         T6_General = 449,
         T3_General = 450,
@@ -134,5 +134,6 @@ namespace ACE.Entity.Enum
         T4_TreasureChest = 1003,
         T5_TreasureChest = 1004,
         T6_TreasureChest = 1005,
+        T6_RunedChest = 1006,
     }
 }

@@ -1382,5 +1382,27 @@ namespace ACE.Server.WorldObjects
 
             return tier;
         }
+
+        public bool InDungeon
+        {
+            get
+            {
+                if (CurrentLandblock == null || Location == null)
+                    return false;
+
+                return CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors);
+            }
+        }
+
+        public bool Indoors
+        {
+            get
+            {
+                if (CurrentLandblock == null || Location == null)
+                    return false;
+
+                return Location.Indoors;
+            }
+        }
     }
 }

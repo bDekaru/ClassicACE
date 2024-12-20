@@ -380,6 +380,13 @@ namespace ACE.Server.Entity
 
             obj.Location.PositionZ += 0.05f;
 
+            if (obj.Location.Rotation == Quaternion.Identity)
+            {
+                // If we have no rotation at all choose one randomly, this avoids having most spawns facing exactly north.
+                var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)ThreadSafeRandom.Next(0f, (float)(2 * Math.PI)));
+                obj.Location.Rotation = Quaternion.Normalize(rotation);
+            }
+
             // we are going to delay this scatter logic until the physics engine,
             // where the remnants of this function are in the client (SetScatterPositionInternal)
 
@@ -426,6 +433,13 @@ namespace ACE.Server.Entity
             obj.Location = new ACE.Entity.Position(Generator.Location);
 
             obj.Location.PositionZ += 0.05f;
+
+            if (obj.Location.Rotation == Quaternion.Identity)
+            {
+                // If we have no rotation at all choose one randomly, this avoids having most spawns facing exactly north.
+                var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)ThreadSafeRandom.Next(0f, (float)(2 * Math.PI)));
+                obj.Location.Rotation = Quaternion.Normalize(rotation);
+            }
 
             if (!VerifyLandblock(obj) || !VerifyWalkableSlope(obj))
                 return false;

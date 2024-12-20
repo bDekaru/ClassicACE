@@ -84,7 +84,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && InDungeon)
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
@@ -163,7 +163,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && InDungeon)
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
@@ -236,7 +236,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && InDungeon)
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
@@ -311,7 +311,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && InDungeon)
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
@@ -410,7 +410,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && InDungeon)
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
@@ -537,7 +537,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && InDungeon)
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
@@ -627,7 +627,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && InDungeon)
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
@@ -858,10 +858,8 @@ namespace ACE.Server.WorldObjects
             if (distance == 0 || Teleporting)
                 return;
 
-            var isDungeon = CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors);
-
             var blinkLoc = Location.InFrontOf(distance);
-            if (!isDungeon)
+            if (!InDungeon)
                 blinkLoc.AdjustMapCoords();
             else
             {
@@ -910,7 +908,7 @@ namespace ACE.Server.WorldObjects
                 SendUpdatePosition();
 
                 if (!InUpdate)
-                    LandblockManager.RelocateObjectForPhysics(this, distance <= 192 && !isDungeon);
+                    LandblockManager.RelocateObjectForPhysics(this, distance <= 192 && !InDungeon);
             }
 
             Teleporting = false;

@@ -1066,7 +1066,7 @@ namespace ACE.Server.WorldObjects
             if (!Tier.HasValue) // We're not in a town and no defined shop tier! See what's around us.
             {
                 float maxDistance;
-                if (CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+                if (InDungeon)
                     maxDistance = 50;
                 else
                     maxDistance = 500;

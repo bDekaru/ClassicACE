@@ -181,6 +181,9 @@ namespace ACE.Server.WorldObjects
                 if (PathfindingEnabled && Location != null && Location.Indoors)
                     Pathfinder.TryLoadMesh(Location);
             }
+
+            if (AiIncapableOfAnyMotion && Location != null && !Location.Indoors)
+                Location.AdjustMapCoords(); // These won't fall to the ground after spawn so we have to adjust their position here.
         }
 
         public override void OnGeneration(WorldObject generator)
@@ -199,16 +202,44 @@ namespace ACE.Server.WorldObjects
                     var trapExtraChance = pseudoRandom.NextSingle();
                     var chestExtraChance = pseudoRandom.NextSingle();
 
-                    if (CurrentLandblock.IsDungeon || (CurrentLandblock.HasDungeon && Location.Indoors))
+                    var baseChestChance = 0.0075;
+                    var baseTrapChance = 0.05;
+
+                    if (InDungeon)
                     {
                         var trapRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
-                        if (trapRoll < 0.05 + (0.15 * trapExtraChance))
+                        if (trapRoll < baseTrapChance + (baseTrapChance * trapExtraChance))
                             DeployRandomTrap();
                     }
 
-                    var chestRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
-                    if (chestRoll < 0.015 + (0.015 * chestExtraChance))
-                        DeployHiddenChest();
+                    bool hasChest = false;
+                    if (!InDungeon && !AiIncapableOfAnyMotion)
+                    {
+                        var chestRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                        if (chestRoll < baseChestChance + (baseChestChance * chestExtraChance))
+                            hasChest = DeploySpecialChest();
+                    }
+
+                    if (!hasChest && Indoors)
+                    {
+                        var chestRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                        if (chestRoll < baseChestChance + (baseChestChance * chestExtraChance))
+                            hasChest = DeployChest();
+                    }
+
+                    if (!hasChest && (Indoors || AiIncapableOfAnyMotion))
+                    {
+                        var chestRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                        if (chestRoll < baseChestChance + (baseChestChance * chestExtraChance))
+                            hasChest = DeployHiddenChest();
+                    }
+
+                    if (!hasChest && !AiIncapableOfAnyMotion)
+                    {
+                        var corpseRoll = ThreadSafeRandom.Next(0.0f, 1.0f);
+                        if (corpseRoll < baseChestChance + (baseChestChance * chestExtraChance))
+                            DeployHiddenCorpse();
+                    }
                 });
                 actionChain.EnqueueChain();
             }
@@ -216,17 +247,27 @@ namespace ACE.Server.WorldObjects
 
         public List<WorldObjectInfo> DeployedObjects = new List<WorldObjectInfo>();
 
-        private List<uint> HiddenChests = new List<uint>()
+        private List<List<uint>> Chests = new List<List<uint>>
         {
-            50144,
-            50145,
-            50146,
-            50147,
-            50148,
-            50149,
+            new List<uint>{ 27243, 27245, 50067, 27244, 50075, 27242, 50069, 1932, 3978 },
+            new List<uint>{ 1915, 3961, 1924, 3970, 1918, 3964, 7493, 1930, 3976, 1921, 3967, 1927, 3973, 1934, 3980, 1937, 3983, 1940, 3986, 1943, 3989, 1949, 3995, 1913, 3959 },
+            new List<uint>{ 1916, 3962, 1925, 3971, 1919, 3965, 7500, 1931, 3977, 1922, 3968, 1928, 3974, 1935, 3981, 1938, 3984, 1941, 3987, 1944, 3990, 1950, 3996 },
+            new List<uint>{ 3960, 2544, 1914, 1923, 3969, 1917, 3963, 7494, 7495, 1929, 3975, 1920, 3966, 1926, 3972, 1933, 3979, 1936, 3982, 1939, 3985, 1942, 3988, 1948, 3994, 7297, 1912, 3958  },
+            new List<uint>{ 50252, 50253 },
+            new List<uint>{ 24476, 50254, 50255 }
         };
 
-        public void DeployHiddenChest()
+        private List<List<uint>> Corpses = new List<List<uint>>
+        {
+            new List<uint>{ 50074 },
+            new List<uint>{ 4180 },
+            new List<uint>{ 4381 },
+            new List<uint>{ 4382 },
+            new List<uint>{ 50241 },
+            new List<uint>{ 50242 }
+        };
+
+        public bool DeployChest()
         {
             DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
 
@@ -235,21 +276,39 @@ namespace ACE.Server.WorldObjects
             if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
                 tierMod = 1;
 
-            var tier = Math.Clamp(baseTier + tierMod, 1, HiddenChests.Count);
-            var unmodTier = Math.Clamp(Tier ?? 1, 1, HiddenChests.Count);
-            var hiddenChest = WorldObjectFactory.CreateNewWorldObject(HiddenChests[tier - 1]);
+            var chestList = Chests;
+            var isCorpse = false;
+            if (!IsHumanoid || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.20f)
+            {
+                isCorpse = true;
+                chestList = Corpses;
+            }
 
-            if (hiddenChest == null)
-                return;
+            var tier = Math.Clamp(baseTier + tierMod, 1, chestList.Count);
+            var unmodTier = Math.Clamp(Tier ?? 1, 1, chestList.Count);
 
+            var chestWcidsList = chestList[tier - 1];
+            if (chestWcidsList == null || chestWcidsList.Count == 0)
+                return false;
+
+            var chestWcid = chestWcidsList[ThreadSafeRandom.Next(0, chestWcidsList.Count - 1)];
+
+            if (chestWcid == 0)
+                return false;
+
+            var chest = WorldObjectFactory.CreateNewWorldObject(chestWcid);
+            if (chest == null)
+                return false;
+
+            var radius = PhysicsObj.GetRadius() + 0.5f;
             var chestLocation = new Position(Location);
-            if (PathfindingEnabled && Location.Indoors)
+            if (PathfindingEnabled && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
             {
                 var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Wide);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
-                    chestLocation = chestLocation.InFrontOf(-1);
+                    chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
                 randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Narrow, out _, true);
                 if (randomPos != null)
@@ -261,7 +320,194 @@ namespace ACE.Server.WorldObjects
                 }
             }
             else
-                chestLocation = chestLocation.InFrontOf(-1, true);
+                chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
+
+            if(isCorpse)
+            {
+                var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)ThreadSafeRandom.Next(0f, (float)(2 * Math.PI)));
+                chestLocation.Rotation = Quaternion.Normalize(rotation);
+            }
+
+            chest.Location = chestLocation;
+            chest.Location.LandblockId = new LandblockId(chest.Location.GetCell());
+
+            chest.Generator = this;
+            chest.Tier = tier;
+
+            if (chest.EnterWorld())
+            {
+                DeployedObjects.Add(new WorldObjectInfo(chest));
+                return true;
+            }
+
+            if (chest != null)
+                chest.Destroy();
+
+            return false;
+        }
+
+        private List<List<uint>> RunedChests = new List<List<uint>>
+        {
+            new List<uint>{ 50203, 50202 },
+            new List<uint>{ 22572, 22568 },
+            new List<uint>{ 22576, 22570 },
+            new List<uint>{ 22571, 22567 },
+            new List<uint>{ 50244, 22566 },
+            new List<uint>{ 50245, 50243 }
+        };
+
+        private List<List<uint>> RunedCorpses = new List<List<uint>>
+        {
+            new List<uint>{ 50256 },
+            new List<uint>{ 50257 },
+            new List<uint>{ 50258 },
+            new List<uint>{ 50259 },
+            new List<uint>{ 50260 },
+            new List<uint>{ 50261 }
+        };
+
+        private List<List<uint>> VirindiChests = new List<List<uint>>
+        {
+            null,
+            new List<uint>{ 9287 },
+            new List<uint>{ 9286 },
+            new List<uint>{ 9288 },
+            new List<uint>{ 8999, 9001 },
+            new List<uint>{ 8999, 9001 }
+        };
+
+        public bool DeploySpecialChest()
+        {
+            DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
+
+            var baseTier = RollTier();
+            var tierMod = 0;
+            if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
+                tierMod = 1;
+
+            var chestList = RunedChests;
+            var isCorpse = false;
+            if (CreatureType == ACE.Entity.Enum.CreatureType.Virindi || FriendType == ACE.Entity.Enum.CreatureType.Virindi)
+                chestList = VirindiChests;
+            else if (!IsHumanoid)
+            {
+                isCorpse = true;
+                chestList = RunedCorpses;
+            }
+
+            var tier = Math.Clamp(baseTier + tierMod, 1, chestList.Count);
+            var unmodTier = Math.Clamp(Tier ?? 1, 1, chestList.Count);
+
+            var chestWcidsList = chestList[tier - 1];
+            if (chestWcidsList == null || chestWcidsList.Count == 0)
+                return false;
+
+            var chestWcid = chestWcidsList[ThreadSafeRandom.Next(0, chestWcidsList.Count - 1)];
+
+            if (chestWcid == 0)
+                return false;
+
+            var specialChest = WorldObjectFactory.CreateNewWorldObject(chestWcid);
+            if (specialChest == null)
+                return false;
+
+            var radius = PhysicsObj.GetRadius() + 0.5f;
+            var chestLocation = new Position(Location);
+            if (PathfindingEnabled && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
+            {
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Wide);
+                if (randomPos != null)
+                    chestLocation = randomPos;
+                else
+                    chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
+
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Narrow, out _, true);
+                if (randomPos != null)
+                    chestLocation = randomPos;
+                else
+                {
+                    var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)ThreadSafeRandom.Next(0f, (float)(2 * Math.PI)));
+                    chestLocation.Rotation = Quaternion.Normalize(rotation);
+                }
+            }
+            else
+                chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
+
+            if (isCorpse)
+            {
+                var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)ThreadSafeRandom.Next(0f, (float)(2 * Math.PI)));
+                chestLocation.Rotation = Quaternion.Normalize(rotation);
+            }
+
+            specialChest.Location = chestLocation;
+            specialChest.Location.LandblockId = new LandblockId(specialChest.Location.GetCell());
+
+            specialChest.Generator = this;
+            specialChest.Tier = tier;
+
+            if (specialChest.EnterWorld())
+            {
+                DeployedObjects.Add(new WorldObjectInfo(specialChest));
+                return true;
+            }
+
+            if (specialChest != null)
+                specialChest.Destroy();
+
+            return false;
+        }
+
+        private List<uint> HiddenChests = new List<uint>()
+        {
+            50144,
+            50145,
+            50146,
+            50147,
+            50148,
+            50149,
+        };
+
+        public bool DeployHiddenChest()
+        {
+            DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
+
+            var baseTier = RollTier();
+            var tierMod = 0;
+            if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
+                tierMod = 1;
+
+            var tier = Math.Clamp(baseTier + tierMod, 1, HiddenChests.Count);
+            var unmodTier = Math.Clamp(Tier ?? 1, 1, HiddenChests.Count);
+
+            var chestWcid = HiddenChests[tier - 1];
+            if (chestWcid == 0)
+                return false;
+
+            var hiddenChest = WorldObjectFactory.CreateNewWorldObject(chestWcid);
+            if (hiddenChest == null)
+                return false;
+
+            var radius = PhysicsObj.GetRadius() + 0.5f;
+            var chestLocation = new Position(Location);
+            if (PathfindingEnabled && Location.Indoors)
+            {
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Wide);
+                if (randomPos != null)
+                    chestLocation = randomPos;
+                else
+                    chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
+
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Narrow, out _, true);
+                if (randomPos != null)
+                    chestLocation = randomPos;
+                else
+                {
+                    var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)ThreadSafeRandom.Next(0f, (float)(2 * Math.PI)));
+                    chestLocation.Rotation = Quaternion.Normalize(rotation);
+                }
+            }
+            else
+                chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
             hiddenChest.Location = chestLocation;
             hiddenChest.Location.LandblockId = new LandblockId(hiddenChest.Location.GetCell());
@@ -270,17 +516,88 @@ namespace ACE.Server.WorldObjects
             hiddenChest.Tier = tier;
             hiddenChest.ResistAwareness = (int)(unmodTier * 65);
 
-            if(ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
+            if (ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
                 hiddenChest.IsLocked = true;
 
             if (hiddenChest.EnterWorld())
             {
                 DeployedObjects.Add(new WorldObjectInfo(hiddenChest));
-                return;
+                return true;
             }
 
             if (hiddenChest != null)
                 hiddenChest.Destroy();
+
+            return false;
+        }
+
+        private List<uint> HiddenCorpses = new List<uint>()
+        {
+            50246,
+            50247,
+            50248,
+            50249,
+            50250,
+            50251,
+        };
+
+        public bool DeployHiddenCorpse()
+        {
+            DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
+
+            var baseTier = RollTier();
+            var tierMod = 0;
+            if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
+                tierMod = 1;
+
+            var tier = Math.Clamp(baseTier + tierMod, 1, HiddenCorpses.Count);
+            var unmodTier = Math.Clamp(Tier ?? 1, 1, HiddenCorpses.Count);
+
+            var chestWcid = HiddenCorpses[tier - 1];
+            if (chestWcid == 0)
+                return false;
+
+            var hiddenCorpse = WorldObjectFactory.CreateNewWorldObject(chestWcid);
+            if (hiddenCorpse == null)
+                return false;
+
+            var radius = PhysicsObj.GetRadius() + 0.5f;
+            var corpseLocation = new Position(Location);
+            if (PathfindingEnabled && Location.Indoors && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
+            {
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(corpseLocation, 40, AgentWidth.Wide);
+                if (randomPos != null)
+                    corpseLocation = randomPos;
+                else
+                    corpseLocation = corpseLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
+
+                randomPos = Pathfinder.GetNearestWallPosition(corpseLocation, 20, AgentWidth.Narrow, out _, true);
+                if (randomPos != null)
+                    corpseLocation = randomPos;
+            }
+            else
+                corpseLocation = corpseLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
+
+            var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)ThreadSafeRandom.Next(0f, (float)(2 * Math.PI)));
+            corpseLocation.Rotation = Quaternion.Normalize(rotation);
+
+            hiddenCorpse.Location = corpseLocation;
+            hiddenCorpse.Location.LandblockId = new LandblockId(hiddenCorpse.Location.GetCell());
+
+            hiddenCorpse.Generator = this;
+            hiddenCorpse.Tier = tier;
+            hiddenCorpse.ResistAwareness = (int)(unmodTier * 65);
+
+            if (hiddenCorpse.EnterWorld())
+            {
+                DeployedObjects.Add(new WorldObjectInfo(hiddenCorpse));
+                return true;
+            }
+
+            if (hiddenCorpse != null)
+                hiddenCorpse.Destroy();
+
+            return false;
         }
 
         private List<SpellId> TrapSpells = new List<SpellId>()
@@ -292,9 +609,10 @@ namespace ACE.Server.WorldObjects
             SpellId.FrostBolt1,
             SpellId.LightningBolt1,
             SpellId.AcidStream1,
+            SpellId.HarmOther1,
         };
 
-        public void DeployRandomTrap()
+        public bool DeployRandomTrap()
         {
             DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
 
@@ -347,7 +665,7 @@ namespace ACE.Server.WorldObjects
                 {
                     DeployedObjects.Add(new WorldObjectInfo(trapObject));
                     DeployedObjects.Add(new WorldObjectInfo(trapTrigger));
-                    return;
+                    return true;
                 }
             }
 
@@ -355,6 +673,8 @@ namespace ACE.Server.WorldObjects
                 trapObject.Destroy();
             if (trapTrigger != null)
                 trapTrigger.Destroy();
+
+            return false;
         }
 
         // verify logic

@@ -270,6 +270,19 @@ namespace ACE.Server.WorldObjects
             set { if (!value) RemoveProperty(PropertyBool.AiImmobile); else SetProperty(PropertyBool.AiImmobile, value); }
         }
 
+        public bool AiOmnidirectional
+        {
+            get => GetProperty(PropertyBool.AiOmnidirectional) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.AiOmnidirectional); else SetProperty(PropertyBool.AiOmnidirectional, value); }
+        }
+
+        public bool AiIncapableOfAnyMotion
+        {
+            get => GetProperty(PropertyBool.AiIncapableOfAnyMotion) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.AiIncapableOfAnyMotion); else SetProperty(PropertyBool.AiIncapableOfAnyMotion, value); }
+        }
+
+
         public int? Overpower
         {
             get => GetProperty(PropertyInt.Overpower);

@@ -66,16 +66,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// The time when monster can perform its next magic attack
         /// </summary>
-        public double NextMagicAttackTime
-        {
-            get
-            {
-                // defaults to most common value found in py16 db
-                var magicDelay = AiUseMagicDelay ?? 3.0f;
-
-                return PrevAttackTime + magicDelay;
-            }
-        }
+        public double NextSpellCastTime { get; set; }
 
         /// <summary>
         /// Returns true if monster is dead
@@ -115,20 +106,10 @@ namespace ACE.Server.WorldObjects
             if (CombatTable == null)
                 GetCombatTable();
 
-            if (!IsModified)
-            {
-                // if caster, roll for spellcasting chance
-                if (HasKnownSpells && TryRollSpell())
-                    return CombatType.Magic;
-            }
-            else
-            {
-                // If we're modified(our level has been altered) get our custom spellbook instead of the generic one.
-                if (HasKnownSpellsModified && TryRollSpellModified())
-                    return CombatType.Magic;
-            }
-
-            if (IsRanged)
+            // if caster, roll for spellcasting chance
+            if (HasKnownSpells && SpellCastReady() && TryRollSpell())
+                return CombatType.Magic;
+            else if (IsRanged)
                 return CombatType.Missile;
             else
                 return CombatType.Melee;
@@ -211,7 +192,7 @@ namespace ACE.Server.WorldObjects
                             CurrentAttackType = CombatType.Melee;
 
                             var powerupTime = (float)(PowerupTime ?? 1.0f);
-                            var failDelay = ThreadSafeRandom.Next(0.0f, powerupTime);
+                            var failDelay = ThreadSafeRandom.Next(powerupTime * 0.5f, powerupTime * 1.5f);
 
                             NextMoveTime = Timers.RunningTime + failDelay;
                         }
@@ -248,12 +229,19 @@ namespace ACE.Server.WorldObjects
         /// <returns></returns>
         public bool AttackReady()
         {
-            var nextAttackTime = CurrentAttackType == CombatType.Magic ? NextMagicAttackTime : NextAttackTime;
-
-            if (Timers.RunningTime < nextAttackTime)
+            if (Timers.RunningTime < NextAttackTime)
                 return false;
 
             return !PhysicsObj.IsAnimating || !HasPendingMovement;
+        }
+
+        /// <summary>
+        /// Returns TRUE if creature can cast its next spell
+        /// </summary>
+        /// <returns></returns>
+        public bool SpellCastReady()
+        {
+            return Timers.RunningTime > NextSpellCastTime;
         }
 
         private bool IsAttacking = false;

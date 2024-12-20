@@ -222,6 +222,9 @@ namespace ACE.Server.WorldObjects
                 else
                     MaxRange = MaxMeleeRange;
 
+                if (AiIncapableOfAnyMotion && CurrentAttackType != CombatType.Magic)
+                    CurrentAttackType = null;
+
                 //if (CurrentAttack == AttackType.Magic)
                 //MaxRange = MaxMeleeRange;   // FIXME: server position sync
             }
@@ -233,7 +236,7 @@ namespace ACE.Server.WorldObjects
             var inRange = distanceToTarget < MaxRange;
             var inRangeToStop = distanceToTarget < MaxRange * 0.8f;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !AiIncapableOfAnyMotion)
             {
                 PathfindingEnabled = Pathfinder.PathfindingEnabled;
 
@@ -399,73 +402,76 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (CurrentAttackType != CombatType.Missile || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (CurrentAttackType != null)
             {
-                if (!PhysicsObj.IsSticky && distanceToTarget > MaxRange || (!IsFacing(AttackTarget) && !IsSelfCast()))
+                if (CurrentAttackType != CombatType.Missile || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
-                    bool failedThresholds = FailedMovementCount >= FailedMovementThreshold || FailedSightCount >= FailedSightThreshold;
-
-                    if (!IsMoving && !failedThresholds)
-                        StartMovement();
-                    else
+                    if (!PhysicsObj.IsSticky && distanceToTarget > MaxRange || (!AiOmnidirectional && !IsFacing(AttackTarget) && !IsSelfCast()))
                     {
-                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        bool failedThresholds = FailedMovementCount >= FailedMovementThreshold || FailedSightCount >= FailedSightThreshold;
+
+                        if (!IsMoving && !failedThresholds && !AiIncapableOfAnyMotion)
+                            StartMovement();
+                        else
                         {
-                            if (failedThresholds)
+                            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                             {
-                                FailedMovementCount = 0;
-                                FailedSightCount = 0;
-
-                                var currentTarget = AttackTarget;
-                                FindNextTarget();
-
-                                if (currentTarget == AttackTarget)
+                                if (failedThresholds)
                                 {
-                                    if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
-                                        TrySwitchToMissileAttack();
-                                    else
+                                    FailedMovementCount = 0;
+                                    FailedSightCount = 0;
+
+                                    var currentTarget = AttackTarget;
+                                    FindNextTarget();
+
+                                    if (currentTarget == AttackTarget)
                                     {
-                                        if (LastEmoteTime + MaxEmoteFrequency < currentUnixTime && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                            TryEmoting();
-
-                                        if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                        if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
+                                            TrySwitchToMissileAttack();
+                                        else
                                         {
-                                            if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
-                                                TryWandering(160, 200, 5);
-                                            else
-                                                TryWandering(100, 260, 7);
-                                        }
+                                            if (LastEmoteTime + MaxEmoteFrequency < currentUnixTime && EmoteChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                                TryEmoting();
 
-                                        if (PathfindingEnabled && Location.Indoors)
-                                            TryRoute();
+                                            if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                            {
+                                                if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
+                                                    TryWandering(160, 200, 5);
+                                                else
+                                                    TryWandering(100, 260, 7);
+                                            }
+
+                                            if (PathfindingEnabled && Location.Indoors)
+                                                TryRoute();
+                                        }
                                     }
                                 }
+                                else if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && distanceToTarget > 20 && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
+                                    TrySwitchToMissileAttack();
                             }
-                            else if (HasRangedWeapon && CurrentAttackType == CombatType.Melee && distanceToTarget > 20 && LastWeaponSwitchTime + MaxSwitchWeaponFrequency < currentUnixTime && isDirectiVisible)
-                                TrySwitchToMissileAttack();
                         }
                     }
+                    else
+                        Attack();
                 }
                 else
-                    Attack();
-            }
-            else
-            {
-                if (IsMoving)
-                    return;
-
-                if (!IsFacing(AttackTarget))
-                    StartMovement();
-                else if (distanceToTarget <= MaxRange)
-                    Attack();
-                else
                 {
-                    // monster switches to melee combat immediately,
-                    // if target is beyond max range?
+                    if (IsMoving)
+                        return;
 
-                    // should ranged mobs only get CurrentTargets within MaxRange?
-                    //Console.WriteLine($"{Name}.MissileAttack({AttackTarget.Name}): targetDist={targetDist}, MaxRange={MaxRange}, switching to melee");
-                    TrySwitchToMeleeAttack();
+                    if (!IsFacing(AttackTarget))
+                        StartMovement();
+                    else if (distanceToTarget <= MaxRange)
+                        Attack();
+                    else
+                    {
+                        // monster switches to melee combat immediately,
+                        // if target is beyond max range?
+
+                        // should ranged mobs only get CurrentTargets within MaxRange?
+                        //Console.WriteLine($"{Name}.MissileAttack({AttackTarget.Name}): targetDist={targetDist}, MaxRange={MaxRange}, switching to melee");
+                        TrySwitchToMeleeAttack();
+                    }
                 }
             }
 
