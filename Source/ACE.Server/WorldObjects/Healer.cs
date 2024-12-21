@@ -47,36 +47,61 @@ namespace ACE.Server.WorldObjects
             ObjectDescriptionFlags |= ObjectDescriptionFlag.Healer;
         }
 
+        public override void ActOnUse(WorldObject activator)
+        {
+            var healer = activator as Player;
+            if (healer == null)
+                return;
+
+            var target = healer;
+
+            var queryTarget = healer.HealthQueryTarget;
+            if (queryTarget.HasValue)
+            {
+                var result = healer.FindObject(queryTarget.Value, Player.SearchLocations.Landblock, out _, out _, out _);
+
+                if (result is Player playerTarget)
+                {
+                    if (!healer.IsPKType || !playerTarget.IsPKType || (healer.Fellowship != null && healer.Fellowship == playerTarget.Fellowship))
+                        target = playerTarget;
+                }
+            }
+
+            healer.HandleActionUseWithTarget(Guid.Full, target.Guid.Full, false);
+        }
+
         public override void HandleActionUseOnTarget(Player healer, WorldObject target)
         {
+            bool isUseDoneRequired = ItemUseable.Value.GetTargetFlags() != Usable.Undef;
+
             if (!healer.VerifyGameplayMode(this))
             {
                 healer.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(healer.Session, $"This item cannot be used, invalid gameplay mode!"));
-                healer.SendUseDoneEvent(WeenieError.YouCannotUseThatItem);
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired, WeenieError.YouCannotUseThatItem);
                 return;
             }
 
             if (healer.GetCreatureSkill(Skill.Healing).AdvancementClass < SkillAdvancementClass.Trained)
             {
-                healer.SendUseDoneEvent(WeenieError.YouArentTrainedInHealing);
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired, WeenieError.YouArentTrainedInHealing);
                 return;
             }
 
             if (healer.IsBusy || healer.Teleporting || healer.suicideInProgress)
             {
-                healer.SendUseDoneEvent(WeenieError.YoureTooBusy);
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired, WeenieError.YoureTooBusy);
                 return;
             }
 
             if (!(target is Player targetPlayer) || targetPlayer.Teleporting)
             {
-                healer.SendUseDoneEvent(WeenieError.YouCantHealThat);
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired, WeenieError.YouCantHealThat);
                 return;
             }
 
             if (healer.IsJumping)
             {
-                healer.SendUseDoneEvent(WeenieError.YouCantDoThatWhileInTheAir);
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired, WeenieError.YouCantDoThatWhileInTheAir);
                 return;
             }
 
@@ -87,7 +112,7 @@ namespace ACE.Server.WorldObjects
             if (targetPlayer.PlayerKillerStatus != healer.PlayerKillerStatus && targetPlayer.PlayerKillerStatus != PlayerKillerStatus.NPK)
             {
                 healer.SendWeenieErrorWithString(WeenieErrorWithString.YouFailToAffect_NotSamePKType, targetPlayer.Name);
-                healer.SendUseDoneEvent();
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired);
                 return;
             }
 
@@ -108,7 +133,7 @@ namespace ACE.Server.WorldObjects
                         healer.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(healer.Session, $"{target.Name} is already at full mana!"));
                         break;
                 }
-                healer.SendUseDoneEvent();
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired);
                 return;
             }
 
@@ -128,9 +153,11 @@ namespace ACE.Server.WorldObjects
 
         public void DoHealMotion(Player healer, Player target, bool success)
         {
+            bool isUseDoneRequired = ItemUseable.Value.GetTargetFlags() != Usable.Undef;
+
             if (!success || target.IsDead || target.Teleporting || target.suicideInProgress)
             {
-                healer.SendUseDoneEvent();
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired);
                 return;
             }
 
@@ -168,7 +195,7 @@ namespace ACE.Server.WorldObjects
 
                 healer.IsBusy = false;
 
-                healer.SendUseDoneEvent();
+                healer.SendUseDoneOrWeenieErrorEvent(isUseDoneRequired);
             });
 
             healer.EnqueueMotion(actionChain, MotionCommand.Ready);

@@ -26,11 +26,11 @@ namespace ACE.Server.WorldObjects
         /// when player double clicks an inventory item resulting in a target indicator
         /// and then clicks another item
         /// </summary>
-        public void HandleActionUseWithTarget(uint sourceObjectGuid, uint targetObjectGuid)
+        public void HandleActionUseWithTarget(uint sourceObjectGuid, uint targetObjectGuid, bool useDoneRequired = true)
         {
             if (PKLogout)
             {
-                SendUseDoneEvent(WeenieError.YouHaveBeenInPKBattleTooRecently);
+                SendUseDoneOrWeenieErrorEvent(useDoneRequired, WeenieError.YouHaveBeenInPKBattleTooRecently);
                 return;
             }
 
@@ -42,7 +42,7 @@ namespace ACE.Server.WorldObjects
             if (sourceItem == null)
             {
                 log.Warn($"{Name}.HandleActionUseWithTarget({sourceObjectGuid:X8}, {targetObjectGuid:X8}): couldn't find {sourceObjectGuid:X8}");
-                SendUseDoneEvent();
+                SendUseDoneOrWeenieErrorEvent(useDoneRequired);
                 return;
             }
 
@@ -52,7 +52,7 @@ namespace ACE.Server.WorldObjects
             if (target == null)
             {
                 log.Warn($"{Name}.HandleActionUseWithTarget({sourceObjectGuid:X8}, {targetObjectGuid:X8}): couldn't find {targetObjectGuid:X8}");
-                SendUseDoneEvent();
+                SendUseDoneOrWeenieErrorEvent(useDoneRequired);
                 return;
             }
 
@@ -74,7 +74,7 @@ namespace ACE.Server.WorldObjects
                     else if (usable.HasFlag(Usable.Contained))
                         action = "contain";
                     Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"You must {action} the {sourceItem.Name} to use it."));
-                    SendUseDoneEvent();
+                    SendUseDoneOrWeenieErrorEvent(useDoneRequired);
                     return;
                 }
                 // check activation requirements
@@ -84,7 +84,7 @@ namespace ACE.Server.WorldObjects
                     if (result.Message != null)
                         Session.Network.EnqueueSend(result.Message);
 
-                    SendUseDoneEvent();
+                    SendUseDoneOrWeenieErrorEvent(useDoneRequired);
                     return;
                 }
                 else
@@ -106,7 +106,7 @@ namespace ACE.Server.WorldObjects
             //            if (result.Message != null)
             //                Session.Network.EnqueueSend(result.Message);
 
-            //            SendUseDoneEvent();
+            //            SendUseDoneOrWeenieErrorEvent(useDoneRequired);
             //        }
             //        else
             //        {
@@ -116,7 +116,7 @@ namespace ACE.Server.WorldObjects
             //    }
             //    else
             //    {
-            //        SendUseDoneEvent();
+            //        SendUseDoneOrWeenieErrorEvent(useDoneRequired);
             //    }
 
             //    return;
@@ -126,13 +126,13 @@ namespace ACE.Server.WorldObjects
             {
                 if (sourceItem.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
                 {
-                    SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
+                    SendUseDoneOrWeenieErrorEvent(useDoneRequired, WeenieError.TradeItemBeingTraded);
                     //SendWeenieError(WeenieError.TradeItemBeingTraded);
                     return;
                 }
                 if (target.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
                 {
-                    SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
+                    SendUseDoneOrWeenieErrorEvent(useDoneRequired, WeenieError.TradeItemBeingTraded);
                     //SendWeenieError(WeenieError.TradeItemBeingTraded);
                     return;
                 }
@@ -143,7 +143,7 @@ namespace ACE.Server.WorldObjects
             {
                 // ItemHolder::TargetCompatibleWithObject
                 SendTransientError($"Cannot use the {sourceItem.Name} with the {target.Name}");
-                SendUseDoneEvent();
+                SendUseDoneOrWeenieErrorEvent(useDoneRequired);
                 return;
             }
 
@@ -156,7 +156,7 @@ namespace ACE.Server.WorldObjects
 
                 if (IsBusy)
                 {
-                    SendUseDoneEvent(WeenieError.YoureTooBusy);
+                    SendUseDoneOrWeenieErrorEvent(useDoneRequired, WeenieError.YoureTooBusy);
                     return;
                 }
 
@@ -165,7 +165,7 @@ namespace ACE.Server.WorldObjects
                     if (success)
                         sourceItem.HandleActionUseOnTarget(this, target);
                     else
-                        SendUseDoneEvent();
+                        SendUseDoneOrWeenieErrorEvent(useDoneRequired);
                 });
             }
             else
@@ -257,6 +257,14 @@ namespace ACE.Server.WorldObjects
         public void SendUseDoneEvent(WeenieError errorType = WeenieError.None)
         {
             Session.Network.EnqueueSend(new GameEventUseDone(Session, errorType));
+        }
+
+        public void SendUseDoneOrWeenieErrorEvent(bool isUseDone, WeenieError errorType = WeenieError.None)
+        {
+            if(isUseDone)
+                Session.Network.EnqueueSend(new GameEventUseDone(Session, errorType));
+            else if(errorType != WeenieError.None)
+                Session.Network.EnqueueSend(new GameEventWeenieError(Session, errorType));
         }
 
 
