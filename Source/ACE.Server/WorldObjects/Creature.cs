@@ -271,11 +271,6 @@ namespace ACE.Server.WorldObjects
         {
             DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
 
-            var baseTier = RollTier();
-            var tierMod = 0;
-            if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
-                tierMod = 1;
-
             var chestList = Chests;
             var isCorpse = false;
             if (!IsHumanoid || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.20f)
@@ -284,8 +279,7 @@ namespace ACE.Server.WorldObjects
                 chestList = Corpses;
             }
 
-            var tier = Math.Clamp(baseTier + tierMod, 1, chestList.Count);
-            var unmodTier = Math.Clamp(Tier ?? 1, 1, chestList.Count);
+            var tier = Math.Clamp(RollTier(), 1, chestList.Count);
 
             var chestWcidsList = chestList[tier - 1];
             if (chestWcidsList == null || chestWcidsList.Count == 0)
@@ -376,31 +370,53 @@ namespace ACE.Server.WorldObjects
             new List<uint>{ 8999, 9001 }
         };
 
+        private List<Tuple<List<uint>, List<uint>>> SpecialChestsByKeyDrop = new List<Tuple<List<uint>, List<uint>>>
+        {
+            new Tuple<List<uint>, List<uint>>(new List<uint>{ 23107, 23108 }, new List<uint> { 23085, 23086 }), // Mangled Dark Key and Twisted Dark Key
+            new Tuple<List<uint>, List<uint>>(new List<uint>{ 30823 }, new List<uint> { 30796 }), // Broken Black Marrow Key
+        };
+
         public bool DeploySpecialChest()
         {
             DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
 
-            var baseTier = RollTier();
-            var tierMod = 0;
-            if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
-                tierMod = 1;
-
+            List<uint> chestWcidsList = null;
             var chestList = RunedChests;
             var isCorpse = false;
-            if (CreatureType == ACE.Entity.Enum.CreatureType.Virindi || FriendType == ACE.Entity.Enum.CreatureType.Virindi)
-                chestList = VirindiChests;
-            else if (!IsHumanoid)
+
+            var tier = RollTier();
+
+            if (Biota.PropertiesCreateList != null)
             {
-                isCorpse = true;
-                chestList = RunedCorpses;
+                foreach (var createListEntry in Biota.PropertiesCreateList)
+                {
+                    foreach (var entry in SpecialChestsByKeyDrop)
+                    {
+                        if (entry.Item1.Contains(createListEntry.WeenieClassId))
+                        {
+                            chestWcidsList = entry.Item2;
+                            break;
+                        }
+                    }
+                }
             }
 
-            var tier = Math.Clamp(baseTier + tierMod, 1, chestList.Count);
-            var unmodTier = Math.Clamp(Tier ?? 1, 1, chestList.Count);
+            if (chestWcidsList == null)
+            {
+                if (CreatureType == ACE.Entity.Enum.CreatureType.Virindi || FriendType == ACE.Entity.Enum.CreatureType.Virindi)
+                    chestList = VirindiChests;
+                else if (!IsHumanoid)
+                {
+                    isCorpse = true;
+                    chestList = RunedCorpses;
+                }
 
-            var chestWcidsList = chestList[tier - 1];
-            if (chestWcidsList == null || chestWcidsList.Count == 0)
-                return false;
+                tier = Math.Clamp(tier, 1, chestList.Count);                
+
+                chestWcidsList = chestList[tier - 1];
+                if (chestWcidsList == null || chestWcidsList.Count == 0)
+                    return false;
+            }
 
             var chestWcid = chestWcidsList[ThreadSafeRandom.Next(0, chestWcidsList.Count - 1)];
 
@@ -471,13 +487,7 @@ namespace ACE.Server.WorldObjects
         {
             DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
 
-            var baseTier = RollTier();
-            var tierMod = 0;
-            if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
-                tierMod = 1;
-
-            var tier = Math.Clamp(baseTier + tierMod, 1, HiddenChests.Count);
-            var unmodTier = Math.Clamp(Tier ?? 1, 1, HiddenChests.Count);
+            var tier = Math.Clamp(RollTier(), 1, HiddenChests.Count);
 
             var chestWcid = HiddenChests[tier - 1];
             if (chestWcid == 0)
@@ -514,7 +524,7 @@ namespace ACE.Server.WorldObjects
 
             hiddenChest.Generator = this;
             hiddenChest.Tier = tier;
-            hiddenChest.ResistAwareness = (int)(unmodTier * 65);
+            hiddenChest.ResistAwareness = (int)(Tier * 65);
 
             if (ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
                 hiddenChest.IsLocked = true;
@@ -545,13 +555,7 @@ namespace ACE.Server.WorldObjects
         {
             DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
 
-            var baseTier = RollTier();
-            var tierMod = 0;
-            if (Tier > 2 && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.25)
-                tierMod = 1;
-
-            var tier = Math.Clamp(baseTier + tierMod, 1, HiddenCorpses.Count);
-            var unmodTier = Math.Clamp(Tier ?? 1, 1, HiddenCorpses.Count);
+            var tier = Math.Clamp(RollTier(), 1, HiddenCorpses.Count);
 
             var chestWcid = HiddenCorpses[tier - 1];
             if (chestWcid == 0)
@@ -586,7 +590,7 @@ namespace ACE.Server.WorldObjects
 
             hiddenCorpse.Generator = this;
             hiddenCorpse.Tier = tier;
-            hiddenCorpse.ResistAwareness = (int)(unmodTier * 65);
+            hiddenCorpse.ResistAwareness = (int)(Tier * 65);
 
             if (hiddenCorpse.EnterWorld())
             {
