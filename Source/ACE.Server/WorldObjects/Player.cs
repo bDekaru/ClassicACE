@@ -501,11 +501,21 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            // the object could be in the world or on the player, first check player
-            var item = GetInventoryItem(itemGuid) ?? GetEquippedItem(itemGuid);
+            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var item = FindObject(itemGuid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems | SearchLocations.Landblock, out _, out _, out _);
 
-            if (item != null)
-                item.QueryItemMana(Session);
+                if (item != null)
+                    item.QueryItemMana(Session);
+            }
+            else
+            {
+                // the object could be in the world or on the player, first check player
+                var item = GetInventoryItem(itemGuid) ?? GetEquippedItem(itemGuid);
+
+                if (item != null)
+                    item.QueryItemMana(Session);
+            }
 
             ManaQueryTarget = itemGuid;
         }

@@ -26,11 +26,11 @@ namespace ACE.Server.WorldObjects
         /// when player double clicks an inventory item resulting in a target indicator
         /// and then clicks another item
         /// </summary>
-        public void HandleActionUseWithTarget(uint sourceObjectGuid, uint targetObjectGuid, bool useDoneRequired = true)
+        public void HandleActionUseWithTarget(uint sourceObjectGuid, uint targetObjectGuid)
         {
             if (PKLogout)
             {
-                SendUseDoneOrWeenieErrorEvent(useDoneRequired, WeenieError.YouHaveBeenInPKBattleTooRecently);
+                SendUseDoneEvent(WeenieError.YouHaveBeenInPKBattleTooRecently);
                 return;
             }
 
@@ -42,7 +42,7 @@ namespace ACE.Server.WorldObjects
             if (sourceItem == null)
             {
                 log.Warn($"{Name}.HandleActionUseWithTarget({sourceObjectGuid:X8}, {targetObjectGuid:X8}): couldn't find {sourceObjectGuid:X8}");
-                SendUseDoneOrWeenieErrorEvent(useDoneRequired);
+                SendUseDoneEvent();
                 return;
             }
 
@@ -52,7 +52,7 @@ namespace ACE.Server.WorldObjects
             if (target == null)
             {
                 log.Warn($"{Name}.HandleActionUseWithTarget({sourceObjectGuid:X8}, {targetObjectGuid:X8}): couldn't find {targetObjectGuid:X8}");
-                SendUseDoneOrWeenieErrorEvent(useDoneRequired);
+                SendUseDoneEvent();
                 return;
             }
 
@@ -74,7 +74,7 @@ namespace ACE.Server.WorldObjects
                     else if (usable.HasFlag(Usable.Contained))
                         action = "contain";
                     Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"You must {action} the {sourceItem.Name} to use it."));
-                    SendUseDoneOrWeenieErrorEvent(useDoneRequired);
+                    SendUseDoneEvent();
                     return;
                 }
                 // check activation requirements
@@ -84,7 +84,7 @@ namespace ACE.Server.WorldObjects
                     if (result.Message != null)
                         Session.Network.EnqueueSend(result.Message);
 
-                    SendUseDoneOrWeenieErrorEvent(useDoneRequired);
+                    SendUseDoneEvent();
                     return;
                 }
                 else
@@ -106,7 +106,7 @@ namespace ACE.Server.WorldObjects
             //            if (result.Message != null)
             //                Session.Network.EnqueueSend(result.Message);
 
-            //            SendUseDoneOrWeenieErrorEvent(useDoneRequired);
+            //            SendUseDoneEvent();
             //        }
             //        else
             //        {
@@ -116,7 +116,7 @@ namespace ACE.Server.WorldObjects
             //    }
             //    else
             //    {
-            //        SendUseDoneOrWeenieErrorEvent(useDoneRequired);
+            //        SendUseDoneEvent();
             //    }
 
             //    return;
@@ -126,13 +126,13 @@ namespace ACE.Server.WorldObjects
             {
                 if (sourceItem.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
                 {
-                    SendUseDoneOrWeenieErrorEvent(useDoneRequired, WeenieError.TradeItemBeingTraded);
+                    SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
                     //SendWeenieError(WeenieError.TradeItemBeingTraded);
                     return;
                 }
                 if (target.IsBeingTradedOrContainsItemBeingTraded(ItemsInTradeWindow))
                 {
-                    SendUseDoneOrWeenieErrorEvent(useDoneRequired, WeenieError.TradeItemBeingTraded);
+                    SendUseDoneEvent(WeenieError.TradeItemBeingTraded);
                     //SendWeenieError(WeenieError.TradeItemBeingTraded);
                     return;
                 }
@@ -143,7 +143,7 @@ namespace ACE.Server.WorldObjects
             {
                 // ItemHolder::TargetCompatibleWithObject
                 SendTransientError($"Cannot use the {sourceItem.Name} with the {target.Name}");
-                SendUseDoneOrWeenieErrorEvent(useDoneRequired);
+                SendUseDoneEvent();
                 return;
             }
 
@@ -156,7 +156,7 @@ namespace ACE.Server.WorldObjects
 
                 if (IsBusy)
                 {
-                    SendUseDoneOrWeenieErrorEvent(useDoneRequired, WeenieError.YoureTooBusy);
+                    SendUseDoneEvent(WeenieError.YoureTooBusy);
                     return;
                 }
 
@@ -165,8 +165,8 @@ namespace ACE.Server.WorldObjects
                     if (success)
                         sourceItem.HandleActionUseOnTarget(this, target);
                     else
-                        SendUseDoneOrWeenieErrorEvent(useDoneRequired);
-                });
+                        SendUseDoneEvent();
+                }, target.ItemType == ItemType.Portal ? 1.5f : null);
             }
             else
                 sourceItem.HandleActionUseOnTarget(this, target);
@@ -190,6 +190,46 @@ namespace ACE.Server.WorldObjects
 
             if (item != null)
             {
+                if (item.TargetType.HasValue && item.TargetType.Value != ItemType.None)
+                {
+                    // We have a target requirement, so redirect this to the appropriate function.
+                    var queryTarget = GetQueryTarget(item.Guid.Full);
+
+                    if (item.WeenieType == WeenieType.Healer)
+                    {
+                        var healTarget = this;
+
+                        if (queryTarget is Player playerTarget)
+                        {
+                            if (!IsPKType || !playerTarget.IsPKType || (Fellowship != null && Fellowship == playerTarget.Fellowship))
+                                healTarget = playerTarget;
+                        }
+
+                        HandleActionUseWithTarget(item.Guid.Full, healTarget.Guid.Full);
+                        return;
+                    }
+                    else
+                    {
+                        if (queryTarget != null)
+                        {
+                            if ((item.TargetType.Value & queryTarget.ItemType) == ItemType.None)
+                            {
+                                SendTransientError($"Cannot use the {item.Name} with the {queryTarget.Name}");
+                                SendUseDoneEvent();
+                            }
+                            else
+                                HandleActionUseWithTarget(item.Guid.Full, queryTarget.Guid.Full);
+                            return;
+                        }
+                        else
+                        {
+                            SendTransientError($"Cannot use the {item.Name} without a target");
+                            SendUseDoneEvent();
+                            return;
+                        }
+                    }
+                }
+
                 if ((item.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Sneak && (item.TacticAndTechniqueId ?? 0) != (int)TacticAndTechniqueType.Misdirect && item.WeenieType != WeenieType.Corpse && item.WeenieType != WeenieType.Door)
                     EndSneaking();
 
@@ -258,15 +298,6 @@ namespace ACE.Server.WorldObjects
         {
             Session.Network.EnqueueSend(new GameEventUseDone(Session, errorType));
         }
-
-        public void SendUseDoneOrWeenieErrorEvent(bool isUseDone, WeenieError errorType = WeenieError.None)
-        {
-            if(isUseDone)
-                Session.Network.EnqueueSend(new GameEventUseDone(Session, errorType));
-            else if(errorType != WeenieError.None)
-                Session.Network.EnqueueSend(new GameEventWeenieError(Session, errorType));
-        }
-
 
         /// <summary>
         /// This method processes the Game Action (F7B1) No Longer Viewing Contents (0x0195)

@@ -3171,6 +3171,9 @@ namespace ACE.Server.Command.Handlers
         {
             var wo = CommandHandlerHelper.GetLastAppraisedObject(session);
 
+            if (wo == null)
+                return;
+
             uint? staticGuid = null;
             if (!wo.Guid.IsStatic() && wo.Generator != null)
                 staticGuid = wo.Generator.GetStaticGuid(wo.Guid.Full);

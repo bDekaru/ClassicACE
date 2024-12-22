@@ -81,6 +81,9 @@ namespace ACE.Server.Command.Handlers
         /// </summary>
         public static WorldObject GetLastAppraisedObject(Session session)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                return GetQueryTarget(session); // Redirecting here so we do not have to redirect every command that uses last appraised object individually for CustomDM as The CustomDM client always keeps the server informed of the current selected target.
+
             var targetID = session.Player.RequestedAppraisalTarget;
             if (targetID == null)
             {
@@ -102,20 +105,30 @@ namespace ACE.Server.Command.Handlers
         /// </summary>
         public static WorldObject GetQueryTarget(Session session)
         {
-            var targetID = session.Player.QueryTarget;
-            if (targetID == 0)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                WriteOutputInfo(session, "GetQueryTarget() - no target");
-                return null;
+                var target = session.Player.GetQueryTarget();
+                if (target == null)
+                    WriteOutputInfo(session, "GetQueryTarget() - no target");
+                return target;
             }
+            else
+            {
+                var targetID = session.Player.QueryTarget;
+                if (targetID == 0)
+                {
+                    WriteOutputInfo(session, "GetQueryTarget() - no target");
+                    return null;
+                }
 
-            var target = session.Player.FindObject(targetID, Player.SearchLocations.Everywhere, out _, out _, out _);
-            if (target == null)
-            {
-                WriteOutputInfo(session, $"GetQueryTarget() - couldn't find {targetID:X8}");
-                return null;
+                var target = session.Player.FindObject(targetID, Player.SearchLocations.Everywhere, out _, out _, out _);
+                if (target == null)
+                {
+                    WriteOutputInfo(session, $"GetQueryTarget() - couldn't find {targetID:X8}");
+                    return null;
+                }
+                return target;
             }
-            return target;
         }
     }
 }

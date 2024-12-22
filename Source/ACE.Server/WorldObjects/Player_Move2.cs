@@ -45,7 +45,7 @@ namespace ACE.Server.WorldObjects
             }
 
             // send command to client
-            MoveToObject(target);
+            MoveToObject(target, useRadius);
 
             // start on server
             // forward this to PhysicsObj.MoveManager.MoveToManager

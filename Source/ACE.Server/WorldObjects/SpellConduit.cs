@@ -43,15 +43,12 @@ namespace ACE.Server.WorldObjects
                     player.HandleActionMagicCastUnTargetedSpell(spell.Id, this, true);
                 else
                 {
-                    uint targetId = player.QueryTarget;
+                    var target = player.GetQueryTarget(Guid.Full);
 
-                    if (targetId == Guid.Full) // If the player activates the SpellConduit using the mouse the first click will select the SpellConduit, so we need this to actually get the real target.
-                        targetId = player.PreviousQueryTarget;
-
-                    if (targetId != 0 && targetId != player.Guid.Full)
-                        player.HandleActionCastTargetedSpell(targetId, spell.Id, this, true);
+                    if (target != null && target != player)
+                        player.HandleActionCastTargetedSpell(target.Guid.Full, spell.Id, this, true);
                     else
-                        player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"You cannot cast this spell upon yourself"));
+                        player.SendTransientError("Cannot cast this spell upon yourself");
                 }
                 return;
             }
