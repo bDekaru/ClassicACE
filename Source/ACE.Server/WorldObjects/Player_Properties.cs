@@ -1312,7 +1312,6 @@ namespace ACE.Server.WorldObjects
         }
 
         public uint PreviousQueryTarget = 0;
-        public uint PreviousHealthQueryTarget = 0;
         public uint? HealthQueryTarget
         {
             get => GetProperty(PropertyInstanceId.HealthQueryTarget);
@@ -1329,7 +1328,6 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public uint PreviousManaQueryTarget = 0;
         public uint? ManaQueryTarget
         {
             get => GetProperty(PropertyInstanceId.ManaQueryTarget);

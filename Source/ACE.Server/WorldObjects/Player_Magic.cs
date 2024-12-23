@@ -429,9 +429,15 @@ namespace ACE.Server.WorldObjects
 
         public bool VerifySpellTarget(Spell spell, WorldObject target)
         {
-            if (IsInvalidTarget(spell, target))
+            if (target.StackSize > 1)
             {
-                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"{spell.Name} cannot be cast on {target.Name}."));
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"Cannot cast spell on a stack of items."));
+                SendSpellCastingDoneEvent(WeenieError.None);
+                return false;
+            }
+            else if (IsInvalidTarget(spell, target))
+            {
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"This spell cannot be cast on {target.Name}."));
                 SendSpellCastingDoneEvent(WeenieError.None);
                 return false;
             }
