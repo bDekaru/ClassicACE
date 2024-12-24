@@ -38,47 +38,44 @@ namespace ACE.Server.WorldObjects
             const float AttackRange = 2.0f; // Hardcoded attack range
 
             var targetCreature = AttackTarget as Creature;
+            var targetPlayer = AttackTarget as Player;
+            var targetPet = AttackTarget as CombatPet;
+            var combatPet = this as CombatPet;
 
-            // Validate target and ensure they are within attack range
-            if (targetCreature == null || IsDead || targetCreature.IsDead || !IsDirectVisible(targetCreature) ||
-                Location.DistanceTo(targetCreature.Location) > AttackRange)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                EndAttack();
-                return;
-            }
+                var knownDoors = targetCreature.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null &&
+                    (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
 
-            // Check if there are any doors or walls obstructing the line of sight
-            var knownDoors = targetCreature.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o =>
-                o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door ||
-                                                    o.WeenieObj.WorldObject.CreatureType ==
-                                                    ACE.Entity.Enum.CreatureType.Wall));
-
-            bool nearDoor = false;
-            foreach (var entry in knownDoors)
-            {
-                var door = entry.WeenieObj.WorldObject;
-                if (!door.IsOpen && (Location.DistanceTo(door.Location) < AttackRange ||
-                                     targetCreature.Location.DistanceTo(door.Location) < AttackRange))
+                bool nearDoor = false;
+                foreach (var entry in knownDoors)
                 {
-                    nearDoor = true;
-                    break;
+                    var door = entry.WeenieObj.WorldObject;
+                    float distanceToDoor = Location.DistanceTo(door.Location);
+                    float distanceToTarget = targetCreature.Location.DistanceTo(door.Location);
+
+                    // Only check for doors within a certain range and if the target is within that range as well
+                    if (!door.IsOpen && (distanceToDoor < AttackRange || distanceToTarget < AttackRange))
+                    {
+                        nearDoor = true;
+                        break;
+                    }
+                }
+
+                // If near a door and not directly visible, end the attack
+                if (nearDoor && !IsDirectVisible(targetCreature))
+                {
+                    EndAttack();
+                    return;
                 }
             }
 
-            // If there's a door in the way and the target is not directly visible, end the attack
-            if (nearDoor && !IsDirectVisible(targetCreature))
-            {
-                EndAttack();
-                return;
-            }
-
-            // Continue with the regular attack sequence
             if (CurrentMotionState.Stance == MotionStance.NonCombat)
                 DoAttackStance();
 
             var weapon = GetEquippedWeapon();
 
-            // Select combat maneuver
+            // select combat maneuver
             var motionCommand = GetCombatManeuver();
             if (motionCommand == null)
             {
@@ -88,21 +85,20 @@ namespace ACE.Server.WorldObjects
 
             if (!AiImmobile)
                 PhysicsObj.stick_to_object(AttackTarget.PhysicsObj.ID);
-
             DoSwingMotion(AttackTarget, motionCommand.Value, out float animLength, out var attackFrames);
 
             var extraStaminaUsage = 0;
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && weapon == null)
-                extraStaminaUsage =
-                    (int)(Strength.Base / 75f); // Make unarmed creatures have a non-trivial stamina cost.
+                extraStaminaUsage = (int)(Strength.Base / 75f); // Make unarmed creatures have a non-trivial stamina cost.
 
             var staminaCost = GetAttackStamina(GetPowerRange()) + extraStaminaUsage;
             UpdateVitalDelta(Stamina, -staminaCost);
 
             var numStrikes = attackFrames.Count;
+
             var actionChain = new ActionChain();
 
-            // Handle self-procs
+            // handle self-procs
             TryProcEquippedItems(this, this, true, weapon);
 
             var prevTime = 0.0f;
@@ -115,9 +111,7 @@ namespace ACE.Server.WorldObjects
 
                 actionChain.AddAction(this, () =>
                 {
-                    // Revalidate target during attack sequence
-                    if (AttackTarget == null || IsDead || targetCreature.IsDead ||
-                        Location.DistanceTo(targetCreature.Location) > AttackRange || !IsDirectVisible(targetCreature))
+                    if (AttackTarget == null || IsDead || targetCreature.IsDead)
                     {
                         EndAttack();
                         return;
@@ -131,24 +125,67 @@ namespace ACE.Server.WorldObjects
                         return;
                     }
 
-                    var damageEvent = DamageEvent.CalculateDamage(this, targetCreature, weapon, motionCommand,
-                        attackFrames[0].attackHook);
+                    var damageEvent = DamageEvent.CalculateDamage(this, targetCreature, weapon, motionCommand, attackFrames[0].attackHook);
 
                     targetCreature.OnAttackReceived(this, CombatType.Melee, damageEvent.IsCritical, damageEvent.Evaded);
 
+                    //var damage = CalculateDamage(ref damageType, maneuver, bodyPart, ref critical, ref shieldMod);
+
                     if (damageEvent.HasDamage)
                     {
-                        targetCreature.TakeDamage(this, damageEvent.DamageType, damageEvent.Damage);
-                        EmitSplatter(targetCreature, damageEvent.Damage);
+                        if (targetPlayer != null)
+                        {
+                            // this is a player taking damage
+                            targetPlayer.TakeDamage(this, damageEvent);
 
-                        if (GetCreatureSkill(Skill.DirtyFighting).AdvancementClass >= SkillAdvancementClass.Trained)
-                            FightDirty(targetCreature, damageEvent.Weapon);
+                            if (damageEvent.ShieldMod != 1.0f)
+                            {
+                                var shieldSkill = targetPlayer.GetCreatureSkill(Skill.Shield);
+                                Proficiency.OnSuccessUse(targetPlayer, shieldSkill, damageEvent.EffectiveAttackSkill);
+                            }
+
+                            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                            {
+                                if (damageEvent.Armor != null && damageEvent.Armor.Count > 0)
+                                {
+                                    var armorSkill = targetPlayer.GetCreatureSkill(Skill.Armor);
+                                    Proficiency.OnSuccessUse(targetPlayer, armorSkill, damageEvent.EffectiveAttackSkill);
+                                }
+                            }
+
+                            // handle Dirty Fighting
+                            if (GetCreatureSkill(Skill.DirtyFighting).AdvancementClass >= SkillAdvancementClass.Trained)
+                                FightDirty(targetPlayer, damageEvent.Weapon);
+                        }
+                        else if (combatPet != null || targetPet != null || Faction1Bits != null || targetCreature.Faction1Bits != null || PotentialFoe(targetCreature))
+                        {
+                            // combat pet inflicting or receiving damage
+                            //Console.WriteLine($"{target.Name} taking {Math.Round(damage)} {damageType} damage from {Name}");
+                            targetCreature.TakeDamage(this, damageEvent.DamageType, damageEvent.Damage);
+
+                            EmitSplatter(targetCreature, damageEvent.Damage);
+
+                            // handle Dirty Fighting
+                            if (GetCreatureSkill(Skill.DirtyFighting).AdvancementClass >= SkillAdvancementClass.Trained)
+                                FightDirty(targetCreature, damageEvent.Weapon);
+                        }
+
+                        // handle target procs
+                        if (!targetProc)
+                        {
+                            TryProcEquippedItems(this, targetCreature, false, weapon, damageEvent);
+                            targetProc = true;
+                        }
                     }
                     else
                         targetCreature.OnEvade(this, CombatType.Melee);
+
+                    if (combatPet != null)
+                        combatPet.PetOnAttackMonster(targetCreature);
+                    else if (targetPlayer == null)
+                        MonsterOnAttackMonster(targetCreature);
                 });
             }
-
             actionChain.EnqueueChain();
 
             PrevAttackTime = Timers.RunningTime;
@@ -157,6 +194,8 @@ namespace ACE.Server.WorldObjects
             var meleeDelay = ThreadSafeRandom.Next(0.0f, (float)(PowerupTime ?? 1.0f));
 
             NextAttackTime = PrevAttackTime + animLength + meleeDelay;
+
+            return;
         }
 
         /// <summary>
