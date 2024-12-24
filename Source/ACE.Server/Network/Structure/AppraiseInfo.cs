@@ -215,8 +215,11 @@ namespace ACE.Server.Network.Structure
                 }
                 else
                 {
-                    //longDesc = $"This house is {(slumLord.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n"; // this was the retail msg.
-                    longDesc = $"This {(slumLord.House.HouseType == HouseType.Undef ? "house" : slumLord.House.HouseType.ToString().ToLower())} is {(slumLord.House.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n";
+                    if (slumLord.House != null)
+                        //longDesc = $"This house is {(slumLord.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n"; // this was the retail msg.
+                        longDesc = $"This {(slumLord.House.HouseType == HouseType.Undef ? "house" : slumLord.House.HouseType.ToString().ToLower())} is {(slumLord.House.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n";
+                    else
+                        longDesc = "This house is not properly configured.";
 
                     var discardInts = PropertiesInt.Where(x => x.Key != PropertyInt.HouseStatus && x.Key != PropertyInt.HouseType && x.Key != PropertyInt.MinLevel && x.Key != PropertyInt.MaxLevel && x.Key != PropertyInt.AllegianceMinLevel && x.Key != PropertyInt.AllegianceMaxLevel).Select(x => x.Key).ToList();
                     foreach (var key in discardInts)
@@ -264,7 +267,7 @@ namespace ACE.Server.Network.Structure
                 var hook = wo as Container;
 
                 string baseDescString = "";
-                if (wo.ParentLink.HouseOwner != null)
+                if (wo.ParentLink != null && wo.ParentLink.HouseOwner != null)
                 {
                     // This is for backwards compatibility. This value was not set/saved in earlier versions.
                     // It will get the player's name and save that to the HouseOwnerName property of the house. This is now done when a player purchases a house.

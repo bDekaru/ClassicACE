@@ -1606,18 +1606,18 @@ namespace ACE.Server.Command.Handlers.Processors
             CreateLandblockInstance(session, weenie, loc, parentGuid, startGuid);
         }
 
-        public static void CreateLandblockInstance(Session session, Weenie weenie, Position loc, uint parentGuid = 0, uint nextStaticGuid = 0)
+        public static uint CreateLandblockInstance(Session session, Weenie weenie, Position loc, uint parentGuid = 0, uint nextStaticGuid = 0)
         {
             if (weenie == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid weenie.", ChatMessageType.Broadcast));
-                return;
+                return 0;
             }
 
             if (loc == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid location.", ChatMessageType.Broadcast));
-                return;
+                return 0;
             }
 
             var landblock = loc.LandblockId.Landblock;
@@ -1638,7 +1638,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 if (parentInstance == null)
                 {
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock instance for parent guid 0x{parentGuid:X8}", ChatMessageType.Broadcast));
-                    return;
+                    return 0;
                 }
 
                 parentObj = session.Player.CurrentLandblock.GetObject(parentGuid);
@@ -1646,7 +1646,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 if (parentObj == null)
                 {
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent object 0x{parentGuid:X8}", ChatMessageType.Broadcast));
-                    return;
+                    return 0;
                 }
             }
 
@@ -1662,7 +1662,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 if (nextStaticGuid < firstStaticGuid || nextStaticGuid > maxStaticGuid)
                 {
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock instance guid {nextStaticGuid:X8} must be between {firstStaticGuid:X8} and {maxStaticGuid:X8}", ChatMessageType.Broadcast));
-                    return;
+                    return 0;
                 }
 
                 var existing = instances.FirstOrDefault(i => i.Guid == nextStaticGuid);
@@ -1670,7 +1670,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 if (existing != null)
                 {
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock instance guid {nextStaticGuid:X8} already exists", ChatMessageType.Broadcast));
-                    return;
+                    return 0;
                 }
             }
             else
@@ -1679,7 +1679,7 @@ namespace ACE.Server.Command.Handlers.Processors
             if (nextStaticGuid > maxStaticGuid)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock {landblock:X4} has reached the maximum # of static guids", ChatMessageType.Broadcast));
-                return;
+                return 0;
             }
 
             // create and spawn object
@@ -1690,7 +1690,7 @@ namespace ACE.Server.Command.Handlers.Processors
             if (wo == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Failed to create new object for {weenie.ClassId} - {weenie.ClassName}", ChatMessageType.Broadcast));
-                return;
+                return 0;
             }
 
             var isLinkChild = parentInstance != null;
@@ -1698,7 +1698,7 @@ namespace ACE.Server.Command.Handlers.Processors
             if (!wo.Stuck && !isLinkChild)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"{weenie.ClassId} - {weenie.ClassName} is missing PropertyBool.Stuck, cannot spawn as landblock instance unless it is a child object", ChatMessageType.Broadcast));
-                return;
+                return 0;
             }
 
             // spawn as ethereal temporarily, to spawn directly on player position
@@ -1714,7 +1714,7 @@ namespace ACE.Server.Command.Handlers.Processors
             if (!wo.EnterWorld())
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat("Failed to spawn new object at this location", ChatMessageType.Broadcast));
-                return;
+                return 0;
             }
 
             // create new landblock instance
@@ -1741,6 +1741,8 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             SyncInstances(session, landblock, instances);
+
+            return nextStaticGuid;
         }
 
         /// <summary>
@@ -4293,7 +4295,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     {
                         var pos = new Position(new Vector2(x, y));
                         pos.AdjustMapCoords();
-                        pos.Translate(objCellId);
+                        pos.TranslateLandblockId(objCellId);
                         pos.FindZ();
 
                         using (StreamWriter sw = File.AppendText(vlocFile))
@@ -6590,6 +6592,58 @@ namespace ACE.Server.Command.Handlers.Processors
                     else
                         CommandHandlerHelper.WriteOutputWarn(session, $"{weenie.ClassName}({weenie.ClassId}): Error calculating level.", ChatMessageType.Broadcast);
                 }
+            }
+        }
+
+        [CommandHandler("createHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "", "")]
+        public static void HandleCreateHouse(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
+            HouseList.FindAllHouses();
+
+            if (HouseList.IsCustomHouse(session.Player.Location.Cell))
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"There is already a custom house at this location.", ChatMessageType.Help));
+                return;
+            }
+
+            var slumlordLoc = new Position(session.Player.Location);
+
+            var houseLoc = new Position(session.Player.Location);
+            houseLoc.Translate(0, 1.5f, 0);
+            houseLoc.Rotate(0, 0, -90);
+
+            var bootspotLoc = new Position(session.Player.Location);
+            bootspotLoc.Translate(2, 0, 0);
+
+            var chest1Loc = new Position(session.Player.Location);
+            chest1Loc.Translate(2, 1.5f, 0);
+            chest1Loc.Rotate(0, 0, -90);
+
+            var chest2Loc = new Position(session.Player.Location);
+            chest2Loc.Translate(2, -1.5f, 0);
+            chest2Loc.Rotate(0, 0, 90);
+
+            var house = DatabaseManager.World.GetWeenie((uint)WeenieClassName.houseCustom);
+            var slumlord = DatabaseManager.World.GetWeenie((uint)WeenieClassName.slumlordCustom);
+            var bootspot = DatabaseManager.World.GetWeenie((uint)WeenieClassName.bootspot);
+            var chest = DatabaseManager.World.GetWeenie((uint)WeenieClassName.storage);
+
+            var guid = CreateLandblockInstance(session, house, houseLoc);
+
+            if (guid != 0)
+            {
+                CreateLandblockInstance(session, slumlord, slumlordLoc, guid);
+                CreateLandblockInstance(session, bootspot, bootspotLoc, guid);
+                CreateLandblockInstance(session, chest, chest1Loc, guid);
+                CreateLandblockInstance(session, chest, chest2Loc, guid);
+
+                HouseManager.DoHandleHouseCreation(guid);
             }
         }
     }

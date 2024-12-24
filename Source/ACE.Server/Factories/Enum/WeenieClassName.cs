@@ -41897,6 +41897,8 @@ namespace ACE.Server.Factories.Enum
         pkTrophyExtreme = 50185,
         ringHardcore = 50189,
         pathfinderHelper = 50201,
-        treasureMap = 50206
+        treasureMap = 50206,
+        houseCustom = 50261,
+        slumlordCustom = 50262,
     }
 }

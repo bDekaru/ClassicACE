@@ -32,11 +32,13 @@ namespace ACE.Server.Entity
             var cottages = Available[HouseType.Cottage];
             var villas = Available[HouseType.Villa];
             var mansions = Available[HouseType.Mansion];
+            var custom = Available[HouseType.Custom];
 
             Console.WriteLine($"Apartments: {apartments.Count}");
             Console.WriteLine($"Cottages: {cottages.Count}");
             Console.WriteLine($"Villas: {villas.Count}");
             Console.WriteLine($"Mansions: {mansions.Count}");
+            Console.WriteLine($"Custom Houses: {custom.Count}");
         }
 
         public static void FindAllHouses()
@@ -79,6 +81,7 @@ namespace ACE.Server.Entity
             Available.Add(HouseType.Cottage, new List<HouseListResults>());
             Available.Add(HouseType.Villa, new List<HouseListResults>());
             Available.Add(HouseType.Mansion, new List<HouseListResults>());
+            Available.Add(HouseType.Custom, new List<HouseListResults>());
 
             foreach (var house in AllHouses)
             {
@@ -126,6 +129,14 @@ namespace ACE.Server.Entity
             if (weenie == null || landblockInstance == null) return;
 
             Available[houseType].Add(new HouseListResults(weenie, landblockInstance));
+        }
+
+        public static bool IsCustomHouse(uint houseGuid)
+        {
+            if (AllHouses == null)
+                AllHouses = DatabaseManager.World.GetHousesAll();
+
+            return AllHouses.Find(h => h.LandblockInstance.ObjCellId == houseGuid) != null;
         }
     }
 }

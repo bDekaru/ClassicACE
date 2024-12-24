@@ -929,6 +929,16 @@ namespace ACE.Server.WorldObjects
                     wo.Destroy();
             }
 
+            if (this is House house && house.SlumLord != null && !house.SlumLord.IsDestroyed)
+            {
+                HouseManager.DoHandleHouseDeletion(Guid.Full);
+            }
+
+            if (this is SlumLord slumlord && slumlord.House != null && !slumlord.House.IsDestroyed)
+            {
+                HouseManager.DoHandleHouseDeletion(slumlord.House.Guid.Full);
+            }
+
             if (raiseNotifyOfDestructionEvent)
                 NotifyOfEvent(RegenerationType.Destruction);
 

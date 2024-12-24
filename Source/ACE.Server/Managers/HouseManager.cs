@@ -78,7 +78,11 @@ namespace ACE.Server.Managers
                     var classname = result.Weenie.ClassName;
                     var guid = result.Instance.Guid;
 
-                    if (!uint.TryParse(Regex.Match(classname, @"\d+").Value, out var houseId))
+                    uint houseId;
+
+                    if (classname == "housecustom")
+                        houseId = result.Instance.ObjCellId;
+                    else if (!uint.TryParse(Regex.Match(classname, @"\d+").Value, out houseId))
                     {
                         log.Error($"[HOUSE] HouseManager.BuildHouseIdToGuid(): couldn't parse {classname}");
                         continue;
@@ -654,6 +658,74 @@ namespace ACE.Server.Managers
                 HandleEviction(playerHouse, true);
 
                 RemoveRentQueue(house.Guid.Full);
+            });
+        }
+
+        public static void DoHandleHouseDeletion(uint houseGuid)
+        {
+            // load the most up-to-date copy of house data
+            GetHouse(houseGuid, (house) =>
+            {
+                if (house.SlumLord.HouseOwner != null && house.SlumLord.HouseOwner.Value != 0)
+                {
+                    HandleEviction(house, house.SlumLord.HouseOwner.Value, false, true);
+                    RemoveRentQueue(house.Guid.Full);
+
+                    HouseList.RemoveFromAvailable(house.SlumLord, house);
+                }
+
+                HouseList.AllHouses = null;
+            });
+        }
+
+        public static void DoHandleHouseCreation(uint houseGuid)
+        {
+            // load the most up-to-date copy of house data
+            GetHouse(houseGuid, (house) =>
+            {
+                if (house.SlumLord != null)
+                    HouseList.AddToAvailable(house.SlumLord, house);
+
+                HouseList.AllHouses = null;
+            });
+        }
+
+        public static void DoHandleHouseMovement(uint houseGuid)
+        {
+            // load the most up-to-date copy of house data
+            GetHouse(houseGuid, (house) =>
+            {
+                if (house.HouseType == HouseType.Custom)
+                {
+                    if (house.Location == null || house.Location.Cell == 0)
+                    {
+                        DoHandleHouseDeletion(houseGuid);
+                        return;
+                    }
+
+                    var newLocation = house.Location.Cell;
+
+                    if (house.SlumLord != null)
+                        house.SlumLord.HouseId = house.HouseId;
+
+                    if (house.HouseOwner.HasValue && house.HouseOwner > 0)
+                    {
+                        var onlinePlayer = PlayerManager.GetOnlinePlayer(house.HouseOwner ?? 0);
+                        if (onlinePlayer != null)
+                            onlinePlayer.HouseId = newLocation;
+                        else
+                        {
+                            var offlinePlayer = PlayerManager.GetOfflinePlayer(house.HouseOwner ?? 0);
+                            if (offlinePlayer != null)
+                            {
+                                offlinePlayer.SetProperty(PropertyDataId.HouseId, newLocation);
+                                offlinePlayer.SaveBiotaToDatabase();
+                            }
+                        }
+                    }
+
+                    HouseList.AllHouses = null;
+                }
             });
         }
 

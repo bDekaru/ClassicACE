@@ -161,8 +161,16 @@ namespace ACE.Server.WorldObjects
             if (location == null)
             {
                 if (!HouseManager.ApartmentBlocks.TryGetValue(slumLord.Location.Landblock, out location))
-                    log.ErrorFormat("{0}.GiveDeed() - couldn't find location {1}", Name, slumLord.Location.ToLOCString());
+                {
+                    if(Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                        log.ErrorFormat("{0}.GiveDeed() - couldn't find location {1}", Name, slumLord.Location.ToLOCString());
+                    else
+                        location = slumLord.Location.GetMapCoordStr(true);
+                }
             }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                location += Landblock.GetLocationString(slumLord.Location.LandblockId.Landblock);
 
             deed.LongDesc = $"Bought by {Name}{titleStr} on {date} at {time}\n\nPurchased at {location}";
 
@@ -676,11 +684,14 @@ namespace ACE.Server.WorldObjects
             actionChain.AddDelaySeconds(3.0f);
             actionChain.AddAction(this, () =>
             {
-                HandleActionQueryHouse();
-                house.UpdateRestrictionDB();
+                if (!house.IsCustomHouse)
+                {
+                    HandleActionQueryHouse();
+                    house.UpdateRestrictionDB();
 
-                // boot anyone who may have been wandering around inside...
-                HandleActionBootAll(false);
+                    // boot anyone who may have been wandering around inside...
+                    HandleActionBootAll(false);
+                }
 
                 HouseManager.AddRentQueue(this, house.Guid.Full);
                 slumlord.ActOnUse(this);
@@ -1128,6 +1139,12 @@ namespace ACE.Server.WorldObjects
 
             var house = GetHouse();
 
+            if (house.IsCustomHouse)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("This house is always open to the public.", ChatMessageType.Broadcast));
+                return;
+            }
+
             if (openStatus == house.OpenStatus)
             {
                 if (openStatus)
@@ -1361,6 +1378,13 @@ namespace ACE.Server.WorldObjects
             }
 
             var house = allegianceHouse ? Allegiance.GetHouse() : GetHouse();
+
+            if (house.IsCustomHouse)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("This house does not support the boot command.", ChatMessageType.Broadcast));
+                return;
+            }
+
             var player = PlayerManager.GetOnlinePlayer(playerName);
 
             if (player == null)
@@ -1486,6 +1510,12 @@ namespace ACE.Server.WorldObjects
             }
 
             var house = GetHouse();
+
+            if (house.IsCustomHouse)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("This house is always open to the public.", ChatMessageType.Broadcast));
+                return;
+            }
 
             if (add)
             {

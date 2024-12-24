@@ -214,6 +214,40 @@ namespace ACE.Server.WorldObjects
             return rentDue;
         }
 
+        public override Position Location
+        {
+            get => GetPosition(PositionType.Location);
+            set
+            {
+                var updateHouseId = Location != null && Location.Cell != value.Cell;
+
+                SetPosition(PositionType.Location, value);
+
+                if (updateHouseId)
+                    HouseManager.DoHandleHouseMovement(Guid.Full);
+            }
+        }
+
+        public override uint? HouseId
+        {
+            get
+            {
+                if(!IsCustomHouse)
+                    return GetProperty(PropertyDataId.HouseId);
+                return Location.Cell;
+            }
+            set
+            {
+                if (!IsCustomHouse)
+                {
+                    if (!value.HasValue)
+                        RemoveProperty(PropertyDataId.HouseId);
+                    else
+                        SetProperty(PropertyDataId.HouseId, value.Value);
+                }
+            }
+        }
+
         public override void SetLinkProperties(WorldObject wo)
         {
             // for house dungeons, link to outdoor house properties
@@ -286,6 +320,8 @@ namespace ACE.Server.WorldObjects
         }
 
         public bool IsApartment => HouseType == HouseType.Apartment;
+
+        public bool IsCustomHouse => HouseType == HouseType.Custom;
 
         /// <summary>
         /// Returns TRUE if this player has guest or storage access
@@ -534,12 +570,17 @@ namespace ACE.Server.WorldObjects
             {
                 if (_rootGuid == null)
                 {
-                    if (HouseCell.RootGuids.TryGetValue(Guid.Full, out var rootGuid))
-                        _rootGuid = new ObjectGuid(rootGuid);
+                    if (IsCustomHouse)
+                        _rootGuid = Guid;
                     else
                     {
-                        log.Error($"House.RootGuid - couldn't find root guid for house guid {Guid}");
-                        _rootGuid = Guid;
+                        if (HouseCell.RootGuids.TryGetValue(Guid.Full, out var rootGuid))
+                            _rootGuid = new ObjectGuid(rootGuid);
+                        else
+                        {
+                            log.Error($"House.RootGuid - couldn't find root guid for house guid {Guid}");
+                            _rootGuid = Guid;
+                        }
                     }
                 }
                 return _rootGuid.Value;
@@ -609,6 +650,12 @@ namespace ACE.Server.WorldObjects
 
         public int BootAll(Player booter, bool guests = true, bool allegianceHouse = false)
         {
+            if (IsCustomHouse)
+            {
+                booter.Session.Network.EnqueueSend(new GameMessageSystemChat("This house does not support the boot command.", ChatMessageType.Broadcast));
+                return 0;
+            }
+
             var players = PlayerManager.GetAllOnline();
 
             var booted = 0;

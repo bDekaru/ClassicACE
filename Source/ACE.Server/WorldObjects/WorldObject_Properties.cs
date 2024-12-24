@@ -1592,7 +1592,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// The house owned by this player
         /// </summary>
-        public uint? HouseId
+        public virtual uint? HouseId
         {
             get => GetProperty(PropertyDataId.HouseId);
             set { if (!value.HasValue) RemoveProperty(PropertyDataId.HouseId); else SetProperty(PropertyDataId.HouseId, value.Value); }
@@ -2466,7 +2466,7 @@ namespace ACE.Server.WorldObjects
         // ========================================
         //= ======== Position Properties ==========
         // ========================================
-        public Position Location
+        public virtual Position Location
         {
             get => GetPosition(PositionType.Location);
             set => SetPosition(PositionType.Location, value);
