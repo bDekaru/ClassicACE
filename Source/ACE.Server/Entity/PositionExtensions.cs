@@ -278,7 +278,7 @@ namespace ACE.Server.Entity
             }
         }
 
-        public static void Translate(this Position pos, uint blockCell)
+        public static void TranslateLandblockId(this Position pos, uint blockCell)
         {
             var newBlockX = blockCell >> 24;
             var newBlockY = (blockCell >> 16) & 0xFF;

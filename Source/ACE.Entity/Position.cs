@@ -63,6 +63,21 @@ namespace ACE.Entity
             Rotation = Quaternion.CreateFromYawPitchRoll(0, 0, (float)Math.Atan2(-dir.X, dir.Y));
         }
 
+        public void Rotate(float xDegrees, float yDegrees, float zDegrees)
+        {
+            Rotation = Quaternion.Normalize(Rotation * Quaternion.CreateFromYawPitchRoll((float)(Math.PI / 180) * xDegrees, (float)(Math.PI / 180) * yDegrees, (float)(Math.PI / 180) * zDegrees));
+        }
+
+        public void SetRotation(float xDegrees, float yDegrees, float zDegrees)
+        {
+            Rotation = Quaternion.Normalize(Quaternion.CreateFromYawPitchRoll((float)(Math.PI / 180) * xDegrees, (float)(Math.PI / 180) * yDegrees, (float)(Math.PI / 180) * zDegrees));
+        }
+
+        public void Translate(float x, float y, float z)
+        {
+            SetPosition(Pos + new Vector3(x, y, z));
+        }
+
         // TODO: delete this, use proper Vector3 and Quaternion
         public float PositionX { get; set; }
         public float PositionY { get; set; }
@@ -108,7 +123,7 @@ namespace ACE.Entity
             var bumpHeight = 0.05f;
             if (rotate180)
             {
-                var rotate = new Quaternion(0, 0, qz, qw) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)Math.PI);
+                var rotate = new Quaternion(0, 0, qz, qw) * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, (float)Math.PI);
                 return new Position(LandblockId.Raw, PositionX + dx, PositionY + dy, PositionZ + bumpHeight, 0f, 0f, rotate.Z, rotate.W);
             }
             else
