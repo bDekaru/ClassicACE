@@ -321,7 +321,7 @@ namespace ACE.Server.WorldObjects
 
         public bool IsApartment => HouseType == HouseType.Apartment;
 
-        public bool IsCustomHouse => HouseType == HouseType.Custom;
+        public bool IsCustomHouse => HouseType == HouseType.CustomApartment || HouseType == HouseType.CustomCottage || HouseType == HouseType.CustomVilla || HouseType == HouseType.CustomMansion;
 
         /// <summary>
         /// Returns TRUE if this player has guest or storage access

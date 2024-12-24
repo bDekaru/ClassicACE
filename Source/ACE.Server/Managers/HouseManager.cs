@@ -80,8 +80,8 @@ namespace ACE.Server.Managers
 
                     uint houseId;
 
-                    if (classname == "housecustom")
-                        houseId = result.Instance.ObjCellId;
+                    if (classname.Contains("custom"))
+                        houseId = result.Instance.ObjCellId; // Custom houses use their cell Id as their house Id.
                     else if (!uint.TryParse(Regex.Match(classname, @"\d+").Value, out houseId))
                     {
                         log.Error($"[HOUSE] HouseManager.BuildHouseIdToGuid(): couldn't parse {classname}");
@@ -695,7 +695,7 @@ namespace ACE.Server.Managers
             // load the most up-to-date copy of house data
             GetHouse(houseGuid, (house) =>
             {
-                if (house.HouseType == HouseType.Custom)
+                if (house.IsCustomHouse)
                 {
                     if (house.Location == null || house.Location.Cell == 0)
                     {

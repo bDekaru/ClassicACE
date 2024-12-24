@@ -6595,7 +6595,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
         }
 
-        [CommandHandler("createHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "", "")]
+        [CommandHandler("createHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create a custom house.", "<House Type> The type of house to be created. Valid values are apartment, cottage, villa and mansion.")]
         public static void HandleCreateHouse(Session session, params string[] parameters)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
@@ -6604,9 +6604,37 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            HouseList.FindAllHouses();
+            var houseTypeParam = parameters[0].ToLower();
+            var slumlordWeenie = WeenieClassName.undef;
+            var houseWeenie = WeenieClassName.undef;
 
-            if (HouseList.IsCustomHouse(session.Player.Location.Cell))
+            switch (houseTypeParam)
+            {
+                case "apartment":
+                    slumlordWeenie = WeenieClassName.slumlordCustomApartment;
+                    houseWeenie = WeenieClassName.houseCustomApartment;
+                    break;
+                case "cottage":
+                    slumlordWeenie = WeenieClassName.slumlordCustomCottage;
+                    houseWeenie = WeenieClassName.houseCustomCottage;
+                    break;
+                case "villa":
+                    slumlordWeenie = WeenieClassName.slumlordCustomVilla;
+                    houseWeenie = WeenieClassName.houseCustomVilla;
+                    break;
+                case "mansion":
+                    slumlordWeenie = WeenieClassName.slumlordCustomMansion;
+                    houseWeenie = WeenieClassName.houseCustomMansion;
+                    break;
+            }
+
+            if(slumlordWeenie == WeenieClassName.undef)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid house type! Valid values are apartment, cottage, villa and mansion.", ChatMessageType.Help));
+                return;
+            }
+
+            if (HouseList.HasCustomHouse(session.Player.Location))
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"There is already a custom house at this location.", ChatMessageType.Help));
                 return;
@@ -6629,8 +6657,8 @@ namespace ACE.Server.Command.Handlers.Processors
             chest2Loc.Translate(2, -1.5f, 0);
             chest2Loc.Rotate(0, 0, 90);
 
-            var house = DatabaseManager.World.GetWeenie((uint)WeenieClassName.houseCustom);
-            var slumlord = DatabaseManager.World.GetWeenie((uint)WeenieClassName.slumlordCustom);
+            var house = DatabaseManager.World.GetWeenie((uint)houseWeenie);
+            var slumlord = DatabaseManager.World.GetWeenie((uint)slumlordWeenie);
             var bootspot = DatabaseManager.World.GetWeenie((uint)WeenieClassName.bootspot);
             var chest = DatabaseManager.World.GetWeenie((uint)WeenieClassName.storage);
 

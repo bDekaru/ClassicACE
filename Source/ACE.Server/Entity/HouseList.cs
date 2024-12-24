@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ACE.Database;
 using ACE.Database.Entity;
+using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Server.WorldObjects;
 
@@ -32,13 +33,11 @@ namespace ACE.Server.Entity
             var cottages = Available[HouseType.Cottage];
             var villas = Available[HouseType.Villa];
             var mansions = Available[HouseType.Mansion];
-            var custom = Available[HouseType.Custom];
 
             Console.WriteLine($"Apartments: {apartments.Count}");
             Console.WriteLine($"Cottages: {cottages.Count}");
             Console.WriteLine($"Villas: {villas.Count}");
             Console.WriteLine($"Mansions: {mansions.Count}");
-            Console.WriteLine($"Custom Houses: {custom.Count}");
         }
 
         public static void FindAllHouses()
@@ -81,7 +80,6 @@ namespace ACE.Server.Entity
             Available.Add(HouseType.Cottage, new List<HouseListResults>());
             Available.Add(HouseType.Villa, new List<HouseListResults>());
             Available.Add(HouseType.Mansion, new List<HouseListResults>());
-            Available.Add(HouseType.Custom, new List<HouseListResults>());
 
             foreach (var house in AllHouses)
             {
@@ -106,6 +104,22 @@ namespace ACE.Server.Entity
 
             var houseType = slumLord.House?.HouseType ?? houseToRemove.HouseType;
 
+            switch (houseType)
+            {
+                case HouseType.CustomApartment:
+                    houseType = HouseType.Apartment;
+                    break;
+                case HouseType.CustomCottage:
+                    houseType = HouseType.Cottage;
+                    break;
+                case HouseType.CustomVilla:
+                    houseType = HouseType.Villa;
+                    break;
+                case HouseType.CustomMansion:
+                    houseType = HouseType.Mansion;
+                    break;
+            }
+
             var house = Available[houseType].FirstOrDefault(i => i.LandblockInstance.Guid == slumLord.Guid.Full);
             if (house != null)
                 Available[houseType].Remove(house);
@@ -116,6 +130,22 @@ namespace ACE.Server.Entity
             if (Available == null) return; // no results cached, move on.
 
             var houseType = slumLord.House?.HouseType ?? houseToAdd.HouseType;
+
+            switch (houseType)
+            {
+                case HouseType.CustomApartment:
+                    houseType = HouseType.Apartment;
+                    break;
+                case HouseType.CustomCottage:
+                    houseType = HouseType.Cottage;
+                    break;
+                case HouseType.CustomVilla:
+                    houseType = HouseType.Villa;
+                    break;
+                case HouseType.CustomMansion:
+                    houseType = HouseType.Mansion;
+                    break;
+            }
 
             var house = Available[houseType].FirstOrDefault(i => i.LandblockInstance.Guid == slumLord.Guid.Full);
             if (house != null)
@@ -131,12 +161,15 @@ namespace ACE.Server.Entity
             Available[houseType].Add(new HouseListResults(weenie, landblockInstance));
         }
 
-        public static bool IsCustomHouse(uint houseGuid)
+        public static bool HasCustomHouse(Position location)
         {
+            if (location == null || location.Cell == 0)
+                return false;
+
             if (AllHouses == null)
                 AllHouses = DatabaseManager.World.GetHousesAll();
 
-            return AllHouses.Find(h => h.LandblockInstance.ObjCellId == houseGuid) != null;
+            return AllHouses.Find(h => h.LandblockInstance.ObjCellId == location.Cell) != null;
         }
     }
 }

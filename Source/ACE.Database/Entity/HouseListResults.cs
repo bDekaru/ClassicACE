@@ -29,8 +29,6 @@ namespace ACE.Database.Entity
                 return HouseType.Villa;
             else if (classname.IndexOf("mansion", StringComparison.OrdinalIgnoreCase) != -1)
                 return HouseType.Mansion;
-            else if (classname.IndexOf("custom", StringComparison.OrdinalIgnoreCase) != -1)
-                return HouseType.Custom;
             else
                 return HouseType.Undef;
         }
