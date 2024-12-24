@@ -6643,18 +6643,17 @@ namespace ACE.Server.Command.Handlers.Processors
             var slumlordLoc = new Position(session.Player.Location);
 
             var houseLoc = new Position(session.Player.Location);
-            houseLoc.Translate(0, 1.5f, 0);
             houseLoc.Rotate(0, 0, -90);
 
             var bootspotLoc = new Position(session.Player.Location);
-            bootspotLoc.Translate(2, 0, 0);
+            bootspotLoc.Translate(1, 0, 0);
 
             var chest1Loc = new Position(session.Player.Location);
-            chest1Loc.Translate(2, 1.5f, 0);
+            chest1Loc.Translate(0, 1.5f, 0);
             chest1Loc.Rotate(0, 0, -90);
 
             var chest2Loc = new Position(session.Player.Location);
-            chest2Loc.Translate(2, -1.5f, 0);
+            chest2Loc.Translate(0, -1.5f, 0);
             chest2Loc.Rotate(0, 0, 90);
 
             var house = DatabaseManager.World.GetWeenie((uint)houseWeenie);
