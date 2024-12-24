@@ -51,9 +51,7 @@ namespace ACE.Server.Managers
 
         static WorldManager()
         {
-            if (PhysicsEngine.Instance == null)
-                PhysicsEngine.Initialize(true);
-            Physics = PhysicsEngine.Instance;
+            Physics = new PhysicsEngine(new ObjectMaint(), new SmartBox());
             Physics.Server = true;
         }
 

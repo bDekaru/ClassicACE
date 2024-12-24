@@ -66,9 +66,6 @@ namespace ACE.Server.WorldObjects
 
                 if (wo.LinkedInstances.Count > 0)
                     wo.ActivateLinks(sourceObjects, biotas);
-
-                if (!wo.EnterWorld())
-                    wo.Destroy();
             }
         }
 

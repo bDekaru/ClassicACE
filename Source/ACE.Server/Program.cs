@@ -310,9 +310,6 @@ namespace ACE.Server
             else
                 log.Info("Precaching World Database Disabled...");
 
-            log.Info("Initializing Physics Engine...");
-            PhysicsEngine.Initialize(true);
-
             log.Info("Initializing PlayerManager...");
             PlayerManager.Initialize();
 
