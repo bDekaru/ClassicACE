@@ -511,5 +511,29 @@ namespace ACE.Server.WorldObjects
             // broadcast blip to new position
             SendUpdatePosition(true);
         }
+
+        public bool IsBlockedByDoor(WorldObject target)
+        {
+            System.Collections.Generic.List<Physics.PhysicsObj> knownDoors;
+            if (this is Player)
+                knownDoors = PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
+            else
+                knownDoors = target.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
+
+            bool nearDoor = false;
+            foreach (var entry in knownDoors)
+            {
+                var door = entry.WeenieObj.WorldObject;
+                if (!door.IsOpen && (Location.DistanceTo(door.Location) < 2f || target.Location.DistanceTo(door.Location) < 2f))
+                {
+                    nearDoor = true;
+                    break;
+                }
+            }
+
+            if (nearDoor && !IsDirectVisible(target, 1))
+                return true;
+            return false;
+        }
     }
 }

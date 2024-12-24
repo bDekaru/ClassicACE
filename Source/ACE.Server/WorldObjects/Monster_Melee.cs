@@ -29,7 +29,6 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.PowerupTime); else SetProperty(PropertyFloat.PowerupTime, value.Value); }
         }
 
-
         /// <summary>
         /// Performs a melee attack for the monster
         /// </summary>
@@ -40,26 +39,10 @@ namespace ACE.Server.WorldObjects
             var targetPet = AttackTarget as CombatPet;
             var combatPet = this as CombatPet;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsBlockedByDoor(targetCreature))
             {
-                var knownDoors = targetCreature.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
-
-                bool nearDoor = false;
-                foreach (var entry in knownDoors)
-                {
-                    var door = entry.WeenieObj.WorldObject;
-                    if (!door.IsOpen && (Location.DistanceTo(door.Location) < 2f || targetCreature.Location.DistanceTo(door.Location) < 2f))
-                    {
-                        nearDoor = true;
-                        break;
-                    }
-                }
-
-                if (nearDoor && !IsDirectVisible(targetCreature))
-                {
-                    EndAttack();
-                    return;
-                }
+                EndAttack();
+                return;
             }
 
             if (CurrentMotionState.Stance == MotionStance.NonCombat)

@@ -407,6 +407,65 @@ namespace ACE.Server.WorldObjects
             return isVisible;
         }
 
+        public bool IsDirectVisible(WorldObject wo, float width, bool ethereal = false)
+        {
+            if (PhysicsObj == null || wo.PhysicsObj == null)
+                return false;
+
+            var offset = width / 2;
+
+            if (!IsDirectVisibleWidthInternal(wo, offset, ethereal))
+                return false;
+            if (!IsDirectVisibleWidthInternal(wo, -offset, ethereal))
+                return false;
+
+            return true;
+        }
+
+        private bool IsDirectVisibleWidthInternal(WorldObject wo, float offset, bool ethereal = false)
+        {
+            if (PhysicsObj == null || wo.PhysicsObj == null)
+                return false;
+
+            var SightObj = PhysicsObj.makeObject(0x02000124, 0, false, true);
+
+            SightObj.State |= PhysicsState.Missile;
+
+            var startPos = new Physics.Common.Position(PhysicsObj.Position);
+            var targetPos = new Physics.Common.Position(wo.PhysicsObj.Position);
+
+            startPos.add_offset(new Vector3(0, offset, 0));
+            targetPos.add_offset(new Vector3(0, offset, 0));
+
+            if (PhysicsObj.GetBlockDist(startPos, targetPos) > 1)
+                return false;
+
+            // set to eye level
+            startPos.Frame.Origin.Z += PhysicsObj.GetHeight() - SightObj.GetHeight();
+            targetPos.Frame.Origin.Z += wo.PhysicsObj.GetHeight() - SightObj.GetHeight();
+
+            var dir = Vector3.Normalize(targetPos.Frame.Origin - startPos.Frame.Origin);
+            var radsum = PhysicsObj.GetPhysicsRadius() + SightObj.GetPhysicsRadius();
+            startPos.Frame.Origin += dir * radsum;
+
+            SightObj.CurCell = PhysicsObj.CurCell;
+            SightObj.ProjectileTarget = wo.PhysicsObj;
+
+            if (ethereal)
+                SightObj.set_ethereal(true, false);
+
+            // perform line of sight test
+            var transition = SightObj.transition(startPos, targetPos, false);
+
+            SightObj.DestroyObject();
+
+            if (transition == null) return false;
+
+            // check if target object was reached
+            var isVisible = transition.CollisionInfo.CollideObject.FirstOrDefault(c => c.ID == wo.PhysicsObj.ID) != null;
+            return isVisible;
+        }
+
         public bool IsMeleeVisible(WorldObject wo, bool ethereal = false)
         {
             if (PhysicsObj == null || wo.PhysicsObj == null)
@@ -414,6 +473,53 @@ namespace ACE.Server.WorldObjects
 
             var startPos = new Physics.Common.Position(PhysicsObj.Position);
             var targetPos = new Physics.Common.Position(wo.PhysicsObj.Position);
+
+            PhysicsObj.ProjectileTarget = wo.PhysicsObj;
+
+            bool isEthereal = PhysicsObj.State.HasFlag(PhysicsState.Ethereal);
+            if (ethereal && !isEthereal)
+                PhysicsObj.set_ethereal(true, false);
+
+            // perform line of sight test
+            var transition = PhysicsObj.transition(startPos, targetPos, false);
+
+            if (ethereal && !isEthereal)
+                PhysicsObj.set_ethereal(false, false);
+
+            PhysicsObj.ProjectileTarget = null;
+
+            if (transition == null) return false;
+
+            // check if target object was reached
+            var isVisible = transition.CollisionInfo.CollideObject.FirstOrDefault(c => c.ID == wo.PhysicsObj.ID) != null;
+            return isVisible;
+        }
+
+        public bool IsMeleeVisible(WorldObject wo, float width, bool ethereal = false)
+        {
+            if (PhysicsObj == null || wo.PhysicsObj == null)
+                return false;
+
+            var offset = width / 2;
+
+            if (!IsMeleeVisibleWidthInternal(wo, offset, ethereal))
+                return false;
+            if (!IsMeleeVisibleWidthInternal(wo, -offset, ethereal))
+                return false;
+
+            return true;
+        }
+
+        private bool IsMeleeVisibleWidthInternal(WorldObject wo, float offset, bool ethereal = false)
+        {
+            if (PhysicsObj == null || wo.PhysicsObj == null)
+                return false;
+
+            var startPos = new Physics.Common.Position(PhysicsObj.Position);
+            var targetPos = new Physics.Common.Position(wo.PhysicsObj.Position);
+
+            startPos.add_offset(new Vector3(0, offset, 0));
+            targetPos.add_offset(new Vector3(0, offset, 0));
 
             PhysicsObj.ProjectileTarget = wo.PhysicsObj;
 

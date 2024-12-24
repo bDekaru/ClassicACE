@@ -406,7 +406,9 @@ namespace ACE.Server.WorldObjects
             {
                 if (CurrentAttackType != CombatType.Missile || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
-                    if (!PhysicsObj.IsSticky && distanceToTarget > MaxRange || (!AiOmnidirectional && !IsFacing(AttackTarget) && !IsSelfCast()))
+                    var canStick = PhysicsObj.IsSticky && CurrentAttackType == CombatType.Melee && isMeleeVisible;
+
+                    if (!canStick && distanceToTarget > MaxRange || (!AiOmnidirectional && !IsFacing(AttackTarget) && !IsSelfCast()))
                     {
                         bool failedThresholds = FailedMovementCount >= FailedMovementThreshold || FailedSightCount >= FailedSightThreshold;
 

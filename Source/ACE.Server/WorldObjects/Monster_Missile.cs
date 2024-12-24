@@ -28,26 +28,10 @@ namespace ACE.Server.WorldObjects
         {
             var targetCreature = AttackTarget as Creature;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsBlockedByDoor(targetCreature))
             {
-                var knownDoors = targetCreature.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));
-
-                bool nearDoor = false;
-                foreach (var entry in knownDoors)
-                {
-                    var door = entry.WeenieObj.WorldObject;
-                    if (!door.IsOpen && (Location.DistanceTo(door.Location) < 2f || targetCreature.Location.DistanceTo(door.Location) < 2f))
-                    {
-                        nearDoor = true;
-                        break;
-                    }
-                }
-
-                if (nearDoor && !IsDirectVisible(targetCreature))
-                {
-                    EndAttack();
-                    return;
-                }
+                EndAttack();
+                return;
             }
 
             var weapon = GetEquippedMissileWeapon();

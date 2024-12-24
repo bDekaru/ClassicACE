@@ -1016,7 +1016,5 @@ namespace ACE.Server.WorldObjects
         {
             get => PhysicsObj.PartArray?.MotionTableManager?.PendingAnimations?.Count > 0;
         }
-
-        
     }
 }
