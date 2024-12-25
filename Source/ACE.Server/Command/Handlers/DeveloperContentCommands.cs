@@ -542,7 +542,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             foreach (var file in files)
                 ImportSQLWeenie(session, file.DirectoryName + sep, file.Name);
-                
+
         }
 
         public static void ImportSQLRecipe(Session session, string recipeId)
@@ -985,7 +985,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 }
 
                 sqlFilename = RecipeSQLWriter.GetDefaultFileName(recipe, cookbooks);
-                using (StreamWriter sqlFile = new StreamWriter(sqlFolder + sqlFilename)) { 
+                using (StreamWriter sqlFile = new StreamWriter(sqlFolder + sqlFilename)) {
                     RecipeSQLWriter.CreateSQLDELETEStatement(recipe, sqlFile);
                     sqlFile.WriteLine();
 
@@ -1528,7 +1528,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             RemoveInstance(session);
-            CreateLandblockInstance(session, weenie, location, link != null ? link.ParentGuid : 0, objGuid);     
+            CreateLandblockInstance(session, weenie, location, link != null ? link.ParentGuid : 0, objGuid);
         }
 
         [CommandHandler("createinst", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Spawns a new wcid or classname as a landblock instance", "<wcid or classname>\n\nTo create a parent/child relationship: /createinst -p <parent guid> -c <wcid or classname>\nTo automatically get the parent guid from the last appraised object: /createinst -p -c <wcid or classname>\n\nTo manually specify a start guid: /createinst <wcid or classname> <start guid>\nStart guids can be in the range 0x000-0xFFF, or they can be prefixed with 0x7<landblock id>")]
@@ -1743,6 +1743,83 @@ namespace ACE.Server.Command.Handlers.Processors
             SyncInstances(session, landblock, instances);
 
             return nextStaticGuid;
+        }
+
+        // Deletes the last appraised object from the landblock instances
+        [CommandHandler("deleteinst", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Deletes the last appraised object from the landblock instances", "")]
+        public static void HandleDeleteInst(Session session, params string[] parameters)
+        {
+            var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
+
+            if (obj?.Location == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid target.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            // ensure landblock instance
+            if (!obj.Guid.IsStatic())
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"{obj.Name} ({obj.Guid}) is not a landblock instance", ChatMessageType.Broadcast));
+                return;
+            }
+
+            var landblock = (ushort)obj.Location.Landblock;
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+            var instance = instances.FirstOrDefault(i => i.Guid == obj.Guid.Full);
+
+            if (instance == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock instance for {obj.Name} ({obj.Guid})", ChatMessageType.Broadcast));
+                return;
+            }
+
+            if (instance.IsLinkChild)
+            {
+                LandblockInstanceLink link = null;
+
+                foreach (var parent in instances.Where(i => i.LandblockInstanceLink.Count > 0))
+                {
+                    link = parent.LandblockInstanceLink.FirstOrDefault(i => i.ChildGuid == instance.Guid);
+
+                    if (link != null)
+                    {
+                        parent.LandblockInstanceLink.Remove(link);
+                        break;
+                    }
+                }
+
+                if (link == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent link for child {obj.Name} ({obj.Guid})", ChatMessageType.Broadcast));
+                    return;
+                }
+            }
+
+            DeleteLandblockInstance(session, obj.Guid.Full);
+
+            instances.Remove(instance);
+
+            // Clear cached instances after deletion
+            DatabaseManager.World.ClearCachedInstancesByLandblock(landblock);
+
+            SyncInstances(session, landblock, instances);
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Removed {obj.Name} ({obj.Guid}) from landblock instances", ChatMessageType.Broadcast));
+        }
+
+        // Deletes a landblock instance by GUID
+        private static void DeleteLandblockInstance(Session session, uint guid)
+        {
+            var wo = session.Player.CurrentLandblock.GetObject(guid);
+            if (wo == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find object with GUID 0x{guid:X8} on the current landblock.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            wo.Destroy();
         }
 
         /// <summary>
@@ -2778,7 +2855,7 @@ namespace ACE.Server.Command.Handlers.Processors
             {
                 json_folder = $"{di.FullName}{sep}json{sep}weenies{sep}";
             }
-            
+
             di = new DirectoryInfo(json_folder);
 
             if (!di.Exists)
@@ -3120,7 +3197,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     default: // Otherwise goes to "ItemType" folder
                         WeeniePropertiesInt iType = (from x in weenie.WeeniePropertiesInt where x.Type == 1 select x).FirstOrDefault();
                         if (iType == null)
-                        {                            
+                        {
                             WeeniePropertiesInt maxGeneratedObjects = (from x in weenie.WeeniePropertiesInt where x.Type == 81 select x).FirstOrDefault();
                             WeeniePropertiesFloat regenerationInterval = (from x in weenie.WeeniePropertiesFloat where x.Type == 41 select x).FirstOrDefault();
                             if (maxGeneratedObjects != null && regenerationInterval != null)
@@ -4282,12 +4359,12 @@ namespace ACE.Server.Command.Handlers.Processors
                     {
                         CommandHandlerHelper.WriteOutputInfo(session, $"Unable to parse X ({strX}) value from line {i} in vlocDB: {vlocs[i]}");
                         continue;
-                    }    
+                    }
                     if (!float.TryParse(strY, out var y))
                     {
                         CommandHandlerHelper.WriteOutputInfo(session, $"Unable to parse Y ({strY}) value from line {i} in vlocDB: {vlocs[i]}");
                         continue;
-                    }    
+                    }
 
                     if ((objCellId >> 16) != lbid) continue;
 
@@ -5101,7 +5178,7 @@ namespace ACE.Server.Command.Handlers.Processors
                                     else
                                         lastEntry = $"{friendlyName}{(friendlyName.EndsWith("s") ? "es" : "s")}";
                                     contentDescription += lastEntry;
-                                    
+
                                 }
                             }
 
@@ -6672,6 +6749,71 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 HouseManager.DoHandleHouseCreation(guid);
             }
+        }
+
+        // Deletes a custom house and its related objects
+        [CommandHandler("deleteHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0,
+            "Delete a custom house.", "")]
+        public static void HandleDeleteHouse(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(
+                    new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.",
+                        ChatMessageType.Help));
+                return;
+            }
+
+            var houseGuid = CommandHandlerHelper.GetLastAppraisedObject(session)?.Guid.Full;
+            if (houseGuid == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"You must select a custom house to delete.",
+                    ChatMessageType.Help));
+                return;
+            }
+
+            var landblock = (ushort)(houseGuid.Value >> 12);
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+            var remainingInstances = new List<LandblockInstance>();
+
+            // Find related objects
+            var slumlord = instances.FirstOrDefault(i =>
+                i.WeenieClassId == (uint)WeenieClassName.slumlordCustomApartment ||
+                i.WeenieClassId == (uint)WeenieClassName.slumlordCustomCottage ||
+                i.WeenieClassId == (uint)WeenieClassName.slumlordCustomVilla ||
+                i.WeenieClassId == (uint)WeenieClassName.slumlordCustomMansion);
+
+            var bootSpot = instances.FirstOrDefault(i => i.WeenieClassId == (uint)WeenieClassName.bootspot);
+            var chests = instances.Where(i => i.WeenieClassId == (uint)WeenieClassName.storage).ToList();
+
+            // Delete house-related objects
+            if (slumlord != null)
+                DeleteLandblockInstance(session, slumlord.Guid);
+            if (bootSpot != null)
+                DeleteLandblockInstance(session, bootSpot.Guid);
+            foreach (var chest in chests)
+                DeleteLandblockInstance(session, chest.Guid);
+
+            // Get remaining instances that aren't part of the house
+            foreach (var instance in instances)
+            {
+                if (instance.Guid != houseGuid.Value &&
+                    instance.Guid != slumlord?.Guid &&
+                    instance.Guid != bootSpot?.Guid &&
+                    !chests.Any(c => c.Guid == instance.Guid))
+                {
+                    remainingInstances.Add(instance);
+                }
+            }
+
+            // Sync the changes to the database
+            SyncInstances(session, landblock, remainingInstances);
+
+            // Clear cached instances after deletion
+            DatabaseManager.World.ClearCachedInstancesByLandblock(landblock);
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"The custom house has been deleted.",
+                ChatMessageType.Help));
         }
     }
 }
