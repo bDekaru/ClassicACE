@@ -997,7 +997,7 @@ namespace ACE.Server.WorldObjects
         }
 
         // =========================================
-        // Game Action Handlers - Inventory Movement 
+        // Game Action Handlers - Inventory Movement
         // =========================================
 
         /// <summary>
@@ -1588,17 +1588,73 @@ namespace ACE.Server.WorldObjects
         /// - try to wield an item on the landscape
         /// - try to transfer a wielded item to another wield location
         /// </summary>
+
+        private bool HandleAutoRemoveOffhand(WorldObject itemToEquip, EquipMask wieldedLocation)
+        {
+            // Only handle removing offhand for primary weapon equips
+            if (wieldedLocation != EquipMask.MeleeWeapon && wieldedLocation != EquipMask.TwoHanded && wieldedLocation != EquipMask.MissileWeapon)
+                return false;
+
+            var offhand = GetEquippedOffHand();
+            if (offhand == null)
+                return false;
+
+            // Check if the new weapon is incompatible with current offhand
+            var incompatible = false;
+
+            // Two-handed weapons always require removing offhand
+            if (itemToEquip.IsTwoHanded)
+                incompatible = true;
+            // For missile/caster weapons, only remove heavy shields (mass > 140)
+            else if (offhand.IsShield && offhand.Mass > 140 && (itemToEquip.IsCaster || itemToEquip.IsAmmoLauncher))
+                incompatible = true;
+            // For non-shield offhands, remove if equipping missile/caster
+            else if (!offhand.IsShield && (itemToEquip.IsCaster || itemToEquip.IsAmmoLauncher))
+                incompatible = true;
+
+            if (!incompatible)
+                return false;
+
+            // Try to auto-remove the offhand item
+            if (!TryDequipObjectWithNetworking(offhand.Guid, out var dequippedItem, DequipObjectAction.DequipToPack))
+                return false;
+
+            if (!TryCreateInInventoryWithNetworking(dequippedItem))
+            {
+                log.Error($"{Name}.HandleAutoRemoveOffhand() - Failed to move offhand {offhand.Name} to inventory");
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool HandleTryEquipOffhand(WorldObject item, Container fromContainer, Container rootOwner, bool wasEquipped)
+        {
+            if (!item.ValidLocations.HasValue || !(item.ValidLocations.Value == EquipMask.MeleeWeapon || item.ValidLocations.Value == EquipMask.Shield))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You cannot equip {item.Name} in your offhand.", ChatMessageType.Broadcast));
+                return false;
+            }
+
+            var mainhand = GetEquippedWeapon();
+            if (!CheckDualWieldable(mainhand, item))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"You cannot dual wield {item.Name}.", ChatMessageType.Broadcast));
+                return false;
+            }
+
+            // Try to equip to offhand
+            return DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, EquipMask.Shield);
+        }
+
         public void HandleActionGetAndWieldItem(uint itemGuid, EquipMask wieldedLocation)
         {
-            //Console.WriteLine($"{Name}.HandleActionGetAndWieldItem({itemGuid:X8}, {wieldedLocation})");
-
-            // todo fix this, it seems IsAnimating is always true for a player
-            // todo we need to know when a player is busy to avoid additional actions during that time
-            /*if (IsAnimating)
+            if (IsBusy || Teleporting || suicideInProgress)
             {
-                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, WeenieError.YoureTooBusy));
+                Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YoureTooBusy));
+                Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid));
                 return;
-            }*/
+            }
 
             var item = FindObject(new ObjectGuid(itemGuid), SearchLocations.LocationsICanMove, out var fromContainer, out var rootOwner, out var wasEquipped);
 
@@ -1684,6 +1740,9 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
+                        // Try to auto-remove incompatible offhand items
+                        HandleAutoRemoveOffhand(item, wieldedLocation);
+
                         if (DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation))
                         {
                             EndSneaking();
@@ -1713,6 +1772,9 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
+                // Try to auto-remove incompatible offhand items
+                HandleAutoRemoveOffhand(item, wieldedLocation);
+
                 DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation);
             }
         }
@@ -1773,7 +1835,7 @@ namespace ACE.Server.WorldObjects
                     }
                 }
                 else // Unwield wand/missile launcher/two-handed if dual wielding
-                {                  
+                {
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
                     {
                         Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
@@ -1999,7 +2061,7 @@ namespace ACE.Server.WorldObjects
 
         /// <summary>
         /// Client will automatically send any unequip (PutItemInContainer) message before the GetAndWield, but misses some instances and can be memory hacked to ignore others.
-        //  Let's just make sure our status is accurate before actually equipping an item! 
+        //  Let's just make sure our status is accurate before actually equipping an item!
         /// </summary>
         /// <param name="item">The weapon we are attempting to equip</param>
         /// <returns>True if the items were successfuly remove and the new item can attempt to be equipped, otherwise false</returns>
@@ -2278,7 +2340,7 @@ namespace ACE.Server.WorldObjects
                 if (((item.ValidLocations & (EquipMask.Clothing | EquipMask.Armor)) != 0)
                     && (heritageSpecificArmor == null || (HeritageGroup)heritageSpecificArmor != HeritageGroup))
                     return WeenieError.HeritageRequiresSpecificArmor;
-            }    
+            }
             else
             {
                 if (heritageSpecificArmor != null && (HeritageGroup)heritageSpecificArmor != HeritageGroup)
@@ -2431,7 +2493,7 @@ namespace ACE.Server.WorldObjects
 
 
         // =========================================
-        // Game Action Handlers - Inventory Stacking 
+        // Game Action Handlers - Inventory Stacking
         // =========================================
 
         /// <summary>
@@ -2529,7 +2591,7 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId));
                 return;
             }
-            
+
             ItemType containerValidTypes = (ItemType)(container.MerchandiseItemTypes ?? 0);
             if (containerValidTypes != 0 && (stack.ItemType & containerValidTypes) == 0)
             {
@@ -3489,7 +3551,7 @@ namespace ACE.Server.WorldObjects
 
 
         // =============================================
-        // Game Action Handlers - Inventory Give/Receive 
+        // Game Action Handlers - Inventory Give/Receive
         // =============================================
 
         /// <summary>
@@ -3792,7 +3854,7 @@ namespace ACE.Server.WorldObjects
             else
             {
                 if (item.WeenieType == WeenieType.Deed && target.AllowGive && target.AiAcceptEverything) // http://acpedia.org/wiki/Housing_FAQ#House_deeds
-                {                    
+                {
                     var stackSize = item.StackSize ?? 1;
 
                     var stackMsg = stackSize != 1 ? $"{stackSize} " : "";
@@ -4060,7 +4122,7 @@ namespace ACE.Server.WorldObjects
             Prev_PutItemInContainer[1] = Prev_PutItemInContainer[0];
             Prev_PutItemInContainer[0] = new PutItemInContainerEvent(itemGuid, containerGuid, placement);
         }
-        
+
         public void GiveFromEmote(WorldObject emoter, uint weenieClassId, int amount = 1, int palette = 0, float shade = 0, string extraMessage = "")
         {
             if (emoter is null || weenieClassId == 0)
@@ -4538,4 +4600,6 @@ namespace ACE.Server.WorldObjects
             { SpellId.CreatureEnchantmentMasteryOther8, 0 },
         };
     }
+
+
 }
