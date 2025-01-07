@@ -310,11 +310,15 @@ namespace ACE.Server.Managers
                 // apartment slumlord?
                 if (ApartmentBlocks.TryGetValue(position.Landblock, out var apartmentBlock))
                     coords = $"{apartmentBlock} - ";
-                else
+                else if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                     log.Error($"[HOUSE] HouseManager.GetCoords({position}) - couldn't find apartment block");
 
                 coords += position;
             }
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                coords += Landblock.GetLocationString(position.LandblockId.Landblock);
+
             return coords;
         }
 

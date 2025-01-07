@@ -1531,6 +1531,46 @@ namespace ACE.Server.Command.Handlers.Processors
             CreateLandblockInstance(session, weenie, location, link != null ? link.ParentGuid : 0, objGuid);     
         }
 
+        private static uint CreateInstDefaultParentGuid = 0;
+        [CommandHandler("setcreateinstparent", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Sets the default parent for subsequent calls to createinst to the selected object")]
+        public static void HandleSetCreateInstParent(Session session, params string[] parameters)
+        {
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
+
+            if (wo?.Location == null) return;
+
+            var landblock = (ushort)wo.Location.Landblock;
+
+            // if generator child, try getting the "real" guid
+            var guid = wo.Guid.Full;
+            if (wo.Generator != null)
+            {
+                var staticGuid = wo.Generator.GetStaticGuid(guid);
+                if (staticGuid != null)
+                    guid = staticGuid.Value;
+            }
+
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+            var instance = instances.FirstOrDefault(i => i.Guid == guid);
+
+            if (instance == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find landblock_instance for {wo.WeenieClassId} - {wo.Name} (0x{guid:X8})");
+                return;
+            }
+
+            CreateInstDefaultParentGuid = instance.Guid;
+            CommandHandlerHelper.WriteOutputInfo(session, $"Default CreateInst parent set to 0x{CreateInstDefaultParentGuid:X8}.");
+        }
+
+        [CommandHandler("clearcreateinstparent", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Sets the default parent for subsequent calls to createinst to the selected object")]
+        public static void HandleClearCreateInstParent(Session session, params string[] parameters)
+        {
+            CreateInstDefaultParentGuid = 0;
+            CommandHandlerHelper.WriteOutputInfo(session, "Cleared default CreateInst parent.");
+        }
+
         [CommandHandler("createinst", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Spawns a new wcid or classname as a landblock instance", "<wcid or classname>\n\nTo create a parent/child relationship: /createinst -p <parent guid> -c <wcid or classname>\nTo automatically get the parent guid from the last appraised object: /createinst -p -c <wcid or classname>\n\nTo manually specify a start guid: /createinst <wcid or classname> <start guid>\nStart guids can be in the range 0x000-0xFFF, or they can be prefixed with 0x7<landblock id>")]
         public static void HandleCreateInst(Session session, params string[] parameters)
         {
@@ -1585,7 +1625,10 @@ namespace ACE.Server.Command.Handlers.Processors
 
                     parentGuid = parent.Guid.Full;
                 }
+
             }
+            else if (CreateInstDefaultParentGuid != 0)
+                parentGuid = CreateInstDefaultParentGuid;
 
             if (uint.TryParse(param, out var wcid))
                 weenie = DatabaseManager.World.GetWeenie(wcid);   // wcid
@@ -6656,6 +6699,14 @@ namespace ACE.Server.Command.Handlers.Processors
             chest2Loc.Translate(0, -1.5f, 0);
             chest2Loc.Rotate(0, 0, 90);
 
+            var chest3Loc = new Position(session.Player.Location);
+            chest3Loc.Translate(1, 1.5f, 0);
+            chest3Loc.Rotate(0, 0, -90);
+
+            var chest4Loc = new Position(session.Player.Location);
+            chest4Loc.Translate(1, -1.5f, 0);
+            chest4Loc.Rotate(0, 0, 90);
+
             var house = DatabaseManager.World.GetWeenie((uint)houseWeenie);
             var slumlord = DatabaseManager.World.GetWeenie((uint)slumlordWeenie);
             var bootspot = DatabaseManager.World.GetWeenie((uint)WeenieClassName.bootspot);
@@ -6668,7 +6719,17 @@ namespace ACE.Server.Command.Handlers.Processors
                 CreateLandblockInstance(session, slumlord, slumlordLoc, guid);
                 CreateLandblockInstance(session, bootspot, bootspotLoc, guid);
                 CreateLandblockInstance(session, chest, chest1Loc, guid);
-                CreateLandblockInstance(session, chest, chest2Loc, guid);
+
+                if (slumlordWeenie != WeenieClassName.slumlordCustomApartment)
+                {
+                    CreateLandblockInstance(session, chest, chest2Loc, guid);
+                    if (slumlordWeenie != WeenieClassName.slumlordCustomCottage)
+                    {
+                        CreateLandblockInstance(session, chest, chest3Loc, guid);
+                        if (slumlordWeenie != WeenieClassName.slumlordCustomVilla)
+                            CreateLandblockInstance(session, chest, chest4Loc, guid);
+                    }
+                }
 
                 HouseManager.DoHandleHouseCreation(guid);
             }

@@ -782,6 +782,42 @@ namespace ACE.Server.WorldObjects
                 { HookGroupType.WritableItems,                   0 },
                 { HookGroupType.SpellCastingItems,              -1 },
                 { HookGroupType.SpellTeachingItems,              0 } }
+            },
+            { HouseType.CustomCottage, new Dictionary<HookGroupType, int> {
+                { HookGroupType.Undef,                          -1 },
+                { HookGroupType.NoisemakingItems,               -1 },
+                { HookGroupType.TestItems,                      -1 },
+                { HookGroupType.PortalItems,                    -1 },
+                { HookGroupType.WritableItems,                   1 },
+                { HookGroupType.SpellCastingItems,               5 },
+                { HookGroupType.SpellTeachingItems,              0 } }
+            },
+            { HouseType.CustomVilla, new Dictionary<HookGroupType, int> {
+                { HookGroupType.Undef,                          -1 },
+                { HookGroupType.NoisemakingItems,               -1 },
+                { HookGroupType.TestItems,                      -1 },
+                { HookGroupType.PortalItems,                    -1 },
+                { HookGroupType.WritableItems,                   1 },
+                { HookGroupType.SpellCastingItems,              10 },
+                { HookGroupType.SpellTeachingItems,              0 } }
+            },
+            { HouseType.CustomMansion, new Dictionary<HookGroupType, int> {
+                { HookGroupType.Undef,                          -1 },
+                { HookGroupType.NoisemakingItems,               -1 },
+                { HookGroupType.TestItems,                      -1 },
+                { HookGroupType.PortalItems,                    -1 },
+                { HookGroupType.WritableItems,                   3 },
+                { HookGroupType.SpellCastingItems,              15 },
+                { HookGroupType.SpellTeachingItems,              1 } }
+            },
+            { HouseType.CustomApartment, new Dictionary<HookGroupType, int> {
+                { HookGroupType.Undef,                          -1 },
+                { HookGroupType.NoisemakingItems,               -1 },
+                { HookGroupType.TestItems,                      -1 },
+                { HookGroupType.PortalItems,                     0 },
+                { HookGroupType.WritableItems,                   0 },
+                { HookGroupType.SpellCastingItems,              -1 },
+                { HookGroupType.SpellTeachingItems,              0 } }
             }
         };
 

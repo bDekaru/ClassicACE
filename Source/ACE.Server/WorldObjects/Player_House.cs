@@ -164,8 +164,10 @@ namespace ACE.Server.WorldObjects
                 {
                     if(Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                         log.ErrorFormat("{0}.GiveDeed() - couldn't find location {1}", Name, slumLord.Location.ToLOCString());
-                    else
+                    else if(!slumLord.InDungeon)
                         location = slumLord.Location.GetMapCoordStr(true);
+                    else
+                        location += slumLord.Location;
                 }
             }
 
