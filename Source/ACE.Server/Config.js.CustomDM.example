@@ -140,20 +140,6 @@
                 "Enabled": false
             },
             {
-                "Id": "0007FFFF",
-                "Description": "Town Network",
-                "Permaload": true,
-                "IncludeAdjacents": false,
-                "Enabled": false
-            },
-            {
-                "Id": "00000000",
-                "Description": "Apartment Landblocks",
-                "Permaload": true,
-                "IncludeAdjacents": false,
-                "Enabled": false
-            },
-            {
                 "Id": "B095FFFF",
                 "Description": "Smuggler's Den'",
                 "Permaload": true,
