@@ -41898,13 +41898,15 @@ namespace ACE.Server.Factories.Enum
         ringHardcore = 50189,
         pathfinderHelper = 50201,
         treasureMap = 50206,
-        houseCustomApartment = 50261,
+        houseCustomApartmentBunk = 50261,
         houseCustomCottage = 50262,
         houseCustomVilla = 50263,
         houseCustomMansion = 50264,
-        slumlordCustomApartment = 50265,
+        slumlordCustomApartmentBunk = 50265,
         slumlordCustomCottage = 50266,
         slumlordCustomVilla = 50267,
         slumlordCustomMansion = 50268,
+        houseCustomApartmentRoom = 50269,
+        slumlordCustomApartmentRoom = 50270,
     }
 }

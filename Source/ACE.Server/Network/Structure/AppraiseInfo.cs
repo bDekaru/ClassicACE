@@ -217,7 +217,7 @@ namespace ACE.Server.Network.Structure
                 {
                     if (slumLord.House != null)
                         //longDesc = $"This house is {(slumLord.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n"; // this was the retail msg.
-                        longDesc = $"This {(slumLord.House.HouseType == HouseType.Undef ? "house" : slumLord.House.HouseType.ToString().ToLower().Replace("custom", ""))} is {(slumLord.House.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n";
+                        longDesc = $"This {(slumLord.House.HouseType == HouseType.Undef ? "house" : slumLord.Name.ToString().ToLower())} is {(slumLord.House.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n";
                     else
                         longDesc = "This house is not properly configured.";
 

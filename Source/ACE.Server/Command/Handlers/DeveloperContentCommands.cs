@@ -542,7 +542,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             foreach (var file in files)
                 ImportSQLWeenie(session, file.DirectoryName + sep, file.Name);
-                
+
         }
 
         public static void ImportSQLRecipe(Session session, string recipeId)
@@ -1528,7 +1528,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             RemoveInstance(session);
-            CreateLandblockInstance(session, weenie, location, link != null ? link.ParentGuid : 0, objGuid);     
+            CreateLandblockInstance(session, weenie, location, link != null ? link.ParentGuid : 0, objGuid);
         }
 
         private static uint CreateInstDefaultParentGuid = 0;
@@ -2821,7 +2821,7 @@ namespace ACE.Server.Command.Handlers.Processors
             {
                 json_folder = $"{di.FullName}{sep}json{sep}weenies{sep}";
             }
-            
+
             di = new DirectoryInfo(json_folder);
 
             if (!di.Exists)
@@ -3163,7 +3163,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     default: // Otherwise goes to "ItemType" folder
                         WeeniePropertiesInt iType = (from x in weenie.WeeniePropertiesInt where x.Type == 1 select x).FirstOrDefault();
                         if (iType == null)
-                        {                            
+                        {
                             WeeniePropertiesInt maxGeneratedObjects = (from x in weenie.WeeniePropertiesInt where x.Type == 81 select x).FirstOrDefault();
                             WeeniePropertiesFloat regenerationInterval = (from x in weenie.WeeniePropertiesFloat where x.Type == 41 select x).FirstOrDefault();
                             if (maxGeneratedObjects != null && regenerationInterval != null)
@@ -4325,12 +4325,12 @@ namespace ACE.Server.Command.Handlers.Processors
                     {
                         CommandHandlerHelper.WriteOutputInfo(session, $"Unable to parse X ({strX}) value from line {i} in vlocDB: {vlocs[i]}");
                         continue;
-                    }    
+                    }
                     if (!float.TryParse(strY, out var y))
                     {
                         CommandHandlerHelper.WriteOutputInfo(session, $"Unable to parse Y ({strY}) value from line {i} in vlocDB: {vlocs[i]}");
                         continue;
-                    }    
+                    }
 
                     if ((objCellId >> 16) != lbid) continue;
 
@@ -5144,7 +5144,7 @@ namespace ACE.Server.Command.Handlers.Processors
                                     else
                                         lastEntry = $"{friendlyName}{(friendlyName.EndsWith("s") ? "es" : "s")}";
                                     contentDescription += lastEntry;
-                                    
+
                                 }
                             }
 
@@ -6638,7 +6638,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
         }
 
-        [CommandHandler("createHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create a custom house.", "<House Type> The type of house to be created. Valid values are apartment, cottage, villa and mansion.")]
+        [CommandHandler("createHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create a custom house.", "<House Type> The type of house to be created. Valid values are bunk, room, cottage, villa and mansion.")]
         public static void HandleCreateHouse(Session session, params string[] parameters)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
@@ -6653,9 +6653,13 @@ namespace ACE.Server.Command.Handlers.Processors
 
             switch (houseTypeParam)
             {
-                case "apartment":
-                    slumlordWeenie = WeenieClassName.slumlordCustomApartment;
-                    houseWeenie = WeenieClassName.houseCustomApartment;
+                case "bunk":
+                    slumlordWeenie = WeenieClassName.slumlordCustomApartmentBunk;
+                    houseWeenie = WeenieClassName.houseCustomApartmentBunk;
+                    break;
+                case "room":
+                    slumlordWeenie = WeenieClassName.slumlordCustomApartmentRoom;
+                    houseWeenie = WeenieClassName.houseCustomApartmentRoom;
                     break;
                 case "cottage":
                     slumlordWeenie = WeenieClassName.slumlordCustomCottage;
@@ -6671,9 +6675,9 @@ namespace ACE.Server.Command.Handlers.Processors
                     break;
             }
 
-            if(slumlordWeenie == WeenieClassName.undef)
+            if (slumlordWeenie == WeenieClassName.undef)
             {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid house type! Valid values are apartment, cottage, villa and mansion.", ChatMessageType.Help));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid house type! Valid values are bunk, room, cottage, villa and mansion.", ChatMessageType.Help));
                 return;
             }
 
@@ -6695,18 +6699,6 @@ namespace ACE.Server.Command.Handlers.Processors
             chest1Loc.Translate(0, 1.5f, 0);
             chest1Loc.Rotate(0, 0, -90);
 
-            var chest2Loc = new Position(session.Player.Location);
-            chest2Loc.Translate(0, -1.5f, 0);
-            chest2Loc.Rotate(0, 0, 90);
-
-            var chest3Loc = new Position(session.Player.Location);
-            chest3Loc.Translate(1, 1.5f, 0);
-            chest3Loc.Rotate(0, 0, -90);
-
-            var chest4Loc = new Position(session.Player.Location);
-            chest4Loc.Translate(1, -1.5f, 0);
-            chest4Loc.Rotate(0, 0, 90);
-
             var house = DatabaseManager.World.GetWeenie((uint)houseWeenie);
             var slumlord = DatabaseManager.World.GetWeenie((uint)slumlordWeenie);
             var bootspot = DatabaseManager.World.GetWeenie((uint)WeenieClassName.bootspot);
@@ -6720,19 +6712,80 @@ namespace ACE.Server.Command.Handlers.Processors
                 CreateLandblockInstance(session, bootspot, bootspotLoc, guid);
                 CreateLandblockInstance(session, chest, chest1Loc, guid);
 
-                if (slumlordWeenie != WeenieClassName.slumlordCustomApartment)
-                {
-                    CreateLandblockInstance(session, chest, chest2Loc, guid);
-                    if (slumlordWeenie != WeenieClassName.slumlordCustomCottage)
-                    {
-                        CreateLandblockInstance(session, chest, chest3Loc, guid);
-                        if (slumlordWeenie != WeenieClassName.slumlordCustomVilla)
-                            CreateLandblockInstance(session, chest, chest4Loc, guid);
-                    }
-                }
-
                 HouseManager.DoHandleHouseCreation(guid);
             }
+        }
+
+        [CommandHandler("houseInfo", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Shows information about the selected house.")]
+        public static void HandleHouseInfo(Session session, params string[] parameters)
+        {
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
+
+            if(wo == null)
+                return;
+
+            if (wo.ParentLink != null)
+                wo = wo.ParentLink;
+
+            var guid = wo.Guid.Full;
+
+            if (wo.WeenieType != WeenieType.House)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"{wo.Name} (0x{guid:X8}) is not a house.");
+                return;
+            }
+
+            var landblock = (ushort)wo.Location.Landblock;
+
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+            var instance = instances.FirstOrDefault(i => i.Guid == guid);
+
+            if (instance == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find landblock_instance for {wo.WeenieClassId} - {wo.Name} (0x{guid:X8})");
+                return;
+            }
+
+            if (instance.LandblockInstanceLink.Count == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"The {wo.Name} (0x{guid:X8}) contains: nothing.");
+                return;
+            }
+
+            var childObjects = new Dictionary<string, int>();
+            var hookCount = 0;
+            var storageCount = 0;
+            foreach (var link in instance.LandblockInstanceLink)
+            {
+                var child = instances.FirstOrDefault(i => i.Guid == link.ChildGuid);
+                if (child == null)
+                {
+                    CommandHandlerHelper.WriteOutputWarn(session, $"Couldn't find child guid for {link.ChildGuid:X8}");
+                    continue;
+                }
+
+                var weenie = DatabaseManager.World.GetWeenie(child.WeenieClassId);
+
+                if (!childObjects.TryGetValue(weenie.ClassName, out var value))
+                    childObjects.Add(weenie.ClassName, 1);
+                else
+                    childObjects[weenie.ClassName] = value + 1;
+
+                if (weenie.Type == (int)WeenieType.Hook)
+                    hookCount++;
+                else if (weenie.Type == (int)WeenieType.Storage)
+                    storageCount++;
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"The {wo.Name} (0x{guid:X8}) contains:");
+            foreach (var entry in childObjects)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"{entry.Key}: {entry.Value}");
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Total hook count: {hookCount}");
+            CommandHandlerHelper.WriteOutputInfo(session, $"Total storage count: {storageCount}");
         }
     }
 }

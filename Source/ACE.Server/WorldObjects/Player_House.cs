@@ -686,9 +686,10 @@ namespace ACE.Server.WorldObjects
             actionChain.AddDelaySeconds(3.0f);
             actionChain.AddAction(this, () =>
             {
+                HandleActionQueryHouse();
+
                 if (!house.IsCustomHouse)
                 {
-                    HandleActionQueryHouse();
                     house.UpdateRestrictionDB();
 
                     // boot anyone who may have been wandering around inside...

@@ -319,7 +319,7 @@ namespace ACE.Server.WorldObjects
             SetLinkProperties(wo);
         }
 
-        public bool IsApartment => HouseType == HouseType.Apartment;
+        public bool IsApartment => HouseType == HouseType.Apartment || HouseType == HouseType.CustomApartment;
 
         public bool IsCustomHouse => HouseType == HouseType.CustomApartment || HouseType == HouseType.CustomCottage || HouseType == HouseType.CustomVilla || HouseType == HouseType.CustomMansion;
 
