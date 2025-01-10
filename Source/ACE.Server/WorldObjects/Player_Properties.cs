@@ -1354,7 +1354,7 @@ namespace ACE.Server.WorldObjects
             if (queryTarget == 0 || queryTarget == guidToBypass)
                 return null;
 
-            return FindObject(queryTarget, SearchLocations.MyInventory | SearchLocations.MyEquippedItems | SearchLocations.Landblock);
+            return FindObject(queryTarget, SearchLocations.MyInventory | SearchLocations.MyEquippedItems | SearchLocations.Landblock | SearchLocations.WieldedByOther);
         }
 
         public uint PreviousRequestedAppraisalTarget = 0;
