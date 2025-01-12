@@ -395,5 +395,21 @@ namespace ACE.Server.Entity
 
             return success;
         }
+
+        public static void RotateAroundPivot(this Position pos, Position pivot, float degrees)
+        {
+            var radians = degrees.ToRadians();
+
+            var cosTheta = Math.Cos(radians);
+            var sinTheta = Math.Sin(radians);
+
+            var x = cosTheta * (pos.PositionX - pivot.PositionX) - sinTheta * (pos.PositionY - pivot.PositionY) + pivot.PositionX;
+            var y = sinTheta * (pos.PositionX - pivot.PositionX) + cosTheta * (pos.PositionY - pivot.PositionY) + pivot.PositionY;
+
+            pos.PositionX = (float)x;
+            pos.PositionY = (float)y;
+
+            pos.Rotate(0, 0, degrees);
+        }
     }
 }

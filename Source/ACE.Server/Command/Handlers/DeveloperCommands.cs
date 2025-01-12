@@ -4215,6 +4215,20 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"Terrain: 0x{terrain:X4}");
             CommandHandlerHelper.WriteOutputInfo(session, $"TerrainType: 0x{terrainType:X4}");
             CommandHandlerHelper.WriteOutputInfo(session, $"SceneType: 0x{sceneType:X4}");
+
+            if (session.Player.Indoors)
+            {
+                var outdoorCellId = session.Player.Location.GetOutdoorCell();
+
+                foreach (var building in session.Player.PhysicsObj.CurLandblock.Buildings)
+                {
+                    if (building.CurCell.ID == outdoorCellId)
+                    {
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Building: 0x{building.ID:X8}");
+                        break;
+                    }
+                }
+            }            
         }
 
         [CommandHandler("teleCreatureToMe", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Teleports selected creature to your current location.")]

@@ -6787,5 +6787,260 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, $"Total hook count: {hookCount}");
             CommandHandlerHelper.WriteOutputInfo(session, $"Total storage count: {storageCount}");
         }
+
+        [CommandHandler("exportHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Export the house(s) in the current building as a template so they can be imported later at a similar building.", "<Filename>")]
+        public static void HandleExportHouse(Session session, params string[] parameters)
+        {
+            var exportName = parameters[0];
+
+            Physics.Common.BuildingObj building = null;
+            uint outdoorCellId = 0;
+
+            if (session.Player.Indoors)
+            {
+                outdoorCellId = session.Player.Location.GetOutdoorCell();
+
+                foreach (var buildingEntry in session.Player.PhysicsObj.CurLandblock.Buildings)
+                {
+                    if (buildingEntry.CurCell.ID == outdoorCellId)
+                    {
+                        building = buildingEntry;
+                        break;
+                    }
+                }
+            }
+
+            if (building == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "You must be in a building for this command to work.");
+                return;
+            }
+
+            var buildingPos = building.Position.ACEPosition();
+            var buildingHeading = building.Position.Frame.get_heading();
+            var buildingType = building.ID;
+
+            var landblock = (ushort)buildingPos.Landblock;
+
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+            List<Tuple<uint, bool, int, Position>> houseObjects = new List<Tuple<uint, bool, int, Position>>();
+            var houseCounter = 0;
+            foreach (var instance in instances)
+            {
+                var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
+
+                if (instanceWeenie.Type != (int)WeenieType.House)
+                    continue;
+
+                var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+                housePos.RotateAroundPivot(buildingPos, -buildingHeading);
+
+                if (housePos.GetOutdoorCell() != outdoorCellId)
+                    continue;
+                houseCounter++;
+
+                var houseOffset = buildingPos.GetOffset(housePos);
+                housePos = new Position(housePos.LandblockId.Raw, houseOffset.X, houseOffset.Y, houseOffset.Z, housePos.RotationX, housePos.RotationY, housePos.RotationZ, housePos.RotationW, true);
+
+                houseObjects.Add(Tuple.Create(instance.WeenieClassId, true, houseCounter, housePos));
+
+                foreach (var link in instance.LandblockInstanceLink)
+                {
+                    var child = instances.FirstOrDefault(i => i.Guid == link.ChildGuid);
+                    if (child == null)
+                    {
+                        CommandHandlerHelper.WriteOutputWarn(session, $"Couldn't find child guid for {link.ChildGuid:X8}");
+                        continue;
+                    }
+
+                    var weenie = DatabaseManager.World.GetWeenie(child.WeenieClassId);
+
+                    var childPos = new Position(child.ObjCellId, child.OriginX, child.OriginY, child.OriginZ, child.AnglesX, child.AnglesY, child.AnglesZ, child.AnglesW);
+                    childPos.RotateAroundPivot(buildingPos, -buildingHeading);
+
+                    var childOffset = buildingPos.GetOffset(childPos);
+
+                    houseObjects.Add(Tuple.Create(child.WeenieClassId, false, houseCounter, new Position(child.ObjCellId, childOffset.X, childOffset.Y, childOffset.Z, childPos.RotationX, childPos.RotationY, childPos.RotationZ, childPos.RotationW, true)));
+                }
+            }
+
+            if(houseObjects.Count == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "This building has no houses.");
+                return;
+            }
+
+            var contentFolder = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}house templates");
+
+            var filename = $"{folder.FullName}{sep}{exportName}.txt";
+
+            try
+            {
+                if (!folder.Exists)
+                    folder.Create();
+
+                var output = new List<string>();
+
+                CommandHandlerHelper.WriteOutputInfo(session, $"Exporting housing template {exportName}...");
+
+                output.Add(buildingType.ToString());
+
+                foreach (var entry in houseObjects)
+                {
+                    output.Add($"{entry.Item1}\t{entry.Item2}\t{entry.Item3}\t{entry.Item4.ToLOCStringAlt()}");
+                }
+
+                File.WriteAllLines(filename, output);
+
+                CommandHandlerHelper.WriteOutputInfo(session, $"Exported {filename}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {filename}");
+                return;
+            }
+        }
+
+        [CommandHandler("importHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create house(s) in the current building from a template.", "<Filename>")]
+        public static void HandleImportHouse(Session session, params string[] parameters)
+        {
+            var importName = parameters[0];
+
+            Physics.Common.BuildingObj building = null;
+            if (session.Player.Indoors)
+            {
+                var outdoorCellId = session.Player.Location.GetOutdoorCell();
+
+                foreach (var buildingEntry in session.Player.PhysicsObj.CurLandblock.Buildings)
+                {
+                    if (buildingEntry.CurCell.ID == outdoorCellId)
+                    {
+                        building = buildingEntry;
+                        break;
+                    }
+                }
+            }
+
+            if (building == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "You must be in a building for this command to work.");
+                return;
+            }
+
+            uint buildingType = 0;
+            List<Tuple<uint, bool, int, Position>> houseObjects = new List<Tuple<uint, bool, int, Position>>();
+
+            DirectoryInfo di = VerifyContentFolder(session);
+            if (!di.Exists)
+                return;
+
+            var sep = Path.DirectorySeparatorChar;
+
+            var folder = $"{di.FullName}{sep}house templates{sep}";
+
+            di = new DirectoryInfo(folder);
+
+            try
+            {
+                var files = di.Exists ? di.GetFiles($"{importName}.txt") : null;
+
+                if (files == null || files.Length == 0)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find {folder}{importName}.txt");
+                    return;
+                }
+
+                var file = files.First();
+
+                CommandHandlerHelper.WriteOutputInfo(session, $"Importing house template {importName}...");
+
+                string[] input = File.ReadAllLines(file.FullName);
+                foreach (string line in input)
+                {
+                    if(buildingType == 0)
+                        buildingType = uint.Parse(line);
+                    else
+                    {
+                        var splitLine = line.Split('\t');
+                        var wcid = uint.Parse(splitLine[0]);
+                        var isHouse = bool.Parse(splitLine[1]);
+                        var houseId = int.Parse(splitLine[2]);
+                        var splitPositionString = splitLine[3].Split(',');
+                        var position = new Position(uint.Parse(splitPositionString[0].Replace("0x", ""), NumberStyles.HexNumber), float.Parse(splitPositionString[1]), float.Parse(splitPositionString[2]), float.Parse(splitPositionString[3]), float.Parse(splitPositionString[5]), float.Parse(splitPositionString[6]), float.Parse(splitPositionString[7]), float.Parse(splitPositionString[4]), true);
+
+                        houseObjects.Add(Tuple.Create(wcid, isHouse, houseId, position));
+                    }
+                }
+
+                CommandHandlerHelper.WriteOutputInfo(session, $"Imported {file.FullName}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to import {folder}{importName}.txt");
+                return;
+            }
+
+            if (buildingType == 0 || houseObjects.Count == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "Invalid file.");
+                return;
+            }
+
+            var buildingPos = building.Position.ACEPosition();
+            var buildingHeading = building.Position.Frame.get_heading();
+
+            if (buildingType != building.ID)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Current building type(0x{building.ID:X8}) doesn't match imported building type(0x{buildingType:X8}).");
+                return;
+            }
+
+            var bumpHeight = 0.05f;
+            foreach (var entry in houseObjects)
+            {
+                if (!entry.Item2)
+                    continue;
+                else
+                {
+                    var position = new Position(building.LandblockID, entry.Item4.PositionX + buildingPos.PositionX, entry.Item4.PositionY + buildingPos.PositionY, entry.Item4.PositionZ + buildingPos.PositionZ, entry.Item4.RotationX, entry.Item4.RotationY, entry.Item4.RotationZ, entry.Item4.RotationW);
+                    position.RotateAroundPivot(buildingPos, buildingHeading);
+
+                    // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
+                    position.PositionZ += bumpHeight;
+                    position.LandblockId = new LandblockId(position.GetCell());
+                    position.PositionZ -= bumpHeight;
+
+                    var weenie = DatabaseManager.World.GetWeenie(entry.Item1);
+                    var houseGuid = CreateLandblockInstance(session, weenie, position);
+
+                    if (houseGuid != 0)
+                    {
+                        var childList = houseObjects.Where(i => !i.Item2 && i.Item3 == entry.Item3).ToList();
+
+                        foreach (var childEntry in childList)
+                        {
+                            var childWeenie = DatabaseManager.World.GetWeenie(childEntry.Item1);
+                            position = new Position(building.Position.ObjCellID, childEntry.Item4.PositionX + buildingPos.PositionX, childEntry.Item4.PositionY + buildingPos.PositionY, childEntry.Item4.PositionZ + buildingPos.PositionZ, childEntry.Item4.RotationX, childEntry.Item4.RotationY, childEntry.Item4.RotationZ, childEntry.Item4.RotationW);
+                            position.RotateAroundPivot(buildingPos, buildingHeading);
+
+                            // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
+                            position.PositionZ += bumpHeight;
+                            position.LandblockId = new LandblockId(position.GetCell());
+                            position.PositionZ -= bumpHeight;
+
+                            CreateLandblockInstance(session, childWeenie, position, houseGuid);
+                        }
+
+                        HouseManager.DoHandleHouseCreation(houseGuid);
+                    }
+                }
+            }
+        }
     }
 }
