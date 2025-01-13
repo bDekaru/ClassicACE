@@ -69,7 +69,33 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Should only be adjusted by Landblock -- default is null
         /// </summary>
-        public Landblock CurrentLandblock { get; internal set; }
+        public Landblock CurrentLandblock
+        {
+            get => currentLandblock;
+
+            internal set
+            {
+                var previousLandblock = currentLandblock;
+                currentLandblock = value;
+
+                if (previousLandblock != currentLandblock)
+                {
+                    if (previousLandblock != null)
+                        OnLeaveLandblock(previousLandblock);
+
+                    if (currentLandblock != null)
+                        OnEnterLandblock(currentLandblock);
+                }
+            }
+        }
+
+        public virtual void OnEnterLandblock(Landblock landblock)
+        {
+        }
+
+        public virtual void OnLeaveLandblock(Landblock Landblock)
+        {
+        }
 
         public bool IsBusy { get; set; }
         public bool IsShield { get => CombatUse != null && CombatUse == ACE.Entity.Enum.CombatUse.Shield; }
@@ -1190,6 +1216,7 @@ namespace ACE.Server.WorldObjects
         public SetPosition ScatterPos { get; set; }
 
         public DestinationType DestinationType;
+        private Landblock currentLandblock;
 
         public Skill ConvertToMoASkill(Skill skill)
         {

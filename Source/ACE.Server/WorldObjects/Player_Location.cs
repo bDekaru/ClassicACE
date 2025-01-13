@@ -831,7 +831,6 @@ namespace ACE.Server.WorldObjects
 
             CheckMonsters();
             CheckHouse();
-            CheckExplorationLandblock();
 
             EnqueueBroadcastPhysicsState();
 
@@ -902,7 +901,6 @@ namespace ACE.Server.WorldObjects
 
                 CheckMonsters();
                 CheckHouse();
-                CheckExplorationLandblock();
 
                 Sequences.GetNextSequence(SequenceType.ObjectForcePosition);
                 SendUpdatePosition();
@@ -925,6 +923,14 @@ namespace ACE.Server.WorldObjects
             // notify current landblock of player activity
             if (CurrentLandblock != null)
                 CurrentLandblock?.SetActive();
+        }
+        public override void OnEnterLandblock(Landblock landblock)
+        {
+            CheckExplorationLandblock(landblock);
+        }
+
+        public override void OnLeaveLandblock(Landblock landblock)
+        {
         }
 
         public const float RunFactor = 1.5f;
