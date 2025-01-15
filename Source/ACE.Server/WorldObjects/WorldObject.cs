@@ -108,6 +108,7 @@ namespace ACE.Server.WorldObjects
         public bool IsThrownWeapon { get => DefaultCombatStyle != null && DefaultCombatStyle == CombatStyle.ThrownWeapon; }
         public bool IsRanged { get => IsAmmoLauncher || IsThrownWeapon; }
         public bool IsCaster { get => DefaultCombatStyle != null && (DefaultCombatStyle == CombatStyle.Magic); }
+        public bool IsRobe { get => ItemType == ItemType.Clothing && ClothingPriority.HasValue && ClothingPriority.Value.HasFlag(CoverageMask.OuterwearChest); }
 
         public bool IsCreature
         {
@@ -1315,7 +1316,7 @@ namespace ACE.Server.WorldObjects
                 return Math.Max(ExtraSpellsMaxOverride ?? 0, 0);
 
             var baseSlots = (int)Math.Floor((ItemWorkmanship ?? 0) / 2f);
-            if (ItemType == ItemType.Clothing && ClothingPriority.HasValue && ClothingPriority.Value.HasFlag(CoverageMask.OuterwearChest)) // Robes
+            if(IsRobe)
                 return baseSlots == 0 ? 1 : (baseSlots * 2);
             return baseSlots;
         }

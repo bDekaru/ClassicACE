@@ -12,43 +12,6 @@ namespace ACE.Server.Factories
 {
     public static partial class LootGenerationFactory
     {
-        private static WorldObject CreateJewelry(TreasureDeath profile, bool isMagical, bool mutate = true)
-        {
-            // 31% chance ring, 31% chance bracelet, 30% chance necklace 8% chance Trinket
-
-            int jewelrySlot = ThreadSafeRandom.Next(1, 100);
-            int jewelType;
-
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
-            {
-                // Made this easier to read (switch -> if statement)
-                if (jewelrySlot <= 31)
-                    jewelType = LootTables.ringItems[ThreadSafeRandom.Next(0, LootTables.ringItems.Length - 1)];
-                else if (jewelrySlot <= 62)
-                    jewelType = LootTables.braceletItems[ThreadSafeRandom.Next(0, LootTables.braceletItems.Length - 1)];
-                else if (jewelrySlot <= 92)
-                    jewelType = LootTables.necklaceItems[ThreadSafeRandom.Next(0, LootTables.necklaceItems.Length - 1)];
-                else
-                    jewelType = LootTables.trinketItems[ThreadSafeRandom.Next(0, LootTables.trinketItems.Length - 1)];
-            }
-            else
-            {
-                if (jewelrySlot <= 33)
-                    jewelType = LootTables.ringItems[ThreadSafeRandom.Next(0, LootTables.ringItems.Length - 1)];
-                else if (jewelrySlot <= 66)
-                    jewelType = LootTables.braceletItems[ThreadSafeRandom.Next(0, LootTables.braceletItems.Length - 1)];
-                else
-                    jewelType = LootTables.necklaceItems[ThreadSafeRandom.Next(0, LootTables.necklaceItems.Length - 1)];
-            }
-
-            WorldObject wo = WorldObjectFactory.CreateNewWorldObject((uint)jewelType);
-
-            if (wo != null && mutate)
-                MutateJewelry(wo, profile, isMagical);
-
-            return wo;
-        }
-
         private static void MutateJewelry(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll = null)
         {
             // material type
@@ -96,16 +59,6 @@ namespace ACE.Server.Factories
                 MutateValue(wo, profile.Tier, roll);
 
             wo.LongDesc = GetLongDesc(wo);
-        }
-
-        private static bool GetMutateJewelryData(uint wcid)
-        {
-            foreach (var jewelryTable in LootTables.jewelryTables)
-            {
-                if (jewelryTable.Contains((int)wcid))
-                    return true;
-            }
-            return false;
         }
     }
 }

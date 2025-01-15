@@ -1083,8 +1083,11 @@ namespace ACE.Server.WorldObjects
                 if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
                 {
                     worldObject.ExtraSpellsMaxOverride = 2;
-                    worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty ?? 0;
-                    worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft ?? 0;
+                    if(worldObject.IsRobe)
+                        worldObject.ExtraSpellsMaxOverride *= 2;
+
+                    worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty;
+                    worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft;
                 }
 
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.

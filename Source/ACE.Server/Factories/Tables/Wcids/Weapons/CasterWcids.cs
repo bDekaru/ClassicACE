@@ -164,8 +164,13 @@ namespace ACE.Server.Factories.Tables.Wcids
             T8_Chances
         };
 
-        public static WeenieClassName Roll(int tier)
+        public static WeenieClassName Roll(int tier, bool forceNonNether = false)
         {
+            var roll = casterTiers[tier - 1].Roll();
+
+            if (forceNonNether && (roll == WeenieClassName.ace43381_nethersceptre || roll == WeenieClassName.ace43382_netherbaton || roll == WeenieClassName.ace43383_netherstaff))
+                return Roll(tier, forceNonNether);
+
             return casterTiers[tier - 1].Roll();
         }
 

@@ -1,11 +1,11 @@
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
-using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity.Mutations;
 using ACE.Server.Factories.Entity;
 using ACE.Server.Factories.Enum;
 using ACE.Server.Factories.Tables;
+using ACE.Server.Factories.Tables.Wcids;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Factories
@@ -19,32 +19,11 @@ namespace ACE.Server.Factories
         {
             // Refactored 11/20/19  - HarliQ
             int casterWeenie = 0;
-            int subType = 0;
-            int element = 0;
 
             if (wield == -1)
                 wield = RollWieldDifficulty(profile.Tier, TreasureWeaponType.Caster);
 
-            // Getting the caster Weenie needed.
-            if (wield == 0)
-            {
-                // Determine plain caster type: 0 - Orb, 1 - Sceptre, 2 - Staff, 3 - Wand
-                subType = ThreadSafeRandom.Next(0, LootTables.CasterWeaponsMatrix[wield].Length - 1);
-                casterWeenie = LootTables.CasterWeaponsMatrix[wield][subType];
-            }
-            else
-            {
-                // Determine caster type: 1 - Sceptre, 2 - Baton, 3 - Staff
-                int casterType = ThreadSafeRandom.Next(1, LootTables.CasterWeaponsMatrix.Length - 1);
-                if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
-                    // Determine element type: 0 - Slashing, 1 - Piercing, 2 - Blunt, 3 - Frost, 4 - Fire, 5 - Acid, 6 - Electric
-                    element = ThreadSafeRandom.Next(0, 6);
-                else
-                    // Determine element type: 0 - Slashing, 1 - Piercing, 2 - Blunt, 3 - Frost, 4 - Fire, 5 - Acid, 6 - Electric, 7 - Nether
-                    element = forceWar ? ThreadSafeRandom.Next(0, 6) : ThreadSafeRandom.Next(0, 7);
-
-                casterWeenie = LootTables.CasterWeaponsMatrix[casterType][element];
-            }
+            casterWeenie = (int)CasterWcids.Roll(profile.Tier, forceWar);
 
             WorldObject wo = WorldObjectFactory.CreateNewWorldObject((uint)casterWeenie);
 
@@ -259,21 +238,6 @@ namespace ACE.Server.Factories
             }
             else
                 return $"Casters.caster_{elementalStr}.txt";
-        }
-
-        private static bool GetMutateCasterData(uint wcid)
-        {
-            for (var i = 0; i < LootTables.CasterWeaponsMatrix.Length; i++)
-            {
-                var table = LootTables.CasterWeaponsMatrix[i];
-
-                for (var element = 0; element < table.Length; element++)
-                {
-                    if (wcid == table[element])
-                        return true;
-                }
-            }
-            return false;
         }
 
         /// <summary>

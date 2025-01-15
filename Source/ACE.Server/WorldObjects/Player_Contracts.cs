@@ -355,7 +355,7 @@ namespace ACE.Server.WorldObjects
 
         public bool TryGiveRandomSalvage(WorldObject giver = null, int tier = 1, float qualityMod = 0.0f)
         {
-            var salvage = LootGenerationFactory.CreateRandomLootObjects_New(tier, qualityMod, TreasureItemCategory.MundaneItem, TreasureItemType_Orig.Salvage);
+            var salvage = LootGenerationFactory.CreateRandomLootObjects(tier, qualityMod, TreasureItemCategory.MundaneItem, TreasureItemType_Orig.Salvage);
             var success = false;
             if (salvage != null)
             {

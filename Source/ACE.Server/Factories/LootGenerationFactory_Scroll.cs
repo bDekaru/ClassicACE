@@ -1,9 +1,10 @@
 using ACE.Common;
-using ACE.Database.Models.World;
 using ACE.Database;
+using ACE.Database.Models.World;
 using ACE.Entity.Enum;
 using ACE.Server.Factories.Entity;
 using ACE.Server.Factories.Tables;
+using ACE.Server.Factories.Tables.Wcids;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Factories
@@ -22,7 +23,7 @@ namespace ACE.Server.Factories
 
                 if (rng < 0.5f)
                 {
-                    var wcid = RollLevel8SpellComp();
+                    var wcid = (int)SpellComponentWcids.Roll_Level8SpellComponent(profile);
 
                     return WorldObjectFactory.CreateNewWorldObject((uint)wcid);
                 }
@@ -48,13 +49,6 @@ namespace ACE.Server.Factories
             }
 
             return WorldObjectFactory.CreateNewWorldObject(weenie.WeenieClassId);
-        }
-
-        private static int RollLevel8SpellComp()
-        {
-            var rng = ThreadSafeRandom.Next(0, LootTables.Level8SpellComps.Length - 1);
-
-            return LootTables.Level8SpellComps[rng];
         }
     }
 }

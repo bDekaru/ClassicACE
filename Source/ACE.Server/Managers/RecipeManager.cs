@@ -1196,11 +1196,29 @@ namespace ACE.Server.Managers
                     // Transfer spells to the new item.
                     var spells = target.ExtraSpellsList.Split(",");
 
+                    var baseResultItemDifficulty = Math.Max(result.BaseItemDifficultyOverride ?? 0, result.ItemDifficulty ?? 0);
+                    var baseResultItemSpellcraft = Math.Max(result.BaseSpellcraftOverride ?? 0, result.ItemSpellcraft ?? 0);
+                    var failedSomeTransfers = false;
                     foreach (string spellString in spells)
                     {
                         if (uint.TryParse(spellString, out var spellId))
-                            SpellTransferScroll.InjectSpell(spellId, result);
+                        {
+                            var data = SpellTransferScroll.InjectSpell(result, (SpellId)spellId);
+
+                            if (data.Result != SpellTransferScroll.InjectSpellResult.Success)
+                                failedSomeTransfers = true;
+                        }
                     }
+
+                    if (!failedSomeTransfers) // Transfer our exact rolls to the new item. If we fail any of the transfers for some reason(like the new item already having a stronger spell of the same type) we skip this so the item difficulty can reflect the change.
+                    {
+                        result.ItemDifficulty = Math.Max(baseResultItemDifficulty, target.ItemDifficulty ?? 0);
+                        result.ItemSpellcraft = Math.Max(baseResultItemSpellcraft, target.ItemSpellcraft ?? 0);
+                    }
+
+                    // We keep even the spells that failed in the list as the next time the item is changed it has another chance to apply(items like Atlan weapons can be continuously changed and this way the spell survives temporary inactivity)
+                    result.ExtraSpellsCount = target.ExtraSpellsCount;
+                    result.ExtraSpellsList = target.ExtraSpellsList;
 
                     player.EnqueueBroadcast(new GameMessageUpdateObject(result));
                 }

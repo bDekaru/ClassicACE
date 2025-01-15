@@ -28,7 +28,7 @@ namespace ACE.Server.Factories
             // Loop depending on how many items you are creating
             for (int i = 0; i < numItems; i++)
             {
-                var testItem = LootGenerationFactory.CreateRandomLootObjects(profile, true);
+                var testItem = LootGenerationFactory.CreateRandomLootObjects(profile, Enum.TreasureItemCategory.MagicItem);
                 lootStats.AddItem(testItem, logStats);
             }
 

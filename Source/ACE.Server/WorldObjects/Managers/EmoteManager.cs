@@ -286,7 +286,7 @@ namespace ACE.Server.WorldObjects.Managers
                             UnknownChances = 21
                         };
 
-                        var treasure = LootGenerationFactory.CreateRandomLootObjects_New(profile, treasureType);
+                        var treasure = LootGenerationFactory.CreateRandomLootObjects(profile, treasureType);
                         if (treasure != null)
                         {
                             player.TryCreateForGive(WorldObject, treasure);

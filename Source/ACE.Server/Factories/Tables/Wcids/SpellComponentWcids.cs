@@ -174,7 +174,7 @@ namespace ACE.Server.Factories.Tables.Wcids
             WeenieClassName.ace37341_glyphofweapontinkering,
         };
 
-        private static WeenieClassName Roll_Level8SpellComponent(TreasureDeath profile)
+        public static WeenieClassName Roll_Level8SpellComponent(TreasureDeath profile)
         {
             // even chance between quill / ink / glyph
             var type = (Level8_SpellComponentType)ThreadSafeRandom.Next(1, 3);

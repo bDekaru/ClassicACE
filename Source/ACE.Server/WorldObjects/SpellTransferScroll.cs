@@ -1,5 +1,4 @@
 using ACE.Common;
-using ACE.Common.Extensions;
 using ACE.Database;
 using ACE.Entity;
 using ACE.Entity.Enum;
@@ -94,290 +93,84 @@ namespace ACE.Server.WorldObjects
 
             if (source.SpellDID.HasValue) // Transfer Scroll
             {
-                if(target.Workmanship == null && target.ExtraSpellsMaxOverride == null)
+                var data = InjectSpell(target, (SpellId)source.SpellDID, true, confirmed);
+                switch (data.Result)
                 {
-                    player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
+                    case InjectSpellResult.YouDoNotPassCraftingRequirements:
+                        player.SendUseDoneEvent(WeenieError.YouDoNotPassCraftingRequirements);
                         return;
-                }
-
-                var spellToAddId = (uint)source.SpellDID;
-                var spellToAddlevel1Id = SpellLevelProgression.GetLevel1SpellId((SpellId)spellToAddId);
-                Spell spellToAdd = new Spell(spellToAddId);
-
-                var isProc = false;
-                if (spellToAddlevel1Id != SpellId.Undef && (MeleeSpells.meleeProcs.FirstOrDefault(x => x.result == spellToAddlevel1Id) != default((SpellId, float)) || MissileSpells.missileProcs.FirstOrDefault(x => x.result == spellToAddlevel1Id) != default((SpellId, float))))
-                {
-                    isProc = true;
-
-                    if(target.ItemType != ItemType.MeleeWeapon && target.ItemType != ItemType.MissileWeapon)
-                    {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain {spellToAdd.Name}.", ChatMessageType.Craft));
+                    case InjectSpellResult.TargetCannotContainSpell:
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {data.Target.NameWithMaterial} cannot contain {data.SpellToAdd.Name}.", ChatMessageType.Craft));
                         player.SendUseDoneEvent();
                         return;
-                    }
-                }
-
-                var isGem = false;
-                if(target.ItemType == ItemType.Gem)
-                {
-                    isGem = true;
-                    if(spellToAdd.IsCantrip)
-                    {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain {spellToAdd.Name}.", ChatMessageType.Craft));
+                    case InjectSpellResult.TargetAlreadyContainsSpell:
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {data.Target.NameWithMaterial} already contains {data.SpellToAdd.Name}.", ChatMessageType.Craft));
                         player.SendUseDoneEvent();
                         return;
-                    }
-                    else if (spellToAdd.School == MagicSchool.ItemEnchantment)
-                    {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain {spellToAdd.Name}.", ChatMessageType.Craft));
+                    case InjectSpellResult.TargetContainsStrongerSpell:
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {data.Target.NameWithMaterial} already contains {data.SpellOnItem.Name}, which is stronger than {data.SpellToAdd.Name}.", ChatMessageType.Craft));
                         player.SendUseDoneEvent();
                         return;
-                    }
-                }
-                else if(target.ItemType == ItemType.MeleeWeapon || target.ItemType == ItemType.MissileWeapon || target.ItemType == ItemType.Caster)
-                {
-                    if (spellToAdd.IsImpenBaneType && spellToAddlevel1Id != SpellId.Brittlemail1)
-                    {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain {spellToAdd.Name}.", ChatMessageType.Craft));
+                    case InjectSpellResult.TargetContainsEquivalentSpell:
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {data.Target.NameWithMaterial} already contains {data.SpellOnItem.Name}, which is equivalent to {data.SpellToAdd.Name}.", ChatMessageType.Craft));
                         player.SendUseDoneEvent();
                         return;
-                    }
-                }
-                else
-                {
-                    if (spellToAdd.IsWeaponTargetType)
-                    {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain {spellToAdd.Name}.", ChatMessageType.Craft));
+                    case InjectSpellResult.TargetCannotContainMoreSpells:
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {data.Target.NameWithMaterial} cannot contain any more spells.", ChatMessageType.Craft));
                         player.SendUseDoneEvent();
                         return;
-                    }
-                }
-
-                if (spellToAdd.School == MagicSchool.ItemEnchantment && target.ResistMagic >= 9999)
-                {
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain {spellToAdd.Name}.", ChatMessageType.Craft));
-                    player.SendUseDoneEvent();
-                    return;
-                }
-
-                var spellsOnItem = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
-
-                if (target.ProcSpell != null && target.ProcSpell != 0)
-                    spellsOnItem.Add((int)target.ProcSpell);
-
-                var enchantments = new List<SpellId>();
-                var cantrips = new List<SpellId>();
-                if (spellToAdd.IsCantrip)
-                    cantrips.Add((SpellId)spellToAddId);
-                else if (spellToAdd.School == MagicSchool.CreatureEnchantment)
-                    enchantments.Add((SpellId)spellToAddId);
-
-                var extraSpells = target.ExtraSpellsList != null ? target.ExtraSpellsList.Split(",").ToList() : new List<string>();
-
-                Spell spellToReplace = null;
-                foreach (var spellOnItemId in spellsOnItem)
-                {
-                    Spell spellOnItem = new Spell(spellOnItemId);
-
-                    if (target.BaseItemDifficultyOverride == null || extraSpells.Contains(spellOnItemId.ToString()))
-                    {
-                        // For items that have a base difficulty override we will only calculate new arcane lore requirements based on the extra spells so filter them here.
-                        if (spellOnItem.IsCantrip)
-                            cantrips.Add((SpellId)spellOnItemId);
-                        else if (spellOnItem.School == MagicSchool.CreatureEnchantment)
-                            enchantments.Add((SpellId)spellOnItemId);
-                    }
-
-                    if (spellOnItemId == spellToAddId)
-                    {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} already contains {spellToAdd.Name}.", ChatMessageType.Craft));
-                        player.SendUseDoneEvent();
-                        return;
-                    }
-                    else if(spellOnItem.Category == spellToAdd.Category)
-                    {
-                        if (spellOnItem.Power > spellToAdd.Power)
-                        {
-                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} already contains {spellOnItem.Name}, which is stronger than {spellToAdd.Name}.", ChatMessageType.Craft));
-                            player.SendUseDoneEvent();
-                            return;
-                        }
-                        else if (spellOnItem.Power == spellToAdd.Power)
-                        {
-                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} already contains {spellOnItem.Name}, which is equivalent to {spellToAdd.Name}.", ChatMessageType.Craft));
-                            player.SendUseDoneEvent();
-                            return;
-                        }
+                    case InjectSpellResult.RequiresConfirmation:
+                        if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), data.ConfirmationMessage))
+                            player.SendUseDoneEvent(WeenieError.ConfirmationInProgress);
                         else
-                            spellToReplace = spellOnItem;
-                    }
-                }
-
-                if(spellToReplace != null)
-                {
-                    enchantments.Remove((SpellId)spellToReplace.Id);
-                    cantrips.Remove((SpellId)spellToReplace.Id);
-                }
-
-                if (!isGem && target.ProcSpell == null && spellToReplace == null)
-                {
-                    if ((target.ExtraSpellsCount ?? 0) >= target.GetMaxExtraSpellsCount())
-                    {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot contain any more spells.", ChatMessageType.Craft));
-                        player.SendUseDoneEvent();
+                            player.SendUseDoneEvent();
                         return;
-                    }
+                    case InjectSpellResult.ReadyToProceed:
+                        var actionChain = new ActionChain();
+
+                        var animTime = 0.0f;
+
+                        player.IsBusy = true;
+
+                        if (player.CombatMode != CombatMode.NonCombat)
+                        {
+                            var stanceTime = player.SetCombatMode(CombatMode.NonCombat);
+                            actionChain.AddDelaySeconds(stanceTime);
+
+                            animTime += stanceTime;
+                        }
+
+                        animTime += player.EnqueueMotion(actionChain, MotionCommand.ClapHands);
+
+                        actionChain.AddAction(player, () =>
+                        {
+                            if (!RecipeManager.VerifyUse(player, source, target, true))
+                            {
+                                // No longer valid, abort
+                                player.SendTransientError("Either you or one of the items involved does not pass the requirements for this craft interaction.");
+                                return;
+                            }
+
+                            ContinueInjectSpell(data);
+
+                            player.EnqueueBroadcast(new GameMessageUpdateObject(target));
+
+                            player.TryConsumeFromInventoryWithNetworking(source); // Consume the scroll.
+                            BroadcastSpellTransfer(player, data.SpellToAdd.Name, target);
+                        });
+
+                        player.EnqueueMotion(actionChain, MotionCommand.Ready);
+
+                        actionChain.AddAction(player, () =>
+                        {
+                            player.IsBusy = false;
+                        });
+
+                        actionChain.EnqueueChain();
+
+                        player.NextUseTime = DateTime.UtcNow.AddSeconds(animTime);
+                        break;
                 }
-
-                if (!confirmed)
-                {
-                    var extraMessage = "";
-                    if (isProc && target.ProcSpell != null)
-                    {
-                        var currentProc = new Spell(target.ProcSpell ?? 0);
-                        extraMessage = $"\nThis will replace {currentProc.Name}!\n";
-                    }
-                    else if (isGem && target.SpellDID != null)
-                    {
-                        var currentGemSpell = new Spell(target.SpellDID ?? 0);
-                        extraMessage = $"\nThis will replace {currentGemSpell.Name}!\n";
-                    }
-                    else if (spellToReplace != null)
-                        extraMessage = $"\nThis will replace {spellToReplace.Name}!\n";
-
-                    if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), $"Transfering {spellToAdd.Name} to {target.NameWithMaterial}.\n{(extraMessage.Length > 0 ? extraMessage : "")}\n"))
-                        player.SendUseDoneEvent(WeenieError.ConfirmationInProgress);
-                    else
-                        player.SendUseDoneEvent();
-                    return;
-                }
-
-                var actionChain = new ActionChain();
-
-                var animTime = 0.0f;
-
-                player.IsBusy = true;
-
-                if (player.CombatMode != CombatMode.NonCombat)
-                {
-                    var stanceTime = player.SetCombatMode(CombatMode.NonCombat);
-                    actionChain.AddDelaySeconds(stanceTime);
-
-                    animTime += stanceTime;
-                }
-
-                animTime += player.EnqueueMotion(actionChain, MotionCommand.ClapHands);
-
-                actionChain.AddAction(player, () =>
-                {
-                    if (!RecipeManager.VerifyUse(player, source, target, true))
-                    {
-                        // No longer valid, abort
-                        player.SendTransientError("Either you or one of the items involved does not pass the requirements for this craft interaction.");
-                        return;
-                    }
-
-                    if (isProc)
-                    {
-                        HandleExtraSpellList(target, spellToAddId, target.ProcSpell ?? 0);
-
-                        target.ProcSpellRate = 0.15f;
-                        target.ProcSpell = spellToAddId;
-                        target.ProcSpellSelfTargeted = spellToAdd.IsSelfTargeted;
-                    }
-                    else if (isGem)
-                    {
-                        HandleExtraSpellList(target, spellToAddId, target.SpellDID ?? 0);
-
-                        target.SpellDID = spellToAddId;
-                    }
-                    else
-                    {
-                        if (spellToReplace != null)
-                        {
-                            HandleExtraSpellList(target, spellToAddId, spellToReplace.Id);
-                            target.Biota.TryRemoveKnownSpell((int)spellToReplace.Id, target.BiotaDatabaseLock);
-                        }
-                        else
-                            HandleExtraSpellList(target, spellToAddId);
-                        target.Biota.GetOrAddKnownSpell((int)spellToAddId, target.BiotaDatabaseLock, out _);
-                    }
-
-                    var newMaxBaseMana = LootGenerationFactory.GetMaxBaseMana(target);
-                    var newManaRate = LootGenerationFactory.CalculateManaRate(newMaxBaseMana);
-                    var newMaxMana = (int)spellToAdd.BaseMana * 15;
-
-                    if (target.TinkerLog != null)
-                    {
-                        var tinkers = target.TinkerLog.Split(",");
-                        var appliedMoonstoneCount = tinkers.Count(s => s == "31");
-
-                        for (int i = 0; i < appliedMoonstoneCount; i++)
-                        {
-                            var currentMana = newMaxMana;
-
-                            newMaxMana = currentMana * 2;
-                            if (newMaxMana - currentMana < 500)
-                                newMaxMana = currentMana + 500;
-                        }
-                    }
-
-                    if (isGem)
-                    {
-                        target.ItemUseable = Usable.Contained;
-
-                        if (!target.MaxStructure.HasValue)
-                        {
-                            target.MaxStructure = LootGenerationFactory.RollItemMaxStructure(target);
-                            target.Structure = target.MaxStructure;
-                        }
-
-                        var baseWeenie = DatabaseManager.World.GetCachedWeenie(target.WeenieClassId);
-                        if (baseWeenie != null)
-                        {
-                            target.Name = baseWeenie.GetName(); // Reset to base name before rebuilding suffix.
-                            target.LongDesc = LootGenerationFactory.GetLongDesc(target);
-                            target.Name = target.LongDesc;
-                        }
-                    }
-                    else
-                    {
-                        if (newMaxMana > (target.ItemMaxMana ?? 0))
-                        {
-                            target.ItemMaxMana = newMaxMana;
-                            target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
-                            target.ManaRate = newManaRate;
-                        }
-
-                        target.LongDesc = LootGenerationFactory.GetLongDesc(target);
-                    }
-
-                    if (spellToReplace == null || (isProc && target.ProcSpell == null))
-                        target.ExtraSpellsCount = (target.ExtraSpellsCount ?? 0) + 1;
-
-                    var newRollDiff = LootGenerationFactory.RollEnchantmentDifficulty(enchantments);
-                    newRollDiff += LootGenerationFactory.RollCantripDifficulty(cantrips);
-                    UpdateArcaneLoreAndSpellCraft(target, newRollDiff);
-
-                    if (!target.UiEffects.HasValue) // Elemental effects take precendence over magical as it is more important to know the element of a weapon than if it has spells.
-                        target.UiEffects = ACE.Entity.Enum.UiEffects.Magical;
-
-                    player.EnqueueBroadcast(new GameMessageUpdateObject(target));
-
-                    player.TryConsumeFromInventoryWithNetworking(source); // Consume the scroll.
-                    BroadcastSpellTransfer(player, spellToAdd.Name, target);
-                });
-
-                player.EnqueueMotion(actionChain, MotionCommand.Ready);
-
-                actionChain.AddAction(player, () =>
-                {
-                    player.IsBusy = false;
-                });
-
-                actionChain.EnqueueChain();
-
-                player.NextUseTime = DateTime.UtcNow.AddSeconds(animTime);
             }
             else // Extraction Scroll
             {
@@ -394,53 +187,15 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
                 int spellCount = 0;
-                var allSpells = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+                var allSpells = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock).Select(i => (SpellId)i).ToList();
                 if (target.ProcSpell != null && target.ProcSpell != 0)
-                    allSpells.Add((int)target.ProcSpell);
+                    allSpells.Add((SpellId)target.ProcSpell);
                 else if (target.ItemType == ItemType.Gem)
-                    allSpells.Add((int)target.SpellDID);
+                    allSpells.Add((SpellId)target.SpellDID);
 
-                if (target.TinkerLog != null)
-                {
-                    var tinkers = target.TinkerLog.Split(",");
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Carnelian).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPSTRENGTH1);
+                RemoveTinkerSpellsFromList(target.TinkerLog, allSpells);
 
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Bloodstone).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPENDURANCE1);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.SmokeyQuartz).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPCOORDINATION1);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.RoseQuartz).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPQUICKNESS1);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Agate).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPFOCUS1);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.LapisLazuli).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPWILLPOWER1);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.RedJade).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPHEALTHGAIN1);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Citrine).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPSTAMINAGAIN1);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.LavenderJade).ToString()))
-                        allSpells.Remove((int)SpellId.CANTRIPMANAGAIN1);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Hematite).ToString()))
-                        allSpells.Remove((int)SpellId.WarriorsVitality);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Malachite).ToString()))
-                        allSpells.Remove((int)SpellId.WarriorsVigor);
-
-                    if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Azurite).ToString()))
-                        allSpells.Remove((int)SpellId.WizardsIntellect);
-                }
-
-                var spells = new List<int>();
+                var spells = new List<SpellId>();
                 if (source.Level.HasValue)
                 {
                     foreach (var spellId in allSpells)
@@ -548,188 +303,286 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        private static void UpdateArcaneLoreAndSpellCraft(WorldObject wo, float newRollDiff)
+        public static void RemoveTinkerSpellsFromList(string tinkerLog, List<SpellId> spellIdList)
         {
-            if (wo.BaseItemDifficultyOverride == null)
-            {
-                var newSpellcraft = LootGenerationFactory.RollSpellcraft(wo);
+            if (tinkerLog == null)
+                return;
 
-                if (newSpellcraft < wo.ItemSpellcraft)
-                    newSpellcraft = wo.ItemSpellcraft ?? 1; // Avoid lowering spellcraft.
+            var tinkers = tinkerLog.Split(",");
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Carnelian).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPSTRENGTH1);
 
-                var itemSkillLevelFactor = 0.0f;
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Bloodstone).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPENDURANCE1);
 
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                {
-                    if (wo.ItemSkillLevelLimit > 0)
-                        itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 10.0f;
-                }
-                else
-                {
-                    if (wo.ItemSkillLevelLimit > 0)
-                        itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 2.0f;
-                }
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.SmokeyQuartz).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPCOORDINATION1);
 
-                var fArcane = newSpellcraft - itemSkillLevelFactor;
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.RoseQuartz).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPQUICKNESS1);
 
-                if (wo.ItemAllegianceRankLimit > 0)
-                    fArcane -= (float)wo.ItemAllegianceRankLimit * 10.0f;
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Agate).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPFOCUS1);
 
-                if (wo.HeritageGroup != 0)
-                    fArcane -= fArcane * 0.2f;
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.LapisLazuli).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPWILLPOWER1);
 
-                if (fArcane < 0)
-                    fArcane = 0;
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.RedJade).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPHEALTHGAIN1);
 
-                wo.ItemDifficulty = (int)Math.Floor(fArcane + newRollDiff);
-                wo.ItemSpellcraft = newSpellcraft;
-            }
-            else // BaseItemDifficultyOverride will be used for base spells, calculate extra requirements of the extra spells.
-            {
-                var newSpellcraft = LootGenerationFactory.RollSpellcraftForExtraSpells(wo);
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Citrine).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPSTAMINAGAIN1);
 
-                var itemSkillLevelFactor = 0.0f;
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.LavenderJade).ToString()))
+                spellIdList.Remove(SpellId.CANTRIPMANAGAIN1);
 
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                {
-                    if (wo.ItemSkillLevelLimit > 0)
-                        itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 10.0f;
-                }
-                else
-                {
-                    if (wo.ItemSkillLevelLimit > 0)
-                        itemSkillLevelFactor = wo.ItemSkillLevelLimit.Value / 2.0f;
-                }
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Hematite).ToString()))
+                spellIdList.Remove(SpellId.WarriorsVitality);
 
-                var fArcane = newSpellcraft - itemSkillLevelFactor;
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Malachite).ToString()))
+                spellIdList.Remove(SpellId.WarriorsVigor);
 
-                if (wo.ItemAllegianceRankLimit > 0)
-                    fArcane -= (float)wo.ItemAllegianceRankLimit * 10.0f;
-
-                if (wo.HeritageGroup != 0)
-                    fArcane -= fArcane * 0.2f;
-
-                if (fArcane < 0)
-                    fArcane = 0;
-
-                wo.ItemDifficulty = Math.Max(wo.BaseItemDifficultyOverride ?? 0, (int)Math.Floor(fArcane + newRollDiff));
-                wo.ItemSpellcraft = Math.Max(wo.BaseSpellcraftOverride ?? 0, newSpellcraft);
-            }
+            if (tinkers.Contains(((uint)ACE.Entity.Enum.MaterialType.Azurite).ToString()))
+                spellIdList.Remove(SpellId.WizardsIntellect);
         }
 
-        public static bool InjectSpell(uint spellToAddId, WorldObject target)
+        public enum InjectSpellResult
         {
-            if (target.Workmanship == null && target.ExtraSpellsMaxOverride == null)
-                return false;
+            Success,
+            RequiresConfirmation,
+            ReadyToProceed,
+            YouDoNotPassCraftingRequirements,
+            TargetCannotContainSpell,
+            TargetAlreadyContainsSpell,
+            TargetContainsStrongerSpell,
+            TargetContainsEquivalentSpell,
+            TargetCannotContainMoreSpells,
+        }
 
-            var spellToAddlevel1Id = SpellLevelProgression.GetLevel1SpellId((SpellId)spellToAddId);
-            Spell spellToAdd = new Spell(spellToAddId);
+        public struct InjectSpellData
+        {
+            public InjectSpellResult Result;
+            public WorldObject Target;
+            public Spell SpellToAdd;
+            public Spell SpellToReplace;
+            public Spell SpellOnItem;
+            public bool IsProc;
+            public bool IsGem;
+            public List<SpellId> AllSpells;
+            public List<SpellId> LifeCreatureEnchantments;
+            public List<SpellId> Cantrips;
+            public string ConfirmationMessage;
+        }
 
-            var isProc = false;
+        public static InjectSpellData InjectSpell(WorldObject target, SpellId spellToAddId, bool requireConfirmation = false, bool confirmed = false)
+        {
+            InjectSpellData data = new InjectSpellData();
+            data.Target = target;
+
+            if (data.Target.Workmanship == null && data.Target.ExtraSpellsMaxOverride == null)
+            {
+                data.Result = InjectSpellResult.YouDoNotPassCraftingRequirements;
+                return data;
+            }
+
+            var spellToAddlevel1Id = SpellLevelProgression.GetLevel1SpellId(spellToAddId);
+            data.SpellToAdd = new Spell(spellToAddId);
+
+            data.IsProc = false;
             if (spellToAddlevel1Id != SpellId.Undef && (MeleeSpells.meleeProcs.FirstOrDefault(x => x.result == spellToAddlevel1Id) != default((SpellId, float)) || MissileSpells.missileProcs.FirstOrDefault(x => x.result == spellToAddlevel1Id) != default((SpellId, float))))
             {
-                isProc = true;
+                data.IsProc = true;
 
-                if (target.ItemType != ItemType.MeleeWeapon && target.ItemType != ItemType.MissileWeapon)
-                    return false;
+                if (data.Target.ItemType != ItemType.MeleeWeapon && data.Target.ItemType != ItemType.MissileWeapon)
+                {
+                    data.Result = InjectSpellResult.TargetCannotContainSpell;
+                    return data;
+                }
             }
 
-            var isGem = false;
-            if (target.ItemType == ItemType.Gem)
+            data.IsGem = false;
+            if (data.SpellToAdd.School == MagicSchool.ItemEnchantment && data.Target.ResistMagic >= 9999)
             {
-                isGem = true;
-                if (spellToAdd.IsCantrip)
-                    return false;
-                else if (spellToAdd.School == MagicSchool.ItemEnchantment)
-                    return false;
+                data.Result = InjectSpellResult.TargetCannotContainSpell;
+                return data;
             }
-            else if (target.ItemType == ItemType.MeleeWeapon || target.ItemType == ItemType.MissileWeapon || target.ItemType == ItemType.Caster)
+            else if (data.Target.ItemType == ItemType.Gem)
             {
-                if (spellToAdd.IsImpenBaneType)
-                    return false;
+                data.IsGem = true;
+                if (data.SpellToAdd.IsCantrip || data.SpellToAdd.School == MagicSchool.ItemEnchantment)
+                {
+                    data.Result = InjectSpellResult.TargetCannotContainSpell;
+                    return data;
+                }
             }
-            else
+            else if (data.Target.ItemType == ItemType.MeleeWeapon || data.Target.ItemType == ItemType.MissileWeapon || data.Target.ItemType == ItemType.Caster)
             {
-                if (spellToAdd.IsWeaponTargetType)
-                    return false;
+                if (data.SpellToAdd.IsImpenBaneType && spellToAddlevel1Id != SpellId.Brittlemail1)
+                {
+                    data.Result = InjectSpellResult.TargetCannotContainSpell;
+                    return data;
+                }
+            }
+            else if (data.SpellToAdd.IsWeaponTargetType)
+            {
+                data.Result = InjectSpellResult.TargetCannotContainSpell;
+                return data;
             }
 
-            if (spellToAdd.School == MagicSchool.ItemEnchantment && target.ResistMagic >= 9999)
-                return false;
+            var spellsOnItem = data.Target.Biota.GetKnownSpellsIds(data.Target.BiotaDatabaseLock).Select(i => (SpellId)i).ToList();
 
-            var spellsOnItem = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock);
+            if (data.Target.SpellDID.HasValue && data.Target.SpellDID != 0)
+                spellsOnItem.Add((SpellId)data.Target.SpellDID);
 
-            if (target.ProcSpell != null && target.ProcSpell != 0)
-                spellsOnItem.Add((int)target.ProcSpell);
+            if (data.Target.ProcSpell.HasValue && data.Target.ProcSpell != 0)
+                spellsOnItem.Add((SpellId)data.Target.ProcSpell);
 
-            var enchantments = new List<SpellId>();
-            var cantrips = new List<SpellId>();
-            if (spellToAdd.IsCantrip)
-                cantrips.Add((SpellId)spellToAddId);
-            else if (spellToAdd.School == MagicSchool.CreatureEnchantment)
-                enchantments.Add((SpellId)spellToAddId);
+            data.AllSpells = new List<SpellId>();
+            data.LifeCreatureEnchantments = new List<SpellId>();
+            data.Cantrips = new List<SpellId>();
+
+            data.AllSpells.Add(spellToAddId);
+            if (!data.IsProc)
+            {
+                if (data.SpellToAdd.IsCantrip)
+                    data.Cantrips.Add(spellToAddId);
+                else if (data.SpellToAdd.School == MagicSchool.CreatureEnchantment || data.SpellToAdd.School == MagicSchool.LifeMagic)
+                    data.LifeCreatureEnchantments.Add(spellToAddId);
+            }
+
+            var extraSpells = data.Target.ExtraSpellsList != null ? data.Target.ExtraSpellsList.Split(",").ToList() : new List<string>();
 
             Spell spellToReplace = null;
             foreach (var spellOnItemId in spellsOnItem)
             {
-                Spell spellOnItem = new Spell(spellOnItemId);
-                if (spellOnItem.IsCantrip)
-                    cantrips.Add((SpellId)spellOnItemId);
-                else if (spellOnItem.School == MagicSchool.CreatureEnchantment)
-                    enchantments.Add((SpellId)spellOnItemId);
+                data.SpellOnItem = new Spell(spellOnItemId);
+
+                // For items that have a base difficulty override we will only calculate new arcane lore requirements based on the extra spells so filter them here.
+                if (!data.Target.BaseItemDifficultyOverride.HasValue || extraSpells.Contains(spellOnItemId.ToString()))
+                {
+                    data.AllSpells.Add(spellOnItemId);
+                    if ((!data.Target.SpellDID.HasValue || data.Target.SpellDID != (uint)spellOnItemId) && (!data.Target.ProcSpell.HasValue || data.Target.ProcSpell != (uint)spellOnItemId))
+                    {
+                        if (data.SpellOnItem.IsCantrip)
+                            data.Cantrips.Add(spellOnItemId);
+                        else if (data.SpellOnItem.School == MagicSchool.CreatureEnchantment || data.SpellOnItem.School == MagicSchool.LifeMagic)
+                            data.LifeCreatureEnchantments.Add(spellOnItemId);
+                    }
+                }
 
                 if (spellOnItemId == spellToAddId)
-                    return false;
-                else if (spellOnItem.Category == spellToAdd.Category)
                 {
-                    if (spellOnItem.Power > spellToAdd.Power)
-                        return false;
-                    else if (spellOnItem.Power == spellToAdd.Power)
-                        return false;
+                    data.Result = InjectSpellResult.TargetAlreadyContainsSpell;
+                    return data;
+                }
+                else if (data.SpellOnItem.Category == data.SpellToAdd.Category)
+                {
+                    if (data.SpellOnItem.Power > data.SpellToAdd.Power)
+                    {
+                        data.Result = InjectSpellResult.TargetContainsStrongerSpell;
+                        return data;
+                    }
+                    else if (data.SpellOnItem.Power == data.SpellToAdd.Power)
+                    {
+                        data.Result = InjectSpellResult.TargetContainsEquivalentSpell;
+                        return data;
+                    }
                     else
-                        spellToReplace = spellOnItem;
+                        spellToReplace = data.SpellOnItem;
                 }
             }
 
-            if (!isGem && target.ProcSpell == null && spellToReplace == null)
+            if (spellToReplace != null)
             {
-                if ((target.ExtraSpellsCount ?? 0) >= target.GetMaxExtraSpellsCount())
-                    return false;
+                data.AllSpells.Remove((SpellId)spellToReplace.Id);
+                data.LifeCreatureEnchantments.Remove((SpellId)spellToReplace.Id);
+                data.Cantrips.Remove((SpellId)spellToReplace.Id);
             }
 
-            if (isProc)
-            {
-                HandleExtraSpellList(target, spellToAddId, target.ProcSpell ?? 0);
+            RemoveTinkerSpellsFromList(data.Target.TinkerLog, data.AllSpells);
+            RemoveTinkerSpellsFromList(data.Target.TinkerLog, data.LifeCreatureEnchantments);
+            RemoveTinkerSpellsFromList(data.Target.TinkerLog, data.Cantrips);
 
-                target.ProcSpellRate = 0.15f;
-                target.ProcSpell = spellToAddId;
-                target.ProcSpellSelfTargeted = spellToAdd.IsSelfTargeted;
+            if (!data.IsGem && data.Target.ProcSpell == null && spellToReplace == null)
+            {
+                if ((data.Target.ExtraSpellsCount ?? 0) >= data.Target.GetMaxExtraSpellsCount())
+                {
+                    data.Result = InjectSpellResult.TargetCannotContainMoreSpells;
+                    return data;
+                }
             }
-            else if (isGem)
-            {
-                HandleExtraSpellList(target, spellToAddId, target.SpellDID ?? 0);
 
-                target.SpellDID = spellToAddId;
+            if (requireConfirmation)
+            {
+                if (!confirmed)
+                {
+                    var extraMessage = "";
+                    if (data.IsProc && data.Target.ProcSpell != null)
+                    {
+                        var currentProc = new Spell(data.Target.ProcSpell ?? 0);
+                        extraMessage = $"\nThis will replace {currentProc.Name}!\n";
+                    }
+                    else if (data.IsGem && data.Target.SpellDID != null)
+                    {
+                        var currentGemSpell = new Spell(data.Target.SpellDID ?? 0);
+                        extraMessage = $"\nThis will replace {currentGemSpell.Name}!\n";
+                    }
+                    else if (spellToReplace != null)
+                        extraMessage = $"\nThis will replace {spellToReplace.Name}!\n";
+
+                    LootGenerationFactory.CalculateSpellcraft(data.Target, data.AllSpells, false, out var minSpellcraft, out var maxSpellcraft, out var rolledSpellCraft);
+                    LootGenerationFactory.CalculateArcaneLore(data.Target, data.AllSpells, data.LifeCreatureEnchantments, data.Cantrips, minSpellcraft, maxSpellcraft, rolledSpellCraft, false, out var minArcane, out var maxArcane, out _);
+                    var estimateMessage = minArcane != maxArcane ? $"The new Arcane Lore requirement will be between {minArcane} and {maxArcane}." : $"The new Arcane Lore requirement will be {minArcane}.";
+
+                    data.ConfirmationMessage = $"Transferring {data.SpellToAdd.Name} to {data.Target.NameWithMaterial}.\n{(extraMessage.Length > 0 ? extraMessage : "")}\n{estimateMessage}\n\n";
+                    data.Result = InjectSpellResult.RequiresConfirmation;
+                    return data;
+                }
+                else
+                {
+                    data.Result = InjectSpellResult.ReadyToProceed;
+                    return data;
+                }
+            }
+            else
+                return ContinueInjectSpell(data);
+        }
+
+        private static InjectSpellData ContinueInjectSpell(InjectSpellData data)
+        {
+            if (data.IsProc)
+            {
+                HandleExtraSpellList(data.Target, (SpellId)data.SpellToAdd.Id, (SpellId)(data.Target.ProcSpell ?? 0));
+
+                data.Target.ProcSpellRate = 0.15f;
+                data.Target.ProcSpell = data.SpellToAdd.Id;
+                data.Target.ProcSpellSelfTargeted = data.SpellToAdd.IsSelfTargeted;
+            }
+            else if (data.IsGem)
+            {
+                HandleExtraSpellList(data.Target, (SpellId)data.SpellToAdd.Id, (SpellId)(data.Target.SpellDID ?? 0));
+
+                data.Target.SpellDID = data.SpellToAdd.Id;
             }
             else
             {
-                if (spellToReplace != null)
+                if (data.SpellToReplace != null)
                 {
-                    HandleExtraSpellList(target, spellToAddId, spellToReplace.Id);
-                    target.Biota.TryRemoveKnownSpell((int)spellToReplace.Id, target.BiotaDatabaseLock);
+                    HandleExtraSpellList(data.Target, (SpellId)data.SpellToAdd.Id, (SpellId)data.SpellToReplace.Id);
+                    data.Target.Biota.TryRemoveKnownSpell((int)data.SpellToReplace.Id, data.Target.BiotaDatabaseLock);
                 }
                 else
-                    HandleExtraSpellList(target, spellToAddId);
-                target.Biota.GetOrAddKnownSpell((int)spellToAddId, target.BiotaDatabaseLock, out _);
+                    HandleExtraSpellList(data.Target, (SpellId)data.SpellToAdd.Id);
+                data.Target.Biota.GetOrAddKnownSpell((int)data.SpellToAdd.Id, data.Target.BiotaDatabaseLock, out _);
             }
 
-            var newMaxBaseMana = LootGenerationFactory.GetMaxBaseMana(target);
+            var newMaxBaseMana = LootGenerationFactory.GetMaxBaseMana(data.Target);
             var newManaRate = LootGenerationFactory.CalculateManaRate(newMaxBaseMana);
-            var newMaxMana = (int)spellToAdd.BaseMana * 15;
+            var newMaxMana = (int)data.SpellToAdd.BaseMana * 15;
 
-            if (target.TinkerLog != null)
+            if (data.Target.TinkerLog != null)
             {
-                var tinkers = target.TinkerLog.Split(",");
+                var tinkers = data.Target.TinkerLog.Split(",");
                 var appliedMoonstoneCount = tinkers.Count(s => s == "31");
 
                 for (int i = 0; i < appliedMoonstoneCount; i++)
@@ -742,50 +595,51 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (isGem)
+            if (data.IsGem)
             {
-                target.ItemUseable = Usable.Contained;
+                data.Target.ItemUseable = Usable.Contained;
 
-                if (!target.MaxStructure.HasValue)
+                if (!data.Target.MaxStructure.HasValue)
                 {
-                    target.MaxStructure = LootGenerationFactory.RollItemMaxStructure(target);
-                    target.Structure = target.MaxStructure;
+                    data.Target.MaxStructure = LootGenerationFactory.RollItemMaxStructure(data.Target);
+                    data.Target.Structure = data.Target.MaxStructure;
                 }
 
-                var baseWeenie = DatabaseManager.World.GetCachedWeenie(target.WeenieClassId);
+                data.Target.Structure = data.Target.MaxStructure;
+                var baseWeenie = DatabaseManager.World.GetCachedWeenie(data.Target.WeenieClassId);
                 if (baseWeenie != null)
                 {
-                    target.Name = baseWeenie.GetName(); // Reset to base name before rebuilding suffix.
-                    target.LongDesc = LootGenerationFactory.GetLongDesc(target);
-                    target.Name = target.LongDesc;
+                    data.Target.Name = baseWeenie.GetName(); // Reset to base name before rebuilding suffix.
+                    data.Target.LongDesc = LootGenerationFactory.GetLongDesc(data.Target);
+                    data.Target.Name = data.Target.LongDesc;
                 }
             }
             else
             {
-                if (newMaxMana > (target.ItemMaxMana ?? 0))
+                if (newMaxMana > (data.Target.ItemMaxMana ?? 0))
                 {
-                    target.ItemMaxMana = newMaxMana;
-                    target.ItemCurMana = Math.Clamp(target.ItemCurMana ?? 0, 0, target.ItemMaxMana ?? 0);
-                    target.ManaRate = newManaRate;
+                    data.Target.ItemMaxMana = newMaxMana;
+                    data.Target.ItemCurMana = Math.Clamp(data.Target.ItemCurMana ?? 0, 0, data.Target.ItemMaxMana ?? 0);
+                    data.Target.ManaRate = newManaRate;
                 }
 
-                target.LongDesc = LootGenerationFactory.GetLongDesc(target);
+                data.Target.LongDesc = LootGenerationFactory.GetLongDesc(data.Target);
             }
 
-            if (spellToReplace == null || (isProc && target.ProcSpell == null))
-                target.ExtraSpellsCount = (target.ExtraSpellsCount ?? 0) + 1;
+            if (data.SpellToReplace == null || (data.IsProc && data.Target.ProcSpell == null))
+                data.Target.ExtraSpellsCount = (data.Target.ExtraSpellsCount ?? 0) + 1;
 
-            var newRollDiff = LootGenerationFactory.RollEnchantmentDifficulty(enchantments);
-            newRollDiff += LootGenerationFactory.RollCantripDifficulty(cantrips);
-            UpdateArcaneLoreAndSpellCraft(target, newRollDiff);
+            LootGenerationFactory.CalculateSpellcraft(data.Target, data.AllSpells, true, out var minSpellcraft, out var maxSpellcraft, out var rolledSpellCraft);
+            LootGenerationFactory.CalculateArcaneLore(data.Target, data.AllSpells, data.LifeCreatureEnchantments, data.Cantrips, minSpellcraft, maxSpellcraft, rolledSpellCraft, true, out _, out _, out _);
 
-            if (!target.UiEffects.HasValue) // Elemental effects take precendence over magical as it is more important to know the element of a weapon than if it has spells.
-                target.UiEffects = ACE.Entity.Enum.UiEffects.Magical;
+            if (!data.Target.UiEffects.HasValue) // Elemental effects take precendence over magical as it is more important to know the element of a weapon than if it has spells.
+                data.Target.UiEffects = ACE.Entity.Enum.UiEffects.Magical;
 
-            return true;
+            data.Result = InjectSpellResult.Success;
+            return data;
         }
 
-        private static void HandleExtraSpellList(WorldObject target, uint newSpellId, uint replacementForSpellId = 0)
+        private static void HandleExtraSpellList(WorldObject target, SpellId newSpellId, SpellId replacementForSpellId = 0)
         {
             var spellList = new List<uint>();
 
@@ -805,8 +659,8 @@ namespace ACE.Server.WorldObjects
             }
 
             if (replacementForSpellId != 0)
-                spellList.Remove(replacementForSpellId);
-            spellList.Add(newSpellId);
+                spellList.Remove((uint)replacementForSpellId);
+            spellList.Add((uint)newSpellId);
 
             if (spellList.Count > 0)
                 target.ExtraSpellsList = string.Join(",", spellList);

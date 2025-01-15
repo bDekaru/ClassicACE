@@ -18,6 +18,15 @@ namespace ACE.Server.Factories.Enum
         UnarmedCombat
     };
 
+    public enum MissileWeaponSkill
+    {
+        Undef,
+        MissileWeapons,
+        Bow,
+        Crossbow,
+        ThrownWeapon
+    };
+
     public static class MeleeWeaponSkillExtensions
     {
         public static MeleeWeaponSkill ToMeleeWeaponSkill(this Skill skill)

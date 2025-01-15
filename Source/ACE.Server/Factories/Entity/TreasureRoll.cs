@@ -1,5 +1,7 @@
+using ACE.Entity.Enum;
 using ACE.Server.Factories.Enum;
 using ACE.Server.WorldObjects;
+using System.Collections.Generic;
 
 namespace ACE.Server.Factories.Entity
 {
@@ -10,14 +12,22 @@ namespace ACE.Server.Factories.Entity
         public TreasureWeaponType WeaponType;
         public TreasureHeritageGroup Heritage;
 
-        public WeenieClassName Wcid;
+        public Enum.WeenieClassName Wcid;
 
         public int BaseArmorLevel;
 
-        /// <summary>
-        /// A cumulative addon to the ItemDifficulty / Arcane Lore requirement
-        /// </summary>
-        public float ItemDifficulty;
+        public int MinSpellcraft;
+        public int MaxSpellcraft;
+        public int RolledSpellCraft;
+
+        public int MinArcaneLore;
+        public int MaxArcaneLore;
+        public int RolledArcaneLore;
+
+        public List<SpellId> AllSpells;
+        public List<SpellId> ItemEnchantments;
+        public List<SpellId> LifeCreatureEnchantments;
+        public List<SpellId> Cantrips;
 
         public TreasureRoll() { }
 

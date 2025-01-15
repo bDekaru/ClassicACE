@@ -2394,7 +2394,7 @@ namespace ACE.Server.Command.Handlers
                 }
             }
 
-            var wo = LootGenerationFactory.CreateRandomLootObjects_New(tier, 0.0f, TreasureItemCategory.MagicItem, treasureType, armorType, weaponType);
+            var wo = LootGenerationFactory.CreateRandomLootObjects(tier, 0.0f, TreasureItemCategory.MagicItem, treasureType, armorType, weaponType);
             if (wo != null)
                 session.Player.TryCreateInInventoryWithNetworking(wo);
             else
@@ -2423,7 +2423,7 @@ namespace ACE.Server.Command.Handlers
             for (var i = 0; i < numItems; i++)
             {
                 //var wo = LootGenerationFactory.CreateRandomLootObjects(profile, true);
-                var wo = LootGenerationFactory.CreateRandomLootObjects_New(profile, TreasureItemCategory.MagicItem);
+                var wo = LootGenerationFactory.CreateRandomLootObjects(profile, TreasureItemCategory.MagicItem);
                 if (wo != null)
                     session.Player.TryCreateInInventoryWithNetworking(wo);
                 else
