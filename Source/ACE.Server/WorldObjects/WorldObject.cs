@@ -1331,7 +1331,7 @@ namespace ACE.Server.WorldObjects
 
         public int GetMaxTinkerCount()
         {
-            if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Armor | ItemType.Jewelry)) != 0)
+            if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0)
                 return (int)Math.Floor((ItemWorkmanship ?? 0) / 3.1f) + 1;
             else
                 return 0;
