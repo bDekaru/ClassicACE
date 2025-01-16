@@ -13,16 +13,19 @@ namespace ACE.Server.Factories.Tables.Wcids
             ( WeenieClassName.materialsilk,             1.00f ), // Remove Allegiance Requirement
             ( WeenieClassName.materialivory,            1.00f ), // Remove Attuned Status
             ( WeenieClassName.materialsandstone,        1.00f ), // Remove Retained Status
-            ( WeenieClassName.materialsilver,           1.00f ), // Switch Melee to Missile
-            ( WeenieClassName.materialcopper,           1.00f ), // Switch Missile to Melee
             ( WeenieClassName.materialteak,             1.00f ), // Switch to Aluvian
             ( WeenieClassName.materialebony,            1.00f ), // Switch to Gharundim
             ( WeenieClassName.materialporcelain,        1.00f ), // Switch to Sho
+
+            ( WeenieClassName.materialsilver,           1.00f ), // Arcane Lore - 10 Mana Rate * 200%
+            ( WeenieClassName.materialcopper,           1.00f ), // Arcane Lore - 5
 
             ( WeenieClassName.materialgold,             1.00f ), // Value + 100% or 5000
             ( WeenieClassName.materialpine,             1.00f ), // Value - 50%
             ( WeenieClassName.materiallinen,            1.00f ), // Burden - 50%
             ( WeenieClassName.materialmoonstone,        1.00f ), // Max Mana + 100% or 500
+            ( WeenieClassName.materialpyreal,           1.00f ), // Mana Rate * 50%
+            ( WeenieClassName.materialamber,            1.00f ), // Extra Spell Slots + 1 for regular items and + 2 for robes
 
             ( WeenieClassName.materialsteel,            1.00f ), // AL + 25% or 20
             ( WeenieClassName.materialalabaster,        1.00f ), // Armor Piercing Resist + 0.5
@@ -33,9 +36,9 @@ namespace ACE.Server.Factories.Tables.Wcids
             ( WeenieClassName.materialreedsharkhide,    1.00f ), // Armor Lightning Resist + 1.0
             ( WeenieClassName.materialarmoredillohide,  1.00f ), // Armor Acid Resist + 1.0
             ( WeenieClassName.materialsatin,            1.00f ), // Armor Max Evasion Penalty - 50%
-            ( WeenieClassName.materialonyx,             1.00f ), // Shield Block Chance + 5%
+            ( WeenieClassName.materialdiamond,          1.00f ), // Shield Block Chance + 5%
 
-            ( WeenieClassName.materialiron,             1.00f ), // Weapon Damage + 4 for regular weapons and +2 for multi-strike weapons
+            ( WeenieClassName.materialiron,             1.00f ), // Weapon Damage + 4 for regular weapons and + 2 for multi-strike weapons
             ( WeenieClassName.materialmahogany,         1.00f ), // Missile Weapon Mod + 16%
             ( WeenieClassName.materialgreengarnet,      1.00f ), // Caster Damage + 4%
 
@@ -76,12 +79,10 @@ namespace ACE.Server.Factories.Tables.Wcids
             ( WeenieClassName.materialjet,              1.00f ), // Lightning Element
             ( WeenieClassName.materialemerald,          1.00f ), // Acid Element
 
-            //( WeenieClassName.materialdiamond,          1.00f ), // Armature
-            //( WeenieClassName.materialamber,            1.00f ), // Armature
-            //( WeenieClassName.materialgromniehide,      1.00f ), // Armature
-            //( WeenieClassName.materialpyreal,           1.00f ), // Armature
-            //( WeenieClassName.materialruby,             1.00f ), // Armature
-            //( WeenieClassName.materialsapphire,         1.00f ), // Armature
+            //( WeenieClassName.materialonyx,             1.00f ), // Unused            
+            //( WeenieClassName.materialgromniehide,      1.00f ), // Unused
+            //( WeenieClassName.materialruby,             1.00f ), // Unused
+            //( WeenieClassName.materialsapphire,         1.00f ), // Unused
             //( WeenieClassName.materialgreenjade,        1.00f ), // Unused
             //( WeenieClassName.materialtourmaline,       1.00f ), // Unused
             //( WeenieClassName.materialturquoise,        1.00f ), // Unused
@@ -104,16 +105,19 @@ namespace ACE.Server.Factories.Tables.Wcids
             { WeenieClassName.materialsilk,             0.50f }, // Remove Allegiance Requirement
             { WeenieClassName.materialivory,            0.50f }, // Remove Attuned Status
             { WeenieClassName.materialsandstone,        0.50f }, // Remove Retained Status
-            { WeenieClassName.materialsilver,           0.50f }, // Switch Melee to Missile
-            { WeenieClassName.materialcopper,           0.50f }, // Switch Missile to Melee
             { WeenieClassName.materialteak,             0.50f }, // Switch to Aluvian
             { WeenieClassName.materialebony,            0.50f }, // Switch to Gharundim
             { WeenieClassName.materialporcelain,        0.50f }, // Switch to Sho
+
+            { WeenieClassName.materialsilver,           1.00f }, // Arcane Lore - 10 Mana Rate * 200%
+            { WeenieClassName.materialcopper,           1.00f }, // Arcane Lore - 5
 
             { WeenieClassName.materialgold,             1.00f }, // Value + 100% or 5000
             { WeenieClassName.materialpine,             1.00f }, // Value - 50%
             { WeenieClassName.materiallinen,            1.00f }, // Burden - 50%
             { WeenieClassName.materialmoonstone,        1.00f }, // Max Mana + 100% or 500
+            { WeenieClassName.materialpyreal,           1.00f }, // Mana Rate * 50%
+            { WeenieClassName.materialamber,            1.00f }, // Extra Spell Slots + 1 for regular items and + 2 for robes
 
             { WeenieClassName.materialsteel,            2.00f }, // AL + 25% or 20
             { WeenieClassName.materialalabaster,        1.25f }, // Armor Piercing Resist + 0.5
@@ -124,9 +128,9 @@ namespace ACE.Server.Factories.Tables.Wcids
             { WeenieClassName.materialreedsharkhide,    1.25f }, // Armor Lightning Resist + 1.0
             { WeenieClassName.materialarmoredillohide,  1.25f }, // Armor Acid Resist + 1.0
             { WeenieClassName.materialsatin,            1.50f }, // Armor Max Evasion Penalty - 50%
-            { WeenieClassName.materialonyx,             1.50f }, // Shield Block Chance + 5%
+            { WeenieClassName.materialdiamond,          1.50f }, // Shield Block Chance + 5%
 
-            { WeenieClassName.materialiron,             2.00f }, // Weapon Damage + 4 for regular weapons and +2 for multi-strike weapons
+            { WeenieClassName.materialiron,             2.00f }, // Weapon Damage + 4 for regular weapons and + 2 for multi-strike weapons
             { WeenieClassName.materialmahogany,         2.00f }, // Missile Weapon Mod + 16%
             { WeenieClassName.materialgreengarnet,      2.00f }, // Wand Damage + 4%
 
@@ -167,12 +171,10 @@ namespace ACE.Server.Factories.Tables.Wcids
             { WeenieClassName.materialfireopal,         3.00f }, // Critical Blow
             { WeenieClassName.materialtigereye,         3.00f }, // Elemental Rending
 
-            //{ WeenieClassName.materialdiamond,          1.00f }, // Armature
-            //{ WeenieClassName.materialamber,            1.00f }, // Armature
-            //{ WeenieClassName.materialgromniehide,      1.00f }, // Armature
-            //{ WeenieClassName.materialpyreal,           1.00f }, // Armature
-            //{ WeenieClassName.materialruby,             1.00f }, // Armature
-            //{ WeenieClassName.materialsapphire,         1.00f }, // Armature            
+            //{ WeenieClassName.materialonyx              1.00f }, // Unused
+            //{ WeenieClassName.materialgromniehide,      1.00f }, // Unused            
+            //{ WeenieClassName.materialruby,             1.00f }, // Unused
+            //{ WeenieClassName.materialsapphire,         1.00f }, // Unused            
             //{ WeenieClassName.materialgreenjade,        1.00f }, // Unused
             //{ WeenieClassName.materialtourmaline,       1.00f }, // Unused
             //{ WeenieClassName.materialturquoise,        1.00f }, // Unused

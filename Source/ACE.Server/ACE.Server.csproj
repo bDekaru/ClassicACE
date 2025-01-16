@@ -220,7 +220,7 @@
     <None Remove="Entity\Mutations\Recipes\3800004B - Green Garnet.txt" />
     <None Remove="Entity\Mutations\Recipes\3800004B - Green Garnet - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\3800004E - Sandstone.txt" />
-    <None Remove="Entity\Mutations\Recipes\38000100 - Onyx - CustomDM.txt" />
+    <None Remove="Entity\Mutations\Recipes\38000100 - Diamond - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\38000102 - Tiger Eye - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\39000000 - Paragon Weapons.txt" />
     <None Remove="Entity\Mutations\Recipes\39000001 - Lucky White Rabbit%27s Foot.txt" />
@@ -412,11 +412,11 @@
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000042 - HeritageGroup.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000043 - Leather.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000046 - Fetish of the Dark Idols.txt" />
-    <EmbeddedResource Include="Entity\Mutations\Recipes\38000102 - Tiger Eye - CustomDM.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\3800004B - Green Garnet - CustomDM.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\3800004B - Green Garnet.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\3800004E - Sandstone.txt" />
-    <EmbeddedResource Include="Entity\Mutations\Recipes\38000100 - Onyx - CustomDM.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Recipes\38000100 - Diamond - CustomDM.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Recipes\38000102 - Tiger Eye - CustomDM.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\39000000 - Paragon Weapons.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\39000001 - Lucky White Rabbit's Foot.txt" />
   </ItemGroup>

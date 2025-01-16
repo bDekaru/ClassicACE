@@ -1732,6 +1732,7 @@ namespace ACE.Server.Managers
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         skipMutateScript = true;
+
                         var currentAL = target.ArmorLevel ?? 0;
                         var newAL = (int)Math.Floor(currentAL * 1.25f);
                         if (newAL - currentAL < 20)
@@ -1746,6 +1747,7 @@ namespace ACE.Server.Managers
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         skipMutateScript = true;
+
                         var currentDmgPerSwing = target.Damage ?? 0;
 
                         var numStrikes = target.GetWeaponMaxStrikes();
@@ -1763,6 +1765,7 @@ namespace ACE.Server.Managers
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         skipMutateScript = true;
+
                         var currentValue = target.Value ?? 0;
                         var newValue = currentValue * 2;
                         if (newValue - currentValue < 5000)
@@ -1778,6 +1781,7 @@ namespace ACE.Server.Managers
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         skipMutateScript = true;
+
                         var currentMana = target.ItemMaxMana ?? 0;
                         var newMana = currentMana * 2;
                         if (newMana - currentMana < 500)
@@ -1826,6 +1830,7 @@ namespace ACE.Server.Managers
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         skipMutateScript = true;
+
                         target.MeleeDefenseCap *= 0.5f;
                         target.MissileDefenseCap *= 0.5f;
 
@@ -1841,6 +1846,62 @@ namespace ACE.Server.Managers
                             target.W_DamageType = DamageType.Elemental;
                             target.ElementalDamageMod = 1.0;
                         }
+                    }
+                    break;
+
+                case 0x38000034:    // Silver
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+
+                        if (target.ItemDifficulty.HasValue)
+                            target.ItemDifficulty = Math.Max(target.ItemDifficulty.Value - 10, 0);
+                        target.ManaRate *= 2.0f;
+
+                        target.NumTimesTinkered++;
+                        result = true;
+                    }
+                    break;
+
+                case 0x38000035:    // Copper
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+
+                        if(target.ItemDifficulty.HasValue)
+                            target.ItemDifficulty = Math.Max(target.ItemDifficulty.Value - 5, 0);
+
+                        target.NumTimesTinkered++;
+                        result = true;
+                    }
+                    break;
+
+                case 0x38000103:    // Pyreal
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+
+                        target.ManaRate *= 0.5f;
+
+                        target.NumTimesTinkered++;
+                        result = true;
+                    }
+                    break;
+
+                case 0x38000104:    // Amber
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        skipMutateScript = true;
+
+                        var slotCount = target.GetMaxExtraSpellsCount();
+
+                        if (!target.IsRobe)
+                            target.ExtraSpellsMaxOverride = slotCount + 1;
+                        else
+                            target.ExtraSpellsMaxOverride = slotCount + 2;
+
+                        target.NumTimesTinkered++;
+                        result = true;
                     }
                     break;
             }

@@ -1,8 +1,0 @@
-0x38000100 Mutation #1:
-
-Tier chances: 1
-
-    - Chance: 100%:
-        BlockMod += 0.05
-        NumTimesTinkered (>= 1 ? add : set) 1
-
