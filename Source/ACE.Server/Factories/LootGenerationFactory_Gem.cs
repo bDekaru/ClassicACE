@@ -5,7 +5,7 @@ using ACE.Server.Entity;
 using ACE.Server.Factories.Entity;
 using ACE.Server.Factories.Tables;
 using ACE.Server.WorldObjects;
-using System;
+using System.Collections.Generic;
 
 namespace ACE.Server.Factories
 {
@@ -73,9 +73,6 @@ namespace ACE.Server.Factories
 
             var _spell = new Server.Entity.Spell(finalSpellId);
 
-            // retail spellcraft was capped at 370
-            wo.ItemSpellcraft = Math.Min(GetSpellPower(_spell), 370);
-
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 var castableMana = (int)_spell.BaseMana * 5;
@@ -90,9 +87,16 @@ namespace ACE.Server.Factories
             {
                 wo.MaxStructure = RollItemMaxStructure(wo);
                 wo.Structure = wo.MaxStructure;
-
-                AddActivationRequirements(wo, profile, roll);
             }
+
+            roll.AllSpells = new List<SpellId>();
+            roll.AllSpells.Add(finalSpellId);
+
+            roll.LifeCreatureEnchantments = new List<SpellId>();
+            roll.LifeCreatureEnchantments.Add(finalSpellId);
+
+            CalculateSpellcraft(wo, roll.AllSpells, true, out roll.MinSpellcraft, out roll.MaxSpellcraft, out roll.RolledSpellCraft);
+            AddActivationRequirements(wo, profile, roll);
 
             return true;
         }

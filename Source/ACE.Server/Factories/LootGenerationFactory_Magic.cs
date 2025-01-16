@@ -82,7 +82,6 @@ namespace ACE.Server.Factories
                 wo.ItemCurMana = wo.ItemMaxMana;
 
                 CalculateSpellcraft(wo, roll.AllSpells, true, out roll.MinSpellcraft, out roll.MaxSpellcraft, out roll.RolledSpellCraft);
-
                 AddActivationRequirements(wo, profile, roll);
             }
         }
