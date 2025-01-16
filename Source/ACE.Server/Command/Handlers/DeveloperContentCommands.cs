@@ -6817,7 +6817,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             var buildingPos = building.Position.ACEPosition();
-            var buildingHeading = building.Position.Frame.get_heading();
+            var buildingRotation = buildingPos.GetYaw();
             var buildingType = building.ID;
 
             var landblock = (ushort)buildingPos.Landblock;
@@ -6834,11 +6834,12 @@ namespace ACE.Server.Command.Handlers.Processors
                     continue;
 
                 var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
-                housePos.RotateAroundPivot(buildingPos, -buildingHeading);
 
                 if (housePos.GetOutdoorCell() != outdoorCellId)
                     continue;
                 houseCounter++;
+
+                housePos.RotateAroundPivot(buildingPos, -buildingRotation);
 
                 var houseOffset = buildingPos.GetOffset(housePos);
                 housePos = new Position(housePos.LandblockId.Raw, houseOffset.X, houseOffset.Y, houseOffset.Z, housePos.RotationX, housePos.RotationY, housePos.RotationZ, housePos.RotationW, true);
@@ -6857,7 +6858,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     var weenie = DatabaseManager.World.GetWeenie(child.WeenieClassId);
 
                     var childPos = new Position(child.ObjCellId, child.OriginX, child.OriginY, child.OriginZ, child.AnglesX, child.AnglesY, child.AnglesZ, child.AnglesW);
-                    childPos.RotateAroundPivot(buildingPos, -buildingHeading);
+                    childPos.RotateAroundPivot(buildingPos, -buildingRotation);
 
                     var childOffset = buildingPos.GetOffset(childPos);
 
@@ -6993,7 +6994,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             var buildingPos = building.Position.ACEPosition();
-            var buildingHeading = building.Position.Frame.get_heading();
+            var buildingRotation = buildingPos.GetYaw();
 
             if (buildingType != building.ID)
             {
@@ -7009,7 +7010,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 else
                 {
                     var position = new Position(building.LandblockID, entry.Item4.PositionX + buildingPos.PositionX, entry.Item4.PositionY + buildingPos.PositionY, entry.Item4.PositionZ + buildingPos.PositionZ, entry.Item4.RotationX, entry.Item4.RotationY, entry.Item4.RotationZ, entry.Item4.RotationW);
-                    position.RotateAroundPivot(buildingPos, buildingHeading);
+                    position.RotateAroundPivot(buildingPos, buildingRotation);
 
                     // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
                     position.PositionZ += bumpHeight;
@@ -7027,7 +7028,7 @@ namespace ACE.Server.Command.Handlers.Processors
                         {
                             var childWeenie = DatabaseManager.World.GetWeenie(childEntry.Item1);
                             position = new Position(building.Position.ObjCellID, childEntry.Item4.PositionX + buildingPos.PositionX, childEntry.Item4.PositionY + buildingPos.PositionY, childEntry.Item4.PositionZ + buildingPos.PositionZ, childEntry.Item4.RotationX, childEntry.Item4.RotationY, childEntry.Item4.RotationZ, childEntry.Item4.RotationW);
-                            position.RotateAroundPivot(buildingPos, buildingHeading);
+                            position.RotateAroundPivot(buildingPos, buildingRotation);
 
                             // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
                             position.PositionZ += bumpHeight;

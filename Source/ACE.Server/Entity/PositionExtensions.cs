@@ -396,6 +396,140 @@ namespace ACE.Server.Entity
             return success;
         }
 
+        public static float GetLargestOffset(this Position pos, Position p)
+        {
+            var offset = pos.GetOffset(p);
+            var absOffset = new Vector3(Math.Abs(offset.X), Math.Abs(offset.Y), Math.Abs(offset.Z));
+
+            if (absOffset.X > absOffset.Y)
+            {
+                if (absOffset.X > absOffset.Z)
+                    return offset.X;
+            }
+            else
+            {
+                if (absOffset.Y > absOffset.Z)
+                    return offset.Y;
+            }
+            return offset.Z;
+        }
+
+        public static string GetCardinalDirectionsTo(this Position pos, Position p)
+        {
+            var offset = pos.GetOffset(p);
+
+            var minDist = 2;
+            var aCoupleStepsDistance = 5;
+            var aCoupleStepsThresholdDistance = 10;
+            var aFewStepsDistance = 20;
+            var aFewStepsThresholdDistance = 40;
+            var aBitDistance = 200;
+            var aBitThresholdDistance = 400;
+            var farDistance = 900;
+            var veryFarDistance = 1800;
+
+            var isNorthSouth = false;
+            var isEastWest = false;
+
+            var directionEastWestString = "";
+            if (offset.X > minDist)
+            {
+                isEastWest = true;
+                directionEastWestString += "east";
+            }
+            else if (offset.X < -minDist)
+            {
+                isEastWest = true;
+                directionEastWestString += "west";
+            }
+
+            var directionNorthSouthString = "";
+            if (offset.Y > minDist)
+            {
+                isNorthSouth = true;
+                directionNorthSouthString += "north";
+            }
+            else if (offset.Y < -minDist)
+            {
+                isNorthSouth = true;
+                directionNorthSouthString += "south";
+            }
+
+            if (directionEastWestString.Length == 0 && directionNorthSouthString.Length == 0)
+                return "";
+            else
+            {
+                var eastWestDist = Math.Abs(offset.X);
+                var northSouthDist = Math.Abs(offset.Y);
+
+                if (northSouthDist > aCoupleStepsThresholdDistance && eastWestDist < aCoupleStepsDistance)
+                    isEastWest = false;
+                else if (eastWestDist > aCoupleStepsThresholdDistance && northSouthDist < aCoupleStepsDistance)
+                    isNorthSouth = false;
+                else if (northSouthDist > aFewStepsThresholdDistance && eastWestDist < aFewStepsDistance)
+                    isEastWest = false;
+                else if (eastWestDist > aFewStepsThresholdDistance && northSouthDist < aFewStepsDistance)
+                    isNorthSouth = false;
+                else if (northSouthDist > aBitThresholdDistance && eastWestDist < aBitDistance)
+                    isEastWest = false;
+                else if (eastWestDist > aBitThresholdDistance && northSouthDist < aBitDistance)
+                    isNorthSouth = false;
+
+                string eastWestDistanceString = "";
+                if (isEastWest)
+                {
+                    if (eastWestDist < aCoupleStepsDistance)
+                        eastWestDistanceString = "a couple steps to the ";
+                    else if (eastWestDist < aFewStepsDistance)
+                        eastWestDistanceString = "a few steps to the ";
+                    else if (eastWestDist < aBitDistance)
+                        eastWestDistanceString = "a bit to the ";
+                    else if (eastWestDist < farDistance)
+                        eastWestDistanceString = "";
+                    else if (eastWestDist < veryFarDistance)
+                        eastWestDistanceString = "far to the ";
+                    else
+                        eastWestDistanceString = "very far to the ";
+                }
+
+                string northSouthDistanceString = "";
+                if (isNorthSouth)
+                {
+                    if (northSouthDist < aCoupleStepsDistance)
+                        northSouthDistanceString = "a couple steps to the ";
+                    else if (northSouthDist < aFewStepsDistance)
+                        northSouthDistanceString = "a few steps to the ";
+                    else if (northSouthDist < aBitDistance)
+                        northSouthDistanceString = "a bit to the ";
+                    else if (northSouthDist < farDistance)
+                        northSouthDistanceString = "";
+                    else if (northSouthDist < veryFarDistance)
+                        northSouthDistanceString = "far to the ";
+                    else
+                        northSouthDistanceString = "very far to the ";
+                }
+
+                string direction;
+                if (isEastWest && isNorthSouth)
+                {
+                    if (eastWestDistanceString == northSouthDistanceString)
+                        direction = $"{northSouthDistanceString}{directionNorthSouthString}{directionEastWestString}";
+                    else if (northSouthDist > eastWestDist)
+                        direction = $"{northSouthDistanceString}{directionNorthSouthString} and {eastWestDistanceString}{directionEastWestString}";
+                    else
+                        direction = $"{eastWestDistanceString}{directionEastWestString} and {northSouthDistanceString}{directionNorthSouthString}";
+                }
+                else if (isEastWest && !isNorthSouth)
+                    direction = $"{eastWestDistanceString}{directionEastWestString}";
+                else if (isNorthSouth && !isEastWest)
+                    direction = $"{northSouthDistanceString}{directionNorthSouthString}";
+                else
+                    direction = "";
+
+                return direction;
+            }
+        }
+
         public static void RotateAroundPivot(this Position pos, Position pivot, float degrees)
         {
             var radians = degrees.ToRadians();
@@ -410,6 +544,70 @@ namespace ACE.Server.Entity
             pos.PositionY = (float)y;
 
             pos.Rotate(0, 0, degrees);
+        }
+
+        public static Vector3 GetYawPitchRoll(this Position pos)
+        {
+            var q = pos.Rotation;
+
+            double Ysqr = q.Y * q.Y;
+            double t0 = -2.0 * (Ysqr + q.Z * q.Z) + 1.0;
+            double t1 = +2.0 * (q.X * q.Y + q.W * q.Z);
+            double t2 = -2.0 * (q.X * q.Z - q.W * q.Y);
+            double t3 = +2.0 * (q.Y * q.Z + q.W * q.X);
+            double t4 = -2.0 * (q.X * q.X + Ysqr) + 1.0;
+
+            t2 = t2 > 1.0 ? 1.0 : t2;
+            t2 = t2 < -1.0 ? -1.0 : t2;
+
+            var yaw = (float)Math.Round(Math.Atan2(t1, t0), 4) % 360f;
+            var pitch = (float)Math.Round(Math.Asin(t2), 4) % 360f;
+            var roll = (float)Math.Round(Math.Atan2(t3, t4), 4) % 360f;
+
+            if (yaw < 0)
+                yaw += 360f;
+            if (pitch < 0)
+                pitch += 360f;
+            if (roll < 0)
+                roll += 360f;
+
+            return new Vector3(yaw, pitch, roll);
+        }
+
+        public static float GetYaw(this Position pos)
+        {
+            var q = pos.Rotation;
+
+            var yaw = (float)Math.Round(((float)Math.Atan2(2.0 * (q.Z * q.W + q.X * q.Y), -1.0 + 2.0 * (q.W * q.W + q.X * q.X))).ToDegrees(), 4) % 360.0f;
+
+            if (yaw < 0)
+                yaw += 360f;
+
+            return yaw;
+        }
+
+        public static float GetPitch(this Position pos)
+        {
+            var q = pos.Rotation;
+
+            var pitch = (float)Math.Round(((float)Math.Asin(2.0 * (q.Y * q.W - q.Z * q.X))).ToDegrees(), 4) % 360.0f;
+
+            if (pitch < 0)
+                pitch += 360f;
+
+            return pitch;
+        }
+
+        public static float GetRoll(this Position pos)
+        {
+            var q = pos.Rotation;
+
+            var roll = (float)Math.Round(((float)Math.Atan2(2.0 * (q.Z * q.Y + q.W * q.X), 1.0 - 2.0 * (q.X * q.X + q.Y * q.Y))).ToDegrees(), 4) % 360.0f;
+
+            if (roll < 0)
+                roll += 360f;
+
+            return roll;
         }
     }
 }

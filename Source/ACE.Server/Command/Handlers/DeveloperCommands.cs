@@ -4224,7 +4224,7 @@ namespace ACE.Server.Command.Handlers
                 {
                     if (building.CurCell.ID == outdoorCellId)
                     {
-                        CommandHandlerHelper.WriteOutputInfo(session, $"Building: 0x{building.ID:X8}");
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Building: 0x{building.ID:X8} Rotation: {building.Position.ACEPosition().GetYaw()}°");
                         break;
                     }
                 }
