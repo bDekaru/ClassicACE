@@ -426,6 +426,27 @@ namespace ACE.Server.Factories
                 fArcaneRolled -= fArcaneRolled * 0.2f;
             }
 
+            if (wo.TinkerLog != null)
+            {
+                var tinkers = wo.TinkerLog.Split(",");
+
+                var appliedCopperCount = tinkers.Count(s => s == "59");
+                for (int i = 0; i < appliedCopperCount; i++)
+                {
+                    fArcaneMin -= 5;
+                    fArcaneMax -= 5;
+                    fArcaneRolled -= 5;
+                }
+
+                var appliedSilverCount = tinkers.Count(s => s == "63");
+                for (int i = 0; i < appliedSilverCount; i++)
+                {
+                    fArcaneMin -= 10;
+                    fArcaneMax -= 10;
+                    fArcaneRolled -= 10;
+                }
+            }
+
             if (fArcaneMin < 0)
                 fArcaneMin = 0;
 

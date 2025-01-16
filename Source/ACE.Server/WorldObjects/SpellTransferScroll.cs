@@ -583,8 +583,8 @@ namespace ACE.Server.WorldObjects
             if (data.Target.TinkerLog != null)
             {
                 var tinkers = data.Target.TinkerLog.Split(",");
-                var appliedMoonstoneCount = tinkers.Count(s => s == "31");
 
+                var appliedMoonstoneCount = tinkers.Count(s => s == "31");
                 for (int i = 0; i < appliedMoonstoneCount; i++)
                 {
                     var currentMana = newMaxMana;
@@ -592,6 +592,18 @@ namespace ACE.Server.WorldObjects
                     newMaxMana = currentMana * 2;
                     if (newMaxMana - currentMana < 500)
                         newMaxMana = currentMana + 500;
+                }
+
+                var appliedSilverCount = tinkers.Count(s => s == "63");
+                for (int i = 0; i < appliedSilverCount; i++)
+                {
+                    newManaRate *= 2.0f;
+                }
+
+                var appliedPyrealCount = tinkers.Count(s => s == "62");
+                for (int i = 0; i < appliedPyrealCount; i++)
+                {
+                    newManaRate *= 0.5f;
                 }
             }
 
@@ -621,7 +633,7 @@ namespace ACE.Server.WorldObjects
                     data.Target.ItemMaxMana = newMaxMana;
                     data.Target.ItemCurMana = Math.Clamp(data.Target.ItemCurMana ?? 0, 0, data.Target.ItemMaxMana ?? 0);
                     data.Target.ManaRate = newManaRate;
-                }
+                }                    
 
                 data.Target.LongDesc = LootGenerationFactory.GetLongDesc(data.Target);
             }
