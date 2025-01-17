@@ -1837,7 +1837,7 @@ namespace ACE.Server.Command.Handlers.Processors
             CreateLandblockInstance(session, weenie, loc, parentGuid, startGuid);
         }
 
-        public static uint CreateLandblockInstance(Session session, Weenie weenie, Position loc, uint parentGuid = 0, uint nextStaticGuid = 0)
+        public static uint CreateLandblockInstance(Session session, Weenie weenie, Position loc, uint parentGuid = 0, uint nextStaticGuid = 0, bool skipZNudge = false)
         {
             if (weenie == null)
             {
@@ -1936,9 +1936,12 @@ namespace ACE.Server.Command.Handlers.Processors
             wo.Ethereal = true;
             wo.Location = new Position(loc);
 
-            // even on flat ground, objects can sometimes fail to spawn at the player's current Z
-            // Position.Z has some weird thresholds when moving around, but i guess the same logic doesn't apply when trying to spawn in...
-            wo.Location.PositionZ += 0.05f;
+            if (!skipZNudge)
+            {
+                // even on flat ground, objects can sometimes fail to spawn at the player's current Z
+                // Position.Z has some weird thresholds when moving around, but i guess the same logic doesn't apply when trying to spawn in...
+                wo.Location.PositionZ += 0.05f;
+            }
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"Creating new landblock instance {(isLinkChild ? "child object " : "")}@ {loc.ToLOCString()}\n{wo.WeenieClassId} - {wo.Name} ({nextStaticGuid:X8})", ChatMessageType.Broadcast));
 
@@ -1974,6 +1977,141 @@ namespace ACE.Server.Command.Handlers.Processors
             SyncInstances(session, landblock, instances);
 
             return nextStaticGuid;
+        }
+
+        public static int CreateLandblockInstances(Session session, List<(uint guid, Weenie weenie, Position loc, uint parentGuid)> instancesToCreate, bool skipZNudge = false)
+        {
+            var createdCounter = 0;
+            var landblock = instancesToCreate.First().loc.LandblockId.Landblock;
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+            // clear any cached instances for this landblock
+            DatabaseManager.World.ClearCachedInstancesByLandblock(landblock);
+
+            foreach (var entry in instancesToCreate)
+            {
+                if (entry.weenie == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid weenie in guid 0x{entry.guid:X8}.", ChatMessageType.Broadcast));
+                    continue;
+                }
+
+                if (entry.loc == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid location in guid 0x{entry.guid:X8}.", ChatMessageType.Broadcast));
+                    continue;
+                }
+
+                var entryLandblock = entry.loc.LandblockId.Landblock;
+
+                if(entryLandblock != landblock)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Diverging landblock in guid 0x{entry.guid:X8}.", ChatMessageType.Broadcast));
+                    continue;
+                }
+
+                // for link mode, ensure parent guid instance exists
+                WorldObject parentObj = null;
+                LandblockInstance parentInstance = null;
+
+                if (entry.parentGuid != 0)
+                {
+                    parentInstance = instances.FirstOrDefault(i => i.Guid == entry.parentGuid);
+
+                    if (parentInstance == null)
+                    {
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock instance for parent guid 0x{entry.parentGuid:X8} in guid 0x{entry.guid:X8}", ChatMessageType.Broadcast));
+                        continue;
+                    }
+
+                    parentObj = session.Player.CurrentLandblock.GetObject(entry.parentGuid);
+
+                    if (parentObj == null)
+                    { 
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent object 0x{entry.parentGuid:X8} in guid 0x{entry.guid:X8}", ChatMessageType.Broadcast));
+                        continue;
+                    }
+                }
+
+                var firstStaticGuid = 0x70000000 | (uint)landblock << 12;
+                var maxStaticGuid = firstStaticGuid | 0xFFF;
+
+                var nextStaticGuid = GetNextStaticGuid(landblock, instances);
+
+                if (nextStaticGuid > maxStaticGuid)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock {landblock:X4} has reached the maximum # of static guids", ChatMessageType.Broadcast));
+                    continue;
+                }
+
+                // create and spawn object
+                var entityWeenie = Database.Adapter.WeenieConverter.ConvertToEntityWeenie(entry.weenie);
+
+                var wo = WorldObjectFactory.CreateWorldObject(entityWeenie, new ObjectGuid(nextStaticGuid));
+
+                if (wo == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Failed to create new object for {entry.weenie.ClassId} - {entry.weenie.ClassName}", ChatMessageType.Broadcast));
+                    continue;
+                }
+
+                var isLinkChild = parentInstance != null;
+
+                if (!wo.Stuck && !isLinkChild)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{entry.weenie.ClassId} - {entry.weenie.ClassName} is missing PropertyBool.Stuck, cannot spawn as landblock instance unless it is a child object", ChatMessageType.Broadcast));
+                    continue;
+                }
+
+                // spawn as ethereal temporarily, to spawn directly on player position
+                wo.Ethereal = true;
+                wo.Location = new Position(entry.loc);
+
+                if (!skipZNudge)
+                {
+                    // even on flat ground, objects can sometimes fail to spawn at the player's current Z
+                    // Position.Z has some weird thresholds when moving around, but i guess the same logic doesn't apply when trying to spawn in...
+                    wo.Location.PositionZ += 0.05f;
+                }
+
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Creating new landblock instance {(isLinkChild ? "child object " : "")}@ {entry.loc.ToLOCString()}\n{wo.WeenieClassId} - {wo.Name} ({nextStaticGuid:X8})", ChatMessageType.Broadcast));
+
+                if (!wo.EnterWorld())
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("Failed to spawn new object at this location", ChatMessageType.Broadcast));
+                    continue;
+                }
+
+                // create new landblock instance
+                var instance = CreateLandblockInstanceObj(wo, isLinkChild);
+
+                instances.Add(instance);
+
+                if (isLinkChild)
+                {
+                    var link = new LandblockInstanceLink();
+
+                    link.ParentGuid = entry.parentGuid;
+                    link.ChildGuid = wo.Guid.Full;
+                    link.LastModified = DateTime.Now;
+
+                    parentInstance.LandblockInstanceLink.Add(link);
+
+                    parentObj.LinkedInstances.Add(instance);
+
+                    // ActivateLinks?
+                    parentObj.SetLinkProperties(wo);
+                    parentObj.ChildLinks.Add(wo);
+                    wo.ParentLink = parentObj;
+                }
+
+                createdCounter++;
+            }
+
+            SyncInstances(session, landblock, instances);
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Created {createdCounter} of {instancesToCreate.Count} instances.");
+            return createdCounter;
         }
 
         /// <summary>
@@ -7017,7 +7155,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
 
-            List<Tuple<uint, bool, int, Position>> houseObjects = new List<Tuple<uint, bool, int, Position>>();
+            var houseObjects = new List<(uint wcid, bool isHouse, int houseId, Position pos)>();
             var houseCounter = 0;
             foreach (var instance in instances)
             {
@@ -7035,7 +7173,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 var houseOffset = buildingPos.GetOffset(housePos);
                 housePos = new Position(housePos.LandblockId.Raw, houseOffset.X, houseOffset.Y, houseOffset.Z, housePos.RotationX, housePos.RotationY, housePos.RotationZ, housePos.RotationW, true);
 
-                houseObjects.Add(Tuple.Create(instance.WeenieClassId, true, houseCounter, housePos));
+                houseObjects.Add((instance.WeenieClassId, true, houseCounter, housePos));
 
                 foreach (var link in instance.LandblockInstanceLink)
                 {
@@ -7053,7 +7191,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                     var childOffset = buildingPos.GetOffset(childPos);
 
-                    houseObjects.Add(Tuple.Create(child.WeenieClassId, false, houseCounter, new Position(child.ObjCellId, childOffset.X, childOffset.Y, childOffset.Z, childPos.RotationX, childPos.RotationY, childPos.RotationZ, childPos.RotationW, true)));
+                    houseObjects.Add((child.WeenieClassId, false, houseCounter, new Position(child.ObjCellId, childOffset.X, childOffset.Y, childOffset.Z, childPos.RotationX, childPos.RotationY, childPos.RotationZ, childPos.RotationW, true)));
                 }
             }
 
@@ -7091,7 +7229,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 foreach (var entry in houseObjects)
                 {
-                    output.Add($"{entry.Item1}\t{entry.Item2}\t{entry.Item3}\t{entry.Item4.ToLOCStringAlt()}");
+                    output.Add($"{entry.wcid}\t{entry.isHouse}\t{entry.houseId}\t{entry.pos.ToLOCStringAlt()}");
                 }
 
                 File.WriteAllLines(filename, output);
@@ -7140,12 +7278,11 @@ namespace ACE.Server.Command.Handlers.Processors
             var buildingPos = building.Position.ACEPosition();
             var buildingRotation = buildingPos.GetYaw();
 
+            var landblock = (ushort)buildingPos.Landblock;
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
             if (!confirmed)
             {
-                var landblock = (ushort)buildingPos.Landblock;
-
-                var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
-
                 var houseCounter = 0;
                 foreach (var instance in instances)
                 {
@@ -7169,7 +7306,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             uint buildingType = 0;
-            List<Tuple<uint, bool, int, Position>> houseObjects = new List<Tuple<uint, bool, int, Position>>();
+            var houseObjects = new List<(uint wcid, bool isHouse, int houseId, Position pos)>();
 
             DirectoryInfo di = VerifyContentFolder(session);
             if (!di.Exists)
@@ -7209,7 +7346,7 @@ namespace ACE.Server.Command.Handlers.Processors
                         var splitPositionString = splitLine[3].Split(',');
                         var position = new Position(uint.Parse(splitPositionString[0].Replace("0x", ""), NumberStyles.HexNumber), float.Parse(splitPositionString[1]), float.Parse(splitPositionString[2]), float.Parse(splitPositionString[3]), float.Parse(splitPositionString[5]), float.Parse(splitPositionString[6]), float.Parse(splitPositionString[7]), float.Parse(splitPositionString[4]), true);
 
-                        houseObjects.Add(Tuple.Create(wcid, isHouse, houseId, position));
+                        houseObjects.Add((wcid, isHouse, houseId, position));
                     }
                 }
 
@@ -7234,6 +7371,11 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
+            var instancesToCreate = new List<(uint guid, Weenie weenie, Position loc, uint parentGuid)>();
+            var houseGuids = new List<uint>();
+
+            var nextGuid = GetNextStaticGuid(landblock, instances);
+
             var bumpHeight = 0.05f;
             foreach (var entry in houseObjects)
             {
@@ -7241,7 +7383,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     continue;
                 else
                 {
-                    var position = new Position(building.LandblockID, entry.Item4.PositionX + buildingPos.PositionX, entry.Item4.PositionY + buildingPos.PositionY, entry.Item4.PositionZ + buildingPos.PositionZ, entry.Item4.RotationX, entry.Item4.RotationY, entry.Item4.RotationZ, entry.Item4.RotationW);
+                    var position = new Position(building.LandblockID, entry.pos.PositionX + buildingPos.PositionX, entry.pos.PositionY + buildingPos.PositionY, entry.pos.PositionZ + buildingPos.PositionZ, entry.pos.RotationX, entry.pos.RotationY, entry.pos.RotationZ, entry.pos.RotationW);
                     position.RotateAroundPivot(buildingPos, buildingRotation);
 
                     // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
@@ -7249,30 +7391,34 @@ namespace ACE.Server.Command.Handlers.Processors
                     position.LandblockId = new LandblockId(position.GetCell());
                     position.PositionZ -= bumpHeight;
 
-                    var weenie = DatabaseManager.World.GetWeenie(entry.Item1);
-                    var houseGuid = CreateLandblockInstance(session, weenie, position);
+                    var houseGuid = nextGuid++;
+                    houseGuids.Add(houseGuid);
 
-                    if (houseGuid != 0)
+                    var weenie = DatabaseManager.World.GetWeenie(entry.wcid);
+                    instancesToCreate.Add((houseGuid, weenie, position, 0));
+
+                    var childList = houseObjects.Where(i => !i.isHouse && i.houseId == entry.houseId).ToList();
+
+                    foreach (var childEntry in childList)
                     {
-                        var childList = houseObjects.Where(i => !i.Item2 && i.Item3 == entry.Item3).ToList();
+                        position = new Position(building.Position.ObjCellID, childEntry.pos.PositionX + buildingPos.PositionX, childEntry.pos.PositionY + buildingPos.PositionY, childEntry.pos.PositionZ + buildingPos.PositionZ, childEntry.pos.RotationX, childEntry.pos.RotationY, childEntry.pos.RotationZ, childEntry.pos.RotationW);
+                        position.RotateAroundPivot(buildingPos, buildingRotation);
 
-                        foreach (var childEntry in childList)
-                        {
-                            var childWeenie = DatabaseManager.World.GetWeenie(childEntry.Item1);
-                            position = new Position(building.Position.ObjCellID, childEntry.Item4.PositionX + buildingPos.PositionX, childEntry.Item4.PositionY + buildingPos.PositionY, childEntry.Item4.PositionZ + buildingPos.PositionZ, childEntry.Item4.RotationX, childEntry.Item4.RotationY, childEntry.Item4.RotationZ, childEntry.Item4.RotationW);
-                            position.RotateAroundPivot(buildingPos, buildingRotation);
+                        // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
+                        position.PositionZ += bumpHeight;
+                        position.LandblockId = new LandblockId(position.GetCell());
+                        position.PositionZ -= bumpHeight;
 
-                            // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
-                            position.PositionZ += bumpHeight;
-                            position.LandblockId = new LandblockId(position.GetCell());
-                            position.PositionZ -= bumpHeight;
-
-                            CreateLandblockInstance(session, childWeenie, position, houseGuid);
-                        }
-
-                        HouseManager.DoHandleHouseCreation(houseGuid);
+                        var childWeenie = DatabaseManager.World.GetWeenie(childEntry.wcid);
+                        instancesToCreate.Add((nextGuid++, childWeenie, position, houseGuid));
                     }
                 }
+            }
+
+            var result = CreateLandblockInstances(session, instancesToCreate, true);
+            foreach (var entry in houseGuids)
+            {
+                HouseManager.DoHandleHouseCreation(entry);
             }
         }
 
