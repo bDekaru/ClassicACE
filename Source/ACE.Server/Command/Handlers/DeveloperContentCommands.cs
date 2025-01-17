@@ -1972,6 +1972,8 @@ namespace ACE.Server.Command.Handlers.Processors
                 parentObj.SetLinkProperties(wo);
                 parentObj.ChildLinks.Add(wo);
                 wo.ParentLink = parentObj;
+
+                wo.EnqueueBroadcast(new GameMessageUpdateObject(wo));
             }
 
             SyncInstances(session, landblock, instances);
@@ -2103,6 +2105,8 @@ namespace ACE.Server.Command.Handlers.Processors
                     parentObj.SetLinkProperties(wo);
                     parentObj.ChildLinks.Add(wo);
                     wo.ParentLink = parentObj;
+
+                    wo.EnqueueBroadcast(new GameMessageUpdateObject(wo));
                 }
 
                 createdCounter++;

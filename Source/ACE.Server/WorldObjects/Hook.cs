@@ -168,9 +168,10 @@ namespace ACE.Server.WorldObjects
 
             House.HouseCurrentHooksUsable--;
 
-            // Here we explicitly save the hook to the database to prevent item loss.
+            // Here we explicitly save the hook and item to the database to prevent item loss.
             // If the player adds an item to the hook, and the server crashes before the hook has been saved, the item will be lost.
             SaveBiotaToDatabase();
+            item.SaveBiotaToDatabase();
 
             EnqueueBroadcast(new GameMessageUpdateObject(this));
         }
@@ -213,8 +214,9 @@ namespace ACE.Server.WorldObjects
 
             EnqueueBroadcast(new GameMessageUpdateObject(this));
 
-            // Here we explicitly save the storage to the database to prevent property desync.
+            // Here we explicitly save the hook and item to the database to prevent property desync.
             SaveBiotaToDatabase();
+            removedItem.SaveBiotaToDatabase();
         }
 
         public override MotionCommand MotionPickup
