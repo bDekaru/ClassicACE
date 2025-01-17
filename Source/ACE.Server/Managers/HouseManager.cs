@@ -665,18 +665,24 @@ namespace ACE.Server.Managers
             });
         }
 
-        public static void DoHandleHouseDeletion(uint houseGuid)
+        public static void DoHandleHouseRemoval(uint houseGuid)
         {
             // load the most up-to-date copy of house data
             GetHouse(houseGuid, (house) =>
             {
-                if (house.SlumLord.HouseOwner != null && house.SlumLord.HouseOwner.Value != 0)
+                if (house.SlumLord != null)
                 {
-                    HandleEviction(house, house.SlumLord.HouseOwner.Value, false, true);
-                    RemoveRentQueue(house.Guid.Full);
-
-                    HouseList.RemoveFromAvailable(house.SlumLord, house);
+                    if (house.SlumLord.HouseOwner != null && house.SlumLord.HouseOwner.Value != 0)
+                    {
+                        HandleEviction(house, house.SlumLord.HouseOwner.Value, false, true);
+                        RemoveRentQueue(house.Guid.Full);
+                    }
+                    else
+                        HouseList.RemoveFromAvailable(house.SlumLord, house);
                 }
+
+                if (house.CurrentLandblock != null)
+                    house.CurrentLandblock.Houses.Remove(house);
 
                 HouseList.AllHouses = null;
             });
@@ -688,9 +694,14 @@ namespace ACE.Server.Managers
             GetHouse(houseGuid, (house) =>
             {
                 if (house.SlumLord != null)
+                {
                     HouseList.AddToAvailable(house.SlumLord, house);
 
-                HouseList.AllHouses = null;
+                    if (house.CurrentLandblock != null)
+                        house.CurrentLandblock.Houses.Add(house);
+
+                    HouseList.AllHouses = null;
+                }
             });
         }
 
@@ -703,7 +714,7 @@ namespace ACE.Server.Managers
                 {
                     if (house.Location == null || house.Location.Cell == 0)
                     {
-                        DoHandleHouseDeletion(houseGuid);
+                        DoHandleHouseRemoval(houseGuid);
                         return;
                     }
 
