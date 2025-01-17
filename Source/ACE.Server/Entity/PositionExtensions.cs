@@ -560,9 +560,9 @@ namespace ACE.Server.Entity
             t2 = t2 > 1.0 ? 1.0 : t2;
             t2 = t2 < -1.0 ? -1.0 : t2;
 
-            var yaw = (float)Math.Round(Math.Atan2(t1, t0), 4) % 360f;
-            var pitch = (float)Math.Round(Math.Asin(t2), 4) % 360f;
-            var roll = (float)Math.Round(Math.Atan2(t3, t4), 4) % 360f;
+            var yaw = (float)Math.Atan2(t1, t0).ToDegrees() % 360f;
+            var pitch = (float)Math.Asin(t2).ToDegrees() % 360f;
+            var roll = (float)Math.Atan2(t3, t4).ToDegrees() % 360f;
 
             if (yaw < 0)
                 yaw += 360f;
@@ -578,7 +578,7 @@ namespace ACE.Server.Entity
         {
             var q = pos.Rotation;
 
-            var yaw = (float)Math.Round(((float)Math.Atan2(2.0 * (q.Z * q.W + q.X * q.Y), -1.0 + 2.0 * (q.W * q.W + q.X * q.X))).ToDegrees(), 4) % 360.0f;
+            var yaw = (float)Math.Atan2(2.0 * (q.Z * q.W + q.X * q.Y), -1.0 + 2.0 * (q.W * q.W + q.X * q.X)).ToDegrees() % 360f;
 
             if (yaw < 0)
                 yaw += 360f;
@@ -590,7 +590,7 @@ namespace ACE.Server.Entity
         {
             var q = pos.Rotation;
 
-            var pitch = (float)Math.Round(((float)Math.Asin(2.0 * (q.Y * q.W - q.Z * q.X))).ToDegrees(), 4) % 360.0f;
+            var pitch = (float)Math.Asin(2.0 * (q.Y * q.W - q.Z * q.X)).ToDegrees() % 360f;
 
             if (pitch < 0)
                 pitch += 360f;
@@ -602,7 +602,7 @@ namespace ACE.Server.Entity
         {
             var q = pos.Rotation;
 
-            var roll = (float)Math.Round(((float)Math.Atan2(2.0 * (q.Z * q.Y + q.W * q.X), 1.0 - 2.0 * (q.X * q.X + q.Y * q.Y))).ToDegrees(), 4) % 360.0f;
+            var roll = (float)Math.Atan2(2.0 * (q.Z * q.Y + q.W * q.X), 1.0 - 2.0 * (q.X * q.X + q.Y * q.Y)).ToDegrees() % 360f;
 
             if (roll < 0)
                 roll += 360f;
