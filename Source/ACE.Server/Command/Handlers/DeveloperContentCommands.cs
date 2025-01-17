@@ -1451,66 +1451,46 @@ namespace ACE.Server.Command.Handlers.Processors
 
         public static LandblockInstanceWriter LandblockInstanceWriter;
 
-        [CommandHandler("replaceinst", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Replaces the last appraised object from the current landblock instances with a new wcid or classname", "<wcid or classname>")]
+        [CommandHandler("replaceInst", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Replaces the selected object from the current landblock instances with a new wcid or classname", "<wcid or classname>")]
         public static void HandleReplaceInst(Session session, params string[] parameters)
         {
-            var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
 
-            if (obj?.Location == null)
+            if (wo?.Location == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid target.", ChatMessageType.Broadcast));
                 return;
             }
 
             // ensure landblock instance
-            uint objGuid = obj.Guid.Full;
-            if (!obj.Guid.IsStatic())
+            uint objGuid = wo.Guid.Full;
+            if (!wo.Guid.IsStatic())
             {
                 uint? staticGuid = null;
-                if (obj.Generator != null)
+                if (wo.Generator != null)
                 {
                     // if generator child, try getting the "real" guid
-                    staticGuid = obj.Generator.GetStaticGuid(objGuid);
+                    staticGuid = wo.Generator.GetStaticGuid(objGuid);
                     if (staticGuid != null)
                         objGuid = staticGuid.Value;
                 }
 
                 if (staticGuid == null)
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"{obj.Name} ({obj.Guid}) is not landblock instance", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) is not landblock instance", ChatMessageType.Broadcast));
                     return;
                 }
             }
 
-            var landblock = (ushort)obj.Location.Landblock;
+            var landblock = (ushort)wo.Location.Landblock;
             var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
 
             var instance = instances.FirstOrDefault(i => i.Guid == objGuid);
 
             if (instance == null)
             {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock_instance for {obj.WeenieClassId} - {obj.Name} (0x{objGuid:X8})", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock_instance for {wo.WeenieClassId} - {wo.Name} (0x{objGuid:X8})", ChatMessageType.Broadcast));
                 return;
-            }
-
-            var location = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
-
-            LandblockInstanceLink link = null;
-            if (instance.IsLinkChild)
-            {
-                foreach (var parent in instances.Where(i => i.LandblockInstanceLink.Count > 0))
-                {
-                    link = parent.LandblockInstanceLink.FirstOrDefault(i => i.ChildGuid == instance.Guid);
-
-                    if (link != null)
-                        break;
-                }
-
-                if (link == null)
-                {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent link for child {obj.WeenieClassId} - {obj.Name} (0x{objGuid:X8})", ChatMessageType.Broadcast));
-                    return;
-                }
             }
 
             Weenie weenie = null;
@@ -1527,13 +1507,15 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            RemoveInstance(session);
-            CreateLandblockInstance(session, weenie, location, link != null ? link.ParentGuid : 0, objGuid);
+            instance.WeenieClassId = weenie.ClassId;
+
+            SyncInstances(session, landblock, instances);
+            DeveloperCommands.HandleReloadLandblock(session);
         }
 
-        private static uint CreateInstDefaultParentGuid = 0;
-        [CommandHandler("setcreateinstparent", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Sets the default parent for subsequent calls to createinst to the selected object")]
-        public static void HandleSetCreateInstParent(Session session, params string[] parameters)
+        private static uint DefaultInstParentGuid = 0;
+        [CommandHandler("setDefaultInstParent", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Sets the selected object as the default parent for subsequent calls to createInst and setInstParent")]
+        public static void HandleSetDefaultInstParent(Session session, params string[] parameters)
         {
             var wo = CommandHandlerHelper.GetQueryTarget(session);
 
@@ -1560,15 +1542,221 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            CreateInstDefaultParentGuid = instance.Guid;
-            CommandHandlerHelper.WriteOutputInfo(session, $"Default CreateInst parent set to 0x{CreateInstDefaultParentGuid:X8}.");
+            DefaultInstParentGuid = instance.Guid;
+            CommandHandlerHelper.WriteOutputInfo(session, $"Default parent set to 0x{DefaultInstParentGuid:X8}.");
         }
 
-        [CommandHandler("clearcreateinstparent", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Sets the default parent for subsequent calls to createinst to the selected object")]
-        public static void HandleClearCreateInstParent(Session session, params string[] parameters)
+        [CommandHandler("clearDefaultInstParent", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Clears the default parent for subsequent calls to createInst and setInstParent")]
+        public static void HandleClearDefaultInstParent(Session session, params string[] parameters)
         {
-            CreateInstDefaultParentGuid = 0;
-            CommandHandlerHelper.WriteOutputInfo(session, "Cleared default CreateInst parent.");
+            DefaultInstParentGuid = 0;
+            CommandHandlerHelper.WriteOutputInfo(session, "Cleared default parent.");
+        }
+
+        [CommandHandler("setInstParent", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Makes the selected object from the current landblock instances a child of the specified GUID or DefaultInstParentGuid if no GUID is specified", "<parent GUID>")]
+        public static void HandleSetInstParent(Session session, params string[] parameters)
+        {
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
+
+            if (wo?.Location == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid target.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            // ensure landblock instance
+            uint objGuid = wo.Guid.Full;
+            if (!wo.Guid.IsStatic())
+            {
+                uint? staticGuid = null;
+                if (wo.Generator != null)
+                {
+                    // if generator child, try getting the "real" guid
+                    staticGuid = wo.Generator.GetStaticGuid(objGuid);
+                    if (staticGuid != null)
+                        objGuid = staticGuid.Value;
+                }
+
+                if (staticGuid == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) is not landblock instance", ChatMessageType.Broadcast));
+                    return;
+                }
+            }
+
+            var landblock = (ushort)wo.Location.Landblock;
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+            var instance = instances.FirstOrDefault(i => i.Guid == objGuid);
+
+            if (instance == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock_instance for {wo.WeenieClassId} - {wo.Name} (0x{objGuid:X8})", ChatMessageType.Broadcast));
+                return;
+            }
+
+            uint newParentGuid = 0;
+
+            var firstStaticGuid = 0x70000000 | (uint)landblock << 12;
+
+            if (parameters.Length > 0)
+            {
+                var parentGuidStr = parameters[0];
+
+                if (parentGuidStr.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                    parentGuidStr = parentGuidStr.Substring(2);
+
+                if (!uint.TryParse(parentGuidStr, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var _parentGuid))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't parse parent guid {parentGuidStr}", ChatMessageType.Broadcast));
+                    return;
+                }
+
+                newParentGuid = _parentGuid;
+
+                if (newParentGuid <= 0xFFF)
+                    newParentGuid = firstStaticGuid | newParentGuid;
+
+            }
+            else if (DefaultInstParentGuid != 0)
+                newParentGuid = DefaultInstParentGuid;
+
+            if (wo.ParentLink != null && wo.ParentLink.Guid.Full == newParentGuid)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Parent already set to 0x{newParentGuid:X8}.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            LandblockInstance newParentInstance = instances.FirstOrDefault(i => i.Guid == newParentGuid);
+            if (newParentInstance == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock instance for new parent guid 0x{newParentGuid:X8}", ChatMessageType.Broadcast));
+                return;
+            }
+
+            WorldObject newParentObj = session.Player.CurrentLandblock.GetObject(newParentGuid);
+            if (newParentObj == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find new parent object 0x{newParentGuid:X8}", ChatMessageType.Broadcast));
+                return;
+            }
+
+            if (instance.IsLinkChild)
+            {
+                WorldObject currentParentObj = wo.ParentLink;
+                if (currentParentObj == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"ParentLink is null even though we're set as IsLinkChild", ChatMessageType.Broadcast));
+                    return;
+                }
+
+                LandblockInstance currentParentInstance = instances.FirstOrDefault(i => i.Guid == currentParentObj.Guid.Full);
+                if (currentParentInstance == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock instance for parent guid 0x{currentParentObj.Guid.Full:X8}", ChatMessageType.Broadcast));
+                    return;
+                }
+
+                var currentLink = currentParentInstance.LandblockInstanceLink.FirstOrDefault(i => i.ChildGuid == instance.Guid);
+
+                currentParentInstance.LandblockInstanceLink.Remove(currentLink);
+
+                currentParentObj.LinkedInstances.Remove(instance);
+
+                currentParentObj.ChildLinks.Remove(wo);
+            }
+
+            var newLink = new LandblockInstanceLink();
+            newLink.ParentGuid = newParentGuid;
+            newLink.ChildGuid = instance.Guid;
+            newLink.LastModified = DateTime.Now;
+
+            newParentInstance.LandblockInstanceLink.Add(newLink);
+            newParentObj.LinkedInstances.Add(instance);
+
+            // ActivateLinks?
+            newParentObj.SetLinkProperties(wo);
+            newParentObj.ChildLinks.Add(wo);
+
+            wo.ParentLink = newParentObj;
+            instance.IsLinkChild = true;
+
+            SyncInstances(session, landblock, instances);
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) parent set to 0x{newParentGuid:X8}", ChatMessageType.Broadcast));
+        }
+
+        [CommandHandler("clearInstParent", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Clears the parent of the selected object from the current landblock instances")]
+        public static void HandleClearInstParent(Session session, params string[] parameters)
+        {
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
+
+            if (wo?.Location == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid target.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            // ensure landblock instance
+            uint objGuid = wo.Guid.Full;
+            if (!wo.Guid.IsStatic())
+            {
+                uint? staticGuid = null;
+                if (wo.Generator != null)
+                {
+                    // if generator child, try getting the "real" guid
+                    staticGuid = wo.Generator.GetStaticGuid(objGuid);
+                    if (staticGuid != null)
+                        objGuid = staticGuid.Value;
+                }
+
+                if (staticGuid == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) is not landblock instance", ChatMessageType.Broadcast));
+                    return;
+                }
+            }
+
+            var landblock = (ushort)wo.Location.Landblock;
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+            var instance = instances.FirstOrDefault(i => i.Guid == objGuid);
+
+            if (instance == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock_instance for {wo.WeenieClassId} - {wo.Name} (0x{objGuid:X8})", ChatMessageType.Broadcast));
+                return;
+            }
+
+            if (wo.ParentLink == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) already has no parent", ChatMessageType.Broadcast));
+                return;
+            }
+
+            WorldObject currentParentObj = wo.ParentLink;
+            LandblockInstance currentParentInstance = instances.FirstOrDefault(i => i.Guid == currentParentObj.Guid.Full);
+            if (currentParentInstance == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock instance for parent guid 0x{currentParentObj.Guid.Full:X8}", ChatMessageType.Broadcast));
+                return;
+            }
+
+            var currentLink = currentParentInstance.LandblockInstanceLink.FirstOrDefault(i => i.ChildGuid == instance.Guid);
+
+            currentParentInstance.LandblockInstanceLink.Remove(currentLink);
+
+            currentParentObj.LinkedInstances.Remove(instance);
+
+            currentParentObj.ChildLinks.Remove(wo);
+
+            instance.IsLinkChild = false;
+
+            wo.ParentLink = null;
+
+            SyncInstances(session, landblock, instances);
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) parent cleared", ChatMessageType.Broadcast));
         }
 
         [CommandHandler("createinst", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Spawns a new wcid or classname as a landblock instance", "<wcid or classname>\n\nTo create a parent/child relationship: /createinst -p <parent guid> -c <wcid or classname>\nTo automatically get the parent guid from the last appraised object: /createinst -p -c <wcid or classname>\n\nTo manually specify a start guid: /createinst <wcid or classname> <start guid>\nStart guids can be in the range 0x000-0xFFF, or they can be prefixed with 0x7<landblock id>")]
@@ -1627,8 +1815,8 @@ namespace ACE.Server.Command.Handlers.Processors
                 }
 
             }
-            else if (CreateInstDefaultParentGuid != 0)
-                parentGuid = CreateInstDefaultParentGuid;
+            else if (DefaultInstParentGuid != 0)
+                parentGuid = DefaultInstParentGuid;
 
             if (uint.TryParse(param, out var wcid))
                 weenie = DatabaseManager.World.GetWeenie(wcid);   // wcid
@@ -6788,11 +6976,16 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, $"Total storage count: {storageCount}");
         }
 
-        [CommandHandler("exportHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Export the house(s) in the current building as a template so they can be imported later at a similar building.", "<Filename>")]
-        public static void HandleExportHouse(Session session, params string[] parameters)
+        [CommandHandler("exportBuildingHouses", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Export the house(s) in the current building as a template so they can be imported later at a similar building.", "<Filename>")]
+        public static void HandleExportBuildingHouses(Session session, params string[] parameters)
         {
             var exportName = parameters[0];
 
+            ExportBuildingHouses(session, exportName);
+        }
+
+        public static void ExportBuildingHouses(Session session, string exportName, bool confirmed = false)
+        {
             Physics.Common.BuildingObj building = null;
             uint outdoorCellId = 0;
 
@@ -6829,12 +7022,10 @@ namespace ACE.Server.Command.Handlers.Processors
             foreach (var instance in instances)
             {
                 var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
-
                 if (instanceWeenie.Type != (int)WeenieType.House)
                     continue;
 
                 var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
-
                 if (housePos.GetOutdoorCell() != outdoorCellId)
                     continue;
                 houseCounter++;
@@ -6875,7 +7066,7 @@ namespace ACE.Server.Command.Handlers.Processors
             var contentFolder = VerifyContentFolder(session, false);
 
             var sep = Path.DirectorySeparatorChar;
-            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}house templates");
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}housing templates");
 
             var filename = $"{folder.FullName}{sep}{exportName}.txt";
 
@@ -6883,6 +7074,14 @@ namespace ACE.Server.Command.Handlers.Processors
             {
                 if (!folder.Exists)
                     folder.Create();
+
+                if (!confirmed && File.Exists(filename))
+                {
+                    var msg = $"{exportName} already exists, overwrite?";
+                    if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ExportBuildingHouses(session, exportName, true)), msg))
+                        session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                    return;
+                }
 
                 var output = new List<string>();
 
@@ -6907,15 +7106,20 @@ namespace ACE.Server.Command.Handlers.Processors
             }
         }
 
-        [CommandHandler("importHouse", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create house(s) in the current building from a template.", "<Filename>")]
-        public static void HandleImportHouse(Session session, params string[] parameters)
+        [CommandHandler("importBuildingHouses", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create house(s) in the current building from a template.", "<Filename>")]
+        public static void HandleImportBuildingHouse(Session session, params string[] parameters)
         {
-            var importName = parameters[0];
+            ImportBuildingHouse(session, parameters[0]);
+        }
 
+        public static void ImportBuildingHouse(Session session, string importName, bool confirmed = false)
+        {
             Physics.Common.BuildingObj building = null;
+            uint outdoorCellId = 0;
+
             if (session.Player.Indoors)
             {
-                var outdoorCellId = session.Player.Location.GetOutdoorCell();
+                outdoorCellId = session.Player.Location.GetOutdoorCell();
 
                 foreach (var buildingEntry in session.Player.PhysicsObj.CurLandblock.Buildings)
                 {
@@ -6933,6 +7137,37 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
+            var buildingPos = building.Position.ACEPosition();
+            var buildingRotation = buildingPos.GetYaw();
+
+            if (!confirmed)
+            {
+                var landblock = (ushort)buildingPos.Landblock;
+
+                var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+                var houseCounter = 0;
+                foreach (var instance in instances)
+                {
+                    var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
+                    if (instanceWeenie.Type != (int)WeenieType.House)
+                        continue;
+
+                    var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+                    if (housePos.GetOutdoorCell() != outdoorCellId)
+                        continue;
+                    houseCounter++;
+                }
+
+                if (houseCounter > 0)
+                {
+                    var msg = $"This building already contains {houseCounter} house{(houseCounter != 1 ? "s" : "")}. Import anyways?";
+                    if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ImportBuildingHouse(session, importName, true)), msg))
+                        session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                    return;
+                }
+            }
+
             uint buildingType = 0;
             List<Tuple<uint, bool, int, Position>> houseObjects = new List<Tuple<uint, bool, int, Position>>();
 
@@ -6942,7 +7177,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var sep = Path.DirectorySeparatorChar;
 
-            var folder = $"{di.FullName}{sep}house templates{sep}";
+            var folder = $"{di.FullName}{sep}housing templates{sep}";
 
             di = new DirectoryInfo(folder);
 
@@ -6958,7 +7193,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 var file = files.First();
 
-                CommandHandlerHelper.WriteOutputInfo(session, $"Importing house template {importName}...");
+                CommandHandlerHelper.WriteOutputInfo(session, $"Importing housing template {importName}...");
 
                 string[] input = File.ReadAllLines(file.FullName);
                 foreach (string line in input)
@@ -6992,9 +7227,6 @@ namespace ACE.Server.Command.Handlers.Processors
                 CommandHandlerHelper.WriteOutputInfo(session, "Invalid file.");
                 return;
             }
-
-            var buildingPos = building.Position.ACEPosition();
-            var buildingRotation = buildingPos.GetYaw();
 
             if (buildingType != building.ID)
             {
@@ -7042,6 +7274,116 @@ namespace ACE.Server.Command.Handlers.Processors
                     }
                 }
             }
+        }
+
+        [CommandHandler("clearBuildingHouses", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Removes all houses from the current building")]
+        public static void HandleClearBuildingHouses(Session session, params string[] parameters)
+        {
+            ClearBuildingHouses(session);
+        }
+
+        public static void ClearBuildingHouses(Session session, bool confirmed = false)
+        {
+            Physics.Common.BuildingObj building = null;
+            uint outdoorCellId = 0;
+
+            if (session.Player.Indoors)
+            {
+                outdoorCellId = session.Player.Location.GetOutdoorCell();
+
+                foreach (var buildingEntry in session.Player.PhysicsObj.CurLandblock.Buildings)
+                {
+                    if (buildingEntry.CurCell.ID == outdoorCellId)
+                    {
+                        building = buildingEntry;
+                        break;
+                    }
+                }
+            }
+
+            if (building == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "You must be in a building for this command to work.");
+                return;
+            }
+
+            var buildingPos = building.Position.ACEPosition();
+            var buildingRotation = buildingPos.GetYaw();
+            var buildingType = building.ID;
+
+            var landblock = (ushort)buildingPos.Landblock;
+
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblock);
+
+            List<LandblockInstance> houseObjectsInstances = new List<LandblockInstance>();
+            foreach (var instance in instances)
+            {
+                var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
+                if (instanceWeenie.Type != (int)WeenieType.House)
+                    continue;
+
+                var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+                if (housePos.GetOutdoorCell() != outdoorCellId)
+                    continue;
+
+                houseObjectsInstances.Add(instance);
+            }
+
+            if (houseObjectsInstances.Count == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "This building has no houses.");
+                return;
+            }
+
+            if (!confirmed)
+            {
+                var msg = $"This building contains {houseObjectsInstances.Count} house{(houseObjectsInstances.Count != 1 ? "s" : "")}. Proceed?";
+                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ClearBuildingHouses(session, true)), msg))
+                    session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                return;
+            }
+
+            foreach(var instance in houseObjectsInstances)
+            {
+                if (instance.IsLinkChild)
+                {
+                    LandblockInstanceLink link = null;
+
+                    foreach (var parent in instances.Where(i => i.LandblockInstanceLink.Count > 0))
+                    {
+                        link = parent.LandblockInstanceLink.FirstOrDefault(i => i.ChildGuid == instance.Guid);
+
+                        if (link != null)
+                        {
+                            parent.LandblockInstanceLink.Remove(link);
+                            break;
+                        }
+                    }
+                    if (link == null)
+                    {
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent link for child {instance.WeenieClassId} - (0x{instance.Guid:X8})", ChatMessageType.Broadcast));
+                        return;
+                    }
+                }
+
+                foreach (var link in instance.LandblockInstanceLink)
+                    RemoveChild(session, link, instances);
+
+                var wo = session.Player.CurrentLandblock.GetObject(instance.Guid);
+
+                if (wo != null)
+                {
+                    wo.DeleteObject();
+
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Removed {(instance.IsLinkChild ? "child " : "")}{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) from landblock instances", ChatMessageType.Broadcast));
+                }
+                else
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find object for 0x{instance.Guid:X8}", ChatMessageType.Broadcast));
+
+                instances.Remove(instance);
+            }
+
+            SyncInstances(session, landblock, instances);
         }
     }
 }
