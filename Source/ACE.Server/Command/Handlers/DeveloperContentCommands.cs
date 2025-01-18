@@ -7552,6 +7552,8 @@ namespace ACE.Server.Command.Handlers.Processors
         [CommandHandler("pastePos", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Pastes a position or partial position to the selected object.", "Valid values are all, pos, rot, x, y, z.")]
         public static void HandlePastePos(Session session, params string[] parameters)
         {
+            var param = parameters[0].ToLower();
+
             if (CopiedPos == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"No position has been copied yet.", ChatMessageType.Help));
@@ -7573,7 +7575,6 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var newPos = new Position(wo.Location);
 
-            var param = parameters[0].ToLower();
             switch (param)
             {
                 case "all":
@@ -7638,6 +7639,8 @@ namespace ACE.Server.Command.Handlers.Processors
         [CommandHandler("pasteInstPos", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Pastes a position or partial position to the selected instance.", "Valid values are all, pos, rot, x, y, z.")]
         public static void HandlePasteInstPos(Session session, params string[] parameters)
         {
+            var param = parameters[0].ToLower();
+
             if (CopiedPos == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"No position has been copied yet.", ChatMessageType.Help));
@@ -7678,12 +7681,15 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            var param = parameters[0].ToLower();
-            if (CopiedPos.LandblockId != wo.Location.LandblockId && param != "rot" && param != "z")
+            var isDifferentLandblock = CopiedPos.LandblockId != wo.Location.LandblockId;
+            if (isDifferentLandblock && (param == "all" || param == "pos"))
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Instances cannot change landblock.", ChatMessageType.Broadcast));
                 return;
             }
+
+            var globalCopiedPos = CopiedPos.ToGlobal();
+            var globalNewPos = wo.Location.ToGlobal();
 
             var newPos = new Position(wo.Location);
 
@@ -7705,9 +7711,11 @@ namespace ACE.Server.Command.Handlers.Processors
                     break;
                 case "x":
                     newPos.PositionX = CopiedPos.PositionX;
+                    globalNewPos.X = globalCopiedPos.X;
                     break;
                 case "y":
                     newPos.PositionY = CopiedPos.PositionY;
+                    globalNewPos.Y = globalCopiedPos.Y;
                     break;
                 case "z":
                     newPos.PositionZ = CopiedPos.PositionZ;
@@ -7715,6 +7723,17 @@ namespace ACE.Server.Command.Handlers.Processors
                 default:
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid paramenter! Valid values are all, pos, rot, x, y, z.", ChatMessageType.Help));
                     return;
+            }
+
+            if (isDifferentLandblock && (param == "x" || param == "y"))
+            {
+                newPos = newPos.FromGlobal(globalNewPos);
+
+                if (newPos.LandblockId != wo.Location.LandblockId)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Instances cannot change landblock.", ChatMessageType.Broadcast));
+                    return;
+                }
             }
 
             var prevPos = new Position(wo.Location);
