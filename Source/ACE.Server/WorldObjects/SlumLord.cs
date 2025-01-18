@@ -2,11 +2,14 @@ using System;
 using System.Collections.Generic;
 
 using ACE.Database;
+using ACE.DatLoader;
+using ACE.DatLoader.FileTypes;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
+using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
@@ -227,7 +230,18 @@ namespace ACE.Server.WorldObjects
                 Name = $"{houseOwnerName}'s {Name}";
 
             if (CurrentLandblock != null)
-                EnqueueBroadcast(new GameMessagePublicUpdatePropertyString(this, PropertyString.Name, Name));
+            {
+                //EnqueueBroadcast(new GameMessagePublicUpdatePropertyString(this, PropertyString.Name, Name)); // This does not cause the client to update the object's name.
+
+                var motionTable = DatManager.PortalDat.ReadFromDat<MotionTable>(MotionTableId);
+                var delay = motionTable.GetAnimationLength(MotionCommand.On);
+
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(delay); // Add a delay here so we do not skip the on/off animation.
+                actionChain.AddAction(this, () => EnqueueBroadcast(new GameMessageUpdateObject(this)));
+                actionChain.EnqueueChain();
+            }
+
         }
 
         /// <summary>

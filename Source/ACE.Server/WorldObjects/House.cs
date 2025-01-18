@@ -252,7 +252,7 @@ namespace ACE.Server.WorldObjects
         {
             // for house dungeons, link to outdoor house properties
             var house = this;
-            if (CurrentLandblock != null && CurrentLandblock.HasDungeon && HouseType != HouseType.Apartment)
+            if (CurrentLandblock != null && CurrentLandblock.HasDungeon && !IsApartment)
             {
                 var biota = DatabaseManager.Shard.BaseDatabase.GetBiotasByWcid(WeenieClassId).Where(bio => bio.BiotaPropertiesPosition.Count > 0).FirstOrDefault(b => b.BiotaPropertiesPosition.FirstOrDefault(p => p.PositionType == (ushort)PositionType.Location).ObjCellId >> 16 != Location.Landblock);
                 if (biota != null)

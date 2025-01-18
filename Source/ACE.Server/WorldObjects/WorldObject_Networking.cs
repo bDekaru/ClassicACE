@@ -179,7 +179,7 @@ namespace ACE.Server.WorldObjects
 
                 // if house object is in dungeon,
                 // send the permissions from the outdoor house
-                if (house.HouseType != HouseType.Apartment && house.CurrentLandblock.IsDungeon)
+                if (!house.IsApartment && !house.IsCustomHouse && house.CurrentLandblock.IsDungeon)
                 {
                     house = house.RootHouse;
                 }

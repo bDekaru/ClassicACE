@@ -85,7 +85,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (slumlord.House.HouseType != HouseType.Apartment)
+            if (!slumlord.House.IsApartment)
             {
                 if (PropertyManager.GetBool("house_15day_account").Item && !Account15Days)
                 {
@@ -639,7 +639,7 @@ namespace ACE.Server.WorldObjects
             HouseInstance = house.Guid.Full;
 
             var housePurchaseTimestamp = Time.GetUnixTime();
-            if (house.HouseType != HouseType.Apartment)
+            if (!house.IsApartment)
                 HousePurchaseTimestamp = (int)housePurchaseTimestamp;
             HouseRentTimestamp = (int)house.GetRentDue((uint)housePurchaseTimestamp);
             houseRentWarnTimestamp = 0;
@@ -677,7 +677,7 @@ namespace ACE.Server.WorldObjects
 
             SaveBiotaToDatabase();
 
-            if (house.HouseType != HouseType.Apartment)
+            if (!house.IsApartment)
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.HousePurchaseTimestamp, HousePurchaseTimestamp ?? 0));
 
             // set house data
@@ -1453,14 +1453,14 @@ namespace ACE.Server.WorldObjects
 
                 if (rootHouse.HouseOwner != null && !rootHouse.HasPermission(this, false))
                 {
-                    if (!rootHouse.IsOpen || (rootHouse.HouseType != HouseType.Apartment && CurrentLandblock.HasDungeon))
+                    if (!rootHouse.IsOpen || (!rootHouse.IsApartment && CurrentLandblock.HasDungeon))
                     {
                         Teleport(rootHouse.BootSpot.Location);
                         return true;
                     }
                 }
 
-                //if (rootHouse.HouseOwner == null && rootHouse.HouseType != HouseType.Apartment && CurrentLandblock.HasDungeon)
+                //if (rootHouse.HouseOwner == null && !rootHouse.IsApartment && CurrentLandblock.HasDungeon)
                 //{
                 //    Teleport(rootHouse.BootSpot.Location);
                 //    return true;
