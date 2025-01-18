@@ -277,5 +277,14 @@ namespace ACE.Database
                 BaseDatabase.CreatePKKill(victimId, killerId, victimMonarchId, killerMonarchId);
             }));
         }
+
+        public void GetUniqueIPsInTheLast(TimeSpan timeSpan, Action<int> callback)
+        {
+            _queue.Add(new Task(() =>
+            {
+                var result = BaseDatabase.GetUniqueIPsInTheLast(timeSpan);
+                callback?.Invoke(result);
+            }));
+        }
     }
 }

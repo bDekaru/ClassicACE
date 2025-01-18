@@ -1139,5 +1139,19 @@ namespace ACE.Database
                 return results;
             }
         }
+
+        public virtual int GetUniqueIPsInTheLast(TimeSpan timeSpan)
+        {
+            var since = DateTime.Now - timeSpan;
+
+            using (var context = new ShardDbContext())
+            {
+                var count = context.AccountSessions
+                    .Where(r => r.LoginDateTime > since)
+                    .GroupBy(r => r.SessionIP).Count();
+
+                return count;
+            }
+        }
     }
 }

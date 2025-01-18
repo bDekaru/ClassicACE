@@ -35,6 +35,18 @@ namespace ACE.Server.Command.Handlers
         public static void HandlePop(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, $"Current world population: {PlayerManager.GetOnlineCount():N0}", ChatMessageType.Broadcast);
+            DatabaseManager.Shard.GetUniqueIPsInTheLast(TimeSpan.FromHours(24), result =>
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Unique IPs connected in the last 24 hours: {result:N0}", ChatMessageType.Broadcast);
+            });
+            DatabaseManager.Shard.GetUniqueIPsInTheLast(TimeSpan.FromDays(7), result =>
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Unique IPs connected in the last 7 days: {result:N0}", ChatMessageType.Broadcast);
+            });
+            DatabaseManager.Shard.GetUniqueIPsInTheLast(TimeSpan.FromDays(30), result =>
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Unique IPs connected in the last 30 days: {result:N0}", ChatMessageType.Broadcast);
+            });
         }
 
         // quest info (uses GDLe formatting to match plugin expectations)
