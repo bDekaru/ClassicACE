@@ -7121,9 +7121,7 @@ namespace ACE.Server.Command.Handlers.Processors
         [CommandHandler("exportBuildingHouses", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Export the house(s) in the current building as a template so they can be imported later at a similar building.", "<Filename>")]
         public static void HandleExportBuildingHouses(Session session, params string[] parameters)
         {
-            var exportName = parameters[0];
-
-            ExportBuildingHouses(session, exportName);
+            ExportBuildingHouses(session, string.Join(" ", parameters));
         }
 
         public static void ExportBuildingHouses(Session session, string exportName, bool confirmed = false)
@@ -7251,7 +7249,7 @@ namespace ACE.Server.Command.Handlers.Processors
         [CommandHandler("importBuildingHouses", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create house(s) in the current building from a template.", "<Filename>")]
         public static void HandleImportBuildingHouse(Session session, params string[] parameters)
         {
-            ImportBuildingHouse(session, parameters[0]);
+            ImportBuildingHouse(session, string.Join(" ", parameters));
         }
 
         public static void ImportBuildingHouse(Session session, string importName, bool confirmed = false)
