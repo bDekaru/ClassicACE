@@ -347,7 +347,7 @@ namespace ACE.Server.WorldObjects
 
         private static readonly ConcurrentDictionary<AttackFrameParams, bool> missingAttackFrames = new ConcurrentDictionary<AttackFrameParams, bool>();
 
-        private bool moveBit;
+        //private bool moveBit;
 
 
         MotionCommand CurrentAttackMotionCommand;
