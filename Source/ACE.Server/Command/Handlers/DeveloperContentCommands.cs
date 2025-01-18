@@ -1681,6 +1681,8 @@ namespace ACE.Server.Command.Handlers.Processors
             wo.ParentLink = newParentObj;
             instance.IsLinkChild = true;
 
+            wo.EnqueueBroadcast(new GameMessageUpdateObject(wo));
+
             SyncInstances(session, landblock, instances);
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) parent set to 0x{newParentGuid:X8}", ChatMessageType.Broadcast));
@@ -7532,6 +7534,235 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             SyncInstances(session, landblock, instances);
+        }
+
+        private static Position CopiedPos = null;
+
+        [CommandHandler("copyPos", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Copy position from an object that can later be pasted on another.")]
+        public static void HandleCopyInstPos(Session session, params string[] parameters)
+        {
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
+            if (wo == null)
+                return;
+
+            CopiedPos = wo.Location;
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Copied position: {CopiedPos.ToLOCString()})", ChatMessageType.Broadcast));
+        }
+
+        [CommandHandler("pastePos", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Pastes a position or partial position to the selected object.", "Valid values are all, pos, rot, x, y, z.")]
+        public static void HandlePastePos(Session session, params string[] parameters)
+        {
+            if (CopiedPos == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"No position has been copied yet.", ChatMessageType.Help));
+                return;
+            }
+
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
+            if (wo == null)
+                return;
+
+            if (wo.Guid.IsStatic())
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) is a landblock instance, use /pasteInstPos instead.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            var globalCopiedPos = CopiedPos.ToGlobal();
+            var globalNewPos = wo.Location.ToGlobal();
+
+            var newPos = new Position(wo.Location);
+
+            var param = parameters[0].ToLower();
+            switch (param)
+            {
+                case "all":
+                    newPos = new Position(CopiedPos);
+                    break;
+                case "pos":
+                    newPos.LandblockId = CopiedPos.LandblockId;
+                    newPos.PositionX = CopiedPos.PositionX;
+                    newPos.PositionY = CopiedPos.PositionY;
+                    newPos.PositionZ = CopiedPos.PositionZ;
+                    break;
+                case "rot":
+                    newPos.RotationX = CopiedPos.RotationX;
+                    newPos.RotationY = CopiedPos.RotationY;
+                    newPos.RotationZ = CopiedPos.RotationZ;
+                    newPos.RotationW = CopiedPos.RotationW;
+                    break;
+                case "x":
+                    globalNewPos.X = globalCopiedPos.X;
+                    break;
+                case "y":
+                    globalNewPos.Y = globalCopiedPos.Y;
+                    break;
+                case "z":
+                    newPos.PositionZ = CopiedPos.PositionZ;
+                    break;
+                default:
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid paramenter! Valid values are all, pos, rot, x, y, z.", ChatMessageType.Help));
+                    return;
+            }
+
+            if(param == "x" || param == "y")
+            {
+                newPos = newPos.FromGlobal(globalNewPos);
+            }
+
+            var prevPos = new Position(wo.Location);
+            var setPos = new Physics.Common.SetPosition(newPos.PhysPosition(), Physics.Common.SetPositionFlags.Teleport);
+            var result = wo.PhysicsObj.SetPosition(setPos);
+
+            if (result != Physics.Common.SetPositionError.OK)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) failed to move from {wo.PhysicsObj.Position.ACEPosition()} to {newPos}.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            // update ace location
+            wo.Location = wo.PhysicsObj.Position.ACEPosition();
+
+            if (prevPos.Landblock != wo.Location.Landblock)
+            {
+                var distance = prevPos.DistanceTo(wo.Location);
+                LandblockManager.RelocateObjectForPhysics(wo, distance <= 192 && !wo.InDungeon);
+            }
+
+            // broadcast new position
+            wo.SendUpdatePosition(true);
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) - moved from {prevPos} to {wo.Location}.", ChatMessageType.Broadcast));
+        }
+
+        [CommandHandler("pasteInstPos", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Pastes a position or partial position to the selected instance.", "Valid values are all, pos, rot, x, y, z.")]
+        public static void HandlePasteInstPos(Session session, params string[] parameters)
+        {
+            if (CopiedPos == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"No position has been copied yet.", ChatMessageType.Help));
+                return;
+            }
+
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
+            if (wo == null)
+                return;
+
+            // ensure landblock instance
+            uint guid = wo.Guid.Full;
+            if (!wo.Guid.IsStatic())
+            {
+                uint? staticGuid = null;
+                if (wo.Generator != null)
+                {
+                    // if generator child, try getting the "real" guid
+                    staticGuid = wo.Generator.GetStaticGuid(guid);
+                    if (staticGuid != null)
+                        guid = staticGuid.Value;
+                }
+
+                if (staticGuid == null)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) is not landblock instance, use /pastePos instead.", ChatMessageType.Broadcast));
+                    return;
+                }
+            }
+
+            var landblockId = (ushort)(guid >> 12);
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblockId);
+            var instance = instances.FirstOrDefault(i => i.Guid == guid);
+
+            if (instance == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find instance for {wo.Name} ({wo.Guid})", ChatMessageType.Broadcast));
+                return;
+            }
+
+            var param = parameters[0].ToLower();
+            if (CopiedPos.LandblockId != wo.Location.LandblockId && param != "rot" && param != "z")
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Instances cannot change landblock.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            var newPos = new Position(wo.Location);
+
+            switch (param)
+            {
+                case "all":
+                    newPos = new Position(CopiedPos);
+                    break;
+                case "pos":
+                    newPos.PositionX = CopiedPos.PositionX;
+                    newPos.PositionY = CopiedPos.PositionY;
+                    newPos.PositionZ = CopiedPos.PositionZ;
+                    break;
+                case "rot":
+                    newPos.RotationX = CopiedPos.RotationX;
+                    newPos.RotationY = CopiedPos.RotationY;
+                    newPos.RotationZ = CopiedPos.RotationZ;
+                    newPos.RotationW = CopiedPos.RotationW;
+                    break;
+                case "x":
+                    newPos.PositionX = CopiedPos.PositionX;
+                    break;
+                case "y":
+                    newPos.PositionY = CopiedPos.PositionY;
+                    break;
+                case "z":
+                    newPos.PositionZ = CopiedPos.PositionZ;
+                    break;
+                default:
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid paramenter! Valid values are all, pos, rot, x, y, z.", ChatMessageType.Help));
+                    return;
+            }
+
+            var prevPos = new Position(wo.Location);
+            var setPos = new Physics.Common.SetPosition(newPos.PhysPosition(), Physics.Common.SetPositionFlags.Teleport);
+            var result = wo.PhysicsObj.SetPosition(setPos);
+
+            if (result != Physics.Common.SetPositionError.OK)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) failed to move from {prevPos} to {newPos}.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            var endPos = wo.PhysicsObj.Position.ACEPosition();
+            if (prevPos.LandblockId != endPos.LandblockId)
+            {
+                // We somehow ended up in a different landblock, roll back.
+                setPos = new Physics.Common.SetPosition(prevPos.PhysPosition(), Physics.Common.SetPositionFlags.Teleport);
+                result = wo.PhysicsObj.SetPosition(setPos);
+
+                if (result != Physics.Common.SetPositionError.OK)
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) failed to roll back position from {endPos} to {prevPos}.", ChatMessageType.Broadcast));
+                    return;
+                }
+
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Instances cannot change landblock.", ChatMessageType.Broadcast));
+                return;
+            }
+
+            // update ace location
+            wo.Location = endPos;
+
+            // broadcast new position
+            wo.SendUpdatePosition(true);
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) - moved from {prevPos} to {wo.Location}.", ChatMessageType.Broadcast));
+
+            // update sql
+            instance.ObjCellId = wo.Location.Cell;
+            instance.OriginX = wo.Location.PositionX;
+            instance.OriginY = wo.Location.PositionY;
+            instance.OriginZ = wo.Location.PositionZ;
+            instance.AnglesX = wo.Location.RotationX;
+            instance.AnglesY = wo.Location.RotationY;
+            instance.AnglesZ = wo.Location.RotationZ;
+            instance.AnglesW = wo.Location.RotationW;
+
+            SyncInstances(session, landblockId, instances);
         }
     }
 }
