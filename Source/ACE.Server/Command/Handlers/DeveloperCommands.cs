@@ -3253,7 +3253,7 @@ namespace ACE.Server.Command.Handlers
 
             // reload landblock
             var actionChain = new ActionChain();
-            actionChain.AddDelayForOneTick();
+            actionChain.AddDelaySeconds(0.1f);
             actionChain.AddAction(WorldManager.ActionQueue, () =>
             {
                 landblock.Init(true);
