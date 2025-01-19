@@ -14,7 +14,8 @@ using ACE.Server.Command.Handlers;
 using HarmonyLib;
 
 namespace ACE.Server.Network
-{    public static class DiscordChatBridge
+{
+    public static class DiscordChatBridge
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -68,7 +69,7 @@ namespace ACE.Server.Network
                 return Task.CompletedTask;
 
             var channel = DiscordClient.GetChannel(channelId) as IMessageChannel;
-            if(channel != null)
+            if (channel != null)
                 channel.SendMessageAsync(message);
             return Task.CompletedTask;
         }
@@ -197,7 +198,7 @@ namespace ACE.Server.Network
                                 return Task.CompletedTask;
 
                             case "pop":
-                                SendMessage(message.Channel.Id, $"Current world population: {PlayerManager.GetOnlineCount():N0}");
+                                PlayerCommands.ShowPop(null, message.Channel.Id);
                                 return Task.CompletedTask;
                         }
                     }
@@ -213,7 +214,7 @@ namespace ACE.Server.Network
                     authorName = authorName.Normalize(NormalizationForm.FormKC);
 
                     var validLetters = "";
-                    foreach(char letter in authorName)
+                    foreach (char letter in authorName)
                     {
                         if ((letter >= 32 && letter <= 126) || (letter >= 160 && letter <= 383)) //Basic Latin + Latin-1 Supplement + Latin Extended-A
                             validLetters += letter;

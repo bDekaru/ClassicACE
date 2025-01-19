@@ -687,7 +687,11 @@ namespace ACE.Server.Managers
                 ("hardcore_death_keep_housing", new Property<bool>(false, "Allow hardcore characters to keep their housing on death.")),
                 ("hardcore_death_keep_allegiance", new Property<bool>(false, "Allow hardcore characters to keep their allegiance on death")),
                 ("hardcore_pk_grant_ring_of_impermanency", new Property<bool>(false, "Give new hardcore PKs a ring that buffs their run and jump skills that they can wear up to level 20")),
-                ("pathfinding", new Property<bool>(false, "CustomDM: Allows creatures to use pathfinding to navigate dungeons"))
+                ("pathfinding", new Property<bool>(false, "CustomDM: Allows creatures to use pathfinding to navigate dungeons")),
+                ("cmd_pop_show_current", new Property<bool>(true, "Allow the pop command to show current online population count")),
+                ("cmd_pop_show_24_hours", new Property<bool>(true, "Allow the pop command to show the 24 hours unique IPs count")),
+                ("cmd_pop_show_7_days", new Property<bool>(true, "Allow the pop command to show the 7 days unique IPs count")),
+                ("cmd_pop_show_30_days", new Property<bool>(true, "Allow the pop command to show the 30 days unique IPs count"))
                 );
 
         public static readonly ReadOnlyDictionary<string, Property<long>> DefaultLongProperties =
