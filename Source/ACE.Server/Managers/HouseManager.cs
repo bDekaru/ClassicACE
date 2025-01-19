@@ -473,6 +473,8 @@ namespace ACE.Server.Managers
             house.HouseOwnerName = null;
 
             house.ClearPermissions();
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                house.SetHooksVisible(false);
 
             house.SaveBiotaToDatabase();
 

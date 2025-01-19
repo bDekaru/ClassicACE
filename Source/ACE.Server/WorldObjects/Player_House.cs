@@ -502,7 +502,10 @@ namespace ACE.Server.WorldObjects
                 house.HouseOwner = null;
                 house.MonarchId = null;
                 house.HouseOwnerName = null;
+
                 house.ClearPermissions();
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    house.SetHooksVisible(false);
 
                 house.SaveBiotaToDatabase();
 
@@ -648,6 +651,9 @@ namespace ACE.Server.WorldObjects
             house.HouseOwner = Guid.Full;
             house.HouseOwnerName = Name;
             house.OpenToEveryone = false;
+
+            house.SetHooksVisible(true);
+
             house.SaveBiotaToDatabase();
             
             // relink
@@ -1192,34 +1198,7 @@ namespace ACE.Server.WorldObjects
 
             var house = GetHouse();
 
-            if (visible == (house.HouseHooksVisible ?? true)) return;
-
-            house.HouseHooksVisible = visible;
-
-            foreach (var hook in house.Hooks.Where(i => i.Inventory.Count == 0))
-            {
-                hook.UpdateHookVisibility();
-            }
-
-            // if house has dungeon, repeat this process
-            if (house.HasDungeon)
-            {
-                var dungeonHouse = house.GetDungeonHouse();
-                if (dungeonHouse == null) return;
-
-                dungeonHouse.HouseHooksVisible = visible;
-
-                foreach (var hook in dungeonHouse.Hooks.Where(i => i.Inventory.Count == 0))
-                {
-                    hook.UpdateHookVisibility();
-                }
-
-                if (dungeonHouse.CurrentLandblock == null)
-                    dungeonHouse.SaveBiotaToDatabase();
-            }
-
-            if (house.CurrentLandblock == null)
-                house.SaveBiotaToDatabase();
+            house.SetHooksVisible(visible);
         }
 
         public void HandleActionModifyStorage(string guestName, bool hasPermission, bool sendMsgToOwner = true)

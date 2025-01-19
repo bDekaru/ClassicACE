@@ -824,5 +824,37 @@ namespace ACE.Server.WorldObjects
         public int GetHookGroupCurrentCount(HookGroupType hookGroupType) => Hooks.Count(h => h.HasItem && (h.Item?.HookGroup ?? HookGroupType.Undef) == hookGroupType);
 
         public int GetHookGroupMaxCount(HookGroupType hookGroupType) => HookGroupLimits[HouseType][hookGroupType];
+
+        public void SetHooksVisible(bool visible)
+        {
+            if (visible == (HouseHooksVisible ?? true)) return;
+
+            HouseHooksVisible = visible;
+
+            foreach (var hook in Hooks.Where(i => i.Inventory.Count == 0))
+            {
+                hook.UpdateHookVisibility();
+            }
+
+            // if house has dungeon, repeat this process
+            if (HasDungeon)
+            {
+                var dungeonHouse = GetDungeonHouse();
+                if (dungeonHouse == null) return;
+
+                dungeonHouse.HouseHooksVisible = visible;
+
+                foreach (var hook in dungeonHouse.Hooks.Where(i => i.Inventory.Count == 0))
+                {
+                    hook.UpdateHookVisibility();
+                }
+
+                if (dungeonHouse.CurrentLandblock == null)
+                    dungeonHouse.SaveBiotaToDatabase();
+            }
+
+            if (CurrentLandblock == null)
+                SaveBiotaToDatabase();
+        }
     }
 }
