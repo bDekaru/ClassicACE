@@ -1449,7 +1449,7 @@ namespace ACE.Server.Entity
             foreach (var wo in worldObjects.Where(i => !(i.Value is Player)).ToList())
             {
                 if (!wo.Value.BiotaOriginatedFromOrHasBeenSavedToDatabase())
-                    wo.Value.Destroy(false);
+                    wo.Value.Destroy(false, true);
                 else
                     RemoveWorldObjectInternal(wo.Key);
             }

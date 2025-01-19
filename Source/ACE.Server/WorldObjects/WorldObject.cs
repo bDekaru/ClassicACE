@@ -1062,11 +1062,14 @@ namespace ACE.Server.WorldObjects
                     wo.Destroy();
             }
 
-            if (this is House house && house.SlumLord != null && !house.SlumLord.IsDestroyed)
-                HouseManager.DoHandleHouseRemoval(Guid.Full);
+            if (!fromLandblockUnload)
+            {
+                if (this is House house && house.SlumLord != null && !house.SlumLord.IsDestroyed)
+                    HouseManager.DoHandleHouseRemoval(Guid.Full);
 
-            if (this is SlumLord slumlord && slumlord.House != null && !slumlord.House.IsDestroyed)
-                HouseManager.DoHandleHouseRemoval(slumlord.House.Guid.Full);
+                if (this is SlumLord slumlord && slumlord.House != null && !slumlord.House.IsDestroyed)
+                    HouseManager.DoHandleHouseRemoval(slumlord.House.Guid.Full);
+            }
 
             if (raiseNotifyOfDestructionEvent)
                 NotifyOfEvent(RegenerationType.Destruction);
