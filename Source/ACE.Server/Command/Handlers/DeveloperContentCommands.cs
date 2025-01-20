@@ -7549,10 +7549,14 @@ namespace ACE.Server.Command.Handlers.Processors
             session.Network.EnqueueSend(new GameMessageSystemChat($"Copied position: {CopiedPos.ToLOCString()})", ChatMessageType.Broadcast));
         }
 
-        [CommandHandler("pastePos", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Pastes a position or partial position to the selected object.", "Valid values are all, pos, rot, x, y, z.")]
+        [CommandHandler("pastePos", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Pastes a position or partial position to the selected object.", "Valid values are all, pos, rot, x, y, z.")]
         public static void HandlePastePos(Session session, params string[] parameters)
         {
-            var param = parameters[0].ToLower();
+            string param;
+            if (parameters.Count() != 0)
+                param = parameters[0].ToLower();
+            else
+                param = "all";
 
             if (CopiedPos == null)
             {
@@ -7607,9 +7611,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             if(param == "x" || param == "y")
-            {
                 newPos = newPos.FromGlobal(globalNewPos);
-            }
 
             var prevPos = new Position(wo.Location);
             var setPos = new Physics.Common.SetPosition(newPos.PhysPosition(), Physics.Common.SetPositionFlags.Teleport);
@@ -7636,10 +7638,14 @@ namespace ACE.Server.Command.Handlers.Processors
             session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) - moved from {prevPos} to {wo.Location}.", ChatMessageType.Broadcast));
         }
 
-        [CommandHandler("pasteInstPos", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Pastes a position or partial position to the selected instance.", "Valid values are all, pos, rot, x, y, z.")]
+        [CommandHandler("pasteInstPos", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Pastes a position or partial position to the selected instance.", "Valid values are all, pos, rot, x, y, z.")]
         public static void HandlePasteInstPos(Session session, params string[] parameters)
         {
-            var param = parameters[0].ToLower();
+            string param;
+            if (parameters.Count() != 0)
+                param = parameters[0].ToLower();
+            else
+                param = "all";
 
             if (CopiedPos == null)
             {
@@ -7782,6 +7788,25 @@ namespace ACE.Server.Command.Handlers.Processors
             instance.AnglesW = wo.Location.RotationW;
 
             SyncInstances(session, landblockId, instances);
+        }
+
+        [CommandHandler("distToCopiedPos", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Measures the distance from the selected object to the copied position.")]
+        public static void HandledDistToCopiedPos(Session session, params string[] parameters)
+        {
+            if (CopiedPos == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"No position has been copied yet.", ChatMessageType.Help));
+                return;
+            }
+
+            var wo = CommandHandlerHelper.GetQueryTarget(session);
+            if (wo == null)
+                return;
+
+            var distance = wo.Location.DistanceTo(CopiedPos);
+            var offset = wo.Location.GetOffset(CopiedPos);
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Distance: {distance:0.###}\nX(E/W): {offset.X:0.###}\nY(N/S): {offset.Y:0.###}\nZ(Height): {offset.Z:0.###}", ChatMessageType.Broadcast));
         }
     }
 }
