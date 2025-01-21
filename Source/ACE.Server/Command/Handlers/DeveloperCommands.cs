@@ -2913,6 +2913,15 @@ namespace ACE.Server.Command.Handlers
                 session.Network.EnqueueSend(new GameMessageSystemChat("Couldn't find slumlord", ChatMessageType.Broadcast));
                 return;
             }
+
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(slumlord.CurrentLandblock.Id.Landblock);
+            var instance = instances.FirstOrDefault(h => h.Guid == slumlord.Guid.Full);
+            if (instance == null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("You cannot buy this house yet! It has not been saved to the database.", ChatMessageType.Broadcast));
+                return;
+            }
+
             session.Player.SetHouseOwner(slumlord);
             session.Player.GiveDeed(slumlord);
         }

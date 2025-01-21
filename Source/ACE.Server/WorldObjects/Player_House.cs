@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using ACE.Common;
+using ACE.Database;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
@@ -31,6 +32,15 @@ namespace ACE.Server.WorldObjects
         {
             //Console.WriteLine($"\n{Name}.HandleActionBuyHouse()");
             log.Info($"[HOUSE] {Name}.HandleActionBuyHouse()");
+
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(CurrentLandblock.Id.Landblock);
+            var instance = instances.FirstOrDefault(h => h.Guid == slumlord_id);
+            if(instance == null)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("You cannot buy this house yet! It has not been saved to the database.", ChatMessageType.Broadcast));
+                log.Info($"[HOUSE] {Name}.HandleActionBuyHouse(): Tried to buy house offline landblock instance");
+                return;
+            }
 
             // verify player doesn't already own a house
             var houseInstance = GetHouseInstance();
