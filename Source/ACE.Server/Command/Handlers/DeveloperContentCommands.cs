@@ -986,7 +986,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 }
 
                 sqlFilename = RecipeSQLWriter.GetDefaultFileName(recipe, cookbooks);
-                using (StreamWriter sqlFile = new StreamWriter(sqlFolder + sqlFilename)) { 
+                using (StreamWriter sqlFile = new StreamWriter(sqlFolder + sqlFilename)) {
                     RecipeSQLWriter.CreateSQLDELETEStatement(recipe, sqlFile);
                     sqlFile.WriteLine();
 
@@ -2091,7 +2091,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     parentObj = session.Player.CurrentLandblock.GetObject(entry.parentGuid);
 
                     if (parentObj == null)
-                    { 
+                    {
                         session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent object 0x{entry.parentGuid:X8} in guid 0x{entry.guid:X8}", ChatMessageType.Broadcast));
                         continue;
                     }
@@ -7118,7 +7118,7 @@ namespace ACE.Server.Command.Handlers.Processors
         {
             var wo = CommandHandlerHelper.GetQueryTarget(session);
 
-            if(wo == null)
+            if (wo == null)
                 return;
 
             if (wo.ParentLink != null)
@@ -7216,6 +7216,21 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
+            var contentFolder = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}housing templates");
+
+            var filename = $"{folder.FullName}{sep}{exportName}.txt";
+
+            if (!confirmed && File.Exists(filename))
+            {
+                var msg = $"{exportName} already exists, overwrite?";
+                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ExportBuildingHouses(session, exportName, true)), msg))
+                    session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                return;
+            }
+
             var buildingPos = building.Position.ACEPosition();
             var buildingRotation = buildingPos.GetYaw();
             var buildingType = building.ID;
@@ -7224,93 +7239,84 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var instances = GetLiveOrOfflineLandblockInstances(landblock);
 
-            var houseObjects = new List<(uint wcid, bool isHouse, int houseId, Position pos)>();
-            var houseCounter = 0;
-            foreach (var instance in instances)
+            CommandHandlerHelper.WriteOutputInfo(session, $"Exporting housing template {exportName}...");
+
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(0.1);
+            actionChain.AddAction(WorldManager.ActionQueue, () =>
             {
-                var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
-                if (instanceWeenie.Type != (int)WeenieType.House)
-                    continue;
-
-                var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
-                if (housePos.GetOutdoorCell() != outdoorCellId)
-                    continue;
-                houseCounter++;
-
-                housePos.RotateAroundPivot(buildingPos, -buildingRotation);
-
-                var houseOffset = buildingPos.GetOffset(housePos);
-                housePos = new Position(housePos.LandblockId.Raw, houseOffset.X, houseOffset.Y, houseOffset.Z, housePos.RotationX, housePos.RotationY, housePos.RotationZ, housePos.RotationW, true);
-
-                houseObjects.Add((instance.WeenieClassId, true, houseCounter, housePos));
-
-                foreach (var link in instance.LandblockInstanceLink)
+                var houseObjects = new List<(uint wcid, bool isHouse, int houseId, Position pos)>();
+                var houseCounter = 0;
+                foreach (var instance in instances)
                 {
-                    var child = instances.FirstOrDefault(i => i.Guid == link.ChildGuid);
-                    if (child == null)
-                    {
-                        CommandHandlerHelper.WriteOutputWarn(session, $"Couldn't find child guid for {link.ChildGuid:X8}");
+                    var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
+                    if (instanceWeenie.Type != (int)WeenieType.House)
                         continue;
+
+                    var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+                    if (housePos.GetOutdoorCell() != outdoorCellId)
+                        continue;
+                    houseCounter++;
+
+                    housePos.RotateAroundPivot(buildingPos, -buildingRotation);
+
+                    var houseOffset = buildingPos.GetOffset(housePos);
+                    housePos = new Position(housePos.LandblockId.Raw, houseOffset.X, houseOffset.Y, houseOffset.Z, housePos.RotationX, housePos.RotationY, housePos.RotationZ, housePos.RotationW, true);
+
+                    houseObjects.Add((instance.WeenieClassId, true, houseCounter, housePos));
+
+                    foreach (var link in instance.LandblockInstanceLink)
+                    {
+                        var child = instances.FirstOrDefault(i => i.Guid == link.ChildGuid);
+                        if (child == null)
+                        {
+                            CommandHandlerHelper.WriteOutputWarn(session, $"Couldn't find child guid for {link.ChildGuid:X8}");
+                            continue;
+                        }
+
+                        var weenie = DatabaseManager.World.GetWeenie(child.WeenieClassId);
+
+                        var childPos = new Position(child.ObjCellId, child.OriginX, child.OriginY, child.OriginZ, child.AnglesX, child.AnglesY, child.AnglesZ, child.AnglesW);
+                        childPos.RotateAroundPivot(buildingPos, -buildingRotation);
+
+                        var childOffset = buildingPos.GetOffset(childPos);
+
+                        houseObjects.Add((child.WeenieClassId, false, houseCounter, new Position(child.ObjCellId, childOffset.X, childOffset.Y, childOffset.Z, childPos.RotationX, childPos.RotationY, childPos.RotationZ, childPos.RotationW, true)));
                     }
-
-                    var weenie = DatabaseManager.World.GetWeenie(child.WeenieClassId);
-
-                    var childPos = new Position(child.ObjCellId, child.OriginX, child.OriginY, child.OriginZ, child.AnglesX, child.AnglesY, child.AnglesZ, child.AnglesW);
-                    childPos.RotateAroundPivot(buildingPos, -buildingRotation);
-
-                    var childOffset = buildingPos.GetOffset(childPos);
-
-                    houseObjects.Add((child.WeenieClassId, false, houseCounter, new Position(child.ObjCellId, childOffset.X, childOffset.Y, childOffset.Z, childPos.RotationX, childPos.RotationY, childPos.RotationZ, childPos.RotationW, true)));
                 }
-            }
 
-            if(houseObjects.Count == 0)
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, "This building has no houses.");
-                return;
-            }
-
-            var contentFolder = VerifyContentFolder(session, false);
-
-            var sep = Path.DirectorySeparatorChar;
-            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}housing templates");
-
-            var filename = $"{folder.FullName}{sep}{exportName}.txt";
-
-            try
-            {
-                if (!folder.Exists)
-                    folder.Create();
-
-                if (!confirmed && File.Exists(filename))
+                if (houseObjects.Count == 0)
                 {
-                    var msg = $"{exportName} already exists, overwrite?";
-                    if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ExportBuildingHouses(session, exportName, true)), msg))
-                        session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                    CommandHandlerHelper.WriteOutputInfo(session, "This building has no houses.");
                     return;
                 }
 
-                var output = new List<string>();
-
-                CommandHandlerHelper.WriteOutputInfo(session, $"Exporting housing template {exportName}...");
-
-                output.Add(buildingType.ToString());
-
-                foreach (var entry in houseObjects)
+                try
                 {
-                    output.Add($"{entry.wcid}\t{entry.isHouse}\t{entry.houseId}\t{entry.pos.ToLOCStringAlt()}");
+                    if (!folder.Exists)
+                        folder.Create();
+                    var output = new List<string>();
+
+                    output.Add(buildingType.ToString());
+
+                    foreach (var entry in houseObjects)
+                    {
+                        output.Add($"{entry.wcid}\t{entry.isHouse}\t{entry.houseId}\t{entry.pos.ToLOCStringAlt()}");
+                    }
+
+                    File.WriteAllLines(filename, output);
+
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Exported {filename}");
                 }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {filename}");
+                    return;
+                }
+            });
 
-                File.WriteAllLines(filename, output);
-
-                CommandHandlerHelper.WriteOutputInfo(session, $"Exported {filename}");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {filename}");
-                return;
-            }
+            actionChain.EnqueueChain();
         }
 
         [CommandHandler("importBuildingHouses", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Create house(s) in the current building from a template.", "<Filename>")]
@@ -7350,127 +7356,113 @@ namespace ACE.Server.Command.Handlers.Processors
             var landblock = (ushort)buildingPos.Landblock;
             var instances = GetLiveOrOfflineLandblockInstances(landblock);
 
-            if (!confirmed)
+            CommandHandlerHelper.WriteOutputInfo(session, $"Importing housing template {importName}...");
+
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(0.1);
+            actionChain.AddAction(WorldManager.ActionQueue, () =>
             {
-                var houseCounter = 0;
-                foreach (var instance in instances)
+                if (!confirmed)
                 {
-                    var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
-                    if (instanceWeenie.Type != (int)WeenieType.House)
-                        continue;
-
-                    var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
-                    if (housePos.GetOutdoorCell() != outdoorCellId)
-                        continue;
-                    houseCounter++;
-                }
-
-                if (houseCounter > 0)
-                {
-                    var msg = $"This building already contains {houseCounter} house{(houseCounter != 1 ? "s" : "")}. Import anyways?";
-                    if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ImportBuildingHouse(session, importName, true)), msg))
-                        session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
-                    return;
-                }
-            }
-
-            uint buildingType = 0;
-            var houseObjects = new List<(uint wcid, bool isHouse, int houseId, Position pos)>();
-
-            DirectoryInfo di = VerifyContentFolder(session);
-            if (!di.Exists)
-                return;
-
-            var sep = Path.DirectorySeparatorChar;
-
-            var folder = $"{di.FullName}{sep}housing templates{sep}";
-
-            di = new DirectoryInfo(folder);
-
-            try
-            {
-                var files = di.Exists ? di.GetFiles($"{importName}.txt") : null;
-
-                if (files == null || files.Length == 0)
-                {
-                    CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find {folder}{importName}.txt");
-                    return;
-                }
-
-                var file = files.First();
-
-                CommandHandlerHelper.WriteOutputInfo(session, $"Importing housing template {importName}...");
-
-                string[] input = File.ReadAllLines(file.FullName);
-                foreach (string line in input)
-                {
-                    if(buildingType == 0)
-                        buildingType = uint.Parse(line);
-                    else
+                    var houseCounter = 0;
+                    foreach (var instance in instances)
                     {
-                        var splitLine = line.Split('\t');
-                        var wcid = uint.Parse(splitLine[0]);
-                        var isHouse = bool.Parse(splitLine[1]);
-                        var houseId = int.Parse(splitLine[2]);
-                        var splitPositionString = splitLine[3].Split(',');
-                        var position = new Position(uint.Parse(splitPositionString[0].Replace("0x", ""), NumberStyles.HexNumber), float.Parse(splitPositionString[1]), float.Parse(splitPositionString[2]), float.Parse(splitPositionString[3]), float.Parse(splitPositionString[5]), float.Parse(splitPositionString[6]), float.Parse(splitPositionString[7]), float.Parse(splitPositionString[4]), true);
+                        var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
+                        if (instanceWeenie.Type != (int)WeenieType.House)
+                            continue;
 
-                        houseObjects.Add((wcid, isHouse, houseId, position));
+                        var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+                        if (housePos.GetOutdoorCell() != outdoorCellId)
+                            continue;
+                        houseCounter++;
+                    }
+
+                    if (houseCounter > 0)
+                    {
+                        var msg = $"This building already contains {houseCounter} house{(houseCounter != 1 ? "s" : "")}. Import anyways?";
+                        if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ImportBuildingHouse(session, importName, true)), msg))
+                            session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                        return;
                     }
                 }
 
-                CommandHandlerHelper.WriteOutputInfo(session, $"Imported {file.FullName}");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to import {folder}{importName}.txt");
-                return;
-            }
+                uint buildingType = 0;
+                var houseObjects = new List<(uint wcid, bool isHouse, int houseId, Position pos)>();
 
-            if (buildingType == 0 || houseObjects.Count == 0)
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, "Invalid file.");
-                return;
-            }
+                DirectoryInfo di = VerifyContentFolder(session);
+                if (!di.Exists)
+                    return;
 
-            if (buildingType != building.ID)
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, $"Current building type(0x{building.ID:X8}) doesn't match imported building type(0x{buildingType:X8}).");
-                return;
-            }
+                var sep = Path.DirectorySeparatorChar;
 
-            var instancesToCreate = new List<(uint guid, Weenie weenie, Position loc, uint parentGuid)>();
-            var houseGuids = new List<uint>();
+                var folder = $"{di.FullName}{sep}housing templates{sep}";
 
-            var nextGuid = GetNextStaticGuid(landblock, instances);
+                di = new DirectoryInfo(folder);
 
-            var bumpHeight = 0.05f;
-            foreach (var entry in houseObjects)
-            {
-                if (!entry.Item2)
-                    continue;
-                else
+                try
                 {
-                    var position = new Position(building.LandblockID, entry.pos.PositionX + buildingPos.PositionX, entry.pos.PositionY + buildingPos.PositionY, entry.pos.PositionZ + buildingPos.PositionZ, entry.pos.RotationX, entry.pos.RotationY, entry.pos.RotationZ, entry.pos.RotationW);
-                    position.RotateAroundPivot(buildingPos, buildingRotation);
+                    var files = di.Exists ? di.GetFiles($"{importName}.txt") : null;
 
-                    // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
-                    position.PositionZ += bumpHeight;
-                    position.LandblockId = new LandblockId(position.GetCell());
-                    position.PositionZ -= bumpHeight;
-
-                    var houseGuid = nextGuid++;
-                    houseGuids.Add(houseGuid);
-
-                    var weenie = DatabaseManager.World.GetWeenie(entry.wcid);
-                    instancesToCreate.Add((houseGuid, weenie, position, 0));
-
-                    var childList = houseObjects.Where(i => !i.isHouse && i.houseId == entry.houseId).ToList();
-
-                    foreach (var childEntry in childList)
+                    if (files == null || files.Length == 0)
                     {
-                        position = new Position(building.Position.ObjCellID, childEntry.pos.PositionX + buildingPos.PositionX, childEntry.pos.PositionY + buildingPos.PositionY, childEntry.pos.PositionZ + buildingPos.PositionZ, childEntry.pos.RotationX, childEntry.pos.RotationY, childEntry.pos.RotationZ, childEntry.pos.RotationW);
+                        CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find {folder}{importName}.txt");
+                        return;
+                    }
+
+                    var file = files.First();
+
+                    string[] input = File.ReadAllLines(file.FullName);
+                    foreach (string line in input)
+                    {
+                        if(buildingType == 0)
+                            buildingType = uint.Parse(line);
+                        else
+                        {
+                            var splitLine = line.Split('\t');
+                            var wcid = uint.Parse(splitLine[0]);
+                            var isHouse = bool.Parse(splitLine[1]);
+                            var houseId = int.Parse(splitLine[2]);
+                            var splitPositionString = splitLine[3].Split(',');
+                            var position = new Position(uint.Parse(splitPositionString[0].Replace("0x", ""), NumberStyles.HexNumber), float.Parse(splitPositionString[1]), float.Parse(splitPositionString[2]), float.Parse(splitPositionString[3]), float.Parse(splitPositionString[5]), float.Parse(splitPositionString[6]), float.Parse(splitPositionString[7]), float.Parse(splitPositionString[4]), true);
+
+                            houseObjects.Add((wcid, isHouse, houseId, position));
+                        }
+                    }
+
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Imported {file.FullName}");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Failed to import {folder}{importName}.txt");
+                    return;
+                }
+
+                if (buildingType == 0 || houseObjects.Count == 0)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, "Invalid file.");
+                    return;
+                }
+
+                if (buildingType != building.ID)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Current building type(0x{building.ID:X8}) doesn't match imported building type(0x{buildingType:X8}).");
+                    return;
+                }
+
+                var instancesToCreate = new List<(uint guid, Weenie weenie, Position loc, uint parentGuid)>();
+                var houseGuids = new List<uint>();
+
+                var nextGuid = GetNextStaticGuid(landblock, instances);
+
+                var bumpHeight = 0.05f;
+                foreach (var entry in houseObjects)
+                {
+                    if (!entry.Item2)
+                        continue;
+                    else
+                    {
+                        var position = new Position(building.LandblockID, entry.pos.PositionX + buildingPos.PositionX, entry.pos.PositionY + buildingPos.PositionY, entry.pos.PositionZ + buildingPos.PositionZ, entry.pos.RotationX, entry.pos.RotationY, entry.pos.RotationZ, entry.pos.RotationW);
                         position.RotateAroundPivot(buildingPos, buildingRotation);
 
                         // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
@@ -7478,17 +7470,38 @@ namespace ACE.Server.Command.Handlers.Processors
                         position.LandblockId = new LandblockId(position.GetCell());
                         position.PositionZ -= bumpHeight;
 
-                        var childWeenie = DatabaseManager.World.GetWeenie(childEntry.wcid);
-                        instancesToCreate.Add((nextGuid++, childWeenie, position, houseGuid));
+                        var houseGuid = nextGuid++;
+                        houseGuids.Add(houseGuid);
+
+                        var weenie = DatabaseManager.World.GetWeenie(entry.wcid);
+                        instancesToCreate.Add((houseGuid, weenie, position, 0));
+
+                        var childList = houseObjects.Where(i => !i.isHouse && i.houseId == entry.houseId).ToList();
+
+                        foreach (var childEntry in childList)
+                        {
+                            position = new Position(building.Position.ObjCellID, childEntry.pos.PositionX + buildingPos.PositionX, childEntry.pos.PositionY + buildingPos.PositionY, childEntry.pos.PositionZ + buildingPos.PositionZ, childEntry.pos.RotationX, childEntry.pos.RotationY, childEntry.pos.RotationZ, childEntry.pos.RotationW);
+                            position.RotateAroundPivot(buildingPos, buildingRotation);
+
+                            // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
+                            position.PositionZ += bumpHeight;
+                            position.LandblockId = new LandblockId(position.GetCell());
+                            position.PositionZ -= bumpHeight;
+
+                            var childWeenie = DatabaseManager.World.GetWeenie(childEntry.wcid);
+                            instancesToCreate.Add((nextGuid++, childWeenie, position, houseGuid));
+                        }
                     }
                 }
-            }
 
-            var result = CreateLandblockInstances(session, instancesToCreate, true);
-            foreach (var entry in houseGuids)
-            {
-                HouseManager.DoHandleHouseCreation(entry);
-            }
+                var result = CreateLandblockInstances(session, instancesToCreate, true);
+                foreach (var entry in houseGuids)
+                {
+                    HouseManager.DoHandleHouseCreation(entry);
+                }
+            });
+
+            actionChain.EnqueueChain();
         }
 
         [CommandHandler("clearBuildingHouses", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Removes all houses from the current building")]
@@ -7530,76 +7543,85 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var instances = GetLiveOrOfflineLandblockInstances(landblock);
 
-            List<LandblockInstance> houseObjectsInstances = new List<LandblockInstance>();
-            foreach (var instance in instances)
+            if(!confirmed)
+                CommandHandlerHelper.WriteOutputInfo(session, "Clearing building of houses...");
+
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(0.1);
+            actionChain.AddAction(WorldManager.ActionQueue, () =>
             {
-                var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
-                if (instanceWeenie.Type != (int)WeenieType.House)
-                    continue;
-
-                var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
-                if (housePos.GetOutdoorCell() != outdoorCellId)
-                    continue;
-
-                houseObjectsInstances.Add(instance);
-            }
-
-            if (houseObjectsInstances.Count == 0)
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, "This building has no houses.");
-                return;
-            }
-
-            if (!confirmed)
-            {
-                var msg = $"This building contains {houseObjectsInstances.Count} house{(houseObjectsInstances.Count != 1 ? "s" : "")}. Proceed?";
-                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ClearBuildingHouses(session, true)), msg))
-                    session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
-                return;
-            }
-
-            foreach(var instance in houseObjectsInstances)
-            {
-                if (instance.IsLinkChild)
+                List<LandblockInstance> houseObjectsInstances = new List<LandblockInstance>();
+                foreach (var instance in instances)
                 {
-                    LandblockInstanceLink link = null;
+                    var instanceWeenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
+                    if (instanceWeenie.Type != (int)WeenieType.House)
+                        continue;
 
-                    foreach (var parent in instances.Where(i => i.LandblockInstanceLink.Count > 0))
+                    var housePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+                    if (housePos.GetOutdoorCell() != outdoorCellId)
+                        continue;
+
+                    houseObjectsInstances.Add(instance);
+                }
+
+                if (houseObjectsInstances.Count == 0)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, "This building has no houses.");
+                    return;
+                }
+
+                if (!confirmed)
+                {
+                    var msg = $"This building contains {houseObjectsInstances.Count} house{(houseObjectsInstances.Count != 1 ? "s" : "")}. Proceed?";
+                    if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ClearBuildingHouses(session, true)), msg))
+                        session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                    return;
+                }
+
+                foreach(var instance in houseObjectsInstances)
+                {
+                    if (instance.IsLinkChild)
                     {
-                        link = parent.LandblockInstanceLink.FirstOrDefault(i => i.ChildGuid == instance.Guid);
+                        LandblockInstanceLink link = null;
 
-                        if (link != null)
+                        foreach (var parent in instances.Where(i => i.LandblockInstanceLink.Count > 0))
                         {
-                            parent.LandblockInstanceLink.Remove(link);
-                            break;
+                            link = parent.LandblockInstanceLink.FirstOrDefault(i => i.ChildGuid == instance.Guid);
+
+                            if (link != null)
+                            {
+                                parent.LandblockInstanceLink.Remove(link);
+                                break;
+                            }
+                        }
+                        if (link == null)
+                        {
+                            session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent link for child {instance.WeenieClassId} - (0x{instance.Guid:X8})", ChatMessageType.Broadcast));
+                            return;
                         }
                     }
-                    if (link == null)
+
+                    foreach (var link in instance.LandblockInstanceLink)
+                        RemoveChild(session, link, instances);
+
+                    var wo = session.Player.CurrentLandblock.GetObject(instance.Guid);
+
+                    if (wo != null)
                     {
-                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent link for child {instance.WeenieClassId} - (0x{instance.Guid:X8})", ChatMessageType.Broadcast));
-                        return;
+                        wo.DeleteObject();
+
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"Removed {(instance.IsLinkChild ? "child " : "")}{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) from landblock instances", ChatMessageType.Broadcast));
                     }
+                    else
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find object for 0x{instance.Guid:X8}", ChatMessageType.Broadcast));
+
+                    instances.Remove(instance);
                 }
 
-                foreach (var link in instance.LandblockInstanceLink)
-                    RemoveChild(session, link, instances);
-
-                var wo = session.Player.CurrentLandblock.GetObject(instance.Guid);
-
-                if (wo != null)
-                {
-                    wo.DeleteObject();
-
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Removed {(instance.IsLinkChild ? "child " : "")}{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) from landblock instances", ChatMessageType.Broadcast));
-                }
-                else
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find object for 0x{instance.Guid:X8}", ChatMessageType.Broadcast));
-
-                instances.Remove(instance);
-            }
-
-            if (!IsWorkingOnOfflineInstances(landblock))
-                SyncInstances(session, landblock, instances);
+                if (!IsWorkingOnOfflineInstances(landblock))
+                    SyncInstances(session, landblock, instances);
+            });
+            actionChain.EnqueueChain();
         }
 
         private static Position CopiedPos = null;
@@ -7918,10 +7940,35 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            DatabaseManager.World.ClearCachedInstancesByLandblock(OfflineInstancesLandblockId);
-            SyncInstances(session, OfflineInstancesLandblockId, OfflineInstances);
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Saving {OfflineInstances.Count} instances from offline instances into landblock 0x{OfflineInstancesLandblockId:X4}...", ChatMessageType.Broadcast));
 
-            session.Network.EnqueueSend(new GameMessageSystemChat($"Saved {OfflineInstances.Count} instances from offline instances into landblock 0x{OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(0.1);
+            actionChain.AddAction(WorldManager.ActionQueue, () =>
+            {
+                DatabaseManager.World.ClearCachedInstancesByLandblock(OfflineInstancesLandblockId);
+                SyncInstances(session, OfflineInstancesLandblockId, OfflineInstances);
+
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Saved {OfflineInstances.Count} instances from offline instances into landblock 0x{OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
+
+                ExitOfflineMode(session);
+            });
+
+            actionChain.EnqueueChain();
+        }
+
+        public static void ExitOfflineMode(Session session, bool confirmed = false)
+        {
+            if (!confirmed)
+            {
+                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ExitOfflineMode(session, true)), $"Exit offline instance editing mode for landblock 0x{OfflineInstancesLandblockId:X4}?"))
+                    session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
+                return;
+            }
+
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Exited offline instance editing mode for landblock 0x{OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
+            OfflineInstancesLandblockId = 0;
+            OfflineInstances = null;
         }
 
         [CommandHandler("discardOfflineInstances", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Discard the current offline instances without saving them.")]
