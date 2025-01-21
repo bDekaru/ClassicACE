@@ -184,6 +184,8 @@ namespace ACE.Server.Entity
         {
             if (!reload)
                 PhysicsLandblock.PostInit();
+            else
+                Houses.Clear();
 
             Task.Run(() =>
             {
