@@ -2048,6 +2048,7 @@ namespace ACE.Server.Command.Handlers.Processors
             var createdCounter = 0;
             var landblock = instancesToCreate.First().loc.LandblockId.Landblock;
             var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
+            var landblockGuids = instances.Where(i => i.Landblock == landblock).Select(i => i.Guid).ToHashSet();
 
             // clear any cached instances for this landblock
             DatabaseManager.World.ClearCachedInstancesByLandblock(landblock);
@@ -2100,9 +2101,13 @@ namespace ACE.Server.Command.Handlers.Processors
                 var firstStaticGuid = 0x70000000 | (uint)landblock << 12;
                 var maxStaticGuid = firstStaticGuid | 0xFFF;
 
-                var nextStaticGuid = GetNextStaticGuid(landblock, instances);
+                if(landblockGuids.Contains(entry.guid))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock {landblock:X4} already contains object with guid {entry.guid}", ChatMessageType.Broadcast));
+                    continue;
+                }
 
-                if (nextStaticGuid > maxStaticGuid)
+                if (entry.guid > maxStaticGuid)
                 {
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock {landblock:X4} has reached the maximum # of static guids", ChatMessageType.Broadcast));
                     continue;
@@ -2111,7 +2116,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 // create and spawn object
                 var entityWeenie = Database.Adapter.WeenieConverter.ConvertToEntityWeenie(entry.weenie);
 
-                var wo = WorldObjectFactory.CreateWorldObject(entityWeenie, new ObjectGuid(nextStaticGuid));
+                var wo = WorldObjectFactory.CreateWorldObject(entityWeenie, new ObjectGuid(entry.guid));
 
                 if (wo == null)
                 {
@@ -2138,7 +2143,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     wo.Location.PositionZ += 0.05f;
                 }
 
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Creating new landblock instance {(isLinkChild ? "child object " : "")}@ {entry.loc.ToLOCString()}\n{wo.WeenieClassId} - {wo.Name} ({nextStaticGuid:X8})", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Creating new landblock instance {(isLinkChild ? "child object " : "")}@ {entry.loc.ToLOCString()}\n{wo.WeenieClassId} - {wo.Name} ({entry.guid:X8})", ChatMessageType.Broadcast));
 
                 if (!wo.EnterWorld())
                 {
