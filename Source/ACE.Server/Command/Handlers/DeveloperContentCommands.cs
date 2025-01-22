@@ -1484,7 +1484,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             var landblock = (ushort)wo.Location.Landblock;
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             var instance = instances.FirstOrDefault(i => i.Guid == objGuid);
 
@@ -1564,7 +1564,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     newWo.EnqueueBroadcast(new GameMessageUpdateObject(newWo));
                 }
 
-                if (!IsWorkingOnOfflineInstances(landblock))
+                if (!IsWorkingOnOfflineInstances(session, landblock))
                     SyncInstances(session, landblock, instances);
             });
             actionChain.EnqueueChain();
@@ -1589,7 +1589,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     guid = staticGuid.Value;
             }
 
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             var instance = instances.FirstOrDefault(i => i.Guid == guid);
 
@@ -1642,7 +1642,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             var landblock = (ushort)wo.Location.Landblock;
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             var instance = instances.FirstOrDefault(i => i.Guid == objGuid);
 
@@ -1740,7 +1740,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             wo.EnqueueBroadcast(new GameMessageUpdateObject(wo));
 
-            if (!IsWorkingOnOfflineInstances(landblock))
+            if (!IsWorkingOnOfflineInstances(session, landblock))
                 SyncInstances(session, landblock, instances);
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) parent set to 0x{newParentGuid:X8}", ChatMessageType.Broadcast));
@@ -1778,7 +1778,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             var landblock = (ushort)wo.Location.Landblock;
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             var instance = instances.FirstOrDefault(i => i.Guid == objGuid);
 
@@ -1814,7 +1814,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             wo.ParentLink = null;
 
-            if (!IsWorkingOnOfflineInstances(landblock))
+            if (!IsWorkingOnOfflineInstances(session, landblock))
                 SyncInstances(session, landblock, instances);
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.WeenieClassId} - {wo.Name} (0x{instance.Guid:X8}) parent cleared", ChatMessageType.Broadcast));
@@ -1917,7 +1917,7 @@ namespace ACE.Server.Command.Handlers.Processors
             // clear any cached instances for this landblock
             DatabaseManager.World.ClearCachedInstancesByLandblock(landblock);
 
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             // for link mode, ensure parent guid instance exists
             WorldObject parentObj = null;
@@ -2037,7 +2037,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 wo.EnqueueBroadcast(new GameMessageUpdateObject(wo));
             }
 
-            if (!IsWorkingOnOfflineInstances(landblock))
+            if (!IsWorkingOnOfflineInstances(session, landblock))
                 SyncInstances(session, landblock, instances);
 
             return nextStaticGuid;
@@ -2047,7 +2047,7 @@ namespace ACE.Server.Command.Handlers.Processors
         {
             var createdCounter = 0;
             var landblock = instancesToCreate.First().loc.LandblockId.Landblock;
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             // clear any cached instances for this landblock
             DatabaseManager.World.ClearCachedInstancesByLandblock(landblock);
@@ -2174,7 +2174,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 createdCounter++;
             }
 
-            if (!IsWorkingOnOfflineInstances(landblock))
+            if (!IsWorkingOnOfflineInstances(session, landblock))
                 SyncInstances(session, landblock, instances);
 
             CommandHandlerHelper.WriteOutputInfo(session, $"Created {createdCounter} of {instancesToCreate.Count} instances.");
@@ -2322,7 +2322,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     guid = staticGuid.Value;
             }
 
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             var instance = instances.FirstOrDefault(i => i.Guid == guid);
 
@@ -2376,7 +2376,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             instances.Remove(instance);
 
-            if (!IsWorkingOnOfflineInstances(landblock))
+            if (!IsWorkingOnOfflineInstances(session, landblock))
                 SyncInstances(session, landblock, instances);
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"Removed {(instance.IsLinkChild ? "child " : "")}{wo.WeenieClassId} - {wo.Name} (0x{guid:X8}) from landblock instances", ChatMessageType.Broadcast));
@@ -4236,7 +4236,7 @@ namespace ACE.Server.Command.Handlers.Processors
             var landblock_id = (ushort)(objGuid >> 12);
 
             // get instances for landblock
-            var instances = GetLiveOrOfflineLandblockInstances(landblock_id);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock_id);
 
             // find instance
             var instance = instances.FirstOrDefault(i => i.Guid == objGuid);
@@ -4339,7 +4339,7 @@ namespace ACE.Server.Command.Handlers.Processors
             instance.OriginY = obj.Location.PositionY;
             instance.OriginZ = obj.Location.PositionZ;
 
-            if (!IsWorkingOnOfflineInstances(landblock_id))
+            if (!IsWorkingOnOfflineInstances(session, landblock_id))
                 SyncInstances(session, landblock_id, instances);
         }
 
@@ -4468,7 +4468,7 @@ namespace ACE.Server.Command.Handlers.Processors
             var landblock_id = (ushort)(obj.Guid.Full >> 12);
 
             // get instances for landblock
-            var instances = GetLiveOrOfflineLandblockInstances(landblock_id);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock_id);
 
             // find instance
             var instance = instances.FirstOrDefault(i => i.Guid == obj.Guid.Full);
@@ -4491,7 +4491,7 @@ namespace ACE.Server.Command.Handlers.Processors
             instance.AnglesY = newRotation.Y;
             instance.AnglesZ = newRotation.Z;
 
-            if (!IsWorkingOnOfflineInstances(landblock_id))
+            if (!IsWorkingOnOfflineInstances(session, landblock_id))
                 SyncInstances(session, landblock_id, instances);
 
             // broadcast new rotation
@@ -4574,7 +4574,7 @@ namespace ACE.Server.Command.Handlers.Processors
             var landblock_id = (ushort)(obj.Guid.Full >> 12);
 
             // get instances for landblock
-            var instances = GetLiveOrOfflineLandblockInstances(landblock_id);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock_id);
 
             // find instance
             var instance = instances.FirstOrDefault(i => i.Guid == obj.Guid.Full);
@@ -4597,7 +4597,7 @@ namespace ACE.Server.Command.Handlers.Processors
             instance.AnglesY = newRotation.Y;
             instance.AnglesZ = newRotation.Z;
 
-            if (!IsWorkingOnOfflineInstances(landblock_id))
+            if (!IsWorkingOnOfflineInstances(session, landblock_id))
                 SyncInstances(session, landblock_id, instances);
 
             // broadcast new rotation
@@ -7134,7 +7134,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var landblock = (ushort)wo.Location.Landblock;
 
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             var instance = instances.FirstOrDefault(i => i.Guid == guid);
 
@@ -7237,7 +7237,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var landblock = (ushort)buildingPos.Landblock;
 
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             CommandHandlerHelper.WriteOutputInfo(session, $"Exporting housing template {exportName}...");
 
@@ -7358,7 +7358,7 @@ namespace ACE.Server.Command.Handlers.Processors
             var buildingYaw = buildingPos.GetYaw();
 
             var landblock = (ushort)buildingPos.Landblock;
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             CommandHandlerHelper.WriteOutputInfo(session, $"Importing housing template {importName}...");
 
@@ -7552,7 +7552,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
             var landblock = (ushort)buildingPos.Landblock;
 
-            var instances = GetLiveOrOfflineLandblockInstances(landblock);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblock);
 
             if(!confirmed)
                 CommandHandlerHelper.WriteOutputInfo(session, "Clearing building of houses...");
@@ -7629,26 +7629,24 @@ namespace ACE.Server.Command.Handlers.Processors
                     instances.Remove(instance);
                 }
 
-                if (!IsWorkingOnOfflineInstances(landblock))
+                if (!IsWorkingOnOfflineInstances(session, landblock))
                     SyncInstances(session, landblock, instances);
             });
             actionChain.EnqueueChain();
         }
 
-        private static Position CopiedPos = null;
-
-        [CommandHandler("copyPos", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Copy position from an object that can later be pasted on another.")]
+        [CommandHandler("copyPos", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Copy position from an object that can later be pasted on another.")]
         public static void HandleCopyInstPos(Session session, params string[] parameters)
         {
             var wo = CommandHandlerHelper.GetQueryTarget(session);
             if (wo == null)
                 return;
 
-            CopiedPos = wo.Location;
-            session.Network.EnqueueSend(new GameMessageSystemChat($"Copied position: {CopiedPos.ToLOCString()})", ChatMessageType.Broadcast));
+            session.Player.CopiedPos = wo.Location;
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Copied position: {session.Player.CopiedPos.ToLOCString()})", ChatMessageType.Broadcast));
         }
 
-        [CommandHandler("pastePos", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Pastes a position or partial position to the selected object.", "Valid values are all, pos, rot, x, y, z.")]
+        [CommandHandler("pastePos", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Pastes a position or partial position to the selected object.", "Valid values are all, pos, rot, x, y, z.")]
         public static void HandlePastePos(Session session, params string[] parameters)
         {
             string param;
@@ -7657,7 +7655,8 @@ namespace ACE.Server.Command.Handlers.Processors
             else
                 param = "all";
 
-            if (CopiedPos == null)
+            var copiedPos = session.Player.CopiedPos;
+            if (copiedPos == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"No position has been copied yet.", ChatMessageType.Help));
                 return;
@@ -7673,7 +7672,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            var globalCopiedPos = CopiedPos.ToGlobal();
+            var globalCopiedPos = copiedPos.ToGlobal();
             var globalNewPos = wo.Location.ToGlobal();
 
             var newPos = new Position(wo.Location);
@@ -7681,19 +7680,19 @@ namespace ACE.Server.Command.Handlers.Processors
             switch (param)
             {
                 case "all":
-                    newPos = new Position(CopiedPos);
+                    newPos = new Position(copiedPos);
                     break;
                 case "pos":
-                    newPos.LandblockId = CopiedPos.LandblockId;
-                    newPos.PositionX = CopiedPos.PositionX;
-                    newPos.PositionY = CopiedPos.PositionY;
-                    newPos.PositionZ = CopiedPos.PositionZ;
+                    newPos.LandblockId = copiedPos.LandblockId;
+                    newPos.PositionX = copiedPos.PositionX;
+                    newPos.PositionY = copiedPos.PositionY;
+                    newPos.PositionZ = copiedPos.PositionZ;
                     break;
                 case "rot":
-                    newPos.RotationX = CopiedPos.RotationX;
-                    newPos.RotationY = CopiedPos.RotationY;
-                    newPos.RotationZ = CopiedPos.RotationZ;
-                    newPos.RotationW = CopiedPos.RotationW;
+                    newPos.RotationX = copiedPos.RotationX;
+                    newPos.RotationY = copiedPos.RotationY;
+                    newPos.RotationZ = copiedPos.RotationZ;
+                    newPos.RotationW = copiedPos.RotationW;
                     break;
                 case "x":
                     globalNewPos.X = globalCopiedPos.X;
@@ -7702,7 +7701,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     globalNewPos.Y = globalCopiedPos.Y;
                     break;
                 case "z":
-                    newPos.PositionZ = CopiedPos.PositionZ;
+                    newPos.PositionZ = copiedPos.PositionZ;
                     break;
                 default:
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid paramenter! Valid values are all, pos, rot, x, y, z.", ChatMessageType.Help));
@@ -7737,7 +7736,7 @@ namespace ACE.Server.Command.Handlers.Processors
             session.Network.EnqueueSend(new GameMessageSystemChat($"{wo.Name} ({wo.Guid}) - moved from {prevPos} to {wo.Location}.", ChatMessageType.Broadcast));
         }
 
-        [CommandHandler("pasteInstPos", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Pastes a position or partial position to the selected instance.", "Valid values are all, pos, rot, x, y, z.")]
+        [CommandHandler("pasteInstPos", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Pastes a position or partial position to the selected instance.", "Valid values are all, pos, rot, x, y, z.")]
         public static void HandlePasteInstPos(Session session, params string[] parameters)
         {
             string param;
@@ -7746,7 +7745,8 @@ namespace ACE.Server.Command.Handlers.Processors
             else
                 param = "all";
 
-            if (CopiedPos == null)
+            var copiedPos = session.Player.CopiedPos;
+            if (copiedPos == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"No position has been copied yet.", ChatMessageType.Help));
                 return;
@@ -7777,7 +7777,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             var landblockId = (ushort)(guid >> 12);
-            var instances = GetLiveOrOfflineLandblockInstances(landblockId);
+            var instances = GetLiveOrOfflineLandblockInstances(session, landblockId);
             var instance = instances.FirstOrDefault(i => i.Guid == guid);
 
             if (instance == null)
@@ -7786,14 +7786,14 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            var isDifferentLandblock = CopiedPos.LandblockId != wo.Location.LandblockId;
+            var isDifferentLandblock = copiedPos.LandblockId != wo.Location.LandblockId;
             if (isDifferentLandblock && (param == "all" || param == "pos"))
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Instances cannot change landblock.", ChatMessageType.Broadcast));
                 return;
             }
 
-            var globalCopiedPos = CopiedPos.ToGlobal();
+            var globalCopiedPos = copiedPos.ToGlobal();
             var globalNewPos = wo.Location.ToGlobal();
 
             var newPos = new Position(wo.Location);
@@ -7801,29 +7801,29 @@ namespace ACE.Server.Command.Handlers.Processors
             switch (param)
             {
                 case "all":
-                    newPos = new Position(CopiedPos);
+                    newPos = new Position(copiedPos);
                     break;
                 case "pos":
-                    newPos.PositionX = CopiedPos.PositionX;
-                    newPos.PositionY = CopiedPos.PositionY;
-                    newPos.PositionZ = CopiedPos.PositionZ;
+                    newPos.PositionX = copiedPos.PositionX;
+                    newPos.PositionY = copiedPos.PositionY;
+                    newPos.PositionZ = copiedPos.PositionZ;
                     break;
                 case "rot":
-                    newPos.RotationX = CopiedPos.RotationX;
-                    newPos.RotationY = CopiedPos.RotationY;
-                    newPos.RotationZ = CopiedPos.RotationZ;
-                    newPos.RotationW = CopiedPos.RotationW;
+                    newPos.RotationX = copiedPos.RotationX;
+                    newPos.RotationY = copiedPos.RotationY;
+                    newPos.RotationZ = copiedPos.RotationZ;
+                    newPos.RotationW = copiedPos.RotationW;
                     break;
                 case "x":
-                    newPos.PositionX = CopiedPos.PositionX;
+                    newPos.PositionX = copiedPos.PositionX;
                     globalNewPos.X = globalCopiedPos.X;
                     break;
                 case "y":
-                    newPos.PositionY = CopiedPos.PositionY;
+                    newPos.PositionY = copiedPos.PositionY;
                     globalNewPos.Y = globalCopiedPos.Y;
                     break;
                 case "z":
-                    newPos.PositionZ = CopiedPos.PositionZ;
+                    newPos.PositionZ = copiedPos.PositionZ;
                     break;
                 default:
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid paramenter! Valid values are all, pos, rot, x, y, z.", ChatMessageType.Help));
@@ -7886,14 +7886,15 @@ namespace ACE.Server.Command.Handlers.Processors
             instance.AnglesZ = wo.Location.RotationZ;
             instance.AnglesW = wo.Location.RotationW;
 
-            if (!IsWorkingOnOfflineInstances(landblockId))
+            if (!IsWorkingOnOfflineInstances(session, landblockId))
                 SyncInstances(session, landblockId, instances);
         }
 
-        [CommandHandler("distToCopiedPos", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Measures the distance from the selected object to the copied position.")]
+        [CommandHandler("distToCopiedPos", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Measures the distance from the selected object to the copied position.")]
         public static void HandledDistToCopiedPos(Session session, params string[] parameters)
         {
-            if (CopiedPos == null)
+            var copiedPos = session.Player.CopiedPos;
+            if (copiedPos == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"No position has been copied yet.", ChatMessageType.Help));
                 return;
@@ -7903,64 +7904,61 @@ namespace ACE.Server.Command.Handlers.Processors
             if (wo == null)
                 return;
 
-            var distance = wo.Location.DistanceTo(CopiedPos);
-            var offset = wo.Location.GetOffset(CopiedPos);
+            var distance = wo.Location.DistanceTo(copiedPos);
+            var offset = wo.Location.GetOffset(copiedPos);
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"Distance: {distance:0.###}\nX(E/W): {offset.X:0.###}\nY(N/S): {offset.Y:0.###}\nZ(Height): {offset.Z:0.###}", ChatMessageType.Broadcast));
         }
 
-        private static List<LandblockInstance> OfflineInstances = null;
-        private static ushort OfflineInstancesLandblockId = 0;
-
-        [CommandHandler("loadOfflineInstances", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Load current landblock instances into offline instances to speed up manipulation.")]
+        [CommandHandler("loadOfflineInstances", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Load current landblock instances into offline instances to speed up manipulation.")]
         public static void HandledLoadOfflineInstances(Session session, params string[] parameters)
         {
-            if (OfflineInstances != null)
+            if (session.Player.OfflineInstances != null)
             {
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Offline instances already loaded for landblock 0x{OfflineInstancesLandblockId:X4}, either save or discard the current data before loading.", ChatMessageType.Help));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Offline instances already loaded for landblock 0x{session.Player.OfflineInstancesLandblockId:X4}, either save or discard the current data before loading.", ChatMessageType.Help));
                 return;
             }
 
-            OfflineInstancesLandblockId = (ushort)session.Player.Location.Landblock;
-            OfflineInstances = DatabaseManager.World.GetCachedInstancesByLandblock(OfflineInstancesLandblockId);
+            session.Player.OfflineInstancesLandblockId = (ushort)session.Player.Location.Landblock;
+            session.Player.OfflineInstances = DatabaseManager.World.GetCachedInstancesByLandblock(session.Player.OfflineInstancesLandblockId);
 
-            session.Network.EnqueueSend(new GameMessageSystemChat($"Loaded {OfflineInstances.Count} instances from landblock 0x{OfflineInstancesLandblockId:X4} into offline instances.", ChatMessageType.Broadcast));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Loaded {session.Player.OfflineInstances.Count} instances from landblock 0x{session.Player.OfflineInstancesLandblockId:X4} into offline instances.", ChatMessageType.Broadcast));
         }
 
-        private static bool IsWorkingOnOfflineInstances(ushort landblockId)
+        private static bool IsWorkingOnOfflineInstances(Session session, ushort landblockId)
         {
-            if (OfflineInstances != null && OfflineInstancesLandblockId == landblockId)
+            if (session.Player.OfflineInstances != null && session.Player.OfflineInstancesLandblockId == landblockId)
                 return true;
             return false;
         }
 
-        private static List<LandblockInstance> GetLiveOrOfflineLandblockInstances(ushort landblockId)
+        private static List<LandblockInstance> GetLiveOrOfflineLandblockInstances(Session session, ushort landblockId)
         {
-            if (IsWorkingOnOfflineInstances(landblockId))
-                return OfflineInstances;
+            if (IsWorkingOnOfflineInstances(session, landblockId))
+                return session.Player.OfflineInstances;
             else
                 return DatabaseManager.World.GetCachedInstancesByLandblock(landblockId);
         }
 
-        [CommandHandler("saveOfflineInstances", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Save the current offline instance changes into the live database.")]
+        [CommandHandler("saveOfflineInstances", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Save the current offline instance changes into the live database.")]
         public static void HandledSaveOfflineInstances(Session session, params string[] parameters)
         {
-            if (OfflineInstances == null)
+            if (session.Player.OfflineInstances == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Offline instances is empty.", ChatMessageType.Help));
                 return;
             }
 
-            session.Network.EnqueueSend(new GameMessageSystemChat($"Saving {OfflineInstances.Count} instances from offline instances into landblock 0x{OfflineInstancesLandblockId:X4}...", ChatMessageType.Broadcast));
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Saving {session.Player.OfflineInstances.Count} instances from offline instances into landblock 0x{session.Player.OfflineInstancesLandblockId:X4}...", ChatMessageType.Broadcast));
 
             var actionChain = new ActionChain();
             actionChain.AddDelaySeconds(0.1);
             actionChain.AddAction(WorldManager.ActionQueue, () =>
             {
-                DatabaseManager.World.ClearCachedInstancesByLandblock(OfflineInstancesLandblockId);
-                SyncInstances(session, OfflineInstancesLandblockId, OfflineInstances);
+                DatabaseManager.World.ClearCachedInstancesByLandblock(session.Player.OfflineInstancesLandblockId);
+                SyncInstances(session, session.Player.OfflineInstancesLandblockId, session.Player.OfflineInstances);
 
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Saved {OfflineInstances.Count} instances from offline instances into landblock 0x{OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Saved {session.Player.OfflineInstances.Count} instances from offline instances into landblock 0x{session.Player.OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
 
                 ExitOfflineMode(session);
             });
@@ -7972,20 +7970,20 @@ namespace ACE.Server.Command.Handlers.Processors
         {
             if (!confirmed)
             {
-                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ExitOfflineMode(session, true)), $"Exit offline instance editing mode for landblock 0x{OfflineInstancesLandblockId:X4}?"))
+                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => ExitOfflineMode(session, true)), $"Exit offline instance editing mode for landblock 0x{session.Player.OfflineInstancesLandblockId:X4}?"))
                     session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
                 return;
             }
 
-            session.Network.EnqueueSend(new GameMessageSystemChat($"Exited offline instance editing mode for landblock 0x{OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
-            OfflineInstancesLandblockId = 0;
-            OfflineInstances = null;
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Exited offline instance editing mode for landblock 0x{session.Player.OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
+            session.Player.OfflineInstancesLandblockId = 0;
+            session.Player.OfflineInstances = null;
         }
 
         [CommandHandler("discardOfflineInstances", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Discard the current offline instances without saving them.")]
         public static void HandledDiscardOfflineInstances(Session session, params string[] parameters)
         {
-            if (OfflineInstances == null)
+            if (session.Player.OfflineInstances == null)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat("No offline instances loaded.", ChatMessageType.Help));
                 return;
@@ -7998,18 +7996,18 @@ namespace ACE.Server.Command.Handlers.Processors
         {
             if (!confirmed)
             {
-                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => DiscardOfflineInstances(session, true)), $"Are you sure you want to discard any changes to the landblock 0x{OfflineInstancesLandblockId:X4}?"))
+                if (!session.Player.ConfirmationManager.EnqueueSend(new Confirmation_Custom(session.Player.Guid, () => DiscardOfflineInstances(session, true)), $"Are you sure you want to discard any changes to the landblock 0x{session.Player.OfflineInstancesLandblockId:X4}?"))
                     session.Player.SendWeenieError(WeenieError.ConfirmationInProgress);
                 return;
             }
 
-            var landblockId = new LandblockId((uint)(OfflineInstancesLandblockId << 16 | 0xFFFF));
+            var landblockId = new LandblockId((uint)(session.Player.OfflineInstancesLandblockId << 16 | 0xFFFF));
             if (LandblockManager.IsLoaded(landblockId))
                 DeveloperCommands.ReloadLandblock(LandblockManager.GetLandblock(landblockId, false));
 
-            session.Network.EnqueueSend(new GameMessageSystemChat($"Discarded {OfflineInstances.Count} offline instances from landblock 0x{OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
-            OfflineInstancesLandblockId = 0;
-            OfflineInstances = null;
+            session.Network.EnqueueSend(new GameMessageSystemChat($"Discarded {session.Player.OfflineInstances.Count} offline instances from landblock 0x{session.Player.OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
+            session.Player.OfflineInstancesLandblockId = 0;
+            session.Player.OfflineInstances = null;
         }
     }
 }

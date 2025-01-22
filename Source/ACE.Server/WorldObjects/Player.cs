@@ -1288,5 +1288,10 @@ namespace ACE.Server.WorldObjects
             });
             actionChain.EnqueueChain();
         }
+
+        // Content developer helper variables
+        public ACE.Entity.Position CopiedPos = null;
+        public List<ACE.Database.Models.World.LandblockInstance> OfflineInstances = null;
+        public ushort OfflineInstancesLandblockId = 0;
     }
 }
