@@ -381,7 +381,7 @@ namespace ACE.Server.Entity
             obj.Location.PositionZ += 0.05f;
 
             if (obj.Location.Rotation == Quaternion.Identity) // If we have no rotation at all choose one randomly, this avoids having most spawns facing exactly north.
-                obj.Location.SetRotation(0, 0, (float)ThreadSafeRandom.Next(0f, 360f));
+                obj.Location.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
 
             // we are going to delay this scatter logic until the physics engine,
             // where the remnants of this function are in the client (SetScatterPositionInternal)
@@ -431,7 +431,7 @@ namespace ACE.Server.Entity
             obj.Location.PositionZ += 0.05f;
 
             if (obj.Location.Rotation == Quaternion.Identity) // If we have no rotation at all choose one randomly, this avoids having most spawns facing exactly north.
-                obj.Location.SetRotation(0, 0, (float)ThreadSafeRandom.Next(0f, 360f));
+                obj.Location.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
 
             if (!VerifyLandblock(obj) || !VerifyWalkableSlope(obj))
                 return false;

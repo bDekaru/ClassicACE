@@ -63,14 +63,28 @@ namespace ACE.Entity
             Rotation = Quaternion.CreateFromYawPitchRoll(0, 0, (float)Math.Atan2(-dir.X, dir.Y));
         }
 
-        public void Rotate(float xDegrees, float yDegrees, float zDegrees)
+        public void Rotate(float yaw, float pitch = 0, float roll = 0)
         {
-            Rotation = Quaternion.Normalize(Rotation * Quaternion.CreateFromYawPitchRoll((float)(Math.PI / 180) * xDegrees, (float)(Math.PI / 180) * yDegrees, (float)(Math.PI / 180) * zDegrees));
+            var yawRadians = (float)(Math.PI / 180) * yaw;
+            var pitchRadians = (float)(Math.PI / 180) * pitch;
+            var rollRadians = (float)(Math.PI / 180) * roll;
+
+            var rotateYaw = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, yawRadians);
+            var rotatePitch = Quaternion.CreateFromAxisAngle(Vector3.UnitX, pitchRadians);
+            var rotateRoll = Quaternion.CreateFromAxisAngle(Vector3.UnitY, rollRadians);
+            Rotation = Quaternion.Normalize(Rotation * rotateYaw * rotatePitch * rotateRoll);
         }
 
-        public void SetRotation(float xDegrees, float yDegrees, float zDegrees)
+        public void SetRotation(float yaw, float pitch = 0, float roll = 0)
         {
-            Rotation = Quaternion.Normalize(Quaternion.CreateFromYawPitchRoll((float)(Math.PI / 180) * xDegrees, (float)(Math.PI / 180) * yDegrees, (float)(Math.PI / 180) * zDegrees));
+            var yawRadians = (float)(Math.PI / 180) * yaw;
+            var pitchRadians = (float)(Math.PI / 180) * pitch;
+            var rollRadians = (float)(Math.PI / 180) * roll;
+
+            var rotateYaw = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, yawRadians);
+            var rotatePitch = Quaternion.CreateFromAxisAngle(Vector3.UnitX, pitchRadians);
+            var rotateRoll = Quaternion.CreateFromAxisAngle(Vector3.UnitY, rollRadians);
+            Rotation = Quaternion.Normalize(rotateYaw * rotatePitch * rotateRoll);
         }
 
         public void Translate(float x, float y, float z)

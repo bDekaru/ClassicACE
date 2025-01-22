@@ -308,13 +308,13 @@ namespace ACE.Server.WorldObjects
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
-                    chestLocation.SetRotation(0, 0, (float)ThreadSafeRandom.Next(0f, 360f));
+                    chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
             }
             else
                 chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
             if(isCorpse)
-                chestLocation.SetRotation(0, 0, (float)ThreadSafeRandom.Next(0f, 360f));
+                chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
 
             chest.Location = chestLocation;
             chest.Location.LandblockId = new LandblockId(chest.Location.GetCell());
@@ -435,13 +435,13 @@ namespace ACE.Server.WorldObjects
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
-                    chestLocation.SetRotation(0, 0, (float)ThreadSafeRandom.Next(0f, 360f));
+                    chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
             }
             else
                 chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
             if (isCorpse)
-                chestLocation.SetRotation(0, 0, (float)ThreadSafeRandom.Next(0f, 360f));
+                chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
 
             specialChest.Location = chestLocation;
             specialChest.Location.LandblockId = new LandblockId(specialChest.Location.GetCell());
@@ -499,7 +499,7 @@ namespace ACE.Server.WorldObjects
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
-                    chestLocation.SetRotation(0, 0, (float)ThreadSafeRandom.Next(0f, 360f));
+                    chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
             }
             else
                 chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
@@ -567,7 +567,7 @@ namespace ACE.Server.WorldObjects
             else
                 corpseLocation = corpseLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-            corpseLocation.SetRotation(0, 0, (float)ThreadSafeRandom.Next(0f, 360f));
+            corpseLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
 
             hiddenCorpse.Location = corpseLocation;
             hiddenCorpse.Location.LandblockId = new LandblockId(hiddenCorpse.Location.GetCell());

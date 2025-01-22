@@ -7087,14 +7087,14 @@ namespace ACE.Server.Command.Handlers.Processors
             var slumlordLoc = new Position(session.Player.Location);
 
             var houseLoc = new Position(session.Player.Location);
-            houseLoc.Rotate(0, 0, -90);
+            houseLoc.Rotate(-90);
 
             var bootspotLoc = new Position(session.Player.Location);
             bootspotLoc.Translate(1, 0, 0);
 
             var chest1Loc = new Position(session.Player.Location);
             chest1Loc.Translate(0, 1.5f, 0);
-            chest1Loc.Rotate(0, 0, -90);
+            chest1Loc.Rotate(-90);
 
             var house = DatabaseManager.World.GetWeenie((uint)houseWeenie);
             var slumlord = DatabaseManager.World.GetWeenie((uint)slumlordWeenie);
@@ -7232,7 +7232,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             var buildingPos = building.Position.ACEPosition();
-            var buildingRotation = buildingPos.GetYaw();
+            var buildingYaw = buildingPos.GetYaw();
             var buildingType = building.ID;
 
             var landblock = (ushort)buildingPos.Landblock;
@@ -7245,7 +7245,7 @@ namespace ACE.Server.Command.Handlers.Processors
             actionChain.AddDelaySeconds(0.1);
             actionChain.AddAction(WorldManager.ActionQueue, () =>
             {
-                var houseObjects = new List<(uint wcid, bool isHouse, int houseId, Position pos)>();
+                var houseObjects = new List<(uint wcid, bool isHouse, int houseId, uint cellId, float x, float y, float z, float yaw, float pitch, float roll)>();
                 var houseCounter = 0;
                 foreach (var instance in instances)
                 {
@@ -7258,12 +7258,13 @@ namespace ACE.Server.Command.Handlers.Processors
                         continue;
                     houseCounter++;
 
-                    housePos.RotateAroundPivot(buildingPos, -buildingRotation);
+                    housePos.RotateAroundPivot(buildingPos, -buildingYaw);
+                    var houseYawPitchRoll = housePos.GetYawPitchRoll();
 
                     var houseOffset = buildingPos.GetOffset(housePos);
                     housePos = new Position(housePos.LandblockId.Raw, houseOffset.X, houseOffset.Y, houseOffset.Z, housePos.RotationX, housePos.RotationY, housePos.RotationZ, housePos.RotationW, true);
 
-                    houseObjects.Add((instance.WeenieClassId, true, houseCounter, housePos));
+                    houseObjects.Add((instance.WeenieClassId, true, houseCounter, housePos.Cell, housePos.PositionX, housePos.PositionY, housePos.PositionZ, houseYawPitchRoll.X, houseYawPitchRoll.Y, houseYawPitchRoll.Z));
 
                     foreach (var link in instance.LandblockInstanceLink)
                     {
@@ -7277,11 +7278,14 @@ namespace ACE.Server.Command.Handlers.Processors
                         var weenie = DatabaseManager.World.GetWeenie(child.WeenieClassId);
 
                         var childPos = new Position(child.ObjCellId, child.OriginX, child.OriginY, child.OriginZ, child.AnglesX, child.AnglesY, child.AnglesZ, child.AnglesW);
-                        childPos.RotateAroundPivot(buildingPos, -buildingRotation);
+                        var childYawPitchRoll = childPos.GetYawPitchRoll();
+                        childYawPitchRoll.X -= buildingYaw;
+
+                        childPos.RotateAroundPivot(buildingPos, -buildingYaw);
 
                         var childOffset = buildingPos.GetOffset(childPos);
 
-                        houseObjects.Add((child.WeenieClassId, false, houseCounter, new Position(child.ObjCellId, childOffset.X, childOffset.Y, childOffset.Z, childPos.RotationX, childPos.RotationY, childPos.RotationZ, childPos.RotationW, true)));
+                        houseObjects.Add((child.WeenieClassId, false, houseCounter, childPos.Cell, childOffset.X, childOffset.Y, childOffset.Z, childYawPitchRoll.X, childYawPitchRoll.Y, childYawPitchRoll.Z));
                     }
                 }
 
@@ -7301,7 +7305,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                     foreach (var entry in houseObjects)
                     {
-                        output.Add($"{entry.wcid}\t{entry.isHouse}\t{entry.houseId}\t{entry.pos.ToLOCStringAlt()}");
+                        output.Add($"{entry.wcid}\t{entry.isHouse}\t{entry.houseId}\t0x{entry.cellId:X8}\t{entry.x:F6}\t{entry.y:F6}\t{entry.z:F6}\t{entry.yaw:F6}\t{entry.pitch:F6}\t{entry.roll:F6}");
                     }
 
                     File.WriteAllLines(filename, output);
@@ -7351,7 +7355,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
 
             var buildingPos = building.Position.ACEPosition();
-            var buildingRotation = buildingPos.GetYaw();
+            var buildingYaw = buildingPos.GetYaw();
 
             var landblock = (ushort)buildingPos.Landblock;
             var instances = GetLiveOrOfflineLandblockInstances(landblock);
@@ -7387,7 +7391,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 }
 
                 uint buildingType = 0;
-                var houseObjects = new List<(uint wcid, bool isHouse, int houseId, Position pos)>();
+                var houseObjects = new List<(uint wcid, bool isHouse, int houseId, uint cellId, float x, float y, float z, float yaw, float pitch, float roll)>();
 
                 DirectoryInfo di = VerifyContentFolder(session);
                 if (!di.Exists)
@@ -7422,10 +7426,15 @@ namespace ACE.Server.Command.Handlers.Processors
                             var wcid = uint.Parse(splitLine[0]);
                             var isHouse = bool.Parse(splitLine[1]);
                             var houseId = int.Parse(splitLine[2]);
-                            var splitPositionString = splitLine[3].Split(',');
-                            var position = new Position(uint.Parse(splitPositionString[0].Replace("0x", ""), NumberStyles.HexNumber), float.Parse(splitPositionString[1]), float.Parse(splitPositionString[2]), float.Parse(splitPositionString[3]), float.Parse(splitPositionString[5]), float.Parse(splitPositionString[6]), float.Parse(splitPositionString[7]), float.Parse(splitPositionString[4]), true);
+                            var cellId = uint.Parse(splitLine[3].Replace("0x", ""), NumberStyles.HexNumber);
+                            var x = float.Parse(splitLine[4]);
+                            var y = float.Parse(splitLine[5]);
+                            var z = float.Parse(splitLine[6]);
+                            var yaw = float.Parse(splitLine[7]);
+                            var pitch = float.Parse(splitLine[8]);
+                            var roll = float.Parse(splitLine[9]);
 
-                            houseObjects.Add((wcid, isHouse, houseId, position));
+                            houseObjects.Add((wcid, isHouse, houseId, cellId, x, y,z, yaw, pitch, roll));
                         }
                     }
 
@@ -7462,8 +7471,9 @@ namespace ACE.Server.Command.Handlers.Processors
                         continue;
                     else
                     {
-                        var position = new Position(building.LandblockID, entry.pos.PositionX + buildingPos.PositionX, entry.pos.PositionY + buildingPos.PositionY, entry.pos.PositionZ + buildingPos.PositionZ, entry.pos.RotationX, entry.pos.RotationY, entry.pos.RotationZ, entry.pos.RotationW);
-                        position.RotateAroundPivot(buildingPos, buildingRotation);
+                        var position = new Position(building.LandblockID, entry.x + buildingPos.PositionX, entry.y + buildingPos.PositionY, entry.z + buildingPos.PositionZ, 0, 0, 0, 1);
+                        position.RotateAroundPivot(buildingPos, buildingYaw);
+                        position.Rotate(entry.yaw, entry.pitch, entry.roll);
 
                         // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
                         position.PositionZ += bumpHeight;
@@ -7480,8 +7490,9 @@ namespace ACE.Server.Command.Handlers.Processors
 
                         foreach (var childEntry in childList)
                         {
-                            position = new Position(building.Position.ObjCellID, childEntry.pos.PositionX + buildingPos.PositionX, childEntry.pos.PositionY + buildingPos.PositionY, childEntry.pos.PositionZ + buildingPos.PositionZ, childEntry.pos.RotationX, childEntry.pos.RotationY, childEntry.pos.RotationZ, childEntry.pos.RotationW);
-                            position.RotateAroundPivot(buildingPos, buildingRotation);
+                            position = new Position(building.Position.ObjCellID, childEntry.x + buildingPos.PositionX, childEntry.y + buildingPos.PositionY, childEntry.z + buildingPos.PositionZ, 0, 0, 0, 1);
+                            position.RotateAroundPivot(buildingPos, buildingYaw);
+                            position.Rotate(childEntry.yaw, childEntry.pitch, childEntry.roll);
 
                             // Bump height by a tad to make sure we get the correct cell, afterwards we can return to the original height.
                             position.PositionZ += bumpHeight;

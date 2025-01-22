@@ -543,7 +543,7 @@ namespace ACE.Server.Entity
             pos.PositionX = (float)x;
             pos.PositionY = (float)y;
 
-            pos.Rotate(0, 0, degrees);
+            pos.Rotate(degrees);
         }
 
         public static Vector3 GetYawPitchRoll(this Position pos)
@@ -561,8 +561,8 @@ namespace ACE.Server.Entity
             t2 = t2 < -1.0 ? -1.0 : t2;
 
             var yaw = (float)Math.Atan2(t1, t0).ToDegrees() % 360f;
-            var pitch = (float)Math.Asin(t2).ToDegrees() % 360f;
-            var roll = (float)Math.Atan2(t3, t4).ToDegrees() % 360f;
+            var pitch = (float)Math.Atan2(t3, t4).ToDegrees() % 360f;
+            var roll = (float)Math.Asin(t2).ToDegrees() % 360f;
 
             if (yaw < 0)
                 yaw += 360f;
@@ -590,7 +590,7 @@ namespace ACE.Server.Entity
         {
             var q = pos.Rotation;
 
-            var pitch = (float)Math.Asin(2.0 * (q.Y * q.W - q.Z * q.X)).ToDegrees() % 360f;
+            var pitch = (float)Math.Atan2(2.0 * (q.Z * q.Y + q.W * q.X), 1.0 - 2.0 * (q.X * q.X + q.Y * q.Y)).ToDegrees() % 360f;
 
             if (pitch < 0)
                 pitch += 360f;
@@ -602,7 +602,7 @@ namespace ACE.Server.Entity
         {
             var q = pos.Rotation;
 
-            var roll = (float)Math.Atan2(2.0 * (q.Z * q.Y + q.W * q.X), 1.0 - 2.0 * (q.X * q.X + q.Y * q.Y)).ToDegrees() % 360f;
+            var roll = (float)Math.Asin(2.0 * (q.Y * q.W - q.Z * q.X)).ToDegrees() % 360f;
 
             if (roll < 0)
                 roll += 360f;
