@@ -489,7 +489,6 @@ namespace ACE.Server.Factories.Tables
                 {
                     ( SpellId.ArcaneEnlightenmentOther1, 5.0f ),
                     ( SpellId.MagicResistanceOther1,     5.0f ),
-                    ( SpellId.ArmorOther1,               5.0f ),
                     ( SpellId.AcidProtectionOther1,      5.0f ),
                     ( SpellId.BludgeonProtectionOther1,  5.0f ),
                     ( SpellId.ColdProtectionOther1,      5.0f ),
@@ -526,7 +525,6 @@ namespace ACE.Server.Factories.Tables
                     ( SpellId.MagicResistanceOther1,      2.0f),
                     ( SpellId.FocusOther1,                1.0f),
                     ( SpellId.WillpowerOther1,            1.0f),
-                    ( SpellId.ArmorOther1,                1.0f),
                     ( SpellId.RegenerationOther1,         1.0f),
                     ( SpellId.RejuvenationOther1,         1.0f),
                     ( SpellId.ManaRenewalOther1,          1.0f),
@@ -670,7 +668,6 @@ namespace ACE.Server.Factories.Tables
                     ( SpellId.RejuvenationOther1,               1.0f ),
                     ( SpellId.RegenerationOther1,               1.0f ),
 
-                    ( SpellId.ArmorOther1,                      0.9f ),
                     ( SpellId.LifeMagicMasteryOther1,           0.9f ),
                     ( SpellId.WarMagicMasteryOther1,            0.9f ),
                     ( SpellId.MagicResistanceOther1,            0.9f ),
@@ -804,23 +801,28 @@ namespace ACE.Server.Factories.Tables
                     ( SpellId.RejuvenationOther1,               0.4f ),
                 };
 
-                // robes
+                // cloth armor
                 spellSelectionGroup21 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {
-                    ( SpellId.WillpowerOther1,                  2.0f ),
+                    ( SpellId.ManaMasteryOther1,                6.0f ),
+                    ( SpellId.ManaRenewalOther1,                6.0f ),
+
+                    ( SpellId.LifeMagicMasteryOther1,           4.0f ),
+                    ( SpellId.WarMagicMasteryOther1,            4.0f ),
+
                     ( SpellId.FocusOther1,                      2.0f ),
-                    ( SpellId.ManaMasteryOther1,                2.0f ),
-                    ( SpellId.RejuvenationOther1,               1.5f ),
-                    ( SpellId.RegenerationOther1,               1.5f ),
-                    ( SpellId.ManaRenewalOther1,                1.5f ),
-                    ( SpellId.MagicResistanceOther1,            1.5f ),
-                    ( SpellId.ImpregnabilityOther1,             1.5f ),
-                    ( SpellId.InvulnerabilityOther1,            1.5f ),
-                    ( SpellId.MagicResistanceOther1,            1.5f ),
-                    ( SpellId.MonsterAttunementOther1,          1.0f ),
-                    ( SpellId.WarMagicMasteryOther1,            1.0f ),
-                    ( SpellId.LifeMagicMasteryOther1,           1.0f ),
-                    ( SpellId.AlchemyMasteryOther1,             1.0f ),
+                    ( SpellId.WillpowerOther1,                  2.0f ),
+
+                    ( SpellId.ImpregnabilityOther1,             1.0f ),
+                    ( SpellId.InvulnerabilityOther1,            1.0f ),
+                    ( SpellId.MagicResistanceOther1,            1.0f ),
+
+                    ( SpellId.RejuvenationOther1,               1.0f ),
+                    ( SpellId.RegenerationOther1,               1.0f ),
+
+                    ( SpellId.AlchemyMasteryOther1,             0.5f ),
+                    ( SpellId.AwarenessMasteryOther1,           0.5f ),
+                    ( SpellId.MonsterAttunementOther1,          0.5f ),
                 };
 
                 spellSelectionGroup = new List<ChanceTable<SpellId>>()

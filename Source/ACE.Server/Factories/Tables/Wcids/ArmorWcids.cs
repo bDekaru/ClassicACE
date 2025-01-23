@@ -409,18 +409,22 @@ namespace ACE.Server.Factories.Tables.Wcids
         {
             ( WeenieClassName.robealuvianhood,      1.0f ),
             ( WeenieClassName.robealuviannohood,    1.0f ),
+            ( WeenieClassName.dressaluvian,         0.5f ),
+            ( WeenieClassName.dressaluvianlowcut,   0.5f ),
         };
 
         private static ChanceTable<WeenieClassName> ClothGharuWcids = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
         {
             ( WeenieClassName.robegharundimhood,    1.0f ),
             ( WeenieClassName.robegharundimnohood,  1.0f ),
+            ( WeenieClassName.dressgharundim,       1.0f ),
         };
 
         private static ChanceTable<WeenieClassName> ClothShoWcids = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
         {
             ( WeenieClassName.robeshohood,      1.0f ),
             ( WeenieClassName.robeshonohood,    1.0f ),
+            ( WeenieClassName.dresssho,         1.0f ),
         };
 
         public static WeenieClassName Roll(TreasureDeath treasureDeath, TreasureRoll treasureRoll)

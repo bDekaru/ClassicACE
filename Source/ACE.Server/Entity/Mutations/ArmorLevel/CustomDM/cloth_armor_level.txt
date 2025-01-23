@@ -2,6 +2,264 @@ Armor Mutation #1:
 
 Tier chances: 1, 0, 0, 0, 0, 0
 
+    - Chance: 10%:
+        ArmorLevel += 0
+
+    - Chance: 20%:
+        ArmorLevel += 10
+
+    - Chance: 30%:
+        ArmorLevel += 20
+
+    - Chance: 10%:
+        ArmorLevel += 30
+
+    - Chance: 30%:
+        ArmorLevel += 30
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 8
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Armor Mutation #2:
+
+Tier chances: 0, 1, 0, 0, 0, 0
+
+    - Chance 40%:
+        ArmorLevel += 40
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 30%:
+        ArmorLevel += 50
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 20%:
+        ArmorLevel += 60
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 10%:
+        ArmorLevel += 70
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Armor Mutation #3:
+
+Tier chances: 0, 0, 1, 0, 0, 0
+
+    - Chance 5%:
+        ArmorLevel += 50
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 10%:
+        ArmorLevel += 60
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 20%:
+        ArmorLevel += 70
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 30%:
+        ArmorLevel += 80
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 15
+
+    - Chance 20%:
+        ArmorLevel += 90
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 30
+
+    - Chance 10%:
+        ArmorLevel += 100
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 30
+
+    - Chance 5%:
+        ArmorLevel += 110
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 30
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Armor Mutation #4:
+
+Tier chances: 0, 0, 0, 1, 0, 0
+
+    - Chance 5%:
+        ArmorLevel += 80
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 30
+
+    - Chance 10%:
+        ArmorLevel += 90
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 30
+
+    - Chance 20%:
+        ArmorLevel += 100
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 30
+
+    - Chance 30%:
+        ArmorLevel += 110
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 30
+
+    - Chance 20%:
+        ArmorLevel += 140
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+    - Chance 10%:
+        ArmorLevel += 150
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+    - Chance 5%:
+        ArmorLevel += 160
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Armor Mutation #5:
+
+Tier chances: 0, 0, 0, 0, 1, 0
+
+    - Chance 7%:
+        ArmorLevel += 120
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+    - Chance 11%:
+        ArmorLevel += 130
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+    - Chance 19%:
+        ArmorLevel += 140
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+    - Chance 27%:
+        ArmorLevel += 150
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+    - Chance 18%:
+        ArmorLevel += 160
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 50
+
+    - Chance 11%:
+        ArmorLevel += 170
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 70
+
+    - Chance 7%:
+        ArmorLevel += 180
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 70
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Armor Mutation #6:
+
+Tier chances: 0, 0, 0, 0, 0, 1
+
+    - Chance 5%:
+        ArmorLevel += 150
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 70
+
+    - Chance 10%:
+        ArmorLevel += 160
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 70
+
+    - Chance 10%:
+        ArmorLevel += 170
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 70
+
+    - Chance 20%:
+        ArmorLevel += 180
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 70
+
+    - Chance 20%:
+        ArmorLevel += 185
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 90
+
+    - Chance 17%:
+        ArmorLevel += 195
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 90
+
+    - Chance 11%:
+        ArmorLevel += 205
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 90
+
+    - Chance 7%:
+        ArmorLevel += 215
+        WieldRequirements = Level
+        WieldSkillType = 1
+        WieldDifficulty = 90
+
+    - Chance 100%:
+        ArmorLevel += Random(-5, 5)
+
+Armor Mutation #1:
+
+Tier chances: 1, 0, 0, 0, 0, 0
+
     - Chance: 30%:
         ManaConversionMod = 0
 
@@ -30,11 +288,6 @@ Tier chances: 0, 1, 0, 0, 0, 0
     - Chance: 10%:
         ManaConversionMod = 0.04
 
-    - Chance 100%:
-        WieldRequirements = Level
-        WieldSkillType = 1
-        WieldDifficulty = 5
-
 Armor Mutation #3:
 
 Tier chances: 0, 0, 1, 0, 0, 0
@@ -59,11 +312,6 @@ Tier chances: 0, 0, 1, 0, 0, 0
 
     - Chance: 5%:
         ManaConversionMod = 0.06
-
-    - Chance 100%:
-        WieldRequirements = Level
-        WieldSkillType = 1
-        WieldDifficulty = 20
 
 Armor Mutation #4:
 
@@ -90,11 +338,6 @@ Tier chances: 0, 0, 0, 1, 0, 0
     - Chance: 5%:
         ManaConversionMod = 0.08
 
-    - Chance 100%:
-        WieldRequirements = Level
-        WieldSkillType = 1
-        WieldDifficulty = 40
-
 Armor Mutation #5:
 
 Tier chances: 0, 0, 0, 0, 1, 0
@@ -120,11 +363,6 @@ Tier chances: 0, 0, 0, 0, 1, 0
     - Chance: 5%:
         ManaConversionMod = 0.1
 
-    - Chance 100%:
-        WieldRequirements = Level
-        WieldSkillType = 1
-        WieldDifficulty = 50
-
 Armor Mutation #6:
 
 Tier chances: 0, 0, 0, 0, 0, 1
@@ -146,11 +384,6 @@ Tier chances: 0, 0, 0, 0, 0, 1
 
     - Chance: 10%:
         ManaConversionMod = 0.1
-
-    - Chance 100%:
-        WieldRequirements = Level
-        WieldSkillType = 1
-        WieldDifficulty = 60
 
 Armor Mutation #7:
 

@@ -141,8 +141,8 @@ namespace ACE.Server.WorldObjects
                 var addVuln = ModToRating(vulnMod);
 
                 // scale
-                addProt = IgnoreMagicResistScaled(addProt);
-                addVuln = IgnoreMagicResistScaled(addVuln);
+                addProt = attacker is Player ? IgnoreMagicResistScaled(addProt) : 0;
+                addVuln = attacker is Player ? IgnoreMagicResistScaled(addVuln) : 0;
 
                 protMod = GetNegativeRatingMod(addProt);
                 vulnMod = GetPositiveRatingMod(addVuln);

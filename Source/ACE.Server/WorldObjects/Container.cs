@@ -1083,7 +1083,7 @@ namespace ACE.Server.WorldObjects
                 if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
                 {
                     worldObject.ExtraSpellsMaxOverride = 2;
-                    if(worldObject.IsRobe)
+                    if(worldObject.IsClothArmor)
                         worldObject.ExtraSpellsMaxOverride *= 2;
 
                     worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty;

@@ -4535,6 +4535,38 @@ namespace ACE.Server.WorldObjects
             { SpellId.CreatureEnchantmentMasteryOther6, 0 },
             { SpellId.CreatureEnchantmentMasteryOther7, 0 },
             { SpellId.CreatureEnchantmentMasteryOther8, 0 },
+
+            { SpellId.ArmorSelf1, 0 },
+            { SpellId.ArmorSelf2, 0 },
+            { SpellId.ArmorSelf3, 0 },
+            { SpellId.ArmorSelf4, 0 },
+            { SpellId.ArmorSelf5, 0 },
+            { SpellId.ArmorSelf6, 0 },
+            { SpellId.ArmorSelf7, 0 },
+            { SpellId.ArmorSelf8, 0 },
+
+            { SpellId.ArmorOther1, 0 },
+            { SpellId.ArmorOther2, 0 },
+            { SpellId.ArmorOther3, 0 },
+            { SpellId.ArmorOther4, 0 },
+            { SpellId.ArmorOther5, 0 },
+            { SpellId.ArmorOther6, 0 },
+            { SpellId.ArmorOther7, 0 },
+            { SpellId.ArmorOther8, 0 },
+
+            { SpellId.ForceArmor, 0 },
+            { SpellId.PanoplyQueenslayer, 0 },
+            { SpellId.TuskerHideLesser, 0 },
+            { SpellId.TuskerHide, 0 },
+            { SpellId.LesserMistsBur, 0 },
+            { SpellId.MinorMistsBur, 0 },
+            { SpellId.MistsBur, 0 },
+            { SpellId.ArmorSelfAegisGoldenFlame, 0 },
+            { SpellId.KukuurHide, 0 },
+            { SpellId.DrudgeArmor, 0 },
+            { SpellId.FrozenArmor, 0 },
+            { SpellId.ArmorProdigalHarbinger, 0 },
+            { SpellId.BaelzharonArmorOther, 0 },
         };
     }
 }

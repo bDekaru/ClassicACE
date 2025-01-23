@@ -76,7 +76,7 @@ namespace ACE.Server.Factories.Entity
         /// </summary>
         public bool HasArmorLevel(WorldObject wo)
         {
-            return (wo.ArmorLevel ?? 0) > 0;
+            return (wo.ArmorLevel ?? 0) > 0 || wo.IsClothArmor;
         }
 
         public bool IsGem => ItemType == TreasureItemType_Orig.Gem;

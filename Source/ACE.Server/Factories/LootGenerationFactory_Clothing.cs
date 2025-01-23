@@ -40,35 +40,7 @@ namespace ACE.Server.Factories
             if (wo.HasMutateFilter(MutateFilter.EncumbranceVal))  // fixme: data
                 MutateBurden(wo, profile, false);
 
-            if (roll == null)
-            {
-                if (armorType == TreasureArmorType.Covenant || armorType == TreasureArmorType.Olthoi)
-                {
-                    int chance = ThreadSafeRandom.Next(1, 3);
-                    var wieldSkill = chance switch
-                    {
-                        1 => Skill.MagicDefense,
-                        2 => Skill.MissileDefense,
-                        _ => Skill.MeleeDefense,
-                    };
-
-                    wo.WieldRequirements = WieldRequirement.RawSkill;
-                    wo.WieldSkillType = (int)wieldSkill;
-                    wo.WieldDifficulty = GetCovenantWieldReq(profile.Tier, wieldSkill);
-                }
-                else if (profile.Tier > 6)
-                {
-                    wo.WieldRequirements = WieldRequirement.Level;
-                    wo.WieldSkillType = (int)Skill.Axe;  // Set by examples from PCAP data
-
-                    wo.WieldDifficulty = profile.Tier switch
-                    {
-                        7 => 150,  // In this instance, used for indicating player level, rather than skill level
-                        _ => 180,  // In this instance, used for indicating player level, rather than skill level
-                    };
-                }
-            }
-            else if (profile.Tier > 6 && !wo.HasArmorLevel())
+            if (profile.Tier > 6 && !wo.HasArmorLevel())
             {
                 // normally this is handled in the mutation script for armor
                 // for clothing, just calling the generic method here
@@ -91,13 +63,6 @@ namespace ACE.Server.Factories
                 wo.ItemCurMana = null;
                 wo.ItemSpellcraft = null;
                 wo.ItemDifficulty = null;
-
-                if (roll.IsClothArmor) // Non-magical robes do not need level requirements
-                {
-                    wo.RemoveProperty(PropertyInt.WieldRequirements);
-                    wo.RemoveProperty(PropertyInt.WieldSkillType);
-                    wo.RemoveProperty(PropertyInt.WieldDifficulty);
-                }
             }
 
             if (profile.Tier > 6 && armorType != TreasureArmorType.Society)
@@ -123,7 +88,7 @@ namespace ACE.Server.Factories
 
             // only exceptions found: covenant armor, olthoi armor, metal cap
 
-            if (!roll.HasArmorLevel(wo) && !roll.IsClothArmor)
+            if (!roll.HasArmorLevel(wo))
                 return false;
 
             var scriptName = GetMutationScript_ArmorLevel(wo, roll);
@@ -206,57 +171,6 @@ namespace ACE.Server.Factories
                 else
                     return null;
             }
-        }
-
-        private static int GetCovenantWieldReq(int tier, Skill skill)
-        {
-            var index = tier switch
-            {
-                3 => ThreadSafeRandom.Next(1, 3),
-                4 => ThreadSafeRandom.Next(1, 4),
-                5 => ThreadSafeRandom.Next(1, 5),
-                6 => ThreadSafeRandom.Next(1, 6),
-                7 => ThreadSafeRandom.Next(1, 7),
-                _ => ThreadSafeRandom.Next(1, 8),
-            };
-
-            var wield = skill switch
-            {
-                Skill.MagicDefense => index switch
-                {
-                    1 => 145,
-                    2 => 185,
-                    3 => 225,
-                    4 => 245,
-                    5 => 270,
-                    6 => 290,
-                    7 => 310,
-                    _ => 320,
-                },
-                Skill.MissileDefense => index switch
-                {
-                    1 => 160,
-                    2 => 205,
-                    3 => 245,
-                    4 => 270,
-                    5 => 290,
-                    6 => 305,
-                    7 => 330,
-                    _ => 340,
-                },
-                _ => index switch
-                {
-                    1 => 200,
-                    2 => 250,
-                    3 => 300,
-                    4 => 325,
-                    5 => 350,
-                    6 => 370,
-                    7 => 400,
-                    _ => 410,
-                },
-            };
-            return wield;
         }
 
         private static bool TryRollEquipmentSet(WorldObject wo, TreasureDeath profile, TreasureRoll roll)

@@ -430,26 +430,29 @@ namespace ACE.Server.Network.Structure
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
-                    var baseArmor = PropertiesInt[PropertyInt.ArmorLevel];
-
-                    var wielder = wo.Wielder as Player;
-                    if (wielder != null && ((wo.ClothingPriority ?? 0) & (CoverageMask)CoverageMaskHelper.Underwear) == 0)
+                    if (!wo.IsClothArmor)
                     {
-                        int armor;
-                        if (wo.IsShield)
-                            armor = (int)wielder.GetSkillModifiedShieldLevel(baseArmor);
-                        else
-                            armor = (int)wielder.GetSkillModifiedArmorLevel(baseArmor);
+                        var baseArmor = PropertiesInt[PropertyInt.ArmorLevel];
 
-                        if (armor < baseArmor)
+                        var wielder = wo.Wielder as Player;
+                        if (wielder != null && ((wo.ClothingPriority ?? 0) & (CoverageMask)CoverageMaskHelper.Underwear) == 0)
                         {
-                            PropertiesInt[PropertyInt.ArmorLevel] = armor;
-                            IsArmorCapped = true;
-                        }
-                        else if (armor > baseArmor)
-                        {
-                            PropertiesInt[PropertyInt.ArmorLevel] = armor;
-                            IsArmorBuffed = true;
+                            int armor;
+                            if (wo.IsShield)
+                                armor = (int)wielder.GetSkillModifiedShieldLevel(baseArmor);
+                            else
+                                armor = (int)wielder.GetSkillModifiedArmorLevel(baseArmor);
+
+                            if (armor < baseArmor)
+                            {
+                                PropertiesInt[PropertyInt.ArmorLevel] = armor;
+                                IsArmorCapped = true;
+                            }
+                            else if (armor > baseArmor)
+                            {
+                                PropertiesInt[PropertyInt.ArmorLevel] = armor;
+                                IsArmorBuffed = true;
+                            }
                         }
                     }
                 }
@@ -630,12 +633,23 @@ namespace ACE.Server.Network.Structure
                     hasExtraPropertiesText = true;
                 }
 
-                if (wo.ArmorLevel != null && wo.ArmorLevel != 0 && wo.CurrentWieldedLocation != null)
+                if (wo.ArmorLevel != null && wo.ArmorLevel != 0)
                 {
-                    if (hasExtraPropertiesText)
-                        extraPropertiesText += "\n";
-                    extraPropertiesText += $"Base Armor Level: {wo.ArmorLevel}.";
-                    hasExtraPropertiesText = true;
+                    if (wo.IsClothArmor)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Cloth Armor is not affected by the Armor Skill.\n";
+                        hasExtraPropertiesText = true;
+                    }
+
+                    if (wo.CurrentWieldedLocation != null)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Base Armor Level: {wo.ArmorLevel}.";
+                        hasExtraPropertiesText = true;
+                    }
                 }
 
                 if (wo.IsShield)

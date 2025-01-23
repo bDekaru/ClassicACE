@@ -29,10 +29,7 @@ namespace ACE.Server.Factories
             InitRares();
             InitClothingColors();
 
-            BuildCantripsTable(ref MinorCantrips, 0);
-            BuildCantripsTable(ref MajorCantrips, 1);
-            BuildCantripsTable(ref EpicCantrips, 2);
-            BuildCantripsTable(ref LegendaryCantrips, 3);
+            BuildCantripsTables();
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
             {
@@ -1145,7 +1142,7 @@ namespace ACE.Server.Factories
 
                 case TreasureItemType_Orig.Scroll:
 
-                    treasureRoll.Wcid = ScrollWcids.Roll();
+                    treasureRoll.Wcid = ScrollWcids.Roll(treasureDeath);
                     break;
 
                 case TreasureItemType_Orig.Caster:
@@ -1306,48 +1303,43 @@ namespace ACE.Server.Factories
 
         public static WorldObject CreateAndMutateWcid(TreasureDeath treasureDeath, TreasureRoll treasureRoll, bool isMagical)
         {
-            WorldObject wo = null;
+            WorldObject wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
 
-            if (treasureRoll.ItemType != TreasureItemType_Orig.Scroll)
+            if (wo == null)
             {
-                wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
-
-                if (wo == null)
-                {
-                    log.Error($"CreateAndMutateWcid({treasureDeath.TreasureType}, {(int)treasureRoll.Wcid} - {treasureRoll.Wcid}, {treasureRoll.GetItemType()}, {isMagical}) - failed to create item");
-                    return null;
-                }
-
-                wo.Tier = treasureDeath.Tier;
-
-
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && wo.MaxStackSize > 1)
-                {
-                    if (treasureRoll.ItemType == TreasureItemType_Orig.SpecialItem_Unmutated)
-                        wo.SetStackSize(SpecialItemsWcids.GetAmount(wo.WeenieClassId));
-                    else if (treasureRoll.WeaponType == TreasureWeaponType.Thrown)
-                        wo.SetStackSize(Math.Min(30, (int)(wo.MaxStackSize ?? 1)));
-                    else if (treasureRoll.ItemType == TreasureItemType_Orig.Consumable)
-                        wo.SetStackSize(Math.Min(3, (int)(wo.MaxStackSize ?? 1)));
-                    else if (wo.ItemType == ItemType.SpellComponents)
-                    {
-                        uint componentId = wo.GetProperty(PropertyDataId.SpellComponent) ?? 0;
-                        if ((componentId > 6 && componentId < 49) || (componentId > 62 && componentId < 75)) // herbs, powders, potions and tapers
-                            wo.SetStackSize(Math.Min(2 * treasureDeath.Tier, wo.MaxStackSize ?? 1));
-                        else if ((wo.GetProperty(PropertyDataId.SpellComponent) ?? 0) < 63) // scarabs and talismans
-                            wo.SetStackSize(Math.Min(treasureDeath.Tier, wo.MaxStackSize ?? 1));
-                    }
-                    else if (treasureRoll.ItemType == TreasureItemType_Orig.Ammo)
-                    {
-                        if (wo.WeenieType == WeenieType.Missile)
-                            wo.SetStackSize(Math.Min(50, (int)(wo.MaxStackSize ?? 1)));
-                        else
-                            wo.SetStackSize(Math.Min(10, (int)(wo.MaxStackSize ?? 1)));
-                    }
-                }
-
-                treasureRoll.BaseArmorLevel = wo.ArmorLevel ?? 0;
+                log.Error($"CreateAndMutateWcid({treasureDeath.TreasureType}, {(int)treasureRoll.Wcid} - {treasureRoll.Wcid}, {treasureRoll.GetItemType()}, {isMagical}) - failed to create item");
+                return null;
             }
+
+            wo.Tier = treasureDeath.Tier;
+
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && wo.MaxStackSize > 1)
+            {
+                if (treasureRoll.ItemType == TreasureItemType_Orig.SpecialItem_Unmutated)
+                    wo.SetStackSize(SpecialItemsWcids.GetAmount(wo.WeenieClassId));
+                else if (treasureRoll.WeaponType == TreasureWeaponType.Thrown)
+                    wo.SetStackSize(Math.Min(30, (int)(wo.MaxStackSize ?? 1)));
+                else if (treasureRoll.ItemType == TreasureItemType_Orig.Consumable)
+                    wo.SetStackSize(Math.Min(3, (int)(wo.MaxStackSize ?? 1)));
+                else if (wo.ItemType == ItemType.SpellComponents)
+                {
+                    uint componentId = wo.GetProperty(PropertyDataId.SpellComponent) ?? 0;
+                    if ((componentId > 6 && componentId < 49) || (componentId > 62 && componentId < 75)) // herbs, powders, potions and tapers
+                        wo.SetStackSize(Math.Min(2 * treasureDeath.Tier, wo.MaxStackSize ?? 1));
+                    else if ((wo.GetProperty(PropertyDataId.SpellComponent) ?? 0) < 63) // scarabs and talismans
+                        wo.SetStackSize(Math.Min(treasureDeath.Tier, wo.MaxStackSize ?? 1));
+                }
+                else if (treasureRoll.ItemType == TreasureItemType_Orig.Ammo)
+                {
+                    if (wo.WeenieType == WeenieType.Missile)
+                        wo.SetStackSize(Math.Min(50, (int)(wo.MaxStackSize ?? 1)));
+                    else
+                        wo.SetStackSize(Math.Min(10, (int)(wo.MaxStackSize ?? 1)));
+                }
+            }
+
+            treasureRoll.BaseArmorLevel = wo.ArmorLevel ?? 0;
 
             switch (treasureRoll.ItemType)
             {
@@ -1433,10 +1425,6 @@ namespace ACE.Server.Factories
                     MutateArmor(wo, treasureDeath, isMagical, TreasureArmorType.Cloth, treasureRoll);
                     break;
 
-                case TreasureItemType_Orig.Scroll:
-                    wo = CreateRandomScroll(treasureDeath, treasureRoll);     // using original method
-                    break;
-
                 case TreasureItemType_Orig.Cloak:
                     MutateCloak(wo, treasureDeath, treasureRoll);
                     break;
@@ -1517,9 +1505,9 @@ namespace ACE.Server.Factories
 
         private static string TryGetLongDesc(WorldObject wo, SpellId spellId)
         {
-            var spellLevels = SpellLevelProgression.GetSpellLevels(spellId);
+            var descriptor = SpellDescriptors.GetDescriptor(spellId);
 
-            if (spellLevels != null && CasterSlotSpells.descriptors.TryGetValue(spellLevels[0], out var descriptor))
+            if (descriptor != null)
                 return $"{wo.Name} of {descriptor}";
             else
                 return null;
@@ -1555,23 +1543,48 @@ namespace ACE.Server.Factories
         public static HashSet<int> EpicCantrips;
         public static HashSet<int> LegendaryCantrips;
 
-        private static List<SpellId[][]> cantripTables = new List<SpellId[][]>()
+        private static void BuildCantripsTables()
         {
-            ArmorCantrips.Table,
-            JewelryCantrips.Table,
-            WandCantrips.Table,
-            MeleeCantrips.Table,
-            MissileCantrips.Table
-        };
+            var allCantrips = new List<SpellId>();
+            allCantrips.AddRange(ArmorCantrips.GetSpellIdList(false));
+            allCantrips.AddRange(ArmorCantrips.GetSpellIdList(true));
+            allCantrips.AddRange(JewelryCantrips.GetSpellIdList());
+            allCantrips.AddRange(WandCantrips.GetSpellIdList());
+            allCantrips.AddRange(MeleeCantrips.GetSpellIdList());
+            allCantrips.AddRange(MissileCantrips.GetSpellIdList());
+            allCantrips.AddRange(ClothArmorCantrips.GetSpellIdList());
 
-        private static void BuildCantripsTable(ref HashSet<int> table, int tier)
-        {
-            table = new HashSet<int>();
+            allCantrips = allCantrips.Distinct().ToList();
 
-            foreach (var cantripTable in cantripTables)
+            MinorCantrips = new HashSet<int>();
+            MajorCantrips = new HashSet<int>();
+            EpicCantrips = new HashSet<int>();
+            LegendaryCantrips = new HashSet<int>();
+
+            foreach (var level1SpellId in allCantrips)
             {
-                foreach (var category in cantripTable)
-                    table.Add((int)category[tier]);
+                for (int spellLevel = 1; spellLevel <= 4; spellLevel++)
+                {
+                    var spellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel);
+                    if (spellId != SpellId.Undef)
+                    {
+                        switch (spellLevel)
+                        {
+                            case 1:
+                                MinorCantrips.Add((int)spellId);
+                                break;
+                            case 2:
+                                MajorCantrips.Add((int)spellId);
+                                break;
+                            case 3:
+                                EpicCantrips.Add((int)spellId);
+                                break;
+                            case 4:
+                                LegendaryCantrips.Add((int)spellId);
+                                break;
+                        }
+                    }
+                }
             }
         }
     }         

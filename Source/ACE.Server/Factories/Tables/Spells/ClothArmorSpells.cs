@@ -11,38 +11,7 @@ namespace ACE.Server.Factories.Tables
 {
     public static class ClothArmorSpells
     {
-        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
-        private static readonly List<SpellId> spells = new List<SpellId>()
-        {
-            SpellId.ArmorOther1,
-            SpellId.AcidProtectionOther1,
-            SpellId.BludgeonProtectionOther1,
-            SpellId.ColdProtectionOther1,
-            SpellId.LightningProtectionOther1,
-            SpellId.FireProtectionOther1,
-            SpellId.BladeProtectionOther1,
-            SpellId.PiercingProtectionOther1,
-
-            SpellId.WillpowerOther1,
-            SpellId.FocusOther1,
-
-            SpellId.ManaMasteryOther1,
-            SpellId.RejuvenationOther1,
-            SpellId.RegenerationOther1,
-            SpellId.ManaRenewalOther1,
-            SpellId.MagicResistanceOther1,
-            SpellId.ImpregnabilityOther1,
-            SpellId.InvulnerabilityOther1,
-            SpellId.MagicResistanceOther1,
-            SpellId.MonsterAttunementOther1,
-            SpellId.AlchemyMasteryOther1,
-        };
-
-        private static readonly int NumTiers = 8;
-
-        // original api
-        public static readonly SpellId[][] Table = new SpellId[spells.Count][];
+        private static readonly List<(SpellId spellId, float chance)> clothArmorSpells = new List<(SpellId, float)>() { };
 
         static ClothArmorSpells()
         {
@@ -50,58 +19,17 @@ namespace ACE.Server.Factories.Tables
             {
                 clothArmorSpells = new List<(SpellId, float)>()
                 {
-                    ( SpellId.ArmorOther1,                  1.00f ),
-                    ( SpellId.WarMagicMasteryOther1,        0.33f ),
-                    ( SpellId.LifeMagicMasteryOther1,       0.33f ),
-                    ( SpellId.AcidProtectionOther1,         0.15f ),
-                    ( SpellId.BludgeonProtectionOther1,     0.15f ),
-                    ( SpellId.ColdProtectionOther1,         0.15f ),
-                    ( SpellId.LightningProtectionOther1,    0.15f ),
-                    ( SpellId.FireProtectionOther1,         0.15f ),
-                    ( SpellId.BladeProtectionOther1,        0.15f ),
-                    ( SpellId.PiercingProtectionOther1,     0.15f ),
+                    ( SpellId.PiercingBane1,    0.3f ),
+                    ( SpellId.FlameBane1,       0.3f ),
+                    ( SpellId.FrostBane1,       0.3f ),
+                    //( SpellId.Impenetrability1, 1.00f ),
+                    ( SpellId.AcidBane1,        0.3f ),
+                    ( SpellId.BladeBane1,       0.3f ),
+                    ( SpellId.LightningBane1,   0.3f ),
+                    ( SpellId.BludgeonBane1,    0.3f ),
                 };
             }
-
-            // takes ~0.3ms
-            BuildSpells();
         }
-
-        private static void BuildSpells()
-        {
-            for (var i = 0; i < spells.Count; i++)
-                Table[i] = new SpellId[NumTiers];
-
-            for (var i = 0; i < spells.Count; i++)
-            {
-                var spell = spells[i];
-
-                var spellLevels = SpellLevelProgression.GetSpellLevels(spell);
-
-                if (spellLevels == null)
-                {
-                    log.Error($"ClothArmorSpells - couldn't find {spell}");
-                    continue;
-                }
-
-                if (spellLevels.Count != NumTiers)
-                {
-                    log.Error($"ClothArmorSpells - expected {NumTiers} levels for {spell}, found {spellLevels.Count}");
-                    continue;
-                }
-
-                for (var j = 0; j < NumTiers; j++)
-                    Table[i][j] = spellLevels[j];
-            }
-        }
-
-        // alt
-
-        // this table also applies to clothing w/ AL
-
-        private static readonly List<(SpellId spellId, float chance)> clothArmorSpells = new List<(SpellId, float)>()
-        {
-        };
 
         public static List<SpellId> Roll(TreasureDeath treasureDeath)
         {

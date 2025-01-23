@@ -49,13 +49,6 @@ namespace ACE.Server.Factories
                 wo.ItemCurMana = null;
                 wo.ItemSpellcraft = null;
                 wo.ItemDifficulty = null;
-
-                if (roll.IsClothArmor) // Non-magical robes do not need level requirements
-                {
-                    wo.RemoveProperty(PropertyInt.WieldRequirements);
-                    wo.RemoveProperty(PropertyInt.WieldSkillType);
-                    wo.RemoveProperty(PropertyInt.WieldDifficulty);
-                }
             }
             else
             {

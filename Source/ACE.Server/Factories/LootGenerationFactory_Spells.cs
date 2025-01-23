@@ -340,7 +340,7 @@ namespace ACE.Server.Factories
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     {
                         var arcaneRoll = 4 + spell.Formula.Level;
-                        if (wo.IsRobe)
+                        if (wo.IsClothArmor)
                             arcaneRoll /= 2;
 
                         minArcaneRoll += arcaneRoll * 0.5f;

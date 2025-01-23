@@ -443,14 +443,14 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the creature armor for a body part
         /// </summary>
-        public List<WorldObject> GetArmorLayers(Player target, BodyPart bodyPart)
+        public List<WorldObject> GetArmorLayers(BodyPart bodyPart)
         {
             //Console.WriteLine("BodyPart: " + bodyPart);
             //Console.WriteLine("===");
 
             var coverageMask = BodyParts.GetCoverageMask(bodyPart);
 
-            var equipped = target.EquippedObjects.Values.Where(e => e is Clothing && (e.ClothingPriority & coverageMask) != 0).ToList();
+            var equipped = EquippedObjects.Values.Where(e => e is Clothing && (e.ClothingPriority & coverageMask) != 0).ToList();
 
             return equipped;
         }
@@ -459,27 +459,21 @@ namespace ACE.Server.WorldObjects
         /// Returns the percent of damage absorbed by layered armor + clothing
         /// </summary>
         /// <param name="armors">The list of armor/clothing covering the targeted body part</param>
-        public float GetArmorMod(Creature defender, DamageType damageType, List<WorldObject> armors, WorldObject weapon, float armorRendingMod = 1.0f, bool isPvP = false)
+        public float GetArmorMod(Creature attacker, DamageType damageType, List<WorldObject> armors, WorldObject weapon, float armorRendingMod = 1.0f, bool isPvP = false)
         {
-            var ignoreMagicArmor =  (weapon?.IgnoreMagicArmor ?? false)  || IgnoreMagicArmor;
-            var ignoreMagicResist = (weapon?.IgnoreMagicResist ?? false) || IgnoreMagicResist;
+            var ignoreMagicArmor =  (weapon?.IgnoreMagicArmor ?? false)  || attacker.IgnoreMagicArmor;
+            var ignoreMagicResist = (weapon?.IgnoreMagicResist ?? false) || attacker.IgnoreMagicResist;
 
             var effectiveAL = 0.0f;
 
             foreach (var armor in armors)
-                effectiveAL += defender.GetArmorMod(armor, damageType, ignoreMagicArmor);
+                effectiveAL += GetArmorMod(attacker, armor, damageType, ignoreMagicArmor);
 
             // life spells
             // additive: armor/imperil
-            int bodyArmorMod;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                bodyArmorMod = defender.EnchantmentManager.GetBodyArmorMod(true); // Do not take into account armor debuffs yet.
-            else
-            {
-                bodyArmorMod = defender.EnchantmentManager.GetBodyArmorMod();
-                if (ignoreMagicResist)
-                    bodyArmorMod = IgnoreMagicResistScaled(bodyArmorMod);
-            }
+            var bodyArmorMod = EnchantmentManager.GetBodyArmorMod();
+            if (ignoreMagicResist)
+                bodyArmorMod = attacker is Player ? IgnoreMagicResistScaled(bodyArmorMod) : 0;
 
             // handle armor rending mod here?
             //if (bodyArmorMod > 0)
@@ -487,17 +481,7 @@ namespace ACE.Server.WorldObjects
 
             //Console.WriteLine("==");
             //Console.WriteLine("Armor Self: " + bodyArmorMod);
-
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                effectiveAL += bodyArmorMod;
-            else
-            {
-                if (bodyArmorMod > effectiveAL)
-                    effectiveAL = bodyArmorMod; // Body armor doesn't stack with equipment armor, use whichever is highest.
-
-                if (!ignoreMagicResist)
-                    effectiveAL += defender.EnchantmentManager.GetBodyArmorMod(false); // Take into account armor debuffs now, but only if weapon isn't hollow.
-            }
+            effectiveAL += bodyArmorMod;
 
             // Armor Rending reduces physical armor too?
             if (effectiveAL > 0)
@@ -581,7 +565,7 @@ namespace ACE.Server.WorldObjects
 
         public float GetSkillModifiedArmorLevel(float armorLevel)
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || IsClothArmor)
                 return armorLevel;
 
             if (armorLevel == 0)
@@ -610,7 +594,7 @@ namespace ACE.Server.WorldObjects
         /// Returns the effective AL for 1 piece of armor/clothing
         /// </summary>
         /// <param name="armor">A piece of armor or clothing</param>
-        public float GetArmorMod(WorldObject armor, DamageType damageType, bool ignoreMagicArmor)
+        public float GetArmorMod(Creature attacker, WorldObject armor, DamageType damageType, bool ignoreMagicArmor)
         {
             // get base armor/resistance level
             var baseArmor = armor.GetProperty(PropertyInt.ArmorLevel) ?? 0;
@@ -626,7 +610,7 @@ namespace ACE.Server.WorldObjects
             var armorMod = armor.EnchantmentManager.GetArmorMod();
 
             if (ignoreMagicArmor)
-                armorMod = (int)Math.Round(IgnoreMagicArmorScaled(armorMod));
+                armorMod = attacker is Player ? (int)Math.Round(IgnoreMagicArmorScaled(armorMod)) : 0;
 
             // Console.WriteLine("Impen: " + armorMod);
             var effectiveAL = baseArmor + armorMod;
@@ -635,7 +619,7 @@ namespace ACE.Server.WorldObjects
             var armorBane = armor.EnchantmentManager.GetArmorModVsType(damageType);
 
             if (ignoreMagicArmor)
-                armorBane = IgnoreMagicArmorScaled(armorBane);
+                armorBane = attacker is Player ? IgnoreMagicArmorScaled(armorBane) : 0.0f;
 
             // Console.WriteLine("Bane: " + armorBane);
             var effectiveRL = (float)(resistance + armorBane);

@@ -8863,7 +8863,10 @@ namespace ACE.Server.Factories.Tables
                     return SpellId.Undef;
             }
 
-            return spellLevels[spellLevelIndex];
+            if (spellLevelIndex < spellLevels.Count)
+                return spellLevels[spellLevelIndex];
+            else
+                return SpellId.Undef;
         }
     }
 }
