@@ -503,8 +503,6 @@ namespace ACE.Server.Factories.Tables.Wcids
             }
             while (spellId == SpellId.Undef); // Simple way of handling spells that start at level 3 (blasts, volleys)
 
-            Console.WriteLine(spellId);
-
             var weenie = DatabaseManager.World.GetScrollWeenie((uint)spellId);
 
             if (weenie == null)
