@@ -1024,13 +1024,13 @@ namespace ACE.Server.WorldObjects
             if (this is Container container)
             {
                 foreach (var item in container.Inventory.Values)
-                    item.Destroy();
+                    item.Destroy(raiseNotifyOfDestructionEvent, fromLandblockUnload);
             }
 
             if (this is Creature creature)
             {
                 foreach (var item in creature.EquippedObjects.Values)
-                    item.Destroy();
+                    item.Destroy(raiseNotifyOfDestructionEvent, fromLandblockUnload);
 
                 foreach (var objInfo in creature.DeployedObjects)
                 {
@@ -1056,10 +1056,10 @@ namespace ACE.Server.WorldObjects
             if (this is Vendor vendor)
             {
                 foreach (var wo in vendor.DefaultItemsForSale.Values)
-                    wo.Destroy();
+                    wo.Destroy(raiseNotifyOfDestructionEvent, fromLandblockUnload);
 
                 foreach (var wo in vendor.UniqueItemsForSale.Values)
-                    wo.Destroy();
+                    wo.Destroy(raiseNotifyOfDestructionEvent, fromLandblockUnload);
             }
 
             if (!fromLandblockUnload)

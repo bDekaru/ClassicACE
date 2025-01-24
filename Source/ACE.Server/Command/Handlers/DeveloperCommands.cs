@@ -2906,11 +2906,18 @@ namespace ACE.Server.Command.Handlers
         [CommandHandler("purchase-house", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Instantly purchase the house for the last appraised covenant crystal.")]
         public static void HandlePurchaseHouse(Session session, params string[] parameters)
         {
+            var houseInstance = session.Player.GetHouseInstance();
+            if (houseInstance != null)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat("You already own a house!", ChatMessageType.Broadcast));
+                return;
+            }
+
             var slumlord = CommandHandlerHelper.GetLastAppraisedObject(session) as SlumLord;
 
             if (slumlord == null)
             {
-                session.Network.EnqueueSend(new GameMessageSystemChat("Couldn't find slumlord", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Target is not a slumlord!", ChatMessageType.Broadcast));
                 return;
             }
 
