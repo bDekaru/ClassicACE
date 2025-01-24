@@ -55,23 +55,21 @@ namespace ACE.Server.Factories
         {
             // TODO: move to standard AssignMagic() pipeline
 
-            var spell = SpellSelectionTable.Roll(1);
+            var level1SpellId = SpellSelectionTable.Roll(1);
 
             var spellLevel = SpellLevelChance.Roll(profile.Tier);
 
-            var spellLevels = SpellLevelProgression.GetSpellLevels(spell);
+            var spellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel);
 
-            if (spellLevels == null || spellLevels.Count != 8)
+            if (spellId == SpellId.Undef)
             {
-                log.Error($"AssignMagic_Gem({wo.Name}, {profile.TreasureType}, {roll.ItemType}) - unknown spell {spell}");
+                log.Error($"AssignMagic_Gem({wo.Name}, {profile.TreasureType}, {roll.ItemType}) - Failed to generate level {spellLevel} version of {level1SpellId}");
                 return false;
             }
 
-            var finalSpellId = spellLevels[spellLevel - 1];
+            wo.SpellDID = (uint)spellId;
 
-            wo.SpellDID = (uint)finalSpellId;
-
-            var _spell = new Server.Entity.Spell(finalSpellId);
+            var _spell = new Server.Entity.Spell(spellId);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
@@ -90,10 +88,10 @@ namespace ACE.Server.Factories
             }
 
             roll.AllSpells = new List<SpellId>();
-            roll.AllSpells.Add(finalSpellId);
+            roll.AllSpells.Add(spellId);
 
             roll.LifeCreatureEnchantments = new List<SpellId>();
-            roll.LifeCreatureEnchantments.Add(finalSpellId);
+            roll.LifeCreatureEnchantments.Add(spellId);
 
             CalculateSpellcraft(wo, roll.AllSpells, true, out roll.MinSpellcraft, out roll.MaxSpellcraft, out roll.RolledSpellCraft);
             AddActivationRequirements(wo, profile, roll);
