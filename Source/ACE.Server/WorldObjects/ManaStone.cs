@@ -176,7 +176,7 @@ namespace ACE.Server.WorldObjects
 
                         var additionalManaNeeded = origItemsNeedingMana.Sum(k => k.ItemMaxMana.Value - k.ItemCurMana.Value);
                         var additionalManaText = (additionalManaNeeded > 0) ? $"\nYou need {additionalManaNeeded:N0} more mana to fully charge your items." : "\nYour items are fully charged.";
-                        var msg = $"The Mana Stone gives {itemsGivenMana.Values.Sum():N0} points of mana to the following items: {itemsGivenMana.Select(c => c.Key.Name).Aggregate((a, b) => a + ", " + b)}.{additionalManaText}";
+                        var msg = $"The Mana Stone gives {itemsGivenMana.Values.Sum():N0} points of mana to the following items: {itemsGivenMana.Select(c => c.Key.NameWithMaterial).Aggregate((a, b) => a + ", " + b)}.{additionalManaText}";
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
 
                         if (!DoDestroyDiceRoll(player) && !UnlimitedUse)
@@ -187,6 +187,13 @@ namespace ACE.Server.WorldObjects
 
                         if (UnlimitedUse && ItemMaxMana.HasValue)
                             ItemCurMana = ItemMaxMana;
+
+                        foreach (var item in itemsGivenMana)
+                        {
+                            // For items that were out of mana this forces the item to recheck it's activation requirements in the next Player.ManaConsumersTick().
+                            if (!item.Key.IsAffecting)
+                                item.Key.ItemManaRateAccumulator = 1;
+                        }
                     }
                 }
                 else if (target.WeenieType == WeenieType.Container && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
@@ -252,7 +259,7 @@ namespace ACE.Server.WorldObjects
 
                             var additionalManaNeeded = origItemsNeedingMana.Sum(k => k.ItemMaxMana.Value - k.ItemCurMana.Value);
                             var additionalManaText = (additionalManaNeeded > 0) ? $"\nYou need {additionalManaNeeded:N0} more mana to fully charge your items." : "\nYour items are fully charged.";
-                            var msg = $"The Mana Stone gives {itemsGivenMana.Values.Sum():N0} points of mana to the following items: {itemsGivenMana.Select(c => c.Key.Name).Aggregate((a, b) => a + ", " + b)}.{additionalManaText}";
+                            var msg = $"The Mana Stone gives {itemsGivenMana.Values.Sum():N0} points of mana to the following items: {itemsGivenMana.Select(c => c.Key.NameWithMaterial).Aggregate((a, b) => a + ", " + b)}.{additionalManaText}";
                             player.Session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
 
                             if (!DoDestroyDiceRoll(player) && !UnlimitedUse)
@@ -272,7 +279,7 @@ namespace ACE.Server.WorldObjects
 
                     if (targetItemCurMana >= target.ItemMaxMana)
                     {
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.Name} is already full of mana.", ChatMessageType.Broadcast));
+                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} is already full of mana.", ChatMessageType.Broadcast));
                     }
                     else
                     {
@@ -290,7 +297,7 @@ namespace ACE.Server.WorldObjects
                         }
 
                         target.ItemCurMana = targetItemCurMana + manaToPour;
-                        var msg = $"The Mana Stone gives {manaToPour:N0} points of mana to the {target.Name}.";
+                        var msg = $"The Mana Stone gives {manaToPour:N0} points of mana to the {target.NameWithMaterial}.";
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
 
                         if (!DoDestroyDiceRoll(player) && !UnlimitedUse)
@@ -298,6 +305,10 @@ namespace ACE.Server.WorldObjects
                             ItemCurMana = null;
                             SetUiEffect(player, ACE.Entity.Enum.UiEffects.Undef);
                         }
+
+                        // For items that were out of mana this forces the item to recheck it's activation requirements in the next Player.ManaConsumersTick().
+                        if (!target.IsAffecting)
+                            target.ItemManaRateAccumulator = 1;
                     }
                 }
                 else

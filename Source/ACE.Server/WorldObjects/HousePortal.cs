@@ -95,7 +95,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public override ActivationResult CheckUseRequirements(WorldObject activator)
+        public override ActivationResult CheckUseRequirements(WorldObject activator, bool silent = false)
         {
             var rootHouse = House?.RootHouse;
 
@@ -110,7 +110,7 @@ namespace ACE.Server.WorldObjects
                 return new ActivationResult(false);
 
             if (player.IsOlthoiPlayer)
-                return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.OlthoiMayNotUsePortal));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.OlthoiMayNotUsePortal));
 
             if (player.CurrentLandblock.IsDungeon && Destination.LandblockId != player.CurrentLandblock.Id)
                 return new ActivationResult(true);   // allow escape to overworld always
@@ -128,7 +128,7 @@ namespace ACE.Server.WorldObjects
                 return new ActivationResult(true);
 
             if (!rootHouse.HasPermission(player))
-                return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouMustBeHouseGuestToUsePortal));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouMustBeHouseGuestToUsePortal));
 
             return new ActivationResult(true);
         }

@@ -502,13 +502,13 @@ namespace ACE.Server.WorldObjects
 
                 if (casterCheck || target == this || caster != target)
                 {
-                    var casterName = casterCheck ? "You" : caster.Name;
-                    var targetName = target.Name;
+                    var casterName = casterCheck ? "You" : caster.NameWithMaterial;
+                    var targetName = target.NameWithMaterial;
                     if (target == this)
                         targetName = casterCheck ? "yourself" : "you";
 
                     if(showMsg)
-                        player.SendChatMessage(player, $"{casterName} cast {spell.Name} on {targetName}{suffix}", ChatMessageType.Magic);
+                        player.SendChatMessage(player, $"{casterName} casts {spell.Name} on {targetName}{suffix}.", ChatMessageType.Magic);
                 }
             }
 
@@ -645,10 +645,10 @@ namespace ACE.Server.WorldObjects
                 string targetMessage;
 
                 if (spell.IsBeneficial)
-                    targetMessage = $"{Name} casts {spell.Name} and restores {boost} points of your {srcVital}.";
+                    targetMessage = $"{NameWithMaterial} casts {spell.Name} and restores {boost} points of your {srcVital}.";
                 else
                 {
-                    targetMessage = $"{Name} casts {spell.Name} and drains {Math.Abs(boost)} points of your {srcVital}.";
+                    targetMessage = $"{NameWithMaterial} casts {spell.Name} and drains {Math.Abs(boost)} points of your {srcVital}.";
 
                     if (creature != null)
                         targetPlayer.SetCurrentAttacker(creature);
@@ -762,7 +762,7 @@ namespace ACE.Server.WorldObjects
             {
                 string targetMessage;
 
-                targetMessage = $"{Name} casts {spell.Name} and resurrects you.";
+                targetMessage = $"{NameWithMaterial} casts {spell.Name} and resurrects you.";
 
                 if (showMsg)
                     targetPlayer.SendChatMessage(this, targetMessage, ChatMessageType.Magic);
@@ -1619,7 +1619,7 @@ namespace ACE.Server.WorldObjects
 
             if (target is Player targetPlayer && targetPlayer != player)
             {
-                var targetMsg = $"{Name} casts {spell.Name} on you{suffix.Replace("and dispel", "and dispels")}";
+                var targetMsg = $"{NameWithMaterial} casts {spell.Name} on you{suffix.Replace("and dispel", "and dispels")}";
 
                 if (showMsg)
                     targetPlayer.SendChatMessage(this, targetMsg, ChatMessageType.Magic);

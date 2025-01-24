@@ -38,7 +38,7 @@ namespace ACE.Server.WorldObjects
             CurrentMotionState = new Motion(MotionStance.NonCombat);
         }
 
-        public override ActivationResult CheckUseRequirements(WorldObject activator)
+        public override ActivationResult CheckUseRequirements(WorldObject activator, bool silent = false)
         {
             if (!(activator is Player player))
                 return new ActivationResult(false);
@@ -51,7 +51,7 @@ namespace ACE.Server.WorldObjects
 
             if (IsBusy)
             {
-                return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.The_IsCurrentlyInUse, Name));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.The_IsCurrentlyInUse, Name));
             }
 
             return new ActivationResult(true);

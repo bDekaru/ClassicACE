@@ -323,67 +323,41 @@ namespace ACE.Server.WorldObjects
 
             TryShuffleStance(wieldedLocation);
 
-            // handle item spells
-            if (item.ItemCurMana > 0 || item is LeyLineAmulet)
-                TryActivateSpells(item);
-
-            // handle equipment sets
-            if (item.HasItemSet)
-                EquipItemFromSet(item);
-
             return true;
         }
 
-        public bool TryActivateSpells(WorldObject item)
+        public override bool CanActivateItemSpells(WorldObject item, bool silent = false)
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (item.ItemCurMana > 0 || item.WeenieType == WeenieType.LeyLineAmulet)
             {
-                var leyLineAmulet = item as LeyLineAmulet;
-                if (leyLineAmulet != null)
-                    leyLineAmulet.OnEquip(this);
+                // check activation requirements
+                var result = item.CheckUseRequirements(this, silent);
+
+                if (!result.Success)
+                {
+                    if (result.Message != null)
+                        Session.Network.EnqueueSend(result.Message);
+
+                    return false;
+                }
+
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    if (item is LeyLineAmulet leyLineAmulet)
+                        leyLineAmulet.OnActivate(this);
+                }
+
+                // handle special case
+                if (item.ItemCurMana == 1)
+                {
+                    item.ItemCurMana = 0;
+                    return false;
+                }
+
+                return true;
             }
-
-            // check activation requirements
-            var result = item.CheckUseRequirements(this);
-
-            if (!result.Success)
-            {
-                if (result.Message != null)
-                    Session.Network.EnqueueSend(result.Message);
-
+            else
                 return false;
-            }
-
-            // handle special case
-            if (item.ItemCurMana == 1)
-            {
-                item.ItemCurMana = 0;
-                return false;
-            }
-
-            var isAffecting = true;     // ??
-
-            foreach (var spell in item.Biota.GetKnownSpellsIds(BiotaDatabaseLock))
-            {
-                if (item.HasProcSpell((uint)spell))
-                    continue;
-
-                if (spell == item.SpellDID)
-                    continue;
-
-                var success = CreateItemSpell(item, (uint)spell);
-
-                if (success)
-                    isAffecting = true;
-            }
-
-            if (isAffecting)
-            {
-                item.OnSpellsActivated();
-                item.ItemCurMana--;
-            }
-
-            return true;
         }
 
         public enum DequipObjectAction
@@ -423,10 +397,6 @@ namespace ACE.Server.WorldObjects
                 new GameMessagePublicUpdatePropertyInt(item, PropertyInt.CurrentWieldedLocation, 0),
                 new GameMessagePickupEvent(item),
                 new GameMessageSound(Guid, Sound.UnwieldObject));
-
-            // handle equipment sets
-            if (item.HasItemSet)
-                DequipItemFromSet(item);
 
             if (item.GearMaxHealth != null)
                 HandleMaxHealthUpdate();

@@ -188,7 +188,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Verifies the use requirements for activating an item
         /// </summary>
-        public virtual ActivationResult CheckUseRequirements(WorldObject activator)
+        public virtual ActivationResult CheckUseRequirements(WorldObject activator, bool silent = false)
         {
             //Console.WriteLine($"{Name}.CheckUseRequirements({activator.Name})");
 
@@ -202,23 +202,20 @@ namespace ACE.Server.WorldObjects
                 return new ActivationResult(true);
 
             if (!player.VerifyGameplayMode(this))
-            {
-                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"This item cannot be used, invalid gameplay mode!"));
-                return new ActivationResult(false);
-            }
+                return silent? new ActivationResult(false) : new ActivationResult(new GameEventCommunicationTransientString(player.Session, "This item cannot be used, invalid gameplay mode!"));
 
             // heritage requirement
             if (!IsCreature && HeritageGroup != 0)
             {
                 if (player.HeritageGroup != HeritageGroup)
-                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, HeritageGroup.ToString()));
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, HeritageGroup.ToString()));
             }
 
             // allegiance rank requirement
             if (ItemAllegianceRankLimit != null)
             {
                 if((player.AllegianceRank ?? 0) < ItemAllegianceRankLimit)
-                    return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YourAllegianceRankIsTooLowToUseMagic));
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YourAllegianceRankIsTooLowToUseMagic));
             }
 
             // verify arcane lore requirement
@@ -226,7 +223,7 @@ namespace ACE.Server.WorldObjects
             {
                 var arcaneLore = player.GetCreatureSkill(Skill.ArcaneLore);
                 if (arcaneLore.Current < ItemDifficulty.Value)
-                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, arcaneLore.Skill.ToSentence()));
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, arcaneLore.Skill.ToSentence()));
             }
 
             // verify skill - does this have to be trained, or only in conjunction with UseRequiresSkillLevel?
@@ -237,7 +234,7 @@ namespace ACE.Server.WorldObjects
                 var playerSkill = player.GetCreatureSkill(skill);
 
                 if (playerSkill.Current < ItemSkillLevelLimit.Value)
-                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerSkill.Skill.ToSentence()));
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerSkill.Skill.ToSentence()));
             }
 
             if (UseRequiresSkill != null)
@@ -247,16 +244,15 @@ namespace ACE.Server.WorldObjects
 
                 if (playerSkill.AdvancementClass < SkillAdvancementClass.Trained)
                 {
-                    //return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_SkillMustBeTrained, playerSkill.Skill.ToSentence()));
-                    player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"You must have {playerSkill.Skill.ToSentence()} trained to use that item's magic"));
-                    return new ActivationResult(false);
+                    //return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_SkillMustBeTrained, playerSkill.Skill.ToSentence()));
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventCommunicationTransientString(player.Session, $"You must have {playerSkill.Skill.ToSentence()} trained to use that item's magic"));
                 }
 
                 // verify skill level
                 if (UseRequiresSkillLevel != null)
                 {
                     if (playerSkill.Current < UseRequiresSkillLevel.Value)
-                        return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerSkill.Skill.ToSentence()));
+                        return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerSkill.Skill.ToSentence()));
                 }
             }
 
@@ -269,13 +265,13 @@ namespace ACE.Server.WorldObjects
                 var playerSkill = player.GetCreatureSkill(skill);
 
                 if (playerSkill.AdvancementClass < SkillAdvancementClass.Specialized)
-                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustSpecialize_ToUseItemMagic, playerSkill.Skill.ToSentence()));
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustSpecialize_ToUseItemMagic, playerSkill.Skill.ToSentence()));
 
                 // verify skill level
                 if (UseRequiresSkillLevel != null)
                 {
                     if (playerSkill.Current < UseRequiresSkillLevel.Value)
-                        return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerSkill.Skill.ToSentence()));
+                        return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerSkill.Skill.ToSentence()));
                 }
             }
 
@@ -284,8 +280,8 @@ namespace ACE.Server.WorldObjects
             {
                 var playerLevel = player.Level ?? 1;
                 if (playerLevel < UseRequiresLevel.Value)
-                    //return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, $"level {UseRequiresLevel.Value}")); // not retail
-                    return new ActivationResult(new GameEventCommunicationTransientString(player.Session, "You are not high enough level to use that!"));
+                    //return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, $"level {UseRequiresLevel.Value}")); // not retail
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventCommunicationTransientString(player.Session, "You are not high enough level to use that!"));
             }
 
             // verify attribute / vital limits
@@ -294,7 +290,7 @@ namespace ACE.Server.WorldObjects
                 var playerAttr = player.Attributes[ItemAttributeLimit.Value];
 
                 if (playerAttr.Current < ItemAttributeLevelLimit)
-                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerAttr.Attribute.ToString()));
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerAttr.Attribute.ToString()));
             }
 
             if (ItemAttribute2ndLimit != null)
@@ -302,7 +298,7 @@ namespace ACE.Server.WorldObjects
                 var playerVital = player.Vitals[ItemAttribute2ndLimit.Value];
 
                 if (playerVital.MaxValue < ItemAttribute2ndLevelLimit)
-                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerVital.Vital.ToSentence()));
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerVital.Vital.ToSentence()));
             }
 
             // Check for a cooldown
@@ -314,16 +310,11 @@ namespace ACE.Server.WorldObjects
                 var timer = cooldown.GetFriendlyString();
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name} can be activated again in {timer}", ChatMessageType.Broadcast));*/
 
-                player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, "You have used this item too recently"));
-                return new ActivationResult(false);
+                return silent? new ActivationResult(false) : new ActivationResult(new GameEventCommunicationTransientString(player.Session, "You have used this item too recently"));
             }
 
             if (player.IsOlthoiPlayer)
             {
-                //player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, "Olthoi can't interact with that!"));
-                //player.SendWeenieError(WeenieError.OlthoiCannotInteractWithThat);
-                //return new ActivationResult(false);
-
                 if (this is Creature)
                 {
                     if (CreatureType == ACE.Entity.Enum.CreatureType.Olthoi)
@@ -331,30 +322,25 @@ namespace ACE.Server.WorldObjects
                     else
                     {
                         if (this is Vendor)
-                            player.SendWeenieError(WeenieError.OlthoiVendorLooksInHorror);
+                            return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.OlthoiVendorLooksInHorror));
                         else if (NpcLooksLikeObject ?? false)
-                            player.SendWeenieError(WeenieError.OlthoiCannotInteractWithThat);
+                            return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.OlthoiCannotInteractWithThat));
                         else
-                            player.SendWeenieErrorWithString(WeenieErrorWithString._CowersFromYou, Name);
-
-                        return new ActivationResult(false);
+                            return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString._CowersFromYou, Name));
                     }
                 }
                 else if (this is Lifestone)
                 {
-                    player.SendWeenieError(WeenieError.OlthoiCannotUseLifestones);
-                    return new ActivationResult(false);
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.OlthoiCannotUseLifestones));
                 }
                 else if (this is Container && !(this is Corpse))
                 {
-                    player.SendWeenieError(WeenieError.OlthoiCannotInteractWithThat);
-                    return new ActivationResult(false);
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.OlthoiCannotInteractWithThat));
                 }
                 else if (this is AttributeTransferDevice || this is AugmentationDevice || this is Bindstone || this is Book
                     || this is Game || this is Gem || this is GenericObject || this is Key || this is SkillAlterationDevice)
                 {
-                    player.SendWeenieError(WeenieError.OlthoiCannotInteractWithThat);
-                    return new ActivationResult(false);
+                    return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.OlthoiCannotInteractWithThat));
                 }
             }
 

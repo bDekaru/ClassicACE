@@ -36,22 +36,22 @@ namespace ACE.Server.WorldObjects
             // handled in base.OnActivate -> EmoteManager.OnUse()
         }
 
-        public override ActivationResult CheckUseRequirements(WorldObject activator)
+        public override ActivationResult CheckUseRequirements(WorldObject activator, bool silent = false)
         {
             if (!(activator is Player player))
                 return new ActivationResult(false);
 
             if (!IsHooked(player, out var hook))
-                return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.ItemOnlyUsableOnHook, Name));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.ItemOnlyUsableOnHook, Name));
 
             if (hook.HouseOwner == null || (!(hook.House?.RootHouse?.OpenStatus ?? false) && !(hook.House?.RootHouse?.HasPermission(player) ?? false)))
-                return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouAreNotPermittedToUseThatHook));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouAreNotPermittedToUseThatHook));
 
             var myHookGroup = HookGroup ?? HookGroupType.Undef;
             if ((myHookGroup == HookGroupType.PortalItems || myHookGroup == HookGroupType.SpellTeachingItems) && hook.House?.RootHouse?.HouseType != HouseType.Mansion && hook.House?.RootHouse?.HouseType != HouseType.CustomMansion)
-                return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouAreNotPermittedToUseThatHook));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouAreNotPermittedToUseThatHook));
 
-            var baseRequirements = base.CheckUseRequirements(activator);
+            var baseRequirements = base.CheckUseRequirements(activator, silent);
             if (!baseRequirements.Success)
                 return baseRequirements;
 

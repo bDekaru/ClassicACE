@@ -47,7 +47,7 @@ namespace ACE.Server.WorldObjects
                 ObjectDescriptionFlags |= ObjectDescriptionFlag.PkSwitch;
         }
 
-        public override ActivationResult CheckUseRequirements(WorldObject activator)
+        public override ActivationResult CheckUseRequirements(WorldObject activator, bool silent = false)
         {
             if (!(activator is Player player))
                 return new ActivationResult(false);
@@ -99,17 +99,17 @@ namespace ACE.Server.WorldObjects
 
             if (player.IsAdvocate || player.AdvocateQuest || player.AdvocateState)
             {
-                return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.AdvocatesCannotChangePKStatus));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.AdvocatesCannotChangePKStatus));
             }
 
             if (player.MinimumTimeSincePk != null)
             {
-                return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.CannotChangePKStatusWhileRecovering));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.CannotChangePKStatusWhileRecovering));
             }
 
             if (IsBusy)
             {
-                return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.The_IsCurrentlyInUse, Name));
+                return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.The_IsCurrentlyInUse, Name));
             }
 
             return new ActivationResult(true);

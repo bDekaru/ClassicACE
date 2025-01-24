@@ -45,9 +45,9 @@ namespace ACE.Server.WorldObjects
             BumpVelocity = true;
         }
 
-        public override ActivationResult CheckUseRequirements(WorldObject activator)
+        public override ActivationResult CheckUseRequirements(WorldObject activator, bool silent = false)
         {
-            var baseRequirements = base.CheckUseRequirements(activator);
+            var baseRequirements = base.CheckUseRequirements(activator, silent);
             if (!baseRequirements.Success)
                 return baseRequirements;
 

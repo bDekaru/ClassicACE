@@ -119,12 +119,12 @@ namespace ACE.Server.WorldObjects
         protected static readonly Motion motionOpen = new Motion(MotionStance.NonCombat, MotionCommand.On);
         protected static readonly Motion motionClosed = new Motion(MotionStance.NonCombat, MotionCommand.Off);
 
-        public override ActivationResult CheckUseRequirements(WorldObject activator)
+        public override ActivationResult CheckUseRequirements(WorldObject activator, bool silent = false)
         {
             if (TimeToRot > 0)
                 TimeToRot = DefaultTimeToRot.TotalSeconds; // Reset our decay timer.
 
-            var baseRequirements = base.CheckUseRequirements(activator);
+            var baseRequirements = base.CheckUseRequirements(activator, silent);
             if (!baseRequirements.Success)
                 return baseRequirements;
 
