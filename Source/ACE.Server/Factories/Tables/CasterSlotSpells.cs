@@ -58,5 +58,12 @@ namespace ACE.Server.Factories.Tables
             // todo: any other wcids for obs?
             return wo.WeenieClassId == (int)Enum.WeenieClassName.orb;
         }
+        public static SpellId PseudoRandomRoll(WorldObject wo, int seed)
+        {
+            var table = IsOrb(wo) ? orbSpells :
+                wo.W_DamageType == DamageType.Nether ? netherSpells : wandStaffSpells;
+
+            return table.PseudoRandomRoll(seed);
+        }
     }
 }

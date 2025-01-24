@@ -4301,24 +4301,72 @@ namespace ACE.Server.WorldObjects
             {
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
                 // Remove invalid spells from items accessible by players, keep the spells on monster's items.
-                var list = worldObject.Biota.GetKnownSpellsIds(BiotaDatabaseLock);
-                foreach (var entry in list)
+
+                if (worldObject.SpellDID.HasValue)
                 {
-                    int replacementId;
-                    if (SpellsToReplace.TryGetValue((SpellId)entry, out replacementId))
+                    if (SpellsToReplace.TryGetValue((SpellId)worldObject.SpellDID, out var replacementId))
                     {
-                        if (worldObject.Biota.TryRemoveKnownSpell(entry, BiotaDatabaseLock))
+                        if (replacementId < 0)
                         {
-                            if (replacementId < 0 && (worldObject is MeleeWeapon || worldObject is MissileLauncher || worldObject is Missile))
+                            var originalSpellId = (SpellId)worldObject.SpellDID;
+                            Spell originalSpell = new Spell(originalSpellId);
+
+                            int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
+
+                            SpellId spellLevel1Id = SpellId.Undef;
+                            if (worldObject is Caster)
+                                spellLevel1Id = CasterSlotSpells.PseudoRandomRoll(worldObject, (int)worldObject.WeenieClassId);
+                            else if (worldObject is Gem)
+                                spellLevel1Id = SpellSelectionTable.PseudoRandomRoll(1, (int)worldObject.WeenieClassId);
+
+                            if (spellLevel1Id != SpellId.Undef)
                             {
-                                int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
+                                var spellId = SpellLevelProgression.GetSpellAtLevel(spellLevel1Id, level);
 
-                                SpellId procSpellLevel1Id;
-                                if (worldObject is MeleeWeapon)
-                                    procSpellLevel1Id = MeleeSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
-                                else
-                                    procSpellLevel1Id = MissileSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
+                                worldObject.SpellDID = (uint)spellId;
 
+                                log.Warn($"Replaced invalid spell {originalSpellId} with {spellId} as a DID spell on {worldObject.Name}.");
+                            }
+                            else
+                                log.Warn($"Failed to replace invalid spell {originalSpellId} as a DID spell on {worldObject.Name}. Unhandled item type.");
+                        }
+                        else if (replacementId > 0)
+                        {
+                            var originalSpellId = (SpellId)worldObject.SpellDID;
+
+                            worldObject.SpellDID = (uint)replacementId;
+
+                            log.Warn($"Replaced invalid spell {originalSpellId} with {(SpellId)replacementId} as a DID spell on {worldObject.Name}.");
+                        }
+                        else
+                        {
+                            var originalSpellId = (SpellId)worldObject.SpellDID;
+
+                            worldObject.RemoveProperty(PropertyDataId.Spell);
+
+                            log.Warn($"Removed invalid spell {originalSpellId} as a DID spell on {worldObject.Name}.");
+                        }
+                    }
+                }
+
+                if (worldObject.ProcSpell.HasValue)
+                {
+                    if (SpellsToReplace.TryGetValue((SpellId)worldObject.ProcSpell, out var replacementId))
+                    {
+                        if (replacementId < 0)
+                        {
+                            var originalSpellId = (SpellId)worldObject.ProcSpell;
+
+                            int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
+
+                            SpellId procSpellLevel1Id = SpellId.Undef;
+                            if (worldObject is MeleeWeapon)
+                                procSpellLevel1Id = MeleeSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
+                            else if (worldObject is MissileLauncher || worldObject is Missile)
+                                procSpellLevel1Id = MissileSpells.PseudoRandomRollProc((int)worldObject.WeenieClassId);
+
+                            if (procSpellLevel1Id != SpellId.Undef)
+                            {
                                 var procSpellId = SpellLevelProgression.GetSpellAtLevel(procSpellLevel1Id, level);
 
                                 Spell spell = new Spell(procSpellId);
@@ -4326,28 +4374,54 @@ namespace ACE.Server.WorldObjects
                                 worldObject.ProcSpell = (uint)procSpellId;
                                 worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
 
-                                log.Warn($"Replaced invalid spell {(SpellId)entry} with {procSpellId} as a proc on {worldObject.GetProperty(PropertyString.Name)}.");
+                                log.Warn($"Replaced invalid spell {originalSpellId} with {procSpellId} as a proc on {worldObject.Name}.");
+                            }
+                            else
+                                log.Warn($"Failed to replace invalid spell {originalSpellId} as a proc spell on {worldObject.Name}. Unhandled item type.");
+                        }
+                        else if(replacementId > 0)
+                        {
+                            var originalSpellId = (SpellId)worldObject.ProcSpell;
+
+                            Spell spell = new Spell(replacementId);
+
+                            worldObject.ProcSpellRate = 0.15f;
+                            worldObject.ProcSpell = (uint)replacementId;
+                            worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
+
+                            log.Warn($"Replaced invalid spell {originalSpellId} with {(SpellId)replacementId} as a proc on {worldObject.Name}.");
+                        }
+                        else
+                        {
+                            var originalSpellId = (SpellId)worldObject.ProcSpell;
+
+                            worldObject.RemoveProperty(PropertyFloat.ProcSpellRate);
+                            worldObject.RemoveProperty(PropertyDataId.ProcSpell);
+                            worldObject.RemoveProperty(PropertyBool.ProcSpellSelfTargeted);
+
+                            log.Warn($"Removed invalid spell {originalSpellId} as a proc on {worldObject.Name}.");
+                        }
+                    }
+                }
+
+                var list = worldObject.Biota.GetKnownSpellsIds(BiotaDatabaseLock);
+                foreach (var entry in list)
+                {
+                    if (SpellsToReplace.TryGetValue((SpellId)entry, out var replacementId))
+                    {
+                        if (worldObject.Biota.TryRemoveKnownSpell(entry, BiotaDatabaseLock))
+                        {
+                            if (replacementId < 0)
+                            {
+                                log.Warn($"Failed to replace invalid spell {(SpellId)entry} as a proc spell on {worldObject.Name}. Unhandled item type.");
                             }
                             else if (replacementId > 0)
                             {
-                                Spell spell = new Spell(replacementId);
-
-                                if (spell.IsBeneficial)
-                                {
-                                    worldObject.Biota.GetOrAddKnownSpell(replacementId, BiotaDatabaseLock, out _);
-                                    log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} on {worldObject.GetProperty(PropertyString.Name)}.");
-                                }
-                                else
-                                {
-                                    worldObject.ProcSpellRate = 0.15f;
-                                    worldObject.ProcSpell = (uint)replacementId;
-                                    worldObject.ProcSpellSelfTargeted = spell.IsSelfTargeted;
-
-                                    log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} as a proc on {worldObject.GetProperty(PropertyString.Name)}.");
-                                }
+                                worldObject.Biota.GetOrAddKnownSpell(replacementId, BiotaDatabaseLock, out _);
+                                log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} on {worldObject.Name}.");
                             }
                             else
-                                log.Warn($"Removed invalid spell {(SpellId)entry} from {worldObject.GetProperty(PropertyString.Name)}.");
+                                log.Warn($"Removed invalid spell {(SpellId)entry} from {worldObject.Name}.");
                         }
                     }
                 }

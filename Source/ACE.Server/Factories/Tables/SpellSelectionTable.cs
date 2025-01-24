@@ -1154,5 +1154,10 @@ namespace ACE.Server.Factories.Tables
         {
             return spellSelectionGroup[spellCode - 1].Roll();
         }
+
+        public static SpellId PseudoRandomRoll(int spellCode, int seed)
+        {
+            return spellSelectionGroup[spellCode - 1].PseudoRandomRoll(seed);
+        }
     }
 }
