@@ -1549,7 +1549,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 newWo.Ethereal = true;
                 newWo.Location = loc;
 
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Replacing landblock instance {(isLinkChild ? "child object " : "")}@ {loc.ToLOCString()}\n{originalClassId} - {originalName} (0x{objGuid:X8} with {wo.WeenieClassId} - {wo.Name}", ChatMessageType.Broadcast));
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Replacing landblock instance {(isLinkChild ? "child object " : "")}@ {loc.ToLOCString()}\n{originalClassId} - {originalName} (0x{objGuid:X8} with {newWo.WeenieClassId} - {newWo.Name}", ChatMessageType.Broadcast));
 
                 if (!newWo.EnterWorld())
                 {
