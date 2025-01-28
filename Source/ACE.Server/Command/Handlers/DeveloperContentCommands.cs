@@ -7083,7 +7083,18 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            if (HouseList.HasCustomHouse(session.Player.Location))
+            var houseWcids = new List<WeenieClassName>
+            {
+                WeenieClassName.houseCustomApartmentBunk,
+                WeenieClassName.houseCustomApartmentRoom,
+                WeenieClassName.houseCustomCottage,
+                WeenieClassName.houseCustomVilla,
+                WeenieClassName.houseCustomMansion
+            };
+            var objList = session.Player.CurrentLandblock.GetAllWorldObjectsForDiagnostics();
+            var hasHouse = objList.Find(h => h.Location.Cell == session.Player.Location.Cell && houseWcids.Contains((WeenieClassName)h.WeenieClassId)) != null;
+
+            if(hasHouse)
             {
                 session.Network.EnqueueSend(new GameMessageSystemChat($"There is already a custom house at this location.", ChatMessageType.Help));
                 return;
