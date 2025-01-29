@@ -4275,11 +4275,6 @@ namespace ACE.Server.Command.Handlers.Processors
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Failed to move {obj.Name} ({obj.Guid}) to current location: {result}", ChatMessageType.Broadcast));
                     return;
                 }
-
-                instance.AnglesX = obj.Location.RotationX;
-                instance.AnglesY = obj.Location.RotationY;
-                instance.AnglesZ = obj.Location.RotationZ;
-                instance.AnglesW = obj.Location.RotationW;
             }
             else
             {
@@ -4343,6 +4338,10 @@ namespace ACE.Server.Command.Handlers.Processors
             instance.OriginX = obj.Location.PositionX;
             instance.OriginY = obj.Location.PositionY;
             instance.OriginZ = obj.Location.PositionZ;
+            instance.AnglesX = obj.Location.RotationX;
+            instance.AnglesY = obj.Location.RotationY;
+            instance.AnglesZ = obj.Location.RotationZ;
+            instance.AnglesW = obj.Location.RotationW;
 
             if (!IsWorkingOnOfflineInstances(session, landblock_id))
                 SyncInstances(session, landblock_id, instances);
