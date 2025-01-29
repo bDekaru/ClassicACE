@@ -5417,7 +5417,7 @@ namespace ACE.Server.Command.Handlers.Processors
             return directions.Trim();
         }
 
-        [CommandHandler("export-landblock-levels", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("export-landblock-levels", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExportLandblockLevels(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting landblock levels to reports/LandblockLevels.txt...");
@@ -5562,7 +5562,154 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
-        [CommandHandler("export-landblock-description", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        public static void UpdateExplorationSite(ExplorationSite explorationSite)
+        {
+            if (LandblockInstanceWriter == null)
+            {
+                LandblockInstanceWriter = new LandblockInstanceWriter();
+                LandblockInstanceWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
+                LandblockInstanceWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
+                LandblockInstanceWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
+                LandblockInstanceWriter.WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+                LandblockInstanceWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
+                LandblockInstanceWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
+            }
+
+            var landblockInstances = DatabaseManager.World.GetCachedInstancesByLandblock((ushort)explorationSite.Landblock);
+            var name = LandblockInstanceWriter.GetNameFromPortalDestination((ushort)explorationSite.Landblock, out var nameSourceWcid);
+            var minLevel = int.MaxValue;
+            var maxLevel = 0;
+            var creatureFamilyList = new SortedDictionary<ACE.Entity.Enum.CreatureType, int>();
+            var creatureLevelCountList = new SortedDictionary<int, int>();
+            var containerCount = 0;
+            var totalCreatureCount = 0;
+            var directions = GetEntranceDirections(nameSourceWcid);
+            var entranceLevelMin = 0;
+            var entranceLevelMax = 0;
+            var entranceQuestRestriction = "";
+            var contentDescription = "";
+
+            if (nameSourceWcid != 0)
+            {
+                var entranceWeenie = DatabaseManager.World.GetWeenie(nameSourceWcid);
+
+                if (entranceWeenie != null)
+                {
+                    entranceLevelMin = entranceWeenie.GetProperty(PropertyInt.MinLevel) ?? 0;
+                    entranceLevelMax = entranceWeenie.GetProperty(PropertyInt.MaxLevel) ?? 0;
+                    entranceQuestRestriction = entranceWeenie.GetProperty(PropertyString.QuestRestriction) ?? "";
+                }
+            }
+
+            if (landblockInstances != null)
+            {
+                foreach (var instance in landblockInstances)
+                {
+                    var weenie = DatabaseManager.World.GetWeenie(instance.WeenieClassId);
+                    if (weenie == null)
+                        continue;
+
+                    var entriesList = new List<uint>();
+                    entriesList.Add(instance.WeenieClassId);
+                    foreach (var generatorEntry in weenie.WeeniePropertiesGenerator)
+                        entriesList.Add(generatorEntry.WeenieClassId);
+
+                    foreach (var entry in entriesList)
+                    {
+                        if (LandblockInstanceWriter.WeenieTypes.TryGetValue(entry, out var weenieType))
+                        {
+                            var entryWeenie = DatabaseManager.World.GetWeenie(entry);
+                            if (entryWeenie == null)
+                                continue;
+
+                            var playerKillerStatus = (PlayerKillerStatus?)entryWeenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
+                            var npcLooksLikeObject = entryWeenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
+                            if (playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
+                            {
+                                if (weenieType == (int)ACE.Entity.Enum.WeenieType.Chest || weenieType == (int)ACE.Entity.Enum.WeenieType.Container)
+                                    containerCount++;
+
+                                var creatureType = entryWeenie.GetProperty(PropertyInt.CreatureType) ?? 0;
+                                if (creatureType != 0)
+                                {
+                                    if (creatureFamilyList.TryGetValue((ACE.Entity.Enum.CreatureType)creatureType, out var creatureFamilyCount))
+                                        creatureFamilyList[(ACE.Entity.Enum.CreatureType)creatureType] = creatureFamilyCount + 1;
+                                    else
+                                        creatureFamilyList.Add((ACE.Entity.Enum.CreatureType)creatureType, 1);
+                                }
+
+                                var level = entryWeenie.GetProperty(PropertyInt.Level) ?? 0;
+                                if (level != 0)
+                                {
+                                    if (level < minLevel)
+                                        minLevel = level;
+                                    if (level > maxLevel)
+                                        maxLevel = level;
+
+                                    totalCreatureCount++;
+
+                                    if (creatureLevelCountList.TryGetValue(level, out var creatureLevelCount))
+                                        creatureLevelCountList[level] = creatureLevelCount + 1;
+                                    else
+                                        creatureLevelCountList.Add(level, 1);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (minLevel != int.MaxValue)
+                {
+                    var weightedAverageLevel = 0;
+                    foreach (var entry in creatureLevelCountList)
+                        weightedAverageLevel += entry.Key * entry.Value;
+
+                    weightedAverageLevel /= totalCreatureCount;
+
+                    var lastEntry = "";
+                    foreach (var creatureType in creatureFamilyList)
+                    {
+                        if (creatureType.Value >= totalCreatureCount * 0.1)
+                        {
+                            var creatureTypeString = creatureType.Key.ToString();
+                            var friendlyName = string.Concat(creatureTypeString.Select(x => Char.IsUpper(x) ? " " + x : x.ToString())).TrimStart(" ");
+                            if (contentDescription.Length > 0)
+                                lastEntry = $", {friendlyName}{(friendlyName.EndsWith("s") ? "es" : "s")}";
+                            else
+                                lastEntry = $"{friendlyName}{(friendlyName.EndsWith("s") ? "es" : "s")}";
+                            contentDescription += lastEntry;
+
+                        }
+                    }
+
+                    contentDescription = contentDescription.Replace(lastEntry, lastEntry.Replace(",", " and"));
+
+                    explorationSite.Level = weightedAverageLevel;
+                    explorationSite.MinLevel = entranceLevelMin;
+                    explorationSite.MaxLevel = entranceLevelMax;
+                    explorationSite.CreatureCount = totalCreatureCount;
+                    explorationSite.ContentDescription = contentDescription;
+
+                    DatabaseManager.World.UpdateExplorationSite(explorationSite);
+                }
+            }
+        }
+
+        [CommandHandler("update-exploration-sites", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
+        public static void HandleUpdateExplorationSites(Session session, params string[] parameters)
+        {
+            CommandHandlerHelper.WriteOutputInfo(session, "Updating exploration sites...");
+
+            var explorationSites = DatabaseManager.World.GetAllExplorationSites();
+            foreach (var explorationSite in explorationSites)
+            {
+                UpdateExplorationSite(explorationSite);
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, "Done.");
+        }
+
+        [CommandHandler("export-landblock-description", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExportLandblockDescription(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting landblock description to reports/LandblockDescription.txt...");
@@ -5606,7 +5753,7 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
-        [CommandHandler("export-creature-clothing", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("export-creature-clothing", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExportCreatureClothing(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting creature clothing ids to reports/CreatureClothingIdList.txt...");
@@ -5647,7 +5794,7 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
-        [CommandHandler("export-creature-levels", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("export-creature-levels", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExportCreatureLevels(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting creature levels to reports/CreatureLevels.txt...");
@@ -5691,7 +5838,7 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
-        [CommandHandler("export-creature-calculated-levels", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("export-creature-calculated-levels", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExportCreatureCalculatedLevels(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting creature calculated levels to reports/CreatureCalculatedLevels.txt...");
@@ -6207,7 +6354,7 @@ namespace ACE.Server.Command.Handlers.Processors
             return level;
         }
 
-        [CommandHandler("export-creature-tiers", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("export-creature-tiers", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExporCreatureTiers(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting creature tiers to reports/CreatureTiers.txt...");
@@ -6259,7 +6406,7 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
-        [CommandHandler("export-creature-tier-report", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("export-creature-tier-report", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExporCreatureTierReport(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting creature tier discrepancies to reports/CreatureTierDiscrepancies.txt...");
@@ -6335,7 +6482,7 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
-        [CommandHandler("export-chest-tier-report", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("export-chest-tier-report", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExportChestTierReport(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting chest tier discrepancies to reports/ChestTierDiscrepancies.txt...");
@@ -6509,7 +6656,7 @@ namespace ACE.Server.Command.Handlers.Processors
             A25G25S25V25 = 21,
         }
 
-        [CommandHandler("export-treasuredeath-profiles", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("export-treasuredeath-profiles", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleExportDeathTreasureProfiles(Session session, params string[] parameters)
         {
             CommandHandlerHelper.WriteOutputInfo(session, "Exporting deathTreasure profiles to reports/TreasureDeath.txt...");
@@ -6546,7 +6693,7 @@ namespace ACE.Server.Command.Handlers.Processors
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
 
-        //[CommandHandler("fixCreatureWeaponSkills", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        //[CommandHandler("fixCreatureWeaponSkills", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         //public static void HandleFixCreatureWeaponSkills(Session session, params string[] parameters)
         //{
         //    CommandHandlerHelper.WriteOutputInfo(session, "Fixing creature weapon skills...");
@@ -6802,7 +6949,7 @@ namespace ACE.Server.Command.Handlers.Processors
         //}
 
 
-        [CommandHandler("ConvertGenToWeightBasedProbabilities", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Converts a weenie's generator table to use weight based probabilities.", "<wcid or classname>")]
+        [CommandHandler("ConvertGenToWeightBasedProbabilities", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 1, "Converts a weenie's generator table to use weight based probabilities.", "<wcid or classname>")]
         public static void HandleConvertGenToWeightBasedProbabilities(Session session, params string[] parameters)
         {
             var param = parameters[0];
@@ -6890,7 +7037,7 @@ namespace ACE.Server.Command.Handlers.Processors
             ExportSQLWeenie(weenie, session);
         }
 
-        [CommandHandler("updateCreatureLootTiers", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("updateCreatureLootTiers", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleUpdateCreatureLootTiers(Session session, params string[] parameters)
         {
             var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
@@ -6946,7 +7093,7 @@ namespace ACE.Server.Command.Handlers.Processors
             }
         }
 
-        [CommandHandler("updateCreatureLevelsAndTiers", AccessLevel.Developer, CommandHandlerFlag.None, 0, "", "")]
+        [CommandHandler("updateCreatureLevelsAndTiers", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
         public static void HandleUpdateCreatureLevelsAndTiers(Session session, params string[] parameters)
         {
             var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();

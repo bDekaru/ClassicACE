@@ -477,6 +477,16 @@ namespace ACE.Database
             }
         }
 
+        public void UpdateExplorationSite(ExplorationSite explorationSite)
+        {
+            using (var context = new WorldDbContext())
+            {
+                context.Entry(explorationSite).State = EntityState.Modified;
+
+                context.SaveChanges();
+            }
+        }
+
         // =====================================
         // LandblockDescription
         // =====================================

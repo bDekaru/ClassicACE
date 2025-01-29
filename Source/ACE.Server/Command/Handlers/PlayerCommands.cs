@@ -688,8 +688,8 @@ namespace ACE.Server.Command.Handlers
             }
 
             var level = session.Player?.Level ?? 1;
-            var minLevel = Math.Max(level - (int)(level * 0.1f), 1);
-            var maxLevel = level + (int)(level * 0.2f);
+            var minLevel = Math.Max(level - (int)Math.Ceiling(level * 0.1f), 1);
+            var maxLevel = level + (int)Math.Ceiling(level * 0.2f);
             if (level > 100)
                 maxLevel = int.MaxValue;
             var explorationList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, level);
@@ -760,8 +760,8 @@ namespace ACE.Server.Command.Handlers
             var validRecommendations = BuildRecommendationList(session.Player);
 
             var level = session.Player?.Level ?? 1;
-            var minLevel = Math.Max(level - (int)(level * 0.1f), 1);
-            var maxLevel = level + (int)(level * 0.2f);
+            var minLevel = Math.Max(level - (int)Math.Ceiling(level * 0.1f), 1);
+            var maxLevel = level + (int)Math.Ceiling(level * 0.2f);
             if (level > 100)
                 maxLevel = int.MaxValue;
             var explorationList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, level);
