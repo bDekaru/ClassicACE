@@ -858,7 +858,8 @@ namespace ACE.Server.WorldObjects
                 return;
 
             var blinkLoc = Location.InFrontOf(distance);
-            if (!InDungeon)
+
+            if (!InDungeon && !Underground)
                 blinkLoc.AdjustMapCoords();
             else
             {
@@ -908,6 +909,8 @@ namespace ACE.Server.WorldObjects
                 if (!InUpdate)
                     LandblockManager.RelocateObjectForPhysics(this, distance <= 192 && !InDungeon);
             }
+            else
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Blink failed!", ChatMessageType.Broadcast));
 
             Teleporting = false;
         }

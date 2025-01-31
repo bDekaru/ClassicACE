@@ -1547,5 +1547,17 @@ namespace ACE.Server.WorldObjects
                 return Location.Indoors;
             }
         }
+
+        public bool Underground
+        {
+            get
+            {
+                if (CurrentLandblock == null || Location == null)
+                    return false;
+
+                var terrainZ = Location.GetTerrainZ();
+                return Location.PositionZ + Height < terrainZ;
+            }
+        }
     }
 }

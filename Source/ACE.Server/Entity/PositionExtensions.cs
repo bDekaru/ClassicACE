@@ -306,7 +306,7 @@ namespace ACE.Server.Entity
             var landblock = LScape.get_landblock(p.LandblockId.Raw);
 
             var cellID = GetOutdoorCell(p);
-            var landcell = (LandCell)LScape.get_landcell(cellID);
+            var landcell = LScape.get_landcell(cellID) as LandCell;
 
             if (landcell == null)
                 return p.Pos.Z;
