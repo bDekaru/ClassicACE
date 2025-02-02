@@ -2147,6 +2147,8 @@ namespace ACE.Server.Command.Handlers
                             newPlayer.PatronId = null;
                             newPlayer.HouseId = null;
                             newPlayer.HouseInstance = null;
+                            newPlayer.HousePurchaseTimestamp = null;
+                            newPlayer.HouseRentTimestamp = null;
 
                             if (newPlayer.Character.CharacterPropertiesShortcutBar != null)
                             {

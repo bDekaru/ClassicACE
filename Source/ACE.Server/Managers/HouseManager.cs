@@ -504,7 +504,8 @@ namespace ACE.Server.Managers
             {
                 player.HouseId = null;
                 player.HouseInstance = null;
-                //player.HousePurchaseTimestamp = null;
+                if (house == null || house.IsApartment || PropertyManager.GetBool("house_30day_cooldown").Item == false)
+                    player.HousePurchaseTimestamp = null;
                 player.HouseRentTimestamp = null;
             }
             else
@@ -543,6 +544,7 @@ namespace ACE.Server.Managers
 
             // send text message
             onlinePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat("Your house has reverted due to non-payment of the maintenance costs.  All items stored in the house have been lost.", ChatMessageType.Broadcast));
+            onlinePlayer.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(onlinePlayer, PropertyInt.HousePurchaseTimestamp, onlinePlayer.HousePurchaseTimestamp ?? 0));
             onlinePlayer.RemoveDeed();
 
             onlinePlayer.SaveBiotaToDatabase();
