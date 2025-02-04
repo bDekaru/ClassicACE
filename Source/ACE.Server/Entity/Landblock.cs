@@ -375,7 +375,7 @@ namespace ACE.Server.Entity
                             }
                         }
 
-                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !house.HouseOwner.HasValue)
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                             house.SetHooksVisible(false);
                     }
 
