@@ -215,25 +215,19 @@ namespace ACE.Server.Network.Handlers
 
                     var dddErrorMsg = new GameMessageDDDErrorMessage((uint)qdid_type, qdid_ID, errorType);
 
-                    var msg = PropertyManager.GetString("dat_warning_msg").Item;
+                    var msg = PropertyManager.GetString("dat_older_warning_msg").Item;
                     var popupMsg = new GameEventPopupString(session, msg);
                     var chatMsg = new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast);
                     var transientMsg = new GameEventCommunicationTransientString(session, msg);
 
                     session.Network.EnqueueSend(popupMsg, chatMsg, transientMsg, dddErrorMsg);
-                    if (PropertyManager.GetBool("enforce_player_movement").Item && session.Player.FirstEnterWorldDone)
+                    if (PropertyManager.GetBool("enforce_player_movement").Item && session.Player.SnapPos != null)
                     {
-                        var actionChain = new ActionChain();
-                        actionChain.AddDelaySeconds(5.0f);
-                        actionChain.AddAction(session.Player, () =>
+                        if (session != null && session.Player != null)
                         {
-                            if (session != null && session.Player != null)
-                            {
-                                log.Error($"DDD_RequestDataMessage received for {session.Player.Name}, relocating to {session.Player.SnapPos.ToLOCString()}");
-                                session.Player.Teleport(session.Player.SnapPos);
-                            }
-                        });
-                        actionChain.EnqueueChain();
+                            log.Error($"DDD_RequestDataMessage received for {session.Player.Name}, relocating to {session.Player.SnapPos.ToLOCString()}");
+                            WorldManager.ThreadSafeTeleport(session.Player, session.Player.SnapPos);
+                        }
                     }
                     else
                     {
@@ -241,18 +235,8 @@ namespace ACE.Server.Network.Handlers
                         var fixLoc = session.Player.Sanctuary ?? new Position(0xA9B40019, 84, 7.1f, 94, 0, 0, -0.0784591f, 0.996917f);
 
                         log.Error($"DDD_RequestDataMessage received for {session.Player.Name}, relocating to {fixLoc.ToLOCString()}");
-
-                        session.Player.Location = new Position(fixLoc);
-                        LandblockManager.AddObject(session.Player, true);
-
-                        var actionChain = new ActionChain();
-                        actionChain.AddDelaySeconds(5.0f);
-                        actionChain.AddAction(session.Player, () =>
-                        {
-                            if (session != null && session.Player != null)
-                                session.Player.Teleport(fixLoc);
-                        });
-                        actionChain.EnqueueChain();
+                        if (session != null && session.Player != null)
+                            WorldManager.ThreadSafeTeleport(session.Player, fixLoc);
                     }
                 }
 

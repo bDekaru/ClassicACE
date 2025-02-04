@@ -523,7 +523,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyLong("max_level", 126);
 
                 PropertyManager.ModifyBool("show_dat_warning", true);
-                PropertyManager.ModifyString("dat_warning_msg", "The location you are attempting to enter is not present in your data files.");
+                PropertyManager.ModifyString("dat_older_warning_msg", "The location you are attempting to enter is not present in your data files.");
             }
             else if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
@@ -545,7 +545,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyLong("fellowship_even_share_level", 80);
 
                 PropertyManager.ModifyBool("show_dat_warning", true);
-                PropertyManager.ModifyString("dat_warning_msg", "The location you are attempting to enter is not present in your data files.");
+                PropertyManager.ModifyString("dat_older_warning_msg", "The location you are attempting to enter is not present in your data files.");
 
                 PropertyManager.ModifyDouble("vendor_unique_rot_time", 1800);
                 PropertyManager.ModifyDouble("quest_mindelta_rate", 0.2412);
