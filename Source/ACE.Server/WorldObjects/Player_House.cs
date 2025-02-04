@@ -544,7 +544,7 @@ namespace ACE.Server.WorldObjects
 
             HouseId = null;
             HouseInstance = null;
-            if (house == null || house.IsApartment || PropertyManager.GetBool("house_30day_cooldown").Item == false)
+            if (PropertyManager.GetBool("house_30day_cooldown").Item == false)
             {
                 HousePurchaseTimestamp = null;
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.HousePurchaseTimestamp, HousePurchaseTimestamp ?? 0));
@@ -656,7 +656,8 @@ namespace ACE.Server.WorldObjects
             HouseInstance = house.Guid.Full;
 
             var housePurchaseTimestamp = Time.GetUnixTime();
-            HousePurchaseTimestamp = (int)housePurchaseTimestamp;
+            if (!house.IsApartment)
+                HousePurchaseTimestamp = (int)housePurchaseTimestamp;
             HouseRentTimestamp = (int)house.GetRentDue((uint)housePurchaseTimestamp);
             houseRentWarnTimestamp = 0;
 
@@ -696,7 +697,8 @@ namespace ACE.Server.WorldObjects
 
             SaveBiotaToDatabase();
 
-            Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.HousePurchaseTimestamp, HousePurchaseTimestamp ?? 0));
+            if (!house.IsApartment)
+                Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.HousePurchaseTimestamp, HousePurchaseTimestamp ?? 0));
 
             // set house data
             // why has this changed? use callback?

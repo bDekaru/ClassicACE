@@ -504,7 +504,7 @@ namespace ACE.Server.Managers
             {
                 player.HouseId = null;
                 player.HouseInstance = null;
-                if (house == null || house.IsApartment || PropertyManager.GetBool("house_30day_cooldown").Item == false)
+                if (PropertyManager.GetBool("house_30day_cooldown").Item == false)
                     player.HousePurchaseTimestamp = null;
                 player.HouseRentTimestamp = null;
             }
