@@ -540,6 +540,7 @@ namespace ACE.Server.Managers
                 PropertyManager.ModifyBool("runrate_add_hooks", true);
                 PropertyManager.ModifyBool("house_15day_account", false);
                 PropertyManager.ModifyBool("house_30day_cooldown", false);
+                PropertyManager.ModifyBool("house_per_char", true);
 
                 PropertyManager.ModifyLong("fellowship_even_share_level", 80);
 
