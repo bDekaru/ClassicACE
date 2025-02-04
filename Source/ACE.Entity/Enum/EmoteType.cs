@@ -131,10 +131,13 @@ namespace ACE.Entity.Enum
 
         // Unknown Id Emotes & Custom Emotes
         Enlightenment                 = 9001,
+
+        // CustomDM
         VendorBroadcastStockLocal     = 9002,
         VendorBroadcastStockWorld     = 9003,
         RefreshExplorationAssignments = 9004,
         RewardExplorationAssignments  = 9005,
         AcademyExplorationAssignment  = 9006,
+        BlinkTarget                   = 9007,
     }
 }

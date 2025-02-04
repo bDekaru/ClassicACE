@@ -5327,7 +5327,8 @@ namespace ACE.Server.Command.Handlers
                 }
             }
 
-            WorldManager.ThreadSafeBlink(player, distance);
+            var blinkLoc = player.Location.InFrontOf(distance);
+            WorldManager.ThreadSafeBlink(player, blinkLoc);
         }
     }
 }

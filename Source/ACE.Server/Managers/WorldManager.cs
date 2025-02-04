@@ -338,11 +338,11 @@ namespace ACE.Server.Managers
             }));
         }
 
-        public static void ThreadSafeBlink(Player player, float distance, IAction actionToFollowUpWith = null)
+        public static void ThreadSafeBlink(Player player, Position newPosition, IAction actionToFollowUpWith = null, bool fromPortal = false)
         {
             EnqueueAction(new ActionEventDelegate(() =>
             {
-                player.Blink(distance);
+                player.Blink(newPosition, fromPortal);
 
                 if (actionToFollowUpWith != null)
                     EnqueueAction(actionToFollowUpWith);

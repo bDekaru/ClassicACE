@@ -18,6 +18,10 @@ using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Managers;
 using ACE.Server.Network.Sequence;
 using ACE.Server.Pathfinding;
+using ACE.Server.Physics.Common;
+
+using Position = ACE.Entity.Position;
+using Landblock = ACE.Server.Entity.Landblock;
 
 namespace ACE.Server.WorldObjects
 {
@@ -717,7 +721,7 @@ namespace ACE.Server.WorldObjects
                 var delayTelport = new ActionChain();
                 delayTelport.AddAction(this, () => ClearFogColor());
                 delayTelport.AddDelaySeconds(1);
-                delayTelport.AddAction(this, () => WorldManager.ThreadSafeTeleport(this, _newPosition));
+                delayTelport.AddAction(this, () => WorldManager.ThreadSafeTeleport(this, _newPosition, null, fromPortal));
 
                 delayTelport.EnqueueChain();
 
@@ -852,27 +856,72 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// This is not thread-safe. Consider using WorldManager.ThreadSafeBlink() instead if you're calling this from a multi-threaded subsection.
         /// </summary>
-        public void Blink(float distance)
+        public void Blink(Position destination, bool fromPortal)
         {
-            if (distance == 0 || Teleporting)
+            if (destination == null || Teleporting)
                 return;
 
-            var blinkLoc = Location.InFrontOf(distance);
+            destination = new Position(destination);
 
-            if (!InDungeon && !Underground)
-                blinkLoc.AdjustMapCoords();
+            if (destination.PositionX == 0 && destination.PositionY == 0 && destination.Cell == 0) // Trying to catch invalid position.
+                destination = new Position(Sanctuary) ?? new Position(Instantiation) ?? new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f);
+
+            // Check currentFogColor set for player. If LandblockManager.GlobalFogColor is set, don't bother checking, dungeons didn't clear like this on retail worlds.
+            // if not clear, reset to clear before portaling in case portaling to dungeon (no current way to fast check unloaded landblock for IsDungeon or current FogColor)
+            // client doesn't respond to any change inside dungeons, and only queues for change if in dungeon, executing change upon next teleport
+            // so if we delay teleport long enough to ensure clear arrives before teleport, we don't get fog carrying over into dungeon.
+
+            if (currentFogColor.HasValue && currentFogColor != EnvironChangeType.Clear && !LandblockManager.GlobalFogColor.HasValue)
+            {
+                var delayBlink = new ActionChain();
+                delayBlink.AddAction(this, () => ClearFogColor());
+                delayBlink.AddDelaySeconds(1);
+                delayBlink.AddAction(this, () => WorldManager.ThreadSafeBlink(this, destination, null, fromPortal));
+
+                delayBlink.EnqueueChain();
+
+                return;
+            }
+
+            destination.PositionZ += 0.005f * (ObjScale ?? 1.0f);
+
+            var distance = Location.DistanceTo(destination);
+
+            if(!CurrentLandblock.IsDungeon)
+                destination.UpdateCell();
+
+            if (!destination.Indoors && !Underground)
+            {
+                if(!Indoors)
+                    destination.AdjustMapCoords();
+                else
+                {
+                    var sortCell = LScape.get_landcell(destination.Cell) as SortCell;
+                    if (sortCell != null && sortCell.has_building())
+                    {
+                        var building = sortCell.Building;
+
+                        var minZ = building.GetMinZ();
+
+                        if (minZ > destination.PositionZ && minZ < float.MaxValue)
+                            destination.PositionZ += minZ;
+
+                        destination.LandblockId = new LandblockId(destination.GetCell());
+                    }
+                }
+            }
             else
             {
-                AdjustDungeon(blinkLoc);
+                AdjustDungeon(destination);
 
                 var height = PhysicsObj.GetHeight();
-                if (!blinkLoc.IsValidIndoorCell(height))
+                if (!destination.IsValidIndoorCell(height))
                 {
                     if (Pathfinder.PathfindingEnabled)
                     {
-                        blinkLoc = Pathfinder.GetClosestPointOnMesh(blinkLoc, AgentWidth.Narrow);
+                        destination = Pathfinder.GetClosestPointOnMesh(destination, AgentWidth.Narrow);
 
-                        if (blinkLoc == null || !blinkLoc.IsValidIndoorCell(height))
+                        if (destination == null || !destination.IsValidIndoorCell(height))
                             return;
                     }
                     else
@@ -880,10 +929,16 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-
             Teleporting = true;
+            LastTeleportTime = DateTime.UtcNow;
+            LastTeleportStartTimestamp = Time.GetUnixTime();
 
-            var setPos = new Physics.Common.SetPosition(blinkLoc.PhysPosition(), Physics.Common.SetPositionFlags.Teleport | Physics.Common.SetPositionFlags.Slide);
+            EndSneaking();
+
+            if (fromPortal)
+                LastPortalTeleportTimestamp = LastTeleportStartTimestamp;
+
+            var setPos = new Physics.Common.SetPosition(destination.PhysPosition(), Physics.Common.SetPositionFlags.Teleport | Physics.Common.SetPositionFlags.Slide);
             var result = PhysicsObj.SetPosition(setPos);
 
             if (result == Physics.Common.SetPositionError.OK)

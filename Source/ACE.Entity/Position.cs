@@ -147,9 +147,9 @@ namespace ACE.Entity
         /// <summary>
         /// Handles the Position crossing over landblock boundaries
         /// </summary>
-        public bool SetLandblock()
+        public bool SetLandblock(bool force = false)
         {
-            if (Indoors) return false;
+            if (Indoors && !force) return false;
 
             var changedBlock = false;
 
@@ -215,9 +215,9 @@ namespace ACE.Entity
         /// <summary>
         /// Determines the outdoor landcell for current position
         /// </summary>
-        public bool SetLandCell()
+        public bool SetLandCell(bool force = false)
         {
-            if (Indoors) return false;
+            if (Indoors && !force) return false;
 
             var cellX = (uint)PositionX / CellLength;
             var cellY = (uint)PositionY / CellLength;

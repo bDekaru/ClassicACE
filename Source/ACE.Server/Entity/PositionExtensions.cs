@@ -73,6 +73,18 @@ namespace ACE.Server.Entity
             return position;
         }
 
+        public static bool UpdateCell(this Position p)
+        {
+            var previousCell = p.LandblockId.Raw;
+            p.SetLandblock(true);
+            p.SetLandCell(true);
+            p.LandblockId = new LandblockId(p.GetCell());
+
+            if (previousCell != p.LandblockId.Raw)
+                return true;
+            return false;
+        }
+
         /// <summary>
         /// Gets the cell ID for a position within a landblock
         /// </summary>
@@ -345,6 +357,10 @@ namespace ACE.Server.Entity
             var cell = landblock.IsDungeon ? p.Cell : p.GetOutdoorCell();
 
             return HouseCell.HouseCells.ContainsKey(cell);
+        }
+        public static bool IsUnderground(this Position p)
+        {
+            return p.PositionZ < p.GetTerrainZ();
         }
 
         public static Position ACEPosition(this Physics.Common.Position pos)

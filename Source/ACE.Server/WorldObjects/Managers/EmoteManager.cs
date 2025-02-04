@@ -1592,6 +1592,36 @@ namespace ACE.Server.WorldObjects.Managers
                         break;
                     }
 
+                case EmoteType.BlinkTarget:
+
+                    if (player != null)
+                    {
+                        if (emote.ObjCellId.HasValue && emote.OriginX.HasValue && emote.OriginY.HasValue && emote.OriginZ.HasValue && emote.AnglesX.HasValue && emote.AnglesY.HasValue && emote.AnglesZ.HasValue && emote.AnglesW.HasValue)
+                        {
+                            if (emote.ObjCellId.Value > 0)
+                            {
+                                var destination = new Position(emote.ObjCellId.Value, emote.OriginX.Value, emote.OriginY.Value, emote.OriginZ.Value, emote.AnglesX.Value, emote.AnglesY.Value, emote.AnglesZ.Value, emote.AnglesW.Value);
+
+                                WorldObject.AdjustDungeon(destination);
+                                WorldManager.ThreadSafeBlink(player, destination);
+                            }
+                            else // position is relative to WorldObject's current location
+                            {
+                                var relativeDestination = new Position(WorldObject.Location);
+                                relativeDestination.Pos += new Vector3(emote.OriginX.Value, emote.OriginY.Value, emote.OriginZ.Value);
+                                relativeDestination.Rotation = new Quaternion(emote.AnglesX.Value, emote.AnglesY.Value, emote.AnglesZ.Value, emote.AnglesW.Value);
+                                relativeDestination.LandblockId = new LandblockId(relativeDestination.GetCell());
+
+                                var yaw = WorldObject.Location.GetYaw();
+                                relativeDestination.RotateAroundPivot(WorldObject.Location, yaw);
+
+                                WorldObject.AdjustDungeon(relativeDestination);
+                                WorldManager.ThreadSafeBlink(player, relativeDestination);
+                            }
+                        }
+                    }
+                    break;
+
                 default:
                     log.DebugFormat("EmoteManager.Execute - Encountered Unhandled EmoteType {0} for {1} ({2})", (EmoteType)emote.Type, WorldObject.Name, WorldObject.WeenieClassId);
                     break;
