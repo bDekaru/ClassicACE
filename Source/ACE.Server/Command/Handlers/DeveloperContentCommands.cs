@@ -2067,8 +2067,8 @@ namespace ACE.Server.Command.Handlers.Processors
                     continue;
                 }
 
+                entry.loc.SetLandblock(true);
                 var entryLandblock = entry.loc.LandblockId.Landblock;
-
                 if(entryLandblock != landblock)
                 {
                     session.Network.EnqueueSend(new GameMessageSystemChat($"Diverging landblock in guid 0x{entry.guid:X8}.", ChatMessageType.Broadcast));

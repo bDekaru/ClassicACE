@@ -30,6 +30,7 @@ using ACE.Server.WorldObjects.Managers;
 using Character = ACE.Database.Models.Shard.Character;
 using MotionTable = ACE.DatLoader.FileTypes.MotionTable;
 using System.Linq;
+using ACE.Server.Command.Handlers;
 
 namespace ACE.Server.WorldObjects
 {
@@ -564,6 +565,17 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool LogOut(bool clientSessionTerminatedAbruptly = false, bool forceImmediate = false)
         {
+            if(OfflineInstances != null)
+            {
+                // Discard and rollback any unsaved changes in this player's offline instances.
+                var landblockId = new LandblockId((uint)(OfflineInstancesLandblockId << 16 | 0xFFFF));
+                if (LandblockManager.IsLoaded(landblockId))
+                    DeveloperCommands.ReloadLandblock(LandblockManager.GetLandblock(landblockId, false));
+
+                OfflineInstancesLandblockId = 0;
+                OfflineInstances = null;
+            }
+
             var isHardcoreLogout = false;
             if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL))
             {
