@@ -219,7 +219,7 @@ namespace ACE.Server.Network.Structure
                         //longDesc = $"This house is {(slumLord.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n"; // this was the retail msg.
                         longDesc = $"This {(slumLord.House.HouseType == HouseType.Undef ? "house" : slumLord.Name.ToString().ToLower())} is {(slumLord.House.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.\n";
                     else
-                        longDesc = "This house is not properly configured.";
+                        longDesc = "This house is not properly configured. Please report this issue.";
 
                     var discardInts = PropertiesInt.Where(x => x.Key != PropertyInt.HouseStatus && x.Key != PropertyInt.HouseType && x.Key != PropertyInt.MinLevel && x.Key != PropertyInt.MaxLevel && x.Key != PropertyInt.AllegianceMinLevel && x.Key != PropertyInt.AllegianceMaxLevel).Select(x => x.Key).ToList();
                     foreach (var key in discardInts)

@@ -95,6 +95,22 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            if(slumlord.House == null)
+            {
+                var msg = "This house is not properly configured. Please report this issue.";
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, msg), new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
+                log.Info($"[HOUSE] {Name}.HandleActionBuyHouse(): Failed pre-purchase requirement - slumlord.House == null");
+                return;
+            }
+
+            if (slumlord.House.HouseStatus == HouseStatus.Disabled)
+            {
+                var msg = $"This {(slumlord.House.HouseType == HouseType.Undef ? "house" : slumlord.Name.ToString().ToLower())} is {(slumlord.House.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.";
+                Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, msg), new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
+                log.Info($"[HOUSE] {Name}.HandleActionBuyHouse(): Failed pre-purchase requirement - HouseStatus.Disabled");
+                return;
+            }
+
             if (!slumlord.House.IsApartment)
             {
                 if (PropertyManager.GetBool("house_15day_account").Item && !Account15Days)

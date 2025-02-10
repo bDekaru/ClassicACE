@@ -1161,6 +1161,7 @@ namespace ACE.Server.Command.Handlers
             // @adminhouse rent overdue: sets the rent timestamp far enough back to cause the selected house's rent to be overdue.
             // @adminhouse rent payall: fully pay the rent for all houses.
             // @adminhouse payrent on / off: sets the targeted house to not require / require normal maintenance payments.
+            // @adminhouse forpurchase off / on: sets the targeted house to be or not be available for purchase.;
             // @adminhouse - House management tools for admins.
 
             if (parameters.Length >= 1 && parameters[0] == "dump")
@@ -1496,6 +1497,69 @@ namespace ACE.Server.Command.Handlers
                         return;
                     }
                 }
+            }
+            else if (parameters.Length >= 1 && parameters[0] == "forpurchase")
+            {
+                if (parameters.Length > 1 && parameters[1] == "off")
+                {
+                    if (session.Player.HealthQueryTarget.HasValue || session.Player.ManaQueryTarget.HasValue || session.Player.CurrentAppraisalTarget.HasValue)
+                    {
+                        var house = GetSelectedHouse(session, out _);
+
+                        if (house == null)
+                            return;
+
+                        if (house.HouseOwner > 0)
+                            session.Player.SendMessage($"{house.Name} (0x{house.Guid}) is already owned.");
+                        else if (house.HouseStatus != HouseStatus.Disabled)
+                        {
+                            house.HouseStatus = HouseStatus.Disabled;
+                            house.SaveBiotaToDatabase();
+
+                            session.Player.SendMessage($"{house.Name} (0x{house.Guid}) is no longer available for purchase.");
+
+
+                            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} set HouseStatus to {house.HouseStatus} for HouseId {house.HouseId} (0x{house.Guid}:{house.WeenieClassId})");
+                        }
+                        else
+                            session.Player.SendMessage($"{house.Name} (0x{house.Guid}) is already not available for purchase.");
+                    }
+                    else
+                    {
+                        session.Player.SendMessage("No object is selected.");
+                        return;
+                    }
+                }
+                else if (parameters.Length > 1 && parameters[1] == "on")
+                {
+                    if (session.Player.HealthQueryTarget.HasValue || session.Player.ManaQueryTarget.HasValue || session.Player.CurrentAppraisalTarget.HasValue)
+                    {
+                        var house = GetSelectedHouse(session, out _);
+
+                        if (house == null)
+                            return;
+
+                        if (house.HouseOwner > 0)
+                            session.Player.SendMessage($"{house.Name} (0x{house.Guid}) is already owned.");
+                        else if (house.HouseStatus == HouseStatus.Disabled)
+                        {
+                            house.HouseStatus = HouseStatus.Active;
+                            house.SaveBiotaToDatabase();
+
+                            session.Player.SendMessage($"{house.Name} (0x{house.Guid}) is now available for purchase.");
+
+
+                            PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} set HouseStatus to {house.HouseStatus} for HouseId {house.HouseId} (0x{house.Guid}:{house.WeenieClassId})");
+                        }
+                        else
+                            session.Player.SendMessage($"{house.Name} (0x{house.Guid}) is already available for purchase.");
+                    }
+                    else
+                    {
+                        session.Player.SendMessage("No object is selected.");
+                        return;
+                    }
+                }
                 else
                 {
                     session.Player.SendMessage("You must specify either \"on\" or \"off\".");
@@ -1513,6 +1577,7 @@ namespace ACE.Server.Command.Handlers
                 msg += "@adminhouse rent pay: fully pay the rent of the selected house.\n";
                 msg += "@adminhouse rent payall: fully pay the rent for all houses.\n";
                 msg += "@adminhouse payrent off / on: sets the targeted house to not require / require normal maintenance payments.\n";
+                msg += "@adminhouse forpurchase off / on: sets the targeted house to be or not be available for purchase.\n";
 
                 session.Player.SendMessage(msg);
             }

@@ -64,6 +64,20 @@ namespace ACE.Server.WorldObjects
             var player = worldObject as Player;
             if (player == null) return;
 
+            if (House != null)
+            {
+                if (House.HouseStatus == HouseStatus.Disabled)
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"This {(House.HouseType == HouseType.Undef ? "house" : Name.ToString().ToLower())} is {(House.HouseStatus == HouseStatus.Disabled ? "not " : "")}available for purchase.", ChatMessageType.Broadcast));
+                    return;
+                }
+            }
+            else
+            {
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat("This house is not properly configured. Please report this issue.", ChatMessageType.Broadcast));
+                return;
+            }
+
             // sent house profile
             var houseProfile = GetHouseProfile();
 
