@@ -285,14 +285,6 @@ namespace ACE.Server.WorldObjects
                             xpMessage = $"Hot Dungeon Bonus: +{extraXP:N0}xp {xpMessage}";
                         }
 
-                        if (CurrentLandblock != null && !InDungeon)
-                        {
-                            var extraXP = m_amount * (float)PropertyManager.GetDouble("surface_bonus_xp").Item; // Surface provides extra xp to account for lower creature density.
-                            totalExtraXP += extraXP;
-
-                            xpMessage = $"Surface Bonus: +{extraXP:N0}xp {xpMessage}";
-                        }
-
                         if (Level < (MaxReachedLevel ?? 1) && IsHardcore)
                         {
                             var extraXP = m_amount * (float)PropertyManager.GetDouble("relive_bonus_xp").Item;

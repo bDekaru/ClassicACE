@@ -1025,8 +1025,6 @@ namespace ACE.Server.Managers
                 ("hot_dungeon_roll_delay", new Property<double>(1200.0, "The duration (in seconds) between each chance to automatically roll a new hot dungeon (only applies while there are no hot dungeons active).")),
                 ("hot_dungeon_chance", new Property<double>(0.33, "The percentage chance (between 0 and 1) when the server will activate a hot dungeon at each roll interval.")),
 
-
-                ("surface_bonus_xp", new Property<double>(0.25, "Extra xp earned for kills when hunting outside dungeons. 1.0 means 100% more xp.")),
                 ("hot_dungeon_bonus_xp", new Property<double>(1.0, "Extra xp earned for kills when inside hot dungeons. 1.0 means 100% more xp.")),
                 ("exploration_bonus_xp", new Property<double>(0.5, "Extra xp earned while completing exploration assignment's objectives. 1.0 means 100% more xp.")),
                 ("relive_bonus_xp", new Property<double>(1.0, "Extra xp earned while reliving levels after a death that resulted in lost levels. 1.0 means 100% more xp."))

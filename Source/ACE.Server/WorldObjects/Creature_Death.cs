@@ -298,13 +298,13 @@ namespace ACE.Server.WorldObjects
                     baseXp *= 15;
                     break;
                 case 3:
-                    baseXp = (baseXp * level / 2) + 5000;
+                    baseXp = (baseXp * level / 2) + 500 + (500 * level);
                     break;
                 case 4:
-                    baseXp = (baseXp * level) + 10000;
+                    baseXp = (baseXp * level) + 1000 + (1000 * level);
                     break;
                 case 5:
-                    baseXp = (baseXp * level * 3) + 15000;
+                    baseXp = (baseXp * level * 3) + 3000 + (3000 * level);
                     break;
                 default:
                     break;
