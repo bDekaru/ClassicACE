@@ -133,7 +133,12 @@ namespace ACE.Server.WorldObjects
         {
             var buyList = GetCreateListForSlumLord(DestinationType.HouseBuy);
 
-            buyList.ForEach(item => item.Destroy(false));
+            buyList.ForEach(item =>
+            {
+                if (House != null && item.StackSize.HasValue)
+                    item.StackSize = (int)Math.Round(item.StackSize.Value * House.GetPriceMultiplier());
+                item.Destroy(false);
+            });
 
             return buyList;
         }
@@ -145,7 +150,12 @@ namespace ACE.Server.WorldObjects
         {
             var rentList = GetCreateListForSlumLord(DestinationType.HouseRent);
 
-            rentList.ForEach(item => item.Destroy(false));
+            rentList.ForEach(item =>
+            {
+                if (House != null && item.StackSize.HasValue)
+                    item.StackSize = (int)Math.Round(item.StackSize.Value * House.GetPriceMultiplier());
+                item.Destroy(false);
+            });
 
             return rentList;
         }
@@ -206,6 +216,24 @@ namespace ACE.Server.WorldObjects
         protected override void OnInitialInventoryLoadCompleted()
         {
             HouseManager.OnInitialInventoryLoadCompleted(this);
+
+            DetermineTier();
+        }
+
+        public void DetermineTier()
+        {
+            if (House != null && House.IsCustomHouse)
+            {
+                var weenie = DatabaseManager.World.GetCachedWeenie(WeenieClassId);
+
+                var minLevel = weenie.GetProperty(PropertyInt.MinLevel) ?? 0;
+                if (minLevel != 0)
+                    MinLevel = Math.Min((int)Player.GetMaxLevel(), (int)Math.Round(minLevel + House.GeteAdditionalLevelRequirement()));
+
+                var allegianceMinLevel = weenie.GetProperty(PropertyInt.AllegianceMinLevel) ?? 0;
+                if (allegianceMinLevel != 0)
+                    AllegianceMinLevel = Math.Min(10, (int)Math.Round(allegianceMinLevel + House.GetAdditionalAllegianceLevelRequirement()));
+            }
         }
 
         public void On()

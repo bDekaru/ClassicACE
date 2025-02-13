@@ -1344,7 +1344,12 @@ namespace ACE.Server.WorldObjects
         public double GetHighestTierAroundObject(float maxDistance)
         {
             double? maxTier = null;
-            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(CurrentLandblock.Id.Landblock);
+
+            if (CurrentLandblock == null)
+                return 0;
+
+            var landblockId = CurrentLandblock.Id.Landblock;
+            var instances = DatabaseManager.World.GetCachedInstancesByLandblock(landblockId);
             foreach (var instance in instances)
             {
                 Position instancePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
@@ -1357,10 +1362,15 @@ namespace ACE.Server.WorldObjects
 
                     if (weenie.WeenieType == WeenieType.Creature)
                     {
-                        var level = weenie.GetProperty(PropertyInt.Level) ?? 1;
-                        var tier = Creature.CalculateExtendedTier(level);
-                        if (tier > (maxTier ?? 0))
-                            maxTier = tier;
+                        var playerKillerStatus = (PlayerKillerStatus?)weenie.GetProperty(PropertyInt.PlayerKillerStatus) ?? PlayerKillerStatus.NPK;
+                        var npcLooksLikeObject = weenie.GetProperty(PropertyBool.NpcLooksLikeObject) ?? false;
+                        if (playerKillerStatus != PlayerKillerStatus.RubberGlue && playerKillerStatus != PlayerKillerStatus.Protected && !npcLooksLikeObject)
+                        {
+                            var level = weenie.GetProperty(PropertyInt.Level) ?? 1;
+                            var tier = Creature.CalculateExtendedTier(level);
+                            if (tier > (maxTier ?? 0))
+                                maxTier = tier;
+                        }
                     }
                     else
                     {
@@ -1375,7 +1385,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            var encounters = DatabaseManager.World.GetCachedEncountersByLandblock(CurrentLandblock.Id.Landblock, out _);
+            var encounters = DatabaseManager.World.GetCachedEncountersByLandblock(landblockId, out _);
             foreach (var encounter in encounters)
             {
                 var xPos = Math.Clamp((encounter.CellX * 24.0f) + 12.0f, 0.5f, 191.5f);

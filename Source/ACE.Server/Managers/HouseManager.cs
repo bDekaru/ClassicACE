@@ -699,6 +699,8 @@ namespace ACE.Server.Managers
             {
                 if (house.SlumLord != null)
                 {
+                    house.SlumLord.DetermineTier();
+
                     HouseList.AddToAvailable(house.SlumLord, house);
 
                     if (house.CurrentLandblock != null)
@@ -725,7 +727,10 @@ namespace ACE.Server.Managers
                     var newLocation = house.Location.Cell;
 
                     if (house.SlumLord != null)
+                    {
                         house.SlumLord.HouseId = house.HouseId;
+                        house.SlumLord.DetermineTier();
+                    }
 
                     if (house.HouseOwner.HasValue && house.HouseOwner > 0)
                     {

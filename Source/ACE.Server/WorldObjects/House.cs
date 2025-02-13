@@ -79,6 +79,8 @@ namespace ACE.Server.WorldObjects
             BuildGuests();
 
             LinkedHouses = new List<House>();
+
+            Tier = null;
         }
 
         /// <summary>
@@ -98,6 +100,7 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
+                DetermineTier();
                 houseData.SetBuyItems(SlumLord.GetBuyItems());
                 houseData.SetRentItems(SlumLord.GetRentItems());
             }
@@ -855,6 +858,137 @@ namespace ACE.Server.WorldObjects
 
             if (CurrentLandblock == null)
                 SaveBiotaToDatabase();
+        }
+
+        public float GetPriceMultiplier()
+        {
+            if (!IsCustomHouse)
+                return 1.0f;
+
+            if (!Tier.HasValue)
+                DetermineTier();
+
+            if(Tier.HasValue)
+                return 1 + (((float)Tier.Value - 1) * 0.2f);
+            return 1.0f;
+        }
+
+        public float GeteAdditionalLevelRequirement()
+        {
+            if (!IsCustomHouse)
+                return 1.0f;
+
+            if (!Tier.HasValue)
+                DetermineTier();
+
+            if (Tier.HasValue)
+                return (float)Math.Round((Tier.Value - 1) * 6);
+            return 1.0f;
+        }
+
+        public float GetAdditionalAllegianceLevelRequirement()
+        {
+            if (!IsCustomHouse)
+                return 1.0f;
+
+            if (!Tier.HasValue)
+                DetermineTier();
+
+            if (Tier.HasValue)
+                return (float)Math.Round(Tier.Value - 1);
+            return 1.0f;
+        }
+
+        public void DetermineTier()
+        {
+            if (!IsCustomHouse)
+                return;
+
+            if (!Tier.HasValue)
+            {
+                var landblockDescription = DatabaseManager.World.GetLandblockDescriptionsByLandblock(Location.LandblockId.Landblock).FirstOrDefault();
+
+                var startIndex = landblockDescription.Reference.LastIndexOf("in ");
+                if (startIndex == -1)
+                    startIndex = landblockDescription.Reference.LastIndexOf("of ");
+
+                if (startIndex != -1)
+                {
+                    startIndex += 3;
+                    var townName = landblockDescription.Reference.Substring(startIndex, landblockDescription.Reference.Length - startIndex);
+                    switch (townName)
+                    {
+                        case "Yaraq":
+                        case "Shoushi":
+                        case "Holtburg":
+                            Tier = 1;
+                            break;
+                        case "Al-Arqas":
+                        case "Bluespire":
+                        case "Greenspire":
+                        case "Lytelthorpe":
+                        case "Nanto":
+                        case "Redspire":
+                        case "Rithwic":
+                        case "Samsur":
+                        case "Tufa":
+                        case "Xarabydun":
+                        case "Yanshi":
+                            Tier = 2;
+                            break;
+                        case "Al-Jalima":
+                        case "Ahurenga":
+                        case "Arwic":
+                        case "Baishi":
+                        case "Cragstone":
+                        case "Eastham":
+                        case "Glenden Wood":
+                        case "Hebian-To":
+                        case "Khayyaban":
+                        case "Kryst":
+                        case "Lin":
+                        case "Mayoi":
+                        case "Oolutanga's Refuge":
+                        case "Sawato":
+                        case "Qalaba'r":
+                        case "Tou-Tou":
+                        case "Uziz":
+                        case "Zaikhal":
+                            Tier = 3;
+                            break;
+                        case "Dryreach":
+                        case "Danby's Outpost":
+                        case "MacNiall's Freehold":
+                            Tier = 4;
+                            break;
+                        case "Bandit Castle":
+                        case "Kara":
+                        case "Linvak Tukal":
+                        case "Neydisa Castle":
+                        case "Plateau Village":
+                        case "Stonehold":
+                        case "Timaru":
+                            Tier = 5;
+                            break;
+                        case "Candeth Keep":
+                        case "Fort Tethana":
+                        case "Ayan Baqur":
+                        case "Wai Jhou":
+                            Tier = 6;
+                            break;
+                    }
+                }
+            }
+
+            if (!Tier.HasValue)
+            {
+                float maxDistance;
+                if (InDungeon)
+                    maxDistance = 50;
+                else
+                    maxDistance = 500;
+                Tier = Math.Max(GetHighestTierAroundObject(maxDistance), 1); // Fallback to tier 1 if there's nothing around us.
+            }
         }
     }
 }

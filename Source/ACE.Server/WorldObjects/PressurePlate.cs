@@ -136,7 +136,7 @@ namespace ACE.Server.WorldObjects
         {
             Tier = GetHighestTierAroundObject(50);
 
-            if (!Tier.HasValue)
+            if (!Tier.HasValue || Tier == 0)
                 Tier = 3;
 
             ResistLockpick = (int)(Tier * 65);

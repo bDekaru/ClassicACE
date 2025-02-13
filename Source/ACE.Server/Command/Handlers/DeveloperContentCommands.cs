@@ -2057,13 +2057,13 @@ namespace ACE.Server.Command.Handlers.Processors
             {
                 if (entry.weenie == null)
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid weenie in guid 0x{entry.guid:X8}.", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid weenie in guid 0x{entry.guid:X8}.", ChatMessageType.Help));
                     continue;
                 }
 
                 if (entry.loc == null)
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid location in guid 0x{entry.guid:X8}.", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Invalid location in guid 0x{entry.guid:X8}.", ChatMessageType.Help));
                     continue;
                 }
 
@@ -2071,7 +2071,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 var entryLandblock = entry.loc.LandblockId.Landblock;
                 if(entryLandblock != landblock)
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Diverging landblock in guid 0x{entry.guid:X8}.", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Diverging landblock in guid 0x{entry.guid:X8}.", ChatMessageType.Help));
                     continue;
                 }
 
@@ -2085,7 +2085,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                     if (parentInstance == null)
                     {
-                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock instance for parent guid 0x{entry.parentGuid:X8} in guid 0x{entry.guid:X8}", ChatMessageType.Broadcast));
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find landblock instance for parent guid 0x{entry.parentGuid:X8} in guid 0x{entry.guid:X8}", ChatMessageType.Help));
                         continue;
                     }
 
@@ -2093,7 +2093,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                     if (parentObj == null)
                     {
-                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent object 0x{entry.parentGuid:X8} in guid 0x{entry.guid:X8}", ChatMessageType.Broadcast));
+                        session.Network.EnqueueSend(new GameMessageSystemChat($"Couldn't find parent object 0x{entry.parentGuid:X8} in guid 0x{entry.guid:X8}", ChatMessageType.Help));
                         continue;
                     }
                 }
@@ -2103,13 +2103,13 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 if(landblockGuids.Contains(entry.guid))
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock {landblock:X4} already contains object with guid {entry.guid}", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock {landblock:X4} already contains object with guid {entry.guid}", ChatMessageType.Help));
                     continue;
                 }
 
                 if (entry.guid > maxStaticGuid)
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock {landblock:X4} has reached the maximum # of static guids", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Landblock {landblock:X4} has reached the maximum # of static guids", ChatMessageType.Help));
                     continue;
                 }
 
@@ -2120,7 +2120,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 if (wo == null)
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"Failed to create new object for {entry.weenie.ClassId} - {entry.weenie.ClassName}", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"Failed to create new object for {entry.weenie.ClassId} - {entry.weenie.ClassName}", ChatMessageType.Help));
                     continue;
                 }
 
@@ -2128,7 +2128,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 if (!wo.Stuck && !isLinkChild)
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"{entry.weenie.ClassId} - {entry.weenie.ClassName} is missing PropertyBool.Stuck, cannot spawn as landblock instance unless it is a child object", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{entry.weenie.ClassId} - {entry.weenie.ClassName} is missing PropertyBool.Stuck, cannot spawn as landblock instance unless it is a child object", ChatMessageType.Help));
                     continue;
                 }
 
@@ -2147,7 +2147,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 if (!wo.EnterWorld())
                 {
-                    session.Network.EnqueueSend(new GameMessageSystemChat("Failed to spawn new object at this location", ChatMessageType.Broadcast));
+                    session.Network.EnqueueSend(new GameMessageSystemChat("Failed to spawn new object at this location", ChatMessageType.Help));
                     continue;
                 }
 
@@ -2182,7 +2182,10 @@ namespace ACE.Server.Command.Handlers.Processors
             if (!IsWorkingOnOfflineInstances(session, landblock))
                 SyncInstances(session, landblock, instances);
 
-            CommandHandlerHelper.WriteOutputInfo(session, $"Created {createdCounter} of {instancesToCreate.Count} instances.");
+            if(createdCounter == instancesToCreate.Count)
+                CommandHandlerHelper.WriteOutputInfo(session, $"Created {createdCounter} of {instancesToCreate.Count} instances.");
+            else
+                CommandHandlerHelper.WriteOutputWarn(session, $"Created {createdCounter} of {instancesToCreate.Count} instances.", ChatMessageType.Help);
             return createdCounter;
         }
 
