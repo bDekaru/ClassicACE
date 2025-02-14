@@ -660,6 +660,18 @@ namespace ACE.Server.Factories.Tables
                     ( SpellId.SneakingMasteryOther1,       1.0f ),
                 };
 
+                // breeches, jerkins, shirts, pants, tunics, doublets, trousers, pantaloons
+                spellSelectionGroup12 = new ChanceTable<SpellId>(ChanceTableType.Weight)
+                {
+                    ( SpellId.AcidProtectionOther1,      1.0f ),
+                    ( SpellId.BludgeonProtectionOther1,  1.0f ),
+                    ( SpellId.ColdProtectionOther1,      1.0f ),
+                    ( SpellId.LightningProtectionOther1, 1.0f ),
+                    ( SpellId.FireProtectionOther1,      1.0f ),
+                    ( SpellId.BladeProtectionOther1,     1.0f ),
+                    ( SpellId.PiercingProtectionOther1,  1.0f ),
+                };
+
                 // caps, qafiyas, turbans, fezs, berets
                 spellSelectionGroup13 = new ChanceTable<SpellId>(ChanceTableType.Weight)
                 {

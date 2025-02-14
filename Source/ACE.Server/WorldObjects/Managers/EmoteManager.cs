@@ -146,7 +146,11 @@ namespace ACE.Server.WorldObjects.Managers
                         var amt = emote.Amount64 ?? emote.Amount ?? 0;
                         if (amt > 0 || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            player.EarnXP(amt, XpType.Quest, player.Level, emoteSet.WeenieClassId, (uint)(Math.Round(campBonus, 2) * 100f), null, ShareType.None);
+                            uint? sourceId = null;
+                            if (rootEmoteSet != null && rootEmoteSet.Category == EmoteCategory.Give && rootEmoteSet.WeenieClassId != 0)
+                                sourceId = rootEmoteSet.WeenieClassId;
+
+                            player.EarnXP(amt, XpType.Quest, player.Level, sourceId, (uint)(Math.Round(campBonus, 2) * 100f), null, ShareType.None);
                         }
                         else if (amt < 0)
                         {
@@ -183,7 +187,11 @@ namespace ACE.Server.WorldObjects.Managers
                         var amt = emote.Amount64 ?? emote.Amount ?? 0;
                         if (amt > 0 || Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            player.EarnXP(amt, XpType.Quest, player.Level, emoteSet.WeenieClassId, (uint)(Math.Round(campBonus, 2) * 100f), null, ShareType.All);
+                            uint? sourceId = null;
+                            if (rootEmoteSet != null && rootEmoteSet.Category == EmoteCategory.Give && rootEmoteSet.WeenieClassId != 0)
+                                sourceId = rootEmoteSet.WeenieClassId;
+
+                            player.EarnXP(amt, XpType.Quest, player.Level, sourceId, (uint)(Math.Round(campBonus, 2) * 100f), null, ShareType.All);
                         }
                         else if (amt < 0)
                         {
@@ -391,12 +399,13 @@ namespace ACE.Server.WorldObjects.Managers
                     if (player != null && emote.WeenieClassId != null)
                     {
                         var extraMessage = "";
-                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (rootEmoteSet?.WeenieClassId ?? 0) != (emote?.WeenieClassId ?? 0))
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && rootEmoteSet != null && rootEmoteSet.Category == EmoteCategory.Give && rootEmoteSet.WeenieClassId != (emote?.WeenieClassId ?? 0))
                         {
                             var roundedCampBonus = Math.Round(campBonus, 2);
                             stackSize = (int)Math.Ceiling(stackSize * roundedCampBonus);
 
-                            extraMessage = $"T: {(roundedCampBonus * 100).ToString("0")}%";
+                            if (roundedCampBonus < 1)
+                                extraMessage = $"T: {(roundedCampBonus * 100).ToString("0")}%";
 
                             if (stackSize == 0)
                             {

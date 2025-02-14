@@ -61,6 +61,8 @@ namespace ACE.Server.WorldObjects
             var motionCommand = GetUseSound() == Sound.Eat1 ? MotionCommand.Eat : MotionCommand.Drink;
 
             player.ApplyConsumable(motionCommand, () => ApplyConsumable(player));
+
+            player.EnchantmentManager.StartCooldown(this);
         }
 
         /// <summary>

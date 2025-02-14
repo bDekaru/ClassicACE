@@ -76,13 +76,14 @@ namespace ACE.Server.WorldObjects
 
                 float totalXP = GetCreatureDeathXP(xpSourceLevel.Value, 0, false, false, formulaVersion);
 
-                if (xpSourceId != null && xpSourceId != 0)
+                if (xpSourceId.HasValue && xpSourceId != 0)
                 {
                     var typeCampBonus = xpSourceCampValue / 100f;
 
                     totalXP = totalXP * typeCampBonus;
 
-                    xpMessage = $"T: {xpSourceCampValue.ToString("0")}%";
+                    if(xpSourceCampValue < 100)
+                        xpMessage = $"T: {xpSourceCampValue.ToString("0")}%";
                 }
 
                 amount = (long)Math.Round(totalXP);
@@ -96,7 +97,7 @@ namespace ACE.Server.WorldObjects
             {
                 float totalXP = amount;
 
-                if (xpSourceId != null && xpSourceId != 0)
+                if (xpSourceId.HasValue && xpSourceId != 0)
                 {
                     CampManager.HandleCampInteraction(xpSourceId.Value, CurrentLandblock, xpSourceCampValue, out var typeCampBonus, out var areaCampBonus, out var restCampBonus);
 

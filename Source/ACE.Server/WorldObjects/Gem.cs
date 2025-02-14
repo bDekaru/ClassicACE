@@ -203,28 +203,68 @@ namespace ACE.Server.WorldObjects
                     }
                 }
 
-                player.EnchantmentManager.StartCooldown(this);
-
-                if (spell.MetaSpellType == SpellType.PortalSummon)
+                if (spell.MetaSpellType == SpellType.PortalSummon || spell.MetaSpellType == SpellType.PortalRecall)
                 {
-                    if (LinkedPortalOneDID != null || LinkedPortalTwoDID != null) 
+                    if (LinkedPortalOneDID != null || LinkedPortalTwoDID != null)
                         TryCastSpell(spell, player, this, tryResist: false); // if we're a summon portal gem with a predetermined destination summon that.
                     else
                     {
-                        if ((spell.Id == (uint)SpellId.LifestoneRecall1 && player.LinkedLifestone == null) ||
-                           ((spell.Id == (uint)SpellId.PortalTieRecall1 || spell.Id == (uint)SpellId.SummonPortal1 || spell.Id == (uint)SpellId.SummonPortal2 || spell.Id == (uint)SpellId.SummonPortal3) && player.LinkedPortalOneDID == null) ||
-                           ((spell.Id == (uint)SpellId.PortalTieRecall2 || spell.Id == (uint)SpellId.SummonSecondPortal1 || spell.Id == (uint)SpellId.SummonSecondPortal2 || spell.Id == (uint)SpellId.SummonSecondPortal3) && player.LinkedPortalTwoDID == null))
+                        if (spell.Id == (uint)SpellId.LifestoneRecall1 && player.LinkedLifestone == null)
                         {
-                            //player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You must have a linked destination in order to use this gem!", ChatMessageType.Magic));
-                            player.SendTransientError("You must have a linked destination in order to use this gem!");
+                            player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouMustLinkToLifestoneToRecall));
+                            return;
+                        }
+                        else if ((spell.Id == (uint)SpellId.PortalTieRecall1 && player.LinkedPortalOneDID == null) ||
+                                 (spell.Id == (uint)SpellId.PortalTieRecall2 && player.LinkedPortalTwoDID == null))
+                        {
+                            player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouMustLinkToPortalToRecall));
+                            return;
+                        }
+                        else if (((spell.Id == (uint)SpellId.SummonPortal1 || spell.Id == (uint)SpellId.SummonPortal2 || spell.Id == (uint)SpellId.SummonPortal3) && player.LinkedPortalOneDID == null) ||
+                                ((spell.Id == (uint)SpellId.SummonSecondPortal1 || spell.Id == (uint)SpellId.SummonSecondPortal2 || spell.Id == (uint)SpellId.SummonSecondPortal3) && player.LinkedPortalTwoDID == null))
+                        {
+                            player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouMustLinkToPortalToSummonIt));
                             return;
                         }
                         else
                             player.TryCastSpell(spell, player, this, tryResist: false);
                     }
                 }
-                else if(spell.MetaSpellType == SpellType.PortalLink)
+                else if (spell.MetaSpellType == SpellType.PortalLink)
+                {
+                    if (target.WeenieType != WeenieType.Portal)
+                    {
+                        player.SendChatMessage(this, "You cannot link that.", ChatMessageType.Magic);
+                        return;
+                    }
+
+                    var targetPortal = target as Portal;
+
+                    var summoned = targetPortal.OriginalPortal != null;
+
+                    var targetDID = summoned ? targetPortal.OriginalPortal : targetPortal.WeenieClassId;
+
+                    var tiePortal = GetPortal(targetDID.Value);
+
+                    if (tiePortal == null)
+                    {
+                        player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouCannotLinkToThatPortal));
+                        return;
+                    }
+
+                    var result = tiePortal.CheckUseRequirements(player);
+
+                    if (!result.Success && result.Message != null)
+                        player.Session.Network.EnqueueSend(result.Message);
+
+                    if (tiePortal.NoTie || !result.Success)
+                    {
+                        player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouCannotLinkToThatPortal));
+                        return;
+                    }
+
                     player.TryCastSpell(spell, target, this, tryResist: false); // This spell cast must come from the player otherwise the link property will be set on the gem instead.
+                }
                 else if (spell.IsImpenBaneType || spell.IsItemRedirectableType)
                     TryCastItemEnchantment_WithRedirects(spell, player, this);
                 else if (target != null)
@@ -291,6 +331,8 @@ namespace ACE.Server.WorldObjects
                 else if (!usesMana)
                     player.TryConsumeFromInventoryWithNetworking(this, 1);
             }
+
+            player.EnchantmentManager.StartCooldown(this);
         }
 
         public bool HandleUseCreateItem(Player player)
@@ -417,14 +459,12 @@ namespace ACE.Server.WorldObjects
                     if (player.IsBusy || player.Teleporting || player.suicideInProgress)
                     {
                         player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YoureTooBusy));
-                        player.EnchantmentManager.StartCooldown(this);
                         return;
                     }
 
                     if (player.IsDead)
                     {
                         player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.Dead));
-                        player.EnchantmentManager.StartCooldown(this);
                         return;
                     }
                 }

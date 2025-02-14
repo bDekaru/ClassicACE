@@ -326,7 +326,10 @@ namespace ACE.Server.WorldObjects
             {
                 Exploration1LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration1KillProgressTracker:N0} kill{(Exploration1KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration1MarkerProgressTracker:N0} marker{(Exploration1MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                EarnXP((-Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
+
+                var explorationSite = DatabaseManager.World.GetExplorationSitesByLandblock((ushort)landblockId).FirstOrDefault();
+                var level = explorationSite != null ? Math.Min(explorationSite.Level, Level ?? 1) : Level;
+                EarnXP((-level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
                 PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
                 if (Exploration1KillProgressTracker == 0 && Exploration1MarkerProgressTracker == 0)
                     Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));
@@ -336,7 +339,10 @@ namespace ACE.Server.WorldObjects
             {
                 Exploration2LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration2KillProgressTracker:N0} kill{(Exploration2KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration2MarkerProgressTracker:N0} marker{(Exploration2MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                EarnXP((-Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
+
+                var explorationSite = DatabaseManager.World.GetExplorationSitesByLandblock((ushort)landblockId).FirstOrDefault();
+                var level = explorationSite != null ? Math.Min(explorationSite.Level, Level ?? 1) : Level;
+                EarnXP((-level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
                 PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
                 if (Exploration2KillProgressTracker == 0 && Exploration2MarkerProgressTracker == 0)
                     Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));
@@ -346,7 +352,10 @@ namespace ACE.Server.WorldObjects
             {
                 Exploration3LandblockReached = true;
                 var msg = $"You've reached {GetCurrentLandblockName() ?? "your exploration contract's location"}! {Exploration3KillProgressTracker:N0} kill{(Exploration3KillProgressTracker != 1 ? "s" : "")} remaining and {Exploration3MarkerProgressTracker:N0} marker{(Exploration3MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                EarnXP((-Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
+
+                var explorationSite = DatabaseManager.World.GetExplorationSitesByLandblock((ushort)landblockId).FirstOrDefault();
+                var level = explorationSite != null ? Math.Min(explorationSite.Level, Level ?? 1) : Level;
+                EarnXP((-level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, (PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5) * 3);
                 PlayParticleEffect(PlayScript.AugmentationUseAttribute, Guid);
                 if (Exploration3KillProgressTracker == 0 && Exploration3MarkerProgressTracker == 0)
                     Session.Network.EnqueueSend(new GameMessageSystemChat("Your exploration assignment is now fulfilled!", ChatMessageType.Broadcast));

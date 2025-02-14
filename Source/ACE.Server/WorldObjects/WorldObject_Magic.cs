@@ -1221,7 +1221,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns a Portal object for a WCID
         /// </summary>
-        private static Portal GetPortal(uint wcid)
+        public static Portal GetPortal(uint wcid)
         {
             var weenie = DatabaseManager.World.GetCachedWeenie(wcid);
 
