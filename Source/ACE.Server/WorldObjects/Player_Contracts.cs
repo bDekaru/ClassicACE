@@ -225,23 +225,26 @@ namespace ACE.Server.WorldObjects
         {
             bool useName = sourceObject?.Name.Length > 0;
 
-            var hasAssignments = false;
+            var hasAssignment1 = false;
+            var hasAssignment2 = false;
+            var hasAssignment3 = false;
             var assignment1Complete = false;
             var assignment2Complete = false;
             var assignment3Complete = false;
+
             if (Exploration1LandblockId != 0 && Exploration1Description.Length > 0)
             {
-                hasAssignments = true;
+                hasAssignment1 = true;
                 assignment1Complete = Exploration1LandblockReached && Exploration1KillProgressTracker <= 0 && Exploration1MarkerProgressTracker <= 0;
             }
             if (Exploration2LandblockId != 0 && Exploration2Description.Length > 0)
             {
-                hasAssignments = true;
+                hasAssignment2 = true;
                 assignment2Complete = Exploration2LandblockReached && Exploration2KillProgressTracker <= 0 && Exploration2MarkerProgressTracker <= 0;
             }
             if (Exploration3LandblockId != 0 && Exploration3Description.Length > 0)
             {
-                hasAssignments = true;
+                hasAssignment3 = true;
                 assignment3Complete = Exploration3LandblockReached && Exploration3KillProgressTracker <= 0 && Exploration3MarkerProgressTracker <= 0;
             }
 
@@ -252,7 +255,7 @@ namespace ACE.Server.WorldObjects
                 TryConsumeFromInventoryWithNetworking((uint)Factories.Enum.WeenieClassName.explorationContract);
             }
 
-            if (!hasAssignments)
+            if (!hasAssignment1 && !hasAssignment2 && !hasAssignment3)
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{"You have no assignments!"}{(useName ? $"\"" : "")}", useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
             else if (!assignment1Complete && !assignment2Complete && !assignment3Complete)
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"{(useName ? $"{sourceObject.Name} tells you, \"" : "")}{"None of your assignments are complete!"}{(useName ? $"\"" : "")}", useName ? ChatMessageType.Tell : ChatMessageType.Broadcast));
@@ -301,7 +304,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (sourceObject != null && hasAssignments && (!assignment1Complete || !assignment2Complete || !assignment3Complete))
+            if (sourceObject != null && ((hasAssignment1 && !assignment1Complete) || (hasAssignment2 && !assignment2Complete) || (hasAssignment3 && !assignment3Complete)))
             {
                 GiveFromEmote(sourceObject, (uint)Factories.Enum.WeenieClassName.explorationContract); // Return contract if there's still unfinished contracts.
             }
