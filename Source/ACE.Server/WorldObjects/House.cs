@@ -16,6 +16,8 @@ using ACE.Server.Managers;
 using ACE.Server.Network.Structure;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Database.Models.Shard;
+using Biota = ACE.Entity.Models.Biota;
 
 namespace ACE.Server.WorldObjects
 {
@@ -143,7 +145,14 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            var linkedHouses = WorldObjectFactory.CreateNewWorldObjects(instances, new List<ACE.Database.Models.Shard.Biota> { biota }, biota.WeenieClassId);
+            List<WorldObject> linkedHouses;
+
+            var houseType = (HouseType)biota.GetProperty(PropertyInt.HouseType);
+            var isCustomHouse = houseType == HouseType.CustomApartment || houseType == HouseType.CustomCottage || houseType == HouseType.CustomVilla || houseType == HouseType.CustomMansion;
+            if (isCustomHouse)
+                linkedHouses = WorldObjectFactory.CreateNewWorldObjects(instances, new List<ACE.Database.Models.Shard.Biota> { biota }, null, houseGuid);
+            else
+                linkedHouses = WorldObjectFactory.CreateNewWorldObjects(instances, new List<ACE.Database.Models.Shard.Biota> { biota }, biota.WeenieClassId);
 
             foreach (var linkedHouse in linkedHouses)
                 linkedHouse.ActivateLinks(instances, new List<ACE.Database.Models.Shard.Biota> { biota }, linkedHouses[0]);
