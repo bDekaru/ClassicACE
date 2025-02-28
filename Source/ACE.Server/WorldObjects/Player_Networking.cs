@@ -143,6 +143,9 @@ namespace ACE.Server.WorldObjects
             HandleMigrateCharacterVersion1To2();
             HandleMigrateCharacterVersion2To3();
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                UpdateCustomSkillFormulae();
+
             HandleVitaeOnLogin(Time.GetUnixTime());
 
             HandleDBUpdates();
