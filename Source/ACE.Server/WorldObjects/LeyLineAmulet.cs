@@ -182,7 +182,7 @@ namespace ACE.Server.WorldObjects
 
         public static readonly List<SpellId> PossibleAcquireSpells = new List<SpellId>()
         {
-            SpellId.ImperilOther1,
+            SpellId.ArcaneBenightednessOther1,
 
             SpellId.BladeVulnerabilityOther1,
             SpellId.PiercingVulnerabilityOther1,
