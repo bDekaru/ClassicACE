@@ -27,7 +27,7 @@ namespace ACE.DatLoader
 
         public static string CUSTOMDM_CLIENT_VERSION_STRING = "c116";
         private static int CUSTOMDM_ITERATION_CELL = 20011;
-        private static int CUSTOMDM_ITERATION_PORTAL = 20041;
+        private static int CUSTOMDM_ITERATION_PORTAL = 20042;
         private static int CUSTOMDM_ITERATION_HIRES = 497;
         private static int CUSTOMDM_ITERATION_LANGUAGE = 20010;
         public static CellDatDatabase CellDat { get; private set; }
