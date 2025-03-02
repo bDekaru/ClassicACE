@@ -497,6 +497,7 @@ namespace ACE.Server.WorldObjects
                 data.AllSpells.Remove((SpellId)spellToReplace.Id);
                 data.LifeCreatureEnchantments.Remove((SpellId)spellToReplace.Id);
                 data.Cantrips.Remove((SpellId)spellToReplace.Id);
+                data.SpellToReplace = spellToReplace;
             }
 
             RemoveTinkerSpellsFromList(data.Target.TinkerLog, data.AllSpells);
