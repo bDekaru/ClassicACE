@@ -832,7 +832,12 @@ namespace ACE.Server.WorldObjects
                 {
                     var map = TreasureMap.TryCreateTreasureMap(this);
                     if (map != null)
-                        corpse.TryAddToInventory(map);
+                    {
+                        if (corpse != null)
+                            corpse.TryAddToInventory(map);
+                        else
+                            droppedItems.Add(map);
+                    }
                 }
             }
 
