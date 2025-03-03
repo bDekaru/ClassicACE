@@ -190,12 +190,15 @@ namespace ACE.Server.WorldObjects
         {
             base.OnGeneration(generator);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Location != null && CurrentLandblock != null && IsMonster && Tolerance == Tolerance.None)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsMonster && Tolerance == Tolerance.None)
             {
                 var actionChain = new ActionChain();
                 actionChain.AddDelaySeconds(5);
                 actionChain.AddAction(this, () =>
                 {
+                    if (Location == null || CurrentLandblock == null)
+                        return;
+
                     int seed = Time.GetDateTimeFromTimestamp(Time.GetUnixTime()).DayOfYear + (CurrentLandblock.Id.LandblockX << 8 | CurrentLandblock.Id.LandblockY);
 
                     Random pseudoRandom = new Random(seed);
