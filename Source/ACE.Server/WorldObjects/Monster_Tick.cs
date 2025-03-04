@@ -102,7 +102,7 @@ namespace ACE.Server.WorldObjects
 
             if (playerTarget != null && playerTarget.IsSneaking)
             {
-                if (IsDirectVisible(playerTarget))
+                if (IsDirectVisible(playerTarget) && PlayerKillerStatus != PlayerKillerStatus.RubberGlue && PlayerKillerStatus != PlayerKillerStatus.Protected)
                     playerTarget.EndSneaking($"{Name} can still see you! You stop sneaking!");
             }
 
