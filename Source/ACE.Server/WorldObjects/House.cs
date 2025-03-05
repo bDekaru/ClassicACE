@@ -663,10 +663,7 @@ namespace ACE.Server.WorldObjects
         public int BootAll(Player booter, bool guests = true, bool allegianceHouse = false)
         {
             if (IsCustomHouse)
-            {
-                booter.Session.Network.EnqueueSend(new GameMessageSystemChat("This house does not support the boot command.", ChatMessageType.Broadcast));
                 return 0;
-            }
 
             var players = PlayerManager.GetAllOnline();
 
@@ -690,6 +687,9 @@ namespace ACE.Server.WorldObjects
 
         public void UpdateRestrictionDB(RestrictionDB restrictions = null)
         {
+            if (IsCustomHouse)
+                return;
+
             // get restrictions for root house
             if (restrictions == null) restrictions = new RestrictionDB(this);
 

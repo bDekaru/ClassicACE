@@ -723,11 +723,10 @@ namespace ACE.Server.WorldObjects
             actionChain.AddAction(this, () =>
             {
                 HandleActionQueryHouse();
+                house.UpdateRestrictionDB();
 
                 if (!house.IsCustomHouse)
                 {
-                    house.UpdateRestrictionDB();
-
                     // boot anyone who may have been wandering around inside...
                     HandleActionBootAll(false);
                 }
@@ -1115,7 +1114,7 @@ namespace ACE.Server.WorldObjects
 
                 // if guest access is removed while player is in house,
                 // they will be stuck in restriction space
-                if (house.OnProperty(onlineGuest))
+                if (house.OnProperty(onlineGuest) && !house.IsCustomHouse)
                     HandleActionBoot(onlineGuest.Name);
             }
         }
@@ -1178,12 +1177,6 @@ namespace ACE.Server.WorldObjects
 
             var house = GetHouse();
 
-            if (house.IsCustomHouse)
-            {
-                Session.Network.EnqueueSend(new GameMessageSystemChat("This house is always open to the public.", ChatMessageType.Broadcast));
-                return;
-            }
-
             if (openStatus == house.OpenStatus)
             {
                 if (openStatus)
@@ -1205,9 +1198,12 @@ namespace ACE.Server.WorldObjects
             {
                 Session.Network.EnqueueSend(new GameMessageSystemChat("Your house is now closed to the public.", ChatMessageType.Broadcast));
 
-                // boot anyone not on the guest list,
-                // else they will be stuck in restricted space
-                HandleActionBootAll(false);
+                if (!house.IsCustomHouse)
+                {
+                    // boot anyone not on the guest list,
+                    // else they will be stuck in restricted space
+                    HandleActionBootAll(false);
+                }
             }
 
             if (house.CurrentLandblock == null)
@@ -1432,6 +1428,12 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (House.IsCustomHouse)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("This house does not support the boot command.", ChatMessageType.Broadcast));
+                return;
+            }
+
             // since it can be an open house, the guest list wouldn't be enough here?
             var house = GetHouse();
 
@@ -1523,12 +1525,6 @@ namespace ACE.Server.WorldObjects
 
             var house = GetHouse();
 
-            if (house.IsCustomHouse)
-            {
-                Session.Network.EnqueueSend(new GameMessageSystemChat("This house is always open to the public.", ChatMessageType.Broadcast));
-                return;
-            }
-
             if (add)
             {
                 if (house.MonarchId != null)
@@ -1564,7 +1560,8 @@ namespace ACE.Server.WorldObjects
 
                 house.RemoveGuest(Allegiance.Monarch.Player);
 
-                HandleActionBootAll(false);     // boot anyone who doesn't have guest access
+                if(house.IsCustomHouse)
+                    HandleActionBootAll(false);     // boot anyone who doesn't have guest access
 
                 Session.Network.EnqueueSend(new GameMessageSystemChat($"You have revoked access to your dwelling to your monarchy.", ChatMessageType.Broadcast));
             }
