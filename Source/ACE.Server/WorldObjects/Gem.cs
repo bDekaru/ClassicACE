@@ -73,7 +73,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && player.CurrentLandblock.IsDungeon || (player.CurrentLandblock.HasDungeon && player.Location.Indoors))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && SpellDID != null && player.InDungeon)
             {
                 switch((SpellId)SpellDID)
                 {
