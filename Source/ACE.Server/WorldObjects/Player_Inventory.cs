@@ -1470,6 +1470,8 @@ namespace ACE.Server.WorldObjects
 
                 if (TryDropItem(item))
                 {
+                    EndSneaking();
+
                     // drop success
                     Session.Network.EnqueueSend(
                         new GameMessagePublicUpdateInstanceID(item, PropertyInstanceId.Container, ObjectGuid.Invalid),
@@ -2768,7 +2770,10 @@ namespace ACE.Server.WorldObjects
 
                 if (TryDropItem(newStack))
                 {
+                    EndSneaking();
+
                     EnqueueBroadcast(new GameMessageSound(Guid, Sound.DropItem));
+                    stack.EmoteManager.OnDrop(this);
                 }
                 else
                 {
@@ -3301,8 +3306,19 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
+                        var questSolve = false;
+                        var isFromAPlayerCorpse = false;
+                        if (sourceStackRootOwner != this && !VerifyQuest(sourceStack, sourceStackRootOwner, out questSolve, out isFromAPlayerCorpse))
+                        {
+                            // InventoryServerSaveFailed previously sent in QuestManager
+                            EnqueuePickupDone(pickupMotion);
+                            return;
+                        }
+
                         if (DoHandleActionStackableMerge(sourceStack, targetStack, amount))
                         {
+                            EndSneaking();
+
                             // If the client used the R key to merge a partial stack from the landscape, it also tries to add the "ghosted" item of the picked up stack to the inventory as well.
                             if (sourceStackRootOwner != this && sourceStack.StackSize > 0)
                                 Session.Network.EnqueueSend(new GameMessageCreateObject(sourceStack));
@@ -3316,9 +3332,28 @@ namespace ACE.Server.WorldObjects
                                 UpdateTradeNoteValue();
 
                             if (sourceStackRootOwner == this)
+                            {
                                 EnqueueBroadcast(new GameMessageSound(Guid, Sound.DropItem));
+                                sourceStack.EmoteManager.OnDrop(this);
+                            }
                             else if (targetStackRootOwner == this)
+                            {
                                 EnqueueBroadcast(new GameMessageSound(Guid, Sound.PickUpItem));
+                                sourceStack.EmoteManager.OnPickup(this);
+                                sourceStack.NotifyOfEvent(RegenerationType.PickUp);
+
+                                if (questSolve)
+                                    sourceStack.EmoteManager.OnQuest(this);
+
+                                if (isFromAPlayerCorpse)
+                                {
+                                    log.DebugFormat("[CORPSE] {0} (0x{1}) picked up {2} (0x{3}) from {4} (0x{5})", Name, Guid, sourceStack.Name, sourceStack.Guid, sourceStackRootOwner.Name, sourceStackRootOwner.Guid);
+                                    if (!sourceStack.IsDestroyed)
+                                        sourceStack.SaveBiotaToDatabase();
+                                    if (!targetStack.IsDestroyed)
+                                        targetStack.SaveBiotaToDatabase();
+                                }
+                            }
                         }
                         EnqueuePickupDone(pickupMotion);
                     });
