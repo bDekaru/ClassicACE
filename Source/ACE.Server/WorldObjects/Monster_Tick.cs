@@ -41,6 +41,8 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            NextMonsterTickTime = currentUnixTime + ThreadSafeRandom.Next((float)monsterTickInterval * 0.5f, (float)monsterTickInterval * 1.5f); // Add some randomization here to keep creatures from acting in perfect synch.
+
             if (StunnedUntilTimestamp != 0)
             {
                 if (StunnedUntilTimestamp >= currentUnixTime)
@@ -58,8 +60,6 @@ namespace ACE.Server.WorldObjects
                 else
                     StunnedUntilTimestamp = 0;
             }
-
-            NextMonsterTickTime = currentUnixTime + ThreadSafeRandom.Next((float)monsterTickInterval * 0.5f, (float)monsterTickInterval * 1.5f); // Add some randomization here to keep creatures from acting in perfect synch.
 
             if (!IsAwake)
             {
