@@ -453,6 +453,11 @@ namespace ACE.Server.WorldObjects
             var extraSpells = data.Target.ExtraSpellsList != null ? data.Target.ExtraSpellsList.Split(",").ToList() : new List<string>();
 
             Spell spellToReplace = null;
+            if (data.IsGem && data.Target.SpellDID != null)
+                spellToReplace = new Spell(data.Target.SpellDID ?? 0);
+            else if (data.IsProc && data.Target.ProcSpell != null)
+                spellToReplace = new Spell(data.Target.ProcSpell ?? 0);
+
             foreach (var spellOnItemId in spellsOnItem)
             {
                 data.SpellOnItem = new Spell(spellOnItemId);
@@ -475,7 +480,7 @@ namespace ACE.Server.WorldObjects
                     data.Result = InjectSpellResult.TargetAlreadyContainsSpell;
                     return data;
                 }
-                else if (data.SpellOnItem.Category == data.SpellToAdd.Category)
+                else if (spellToReplace == null && data.SpellOnItem.Category == data.SpellToAdd.Category)
                 {
                     if (data.SpellOnItem.Power > data.SpellToAdd.Power)
                     {
@@ -504,13 +509,10 @@ namespace ACE.Server.WorldObjects
             RemoveTinkerSpellsFromList(data.Target.TinkerLog, data.LifeCreatureEnchantments);
             RemoveTinkerSpellsFromList(data.Target.TinkerLog, data.Cantrips);
 
-            if (!data.IsGem && data.Target.ProcSpell == null && spellToReplace == null)
+            if (spellToReplace == null && (data.Target.ExtraSpellsCount ?? 0) >= data.Target.GetMaxExtraSpellsCount())
             {
-                if ((data.Target.ExtraSpellsCount ?? 0) >= data.Target.GetMaxExtraSpellsCount())
-                {
-                    data.Result = InjectSpellResult.TargetCannotContainMoreSpells;
-                    return data;
-                }
+                data.Result = InjectSpellResult.TargetCannotContainMoreSpells;
+                return data;
             }
 
             if (requireConfirmation)
@@ -518,17 +520,7 @@ namespace ACE.Server.WorldObjects
                 if (!confirmed)
                 {
                     var extraMessage = "";
-                    if (data.IsProc && data.Target.ProcSpell != null)
-                    {
-                        var currentProc = new Spell(data.Target.ProcSpell ?? 0);
-                        extraMessage = $"\nThis will replace {currentProc.Name}!\n";
-                    }
-                    else if (data.IsGem && data.Target.SpellDID != null)
-                    {
-                        var currentGemSpell = new Spell(data.Target.SpellDID ?? 0);
-                        extraMessage = $"\nThis will replace {currentGemSpell.Name}!\n";
-                    }
-                    else if (spellToReplace != null)
+                    if (spellToReplace != null)
                         extraMessage = $"\nThis will replace {spellToReplace.Name}!\n";
 
                     LootGenerationFactory.CalculateSpellcraft(data.Target, data.AllSpells, false, out var minSpellcraft, out var maxSpellcraft, out var rolledSpellCraft);
