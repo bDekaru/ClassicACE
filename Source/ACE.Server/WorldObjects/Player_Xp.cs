@@ -473,9 +473,9 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"Your fellow {sourceString} shared {amount:N0} experience with you!{xpMessage}", ChatMessageType.Broadcast));
                 else if (xpType == XpType.Kill && xpMessage != "")
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} experience!{xpMessage}", ChatMessageType.Broadcast));
-                else if (amount > 0 && xpType == XpType.Proficiency && xpMessage != "")
+                else if (xpType == XpType.Proficiency && xpMessage != "")
                     Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0}{xpMessage} experience!", ChatMessageType.Broadcast));
-                else if (amount > 0 && xpType == XpType.Exploration)
+                else if (xpType == XpType.Exploration)
                 {
                     if (xpMessage != "")
                         Session.Network.EnqueueSend(new GameMessageSystemChat($"You've earned {amount:N0} exploration experience!{xpMessage}", ChatMessageType.Broadcast));
