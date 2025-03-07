@@ -4289,5 +4289,18 @@ namespace ACE.Server.Command.Handlers
             else
                 creature.TryRoute(route);
         }
+
+        [CommandHandler("RebuildPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Rebuilds pathfinding meshes for the currecnt landblock")]
+        public static void HandleRebuildPathfinding(Session session, params string[] parameters)
+        {
+            if (session.Player.Location != null)
+            {
+                var landblock = session.Player.CurrentLandblock;
+                var landblockId = landblock.Id.Raw | 0xFFFF;
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Rebuilding pathfinding meshes for 0x{landblockId:X8}", ChatMessageType.Broadcast));
+
+                Pathfinder.TryLoadMesh(session.Player.Location, true);
+            }
+        }
     }
 }

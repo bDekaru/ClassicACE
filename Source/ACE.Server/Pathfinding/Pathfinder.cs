@@ -257,78 +257,96 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        public static void TryLoadMesh(Position pos)
+        public static void TryLoadMesh(Position pos, bool rebuildMesh = false)
         {
-            if (!pos.Indoors)
+            try
             {
-                log.Warn($"Pathfinder only works inside dungeons: {pos}");
-                return;
-            }
-
-            foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
-            {
-                var meshId = (pos.Cell & 0xFFFF0000) + (uint)agentWidth;
-
-                if (!Meshes.TryAdd(meshId, null))
-                    continue;
-
-                var geometry = new LandblockGeometry(meshId);
-                if (!geometry.DungeonCells.TryGetValue(pos.Cell, out var cellGeometry))
+                if (!pos.Indoors)
                 {
-                    log.Warn($"Could not load cell geometry! {pos} cellGeometry:{cellGeometry}");
+                    log.Warn($"Pathfinder only works inside dungeons: {pos}");
                     return;
                 }
 
-                Dictionary<uint, bool> checkedCells = new();
-                var cells = geometry.DungeonCells.Values.ToList();
+                if (rebuildMesh)
+                    TryUnloadMesh(pos);
 
-                var meshPath = Path.Combine(InsideMeshDirectory, $"{meshId:X8}.mesh");
-                if (File.Exists(meshPath))
+                foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
                 {
-                    var meshReader = new DtMeshDataReader();
+                    var meshId = (pos.Cell & 0xFFFF0000) + (uint)agentWidth;
 
-                    using (var stream = File.OpenRead(meshPath))
-                    using (var reader = new BinaryReader(stream))
+                    if (!Meshes.TryAdd(meshId, null))
+                        continue;
+
+                    var geometry = new LandblockGeometry(meshId);
+                    if (!geometry.DungeonCells.TryGetValue(pos.Cell, out var cellGeometry))
                     {
-                        if (stream.Length > 0)
-                        {
-                            var rcBytes = new RcByteBuffer(reader.ReadBytes((int)stream.Length));
-                            var meshData = meshReader.Read(rcBytes, VERTS_PER_POLY, true);
-
-                            var mesh = new DtNavMesh();
-                            mesh.Init(meshData, VERTS_PER_POLY, 0);
-                            Meshes.TryUpdate(meshId, mesh, null);
-                            return;
-                        }
+                        log.Warn($"Could not load cell geometry! {pos} cellGeometry:{cellGeometry}");
+                        return;
                     }
-                }
 
-                var geom = CellGeometryProvider.LoadGeometry(geometry, cells);
-                if (geom is null)
-                {
-                    log.Warn($"Could not load cell geometry provider! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
-                    return;
-                }
+                    Dictionary<uint, bool> checkedCells = new();
+                    var cells = geometry.DungeonCells.Values.ToList();
 
-                var builder = new NavMeshBuilder();
-                var settings = GetMeshSettings(agentWidth);
-                var res = builder.Build(geom, settings);
-                if (res is null)
-                {
-                    log.Warn($"Could not build the nav mesh! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
-                    return;
-                }
+                    var meshPath = Path.Combine(InsideMeshDirectory, $"{meshId:X8}.mesh");
+                    if (File.Exists(meshPath))
+                    {
+                        if (!rebuildMesh)
+                        {
+                            var meshReader = new DtMeshDataReader();
 
-                var meshWriter = new DtMeshDataWriter();
-                using (var stream = File.OpenWrite(meshPath))
-                using (var writer = new BinaryWriter(stream))
-                {
-                    meshWriter.Write(writer, res, RcByteOrder.LITTLE_ENDIAN, false);
-                }
+                            using (var stream = File.OpenRead(meshPath))
+                            using (var reader = new BinaryReader(stream))
+                            {
+                                if (stream.Length > 0)
+                                {
+                                    var rcBytes = new RcByteBuffer(reader.ReadBytes((int)stream.Length));
+                                    var meshData = meshReader.Read(rcBytes, VERTS_PER_POLY, true);
 
-                var meshNew = new DtNavMesh();
-                meshNew.Init(res, VERTS_PER_POLY, 0);
-                Meshes.TryUpdate(meshId, meshNew, null);
+                                    var mesh = new DtNavMesh();
+                                    mesh.Init(meshData, VERTS_PER_POLY, 0);
+                                    Meshes.TryUpdate(meshId, mesh, null);
+                                    return;
+                                }
+                            }
+                        }
+                        else
+                            File.Delete(meshPath);
+                    }
+
+                    var geom = CellGeometryProvider.LoadGeometry(geometry, cells);
+                    if (geom is null)
+                    {
+                        log.Warn($"Could not load cell geometry provider! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
+                        return;
+                    }
+
+                    var builder = new NavMeshBuilder();
+                    var settings = GetMeshSettings(agentWidth);
+                    var res = builder.Build(geom, settings);
+                    if (res is null)
+                    {
+                        log.Warn($"Could not build the nav mesh! {pos} cellGeometry:{geom} neighbors:{string.Join(",", cells.Select(n => $"{n.CellId:X8}"))}");
+                        return;
+                    }
+
+                    var meshWriter = new DtMeshDataWriter();
+                    using (var stream = File.OpenWrite(meshPath))
+                    using (var writer = new BinaryWriter(stream))
+                    {
+                        meshWriter.Write(writer, res, RcByteOrder.LITTLE_ENDIAN, false);
+                    }
+
+                    var meshNew = new DtNavMesh();
+                    meshNew.Init(res, VERTS_PER_POLY, 0);
+                    Meshes.TryUpdate(meshId, meshNew, null);
+                }
+            }
+            catch (Exception e)
+            {
+                if (!rebuildMesh)
+                    TryLoadMesh(pos, true);
+                else
+                    log.Warn($"Failed to load mesh for pathfinding at: {pos.ToLOCString()}");
             }
         }
 
