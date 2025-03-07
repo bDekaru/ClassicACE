@@ -1502,7 +1502,7 @@ namespace ACE.Server.Command.Handlers
 
             if (!onlyLiving)
             {
-                var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeathsByGameplayMode(gameplayMode);
+                var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetCharacterObituaryByGameplayMode(gameplayMode);
                 foreach (var entry in obituaryEntries)
                 {
                     if (entry.GameplayMode == (int)gameplayMode)
@@ -1580,6 +1580,70 @@ namespace ACE.Server.Command.Handlers
                 DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
         }
 
+        [CommandHandler("TopNPC", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 NPCs by total kills.", "TopNPC [minLevel] [maxLevel]")]
+        public static void HandleLeaderboardTopNPC(Session session, params string[] parameters)
+        {
+            if (session != null)
+            {
+                if (session.AccessLevel == AccessLevel.Player && DateTime.UtcNow - session.Player.PrevLeaderboardHCXPCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                {
+                    session.Network.EnqueueSend(new GameMessageSystemChat("You have used this command too recently!", ChatMessageType.Broadcast));
+                    return;
+                }
+                session.Player.PrevLeaderboardHCXPCommandRequestTimestamp = DateTime.UtcNow;
+            }
+
+            int minLevel = 1;
+            if (parameters.Length > 0)
+                int.TryParse(parameters[0], out minLevel);
+
+            int maxLevel = 275;
+            if (parameters.Length > 1)
+                int.TryParse(parameters[1], out maxLevel);
+
+            ulong discordChannel = 0;
+            if (parameters.Length > 3 && parameters[2] == "discord")
+                ulong.TryParse(parameters[3], out discordChannel);
+
+            var leaderboard = new Dictionary<string, int>();
+            var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetCharacterObituary();
+            foreach (var entry in obituaryEntries)
+            {
+                if (entry.CharacterLevel < minLevel || entry.CharacterLevel > maxLevel)
+                    continue;
+
+                if (!entry.WasPvP)
+                {
+                    if (!leaderboard.TryGetValue(entry.KillerName, out var kills))
+                        leaderboard.Add(entry.KillerName, 1);
+                    else
+                        leaderboard[entry.KillerName]++;
+                }
+            }
+
+            var sorted = from entry in leaderboard orderby entry.Value descending select entry;
+
+            StringBuilder message = new StringBuilder();
+            message.Append($"Top Character Killers - Levels {minLevel} to {maxLevel}:\n");
+            message.Append("-----------------------\n");
+            uint counter = 1;
+            foreach (var entry in sorted)
+            {
+                var label = counter < 10 ? $" {counter}." : $"{counter}.";
+                message.Append($"{label} {entry.Key} - {entry.Value} kill{(entry.Value != 1 ? "s" : "")}\n");
+                counter++;
+
+                if (counter > 10)
+                    break;
+            }
+            message.Append("-----------------------\n");
+
+            if (discordChannel == 0)
+                CommandHandlerHelper.WriteOutputInfo(session, message.ToString(), ChatMessageType.Broadcast);
+            else
+                DiscordChatBridge.SendMessage(discordChannel, $"`{message.ToString()}`");
+        }
+
         [CommandHandler("HCTopNPC", AccessLevel.Player, CommandHandlerFlag.None, "List top 10 NPCs by total kills.", "HCTopNPC [minLevel] [maxLevel]")]
         public static void HandleLeaderboardHCTopNPC(Session session, params string[] parameters)
         {
@@ -1606,7 +1670,8 @@ namespace ACE.Server.Command.Handlers
                 ulong.TryParse(parameters[3], out discordChannel);
 
             var leaderboard = new Dictionary<string, int>();
-            var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetHardcoreDeaths();
+            var obituaryEntries = DatabaseManager.Shard.BaseDatabase.GetCharacterObituaryByGameplayMode(GameplayModes.HardcoreNPK);
+            obituaryEntries.AddRange(DatabaseManager.Shard.BaseDatabase.GetCharacterObituaryByGameplayMode(GameplayModes.HardcorePK));
             foreach (var entry in obituaryEntries)
             {
                 if (entry.CharacterLevel < minLevel || entry.CharacterLevel > maxLevel)

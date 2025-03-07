@@ -2,7 +2,7 @@ using System;
 
 namespace ACE.Database.Models.Shard
 {
-    public partial class HardcoreCharacterObituary
+    public partial class CharacterObituary
     {
         public uint Id { get; set; }
         public uint AccountId { get; set; }

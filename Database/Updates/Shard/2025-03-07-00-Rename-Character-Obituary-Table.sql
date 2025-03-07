@@ -1,0 +1,2 @@
+ALTER TABLE hardcore_character_obituary
+RENAME TO character_obituary;

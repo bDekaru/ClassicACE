@@ -1079,16 +1079,13 @@ namespace ACE.Database
             }
         }
 
-        public void LogHardcoreDeath(Account account, uint characterId, string characterName, int characterLevel, string killerName, int killerLevel, uint landblockId, int gameplayMode, bool wasPvP, int kills, long xp, int age, DateTime timeOfDeath, uint? monarchId)
+        public void LogPlayerDeath(uint accountId, uint characterId, string characterName, int characterLevel, string killerName, int killerLevel, uint landblockId, int gameplayMode, bool wasPvP, int kills, long xp, int age, DateTime timeOfDeath, uint? monarchId)
         {
-            if (account == null || account.AccessLevel > 0)
-                return;
-
-            var entry = new HardcoreCharacterObituary();
+            var entry = new CharacterObituary();
 
             try
             {
-                entry.AccountId = account.AccountId;
+                entry.AccountId = accountId;
                 entry.CharacterId = characterId;
                 entry.CharacterName = characterName;
                 entry.CharacterLevel = characterLevel;
@@ -1105,21 +1102,21 @@ namespace ACE.Database
 
                 using (var context = new ShardDbContext())
                 {
-                    context.HardcoreCharacterObituary.Add(entry);
+                    context.CharacterObituary.Add(entry);
                     context.SaveChanges();
                 }
             }
             catch (Exception ex)
             {
-                log.Error($"Exception in HardcoreCharacterObituary saving character death info to DB. Ex: {ex}");
+                log.Error($"Exception in CharacterObituary saving character death info to DB. Ex: {ex}");
             }
         }
 
-        public List<HardcoreCharacterObituary> GetHardcoreDeaths()
+        public List<CharacterObituary> GetCharacterObituary()
         {
             using (var context = new ShardDbContext())
             {
-                var results = context.HardcoreCharacterObituary
+                var results = context.CharacterObituary
                     .AsNoTracking()
                     .ToList();
 
@@ -1127,11 +1124,11 @@ namespace ACE.Database
             }
         }
 
-        public List<HardcoreCharacterObituary> GetHardcoreDeathsByGameplayMode(GameplayModes gameplayMode)
+        public List<CharacterObituary> GetCharacterObituaryByGameplayMode(GameplayModes gameplayMode)
         {
             using (var context = new ShardDbContext())
             {
-                var results = context.HardcoreCharacterObituary
+                var results = context.CharacterObituary
                     .AsNoTracking()
                     .Where(p => p.GameplayMode == (int)gameplayMode)
                     .ToList();

@@ -27,6 +27,7 @@ namespace ACE.Server.Network
         public static DateTime PrevLeaderboardSSFCommandRequestTimestamp;
         public static DateTime PrevLeaderboardXPCommandRequestTimestamp;
         public static DateTime PrevLeaderboardPvPCommandRequestTimestamp;
+        public static DateTime PrevLeaderboardTopNPCCommandRequestTimestamp;
         public static DateTime PrevLeaderboardHCTopNPCCommandRequestTimestamp;
 
         public static async void Start()
@@ -172,6 +173,25 @@ namespace ACE.Server.Network
                                 parameters = parameters.AddToArray(message.Channel.Id.ToString());
 
                                 PlayerCommands.HandleLeaderboardPvP(null, parameters);
+                                return Task.CompletedTask;
+
+                            case "topnpc":
+                                if (DateTime.UtcNow - PrevLeaderboardTopNPCCommandRequestTimestamp < TimeSpan.FromMinutes(1))
+                                {
+                                    SendMessage(message.Channel.Id, $"This command was used too recently. Please try again later.");
+                                    return Task.CompletedTask;
+                                }
+                                PrevLeaderboardTopNPCCommandRequestTimestamp = DateTime.UtcNow;
+
+                                parameters = splitString.Skip(1).Take(2).ToArray();
+                                if (parameters.Length == 0)
+                                    parameters = parameters.AddToArray("1");
+                                if (parameters.Length == 1)
+                                    parameters = parameters.AddToArray("275");
+                                parameters = parameters.AddToArray("discord");
+                                parameters = parameters.AddToArray(message.Channel.Id.ToString());
+
+                                PlayerCommands.HandleLeaderboardHCTopNPC(null, parameters);
                                 return Task.CompletedTask;
 
                             case "hctopnpc":

@@ -104,7 +104,7 @@ public partial class ShardDbContext : DbContext
 
     public virtual DbSet<PKKill> PKKills { get; set; }
 
-    public virtual DbSet<HardcoreCharacterObituary> HardcoreCharacterObituary { get; set; }
+    public virtual DbSet<CharacterObituary> CharacterObituary { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -1396,14 +1396,14 @@ public partial class ShardDbContext : DbContext
                 .HasColumnName("kill_datetime");
         });
 
-        modelBuilder.Entity<HardcoreCharacterObituary>(entity =>
+        modelBuilder.Entity<CharacterObituary>(entity =>
         {
             entity.HasKey(e => e.Id)
                 .HasName("PRIMARY");
 
             entity.Property(e => e.Id).HasColumnName("id");
 
-            entity.ToTable("hardcore_character_obituary");
+            entity.ToTable("character_obituary");
 
             entity.Property(e => e.AccountId)
                 .HasColumnName("account_Id");

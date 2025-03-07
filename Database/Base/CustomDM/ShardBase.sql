@@ -905,10 +905,10 @@ CREATE TABLE `pkkills` (
 -- Table structure for table `kills`
 --
 
-DROP TABLE IF EXISTS `hardcore_character_obituary`;
+DROP TABLE IF EXISTS `character_obituary`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `hardcore_character_obituary` (
+CREATE TABLE `character_obituary` (
   `id` int unsigned NOT NULL AUTO_INCREMENT COMMENT 'Unique Id of this registry',
   `account_Id` int unsigned NOT NULL,
   `character_Id` int unsigned NOT NULL,
