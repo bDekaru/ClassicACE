@@ -624,7 +624,9 @@ namespace ACE.Server.Factories
             else if (ClothingWcids.Contains(roll.Wcid))
             {
                 roll.ItemType = TreasureItemType_Orig.Clothing;
-                MutateArmor(item, profile, isMagical, TreasureArmorType.Cloth, roll);
+                if (item.IsClothArmor)
+                    roll.ArmorType = TreasureArmorType.Cloth;
+                MutateArmor(item, profile, isMagical, roll.ArmorType, roll);
             }
             // scrolls don't really get mutated, even though they are in the main mutation method still
             else if (CloakWcids.Contains(roll.Wcid))
