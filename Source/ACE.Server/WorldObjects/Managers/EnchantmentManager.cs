@@ -481,6 +481,8 @@ namespace ACE.Server.WorldObjects.Managers
 
             if (!HasVitae)
             {
+                Player.VitaeDecayTimestamp = Time.GetUnixTime();
+
                 // TODO refactor this so it uses the existing Add() method.
 
                 // add entry for new vitae
