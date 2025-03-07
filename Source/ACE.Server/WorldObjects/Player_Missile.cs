@@ -195,7 +195,7 @@ namespace ACE.Server.WorldObjects
 
             EndSneaking();
 
-            if (subsequent)
+            if (subsequent && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 // client shows hourglass, until attack done is received
                 // retail only did this for subsequent attacks w/ repeat attacks on
