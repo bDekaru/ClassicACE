@@ -191,7 +191,7 @@ namespace ACE.Server.Network
                                 parameters = parameters.AddToArray("discord");
                                 parameters = parameters.AddToArray(message.Channel.Id.ToString());
 
-                                PlayerCommands.HandleLeaderboardHCTopNPC(null, parameters);
+                                PlayerCommands.HandleLeaderboardTopNPC(null, parameters);
                                 return Task.CompletedTask;
 
                             case "hctopnpc":
