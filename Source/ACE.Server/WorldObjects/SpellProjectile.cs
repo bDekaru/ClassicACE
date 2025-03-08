@@ -517,6 +517,9 @@ namespace ACE.Server.WorldObjects
                 if (!creature.Attackable && creature.TargetingTactic == TargetingTactic.None || creature.Teleporting)
                     continue;
 
+                if (!aroundCreature.IsDirectVisible(creature, 1))
+                    continue;
+
                 var cylDist = GetCylinderDistance(creature);
                 if (cylDist > 10)
                     return targets;
