@@ -47,12 +47,21 @@ namespace ACE.Server.WorldObjects
 
             var classNames = DatabaseManager.World.GetAllWeenieClassNames();
 
+            var t0classNames = classNames.Where(i => i.Value.StartsWith("t0-startertown")).ToList();
             var t1classNames = classNames.Where(i => i.Value.StartsWith("t1-")).ToList();
             var t2classNames = classNames.Where(i => i.Value.StartsWith("t2-")).ToList();
             var t3classNames = classNames.Where(i => i.Value.StartsWith("t3-")).ToList();
             var t4classNames = classNames.Where(i => i.Value.StartsWith("t4-")).ToList();
             var t5classNames = classNames.Where(i => i.Value.StartsWith("t5-")).ToList();
             var t6classNames = classNames.Where(i => i.Value.StartsWith("t6-")).ToList();
+
+            var t0 = new List<uint>();
+            foreach (var entry in t0classNames)
+            {
+                var weenie = DatabaseManager.World.GetCachedWeenie(entry.Key);
+                if (weenie.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.MaxGeneratedObjects).HasValue)
+                    t0.Add(entry.Key);
+            }
 
             var t1 = new List<uint>();
             foreach (var entry in t1classNames)
@@ -102,6 +111,7 @@ namespace ACE.Server.WorldObjects
                     t6.Add(entry.Key);
             }
 
+            TreasureEncounters.Add(t0);
             TreasureEncounters.Add(t1);
             TreasureEncounters.Add(t2);
             TreasureEncounters.Add(t3);
@@ -118,10 +128,20 @@ namespace ACE.Server.WorldObjects
             if (TreasureEncounters == null)
                 InitializeTreasureMaps();
 
-            var landblockTier = (int)Math.Floor((float)(creature.Tier ?? 1));
-            var treatureTier = creature.RollTier();
-            var treasureEncounterIndex = landblockTier - 1;
+            int landblockTier;
+            int treasureTier;
+            if (creature.Level <= 10)
+            {
+                landblockTier = 0;
+                treasureTier = 1;
+            }
+            else
+            {
+                landblockTier = (int)Math.Floor((float)(creature.Tier ?? 1));
+                treasureTier = creature.RollTier();
+            }
 
+            var treasureEncounterIndex = landblockTier;
             if (treasureEncounterIndex < 0 || TreasureEncounters.Count < treasureEncounterIndex)
                 return null;
 
@@ -166,7 +186,7 @@ namespace ACE.Server.WorldObjects
             wo.Name = $"{creature.Name}'s Treasure Map";
             wo.LongDesc = $"{wo.LongDesc}\n\nThe map was found in the corpse of a level {creature.Level} {creature.Name}.{(wo.DefaultLocked ? "\n\nThe map indicates that the treasure chest is locked." : "")}";
             wo.Level = creature.Level;
-            wo.Tier = treatureTier;
+            wo.Tier = treasureTier;
             wo.EWCoordinates = coords.Value.X;
             wo.NSCoordinates = coords.Value.Y;
 
