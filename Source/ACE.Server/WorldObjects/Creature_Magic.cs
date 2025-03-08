@@ -213,17 +213,20 @@ namespace ACE.Server.WorldObjects
 
         public bool ActivateItemSpells(WorldObject item)
         {
-            var isAffecting = false;
+            var hasActiveSpell = false;
+
+            if (item.HasProc)
+                hasActiveSpell = true;
 
             foreach (var spell in item.Biota.GetKnownSpellsIds(BiotaDatabaseLock))
             {
                 var success = CreateItemSpell(item, (uint)spell);
 
                 if (success)
-                    isAffecting = true;
+                    hasActiveSpell = true;
             }
 
-            if (isAffecting)
+            if (hasActiveSpell)
             {
                 item.OnSpellsActivated();
 
@@ -231,7 +234,7 @@ namespace ACE.Server.WorldObjects
                     item.ItemCurMana--;
             }
 
-            return isAffecting;
+            return hasActiveSpell;
         }
 
         public void DeactivateItemSpells(WorldObject item, bool silent = false)
