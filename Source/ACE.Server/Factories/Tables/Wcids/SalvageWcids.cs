@@ -156,7 +156,7 @@ namespace ACE.Server.Factories.Tables.Wcids
 
             { WeenieClassName.materialblackgarnet,      1.00f }, // Pierce Element
             { WeenieClassName.materialimperialtopaz,    1.00f }, // Slashing Element
-            { WeenieClassName.materialwhitesapphire,    1.00f }, // Bludgeoning RElementend
+            { WeenieClassName.materialwhitesapphire,    1.00f }, // Bludgeoning Element
             { WeenieClassName.materialredgarnet,        1.00f }, // Fire Element
             { WeenieClassName.materialaquamarine,       1.00f }, // Frost Element
             { WeenieClassName.materialjet,              1.00f }, // Lightning Element

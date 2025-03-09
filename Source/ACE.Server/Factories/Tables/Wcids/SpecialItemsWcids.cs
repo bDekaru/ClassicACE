@@ -31,21 +31,16 @@ namespace ACE.Server.Factories.Tables.Wcids
 
         private static ChanceTable<WeenieClassName> specialItemsSalvageWcids = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
         {
-            ( WeenieClassName.materialsteel,            3.00f ), // AL + 25% or 20
+            ( WeenieClassName.materialsteel,            1.00f ), // AL + 25% or 20
 
-            ( WeenieClassName.materialiron,             3.00f ), // Weapon Damage + 4 for regular weapons and +2 for multi-strike weapons
-            ( WeenieClassName.materialmahogany,         3.00f ), // Missile Weapon Mod + 16%
+            ( WeenieClassName.materialiron,             1.00f ), // Weapon Damage + 4 for regular weapons and + 2 for multi-strike weapons
+            ( WeenieClassName.materialmahogany,         1.00f ), // Missile Weapon Mod + 16%
+            ( WeenieClassName.materialgreengarnet,      1.00f ), // Wand Damage + 4%
 
             ( WeenieClassName.materialsunstone,         1.00f ), // Armor Rending
             ( WeenieClassName.materialblackopal,        1.00f ), // Critical Strike
             ( WeenieClassName.materialfireopal,         1.00f ), // Critical Blow
-            ( WeenieClassName.materialblackgarnet,      1.00f ), // Pierce Rend
-            ( WeenieClassName.materialimperialtopaz,    1.00f ), // Slashing Rend
-            ( WeenieClassName.materialwhitesapphire,    1.00f ), // Bludgeoning Rend
-            ( WeenieClassName.materialredgarnet,        1.00f ), // Fire Rend
-            ( WeenieClassName.materialaquamarine,       1.00f ), // Frost Rend
-            ( WeenieClassName.materialjet,              1.00f ), // Lightning Rend
-            ( WeenieClassName.materialemerald,          1.00f ), // Acid Rend
+            ( WeenieClassName.materialtigereye,         1.00f ), // Elemental Rending
         };
 
         public static WeenieClassName Roll(TreasureDeath profile, TreasureRoll treasureRoll)
