@@ -514,6 +514,9 @@ namespace ACE.Server.WorldObjects
 
         public bool IsBlockedByDoor(WorldObject target)
         {
+            if (target == null)
+                return false;
+
             System.Collections.Generic.List<Physics.PhysicsObj> knownDoors;
             if (this is Player)
                 knownDoors = PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && (o.WeenieObj.WorldObject.WeenieType == WeenieType.Door || o.WeenieObj.WorldObject.CreatureType == ACE.Entity.Enum.CreatureType.Wall));

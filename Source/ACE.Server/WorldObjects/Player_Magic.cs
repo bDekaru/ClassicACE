@@ -1301,6 +1301,9 @@ namespace ACE.Server.WorldObjects
                         }
                     }
 
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && spell.IsProjectile && IsBlockedByDoor(target))
+                        spell.IsDudProjectile = true;
+
                     HandleCastSpell(spell, target, itemCaster, caster, isWeaponSpell);
 
                     if (!spell.IsProjectile)

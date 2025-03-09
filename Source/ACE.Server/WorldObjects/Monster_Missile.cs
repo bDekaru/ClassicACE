@@ -28,7 +28,7 @@ namespace ACE.Server.WorldObjects
         {
             var targetCreature = AttackTarget as Creature;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsBlockedByDoor(targetCreature))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsBlockedByDoor(AttackTarget))
             {
                 EndAttack();
                 return;

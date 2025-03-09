@@ -281,6 +281,9 @@ namespace ACE.Server.WorldObjects
             if (creatureTarget == null || target == ProjectileSource)
                 return;
 
+            if (Spell.IsDudProjectile)
+                return;
+
             if (player != null)
             {
                 player.EndSneaking();

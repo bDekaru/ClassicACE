@@ -39,7 +39,7 @@ namespace ACE.Server.WorldObjects
             var targetPet = AttackTarget as CombatPet;
             var combatPet = this as CombatPet;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsBlockedByDoor(targetCreature))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsBlockedByDoor(AttackTarget))
             {
                 EndAttack();
                 return;

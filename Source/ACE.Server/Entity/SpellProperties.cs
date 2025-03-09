@@ -527,5 +527,10 @@ namespace ACE.Server.Entity
             }
         }
 
+        /// <summary>
+        /// Dud projectiles do not affect the target when they hit.
+        /// </summary>
+        public bool IsDudProjectile;
+
     }
 }
