@@ -1567,6 +1567,45 @@ namespace ACE.Server.WorldObjects
             return true;
         }
 
+        private bool HasIncompatibleOffhand(WorldObject itemToEquip, EquipMask wieldedLocation)
+        {
+            // Only remove offhand for primary weapon equips
+            if (wieldedLocation != EquipMask.MeleeWeapon && wieldedLocation != EquipMask.TwoHanded && wieldedLocation != EquipMask.MissileWeapon)
+                return false;
+
+            var offhand = GetEquippedOffHand();
+            if (offhand == null)
+                return false;
+
+            if (itemToEquip.IsTwoHanded || // Two-handed weapons always require removing offhand
+               (offhand.IsShield && offhand.Mass > 140 && (itemToEquip.IsCaster || itemToEquip.IsAmmoLauncher)) || // For missile/caster weapons, only remove heavy shields (mass > 140)
+               (!offhand.IsShield && (itemToEquip.IsCaster || itemToEquip.IsAmmoLauncher)) || // For non-shield offhands, remove if equipping missile/caster
+               (itemToEquip.IsThrownWeapon && !offhand.IsShield)) // For thrown weapons, remove anything but shields
+                return true;
+            else
+                return false;
+        }
+
+        private bool UnequipOffhand(WorldObject itemToEquip, EquipMask wieldedLocation)
+        {
+            var offhand = GetEquippedOffHand();
+            if (offhand == null)
+                return false;
+
+            if (TryDequipObjectWithNetworking(offhand.Guid, out var dequippedItem, DequipObjectAction.DequipToPack))
+            {
+                if (!TryCreateInInventoryWithNetworking(dequippedItem))
+                {
+                    if(!TryEquipObjectWithNetworking(dequippedItem, EquipMask.Shield))
+                        log.Warn($"0x{dequippedItem.Guid}:{dequippedItem.Name} for player {Name} lost from UnequipOffhand failure.");
+                    return false;
+                }
+                return true;
+            }
+            else
+                return false;
+        }
+        
         /// <summary>
         /// This method processes the Game Action (F7B1) Get And Wield Item (0x001A)
         /// This is raised when we:
@@ -1670,27 +1709,39 @@ namespace ACE.Server.WorldObjects
                             return;
                         }
 
-                        if (DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation))
+                        var equipChain = new ActionChain();
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && HasIncompatibleOffhand(item, wieldedLocation))
                         {
-                            EndSneaking();
-
-                            Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
-
-                            EnqueueBroadcast(new GameMessageSound(Guid, Sound.PickUpItem));
-
-                            item.EmoteManager.OnPickup(this);
-                            item.NotifyOfEvent(RegenerationType.PickUp);
-
-                            if (questSolve)
-                                item.EmoteManager.OnQuest(this);
-
-                            if (isFromAPlayerCorpse)
-                            {
-                                log.DebugFormat("[CORPSE] {0} (0x{1}) picked up and wielded {2} (0x{3}) from {4} (0x{5})", Name, Guid, item.Name, item.Guid, rootOwner.Name, rootOwner.Guid);
-                                item.SaveBiotaToDatabase();
-                            }
+                            equipChain.AddAction(this, () => UnequipOffhand(item, wieldedLocation));
+                            equipChain.AddDelaySeconds(0.1);
                         }
-                        EnqueuePickupDone(pickupMotion);
+
+                        equipChain.AddAction(this, () =>
+                        {
+                            if (DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation))
+                            {
+                                EndSneaking();
+
+                                Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
+
+                                EnqueueBroadcast(new GameMessageSound(Guid, Sound.PickUpItem));
+
+                                item.EmoteManager.OnPickup(this);
+                                item.NotifyOfEvent(RegenerationType.PickUp);
+
+                                if (questSolve)
+                                    item.EmoteManager.OnQuest(this);
+
+                                if (isFromAPlayerCorpse)
+                                {
+                                    log.DebugFormat("[CORPSE] {0} (0x{1}) picked up and wielded {2} (0x{3}) from {4} (0x{5})", Name, Guid, item.Name, item.Guid, rootOwner.Name, rootOwner.Guid);
+                                    item.SaveBiotaToDatabase();
+                                }
+                            }
+                            EnqueuePickupDone(pickupMotion);
+                        });
+
+                        equipChain.EnqueueChain();
                     });
 
                     pickupChain.EnqueueChain();
@@ -1699,7 +1750,15 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation);
+                var equipChain = new ActionChain();
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && HasIncompatibleOffhand(item, wieldedLocation))
+                {
+                    equipChain.AddAction(this, () => UnequipOffhand(item, wieldedLocation));
+                    equipChain.AddDelaySeconds(0.1);
+                }
+
+                equipChain.AddAction(this, () => DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation));
+                equipChain.EnqueueChain();
             }
         }
 
