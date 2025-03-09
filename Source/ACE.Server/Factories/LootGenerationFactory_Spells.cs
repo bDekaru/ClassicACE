@@ -274,21 +274,28 @@ namespace ACE.Server.Factories
                 }
             }
 
-            (float min, float max) range = (1.0f, 1.0f);
+            (float min, float max) range;
 
-            switch (wo.ItemType)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
-                case ItemType.Armor:
-                case ItemType.Clothing:
-                case ItemType.Jewelry:
+                switch (wo.ItemType)
+                {
+                    case ItemType.Armor:
+                    case ItemType.Clothing:
+                    case ItemType.Jewelry:
 
-                case ItemType.MeleeWeapon:
-                case ItemType.MissileWeapon:
-                case ItemType.Caster:
-
-                    range = (0.9f, 1.1f);
-                    break;
+                    case ItemType.MeleeWeapon:
+                    case ItemType.MissileWeapon:
+                    case ItemType.Caster:
+                        range = (0.9f, 1.1f);
+                        break;
+                    default:
+                        range = (1.0f, 1.0f);
+                        break;
+                }
             }
+            else
+                range = (0.9f, 1.1f);
 
             // Effective spellcraft is the value used by the arcane lore calculation, it does not take into account a quest items "innate" spells.
             effectiveMinSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * range.min), 370);
