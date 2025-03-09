@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using ACE.Common;
+using ACE.DatLoader;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
@@ -357,8 +358,8 @@ namespace ACE.Server.WorldObjects
                     combatStance = MotionStance.SwordShieldCombat;
                     break;
                 case MotionStance.ThrownWeaponCombat:
-                    GetCombatTable();
-                    if (CombatTable.Stances.ContainsKey(MotionStance.ThrownShieldCombat))
+                    var motionTable = MotionTableId != 0 ? DatManager.PortalDat.ReadFromDat<DatLoader.FileTypes.MotionTable>(MotionTableId) : null;
+                    if (motionTable != null && motionTable.StyleDefaults.ContainsKey((uint)MotionStance.ThrownShieldCombat))
                         combatStance = MotionStance.ThrownShieldCombat;
                     else
                         combatStance = MotionStance.ThrownWeaponCombat;
