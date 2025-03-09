@@ -16,9 +16,10 @@ namespace ACE.Server.Factories.Entity
 
         public int BaseArmorLevel;
 
-        public int MinSpellcraft;
-        public int MaxSpellcraft;
-        public int RolledSpellCraft;
+        public int MinEffectiveSpellcraft;
+        public int MaxEffectiveSpellcraft;
+        public int RolledEffectiveSpellcraft;
+        public int RealSpellcraft;
 
         public int MinArcaneLore;
         public int MaxArcaneLore;

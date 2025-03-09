@@ -463,7 +463,7 @@ namespace ACE.Server.WorldObjects
                 data.SpellOnItem = new Spell(spellOnItemId);
 
                 // For items that have a base difficulty override we will only calculate new arcane lore requirements based on the extra spells so filter them here.
-                if (!data.Target.BaseItemDifficultyOverride.HasValue || extraSpells.Contains(spellOnItemId.ToString()))
+                if (!data.Target.BaseItemDifficultyOverride.HasValue || extraSpells.Contains(((uint)spellOnItemId).ToString()))
                 {
                     data.AllSpells.Add(spellOnItemId);
                     if ((!data.Target.SpellDID.HasValue || data.Target.SpellDID != (uint)spellOnItemId) && (!data.Target.ProcSpell.HasValue || data.Target.ProcSpell != (uint)spellOnItemId))
@@ -523,7 +523,7 @@ namespace ACE.Server.WorldObjects
                     if (spellToReplace != null)
                         extraMessage = $"\nThis will replace {spellToReplace.Name}!\n";
 
-                    LootGenerationFactory.CalculateSpellcraft(data.Target, data.AllSpells, false, out var minSpellcraft, out var maxSpellcraft, out var rolledSpellCraft);
+                    LootGenerationFactory.CalculateSpellcraft(data.Target, data.AllSpells, false, out var minSpellcraft, out var maxSpellcraft, out var rolledSpellCraft, out _);
                     LootGenerationFactory.CalculateArcaneLore(data.Target, data.AllSpells, data.LifeCreatureEnchantments, data.Cantrips, minSpellcraft, maxSpellcraft, rolledSpellCraft, false, out var minArcane, out var maxArcane, out _);
                     var estimateMessage = minArcane != maxArcane ? $"The new Arcane Lore requirement will be between {minArcane} and {maxArcane}." : $"The new Arcane Lore requirement will be {minArcane}.";
 
@@ -634,7 +634,7 @@ namespace ACE.Server.WorldObjects
             if (data.SpellToReplace == null || (data.IsProc && data.Target.ProcSpell == null))
                 data.Target.ExtraSpellsCount = (data.Target.ExtraSpellsCount ?? 0) + 1;
 
-            LootGenerationFactory.CalculateSpellcraft(data.Target, data.AllSpells, true, out var minSpellcraft, out var maxSpellcraft, out var rolledSpellCraft);
+            LootGenerationFactory.CalculateSpellcraft(data.Target, data.AllSpells, true, out var minSpellcraft, out var maxSpellcraft, out var rolledSpellCraft, out _ );
             LootGenerationFactory.CalculateArcaneLore(data.Target, data.AllSpells, data.LifeCreatureEnchantments, data.Cantrips, minSpellcraft, maxSpellcraft, rolledSpellCraft, true, out _, out _, out _);
 
             if (!data.Target.UiEffects.HasValue) // Elemental effects take precendence over magical as it is more important to know the element of a weapon than if it has spells.

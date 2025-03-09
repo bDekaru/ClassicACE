@@ -74,7 +74,7 @@ namespace ACE.Server.Factories
                 wo.ItemMaxMana = RollItemMaxMana(wo, roll, maxSpellMana);
                 wo.ItemCurMana = wo.ItemMaxMana;
 
-                CalculateSpellcraft(wo, roll.AllSpells, true, out roll.MinSpellcraft, out roll.MaxSpellcraft, out roll.RolledSpellCraft);
+                CalculateSpellcraft(wo, roll.AllSpells, true, out roll.MinEffectiveSpellcraft, out roll.MaxEffectiveSpellcraft, out roll.RolledEffectiveSpellcraft, out roll.RealSpellcraft);
                 AddActivationRequirements(wo, profile, roll);
             }
         }
@@ -260,7 +260,7 @@ namespace ACE.Server.Factories
                 TryMutate_AllegianceRequirement(wo, profile, roll);
             }
 
-            CalculateArcaneLore(wo, roll.AllSpells, roll.LifeCreatureEnchantments, roll.Cantrips, roll.MinSpellcraft, roll.MaxSpellcraft, roll.RolledSpellCraft, true, out roll.MinArcaneLore, out roll.MaxArcaneLore, out roll.RolledArcaneLore);
+            CalculateArcaneLore(wo, roll.AllSpells, roll.LifeCreatureEnchantments, roll.Cantrips, roll.MinEffectiveSpellcraft, roll.MaxEffectiveSpellcraft, roll.RolledEffectiveSpellcraft, true, out roll.MinArcaneLore, out roll.MaxArcaneLore, out roll.RolledArcaneLore);
         }
 
         private static bool TryMutate_HeritageRequirement(WorldObject wo, TreasureDeath profile, TreasureRoll roll)

@@ -258,7 +258,7 @@ namespace ACE.Server.Factories
                 return 3;
         }
 
-        public static void CalculateSpellcraft(WorldObject wo, List<SpellId> allSpellIds, bool updateItem, out int minSpellcraft, out int maxSpellcraft, out int rolledSpellCraft)
+        public static void CalculateSpellcraft(WorldObject wo, List<SpellId> allSpellIds, bool updateItem, out int effectiveMinSpellcraft, out int effectiveMaxSpellcraft, out int effectiveRolledSpellcraft, out int realSpellcraft)
         {
             var maxSpellPower = 0;
 
@@ -290,18 +290,17 @@ namespace ACE.Server.Factories
                     break;
             }
 
-            minSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * range.min), 370);
-            maxSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * range.max), 370);
+            // Effective spellcraft is the value used by the arcane lore calculation, it does not take into account a quest items "innate" spells.
+            effectiveMinSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * range.min), 370);
+            effectiveMaxSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * range.max), 370);
+            effectiveRolledSpellcraft = ThreadSafeRandom.Next(effectiveMinSpellcraft, effectiveMaxSpellcraft);
 
-            // Avoid lowering spellcraft.
+            // The real spellcraft is what the item spellcraft will actually be, quest items have a override spellcraft that is manually specified by the weenie, we do not want to go below that value but if enough spells are added we can go above it.
             var currentSpellcraft = Math.Max(wo.BaseSpellcraftOverride ?? 1, wo.ItemSpellcraft ?? 1);
-
-            minSpellcraft = Math.Max(currentSpellcraft, minSpellcraft);
-            maxSpellcraft = Math.Max(currentSpellcraft, maxSpellcraft);
-            rolledSpellCraft = ThreadSafeRandom.Next(minSpellcraft, maxSpellcraft);
+            realSpellcraft = Math.Max(currentSpellcraft, effectiveRolledSpellcraft);
 
             if (updateItem)
-                wo.ItemSpellcraft = rolledSpellCraft;
+                wo.ItemSpellcraft = realSpellcraft;
         }
 
         public static void CalculateArcaneLore(WorldObject wo, List<SpellId> allSpellIds, List<SpellId> lifeCreatureEnchantmentsIds, List<SpellId> cantripIds, int minSpellcraft, int maxSpellcraft, int rolledSpellcraft, bool updateItem, out int minArcaneLore, out int maxArcaneLore, out int rolledArcaneLore)

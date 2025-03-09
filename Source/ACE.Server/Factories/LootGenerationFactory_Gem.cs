@@ -93,7 +93,7 @@ namespace ACE.Server.Factories
             roll.LifeCreatureEnchantments = new List<SpellId>();
             roll.LifeCreatureEnchantments.Add(spellId);
 
-            CalculateSpellcraft(wo, roll.AllSpells, true, out roll.MinSpellcraft, out roll.MaxSpellcraft, out roll.RolledSpellCraft);
+            CalculateSpellcraft(wo, roll.AllSpells, true, out roll.MinEffectiveSpellcraft, out roll.MaxEffectiveSpellcraft, out roll.RolledEffectiveSpellcraft, out roll.RealSpellcraft);
             AddActivationRequirements(wo, profile, roll);
 
             return true;
