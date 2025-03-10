@@ -132,7 +132,7 @@ namespace ACE.Server.WorldObjects
                     Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveMovedTooFar));
                     return;
                 }
-                Teleport(house.SlumLord.Location);
+                Teleport(House.GetRecallDestination());
             });
 
             actionChain.EnqueueChain();
@@ -463,7 +463,7 @@ namespace ACE.Server.WorldObjects
                 if (allegianceHouse == null)
                     return;
 
-                Teleport(allegianceHouse.SlumLord.Location);
+                Teleport(allegianceHouse.GetRecallDestination());
             }); 
 
             actionChain.EnqueueChain();

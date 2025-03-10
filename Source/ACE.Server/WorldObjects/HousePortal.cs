@@ -143,7 +143,7 @@ namespace ACE.Server.WorldObjects
             // if house portal in dungeon,
             // set destination to outdoor house slumlord
             if (CurrentLandblock != null && CurrentLandblock.IsDungeon && Destination.LandblockId == CurrentLandblock.Id)
-                SetPosition(PositionType.Destination, new Position(House.RootHouse.SlumLord.Location));
+                SetPosition(PositionType.Destination, House.GetRecallDestination());
 
             base.ActOnUse(worldObject);
         }

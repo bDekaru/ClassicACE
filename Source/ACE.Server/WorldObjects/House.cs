@@ -869,6 +869,14 @@ namespace ACE.Server.WorldObjects
                 SaveBiotaToDatabase();
         }
 
+        public Position GetRecallDestination()
+        {
+            if (IsCustomHouse)
+                return new Position(BootSpot.Location);
+            else
+                return new Position(SlumLord.Location);
+        }
+
         public float GetPriceMultiplier()
         {
             if (!IsCustomHouse)
