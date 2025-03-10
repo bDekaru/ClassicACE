@@ -132,6 +132,27 @@ namespace ACE.Server.Pathfinding
             return positionList;
         }
 
+        public static bool GetRouteDistance(Position start, Position end, AgentWidth agentWidth, out float distance)
+        {
+            distance = 0f;
+            var route = FindRoute(start, end, agentWidth);
+            if (route != null && route.Count > 0)
+            {
+                if (route.Last().DistanceTo(end) > 1)
+                    return false;
+
+                var previousRouteEntry = start;
+                foreach (var routeEntry in route)
+                {
+                    distance += previousRouteEntry.DistanceTo(routeEntry);
+                    previousRouteEntry = routeEntry;
+                }
+            }
+            else
+                return false;
+            return true;
+        }
+
         /// <summary>
         /// Get a random point on the navmesh
         /// </summary>

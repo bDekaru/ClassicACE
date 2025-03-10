@@ -265,7 +265,13 @@ namespace ACE.Server.Entity
                         if (player.IsOvertlyPlussed)
                             continue;
 
-                        if (marker.Location.DistanceTo(player.Location) < 50)
+                        float distance;
+                        if (Pathfinder.PathfindingEnabled && player.Location.Indoors)
+                            Pathfinder.GetRouteDistance(player.Location, marker.Location, AgentWidth.Narrow, out distance);
+                        else
+                            distance = player.Location.DistanceTo(marker.Location);
+
+                        if (distance < 50)
                         {
                             isInRange = true;
                             break;
@@ -317,7 +323,13 @@ namespace ACE.Server.Entity
                 {
                     var marker = obj.Value;
 
-                    if (entryPos.DistanceTo(marker.Location) < 50)
+                    float distance;
+                    if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
+                        Pathfinder.GetRouteDistance(entryPos, marker.Location, AgentWidth.Narrow, out distance);
+                    else
+                        distance = entryPos.DistanceTo(marker.Location);                        
+
+                    if (distance < 50)
                     {
                         attempts++;
                         if (attempts < 10)
