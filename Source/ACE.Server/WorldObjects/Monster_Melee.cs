@@ -377,7 +377,7 @@ namespace ACE.Server.WorldObjects
                     animSpeedMod = 1.0f;
 
                 var weapon = GetEquippedMeleeWeapon();
-                if (weapon != null && weapon.WeaponSkill == Skill.Dagger && weapon.W_AttackType.IsMultiStrike())
+                if (weapon != null && weapon.W_AttackType.IsMultiStrike())
                     animSpeedMod += 0.8f;
             }
 
