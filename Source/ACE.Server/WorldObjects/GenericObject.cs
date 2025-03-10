@@ -52,6 +52,12 @@ namespace ACE.Server.WorldObjects
 
             if(WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker)
             {
+                if (player.attacksReceivedPerSecond > 0)
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You cannot properly explore your surroundings while in combat!", ChatMessageType.Broadcast));
+                    return;
+                }
+
                 short landblockId = (short)(CurrentLandblock.Id.Raw >> 16);
                 if (player.Exploration1LandblockId == landblockId)
                 {
