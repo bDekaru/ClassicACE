@@ -1331,7 +1331,9 @@ namespace ACE.Server.WorldObjects
 
         public int GetMaxTinkerCount()
         {
-            if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0)
+            if (TinkerMaxCountOverride != null && TinkerMaxCountOverride > 0)
+                return TinkerMaxCountOverride.Value;
+            else if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0)
                 return (int)Math.Floor((ItemWorkmanship ?? 0) / 3.1f) + 1;
             else
                 return 0;
@@ -1339,7 +1341,7 @@ namespace ACE.Server.WorldObjects
 
         public int GetMinSalvageQualityForTinkering()
         {
-            return (int)Math.Floor((ItemWorkmanship ?? 0) / 3.5f) * 4;
+            return (int)Math.Floor((TinkerWorkmanshipOverride ?? ItemWorkmanship ?? 0) / 3.5f) * 4;
         }
 
         public double GetHighestTierAroundObject(float maxDistance)

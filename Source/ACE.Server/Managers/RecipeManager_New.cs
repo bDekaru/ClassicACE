@@ -125,7 +125,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALGOLD_CLASS:
 
                     // ensure item has value and workmanship
-                    if ((target.Value ?? 0) == 0 || target.Workmanship == null)
+                    if ((target.Value ?? 0) == 0 || target.TinkerWorkmanship == null)
                         return null;
 
                     // use gold recipe as base
@@ -135,7 +135,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALLINEN_CLASS:
 
                     // ensure item has burden and workmanship
-                    if ((target.EncumbranceVal ?? 0) == 0 || target.Workmanship == null)
+                    if ((target.EncumbranceVal ?? 0) == 0 || target.TinkerWorkmanship == null)
                         return null;
 
                     // use linen recipe as base
@@ -145,7 +145,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALMOONSTONE_CLASS:
 
                     // ensure item has mana and workmanship
-                    if ((target.ItemMaxMana ?? 0) == 0 || target.Workmanship == null)
+                    if ((target.ItemMaxMana ?? 0) == 0 || target.TinkerWorkmanship == null)
                         return null;
 
                     // use moonstone recipe as base
@@ -155,7 +155,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALPINE_CLASS:
 
                     // ensure item has value and workmanship
-                    if ((target.Value ?? 0) == 0 || target.Workmanship == null)
+                    if ((target.Value ?? 0) == 0 || target.TinkerWorkmanship == null)
                         return null;
 
                     // use pine recipe as base
@@ -173,7 +173,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_LUCKYRABBITSFOOT_CLASS:
 
                     // ensure melee or thrown weapon and workmanship
-                    if (target.WeenieType != WeenieType.MeleeWeapon && target.WeenieType != WeenieType.Missile || target.Workmanship == null)
+                    if (target.WeenieType != WeenieType.MeleeWeapon && target.WeenieType != WeenieType.Missile || target.TinkerWorkmanship == null)
                         return null;
 
                     // grab correct recipe to use as base
@@ -184,7 +184,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALMAHOGANY_CLASS:
 
                     // ensure missile weapon and workmanship
-                    if (target.WeenieType != WeenieType.MissileLauncher || target.Workmanship == null)
+                    if (target.WeenieType != WeenieType.MissileLauncher || target.TinkerWorkmanship == null)
                         return null;
 
                     // use mahogany recipe as base
@@ -194,7 +194,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALOAK_CLASS:
 
                     // ensure melee or missile weapon, and workmanship
-                    if (target.WeenieType != WeenieType.MeleeWeapon && target.WeenieType != WeenieType.MissileLauncher && target.WeenieType != WeenieType.Missile || target.Workmanship == null)
+                    if (target.WeenieType != WeenieType.MeleeWeapon && target.WeenieType != WeenieType.MissileLauncher && target.WeenieType != WeenieType.Missile || target.TinkerWorkmanship == null)
                         return null;
 
                     // use oak recipe as base
@@ -205,7 +205,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALOPAL_CLASS:
 
                     // ensure item is caster and has workmanship
-                    if (target.WeenieType != WeenieType.Caster || target.Workmanship == null)
+                    if (target.WeenieType != WeenieType.Caster || target.TinkerWorkmanship == null)
                         return null;
 
                     // use opal recipe as base
@@ -216,7 +216,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALGREENGARNET_CLASS:
 
                     // ensure item is caster and has workmanship
-                    if (target.WeenieType != WeenieType.Caster || target.Workmanship == null)
+                    if (target.WeenieType != WeenieType.Caster || target.TinkerWorkmanship == null)
                         return null;
 
                     // use green garnet recipe as base
@@ -227,7 +227,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALBRASS_CLASS:
 
                     // ensure item has workmanship
-                    if (target.Workmanship == null) return null;
+                    if (target.TinkerWorkmanship == null) return null;
 
                     // use brass recipe as base
                     recipe = DatabaseManager.World.GetCachedRecipe(3848);
@@ -246,7 +246,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALCARNELIAN_CLASS:
 
                     // ensure item is generic (jewelry), and has workmanship
-                    if (target.WeenieType != WeenieType.Generic || target.Workmanship == null || target.ValidLocations == EquipMask.TrinketOne)
+                    if (target.WeenieType != WeenieType.Generic || target.TinkerWorkmanship == null || target.ValidLocations == EquipMask.TrinketOne)
                         return null;
 
                     recipe = DatabaseManager.World.GetCachedRecipe(SourceToRecipe[(WeenieClassName)source.WeenieClassId]);
@@ -267,7 +267,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALCOPPER_CLASS:
 
                     // ensure loot-generated item w/ armor level
-                    if (target.Workmanship == null || !target.HasArmorLevel())
+                    if (target.TinkerWorkmanship == null || !target.HasArmorLevel())
                         return null;
 
                     var allowArmor = target.ItemType == ItemType.Armor;
@@ -298,7 +298,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALACE36636FOOLPROOFZIRCON:
 
                     // can be applied to anything with AL, including shields (according to base recipe)
-                    if (!target.HasArmorLevel() || target.Workmanship == null)
+                    if (!target.HasArmorLevel() || target.TinkerWorkmanship == null)
                         return null;
 
                     recipe = DatabaseManager.World.GetCachedRecipe(SourceToRecipe[(WeenieClassName)source.WeenieClassId]);
@@ -326,12 +326,6 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALWHITESAPPHIRE100_CLASS:
                 case WeenieClassName.W_MATERIALWHITESAPPHIRE_CLASS:
 
-                case WeenieClassName.W_LEFTHANDTETHER_CLASS:
-                case WeenieClassName.W_LEFTHANDTETHERREMOVER_CLASS:
-
-                case WeenieClassName.W_COREPLATINGINTEGRATOR_CLASS:
-                case WeenieClassName.W_COREPLATINGDISINTEGRATOR_CLASS:
-
                 case WeenieClassName.W_MATERIALRAREFOOLPROOFAQUAMARINE_CLASS:
                 case WeenieClassName.W_MATERIALRAREFOOLPROOFBLACKGARNET_CLASS:
                 case WeenieClassName.W_MATERIALRAREFOOLPROOFBLACKOPAL_CLASS:
@@ -353,6 +347,19 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALACE36626FOOLPROOFREDGARNET:
                 case WeenieClassName.W_MATERIALACE36627FOOLPROOFSUNSTONE:
                 case WeenieClassName.W_MATERIALACE36628FOOLPROOFWHITESAPPHIRE:
+
+                    // ensure item has workmanship
+                    if (target.TinkerWorkmanship == null)
+                        return null;
+
+                    recipe = DatabaseManager.World.GetCachedRecipe(SourceToRecipe[(WeenieClassName)source.WeenieClassId]);
+                    break;
+
+                case WeenieClassName.W_LEFTHANDTETHER_CLASS:
+                case WeenieClassName.W_LEFTHANDTETHERREMOVER_CLASS:
+
+                case WeenieClassName.W_COREPLATINGINTEGRATOR_CLASS:
+                case WeenieClassName.W_COREPLATINGDISINTEGRATOR_CLASS:
 
                     recipe = DatabaseManager.World.GetCachedRecipe(SourceToRecipe[(WeenieClassName)source.WeenieClassId]);
                     break;

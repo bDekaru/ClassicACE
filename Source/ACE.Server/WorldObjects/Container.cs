@@ -1079,15 +1079,116 @@ namespace ACE.Server.WorldObjects
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                // Add default ExtraSpellsMaxOverride value to quest items.
-                if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ItemWorkmanship == null && worldObject.ResistMagic == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
+                if (worldObject.ItemWorkmanship == null && (worldObject.ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && worldObject.WeenieType != WeenieType.Missile && worldObject.WeenieType != WeenieType.Ammunition)
                 {
-                    worldObject.ExtraSpellsMaxOverride = 2;
-                    if(worldObject.IsRobe)
-                        worldObject.ExtraSpellsMaxOverride *= 2;
+                    var estimatedTier = 1;
+                    var requirementEstimatedTier = 1;
+                    var arcaneEstimatedTier = 1;
 
-                    worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty;
-                    worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft;
+                    if (worldObject.WieldDifficulty != null)
+                    {
+                        if (worldObject.WieldSkillType == 1) // level
+                            requirementEstimatedTier = (int)Creature.CalculateExtendedTier(worldObject.WieldDifficulty ?? 0);
+                        else if (worldObject.ItemType == ItemType.MeleeWeapon || worldObject.IsThrownWeapon || worldObject.IsAtlatl)
+                        {
+                            if (worldObject.WieldDifficulty < 250)
+                                requirementEstimatedTier = 1;
+                            else if (worldObject.WieldDifficulty < 300)
+                                requirementEstimatedTier = 2;
+                            else if (worldObject.WieldDifficulty < 325)
+                                requirementEstimatedTier = 3;
+                            else if (worldObject.WieldDifficulty < 350)
+                                requirementEstimatedTier = 4;
+                            else if (worldObject.WieldDifficulty < 370)
+                                requirementEstimatedTier = 5;
+                            else
+                                requirementEstimatedTier = 6;
+                        }
+                        else if (worldObject.IsBow)
+                        {
+                            if (worldObject.WieldDifficulty < 250)
+                                requirementEstimatedTier = 1;
+                            else if (worldObject.WieldDifficulty < 270)
+                                requirementEstimatedTier = 2;
+                            else if (worldObject.WieldDifficulty < 290)
+                                requirementEstimatedTier = 3;
+                            else if (worldObject.WieldDifficulty < 315)
+                                requirementEstimatedTier = 4;
+                            else if (worldObject.WieldDifficulty < 335)
+                                requirementEstimatedTier = 5;
+                            else
+                                requirementEstimatedTier = 6;
+                        }
+                        else if (worldObject.IsCaster)
+                        {
+                            if (worldObject.WieldDifficulty < 225)
+                                requirementEstimatedTier = 1;
+                            else if (worldObject.WieldDifficulty < 245)
+                                requirementEstimatedTier = 2;
+                            else if (worldObject.WieldDifficulty < 265)
+                                requirementEstimatedTier = 3;
+                            else if (worldObject.WieldDifficulty < 290)
+                                requirementEstimatedTier = 4;
+                            else if (worldObject.WieldDifficulty < 310)
+                                requirementEstimatedTier = 5;
+                            else
+                                requirementEstimatedTier = 6;
+                        }
+                    }
+
+                    if (worldObject.ItemDifficulty.HasValue)
+                    {
+                        if (worldObject.ItemDifficulty <= 30)
+                            arcaneEstimatedTier = 1;
+                        else if (worldObject.ItemDifficulty <= 90)
+                            arcaneEstimatedTier = 2;
+                        else if (worldObject.ItemDifficulty <= 150)
+                            arcaneEstimatedTier = 3;
+                        else if (worldObject.ItemDifficulty <= 185)
+                            arcaneEstimatedTier = 4;
+                        else if (worldObject.ItemDifficulty <= 220)
+                            arcaneEstimatedTier = 5;
+                        else
+                            arcaneEstimatedTier = 6;
+                    }
+
+                    estimatedTier = Math.Max(requirementEstimatedTier, arcaneEstimatedTier);
+
+                    // Add default ExtraSpellsMaxOverride value to quest items.
+                    if (worldObject.ExtraSpellsMaxOverride == null && worldObject.ResistMagic == null)
+                    {
+                        switch (estimatedTier)
+                        {
+                            default:
+                            case 1: worldObject.ExtraSpellsMaxOverride = 1; break;
+                            case 2: worldObject.ExtraSpellsMaxOverride = 2; break;
+                            case 3: worldObject.ExtraSpellsMaxOverride = 3; break;
+                            case 4: worldObject.ExtraSpellsMaxOverride = 3; break;
+                            case 5: worldObject.ExtraSpellsMaxOverride = 4; break;
+                            case 6: worldObject.ExtraSpellsMaxOverride = 4; break;
+                        }
+
+                        if (worldObject.IsRobe)
+                            worldObject.ExtraSpellsMaxOverride *= 2;
+
+                        worldObject.BaseItemDifficultyOverride = worldObject.ItemDifficulty;
+                        worldObject.BaseSpellcraftOverride = worldObject.ItemSpellcraft;
+                    }
+
+                    // Add default TinkerMaxCountOverride value to quest items.
+                    if (worldObject.TinkerMaxCountOverride == null)
+                    {
+                        switch (estimatedTier)
+                        {
+                            default:
+                            case 1: worldObject.TinkerWorkmanshipOverride = 1; worldObject.TinkerMaxCountOverride = 1; break;
+                            case 2: worldObject.TinkerWorkmanshipOverride = 4; worldObject.TinkerMaxCountOverride = 2; break;
+                            case 3: worldObject.TinkerWorkmanshipOverride = 5; worldObject.TinkerMaxCountOverride = 2; break;
+                            case 4: worldObject.TinkerWorkmanshipOverride = 6; worldObject.TinkerMaxCountOverride = 2; break;
+                            case 5: worldObject.TinkerWorkmanshipOverride = 8; worldObject.TinkerMaxCountOverride = 3; break;
+                            case 6: worldObject.TinkerWorkmanshipOverride = 10; worldObject.TinkerMaxCountOverride = 3; break;
+                        }
+                    }
                 }
 
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.

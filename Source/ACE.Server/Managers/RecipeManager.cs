@@ -979,6 +979,10 @@ namespace ACE.Server.Managers
             foreach (var requirement in intReqs)
             {
                 int? value = obj.GetProperty((PropertyInt)requirement.Stat);
+
+                if (recipe.IsTinkering() && (PropertyInt)requirement.Stat == PropertyInt.ItemWorkmanship && obj.TinkerWorkmanshipOverride > 0)
+                    value = obj.TinkerWorkmanshipOverride;
+
                 double? normalized = value != null ? (double?)Convert.ToDouble(value.Value) : null;
 
                 if (Debug)

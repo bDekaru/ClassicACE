@@ -3427,6 +3427,23 @@ namespace ACE.Server.WorldObjects
             set { if (!value.HasValue) RemoveProperty(PropertyInt.ExtraSpellsMaxOverride); else SetProperty(PropertyInt.ExtraSpellsMaxOverride, value.Value); }
         }
 
+        public int? TinkerMaxCountOverride
+        {
+            get => GetProperty(PropertyInt.TinkerMaxCountOverride);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.TinkerMaxCountOverride); else SetProperty(PropertyInt.TinkerMaxCountOverride, value.Value); }
+        }
+
+        public int? TinkerWorkmanshipOverride
+        {
+            get => GetProperty(PropertyInt.TinkerWorkmanshipOverride);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.TinkerWorkmanshipOverride); else SetProperty(PropertyInt.TinkerWorkmanshipOverride, value.Value); }
+        }
+
+        public float? TinkerWorkmanship
+        {
+            get => TinkerWorkmanshipOverride ?? Workmanship;
+        }
+
         public int? BaseItemDifficultyOverride
         {
             get => GetProperty(PropertyInt.BaseItemDifficultyOverride);
