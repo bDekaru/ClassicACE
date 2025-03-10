@@ -230,7 +230,11 @@ namespace ACE.Server.Entity
             }
 
             PositionsForExplorationMarkers.Shuffle();
-            ExplorationMarkerCount = Math.Clamp(1 + PositionsForExplorationMarkers.Count / 50, 1, 5);
+            if (LandblockInfo != null && LandblockInfo.NumCells >= 30)
+                ExplorationMarkerCount = 1 + ((int)LandblockInfo.NumCells - 30) / 80;
+            else
+                ExplorationMarkerCount = 1 + PositionsForExplorationMarkers.Count / 50;
+            ExplorationMarkerCount = Math.Min(ExplorationMarkerCount, PositionsForExplorationMarkers.Count);
 
             var actionChain = new ActionChain();
             for (int i = 0; i < ExplorationMarkerCount; i++)
@@ -313,7 +317,7 @@ namespace ACE.Server.Entity
                 {
                     var marker = obj.Value;
 
-                    if (entryPos.DistanceTo(marker.Location) < 25)
+                    if (entryPos.DistanceTo(marker.Location) < 50)
                     {
                         attempts++;
                         if (attempts < 10)
