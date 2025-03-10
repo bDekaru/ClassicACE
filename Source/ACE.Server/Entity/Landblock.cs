@@ -267,7 +267,10 @@ namespace ACE.Server.Entity
 
                         float distance;
                         if (Pathfinder.PathfindingEnabled && player.Location.Indoors)
-                            Pathfinder.GetRouteDistance(player.Location, marker.Location, AgentWidth.Narrow, out distance);
+                        {
+                            if(!Pathfinder.GetRouteDistance(player.Location, marker.Location, AgentWidth.Narrow, out distance))
+                                distance = player.Location.DistanceTo(marker.Location);
+                        }
                         else
                             distance = player.Location.DistanceTo(marker.Location);
 
@@ -325,9 +328,12 @@ namespace ACE.Server.Entity
 
                     float distance;
                     if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
-                        Pathfinder.GetRouteDistance(entryPos, marker.Location, AgentWidth.Narrow, out distance);
+                    {
+                        if(!Pathfinder.GetRouteDistance(entryPos, marker.Location, AgentWidth.Narrow, out distance))
+                            distance = entryPos.DistanceTo(marker.Location);
+                    }
                     else
-                        distance = entryPos.DistanceTo(marker.Location);                        
+                        distance = entryPos.DistanceTo(marker.Location);
 
                     if (distance < 50)
                     {
@@ -335,7 +341,15 @@ namespace ACE.Server.Entity
                         if (attempts < 10)
                             SpawnExplorationMarker(attempts);
                         else
-                            log.Warn($"Landblock 0x{Id} failed to find position to spawn exploration marker that was not too close to another exploration marker.");
+                        {
+                            var msg = $"Landblock 0x{Id} failed to find position to spawn exploration marker that was not too close to another exploration marker.";
+                            if (ExplorationMarkerCount > 1)
+                            {
+                                ExplorationMarkerCount--;
+                                msg += $" Reducing ExplorationMarkerCount to {ExplorationMarkerCount}";
+                            }
+                            log.Warn(msg);
+                        }
                         return;
                     }
                 }
