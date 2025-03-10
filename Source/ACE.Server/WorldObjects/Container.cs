@@ -1189,6 +1189,23 @@ namespace ACE.Server.WorldObjects
                             case 6: worldObject.TinkerWorkmanshipOverride = 10; worldObject.TinkerMaxCountOverride = 3; break;
                         }
                     }
+
+                    if (worldObject.CriticalMultiplier.HasValue)
+                        worldObject.CriticalMultiplier = null;
+
+                    if (worldObject.CriticalFrequency.HasValue)
+                        worldObject.CriticalFrequency = null;
+
+                    if (worldObject.IgnoreArmor.HasValue)
+                        worldObject.IgnoreArmor = null;
+
+                    if (worldObject.IgnoreShield.HasValue)
+                        worldObject.IgnoreShield = null;
+
+                    if (worldObject.ResistanceModifier.HasValue)
+                        worldObject.ResistanceModifier = null;
+                    if (worldObject.ResistanceModifierType.HasValue)
+                        worldObject.ResistanceModifierType = null;
                 }
 
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
