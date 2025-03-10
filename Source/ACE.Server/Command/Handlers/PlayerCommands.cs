@@ -1331,9 +1331,9 @@ namespace ACE.Server.Command.Handlers
             else
                 manaFullness = $"Very hungry";
 
-            CommandHandlerHelper.WriteOutputInfo(session, $"Health Food: {healthFullness} ({health}/{max})", ChatMessageType.Broadcast);
-            CommandHandlerHelper.WriteOutputInfo(session, $"Stamina Food: {staminaFullness} ({stamina}/{max})", ChatMessageType.Broadcast);
-            CommandHandlerHelper.WriteOutputInfo(session, $"Mana Food: {manaFullness} ({mana}/{max})", ChatMessageType.Broadcast);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Health Food: {healthFullness} ({health:N0}/{max:N0})", ChatMessageType.Broadcast);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Stamina Food: {staminaFullness} ({stamina:N0}/{max:N0})", ChatMessageType.Broadcast);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Mana Food: {manaFullness} ({mana:N0}/{max:N0})", ChatMessageType.Broadcast);
         }
 
         [CommandHandler("Exploration", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "")]
