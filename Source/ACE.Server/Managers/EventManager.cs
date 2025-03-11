@@ -313,7 +313,12 @@ namespace ACE.Server.Managers
                         if (entryLandblock != null)
                         {
                             dungeonName = entryLandblock.Name;
-                            dungeonDirections = entryLandblock.Directions;
+                            if (entryLandblock.MicroRegion != "")
+                                dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MicroRegion}";
+                            else if (entryLandblock.MacroRegion != "" && entryLandblock.MacroRegion != "Dereth")
+                                dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MacroRegion}";
+                            else
+                                dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference}";
                         }
                         else
                         {

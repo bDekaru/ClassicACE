@@ -726,7 +726,12 @@ namespace ACE.Server.Command.Handlers
                     if (entryLandblock != null)
                     {
                         entryName = entryLandblock.Name;
-                        entryDirections = entryLandblock.Directions;
+                        if (entryLandblock.MicroRegion != "")
+                            entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MicroRegion}";
+                        else if (entryLandblock.MacroRegion != "" && entryLandblock.MacroRegion != "Dereth")
+                            entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MacroRegion}";
+                        else
+                            entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference}";
                     }
                     else
                     {
@@ -803,7 +808,12 @@ namespace ACE.Server.Command.Handlers
                 if (entryLandblock != null)
                 {
                     entryName = entryLandblock.Name;
-                    entryDirections = entryLandblock.Directions;
+                    if (entryLandblock.MicroRegion != "")
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MicroRegion}";
+                    else if (entryLandblock.MacroRegion != "" && entryLandblock.MacroRegion != "Dereth")
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MacroRegion}";
+                    else
+                        entryDirections = $"{entryLandblock.Directions} {entryLandblock.Reference}";
                 }
                 else
                 {
