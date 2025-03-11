@@ -116,6 +116,7 @@ namespace ACE.Server.WorldObjects
             // check if vassals earned XP while offline
             HandleAllegianceOnLogin();
             HandleHouseOnLogin();
+            HandleInventoryOnLogin();
 
             // Let's take the opportinity to send an activity recommendation to the player.
             var recommendationChain = new ActionChain();

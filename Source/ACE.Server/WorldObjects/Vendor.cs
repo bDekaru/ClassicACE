@@ -224,6 +224,8 @@ namespace ACE.Server.WorldObjects
 
             wo.ContainerId = Guid.Full;
 
+            wo.ExtraItemChecks();
+
             wo.CalculateObjDesc();
 
             //itemsForSale.Add(itemProfile, wo.Guid.Full);

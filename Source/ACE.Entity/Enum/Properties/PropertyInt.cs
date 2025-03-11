@@ -665,6 +665,8 @@ namespace ACE.Entity.Enum.Properties
         GameplayMode                             = 10024,
         ChargenTitleId                           = 10025,
         MaxReachedLevel                          = 10026,
+        TinkerMaxCountOverride                   = 10027,
+        TinkerWorkmanshipOverride                = 10028,
     }
 
     public static class PropertyIntExtensions

@@ -979,6 +979,10 @@ namespace ACE.Server.Managers
             foreach (var requirement in intReqs)
             {
                 int? value = obj.GetProperty((PropertyInt)requirement.Stat);
+
+                if (recipe.IsTinkering() && (PropertyInt)requirement.Stat == PropertyInt.ItemWorkmanship && obj.TinkerWorkmanshipOverride > 0)
+                    value = obj.TinkerWorkmanshipOverride;
+
                 double? normalized = value != null ? (double?)Convert.ToDouble(value.Value) : null;
 
                 if (Debug)
@@ -1191,34 +1195,59 @@ namespace ACE.Server.Managers
             {
                 result = CreateItem(player, createItem, createAmount);
 
-                if (destroyTarget && result != null && target.ExtraSpellsList != null)
+                if (destroyTarget && result != null)
                 {
-                    // Transfer spells to the new item.
-                    var spells = target.ExtraSpellsList.Split(",");
-
-                    var baseResultItemDifficulty = Math.Max(result.BaseItemDifficultyOverride ?? 0, result.ItemDifficulty ?? 0);
-                    var baseResultItemSpellcraft = Math.Max(result.BaseSpellcraftOverride ?? 0, result.ItemSpellcraft ?? 0);
-                    var failedSomeTransfers = false;
-                    foreach (string spellString in spells)
+                    if (target.ExtraSpellsList != null)
                     {
-                        if (uint.TryParse(spellString, out var spellId))
+                        // Transfer spells to the new item.
+                        var spells = target.ExtraSpellsList.Split(",");
+
+                        var baseResultItemDifficulty = Math.Max(result.BaseItemDifficultyOverride ?? 0, result.ItemDifficulty ?? 0);
+                        var baseResultItemSpellcraft = Math.Max(result.BaseSpellcraftOverride ?? 0, result.ItemSpellcraft ?? 0);
+                        var failedSomeTransfers = false;
+                        foreach (string spellString in spells)
                         {
-                            var data = SpellTransferScroll.InjectSpell(result, (SpellId)spellId);
+                            if (uint.TryParse(spellString, out var spellId))
+                            {
+                                var data = SpellTransferScroll.InjectSpell(result, (SpellId)spellId);
 
-                            if (data.Result != SpellTransferScroll.InjectSpellResult.Success)
-                                failedSomeTransfers = true;
+                                if (data.Result != SpellTransferScroll.InjectSpellResult.Success)
+                                    failedSomeTransfers = true;
+                            }
                         }
+
+                        if (!failedSomeTransfers) // Transfer our exact rolls to the new item. If we fail any of the transfers for some reason(like the new item already having a stronger spell of the same type) we skip this so the item difficulty can reflect the change.
+                        {
+                            result.ItemDifficulty = Math.Max(baseResultItemDifficulty, target.ItemDifficulty ?? 0);
+                            result.ItemSpellcraft = Math.Max(baseResultItemSpellcraft, target.ItemSpellcraft ?? 0);
+                        }
+
+                        // We keep even the spells that failed in the list as the next time the item is changed it has another chance to apply(items like Atlan weapons can be continuously changed and this way the spell survives temporary inactivity)
+                        result.ExtraSpellsCount = target.ExtraSpellsCount;
+                        result.ExtraSpellsList = target.ExtraSpellsList;
                     }
 
-                    if (!failedSomeTransfers) // Transfer our exact rolls to the new item. If we fail any of the transfers for some reason(like the new item already having a stronger spell of the same type) we skip this so the item difficulty can reflect the change.
+                    if(target.TinkerLog != null)
                     {
-                        result.ItemDifficulty = Math.Max(baseResultItemDifficulty, target.ItemDifficulty ?? 0);
-                        result.ItemSpellcraft = Math.Max(baseResultItemSpellcraft, target.ItemSpellcraft ?? 0);
-                    }
+                        var tinkers = target.TinkerLog.Split(",");
 
-                    // We keep even the spells that failed in the list as the next time the item is changed it has another chance to apply(items like Atlan weapons can be continuously changed and this way the spell survives temporary inactivity)
-                    result.ExtraSpellsCount = target.ExtraSpellsCount;
-                    result.ExtraSpellsList = target.ExtraSpellsList;
+                        foreach(var tinker in tinkers)
+                        {
+                            if (int.TryParse(tinker, out var materialType))
+                            {
+                                var wcid = (uint)Player.MaterialSalvage[materialType];
+                                var salvageBag = WorldObjectFactory.CreateNewWorldObject(wcid);
+
+                                var tinkerRecipe = GetRecipe(player, salvageBag, result);
+                                if (tinkerRecipe != null)
+                                    CreateDestroyItems(player, tinkerRecipe, salvageBag, result, 1, true);
+                            }
+                        }
+
+                        // We keep even the tinkers that failed in the list as the next time the item is changed it has another chance to apply(items like Atlan weapons can be continuously changed and this way the tinker survives temporary inactivity)
+                        result.NumTimesTinkered = target.NumTimesTinkered;
+                        result.TinkerLog = target.TinkerLog;
+                    }
 
                     player.EnqueueBroadcast(new GameMessageUpdateObject(result));
                 }
@@ -1236,7 +1265,7 @@ namespace ACE.Server.Managers
                 if (log.IsDebugEnabled)
                     log.Debug($"[CRAFTING] {player.Name} used {source.NameWithMaterial} on {target.NameWithMaterial} {(success ? "" : "un")}successfully. {(destroySource ? $"| {source.NameWithMaterial} was destroyed " : "")}{(destroyTarget ? $"| {target.NameWithMaterial} was destroyed " : "")}| {message}");
             }
-            else
+            else if(source.Workmanship != null)
                 BroadcastTinkering(player, source, target, successChance, success);
 
             return modified;

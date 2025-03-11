@@ -348,7 +348,7 @@ namespace ACE.Server.WorldObjects
 
             TrySetChild(worldObject);
 
-            ExtraItemChecks(worldObject);
+            worldObject.ExtraItemChecks();
 
             // enqueue to ensure parent object has spawned,
             // and spell fx are visible
