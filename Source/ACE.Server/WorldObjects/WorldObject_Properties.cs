@@ -3563,5 +3563,11 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyBool.UsesWeightAsGeneratorProbabilities) ?? false;
             set { if (value == false) RemoveProperty(PropertyBool.UsesWeightAsGeneratorProbabilities); else SetProperty(PropertyBool.UsesWeightAsGeneratorProbabilities, value); }
         }
+
+        public int? Version
+        {
+            get => GetProperty(PropertyInt.Version);
+            set { if (!value.HasValue) RemoveProperty(PropertyInt.Version); else SetProperty(PropertyInt.Version, value.Value); }
+        }
     }
 }
