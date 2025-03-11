@@ -1191,21 +1191,39 @@ namespace ACE.Server.WorldObjects
                     }
 
                     if (worldObject.CriticalMultiplier.HasValue)
+                    {
+                        log.Warn($"Removed invalid CriticalMultiplier {worldObject.CriticalMultiplier:0.00} from {worldObject.Name}.");
                         worldObject.CriticalMultiplier = null;
+                    }
 
                     if (worldObject.CriticalFrequency.HasValue)
+                    {
+                        log.Warn($"Removed invalid CriticalFrequency {worldObject.CriticalFrequency:0.00} from {worldObject.Name}.");
                         worldObject.CriticalFrequency = null;
+                    }
 
                     if (worldObject.IgnoreArmor.HasValue)
+                    {
+                        log.Warn($"Removed invalid IgnoreArmor {worldObject.IgnoreArmor:0.00} from {worldObject.Name}.");
                         worldObject.IgnoreArmor = null;
+                    }
 
                     if (worldObject.IgnoreShield.HasValue)
+                    {
+                        log.Warn($"Removed invalid IgnoreShield {worldObject.IgnoreShield:0.00} from {worldObject.Name}.");
                         worldObject.IgnoreShield = null;
+                    }
 
                     if (worldObject.ResistanceModifier.HasValue)
+                    {
+                        log.Warn($"Removed invalid ResistanceModifier {worldObject.ResistanceModifier:0.00} from {worldObject.Name}.");
                         worldObject.ResistanceModifier = null;
+                    }
                     if (worldObject.ResistanceModifierType.HasValue)
+                    {
+                        log.Warn($"Removed invalid ResistanceModifierType {worldObject.ResistanceModifierType} from {worldObject.Name}.");
                         worldObject.ResistanceModifierType = null;
+                    }
                 }
 
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
