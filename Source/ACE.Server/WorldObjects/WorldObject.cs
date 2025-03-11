@@ -1574,6 +1574,105 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        private int EstimateItemTierFromRequirements(WieldRequirement wieldRequirements, int? wieldSkillType, int? wieldDifficulty)
+        {
+            var requirementEstimatedTier = 1;
+            if (wieldDifficulty != null)
+            {
+                if (wieldRequirements == WieldRequirement.Level)
+                    requirementEstimatedTier = (int)Creature.CalculateExtendedTier(wieldDifficulty ?? 0);
+                else if (wieldRequirements == WieldRequirement.RawSkill)
+                {
+                    if (wieldSkillType == (int)Skill.Axe || wieldSkillType == (int)Skill.Dagger || wieldSkillType == (int)Skill.Spear || wieldSkillType == (int)Skill.Sword || wieldSkillType == (int)Skill.ThrownWeapon || wieldSkillType == (int)Skill.UnarmedCombat)
+                    {
+                        if (wieldDifficulty < 250)
+                            requirementEstimatedTier = 1;
+                        else if (wieldDifficulty < 300)
+                            requirementEstimatedTier = 2;
+                        else if (wieldDifficulty < 325)
+                            requirementEstimatedTier = 3;
+                        else if (wieldDifficulty < 350)
+                            requirementEstimatedTier = 4;
+                        else if (wieldDifficulty < 370)
+                            requirementEstimatedTier = 5;
+                        else
+                            requirementEstimatedTier = 6;
+                    }
+                    else if (wieldSkillType == (int)Skill.Bow)
+                    {
+                        if (wieldDifficulty < 250)
+                            requirementEstimatedTier = 1;
+                        else if (wieldDifficulty < 270)
+                            requirementEstimatedTier = 2;
+                        else if (wieldDifficulty < 290)
+                            requirementEstimatedTier = 3;
+                        else if (wieldDifficulty < 315)
+                            requirementEstimatedTier = 4;
+                        else if (wieldDifficulty < 335)
+                            requirementEstimatedTier = 5;
+                        else
+                            requirementEstimatedTier = 6;
+                    }
+                    else if (wieldSkillType == (int)Skill.WarMagic || wieldSkillType == (int)Skill.LifeMagic)
+                    {
+                        if (wieldDifficulty < 225)
+                            requirementEstimatedTier = 1;
+                        else if (wieldDifficulty < 245)
+                            requirementEstimatedTier = 2;
+                        else if (wieldDifficulty < 265)
+                            requirementEstimatedTier = 3;
+                        else if (wieldDifficulty < 290)
+                            requirementEstimatedTier = 4;
+                        else if (wieldDifficulty < 310)
+                            requirementEstimatedTier = 5;
+                        else
+                            requirementEstimatedTier = 6;
+                    }
+                }
+            }
+
+            return requirementEstimatedTier;
+        }
+
+        private int EstimateItemTier()
+        {
+            var estimatedTier = 1;
+            var requirementEstimatedTier = 1;
+            var arcaneEstimatedTier = 1;
+
+            if (WieldRequirements != WieldRequirement.Invalid)
+                requirementEstimatedTier = EstimateItemTierFromRequirements(WieldRequirements, WieldSkillType, WieldDifficulty);
+            if (WieldRequirements2 != WieldRequirement.Invalid)
+                requirementEstimatedTier = Math.Max(requirementEstimatedTier, EstimateItemTierFromRequirements(WieldRequirements2, WieldSkillType2, WieldDifficulty2));
+            if (WieldRequirements3 != WieldRequirement.Invalid)
+                requirementEstimatedTier = Math.Max(requirementEstimatedTier, EstimateItemTierFromRequirements(WieldRequirements3, WieldSkillType3, WieldDifficulty3));
+            if (WieldRequirements4 != WieldRequirement.Invalid)
+                requirementEstimatedTier = Math.Max(requirementEstimatedTier, EstimateItemTierFromRequirements(WieldRequirements4, WieldSkillType4, WieldDifficulty4));
+
+            if (ItemSkillLevelLimit.HasValue)
+                requirementEstimatedTier = Math.Max(requirementEstimatedTier, EstimateItemTierFromRequirements(WieldRequirement.RawSkill, (int)ItemSkillLimit, ItemSkillLevelLimit));
+
+            if (ItemDifficulty.HasValue)
+            {
+                if (ItemDifficulty <= 30)
+                    arcaneEstimatedTier = 1;
+                else if (ItemDifficulty <= 90)
+                    arcaneEstimatedTier = 2;
+                else if (ItemDifficulty <= 150)
+                    arcaneEstimatedTier = 3;
+                else if (ItemDifficulty <= 185)
+                    arcaneEstimatedTier = 4;
+                else if (ItemDifficulty <= 220)
+                    arcaneEstimatedTier = 5;
+                else
+                    arcaneEstimatedTier = 6;
+            }
+
+            estimatedTier = Math.Max(requirementEstimatedTier, arcaneEstimatedTier);
+
+            return estimatedTier;
+        }
+
         public void ExtraItemChecks()
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
@@ -1586,15 +1685,17 @@ namespace ACE.Server.WorldObjects
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
                 if (Version == null || Version < currentVersion)
                 {
-                // Convert weapon skills to merged ones
-                if (WieldSkillType.HasValue)
-                    WieldSkillType = (int)ConvertToMoASkill((Skill)WieldSkillType);
-                if (WieldSkillType2.HasValue)
-                    WieldSkillType2 = (int)ConvertToMoASkill((Skill)WieldSkillType2);
-                if (WieldSkillType3.HasValue)
-                    WieldSkillType3 = (int)ConvertToMoASkill((Skill)WieldSkillType3);
-                if (WieldSkillType4.HasValue)
-                    WieldSkillType4 = (int)ConvertToMoASkill((Skill)WieldSkillType4);
+                    // These changes are applied even to items owned by monsters, do not update item version here as that would prevent the full changes from being applied later.
+
+                    // Convert weapon skills to merged ones
+                    if (WieldSkillType.HasValue)
+                        WieldSkillType = (int)ConvertToMoASkill((Skill)WieldSkillType);
+                    if (WieldSkillType2.HasValue)
+                        WieldSkillType2 = (int)ConvertToMoASkill((Skill)WieldSkillType2);
+                    if (WieldSkillType3.HasValue)
+                        WieldSkillType3 = (int)ConvertToMoASkill((Skill)WieldSkillType3);
+                    if (WieldSkillType4.HasValue)
+                        WieldSkillType4 = (int)ConvertToMoASkill((Skill)WieldSkillType4);
                 }
 
                 var owner = Wielder ?? Container;
@@ -1607,82 +1708,11 @@ namespace ACE.Server.WorldObjects
 
                 if (Version == null || Version < currentVersion) // Monsters can keep unmodified items for now due to balance reasons.
                 {
-                    Version = 1;
+                    Version = currentVersion; // Bring item version up to current.
 
                     if (ItemWorkmanship == null && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && WeenieType != WeenieType.Missile && WeenieType != WeenieType.Ammunition)
                     {
-                        var estimatedTier = 1;
-                        var requirementEstimatedTier = 1;
-                        var arcaneEstimatedTier = 1;
-
-                        if (WieldDifficulty != null)
-                        {
-                            if (WieldSkillType == 1) // level
-                                requirementEstimatedTier = (int)Creature.CalculateExtendedTier(WieldDifficulty ?? 0);
-                            else if (ItemType == ItemType.MeleeWeapon || IsThrownWeapon || IsAtlatl)
-                            {
-                                if (WieldDifficulty < 250)
-                                    requirementEstimatedTier = 1;
-                                else if (WieldDifficulty < 300)
-                                    requirementEstimatedTier = 2;
-                                else if (WieldDifficulty < 325)
-                                    requirementEstimatedTier = 3;
-                                else if (WieldDifficulty < 350)
-                                    requirementEstimatedTier = 4;
-                                else if (WieldDifficulty < 370)
-                                    requirementEstimatedTier = 5;
-                                else
-                                    requirementEstimatedTier = 6;
-                            }
-                            else if (IsBow)
-                            {
-                                if (WieldDifficulty < 250)
-                                    requirementEstimatedTier = 1;
-                                else if (WieldDifficulty < 270)
-                                    requirementEstimatedTier = 2;
-                                else if (WieldDifficulty < 290)
-                                    requirementEstimatedTier = 3;
-                                else if (WieldDifficulty < 315)
-                                    requirementEstimatedTier = 4;
-                                else if (WieldDifficulty < 335)
-                                    requirementEstimatedTier = 5;
-                                else
-                                    requirementEstimatedTier = 6;
-                            }
-                            else if (IsCaster)
-                            {
-                                if (WieldDifficulty < 225)
-                                    requirementEstimatedTier = 1;
-                                else if (WieldDifficulty < 245)
-                                    requirementEstimatedTier = 2;
-                                else if (WieldDifficulty < 265)
-                                    requirementEstimatedTier = 3;
-                                else if (WieldDifficulty < 290)
-                                    requirementEstimatedTier = 4;
-                                else if (WieldDifficulty < 310)
-                                    requirementEstimatedTier = 5;
-                                else
-                                    requirementEstimatedTier = 6;
-                            }
-                        }
-
-                        if (ItemDifficulty.HasValue)
-                        {
-                            if (ItemDifficulty <= 30)
-                                arcaneEstimatedTier = 1;
-                            else if (ItemDifficulty <= 90)
-                                arcaneEstimatedTier = 2;
-                            else if (ItemDifficulty <= 150)
-                                arcaneEstimatedTier = 3;
-                            else if (ItemDifficulty <= 185)
-                                arcaneEstimatedTier = 4;
-                            else if (ItemDifficulty <= 220)
-                                arcaneEstimatedTier = 5;
-                            else
-                                arcaneEstimatedTier = 6;
-                        }
-
-                        estimatedTier = Math.Max(requirementEstimatedTier, arcaneEstimatedTier);
+                        var estimatedTier = EstimateItemTier();
 
                         // Add default ExtraSpellsMaxOverride value to quest items.
                         if (ExtraSpellsMaxOverride == null && ResistMagic == null)
@@ -1692,10 +1722,10 @@ namespace ACE.Server.WorldObjects
                                 default:
                                 case 1: ExtraSpellsMaxOverride = 1; break;
                                 case 2: ExtraSpellsMaxOverride = 2; break;
-                                case 3: ExtraSpellsMaxOverride = 3; break;
-                                case 4: ExtraSpellsMaxOverride = 3; break;
-                                case 5: ExtraSpellsMaxOverride = 4; break;
-                                case 6: ExtraSpellsMaxOverride = 4; break;
+                                case 3: ExtraSpellsMaxOverride = 2; break;
+                                case 4: ExtraSpellsMaxOverride = 2; break;
+                                case 5: ExtraSpellsMaxOverride = 3; break;
+                                case 6: ExtraSpellsMaxOverride = 3; break;
                             }
 
                             if (IsRobe)
@@ -1711,13 +1741,15 @@ namespace ACE.Server.WorldObjects
                             switch (estimatedTier)
                             {
                                 default:
-                                case 1: TinkerWorkmanshipOverride = 1; TinkerMaxCountOverride = 1; break;
-                                case 2: TinkerWorkmanshipOverride = 4; TinkerMaxCountOverride = 2; break;
-                                case 3: TinkerWorkmanshipOverride = 5; TinkerMaxCountOverride = 2; break;
-                                case 4: TinkerWorkmanshipOverride = 6; TinkerMaxCountOverride = 2; break;
-                                case 5: TinkerWorkmanshipOverride = 8; TinkerMaxCountOverride = 3; break;
-                                case 6: TinkerWorkmanshipOverride = 10; TinkerMaxCountOverride = 3; break;
+                                case 1: TinkerWorkmanshipOverride = 1; break;
+                                case 2: TinkerWorkmanshipOverride = 4; break;
+                                case 3: TinkerWorkmanshipOverride = 5; break;
+                                case 4: TinkerWorkmanshipOverride = 6; break;
+                                case 5: TinkerWorkmanshipOverride = 8; break;
+                                case 6: TinkerWorkmanshipOverride = 10; break;
                             }
+
+                            TinkerMaxCountOverride = 2;
                         }
 
                         // Remove invalid properties from items accessible by players, keep them on monster's items.
