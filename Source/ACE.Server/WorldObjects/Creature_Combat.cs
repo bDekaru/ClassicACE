@@ -616,18 +616,26 @@ namespace ACE.Server.WorldObjects
             var burdenMod = GetBurdenMod();
 
             var imbuedEffectType = defenseSkill == Skill.MissileDefense ? ImbuedEffectType.MissileDefense : ImbuedEffectType.MeleeDefense;
-            var defenseImbues = GetDefenseImbues(imbuedEffectType);
+            var defenseImbues = (uint)GetDefenseImbues(imbuedEffectType);
 
             var stanceMod = this is Player player ? player.GetDefenseStanceMod() : 1.0f;
 
             //if (this is Player)
             //Console.WriteLine($"StanceMod: {stanceMod}");
 
+            var skill = GetCreatureSkill(defenseSkill);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                defenseImbues *= 3;
+                defenseImbues = Math.Min(defenseImbues, skill.Base / 10);
+            }
+
             var pveMod = 1.0f;
             if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !isPvP && this is Player)
                 pveMod = 1.1f;
 
-            var effectiveDefense = (uint)Math.Round(GetCreatureSkill(defenseSkill).Current * pveMod * defenseMod * burdenMod * stanceMod + defenseImbues);
+            var effectiveDefense = (uint)Math.Round(skill.Current * pveMod * defenseMod * burdenMod * stanceMod + defenseImbues);
 
             if (IsExhausted) effectiveDefense = 0;
 

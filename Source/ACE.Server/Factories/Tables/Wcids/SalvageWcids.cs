@@ -48,9 +48,9 @@ namespace ACE.Server.Factories.Tables.Wcids
             ( WeenieClassName.materialvelvet,           1.00f ), // Weapon Attack Skill + 5%
             ( WeenieClassName.materialopal,             1.00f ), // Mana Conversion + 5%
 
-            ( WeenieClassName.materialperidot,          0.50f ), // Melee Defense + 1
-            ( WeenieClassName.materialyellowtopaz,      0.50f ), // Missile Defense + 1
-            ( WeenieClassName.materialzircon,           0.50f ), // Magic Defense + 1
+            ( WeenieClassName.materialperidot,          0.50f ), // Melee Defense + 3
+            ( WeenieClassName.materialyellowtopaz,      0.50f ), // Missile Defense + 3
+            ( WeenieClassName.materialzircon,           0.50f ), // Magic Defense + 3
 
             ( WeenieClassName.materialcarnelian,        0.50f ), // Minor Strength
             ( WeenieClassName.materialsmokyquartz,      0.50f ), // Minor Coordination
@@ -140,9 +140,9 @@ namespace ACE.Server.Factories.Tables.Wcids
             { WeenieClassName.materialvelvet,           1.50f }, // Weapon Attack Skill + 5%
             { WeenieClassName.materialopal,             1.50f }, // Mana Conversion + 5%
 
-            { WeenieClassName.materialperidot,          1.00f }, // Melee Defense + 1
-            { WeenieClassName.materialyellowtopaz,      1.00f }, // Missile Defense + 1
-            { WeenieClassName.materialzircon,           1.00f }, // Magic Defense + 1
+            { WeenieClassName.materialperidot,          1.00f }, // Melee Defense + 3
+            { WeenieClassName.materialyellowtopaz,      1.00f }, // Missile Defense + 3
+            { WeenieClassName.materialzircon,           1.00f }, // Magic Defense + 3
 
             { WeenieClassName.materialcarnelian,        2.00f }, // Minor Strength
             { WeenieClassName.materialsmokyquartz,      2.00f }, // Minor Coordination

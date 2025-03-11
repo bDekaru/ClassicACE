@@ -1586,18 +1586,18 @@ namespace ACE.Server.WorldObjects
                 return false;
         }
 
-        private bool UnequipOffhand(WorldObject itemToEquip, EquipMask wieldedLocation)
+        private bool Unequip(EquipMask location)
         {
-            var offhand = GetEquippedOffHand();
-            if (offhand == null)
+            var item = EquippedObjects.Values.FirstOrDefault(e => e.CurrentWieldedLocation == location);
+            if (item == null)
                 return false;
 
-            if (TryDequipObjectWithNetworking(offhand.Guid, out var dequippedItem, DequipObjectAction.DequipToPack))
+            if (TryDequipObjectWithNetworking(item.Guid, out var dequippedItem, DequipObjectAction.DequipToPack))
             {
                 if (!TryCreateInInventoryWithNetworking(dequippedItem))
                 {
-                    if(!TryEquipObjectWithNetworking(dequippedItem, EquipMask.Shield))
-                        log.Warn($"0x{dequippedItem.Guid}:{dequippedItem.Name} for player {Name} lost from UnequipOffhand failure.");
+                    if (!TryEquipObjectWithNetworking(dequippedItem, location))
+                        log.Warn($"0x{dequippedItem.Guid}:{dequippedItem.Name} for player {Name} lost from Unequip failure.");
                     return false;
                 }
                 return true;
@@ -1605,7 +1605,7 @@ namespace ACE.Server.WorldObjects
             else
                 return false;
         }
-        
+
         /// <summary>
         /// This method processes the Game Action (F7B1) Get And Wield Item (0x001A)
         /// This is raised when we:
@@ -1710,10 +1710,23 @@ namespace ACE.Server.WorldObjects
                         }
 
                         var equipChain = new ActionChain();
-                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && HasIncompatibleOffhand(item, wieldedLocation))
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            equipChain.AddAction(this, () => UnequipOffhand(item, wieldedLocation));
-                            equipChain.AddDelaySeconds(0.1);
+                            if (HasIncompatibleOffhand(item, wieldedLocation))
+                            {
+                                equipChain.AddAction(this, () => Unequip(EquipMask.Shield));
+                                equipChain.AddDelaySeconds(0.1);
+                            }
+                            else if (wieldedLocation == EquipMask.Cloak && GetEquippedLeyLineAmulet != null)
+                            {
+                                equipChain.AddAction(this, () => Unequip(EquipMask.Cloak));
+                                equipChain.AddDelaySeconds(0.1);
+                            }
+                            else if (wieldedLocation == EquipMask.TrinketOne && GetEquippedTrinket() != null)
+                            {
+                                equipChain.AddAction(this, () => Unequip(EquipMask.TrinketOne));
+                                equipChain.AddDelaySeconds(0.1);
+                            }
                         }
 
                         equipChain.AddAction(this, () =>
@@ -1751,10 +1764,23 @@ namespace ACE.Server.WorldObjects
             else
             {
                 var equipChain = new ActionChain();
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && HasIncompatibleOffhand(item, wieldedLocation))
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
-                    equipChain.AddAction(this, () => UnequipOffhand(item, wieldedLocation));
-                    equipChain.AddDelaySeconds(0.1);
+                    if (HasIncompatibleOffhand(item, wieldedLocation))
+                    {
+                        equipChain.AddAction(this, () => Unequip(EquipMask.Shield));
+                        equipChain.AddDelaySeconds(0.1);
+                    }
+                    else if (wieldedLocation == EquipMask.Cloak && GetEquippedLeyLineAmulet != null)
+                    {
+                        equipChain.AddAction(this, () => Unequip(EquipMask.Cloak));
+                        equipChain.AddDelaySeconds(0.1);
+                    }
+                    else if (wieldedLocation == EquipMask.TrinketOne && GetEquippedTrinket() != null)
+                    {
+                        equipChain.AddAction(this, () => Unequip(EquipMask.TrinketOne));
+                        equipChain.AddDelaySeconds(0.1);
+                    }
                 }
 
                 equipChain.AddAction(this, () => DoHandleActionGetAndWieldItem(item, fromContainer, rootOwner, wasEquipped, wieldedLocation));
