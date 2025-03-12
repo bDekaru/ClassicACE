@@ -1570,7 +1570,7 @@ namespace ACE.Server.WorldObjects
         private bool HasIncompatibleOffhand(WorldObject itemToEquip, EquipMask wieldedLocation)
         {
             // Only remove offhand for primary weapon equips
-            if (wieldedLocation != EquipMask.MeleeWeapon && wieldedLocation != EquipMask.TwoHanded && wieldedLocation != EquipMask.MissileWeapon)
+            if (wieldedLocation != EquipMask.MeleeWeapon && wieldedLocation != EquipMask.TwoHanded && wieldedLocation != EquipMask.MissileWeapon && wieldedLocation != EquipMask.Held)
                 return false;
 
             var offhand = GetEquippedOffHand();
