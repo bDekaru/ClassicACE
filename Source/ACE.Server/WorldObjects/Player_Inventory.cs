@@ -4427,18 +4427,5 @@ namespace ACE.Server.WorldObjects
         {
             return GetEquippedObjectsOfWCID(weenieClassId).Select(i => i.StackSize ?? 1).Sum();
         }
-
-        public void HandleInventoryOnLogin()
-        {
-            foreach(var item in Inventory.Values)
-            {
-                item.ExtraItemChecks();
-                            }
-
-            foreach (var item in EquippedObjects.Values)
-                        {
-                item.ExtraItemChecks();
-                        }
-                    }
-                }
+    }
 }

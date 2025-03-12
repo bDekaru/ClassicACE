@@ -47,7 +47,24 @@ namespace ACE.Server.WorldObjects
 
             EquippedObjectsLoaded = true;
 
+            OnInitialEquipmentLoadCompleted();
+
             SetChildren();
+        }
+
+        /// <summary>
+        /// This event is raised after the containers items have been completely loaded from the database
+        /// </summary>
+        protected void OnInitialEquipmentLoadCompleted()
+        {
+            if(InventoryLoaded && EquippedObjectsLoaded)
+                ExtraItemChecks();
+        }
+
+        protected override void OnInitialInventoryLoadCompleted()
+        {
+            if (InventoryLoaded && EquippedObjectsLoaded)
+                ExtraItemChecks();
         }
 
         public bool WieldedLocationIsAvailable(WorldObject item, EquipMask wieldedLocation)

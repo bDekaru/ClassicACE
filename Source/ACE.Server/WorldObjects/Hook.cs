@@ -115,6 +115,8 @@ namespace ACE.Server.WorldObjects
 
         protected override void OnInitialInventoryLoadCompleted()
         {
+            base.OnInitialInventoryLoadCompleted();
+
             var hidden = !(House?.RootHouse?.HouseHooksVisible ?? true);
 
             Ethereal = !HasItem;

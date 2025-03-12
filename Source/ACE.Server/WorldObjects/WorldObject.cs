@@ -1677,8 +1677,23 @@ namespace ACE.Server.WorldObjects
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (this is Creature)
+                if (this is Creature creature)
+                {
+                    // Skip checking subcontainers here as they will be checked independently when their Container.OnInitialInventoryLoadCompleted() triggers.
+
+                    foreach (var equippedItem in creature.EquippedObjects.Values)
+                    {
+                        if (!(equippedItem is Container)) 
+                            equippedItem.ExtraItemChecks();
+                    }
+
+                    foreach (var containedItem in creature.Inventory.Values)
+                    {
+                        if(!(containedItem is Container))
+                            containedItem.ExtraItemChecks();
+                    }
                     return;
+                }
 
                 var currentVersion = 1;
 
@@ -1699,12 +1714,20 @@ namespace ACE.Server.WorldObjects
                 }
 
                 var owner = Wielder ?? Container;
-                bool ownerIsMonster = owner != null && owner is Creature creature && !creature.Guid.IsPlayer() && (creature.Attackable || creature.TargetingTactic != TargetingTactic.None);
+                bool ownerIsMonster = owner != null && owner is Creature creatureOwner && !creatureOwner.Guid.IsPlayer() && (creatureOwner.Attackable || creatureOwner.TargetingTactic != TargetingTactic.None);
                 if (ownerIsMonster)
                     return;
 
-                if (owner is Container container)
-                    UpdateGameplayMode(container);
+                if (owner is Container containerOwner)
+                    UpdateGameplayMode(containerOwner);
+
+                if (this is Container container)
+                {
+                    foreach (var containedItem in container.Inventory.Values)
+                    {
+                        containedItem.ExtraItemChecks();
+                    }
+                }
 
                 if (Version == null || Version < currentVersion) // Monsters can keep unmodified items for now due to balance reasons.
                 {
@@ -2086,6 +2109,24 @@ namespace ACE.Server.WorldObjects
             { SpellId.ArmorOther6, (int)SpellId.ArmorMasteryOther6 },
             { SpellId.ArmorOther7, (int)SpellId.ArmorMasteryOther7 },
             { SpellId.ArmorOther8, (int)SpellId.ArmorMasteryOther8 },
+
+            { SpellId.ImperilOther1, 0 },
+            { SpellId.ImperilOther2, 0 },
+            { SpellId.ImperilOther3, 0 },
+            { SpellId.ImperilOther4, 0 },
+            { SpellId.ImperilOther5, 0 },
+            { SpellId.ImperilOther6, 0 },
+            { SpellId.ImperilOther7, 0 },
+            { SpellId.ImperilOther8, 0 },
+
+            { SpellId.ImperilSelf1, 0 },
+            { SpellId.ImperilSelf2, 0 },
+            { SpellId.ImperilSelf3, 0 },
+            { SpellId.ImperilSelf4, 0 },
+            { SpellId.ImperilSelf5, 0 },
+            { SpellId.ImperilSelf6, 0 },
+            { SpellId.ImperilSelf7, 0 },
+            { SpellId.ImperilSelf8, 0 },
 
             { SpellId.ForceArmor, 0 },
             { SpellId.PanoplyQueenslayer, 0 },

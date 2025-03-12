@@ -1017,12 +1017,17 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        public override void BeforeEnterWorld()
+        {
+            // Override base method to delay calling ExtraItemChecks() until OnInitialInventoryLoadCompleted();
+        }
+
         /// <summary>
         /// This event is raised after the containers items have been completely loaded from the database
         /// </summary>
         protected virtual void OnInitialInventoryLoadCompleted()
         {
-            // empty base
+            ExtraItemChecks();
         }
 
         /// <summary>

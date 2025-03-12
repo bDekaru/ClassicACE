@@ -171,8 +171,6 @@ namespace ACE.Server.WorldObjects
 
         public override void BeforeEnterWorld()
         {
-            base.BeforeEnterWorld();
-
             if (IsNPC)
                 GenerateNewFace(); // Now that we have our location we can generate our pseudo-random appearance.
 

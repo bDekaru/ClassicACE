@@ -215,6 +215,8 @@ namespace ACE.Server.WorldObjects
 
         protected override void OnInitialInventoryLoadCompleted()
         {
+            base.OnInitialInventoryLoadCompleted();
+
             HouseManager.OnInitialInventoryLoadCompleted(this);
 
             DetermineTier();

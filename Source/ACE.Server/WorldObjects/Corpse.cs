@@ -133,6 +133,8 @@ namespace ACE.Server.WorldObjects
 
         protected override void OnInitialInventoryLoadCompleted()
         {
+            base.OnInitialInventoryLoadCompleted();
+
             if (Level.HasValue)
             {
                 var dtTimeToRot = DateTime.UtcNow.AddSeconds(TimeToRot ?? 0);
