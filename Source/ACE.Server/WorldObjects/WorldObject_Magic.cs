@@ -737,9 +737,33 @@ namespace ACE.Server.WorldObjects
             }
 
             var currentPos = new Position(creature.Location);
-            targetPlayer.Teleport(creature.Location);
-            targetPlayer.SetPosition(PositionType.TeleportedCharacter, currentPos);
+
+            targetPlayer.IsBusy = true;
+            var actionChain = new ActionChain();
+            if (targetPlayer.CurrentMotionState.Stance != MotionStance.NonCombat)
+                targetPlayer.EnqueueMotion_Force(actionChain, MotionStance.NonCombat, MotionCommand.Ready, (MotionCommand)targetPlayer.CurrentMotionState.Stance);
+            targetPlayer.EnqueueMotion_Force(actionChain, MotionStance.NonCombat, MotionCommand.EnterPortal);
+            actionChain.AddAction(targetPlayer, () =>
+            {
+                targetPlayer.IsBusy = false;
+                targetPlayer.Teleport(creature.Location);
+                targetPlayer.SetPosition(PositionType.TeleportedCharacter, currentPos);
+            });
+            actionChain.EnqueueChain();
+
             targetCorpse.HasBeenResurrected = true;
+
+            // Attempt to move corpse to caster's location
+            var prevCorpseLoc = targetCorpse.Location;
+            var newCorpseLoc = new Position(creature.Location);
+            var setPos = new Physics.Common.SetPosition(newCorpseLoc.PhysPosition(), Physics.Common.SetPositionFlags.Teleport | Physics.Common.SetPositionFlags.Slide);
+            if (targetCorpse.PhysicsObj.SetPosition(setPos) == Physics.Common.SetPositionError.OK)
+            {
+                targetCorpse.Location = targetCorpse.PhysicsObj.Position.ACEPosition();
+                if (prevCorpseLoc.Landblock != targetCorpse.Location.Landblock)
+                    LandblockManager.RelocateObjectForPhysics(targetCorpse, true);
+                targetCorpse.SendUpdatePosition(true);
+            }
 
             int minBoostValue = Math.Min(spell.Boost, spell.MaxBoost);
             int maxBoostValue = Math.Max(spell.Boost, spell.MaxBoost);
