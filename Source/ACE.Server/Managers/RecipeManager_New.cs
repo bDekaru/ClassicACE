@@ -303,7 +303,7 @@ namespace ACE.Server.Managers
                     if (target.TinkerWorkmanship == null || !target.HasArmorLevel())
                         return null;
 
-                    var allowArmor = target.ItemType == ItemType.Armor;
+                    var allowArmor = target.ItemType == ItemType.Armor || (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && target.IsClothArmor);
 
                     // allow clothing that only covers an extremity
                     // this excludes some clothing like boots and robes that cover extremities + non-extremities
