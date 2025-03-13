@@ -35,6 +35,8 @@ using ACE.Server.WorldObjects.Entity;
 using ACE.DatLoader.FileTypes;
 using ACE.DatLoader;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Physics.Common;
+using Position = ACE.Entity.Position;
 
 namespace ACE.Server.Command.Handlers.Processors
 {
@@ -8173,6 +8175,129 @@ namespace ACE.Server.Command.Handlers.Processors
             session.Network.EnqueueSend(new GameMessageSystemChat($"Discarded {session.Player.OfflineInstances.Count} offline instances from landblock 0x{session.Player.OfflineInstancesLandblockId:X4}.", ChatMessageType.Broadcast));
             session.Player.OfflineInstancesLandblockId = 0;
             session.Player.OfflineInstances = null;
+        }
+
+        [CommandHandler("export-invalid-encounters", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
+        public static void HandleExportInvalidEncounters(Session session, params string[] parameters)
+        {
+            if(PlayerManager.GetAllOnline().Count > 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "This command can only be run while there are no players logged into the world.");
+                return;
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, "Exporting invalid encounters to reports/InvalidEncounters.txt...");
+
+            var contentFolder = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+            var folder = new DirectoryInfo($"{contentFolder.FullName}{sep}reports{sep}");
+
+            if (!folder.Exists)
+                folder.Create();
+
+            var filename = $"{folder.FullName}{sep}InvalidEncounters.txt";
+
+            var fileWriter = new StreamWriter(filename);
+
+            for (ushort landblockIdX = 0x00; landblockIdX <= 0xFF; landblockIdX++)
+            {
+                for (ushort landblockIdY = 0x00; landblockIdY <= 0xFF; landblockIdY++)
+                {
+                    ushort landblockIdXY = (ushort)(landblockIdX << 8 | landblockIdY);
+
+                    var landblockId = new LandblockId(landblockIdXY);
+
+                    var encounters = DatabaseManager.World.GetCachedEncountersByLandblock(landblockIdXY, out _);
+                    encounters = encounters.Where(i => i.Id != 0).ToList(); // Remove dynamic encounters
+
+                    if (encounters.Count > 0)
+                    {
+                        var landblock = LandblockManager.GetLandblock(landblockId, false); // Manually load here so we can specify not to load adjacents.
+
+                        bool hasValidEncounter = false;
+                        bool isWaterLandblock = false;
+                        foreach (var encounter in encounters)
+                        {
+                            var weenie = DatabaseManager.World.GetCachedWeenie(encounter.WeenieClassId);
+                            if (weenie == null)
+                            {
+                                fileWriter.WriteLine($"{encounter.Id}\tInvalidWeenie\t{encounter.WeenieClassId}");
+                                fileWriter.Flush();
+                                continue;
+                            }
+
+                            var xPos = Math.Clamp((encounter.CellX * 24.0f) + 12.0f, 0.5f, 191.5f);
+                            var yPos = Math.Clamp((encounter.CellY * 24.0f) + 12.0f, 0.5f, 191.5f);
+
+                            var pos = new Physics.Common.Position();
+                            pos.ObjCellID = (uint)(encounter.Landblock << 16) | 1;
+                            pos.Frame = new Physics.Animation.AFrame(new Vector3(xPos, yPos, 0), Quaternion.Identity);
+                            pos.adjust_to_outside();
+
+                            var sortCell = LScape.get_landcell(pos.ObjCellID) as SortCell;
+                            if (sortCell == null)
+                            {
+                                fileWriter.WriteLine($"{encounter.Id}\tSortCellFailure\t{pos.ACEPosition().ToLOCString()}");
+                                fileWriter.Flush();
+                                continue;
+                            }
+
+                            if (sortCell.CurLandblock.WaterType == LandDefs.WaterType.EntirelyWater)
+                            {
+                                isWaterLandblock = true;
+                                fileWriter.WriteLine($"{encounter.Id}\tWaterLandblock\t{pos.ACEPosition().ToLOCString()}");
+                                fileWriter.Flush();
+                                continue;
+                            }
+
+                            if (sortCell.has_building())
+                            {
+                                fileWriter.WriteLine($"{encounter.Id}\tBuilding\t{pos.ACEPosition().ToLOCString()}");
+                                fileWriter.Flush();
+                                continue;
+                            }
+
+                            var location = pos.ACEPosition();
+
+                            if (!location.IsWalkable())
+                            {
+                                fileWriter.WriteLine($"{encounter.Id}\tUnwalkable\t{pos.ACEPosition().ToLOCString()}");
+                                fileWriter.Flush();
+                                continue;
+                            }
+
+                            hasValidEncounter = true;
+                        }
+
+                        if (encounters.Count > 0 && !hasValidEncounter && !isWaterLandblock)
+                        {
+                            fileWriter.WriteLine($"0\tNoValidEncountersInLandblock\t0x{landblockId.Raw:X4}");
+                            fileWriter.Flush();
+                        }
+                    }
+
+                    if (LandblockManager.GetLoadedLandblocks().Count > 100)
+                    {
+                        // Keep loaded landblocks under control.
+
+                        while (LandblockManager.HasPendingAdditionsOrRemovals)
+                        {
+                            Thread.Sleep(10);
+                        }
+
+                        LandblockManager.AddAllNonPermaLoadLandblocksToDestructionQueue();
+
+                        while (LandblockManager.GetLoadedLandblocks().Count >= 20)
+                        {
+                            Thread.Sleep(10);
+                        }
+                    }
+                }
+            }
+
+            fileWriter.Close();
+            CommandHandlerHelper.WriteOutputInfo(session, "Done.");
         }
     }
 }

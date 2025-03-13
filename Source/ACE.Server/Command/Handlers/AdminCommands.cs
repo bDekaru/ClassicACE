@@ -5395,5 +5395,38 @@ namespace ACE.Server.Command.Handlers
             var blinkLoc = player.Location.InFrontOf(distance);
             WorldManager.ThreadSafeBlink(player, blinkLoc);
         }
+
+        /// <summary>
+        /// Creates a treasure map in your inventory
+        /// </summary>
+        [CommandHandler("ciTreasureMap", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Creates a treasure map in your inventory.", "wclassid of creature to base the treasure on(string or number)\n")]
+        public static void HandleCITreasureMap(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"This command is only available in the CustomDM ruleset.", ChatMessageType.Help));
+                return;
+            }
+
+            var weenie = GetWeenieForCreate(session, parameters[0], false);
+
+            if (weenie == null)
+                return;
+
+            if (weenie.WeenieType != WeenieType.Creature)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "Weenie must be of a creature!");
+                return;
+            }
+
+            var map = TreasureMap.TryCreateTreasureMap(weenie);
+            if (map != null)
+            {
+                session.Player.TryAddToInventory(map);
+                PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has created {map.Name} (0x{map.Guid:X8}) in their inventory.");
+            }
+            else
+                CommandHandlerHelper.WriteOutputInfo(session, "Map creation failed.");
+        }
     }
 }

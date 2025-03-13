@@ -62,6 +62,22 @@ namespace ACE.Server.Managers
             }
         }
 
+        public static bool HasPendingAdditionsOrRemovals
+        {
+            get
+            {
+                landblockLock.EnterReadLock();
+                try
+                {
+                    return landblockGroupPendingAdditions.Count > 0 || destructionQueue.Count > 0;
+                }
+                finally
+                {
+                    landblockLock.ExitReadLock();
+                }
+            }
+        }
+
         public static List<LandblockGroup> GetLoadedLandblockGroups()
         {
             landblockLock.EnterReadLock();
@@ -784,6 +800,23 @@ namespace ACE.Server.Managers
             {
                 foreach (var landblock in loadedLandblocks)
                     AddToDestructionQueue(landblock);
+            }
+            finally
+            {
+                landblockLock.ExitWriteLock();
+            }
+        }
+
+        public static void AddAllNonPermaLoadLandblocksToDestructionQueue()
+        {
+            landblockLock.EnterWriteLock();
+            try
+            {
+                foreach (var landblock in loadedLandblocks)
+                {
+                    if(!landblock.Permaload && landblock.HasNoKeepAliveObjects)
+                        AddToDestructionQueue(landblock);
+                }
             }
             finally
             {

@@ -120,6 +120,21 @@ namespace ACE.Server.WorldObjects
             TreasureEncounters.Add(t6);
         }
 
+        public static WorldObject TryCreateTreasureMap(Weenie creatureWeenie)
+        {
+            if (creatureWeenie.WeenieType != WeenieType.Creature)
+                return null;
+
+            var creature = WorldObjectFactory.CreateNewWorldObject(creatureWeenie) as Creature;
+
+            if (creature == null)
+                return null;
+
+            var treasure = TryCreateTreasureMap(creature);
+            creature.Destroy();
+
+            return treasure;
+        }
         public static WorldObject TryCreateTreasureMap(Creature creature)
         {
             if (creature == null)
@@ -153,26 +168,16 @@ namespace ACE.Server.WorldObjects
             var encounterWcid = possibleEncounterWcids[rng];
 
             var possibleEncounters = DatabaseManager.World.GetEncountersByWcid(encounterWcid);
-            if (possibleEncounters.Count == 0)
-                return null;
 
-            rng = ThreadSafeRandom.Next(0, possibleEncounters.Count() - 1);
-            var encounter = possibleEncounters[rng];
+            Vector2? coords = null;
+            for (int retries = 0; retries < 10; retries++)
+            {
+                coords = RollEncounter(possibleEncounters);
 
-            var xPos = Math.Clamp((encounter.CellX * 24.0f) + 12.0f, 0.5f, 191.5f);
-            var yPos = Math.Clamp((encounter.CellY * 24.0f) + 12.0f, 0.5f, 191.5f);
+                if (coords != null)
+                    break;
+            }
 
-            var pos = new Physics.Common.Position();
-            pos.ObjCellID = (uint)(encounter.Landblock << 16) | 1;
-            pos.Frame = new Physics.Animation.AFrame(new Vector3(xPos, yPos, 0), Quaternion.Identity);
-            pos.adjust_to_outside();
-
-            var sortCell = LScape.get_landcell(pos.ObjCellID) as SortCell;
-            if (sortCell != null && sortCell.has_building())
-                return null;
-
-            var location = new Position(pos.ObjCellID, pos.Frame.Origin, pos.Frame.Orientation);
-            var coords = location.GetMapCoords();
             if (coords == null)
                 return null;
 
@@ -191,6 +196,35 @@ namespace ACE.Server.WorldObjects
             wo.NSCoordinates = coords.Value.Y;
 
             return wo;
+        }
+
+        public static Vector2? RollEncounter(List<Database.Models.World.Encounter> possibleEncounters)
+        {
+            if (possibleEncounters == null || possibleEncounters.Count == 0)
+                return null;
+
+            var rng = ThreadSafeRandom.Next(0, possibleEncounters.Count() - 1);
+            var encounter = possibleEncounters[rng];
+
+            var xPos = Math.Clamp((encounter.CellX * 24.0f) + 12.0f, 0.5f, 191.5f);
+            var yPos = Math.Clamp((encounter.CellY * 24.0f) + 12.0f, 0.5f, 191.5f);
+
+            var pos = new Physics.Common.Position();
+            pos.ObjCellID = (uint)(encounter.Landblock << 16) | 1;
+            pos.Frame = new Physics.Animation.AFrame(new Vector3(xPos, yPos, 0), Quaternion.Identity);
+            pos.adjust_to_outside();
+
+            var sortCell = LScape.get_landcell(pos.ObjCellID) as SortCell;
+            if (sortCell == null || sortCell.has_building() || sortCell.CurLandblock.WaterType == LandDefs.WaterType.EntirelyWater)
+                return null;
+
+            var location = pos.ACEPosition();
+
+            if (!location.IsWalkable())
+                return null;
+
+            var coords = location.GetMapCoords();
+            return coords;
         }
 
         public override void ActOnUse(WorldObject activator)
