@@ -355,7 +355,7 @@ namespace ACE.Server.WorldObjects
                 case SpellType.FellowBoost:
 
                     if (spell.IsResurrectionSpell)
-                        HandleCastSpell_Ress(spell, targetCorpse, showMsg);
+                        HandleCastSpell_Ress(spell, targetCorpse, new Position(Location), showMsg);
                     else
                         HandleCastSpell_Boost(spell, targetCreature, showMsg);
                     break;
@@ -684,7 +684,7 @@ namespace ACE.Server.WorldObjects
             HandleBoostTransferDeath(creature, targetCreature);
         }
 
-        private void HandleCastSpell_Ress(Spell spell, Corpse targetCorpse, bool showMsg = true, bool confirmed = false)
+        private void HandleCastSpell_Ress(Spell spell, Corpse targetCorpse, Position castFromPosition, bool showMsg = true, bool confirmed = false)
         {
             if (targetCorpse == null)
                 return;
@@ -724,7 +724,7 @@ namespace ACE.Server.WorldObjects
                         player.SendChatMessage(player, $"{targetPlayer.Name} is considering your resurrection attempt.", ChatMessageType.Magic);
 
                     var msg = $"{Name} is attempting to resurrect one of your corpses, accept?";
-                    var confirm = new Confirmation_Resurrect(targetPlayer.Guid, Guid, () => HandleCastSpell_Ress(spell, targetCorpse, showMsg, true));
+                    var confirm = new Confirmation_Resurrect(targetPlayer.Guid, Guid, () => HandleCastSpell_Ress(spell, targetCorpse, castFromPosition, showMsg, true));
                     if (!targetPlayer.ConfirmationManager.EnqueueSend(confirm, msg))
                         targetPlayer.SendWeenieError(WeenieError.ConfirmationInProgress);
                     return;
@@ -736,8 +736,6 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            var currentPos = new Position(creature.Location);
-
             targetPlayer.IsBusy = true;
             var actionChain = new ActionChain();
             if (targetPlayer.CurrentMotionState.Stance != MotionStance.NonCombat)
@@ -746,16 +744,16 @@ namespace ACE.Server.WorldObjects
             actionChain.AddAction(targetPlayer, () =>
             {
                 targetPlayer.IsBusy = false;
-                targetPlayer.Teleport(creature.Location);
-                targetPlayer.SetPosition(PositionType.TeleportedCharacter, currentPos);
+                targetPlayer.Teleport(castFromPosition);
+                targetPlayer.SetPosition(PositionType.TeleportedCharacter, castFromPosition);
             });
             actionChain.EnqueueChain();
 
             targetCorpse.HasBeenResurrected = true;
 
-            // Attempt to move corpse to caster's location
+            // Attempt to move corpse to caster's location when the spell was cast.
             var prevCorpseLoc = targetCorpse.Location;
-            var newCorpseLoc = new Position(creature.Location);
+            var newCorpseLoc = new Position(castFromPosition);
             var setPos = new Physics.Common.SetPosition(newCorpseLoc.PhysPosition(), Physics.Common.SetPositionFlags.Teleport | Physics.Common.SetPositionFlags.Slide);
             if (targetCorpse.PhysicsObj.SetPosition(setPos) == Physics.Common.SetPositionError.OK)
             {
