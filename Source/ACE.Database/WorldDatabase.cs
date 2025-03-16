@@ -13,6 +13,7 @@ using ACE.Database.Entity;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
+using ACE.Entity;
 
 namespace ACE.Database
 {
@@ -288,6 +289,39 @@ namespace ACE.Database
                             select new HouseListResults(weenie, winst);
 
                 return query.ToList();
+            }
+        }
+
+
+        public List<(uint Wcid, Position Location)> GetPortalDestinationsByLandblock(ushort landblockId)
+        {
+            using (var context = new WorldDbContext())
+            {
+                var query = context.WeeniePropertiesPosition.FromSqlRaw($"SELECT * FROM weenie_properties_position JOIN weenie ON weenie_properties_position.object_Id=weenie.class_Id WHERE weenie.type = 7 AND weenie_properties_position.position_Type = 2 AND obj_Cell_Id >> 16 = {landblockId}");
+
+                var positionList = new List<(uint, Position)>();
+                foreach (var result in query)
+                {
+                    positionList.Add((result.ObjectId, new Position(result.ObjCellId, result.OriginX, result.OriginY, result.AnglesZ, result.AnglesX, result.AnglesY, result.AnglesZ, result.AnglesW)));
+                }
+
+                return positionList.ToList();
+            }
+        }
+
+        public List<(uint Wcid, Position Location)> GetPortalDestinationsByLandblock(List<ushort> landblockIds)
+        {
+            using (var context = new WorldDbContext())
+            {
+                var query = context.WeeniePropertiesPosition.FromSqlRaw($"SELECT * FROM weenie_properties_position JOIN weenie ON weenie_properties_position.object_Id=weenie.class_Id WHERE weenie.type = 7 AND weenie_properties_position.position_Type = 2 AND obj_Cell_Id >> 16 IN ({string.Join(",", landblockIds)})");
+
+                var positionList = new List<(uint, Position)>();
+                foreach (var result in query)
+                {
+                    positionList.Add((result.ObjectId, new Position(result.ObjCellId, result.OriginX, result.OriginY, result.AnglesZ, result.AnglesX, result.AnglesY, result.AnglesZ, result.AnglesW)));
+                }
+
+                return positionList.ToList();
             }
         }
 

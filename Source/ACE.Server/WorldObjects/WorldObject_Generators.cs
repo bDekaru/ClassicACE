@@ -773,27 +773,7 @@ namespace ACE.Server.WorldObjects
                 CheckGeneratorStatus(); // due to staging if generator hadn't entered world, reprocess CheckGeneratorStatus for first generator status to update
 
                 if (!GeneratorDisabled)
-                {
-                    if (PropertyManager.GetBool("increase_minimum_encounter_spawn_density").Item && (GetProperty(PropertyBool.IsEncounterGenerator) ?? false))
-                    {
-                        // Disable the landscape encounter generators that are too close to lifestones or portals
-                        if (!Name.ToLower().Contains("harmless")) // Harmless generators can stay enabled
-                        {
-                            foreach (var obj in CurrentLandblock.GetAllWorldObjectsForDiagnostics())
-                            {
-                                PlayerKillerStatus pkStatus = (PlayerKillerStatus)(obj.GetProperty(PropertyInt.PlayerKillerStatus) ?? 0);
-                                if ((obj.ItemType == ItemType.LifeStone || obj.ItemType == ItemType.Portal || pkStatus == PlayerKillerStatus.Vendor || pkStatus == PlayerKillerStatus.RubberGlue) && PhysicsObj.get_distance_to_object(obj.PhysicsObj, true) < 50)
-                                {
-                                    GeneratorDisabled = true;
-                                    GeneratorEnteredWorld = true;
-                                    return;
-                                }
-                            }
-                        }
-                    }
-
                     StartGenerator();   // spawn initial objects for this generator
-                }
 
                 GeneratorEnteredWorld = true;
             }
