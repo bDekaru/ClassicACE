@@ -39,7 +39,7 @@ namespace ACE.Server.Factories.Tables.Wcids
 
             ( WeenieClassName.materialsunstone,         1.00f ), // Armor Rending
             ( WeenieClassName.materialblackopal,        1.00f ), // Critical Strike
-            ( WeenieClassName.materialfireopal,         1.00f ), // Critical Blow
+            ( WeenieClassName.materialfireopal,         1.00f ), // Crippling Blow
             ( WeenieClassName.materialtigereye,         1.00f ), // Elemental Rending
         };
 

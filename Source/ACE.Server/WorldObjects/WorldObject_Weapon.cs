@@ -527,13 +527,15 @@ namespace ACE.Server.WorldObjects
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                     critDamageMod = Math.Max(critDamageMod, cripplingBlowMod);
-                else if(critDamageMod > defaultCritDamageMultiplier)
+                else if (critDamageMod > defaultCritDamageMultiplier)
                 {
                     if (GetImbuedSkillType(skill) == ImbuedSkillType.Magic)
                         critDamageMod = 2.5f;
                     else
                         critDamageMod = 3.0f;
                 }
+                else
+                    critDamageMod = Math.Max(critDamageMod, cripplingBlowMod);
             }
             return critDamageMod;
         }

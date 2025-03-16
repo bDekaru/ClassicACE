@@ -68,7 +68,7 @@ namespace ACE.Server.Factories.Tables.Wcids
 
             ( WeenieClassName.materialsunstone,         0.33f ), // Armor Rending
             ( WeenieClassName.materialblackopal,        0.33f ), // Critical Strike
-            ( WeenieClassName.materialfireopal,         0.33f ), // Critical Blow
+            ( WeenieClassName.materialfireopal,         0.33f ), // Crippling Blow
             ( WeenieClassName.materialtigereye,         0.33f ), // Elemental Rending
 
             ( WeenieClassName.materialblackgarnet,      1.00f ), // Pierce Element
@@ -168,7 +168,7 @@ namespace ACE.Server.Factories.Tables.Wcids
 
             { WeenieClassName.materialsunstone,         3.00f }, // Armor Rending
             { WeenieClassName.materialblackopal,        3.00f }, // Critical Strike
-            { WeenieClassName.materialfireopal,         3.00f }, // Critical Blow
+            { WeenieClassName.materialfireopal,         3.00f }, // Crippling Blow
             { WeenieClassName.materialtigereye,         3.00f }, // Elemental Rending
 
             //{ WeenieClassName.materialonyx              1.00f }, // Unused
