@@ -232,35 +232,38 @@ namespace ACE.Server.WorldObjects
                 }
                 else if (spell.MetaSpellType == SpellType.PortalLink)
                 {
-                    if (target.WeenieType != WeenieType.Portal)
+                    if (spell.NonComponentTargetType != target.ItemType)
                     {
                         player.SendChatMessage(this, "You cannot link that.", ChatMessageType.Magic);
                         return;
                     }
 
-                    var targetPortal = target as Portal;
-
-                    var summoned = targetPortal.OriginalPortal != null;
-
-                    var targetDID = summoned ? targetPortal.OriginalPortal : targetPortal.WeenieClassId;
-
-                    var tiePortal = GetPortal(targetDID.Value);
-
-                    if (tiePortal == null)
+                    if (target.WeenieType == WeenieType.Portal)
                     {
-                        player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouCannotLinkToThatPortal));
-                        return;
-                    }
+                        var targetPortal = target as Portal;
 
-                    var result = tiePortal.CheckUseRequirements(player);
+                        var summoned = targetPortal.OriginalPortal != null;
 
-                    if (!result.Success && result.Message != null)
-                        player.Session.Network.EnqueueSend(result.Message);
+                        var targetDID = summoned ? targetPortal.OriginalPortal : targetPortal.WeenieClassId;
 
-                    if (tiePortal.NoTie || !result.Success)
-                    {
-                        player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouCannotLinkToThatPortal));
-                        return;
+                        var tiePortal = GetPortal(targetDID.Value);
+
+                        if (tiePortal == null)
+                        {
+                            player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouCannotLinkToThatPortal));
+                            return;
+                        }
+
+                        var result = tiePortal.CheckUseRequirements(player);
+
+                        if (!result.Success && result.Message != null)
+                            player.Session.Network.EnqueueSend(result.Message);
+
+                        if (tiePortal.NoTie || !result.Success)
+                        {
+                            player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouCannotLinkToThatPortal));
+                            return;
+                        }
                     }
 
                     player.TryCastSpell(spell, target, this, tryResist: false); // This spell cast must come from the player otherwise the link property will be set on the gem instead.
