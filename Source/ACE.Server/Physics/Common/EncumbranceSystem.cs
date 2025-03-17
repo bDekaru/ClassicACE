@@ -1,9 +1,14 @@
+using ACE.Common;
+
 namespace ACE.Server.Physics.Common
 {
     public class EncumbranceSystem
     {
         public static int EncumbranceCapacity(int strength, int numAugs)
         {
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
+                strength += 40;
+
             if (strength <= 0) return 0;
 
             var bonusBurden = 30 * numAugs;
