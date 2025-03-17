@@ -593,7 +593,7 @@ namespace ACE.Server.Managers
         /// <summary>
         /// Returns the list of adjacent landblock IDs for a landblock
         /// </summary>
-        private static List<LandblockId> GetAdjacentIDs(Landblock landblock)
+        public static List<LandblockId> GetAdjacentIDs(Landblock landblock)
         {
             var adjacents = new List<LandblockId>();
 
