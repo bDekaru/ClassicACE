@@ -2060,7 +2060,7 @@ namespace ACE.Server.Command.Handlers
 
             var forwardPosition = player.Location.InFrontOf(LandDefs.CellLength * 1.5);
 
-            var distanceToRoad = landblock.GetDistanceToNearestRoad(forwardPosition, true, out var roadPosition, player.Location);
+            var distanceToRoad = landblock.GetDistanceToNearestRoad(forwardPosition, out var roadPosition, player.Location);
 
             if (roadPosition != null && distanceToRoad < LandDefs.CellLength * 2)
             {

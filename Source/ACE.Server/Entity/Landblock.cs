@@ -695,7 +695,7 @@ namespace ACE.Server.Entity
                                     }
                                 }
 
-                                if (GetDistanceToNearestRoad(wo.Location, true, out _) < 60 * awarenessMod)
+                                if (GetDistanceToNearestRoad(wo.Location, out _) < 60 * awarenessMod)
                                 {
                                     wo.GeneratorDisabled = true;
 
@@ -1449,63 +1449,70 @@ namespace ACE.Server.Entity
         }
 
         private List<Position> RoadList;
-        public List<Position> GetRoadList()
-        {
-            if (RoadList == null)
-            {
-                RoadList = new List<Position>();
 
-                for (int cellX = 0; cellX < LandDefs.BlockSide ; cellX++)
+        private static List<Position> BuildRoadList(LandblockId landblockId)
+        {
+            var roadList = new List<Position>();
+
+            var cellLandblock = DatManager.CellDat.ReadFromDat<CellLandblock>(landblockId.Raw | 0xFFFF);
+            var landblockInfo = DatManager.CellDat.ReadFromDat<LandblockInfo>((uint)landblockId.Landblock << 16 | 0xFFFE);
+
+            if (cellLandblock != null)
+            {
+                for (int cellX = 0; cellX < LandDefs.BlockSide; cellX++)
                 {
                     for (int cellY = 0; cellY < LandDefs.BlockSide; cellY++)
                     {
-                        var xPos = Math.Clamp(cellX * LandDefs.CellLength, 0, LandDefs.BlockLength);
-                        var yPos = Math.Clamp(cellY * LandDefs.CellLength, 0, LandDefs.BlockLength);
-
-                        var pos = new Position((uint)(Id.Landblock << 16) | 1, xPos, yPos, 0, 0, 0, 0, 1);
-                        pos.AdjustMapCoords();
-
-                        if (PhysicsLandblock.IsRoad(null, pos.PositionX, pos.PositionY))
-                            RoadList.Add(pos);
-                    }
-                }
-
-                if (LandblockInfo != null)
-                {
-                    foreach (var obj in LandblockInfo.Objects)
-                    {
-                        if (obj.Id == 0x02000451) // Desert path marker
+                        var terrain = cellLandblock.Terrain[cellX * (LandDefs.BlockSide + 1) + cellY];
+                        if ((terrain & 0x3) != 0) // road cell
                         {
-                            var pos = new Position((uint)(Id.Landblock << 16) | 1, obj.Frame.Origin.X, obj.Frame.Origin.Y, obj.Frame.Origin.Z, obj.Frame.Orientation.X, obj.Frame.Orientation.Y, obj.Frame.Orientation.Z, obj.Frame.Orientation.W);
+                            var xPos = Math.Clamp(cellX * LandDefs.CellLength, 0, LandDefs.BlockLength);
+                            var yPos = Math.Clamp(cellY * LandDefs.CellLength, 0, LandDefs.BlockLength);
+
+                            var pos = new Position((uint)(landblockId.Landblock << 16) | 1, xPos, yPos, 0, 0, 0, 0, 1);
                             pos.AdjustMapCoords();
-                            RoadList.Add(pos);
+
+                            roadList.Add(pos);
                         }
                     }
                 }
             }
 
-            return RoadList;
+            if (landblockInfo != null)
+            {
+                foreach (var obj in landblockInfo.Objects)
+                {
+                    if (obj.Id == 0x02000451) // Desert path marker
+                    {
+                        var pos = new Position((uint)(landblockId.Landblock << 16) | 1, obj.Frame.Origin.X, obj.Frame.Origin.Y, obj.Frame.Origin.Z, obj.Frame.Orientation.X, obj.Frame.Orientation.Y, obj.Frame.Orientation.Z, obj.Frame.Orientation.W);
+                        pos.AdjustMapCoords();
+                        roadList.Add(pos);
+                    }
+                }
+            }
+
+            return roadList;
         }
-        public float GetDistanceToNearestRoad(Position position, bool includeAdjacents, out Position roadPosition, Position avoidPosition = null)
+        public float GetDistanceToNearestRoad(Position position, out Position roadPosition, Position avoidPosition = null)
         {
             roadPosition = null;
 
             if (IsDungeon)
                 return float.MaxValue;
 
-            var roadList = new List<Position>();
-            roadList.AddRange(GetRoadList());
-
-            if (includeAdjacents)
+            if (RoadList == null)
             {
-                foreach (var adjacent in Adjacents)
+                RoadList = BuildRoadList(Id);
+
+                var adjacentLandblocks = LandblockManager.GetAdjacentIDs(this);
+                foreach (var adjacent in adjacentLandblocks)
                 {
-                    roadList.AddRange(adjacent.GetRoadList());
+                    RoadList.AddRange(BuildRoadList(adjacent));
                 }
             }
 
             var closest = float.MaxValue;
-            foreach(var entry in roadList)
+            foreach(var entry in RoadList)
             {
                 if (avoidPosition != null && entry.DistanceTo(avoidPosition) < 2)
                     continue;
