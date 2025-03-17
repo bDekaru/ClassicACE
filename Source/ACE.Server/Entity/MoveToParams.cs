@@ -12,6 +12,8 @@ namespace ACE.Server.Entity
 
         public float? UseRadius;
 
+        public ACE.Entity.Position TargetPosition;
+
         public MoveToParams(Action<bool> callback, WorldObject target, float? useRadius = null)
         {
             Callback = callback;
@@ -19,6 +21,15 @@ namespace ACE.Server.Entity
             Target = target;
 
             UseRadius = useRadius;
+        }
+
+        public MoveToParams(Action<bool> callback, ACE.Entity.Position target, float? radius = null)
+        {
+            Callback = callback;
+
+            TargetPosition = target;
+
+            UseRadius = radius;
         }
     }
 }

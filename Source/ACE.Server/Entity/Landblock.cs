@@ -593,8 +593,8 @@ namespace ACE.Server.Entity
 
                 actionQueue.EnqueueAction(new ActionEventDelegate(() =>
                 {
-                    var xPos = Math.Clamp((encounter.CellX * 24.0f) + 12.0f, 0.5f, 191.5f);
-                    var yPos = Math.Clamp((encounter.CellY * 24.0f) + 12.0f, 0.5f, 191.5f);
+                    var xPos = Math.Clamp((encounter.CellX * LandDefs.CellLength) + LandDefs.CellLength / 2, 0.5f, LandDefs.BlockLength - 0.5f);
+                    var yPos = Math.Clamp((encounter.CellY * LandDefs.CellLength) + LandDefs.CellLength / 2, 0.5f, LandDefs.BlockLength - 0.5f);
 
                     var pos = new Physics.Common.Position();
                     pos.ObjCellID = (uint)(Id.Landblock << 16) | 1;
@@ -615,7 +615,7 @@ namespace ACE.Server.Entity
                     if (PropertyManager.GetBool("increase_minimum_encounter_spawn_density").Item)
                     {
                         // Avoid some less than ideal locations
-                        if (!wo.Location.IsWalkable() || PhysicsLandblock.OnRoad(new Vector3(xPos, yPos, pos.Frame.Origin.Z)))
+                        if (!wo.Location.IsWalkable() || PhysicsLandblock.IsRoad(null, xPos, yPos))
                         {
                             wo.Destroy();
                             return;
@@ -693,6 +693,13 @@ namespace ACE.Server.Entity
                                         wo.LongDesc = $"{(wo.LongDesc != null && wo.LongDesc.Length > 0 ? $"{wo.LongDesc}\n\n" : "")}Disabled due to proximity to portal drop: {weenie.GetName()}";
                                         break;
                                     }
+                                }
+
+                                if(GetDistanceToNearestRoad(wo.Location, true, out _) < 60 * awarenessMod)
+                                {
+                                    wo.GeneratorDisabled = true;
+
+                                    wo.LongDesc = $"{(wo.LongDesc != null && wo.LongDesc.Length > 0 ? $"{wo.LongDesc}\n\n" : "")}Disabled due to proximity to a road.";
                                 }
                             }
                         }
@@ -1440,6 +1447,78 @@ namespace ACE.Server.Entity
             return list;
         }
 
+        private List<Position> RoadList;
+        public List<Position> GetRoadList()
+        {
+            if (RoadList == null)
+            {
+                RoadList = new List<Position>();
+
+                for (int cellX = 0; cellX < LandDefs.BlockSide ; cellX++)
+                {
+                    for (int cellY = 0; cellY < LandDefs.BlockSide; cellY++)
+                    {
+                        var xPos = Math.Clamp(cellX * LandDefs.CellLength, 0, LandDefs.BlockLength);
+                        var yPos = Math.Clamp(cellY * LandDefs.CellLength, 0, LandDefs.BlockLength);
+
+                        var pos = new Position((uint)(Id.Landblock << 16) | 1, xPos, yPos, 0, 0, 0, 0, 1);
+                        pos.AdjustMapCoords();
+
+                        if (PhysicsLandblock.IsRoad(null, pos.PositionX, pos.PositionY))
+                            RoadList.Add(pos);
+                    }
+                }
+
+                if (LandblockInfo != null)
+                {
+                    foreach (var obj in LandblockInfo.Objects)
+                    {
+                        if (obj.Id == 0x02000451) // Desert path marker
+                        {
+                            var pos = new Position((uint)(Id.Landblock << 16) | 1, obj.Frame.Origin.X, obj.Frame.Origin.Y, obj.Frame.Origin.Z, obj.Frame.Orientation.X, obj.Frame.Orientation.Y, obj.Frame.Orientation.Z, obj.Frame.Orientation.W);
+                            pos.AdjustMapCoords();
+                            RoadList.Add(pos);
+                        }
+                    }
+                }
+            }
+
+            return RoadList;
+        }
+        public float GetDistanceToNearestRoad(Position position, bool includeAdjacents, out Position roadPosition, Position avoidPosition = null)
+        {
+            roadPosition = null;
+
+            if (IsDungeon)
+                return float.MaxValue;
+
+            var roadList = new List<Position>();
+            roadList.AddRange(GetRoadList());
+
+            if (includeAdjacents)
+            {
+                foreach (var adjacent in Adjacents)
+                {
+                    roadList.AddRange(adjacent.GetRoadList());
+                }
+            }
+
+            var closest = float.MaxValue;
+            foreach(var entry in roadList)
+            {
+                if (avoidPosition != null && entry.DistanceTo(avoidPosition) < 2)
+                    continue;
+
+                var distance = entry.DistanceTo(position);
+                if (distance < closest)
+                {
+                    closest = distance;
+                    roadPosition = new Position(entry);
+                }
+            }
+
+            return closest;
+        }
         public WorldObject GetObject(uint objectId)
         {
             return GetObject(new ObjectGuid(objectId));

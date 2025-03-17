@@ -151,6 +151,96 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        public void CreateMoveToChain(Position target, Action<bool> callback, float? radius = null)
+        {
+            if (FastTick)
+            {
+                CreateMoveToChain2(target, callback, radius);
+                return;
+            }
+
+            var thisMoveToChainNumber = GetNextMoveToChainNumber();
+
+            if (target == null)
+            {
+                StopExistingMoveToChains();
+                log.Error($"{Name}.CreateMoveToChain: target is null");
+
+                callback(false);
+                return;
+            }
+
+            // fix bug in magic combat mode after walking to target,
+            // crouch animation steps out of range
+            if (radius == null)
+                radius = 0.6f;
+
+            if (CombatMode == CombatMode.Magic)
+                radius = Math.Max(0.0f, radius.Value - 0.2f);
+
+            // already within use distance?
+            var withinRadius = Location.DistanceTo(target) <= radius;
+            if (withinRadius)
+            {
+                lastCompletedMove = thisMoveToChainNumber;
+                callback(true);
+                return;
+            }
+
+            MoveToPosition(target);
+
+            moveToChainStartTime = DateTime.UtcNow;
+
+            MoveToChain(target, thisMoveToChainNumber, callback, radius);
+        }
+
+        public void MoveToChain(Position target, int thisMoveToChainNumber, Action<bool> callback, float? radius = null)
+        {
+            if (thisMoveToChainNumber != moveToChainCounter)
+            {
+                if (thisMoveToChainNumber > lastCompletedMove)
+                    lastCompletedMove = thisMoveToChainNumber;
+
+                callback(false);
+                return;
+            }
+
+            // Break loop if CurrentLandblock == null (we portaled or logged out)
+            if (CurrentLandblock == null)
+            {
+                StopExistingMoveToChains(); // This increments our moveToChainCounter and thus, should stop any additional actions in this chain
+                callback(false);
+                return;
+            }
+
+            // Have we timed out?
+            if (moveToChainStartTime + defaultMoveToTimeout <= DateTime.UtcNow)
+            {
+                StopExistingMoveToChains(); // This increments our moveToChainCounter and thus, should stop any additional actions in this chain
+                callback(false);
+                return;
+            }
+
+            // Are we within radius?
+            var success = Location.DistanceTo(target) <= radius;
+
+            if (!success)
+            {
+                // target not reached yet
+                var actionChain = new ActionChain();
+                actionChain.AddDelaySeconds(0.1f);
+                actionChain.AddAction(this, () => MoveToChain(target, thisMoveToChainNumber, callback, radius));
+                actionChain.EnqueueChain();
+            }
+            else
+            {
+                if (thisMoveToChainNumber > lastCompletedMove)
+                    lastCompletedMove = thisMoveToChainNumber;
+
+                callback(true);
+            }
+        }
+
         public Position StartJump;
 
         public void ChargeTo(WorldObject target)

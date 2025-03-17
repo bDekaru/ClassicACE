@@ -21,6 +21,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Database.Models.Shard;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity.Models;
+using ACE.Server.Physics.Common;
 
 namespace ACE.Server.Command.Handlers
 {
@@ -2037,6 +2038,45 @@ namespace ACE.Server.Command.Handlers
                 CommandHandlerHelper.WriteOutputInfo(session, $"Current Location: {landblockDescription.Name}\nDirections: {landblockDescription.Directions}\nReference: {landblockDescription.Reference}\nMacro Region: {landblockDescription.MacroRegion}\nMicro Region: {landblockDescription.MicroRegion}");
             else
                 CommandHandlerHelper.WriteOutputInfo(session, $"You are at an unknown location.");
+        }
+
+        [CommandHandler("FollowRoad", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Follows the nearest road")]
+        public static void HandleFollowRoad(Session session, params string[] parameters)
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            {
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Unknown command: FollowRoad", ChatMessageType.Help));
+                return;
+            }
+
+            var player = session.Player;
+            if (player == null)
+                return;
+
+            var landblock = player.CurrentLandblock;
+
+            if (landblock == null)
+                return;
+
+            var forwardPosition = player.Location.InFrontOf(LandDefs.CellLength * 1.5);
+
+            var distanceToRoad = landblock.GetDistanceToNearestRoad(forwardPosition, true, out var roadPosition, player.Location);
+
+            if (roadPosition != null && distanceToRoad < LandDefs.CellLength * 2)
+            {
+                player.CreateMoveToChain(roadPosition, (success) =>
+                {
+                    if (success)
+                    {
+                        var actionChain = new ActionChain();
+                        actionChain.AddDelaySeconds(0.1);
+                        actionChain.AddAction(session.Player, () => HandleFollowRoad(session));
+                        actionChain.EnqueueChain();
+                    }
+                }, 2);
+            }
+            else
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Can't find a road to follow.", ChatMessageType.Help));
         }
     }
 }

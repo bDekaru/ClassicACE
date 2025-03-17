@@ -116,6 +116,53 @@ namespace ACE.Server.WorldObjects
             PhysicsObj.cancel_moveto();
         }
 
+        public void CreateMoveToChain2(ACE.Entity.Position target, Action<bool> callback, float? radius = null)
+        {
+            if (IsPlayerMovingTo2)
+                StopExistingMoveToChains2();
+
+            if (MoveToParams != null)
+                CheckMoveToParams();
+
+            if (target == null)
+            {
+                log.Error($"{Name}.MoveTo: target is null");
+                callback(false);
+                return;
+            }
+
+            if (radius == null)
+                radius = 0.6f;
+
+            var withinRadius = Location.DistanceTo(target) <= radius;
+
+            if (withinRadius)
+            {
+                callback(true);
+
+                return;
+            }
+
+            // send command to client
+            MoveToPosition(target, radius);
+
+            // start on server
+            // forward this to PhysicsObj.MoveManager.MoveToManager
+            var mvp = GetMoveToParams(target, radius);
+
+            if (!PhysicsObj.IsMovingOrAnimating)
+                //PhysicsObj.UpdateTime = PhysicsTimer.CurrentTime - PhysicsGlobals.MinQuantum;
+                PhysicsObj.UpdateTime = PhysicsTimer.CurrentTime;
+
+            IsPlayerMovingTo2 = true;
+
+            MoveToParams = new MoveToParams(callback, target, radius);
+
+            PhysicsObj.MoveToPosition(target.PhysPosition(), mvp);
+            //PhysicsObj.LastMoveWasAutonomous = false;
+
+            PhysicsObj.update_object();
+        }
         public MovementParameters GetMoveToParams(WorldObject target, float? useRadius = null)
         {
             var mvp = new MovementParameters();
@@ -123,6 +170,23 @@ namespace ACE.Server.WorldObjects
 
             // copied from Creature.SetWalkRunTreshold
             var dist = Location.DistanceTo(target.Location);
+            if (dist >= mvp.WalkRunThreshold / 2.0f)
+                mvp.CanRun = false;
+
+            // move directly to portal origin
+            //if (target is Portal)
+            //mvp.UseSpheres = false;
+
+            return mvp;
+        }
+
+        public MovementParameters GetMoveToParams(ACE.Entity.Position target, float? radius = null)
+        {
+            var mvp = new MovementParameters();
+            mvp.DistanceToObject = radius ?? 0.6f;
+
+            // copied from Creature.SetWalkRunTreshold
+            var dist = Location.DistanceTo(target);
             if (dist >= mvp.WalkRunThreshold / 2.0f)
                 mvp.CanRun = false;
 
@@ -151,7 +215,7 @@ namespace ACE.Server.WorldObjects
 
             IsPlayerMovingTo2 = false;
 
-            if (MoveToParams.Callback == null)
+            if (MoveToParams == null || MoveToParams.Callback == null)
             {
                 // nothing to do -- we are done here
                 MoveToParams = null;
@@ -187,7 +251,7 @@ namespace ACE.Server.WorldObjects
         {
             var isFacing = IsFacing(MoveToParams.Target);
 
-            var withinUseRadius = MoveToParams.UseRadius == null || CurrentLandblock.WithinUseRadius(this, MoveToParams.Target.Guid, out _, MoveToParams.UseRadius);
+            var withinUseRadius = MoveToParams.UseRadius == null || (MoveToParams.Target != null && CurrentLandblock.WithinUseRadius(this, MoveToParams.Target.Guid, out _, MoveToParams.UseRadius)) || (MoveToParams.TargetPosition != null && Location.DistanceTo(MoveToParams.TargetPosition) <= UseRadius);
 
             var success = isFacing && withinUseRadius;
 

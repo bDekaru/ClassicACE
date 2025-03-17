@@ -865,10 +865,12 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Sends the network commands to move a player towards a position
         /// </summary>
-        public void MoveToPosition(Position position)
+        public void MoveToPosition(Position position, float? radius = null)
         {
+            var distanceToObject = radius ?? 0.6f;
+
             var moveToPosition = new Motion(this, position);
-            moveToPosition.MoveToParameters.DistanceToObject = 0.0f;
+            moveToPosition.MoveToParameters.DistanceToObject = distanceToObject;
 
             SetWalkRunThreshold(moveToPosition, position);
 
