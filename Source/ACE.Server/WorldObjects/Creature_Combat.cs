@@ -710,12 +710,12 @@ namespace ACE.Server.WorldObjects
         /// Returns the animation speed for an attack,
         /// based on the current quickness and weapon speed
         /// </summary>
-        public float GetAnimSpeed()
+        public float GetAnimSpeed(WorldObject weaponOverride = null)
         {
             var quickness = Quickness.Current;
-            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsHumanoid && GetCurrentWeaponSkill() == Skill.UnarmedCombat)
+            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsHumanoid && (weaponOverride == this || GetCurrentWeaponSkill() == Skill.UnarmedCombat))
                 quickness = Focus.Current;
-            var weaponSpeed = GetWeaponSpeed(this);
+            var weaponSpeed = GetWeaponSpeed(this, weaponOverride);
 
             var divisor = 1.0 - (quickness / 300.0) + (weaponSpeed / 150.0);
             if (divisor <= 0)

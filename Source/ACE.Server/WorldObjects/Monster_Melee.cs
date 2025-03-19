@@ -166,7 +166,11 @@ namespace ACE.Server.WorldObjects
             PrevAttackTime = Timers.RunningTime;
             NextMoveTime = PrevAttackTime + animLength + 0.5f;
 
-            var meleeDelay = ThreadSafeRandom.Next(0.0f, (float)(PowerupTime ?? 1.0f));
+            double meleeDelay;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                meleeDelay = ThreadSafeRandom.Next(0.0f, (float)(PowerupTime ?? 1.0f));
+            else
+                meleeDelay = PowerupTime ?? 1.0f;
 
             NextAttackTime = PrevAttackTime + animLength + meleeDelay;
 

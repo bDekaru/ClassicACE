@@ -286,9 +286,11 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the weapon speed, with enchantments factored in
         /// </summary>
-        public static uint GetWeaponSpeed(Creature wielder)
+        public static uint GetWeaponSpeed(Creature wielder, WorldObject weaponOverride = null)
         {
-            WorldObject weapon = GetWeapon(wielder as Player);
+            WorldObject weapon = null;
+            if (weaponOverride != wielder) // weaponOverride == wielder means override as unarmed.
+                weapon = weaponOverride ?? GetWeapon(wielder as Player);
 
             var baseSpeed = weapon?.WeaponTime ?? (int)defaultSpeed;
 

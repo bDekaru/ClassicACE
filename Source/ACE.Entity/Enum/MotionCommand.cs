@@ -495,6 +495,43 @@ namespace ACE.Entity.Enum
             }
         }
 
+        public static int GetNumStrikes(this MotionCommand motionCommand)
+        {
+            switch (motionCommand)
+            {
+                case MotionCommand.DoubleSlashLow:
+                case MotionCommand.DoubleSlashMed:
+                case MotionCommand.DoubleSlashHigh:
+                case MotionCommand.DoubleThrustLow:
+                case MotionCommand.DoubleThrustMed:
+                case MotionCommand.DoubleThrustHigh:
+                case MotionCommand.OffhandDoubleSlashLow:
+                case MotionCommand.OffhandDoubleSlashMed:
+                case MotionCommand.OffhandDoubleSlashHigh:
+                case MotionCommand.OffhandDoubleThrustLow:
+                case MotionCommand.OffhandDoubleThrustMed:
+                case MotionCommand.OffhandDoubleThrustHigh:
+                    return 2;
+
+                case MotionCommand.TripleSlashLow:                
+                case MotionCommand.TripleSlashMed:
+                case MotionCommand.TripleSlashHigh:
+                case MotionCommand.TripleThrustLow:
+                case MotionCommand.TripleThrustMed:
+                case MotionCommand.TripleThrustHigh:
+                case MotionCommand.OffhandTripleSlashLow:
+                case MotionCommand.OffhandTripleSlashMed:
+                case MotionCommand.OffhandTripleSlashHigh:
+                case MotionCommand.OffhandTripleThrustLow:
+                case MotionCommand.OffhandTripleThrustMed:
+                case MotionCommand.OffhandTripleThrustHigh:
+                    return 3;
+
+                default:
+                    return 1;
+            }
+        }
+
         public static bool IsSubsequent(this MotionCommand motionCommand)
         {
             return motionCommand >= MotionCommand.AttackHigh2 && motionCommand <= MotionCommand.AttackLow3 ||

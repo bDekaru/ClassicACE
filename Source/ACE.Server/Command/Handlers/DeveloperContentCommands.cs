@@ -6069,14 +6069,13 @@ namespace ACE.Server.Command.Handlers.Processors
             // First we determine out general tier.
             var level = CalculateLevelInternal(creature, 0);
             var floatTier = Creature.CalculateExtendedTier(level);
-            var tier = (int)floatTier;
 
             // Now that we have our tier we restart for the proper calculations.
             var simulatedBuffedAmount = 5 + ((floatTier - 0.5) * 5);
             level = CalculateLevelInternal(creature, simulatedBuffedAmount);
 
             // Add extra levels on top depending on the creature's damage, spells and other properties.
-            var damageList = new List<Tuple<int, ACE.Entity.Models.Weenie>>();
+            var damageList = new List<(float DPS, int Damage, float TimePerSwing, ACE.Entity.Models.Weenie Weapon)>();
 
             var hasSpecialAttack = false;
             if (creature.CombatTableDID.HasValue)
@@ -6092,12 +6091,20 @@ namespace ACE.Server.Command.Handlers.Processors
                         foreach (var motion in attackTypes.Value)
                         {
                             var attackFrames = motionTable.GetAttackFrames(creature.MotionTableId, MotionStance.HandCombat, motion);
+
                             foreach (var attackFrame in attackFrames)
                             {
                                 var attackPart = creature.GetAttackPart(motion, attackFrame.attackHook);
                                 if (attackPart.Key == CombatBodyPart.Breath)
                                     hasSpecialAttack = true;
-                                damageList.Add(Tuple.Create(attackPart.Value.DVal, (ACE.Entity.Models.Weenie)null));
+
+                                var baseSpeed = creature.GetAnimSpeed(creature);
+                                var animLength = motionTable.GetAnimationLength(MotionStance.HandCombat, motion) / baseSpeed;
+
+                                var damage = attackPart.Value.DVal;
+                                var timePerSwing = animLength + (float)(creature.PowerupTime ?? 1.0f);
+
+                                damageList.Add((damage / timePerSwing, damage, timePerSwing, null));
                             }
                         }
                     }
@@ -6183,17 +6190,8 @@ namespace ACE.Server.Command.Handlers.Processors
             {
                 var damage = weapon.GetProperty(PropertyInt.Damage).Value;
                 var attackType = (AttackType)(weapon.GetProperty(PropertyInt.AttackType) ?? 0);
-                var weaponType = (WeaponType)(weapon.GetProperty(PropertyInt.WeaponType) ?? 0);
+
                 var cleaveTargets = weapon.GetProperty(PropertyInt.Cleaving);
-
-                if ((attackType & AttackType.TripleStrike) != 0)
-                    damage *= 3;
-                else if ((attackType & AttackType.DoubleStrike) != 0)
-                    damage *= 2;
-
-                if (weaponType == WeaponType.TwoHanded)
-                    damage *= 2;
-
                 if (cleaveTargets != null)
                     damage *= cleaveTargets.Value - 1;
 
@@ -6216,7 +6214,57 @@ namespace ACE.Server.Command.Handlers.Processors
                     damage += highestDamageRaising + highestDamageRaisingRare + highestMaxDamageRaising;
                 }
 
-                damageList.Add(Tuple.Create(damage, weapon));
+                var weaponObj = WorldObjectFactory.CreateWorldObject(weapon, ObjectGuid.Invalid);
+                var weaponStance = creature.GetWeaponStance(weaponObj);
+
+                var motionTable = DatManager.PortalDat.ReadFromDat<MotionTable>(creature.MotionTableId);
+                var combatTable = DatManager.PortalDat.ReadFromDat<CombatManeuverTable>(creature.CombatTableDID.Value);
+                combatTable.Stances.TryGetValue(weaponStance, out var stanceManeuvers);
+
+                if (stanceManeuvers != null)
+                {
+                    foreach (var combatManeuvers in stanceManeuvers.Table.Values)
+                    {
+                        foreach (var attackTypes in combatManeuvers.Table)
+                        {
+                            if (attackType.HasFlag(attackTypes.Key))
+                            {
+                                foreach (var motion in attackTypes.Value)
+                                {
+                                    var attackFrames = motionTable.GetAttackFrames(creature.MotionTableId, MotionStance.HandCombat, motion);
+
+                                    foreach (var attackFrame in attackFrames)
+                                    {
+                                        var baseSpeed = creature.GetAnimSpeed(weaponObj);
+                                        var animLength = motionTable.GetAnimationLength(weaponStance, motion) / baseSpeed;
+                                        var timePerSwing = animLength + (float)(creature.PowerupTime ?? 1.0f);
+
+                                        int numStrikes;
+                                        if (weaponStance == MotionStance.TwoHandedSwordCombat)
+                                            numStrikes = 2;
+                                        else
+                                            numStrikes = motion.GetNumStrikes();
+
+                                        damageList.Add(((damage * numStrikes) / timePerSwing, damage * numStrikes, timePerSwing, weapon));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    var baseSpeed = creature.GetAnimSpeed(weaponObj);
+                    var lauchTime = motionTable.GetAnimationLength(weaponStance, MotionCommand.AimLevel) / baseSpeed;
+                    var reloadTime = motionTable.GetAnimationLength(weaponStance, MotionCommand.Reload) / baseSpeed;
+                    var linkAnim = reloadTime > 0 ? MotionCommand.Reload : MotionCommand.AimLevel;
+                    var linkTime = motionTable.GetAnimationLength(weaponStance, linkAnim, MotionCommand.Ready) / baseSpeed;
+                    var timePerSwing = lauchTime + reloadTime + linkTime + (float)(creature.PowerupTime ?? 1.0f);
+
+                    damageList.Add((damage / timePerSwing, damage, timePerSwing, weapon));
+                }
+
+                weaponObj.DeleteObject();
             }
 
             var highestMissileWeaponMod = 0.0;
@@ -6250,7 +6298,23 @@ namespace ACE.Server.Command.Handlers.Processors
                 if (ammo.Count > 0)
                     highestAmmoDamage = ammo.OrderByDescending(w => w.GetProperty(PropertyInt.Damage)).First().GetProperty(PropertyInt.Damage).Value;
 
-                damageList.Add(Tuple.Create((int)(highestMissileWeaponMod * (highestMissileWeaponDamage + highestAmmoDamage)), bestMissileWeapon));
+                var damage = (int)(highestMissileWeaponMod * (highestMissileWeaponDamage + highestAmmoDamage));
+
+                var weaponObj = WorldObjectFactory.CreateWorldObject(bestMissileWeapon, ObjectGuid.Invalid);
+                var weaponStance = creature.GetWeaponStance(weaponObj);
+
+                var motionTable = DatManager.PortalDat.ReadFromDat<MotionTable>(creature.MotionTableId);
+
+                var baseSpeed = creature.GetAnimSpeed(weaponObj);
+                var lauchTime = motionTable.GetAnimationLength(weaponStance, MotionCommand.AimLevel) / baseSpeed;
+                var reloadTime = motionTable.GetAnimationLength(weaponStance, MotionCommand.Reload) / baseSpeed;
+                var linkAnim = reloadTime > 0 ? MotionCommand.Reload : MotionCommand.AimLevel;
+                var linkTime = motionTable.GetAnimationLength(weaponStance, linkAnim, MotionCommand.Ready) / baseSpeed;
+                var timePerSwing = lauchTime + reloadTime + linkTime + (float)(creature.PowerupTime ?? 1.0f);
+
+                damageList.Add((damage / timePerSwing, damage, timePerSwing, bestMissileWeapon));
+
+                weaponObj.DeleteObject();
             }
 
             bool? weaponIgnoreMagicArmor = null;
@@ -6260,16 +6324,16 @@ namespace ACE.Server.Command.Handlers.Processors
             double? weaponResistanceModifier = null;
             double? weaponSlayerDamageBonus = null;
 
-            var highestMeleeAndMissileDamage = 0;
+            var highestMeleeAndMissileDPS = 0f;
             if (damageList.Count > 0)
             {
-                damageList = damageList.OrderByDescending(w => w.Item1).ToList();
+                damageList = damageList.OrderByDescending(w => w.DPS).ToList();
                 foreach(var entry in damageList)
                 {
-                    if (highestMeleeAndMissileDamage == 0)
-                        highestMeleeAndMissileDamage = entry.Item1;
+                    if (highestMeleeAndMissileDPS == 0)
+                        highestMeleeAndMissileDPS = entry.DPS;
 
-                    var weapon = entry.Item2;
+                    var weapon = entry.Weapon;
                     if (weapon != null)
                     {
                         if (weapon.GetProperty(PropertyBool.IgnoreMagicArmor) == true) // Bypasses Banes
@@ -6311,47 +6375,41 @@ namespace ACE.Server.Command.Handlers.Processors
                 }
             }
 
-            var attacksCauseBleeding = creature.AttacksCauseBleedChance.HasValue ? creature.AttacksCauseBleedChance > 0 : false;
-
             var extraLevels = 0d;
 
-            var averageMaxDamage = 16 + (tier > 1 ? 4 : 0) + ((tier - 1) * 4);
-            var damageLevelMod = (highestMeleeAndMissileDamage - averageMaxDamage) / 2;
-            if (damageLevelMod < 0)
-                damageLevelMod /= 2;
-
-            // Very low level creatures with projectile spells or bleeding attacks are difficult enough that their below average physical damage does not matter.
-            if (level < 10 && damageLevelMod < 0 && (highestLevelProjectileSpellKnown > 0) || attacksCauseBleeding)
-                damageLevelMod = 0;
+            var damageLevelMod = highestMeleeAndMissileDPS - 6;
 
             extraLevels += damageLevelMod;
 
-            if (hasSpecialAttack)
-                extraLevels += 2.5f;
+            if (creature.AttacksCauseBleedChance.HasValue ? creature.AttacksCauseBleedChance > 0 : false)
+                extraLevels += 6f;
 
-            extraLevels += highestLevelProjectileSpellKnown;
+            if (hasSpecialAttack)
+                extraLevels += 5f;
+
+            extraLevels += highestLevelProjectileSpellKnown * 2;
 
             if (creature.IgnoreMagicArmor || weaponIgnoreMagicArmor == true) // Bypasses Banes
-                extraLevels += 2.5f;
+                extraLevels += 10;
 
             if (creature.IgnoreMagicResist || weaponIgnoreMagicResist == true) // Bypasses Protections
-                extraLevels += 2.5f;
+                extraLevels += 10;
 
             var ignoreArmor = creature.IgnoreArmor.HasValue ? creature.IgnoreArmor : weaponIgnoreArmor;
             if (ignoreArmor.HasValue && ignoreArmor < 1.0) // Armor Cleaving: 0.0 = ignore 100% of armor AL.
-                extraLevels += (1.0 - ignoreArmor.Value) * 5;
+                extraLevels += (1.0 - ignoreArmor.Value) * 10;
 
             var ignoreShield = creature.IgnoreShield.HasValue ? creature.IgnoreShield : weaponIgnoreShield;
             if (ignoreShield.HasValue) // Shield Cleaving: 1.0 = Ignore 100% shield AL.
-                extraLevels += ignoreShield.Value * 5;
+                extraLevels += ignoreShield.Value * 10;
 
             var resistanceModifier = creature.ResistanceModifier.HasValue ? creature.ResistanceModifier : weaponResistanceModifier;
             if (resistanceModifier.HasValue && resistanceModifier < 1.0) // Resistance Cleaving: 0.0 = Ignore 100% resists.
-                extraLevels += (1.0 - resistanceModifier.Value) * 5;
+                extraLevels += (1.0 - resistanceModifier.Value) * 10;
 
             var slayerDamageBonus = creature.SlayerCreatureType == CreatureType.Human && creature.SlayerDamageBonus.HasValue ? creature.SlayerDamageBonus : weaponSlayerDamageBonus;
             if (slayerDamageBonus.HasValue && slayerDamageBonus > 1.0f) // Slayer: 2.0 = 200% damage against SlayerCreatureType.
-                extraLevels += (slayerDamageBonus.Value - 1.0f) / 0.5 * 5;
+                extraLevels += (slayerDamageBonus.Value - 1.0f) * 10;
 
             level += (int)extraLevels;
             level = Math.Max(level, 1);

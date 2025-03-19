@@ -156,7 +156,13 @@ namespace ACE.Server.WorldObjects
 
             var timeOffset = launchTime + reloadTime + linkTime;
 
-            NextMoveTime = NextAttackTime = PrevAttackTime + timeOffset + MissileDelay;
+            double missileDelay;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                missileDelay = MissileDelay;
+            else
+                missileDelay = PowerupTime ?? 1.0f;
+
+            NextMoveTime = NextAttackTime = PrevAttackTime + timeOffset + missileDelay;
         }
 
         /// <summary>
