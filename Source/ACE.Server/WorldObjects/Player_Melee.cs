@@ -497,6 +497,8 @@ namespace ACE.Server.WorldObjects
                 NextDualWieldAlternateReset = Time.GetFutureUnixTime(4);
             }
 
+            var swingAnimation = GetSwingAnimation();
+
             // get the proper animation speed for this attack,
             // based on weapon speed and player quickness
             var baseSpeed = GetAnimSpeed();
@@ -511,13 +513,12 @@ namespace ACE.Server.WorldObjects
                     animSpeedMod = 1.0f;
 
                 var weapon = GetEquippedMeleeWeapon();
-                if (weapon != null && weapon.W_AttackType.IsMultiStrike())
+                if (weapon != null && swingAnimation.IsMultiStrike())
                     animSpeedMod += 0.8f;
             }
 
             var animSpeed = baseSpeed * animSpeedMod;
 
-            var swingAnimation = GetSwingAnimation();
             var animLength = MotionTable.GetAnimationLength(MotionTableId, CurrentMotionState.Stance, swingAnimation, animSpeed);
             //Console.WriteLine($"AnimSpeed: {animSpeed}, AnimLength: {animLength}");
 
