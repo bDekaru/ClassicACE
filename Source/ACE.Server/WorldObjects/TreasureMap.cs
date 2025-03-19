@@ -386,6 +386,8 @@ namespace ACE.Server.WorldObjects
                             if (DefaultLocked)
                                 treasureChest.IsLocked = true;
 
+                            treasureChest.Generator = player;
+
                             if (treasureChest.EnterWorld())
                             {
                                 if (!player.TryConsumeFromInventoryWithNetworking(this, 1))

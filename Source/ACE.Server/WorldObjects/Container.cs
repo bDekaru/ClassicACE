@@ -917,7 +917,7 @@ namespace ACE.Server.WorldObjects
                 player.Session.Network.EnqueueSend(itemsToSend.ToArray());*/
             }
 
-            if (!(this is Chest) && Generator != null && GeneratorId != null) // Chests will handle this themselves.
+            if (!(this is Chest) && (Generator != null || GeneratorId != null)) // Chests will handle this themselves.
                 StartContainerDecay(); // If we're a generated container start our decay timer once we've been opened and closed.
 
         }

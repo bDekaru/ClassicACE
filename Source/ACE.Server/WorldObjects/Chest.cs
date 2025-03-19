@@ -262,7 +262,7 @@ namespace ACE.Server.WorldObjects
                     FadeOutAndDestroy(); // Chest's complete generated inventory count has been wiped out
                                          //Destroy(); // Chest's complete generated inventory count has been wiped out
             }
-            else if (Generator != null && GeneratorId != null) // If we're a generated container start our decay timer once we've been opened and closed.
+            else if (Generator != null || GeneratorId != null) // If we're a generated container start our decay timer once we've been opened and closed.
                 StartContainerDecay();
         }
 
