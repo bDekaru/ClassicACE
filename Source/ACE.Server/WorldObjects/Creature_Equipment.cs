@@ -845,7 +845,7 @@ namespace ACE.Server.WorldObjects
                 // add this flag so item can move over to corpse upon death
                 // (ACE logic: it is likely all inventory of a creature was moved over without reservation (bonded rules enforced), but ACE is slightly different in how it handles it for net same result)
 
-                if (!TryAddToInventory(item))
+                if (!TryAddToInventory(item, allowStacking: Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM))
                     item.Destroy();
             }
         }

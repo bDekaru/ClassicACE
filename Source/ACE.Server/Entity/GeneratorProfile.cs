@@ -400,7 +400,7 @@ namespace ACE.Server.Entity
 
         public bool Spawn_Container(WorldObject obj)
         {
-            var success = Generator is Container container && container.TryAddToInventory(obj);
+            var success = Generator is Container container && container.TryAddToInventory(obj, allowStacking: Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM);
 
             if (!success)
                 log.Warn($"[GENERATOR] 0x{Generator.Guid}:{Generator.WeenieClassId} {Generator.Name}.Spawn_Container({obj.Name}) - failed to add to container inventory");

@@ -1477,7 +1477,7 @@ namespace ACE.Server.WorldObjects
 
                 foreach (WorldObject wo in items)
                 {
-                    if (!corpse.TryAddToInventory(wo))
+                    if (!corpse.TryAddToInventory(wo, allowStacking: Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM))
                         log.Warn($"CalculateDeathItems_Olthoi: couldn't add item to {Name}'s corpse: {wo.Name}");
                 }
 

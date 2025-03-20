@@ -1479,6 +1479,9 @@ namespace ACE.Server.Factories
             // flat rng range, according to magloot corpse logs
             var rng = ThreadSafeRandom.Next(tierRange.min, tierRange.max);
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                rng = (int)(rng * (1 + profile.LootQualityMod));
+
             wo.SetStackSize(rng);
         }
 
