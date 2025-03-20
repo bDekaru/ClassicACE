@@ -1311,6 +1311,14 @@ namespace ACE.Server.WorldObjects
             }
         }
 
+        public bool CanHaveExtraSpells()
+        {
+            if (ExtraSpellsMaxOverride != null && ExtraSpellsMaxOverride > 0)
+                return true;
+            else
+                return ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0;
+        }
+
         public int GetMaxExtraSpellsCount()
         {
             if (ExtraSpellsMaxOverride != null)
@@ -1322,20 +1330,18 @@ namespace ACE.Server.WorldObjects
             return baseSlots;
         }
 
-        public bool CanHaveExtraSpells()
-        {
-            if (ExtraSpellsMaxOverride != null && ExtraSpellsMaxOverride > 0)
-                return true;
-            else
-                return ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0;
-        }
-
         public int GetMaxTinkerCount()
         {
             if (TinkerMaxCountOverride != null && TinkerMaxCountOverride > 0)
                 return TinkerMaxCountOverride.Value;
             else if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0)
-                return (int)Math.Floor((ItemWorkmanship ?? 0) / 3.1f) + 1;
+            {
+                var workmanship = ItemWorkmanship ?? 0;
+                var maxTinkerCount = (int)Math.Floor(workmanship / 3.1f) + 1;
+                if (HasArmorLevel())
+                    maxTinkerCount += Math.Min(workmanship - 1, 2);
+                return maxTinkerCount;
+            }
             else
                 return 0;
         }
