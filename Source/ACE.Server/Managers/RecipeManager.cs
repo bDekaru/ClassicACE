@@ -867,7 +867,7 @@ namespace ACE.Server.Managers
 
             if (recipe.IsTinkering() && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (target.NumTimesTinkered >= target.GetMaxTinkerCount())
+                if (target.NumTimesTinkered >= target.GetMaxTinkerCount() && source.MaterialType != MaterialType.Ivory && source.MaterialType != MaterialType.Leather) // Ivory and leather do not consume tinker slots.
                 {
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot be tinkered any further.", ChatMessageType.Broadcast));
                     return false;
