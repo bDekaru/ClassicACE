@@ -118,14 +118,14 @@ namespace ACE.Server.Entity
             return WeenieError.None;
         }
 
-        public static void PerformAppraisal(Player player, WorldObject target, bool silent = false)
+        public static void PerformAppraisal(Player player, WorldObject target, bool fromVendorSell = false)
         {
             if (target is Container container)
             {
                 CreatureSkill appraisalSkill = player.GetCreatureSkill(Skill.Appraise);
                 if (appraisalSkill.AdvancementClass < SkillAdvancementClass.Trained)
                 {
-                    if (!silent)
+                    if (!fromVendorSell)
                     {
                         player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"You must have {appraisalSkill.Skill.ToSentence()} trained to appraise that."));
                         player.SendUseDoneEvent();
@@ -136,7 +136,7 @@ namespace ACE.Server.Entity
                 var itemsNeedingAppraisal = container.Inventory.Values.Where(k => k.OriginalValue.HasValue && k.OriginalValue != k.Value && !k.Retained).ToList();
                 if(itemsNeedingAppraisal.Count == 0)
                 {
-                    if (!silent)
+                    if (!fromVendorSell)
                     {
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat("There's nothing needing appraisal in this container.", ChatMessageType.Broadcast));
                         player.SendUseDoneEvent();
@@ -161,15 +161,18 @@ namespace ACE.Server.Entity
                         {
                             successCount++;
                             item.SetProperty(PropertyInt.Value, trueValue);
-                            //player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(item, PropertyInt.Value, trueValue));
-                            player.EnqueueBroadcast(new GameMessageUpdateObject(item)); // The line above won't update the sell value at vendors until a relog, so for now update everything instead.
+                            if (!fromVendorSell)
+                            {
+                                //player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(item, PropertyInt.Value, trueValue));
+                                player.EnqueueBroadcast(new GameMessageUpdateObject(item)); // The line above won't update the sell value at vendors until a relog, so for now update everything instead.
+                            }
 
                             item.SaveBiotaToDatabase();
                         }
                     }
                 }
 
-                if (!silent)
+                if (!fromVendorSell)
                 {
                     if (successCount == itemsNeedingAppraisal.Count)
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You successfully appraise {successCount} items in the container. All contents are now appraised.", ChatMessageType.Broadcast));
@@ -183,7 +186,7 @@ namespace ACE.Server.Entity
             {
                 if (target.Retained)
                 {
-                    if (!silent)
+                    if (!fromVendorSell)
                     {
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat("Retained items cannot be appraised.", ChatMessageType.Broadcast));
                         player.SendUseDoneEvent();
@@ -193,7 +196,7 @@ namespace ACE.Server.Entity
 
                 if (!target.OriginalValue.HasValue)
                 {
-                    if (!silent)
+                    if (!fromVendorSell)
                     {
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat("You can't appraise that.", ChatMessageType.Broadcast));
                         player.SendUseDoneEvent();
@@ -204,7 +207,7 @@ namespace ACE.Server.Entity
                 CreatureSkill appraisalSkill = player.GetCreatureSkill(Skill.Appraise);
                 if (appraisalSkill.AdvancementClass < SkillAdvancementClass.Trained)
                 {
-                    if (!silent)
+                    if (!fromVendorSell)
                     {
                         player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"You must have {appraisalSkill.Skill.ToSentence()} trained to appraise that."));
                         player.SendUseDoneEvent();
@@ -222,22 +225,25 @@ namespace ACE.Server.Entity
                 {
                     Proficiency.OnSuccessUse(player, appraisalSkill, diff);
 
-                    if (!silent)
+                    if (!fromVendorSell)
                         player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You appraise the {target.NameWithMaterial} to be worth {trueValue} Pyreals.", ChatMessageType.Broadcast));
                     if (currValue != trueValue)
                     {
                         target.SetProperty(PropertyInt.Value, trueValue);
-                        //player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(target, PropertyInt.Value, trueValue));
-                        player.EnqueueBroadcast(new GameMessageUpdateObject(target)); // The live above won't update the sell value at vendors until a relog, so for now update everything instead.
+                        if (!fromVendorSell)
+                        {
+                            //player.Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(target, PropertyInt.Value, trueValue));
+                            player.EnqueueBroadcast(new GameMessageUpdateObject(target)); // The line above won't update the sell value at vendors until a relog, so for now update everything instead.
+                        }
 
                         target.SaveBiotaToDatabase();
                     }
                 }
-                else if(!silent)
+                else if(!fromVendorSell)
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You fail to appraise the value of the {target.NameWithMaterial}.", ChatMessageType.Broadcast));
             }
 
-            if (!silent)
+            if (!fromVendorSell)
                 player.SendUseDoneEvent();
         }
 
