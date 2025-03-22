@@ -225,16 +225,21 @@ namespace ACE.Entity.Enum.Properties
         // CustomDM
         LeyLineTriggerChance           = 10001,
         HotspotImmunityTimestamp       = 10002,
+        [AssessmentProperty]
         MeleeDefenseCap                = 10003,
+        [AssessmentProperty]
         MissileDefenseCap              = 10004,
+        [AssessmentProperty]
         MagicDefenseCap                = 10005,
         VendorRestockInterval          = 10006,
         VendorStockTimeToRot           = 10007,
+        [AssessmentProperty]
         ComponentBurnRateMod           = 10008,
         Tier                           = 10009,
         ExtraHealthRegenPool           = 10010,
         ExtraStaminaRegenPool          = 10011,
         ExtraManaRegenPool             = 10012,
+        [AssessmentProperty]
         BlockMod                       = 10013,
         AttacksCauseBleedChance        = 10014,
         VendorIncomeDecayTimestamp     = 10015,
