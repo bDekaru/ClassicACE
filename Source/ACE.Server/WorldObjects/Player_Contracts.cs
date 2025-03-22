@@ -86,7 +86,7 @@ namespace ACE.Server.WorldObjects
 
             // Avoid giving the same contracts the player already has active.
             var nonRepeatList = explorationList.Where(c => c.Landblock != Exploration1LandblockId && c.Landblock != Exploration2LandblockId && c.Landblock != Exploration3LandblockId).ToList();
-            if (nonRepeatList.Count > 3) // Only remove repeated contracts if there are enough different ones to fill a new contract.
+            if (nonRepeatList.Count >= 3) // Only remove repeated contracts if there are enough different ones to fill a new contract.
                 explorationList = nonRepeatList;
 
             var roll = ThreadSafeRandom.Next(0, explorationList.Count - 1);
