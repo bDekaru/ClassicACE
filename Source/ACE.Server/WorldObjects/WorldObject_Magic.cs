@@ -2112,15 +2112,6 @@ namespace ACE.Server.WorldObjects
 
             var setupRadius = setup.Radius;
 
-            // Fix projectiles spawning behind the caster.
-            if (weenie.PropertiesDID.TryGetValue(PropertyDataId.PhysicsEffectTable, out var physicsEffectTable))
-            {
-                if (physicsEffectTable == 0x34000005)
-                    setupRadius += 1.5f;
-                else if (physicsEffectTable == 0x34000007)
-                    setupRadius += 0.5f;
-            }
-
             var result = (float)(setupRadius * scale);
 
             ProjectileRadiusCache.TryAdd(projectileWcid, result);
