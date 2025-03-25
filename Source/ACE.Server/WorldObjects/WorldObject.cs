@@ -1634,6 +1634,21 @@ namespace ACE.Server.WorldObjects
                         else
                             requirementEstimatedTier = 6;
                     }
+                    else
+                    {
+                        if (wieldDifficulty < 180)
+                            requirementEstimatedTier = 1;
+                        else if (wieldDifficulty < 230)
+                            requirementEstimatedTier = 2;
+                        else if (wieldDifficulty < 255)
+                            requirementEstimatedTier = 3;
+                        else if (wieldDifficulty < 280)
+                            requirementEstimatedTier = 4;
+                        else if (wieldDifficulty < 300)
+                            requirementEstimatedTier = 5;
+                        else
+                            requirementEstimatedTier = 6;
+                    }
                 }
             }
 
@@ -1655,7 +1670,7 @@ namespace ACE.Server.WorldObjects
             if (WieldRequirements4 != WieldRequirement.Invalid)
                 requirementEstimatedTier = Math.Max(requirementEstimatedTier, EstimateItemTierFromRequirements(WieldRequirements4, WieldSkillType4, WieldDifficulty4));
 
-            if (ItemSkillLevelLimit.HasValue)
+            if (ItemSkillLimit.HasValue && ItemSkillLevelLimit.HasValue)
                 requirementEstimatedTier = Math.Max(requirementEstimatedTier, EstimateItemTierFromRequirements(WieldRequirement.RawSkill, (int)ItemSkillLimit, ItemSkillLevelLimit));
 
             if (ItemDifficulty.HasValue)
