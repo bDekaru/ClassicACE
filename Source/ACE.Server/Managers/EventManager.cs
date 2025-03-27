@@ -396,7 +396,6 @@ namespace ACE.Server.Managers
             "Greenspire",
             "Redspire",
             "Timaru",
-            "Qalabar",
             "Candeth Keep",
             "Bandit Castle"
         };
