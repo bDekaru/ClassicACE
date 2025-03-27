@@ -608,12 +608,12 @@ namespace ACE.Server.WorldObjects
                             shieldMod = 0.0f;
                         }
                         else
-                            shieldMod = target.GetShieldMod(source, Spell.DamageType, weapon, isPvP);
+                            shieldMod = target.GetShieldMod(source, Spell.DamageType, weapon, isPvP, 0.25f);
                     }
                     else
                     {
                         blocked = false;
-                        shieldMod = target.GetShieldMod(source, Spell.DamageType, weapon, isPvP, 0.1f);
+                        shieldMod = target.GetShieldMod(source, Spell.DamageType, weapon, isPvP, 0.025f);
                     }
                 }
                 else
