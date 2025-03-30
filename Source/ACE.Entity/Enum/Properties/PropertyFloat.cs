@@ -246,5 +246,6 @@ namespace ACE.Entity.Enum.Properties
         VitaeDecayTimestamp            = 10016,
         NSCoordinates                  = 10017,
         EWCoordinates                  = 10018,
+        RolledSpellcraftMultiplier     = 10019,
     }
 }

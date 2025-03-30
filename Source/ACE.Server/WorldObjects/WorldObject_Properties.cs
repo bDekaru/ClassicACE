@@ -3569,5 +3569,17 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyInt.Version);
             set { if (!value.HasValue) RemoveProperty(PropertyInt.Version); else SetProperty(PropertyInt.Version, value.Value); }
         }
+
+        public double? RolledSpellcraftMultiplier
+        {
+            get => GetProperty(PropertyFloat.RolledSpellcraftMultiplier);
+            set { if (!value.HasValue) RemoveProperty(PropertyFloat.RolledSpellcraftMultiplier); else SetProperty(PropertyFloat.RolledSpellcraftMultiplier, value.Value); }
+        }
+
+        public string ArcaneLoreRollLog
+        {
+            get => GetProperty(PropertyString.ArcaneLoreRollLog);
+            set { if (value == null) RemoveProperty(PropertyString.ArcaneLoreRollLog); else SetProperty(PropertyString.ArcaneLoreRollLog, value); }
+        }
     }
 }

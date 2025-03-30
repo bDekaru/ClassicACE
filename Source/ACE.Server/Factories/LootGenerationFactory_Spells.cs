@@ -274,47 +274,59 @@ namespace ACE.Server.Factories
                 }
             }
 
-            (float min, float max) range;
+            (float min, float max) spellcraftMultiplierRange;
+            float spellcraftMultiplier;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+            if (wo.RolledSpellcraftMultiplier.HasValue)
             {
-                switch (wo.ItemType)
-                {
-                    case ItemType.Armor:
-                    case ItemType.Clothing:
-                    case ItemType.Jewelry:
-
-                    case ItemType.MeleeWeapon:
-                    case ItemType.MissileWeapon:
-                    case ItemType.Caster:
-                        range = (0.9f, 1.1f);
-                        break;
-                    default:
-                        range = (1.0f, 1.0f);
-                        break;
-                }
+                // Load our saved multiplier.
+                spellcraftMultiplierRange = ((float)wo.RolledSpellcraftMultiplier.Value, (float)wo.RolledSpellcraftMultiplier.Value);
+                spellcraftMultiplier = (float)wo.RolledSpellcraftMultiplier.Value;
             }
             else
-                range = (0.9f, 1.1f);
+            {
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                {
+                    switch (wo.ItemType)
+                    {
+                        case ItemType.Armor:
+                        case ItemType.Clothing:
+                        case ItemType.Jewelry:
+
+                        case ItemType.MeleeWeapon:
+                        case ItemType.MissileWeapon:
+                        case ItemType.Caster:
+                            spellcraftMultiplierRange = (0.9f, 1.1f);
+                            break;
+                        default:
+                            spellcraftMultiplierRange = (1.0f, 1.0f);
+                            break;
+                    }
+                }
+                else
+                    spellcraftMultiplierRange = (0.9f, 1.1f);
+
+                spellcraftMultiplier = (float)ThreadSafeRandom.Next(spellcraftMultiplierRange.min, spellcraftMultiplierRange.max);
+            }
 
             // Effective spellcraft is the value used by the arcane lore calculation, it does not take into account a quest items "innate" spells.
-            effectiveMinSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * range.min), 370);
-            effectiveMaxSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * range.max), 370);
-            effectiveRolledSpellcraft = ThreadSafeRandom.Next(effectiveMinSpellcraft, effectiveMaxSpellcraft);
+            effectiveMinSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * spellcraftMultiplierRange.min), 370);
+            effectiveMaxSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * spellcraftMultiplierRange.max), 370);
+            effectiveRolledSpellcraft = Math.Min((int)Math.Ceiling(maxSpellPower * spellcraftMultiplier), 370);
 
             // The real spellcraft is what the item spellcraft will actually be, quest items have a override spellcraft that is manually specified by the weenie, we do not want to go below that value but if enough spells are added we can go above it.
             var currentSpellcraft = Math.Max(wo.BaseSpellcraftOverride ?? 1, wo.ItemSpellcraft ?? 1);
             realSpellcraft = Math.Max(currentSpellcraft, effectiveRolledSpellcraft);
 
             if (updateItem)
+            {
                 wo.ItemSpellcraft = realSpellcraft;
+                wo.RolledSpellcraftMultiplier = spellcraftMultiplier;
+            }
         }
 
         public static void CalculateArcaneLore(WorldObject wo, List<SpellId> allSpellIds, List<SpellId> lifeCreatureEnchantmentsIds, List<SpellId> cantripIds, int minSpellcraft, int maxSpellcraft, int rolledSpellcraft, bool updateItem, out int minArcaneLore, out int maxArcaneLore, out int rolledArcaneLore)
         {
-            var minArcaneRoll = 0.0f;
-            var maxArcaneRoll = 0.0f;
-
             var spellIds = new List<SpellId>();
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
@@ -322,12 +334,17 @@ namespace ACE.Server.Factories
             else
                 spellIds = lifeCreatureEnchantmentsIds;
 
+            var spellRolls = new List<(SpellId SpellId, float MinRoll, float MaxRoll)>();
+
             if (spellIds != null)
             {
                 var spells = new List<Server.Entity.Spell>();
 
                 foreach (var spellId in spellIds)
                 {
+                    if (cantripIds != null && cantripIds.Contains(spellId))
+                        continue;
+
                     var spell = new Server.Entity.Spell(spellId);
                     spells.Add(spell);
                 }
@@ -343,21 +360,32 @@ namespace ACE.Server.Factories
                     }
                     var spell = spells[i];
 
-                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                    {
-                        var arcaneRoll = 4 + spell.Formula.Level;
-                        if (wo.IsRobe)
-                            arcaneRoll /= 2;
-
-                        minArcaneRoll += arcaneRoll * 0.5f;
-                        maxArcaneRoll += arcaneRoll * 1.0f;
-                    }
+                    var spellRoll = GetArcaneLoreLogValue(wo, (SpellId)spell.Id);
+                    if (spellRoll != 0)
+                        spellRolls.Add(((SpellId)spell.Id, spellRoll, spellRoll));
                     else
                     {
-                        var arcaneRoll = spell.Formula.Level * 5.0f;
+                        float spellMinRoll;
+                        float spellMaxRoll;
 
-                        minArcaneRoll += arcaneRoll * 0.5f;
-                        maxArcaneRoll += arcaneRoll * 1.5f;
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
+                            var spellArcaneRoll = 4.0f + spell.Formula.Level;
+                            if (wo.IsRobe)
+                                spellArcaneRoll /= 2;
+
+                            spellMinRoll = spellArcaneRoll * 0.5f;
+                            spellMaxRoll = spellArcaneRoll * 1.0f;
+                        }
+                        else
+                        {
+                            var spellArcaneRoll = spell.Formula.Level * 5.0f;
+
+                            spellMinRoll = spellArcaneRoll * 0.5f;
+                            spellMaxRoll = spellArcaneRoll * 1.5f;
+                        }
+
+                        spellRolls.Add(((SpellId)spell.Id, spellMinRoll, spellMaxRoll));
                     }
                 }
             }
@@ -367,36 +395,47 @@ namespace ACE.Server.Factories
                 foreach (var cantripId in cantripIds)
                 {
                     var cantrip = new Server.Entity.Spell(cantripId);
-                    var cantripLevels = SpellLevelProgression.GetSpellLevels(cantripId);
 
-                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
-                    {
-                        if (cantripLevels == null || cantripLevels.Count != 4)
-                        {
-                            log.Error($"CalculateArcaneLore({cantripId}) - unknown cantrip");
-                            continue;
-                        }
-                    }
+                    var spellRoll = GetArcaneLoreLogValue(wo, cantripId);
+                    if (spellRoll != 0)
+                        spellRolls.Add((cantripId, spellRoll, spellRoll));
                     else
                     {
-                        if (cantripLevels == null || (cantripLevels.Count != 3 && cantripLevels.Count != 4))
+                        var cantripLevels = SpellLevelProgression.GetSpellLevels(cantripId);
+
+                        if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
                         {
-                            log.Error($"CalculateArcaneLore({cantripId}) - unknown cantrip");
-                            continue;
+                            if (cantripLevels == null || cantripLevels.Count != 4)
+                            {
+                                log.Error($"CalculateArcaneLore({cantripId}) - unknown cantrip");
+                                continue;
+                            }
                         }
-                    }
+                        else
+                        {
+                            if (cantripLevels == null || (cantripLevels.Count != 3 && cantripLevels.Count != 4))
+                            {
+                                log.Error($"CalculateArcaneLore({cantripId}) - unknown cantrip");
+                                continue;
+                            }
+                        }
 
-                    var cantripLevel = cantripLevels.IndexOf(cantripId);
+                        float spellMinRoll = 0;
+                        float spellMaxRoll = 0;
+                        var cantripLevel = cantripLevels.IndexOf(cantripId);
 
-                    if (cantripLevel == 0)
-                    {
-                        minArcaneRoll += 5;
-                        maxArcaneRoll += 10;
-                    }
-                    else
-                    {
-                        minArcaneRoll += 10;
-                        maxArcaneRoll += 20;
+                        if (cantripLevel == 0)
+                        {
+                            spellMinRoll += 5;
+                            spellMaxRoll += 10;
+                        }
+                        else
+                        {
+                            spellMinRoll += 10;
+                            spellMaxRoll += 20;
+                        }
+
+                        spellRolls.Add((cantripId, spellMinRoll, spellMaxRoll));
                     }
                 }
             }
@@ -462,9 +501,22 @@ namespace ACE.Server.Factories
             if (fArcaneRolled < 0)
                 fArcaneRolled = 0;
 
+            var minArcaneRoll = 0f;
+            var maxArcaneRoll = 0f;
+            var arcaneRoll = 0f;
+            foreach (var spell in spellRolls)
+            {
+                var spellRoll = (float)ThreadSafeRandom.Next(spell.MinRoll, spell.MaxRoll);
+                if (updateItem)
+                    UpdateArcaneLoreLog(wo, spell.SpellId, spellRoll);
+
+                minArcaneRoll += spell.MinRoll;
+                maxArcaneRoll += spell.MaxRoll;
+                arcaneRoll += spellRoll;
+            }
             minArcaneLore = (int)Math.Floor(fArcaneMin + minArcaneRoll);
             maxArcaneLore = (int)Math.Floor(fArcaneMax + maxArcaneRoll);
-            rolledArcaneLore = (int)Math.Floor(fArcaneRolled + ThreadSafeRandom.Next(minArcaneRoll, maxArcaneRoll));
+            rolledArcaneLore = (int)Math.Floor(fArcaneRolled + arcaneRoll);
 
             // Avoid lowering arcane lore.
             var currentArcaneLore = Math.Max(wo.BaseItemDifficultyOverride ?? 0, wo.ItemDifficulty ?? 0); // If set, BaseItemDifficultyOverride and BaseSpellcraftOverride account for the item default spells difficulty/spellcraft and those will not be taken into account during these recalculations. This is done so spells can be added to quest items which start with many spells without skyrocketing their difficulty.
@@ -474,6 +526,48 @@ namespace ACE.Server.Factories
 
             if (updateItem)
                 wo.ItemDifficulty = rolledArcaneLore;
+        }
+
+        private static void UpdateArcaneLoreLog(WorldObject obj, SpellId spellId, float roll)
+        {
+            if (obj.ArcaneLoreRollLog != null)
+            {
+                var updatedValue = false;
+                var spellsRollSplitString = obj.ArcaneLoreRollLog.Split(",");
+                for (int i = 0; i < spellsRollSplitString.Length; i++)
+                {
+                    if (spellsRollSplitString[i].StartsWith($"{(int)spellId}:"))
+                    {
+                        spellsRollSplitString[i] = $"{(int)spellId}:{roll:0.00}";
+                        updatedValue = true;
+                        break;
+                    }
+                }
+
+                if (!updatedValue)
+                    obj.ArcaneLoreRollLog += $",{(int)spellId}:{roll:0.00}";
+                else
+                    obj.ArcaneLoreRollLog = string.Join(",", spellsRollSplitString);
+            }
+            else
+                obj.ArcaneLoreRollLog += $"{(int)spellId}:{roll:0.00}";
+        }
+
+        private static float GetArcaneLoreLogValue(WorldObject obj, SpellId spellId)
+        {
+            if (obj.ArcaneLoreRollLog != null)
+            {
+                var spellsRollMapString = obj.ArcaneLoreRollLog.Split(",");
+                foreach (var spellRollString in spellsRollMapString)
+                {
+                    if (spellRollString.StartsWith($"{(int)spellId}:"))
+                    {
+                        if (float.TryParse(spellRollString.Split(":").Last(), out var roll))
+                            return roll;
+                    }
+                }
+            }
+            return 0;
         }
 
         private static List<SpellId> RollCantrips(WorldObject wo, TreasureDeath profile, TreasureRoll roll)

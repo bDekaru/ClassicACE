@@ -109,5 +109,6 @@ namespace ACE.Entity.Enum.Properties
         ChargenSkillsSpecialized        = 9017,
         ChargenClothing                 = 9018,
         ChargenSkillsSecondary          = 9019,
+        ArcaneLoreRollLog               = 9020,
     }
 }
