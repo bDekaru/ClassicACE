@@ -277,6 +277,7 @@ namespace ACE.Server.Managers
                 case WeenieClassName.W_MATERIALSMOKYQUARTZ_CLASS:
                 case WeenieClassName.W_MATERIALCITRINE_CLASS:
                 case WeenieClassName.W_MATERIALCARNELIAN_CLASS:
+                case WeenieClassName.W_MATERIALLAPISLAZULI_CLASS:
 
                     // ensure item is generic (jewelry), and has workmanship
                     if (target.WeenieType != WeenieType.Generic || target.TinkerWorkmanship == null || target.ValidLocations == EquipMask.TrinketOne)
@@ -564,6 +565,7 @@ namespace ACE.Server.Managers
             { WeenieClassName.W_MATERIALSMOKYQUARTZ_CLASS,     4447 },
             { WeenieClassName.W_MATERIALCITRINE_CLASS,         4439 },
             { WeenieClassName.W_MATERIALCARNELIAN_CLASS,       4443 },
+            { WeenieClassName.W_MATERIALLAPISLAZULI_CLASS,     4444 },
 
             //{ WeenieClassName.W_MATERIALSTEEL50_CLASS,         3860 },
             { WeenieClassName.W_MATERIALSTEEL100_CLASS,        3860 },
