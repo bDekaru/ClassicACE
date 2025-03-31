@@ -934,7 +934,7 @@ namespace ACE.Server.WorldObjects
                 return 1.0f;
 
             bool bypassShieldAngleCheck = false;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (weapon == null || ((weapon.IgnoreShield ?? 0) == 0 && !weapon.IsTwoHanded)))
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (attacker.IgnoreShield ?? 0) == 0 && (weapon == null || ((weapon.IgnoreShield ?? 0) == 0 && !weapon.IsTwoHanded)))
             {
                 var techniqueTrinket = GetEquippedTrinket();
                 if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Defensive)

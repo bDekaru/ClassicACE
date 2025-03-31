@@ -605,7 +605,15 @@ namespace ACE.Server.WorldObjects
                         if (perfectBlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                         {
                             isPerfectBlock = true;
-                            shieldMod = 0.0f;
+                            if (weapon != null)
+                            {
+                                if (weapon.HasImbuedEffect(ImbuedEffectType.IgnoreAllArmor))
+                                    shieldMod = 1.0f;
+                                else
+                                    shieldMod = sourceCreature.GetIgnoreShieldMod(sourceCreature, weapon, isPvP);
+                            }
+                            else
+                                shieldMod = 0.0f;
                         }
                         else
                             shieldMod = target.GetShieldMod(source, Spell.DamageType, weapon, isPvP, 0.25f);

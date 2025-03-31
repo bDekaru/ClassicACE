@@ -488,7 +488,15 @@ namespace ACE.Server.Entity
                         if (PerfectBlockChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                         {
                             IsPerfectBlock = true;
-                            ShieldMod = 0.0f;
+                            if (Weapon != null)
+                            {
+                                if(Weapon.HasImbuedEffect(ImbuedEffectType.IgnoreAllArmor))
+                                    ShieldMod = 1.0f;
+                                else
+                                    ShieldMod = attacker.GetIgnoreShieldMod(Attacker, Weapon, pkBattle);
+                            }
+                            else
+                                ShieldMod = 0.0f;
 
                             if (playerAttacker == null && playerDefender != null && CombatType == CombatType.Melee)
                                 AttackerStunned = true;
