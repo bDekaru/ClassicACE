@@ -4874,6 +4874,7 @@ namespace ACE.Server.Command.Handlers.Processors
             uint highestCombatSkillValue = 0;
             ulong highestCombatSkillTotalXp = 0;
 
+            uint level = (uint)(creature.Level ?? 1);
             uint health = creature.Health.StartingValue;
             uint stamina = creature.Stamina.StartingValue;
             uint mana = creature.Mana.StartingValue;
@@ -4946,7 +4947,7 @@ namespace ACE.Server.Command.Handlers.Processors
             if (highestCombatSkillValue > 0)
                 totalXp += highestCombatSkillTotalXp;
 
-            double levelXpRatio = GetXpRatioBetweenLevels(xpTable, (uint)(creature.Level ?? 1), newLevel);
+            double levelXpRatio = GetXpRatioBetweenLevels(xpTable, level, newLevel);
             newLevelTotalXp = (ulong)(totalXp * levelXpRatio);
 
             double healthRatio = (double)healthTotalXp / totalXp;
@@ -5012,13 +5013,13 @@ namespace ACE.Server.Command.Handlers.Processors
                         skill.InitLevel = entry.Value;
                 }
 
-                var newBodyParts = new Dictionary<CombatBodyPart, ACE.Entity.Models.PropertiesBodyPart>(creature.Weenie.PropertiesBodyPart);
+                var newBodyParts = new Dictionary<CombatBodyPart, PropertiesBodyPart>(creature.Biota.PropertiesBodyPart);
                 foreach (var entry in newBodyParts)
                 {
                     var bodyPart = entry.Value;
                     if (bodyPart.BaseArmor != 0)
                     {
-                        double armorRatio = (double)bodyPart.BaseArmor / (creature.Level ?? 1);
+                        double armorRatio = (double)bodyPart.BaseArmor / level;
                         bodyPart.BaseArmor = (int)Math.Round(newLevel * armorRatio);
                         bodyPart.ArmorVsSlash = (int)Math.Round(bodyPart.BaseArmor * (creature.ArmorModVsSlash ?? 0.0));
                         bodyPart.ArmorVsPierce = (int)Math.Round(bodyPart.BaseArmor * (creature.ArmorModVsPierce ?? 0.0));
@@ -5032,7 +5033,7 @@ namespace ACE.Server.Command.Handlers.Processors
 
                     if (bodyPart.DVal != 0)
                     {
-                        double damageRatio = (double)bodyPart.DVal / (creature.Level ?? 1);
+                        double damageRatio = (double)bodyPart.DVal / level;
                         bodyPart.DVal = (int)Math.Round(newLevel * damageRatio);
                     }
                 }
@@ -5042,20 +5043,30 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 if (creature.Biota.PropertiesSpellBook != null)
                 {
-                    uint warMagicSkill = 0;
-                    uint lifeMagicSkill = 0;
-                    uint creatureEnchantmentSkill = 0;
-                    uint itemEnchantmentSkill = 0;
+                    uint warMagicSkill = (newFocus + newSelf) / 4;
+                    uint lifeMagicSkill = (newFocus + newSelf) / 4;
+                    uint creatureEnchantmentSkill = (newFocus + newSelf) / 4;
+                    uint itemEnchantmentSkill = (newFocus + newSelf) / 4;
                     skillNewValueMap.TryGetValue(Skill.WarMagic, out warMagicSkill);
                     skillNewValueMap.TryGetValue(Skill.LifeMagic, out lifeMagicSkill);
                     skillNewValueMap.TryGetValue(Skill.CreatureEnchantment, out creatureEnchantmentSkill);
                     skillNewValueMap.TryGetValue(Skill.ItemEnchantment, out itemEnchantmentSkill);
 
-                    var newSpells = new Dictionary<int, float>();
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        creatureEnchantmentSkill = Math.Max(warMagicSkill, lifeMagicSkill);
+                        itemEnchantmentSkill = Math.Max(warMagicSkill, lifeMagicSkill);
+                    }
 
+                    var newSpells = new List<(int SpellId, float Chance)>();
+
+                    creature.Biota.PropertiesSpellBook = creature.Biota.PropertiesSpellBook.OrderBy(s => s.Value).ThenBy(s => s.Key).ToDictionary();
                     foreach (var entry in creature.Biota.PropertiesSpellBook)
                     {
                         Entity.Spell currentSpell = new Entity.Spell(entry.Key);
+
+                        if (currentSpell.MetaSpellType == SpellType.PortalSummon || currentSpell.MetaSpellType == SpellType.PortalSending || currentSpell.MetaSpellType == SpellType.PortalLink || currentSpell.MetaSpellType == SpellType.PortalRecall || currentSpell.MetaSpellType == SpellType.FellowPortalSending)
+                            continue;
 
                         uint magicSkill = 0;
                         switch (currentSpell.School)
@@ -5080,41 +5091,85 @@ namespace ACE.Server.Command.Handlers.Processors
                             SpellId newSpellId = SpellId.Undef;
                             int newSpellLevel = 0;
 
-                            for (int level = 1; level <= 7; level++)
+                            for (int spellLevel = 1; spellLevel <= 7; spellLevel++)
                             {
-                                SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, level, true);
-                                Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
-
-                                if (newSelf + newMana >= newSpellAttempt.BaseMana && magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power + 50 : (int)newSpellAttempt.Power + 30)) // Creatures tend to cast lower level self spells.
+                                SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel, true);
+                                if (newSpellIdAttempt != SpellId.Undef)
                                 {
-                                    newSpellId = newSpellIdAttempt;
-                                    newSpellLevel = level;
+                                    Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
+
+                                    uint spellPower = 0;
+                                    if (spellLevel > 1)
+                                    {
+                                        spellPower = newSpellAttempt.Formula.Level * 50;
+                                        if (spellLevel == 2)
+                                            spellPower -= 40;
+
+                                        if (newSpellAttempt.NumProjectiles > 1)
+                                            spellPower -= 50;
+                                        else if (newSpellAttempt.IsNegativeRedirectable)
+                                            spellPower += 200;
+                                        else if (newSpellAttempt.IsSelfTargeted || newSpellAttempt.MetaSpellType == SpellType.Enchantment || newSpellAttempt.VitalDamageType == DamageType.Stamina || newSpellAttempt.VitalDamageType == DamageType.Mana || newSpellAttempt.DamageType.HasFlag(DamageType.Stamina) || newSpellAttempt.DamageType.HasFlag(DamageType.Mana) || newSpellAttempt.Destination == PropertyAttribute2nd.Stamina || newSpellAttempt.Destination == PropertyAttribute2nd.Mana)
+                                            spellPower += 50;
+                                    }
+
+                                    if (newSelf + newMana >= newSpellAttempt.BaseMana && magicSkill >= spellPower)
+                                    {
+                                        newSpellId = newSpellIdAttempt;
+                                        newSpellLevel = spellLevel;
+                                    }
+                                    else
+                                        break;
                                 }
-                                else
-                                    break;
                             }
 
                             while (newSpellId != SpellId.Undef && newSpellLevel > 0)
                             {
-                                if (newSpells.ContainsKey((int)newSpellId))
+                                if (newSpells.Where(s => s.SpellId == (int)newSpellId).ToList().Count > 0)
                                 {
                                     // Let's try a lower level version of the same spell.
                                     newSpellLevel--;
                                     if (newSpellLevel > 0)
                                         newSpellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, newSpellLevel, true);
                                     else
-                                        newSpells.Add((int)level1SpellId, entry.Value); // Let's go ahead and add it at level 1 anyway to keep it in the spellbook.
+                                        newSpells.Add(((int)level1SpellId, entry.Value)); // Let's go ahead and add it at level 1 anyway to keep it in the spellbook.
                                 }
                                 else
                                 {
-                                    newSpells.Add((int)newSpellId, entry.Value);
+                                    newSpells.Add(((int)newSpellId, entry.Value));
                                     break;
                                 }
                             }
                         }
                     }
 
-                    creature.Biota.PropertiesSpellBook = newSpells;
+                    var newSpellBook = new Dictionary<int, float>();
+                    // Some creatures have small chances of casting a higher level spell than they should be able to, the above code does not take that into account, the code below will restore this behavior.
+                    foreach (var entry in newSpells)
+                    {
+                        var spellList = newSpells.Where(s => s.SpellId == entry.SpellId).OrderByDescending(s => s.Chance).ToList();
+
+                        if (spellList.Count > 1)
+                        {
+                            var spell = (SpellId)spellList[0].SpellId;
+                            var spellLevel = SpellLevelProgression.GetSpellLevel(spell);
+                            var level1SpellId = SpellLevelProgression.GetLevel1SpellId(spell);
+
+                            for (int i = spellList.Count - 1; i > 0; i--)
+                            {
+                                SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel + i, true);
+                                if (newSpellIdAttempt != SpellId.Undef)
+                                    newSpellBook.Add((int)newSpellIdAttempt, spellList[i].Chance);
+                            }
+                        }
+                        else
+                        {
+                            newSpellBook.Add(spellList[0].SpellId, spellList[0].Chance);
+                        }
+                    }
+
+                    creature.Biota.PropertiesSpellBook = newSpellBook;
+                    creature.Biota.PropertiesSpellBook = creature.Biota.PropertiesSpellBook.OrderBy(s => s.Value).ThenBy(s => s.Key).ToDictionary();
                 }
             }
             else
@@ -5149,7 +5204,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 {
                     if (bodyPart.BaseArmor != 0)
                     {
-                        double armorRatio = (double)bodyPart.BaseArmor / (creature.Level ?? 1);
+                        double armorRatio = (double)bodyPart.BaseArmor / level;
                         bodyPart.BaseArmor = (int)Math.Round(newLevel * armorRatio);
                         bodyPart.ArmorVsSlash = (int)Math.Round(bodyPart.BaseArmor * (creature.ArmorModVsSlash ?? 0.0));
                         bodyPart.ArmorVsPierce = (int)Math.Round(bodyPart.BaseArmor * (creature.ArmorModVsPierce ?? 0.0));
@@ -5163,27 +5218,37 @@ namespace ACE.Server.Command.Handlers.Processors
 
                     if (bodyPart.DVal != 0)
                     {
-                        double damageRatio = (double)bodyPart.DVal / (creature.Level ?? 1);
+                        double damageRatio = (double)bodyPart.DVal / level;
                         bodyPart.DVal = (int)Math.Round(newLevel * damageRatio);
                     }
                 }
 
                 if (weenie.WeeniePropertiesSpellBook != null)
                 {
-                    uint warMagicSkill = 0;
-                    uint lifeMagicSkill = 0;
-                    uint creatureEnchantmentSkill = 0;
-                    uint itemEnchantmentSkill = 0;
+                    uint warMagicSkill = (newFocus + newSelf) / 4;
+                    uint lifeMagicSkill = (newFocus + newSelf) / 4;
+                    uint creatureEnchantmentSkill = (newFocus + newSelf) / 4;
+                    uint itemEnchantmentSkill = (newFocus + newSelf) / 4;
                     skillNewValueMap.TryGetValue(Skill.WarMagic, out warMagicSkill);
                     skillNewValueMap.TryGetValue(Skill.LifeMagic, out lifeMagicSkill);
                     skillNewValueMap.TryGetValue(Skill.CreatureEnchantment, out creatureEnchantmentSkill);
                     skillNewValueMap.TryGetValue(Skill.ItemEnchantment, out itemEnchantmentSkill);
 
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                    {
+                        creatureEnchantmentSkill = Math.Max(warMagicSkill, lifeMagicSkill);
+                        itemEnchantmentSkill = Math.Max(warMagicSkill, lifeMagicSkill);
+                    }
+
                     var newSpells = new List<SpellId>();
 
+                    weenie.WeeniePropertiesSpellBook = weenie.WeeniePropertiesSpellBook.OrderBy(s => s.Probability).ThenBy(s => s.Spell).ToList();
                     foreach (var entry in weenie.WeeniePropertiesSpellBook)
                     {
                         Entity.Spell currentSpell = new Entity.Spell(entry.Spell);
+
+                        if (currentSpell.MetaSpellType == SpellType.PortalSummon || currentSpell.MetaSpellType == SpellType.PortalSending || currentSpell.MetaSpellType == SpellType.PortalLink || currentSpell.MetaSpellType == SpellType.PortalRecall || currentSpell.MetaSpellType == SpellType.FellowPortalSending)
+                            continue;
 
                         uint magicSkill = 0;
                         switch (currentSpell.School)
@@ -5208,18 +5273,36 @@ namespace ACE.Server.Command.Handlers.Processors
                             SpellId newSpellId = SpellId.Undef;
                             int newSpellLevel = 0;
 
-                            for (int level = 1; level <= 7; level++)
+                            for (int spellLevel = 1; spellLevel <= 7; spellLevel++)
                             {
-                                SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, level, true);
-                                Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
-
-                                if (newSelf + newMana >= newSpellAttempt.BaseMana && magicSkill >= (currentSpell.IsSelfTargeted ? (int)newSpellAttempt.Power + 50 : (int)newSpellAttempt.Power + 30)) // Creatures tend to cast lower level self spells.
+                                SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel, true);
+                                if (newSpellIdAttempt != SpellId.Undef)
                                 {
-                                    newSpellId = newSpellIdAttempt;
-                                    newSpellLevel = level;
+                                    Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
+
+                                    uint spellPower = 0;
+                                    if (spellLevel > 1)
+                                    {
+                                        spellPower = newSpellAttempt.Formula.Level * 50;
+                                        if (spellLevel == 2)
+                                            spellPower -= 40;
+
+                                        if (newSpellAttempt.NumProjectiles > 1)
+                                            spellPower -= 50;
+                                        else if (newSpellAttempt.IsNegativeRedirectable)
+                                            spellPower += 200;
+                                        else if (newSpellAttempt.IsSelfTargeted || newSpellAttempt.MetaSpellType == SpellType.Enchantment || newSpellAttempt.VitalDamageType == DamageType.Stamina || newSpellAttempt.VitalDamageType == DamageType.Mana || newSpellAttempt.DamageType.HasFlag(DamageType.Stamina) || newSpellAttempt.DamageType.HasFlag(DamageType.Mana) || newSpellAttempt.Destination == PropertyAttribute2nd.Stamina || newSpellAttempt.Destination == PropertyAttribute2nd.Mana)
+                                            spellPower += 50;
+                                    }
+
+                                    if (newSelf + newMana >= newSpellAttempt.BaseMana && magicSkill >= spellPower)
+                                    {
+                                        newSpellId = newSpellIdAttempt;
+                                        newSpellLevel = spellLevel;
+                                    }
+                                    else
+                                        break;
                                 }
-                                else
-                                    break;
                             }
 
                             while (newSpellId != SpellId.Undef && newSpellLevel > 0)
@@ -5239,6 +5322,28 @@ namespace ACE.Server.Command.Handlers.Processors
                                     newSpells.Add(newSpellId);
                                     break;
                                 }
+                            }
+                        }
+                    }
+
+                    weenie.WeeniePropertiesSpellBook = weenie.WeeniePropertiesSpellBook.OrderBy(s => s.Probability).ThenBy(s => s.Spell).ToList();
+
+                    // Some creatures have small chances of casting a higher level spell than they should be able to, the above code does not take that into account, the code below will restore this behavior.
+                    foreach (var entry in newSpells)
+                    {
+                        var spellList = weenie.WeeniePropertiesSpellBook.Where(s => s.Spell == (int)entry).OrderByDescending(s => s.Probability).ToList();
+
+                        if (spellList.Count > 1)
+                        {
+                            var spell = (SpellId)spellList[0].Spell;
+                            var spellLevel = SpellLevelProgression.GetSpellLevel(spell);
+                            var level1SpellId = SpellLevelProgression.GetLevel1SpellId(spell);
+
+                            for (int i = spellList.Count - 1; i > 0; i--)
+                            {
+                                SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel + i, true);
+                                if (newSpellIdAttempt != SpellId.Undef)
+                                    spellList[i].Spell = (int)newSpellIdAttempt;
                             }
                         }
                     }
@@ -5316,7 +5421,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 }
 
                 // And finally export the modified weenie.
-                var sql_filename_new = WeenieSQLWriter.GetDefaultFileName(weenie, $" - Scaled from level {creature.Level} to {newLevel}" + (keepLevel ? " - keepLevel" : ""));
+                var sql_filename_new = WeenieSQLWriter.GetDefaultFileName(weenie, $" - Scaled from level {level} to {newLevel}" + (keepLevel ? " - keepLevel" : ""));
                 writer = new StreamWriter(sql_folder + sql_filename_new);
 
                 try
@@ -8356,6 +8461,261 @@ namespace ACE.Server.Command.Handlers.Processors
 
             fileWriter.Close();
             CommandHandlerHelper.WriteOutputInfo(session, "Done.");
+        }
+
+        public static void ScaleCreatureKnownSpells(Creature creature, Session session)
+        {
+            if (creature == null)
+                return;
+
+            DirectoryInfo di = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+
+            var sql_folder = $"{di.FullName}{sep}sql{sep}weenies{sep}";
+
+            di = new DirectoryInfo(sql_folder);
+
+            if (!di.Exists)
+                di.Create();
+
+            if (WeenieSQLWriter == null)
+            {
+                WeenieSQLWriter = new WeenieSQLWriter();
+                WeenieSQLWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
+                WeenieSQLWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
+                WeenieSQLWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
+                WeenieSQLWriter.SpellNames = DatabaseManager.World.GetAllSpellNames();
+                WeenieSQLWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
+                WeenieSQLWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
+                WeenieSQLWriter.PacketOpCodes = PacketOpCodeNames.Values;
+            }
+
+            Weenie weenie = DatabaseManager.World.GetWeenie(creature.WeenieClassId);
+            Weenie weenieOriginal = DatabaseManager.World.GetWeenie(creature.WeenieClassId);
+
+            if (weenie.WeeniePropertiesSpellBook != null && weenie.WeeniePropertiesSpellBook.Count > 0)
+            {
+                uint mana = creature.GetCreatureVital(PropertyAttribute2nd.Mana).MaxValue;
+                uint warMagicSkill = creature.GetCreatureSkill(MagicSchool.WarMagic).Current;
+                uint lifeMagicSkill = creature.GetCreatureSkill(MagicSchool.LifeMagic).Current;
+                uint creatureEnchantmentSkill = creature.GetCreatureSkill(MagicSchool.CreatureEnchantment).Current;
+                uint itemEnchantmentSkill = creature.GetCreatureSkill(MagicSchool.ItemEnchantment).Current;
+
+                var newSpells = new List<SpellId>();
+
+                weenie.WeeniePropertiesSpellBook = weenie.WeeniePropertiesSpellBook.OrderBy(s => s.Probability).ThenBy(s => s.Spell).ToList();
+                foreach (var entry in weenie.WeeniePropertiesSpellBook)
+                {
+                    Entity.Spell currentSpell = new Entity.Spell(entry.Spell);
+
+                    if (currentSpell.MetaSpellType == SpellType.PortalSummon || currentSpell.MetaSpellType == SpellType.PortalSending || currentSpell.MetaSpellType == SpellType.PortalLink || currentSpell.MetaSpellType == SpellType.PortalRecall || currentSpell.MetaSpellType == SpellType.FellowPortalSending)
+                        continue;
+
+                    uint magicSkill = 0;
+                    switch (currentSpell.School)
+                    {
+                        case MagicSchool.WarMagic:
+                            magicSkill = warMagicSkill;
+                            break;
+                        case MagicSchool.LifeMagic:
+                            magicSkill = lifeMagicSkill;
+                            break;
+                        case MagicSchool.CreatureEnchantment:
+                            magicSkill = creatureEnchantmentSkill;
+                            break;
+                        case MagicSchool.ItemEnchantment:
+                            magicSkill = itemEnchantmentSkill;
+                            break;
+                    }
+
+                    var level1SpellId = SpellLevelProgression.GetLevel1SpellId((SpellId)entry.Spell);
+                    if (level1SpellId != SpellId.Undef)
+                    {
+                        SpellId newSpellId = SpellId.Undef;
+                        int newSpellLevel = 0;
+
+                        for (int spellLevel = 1; spellLevel <= 7; spellLevel++)
+                        {
+                            SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel, true);
+                            if (newSpellIdAttempt != SpellId.Undef)
+                            {
+                                Entity.Spell newSpellAttempt = new Entity.Spell(newSpellIdAttempt);
+
+                                uint spellPower = 0;
+                                if (spellLevel > 1)
+                                {
+                                    spellPower = newSpellAttempt.Formula.Level * 50;
+                                    if (spellLevel == 2)
+                                        spellPower -= 40;
+
+                                    if (newSpellAttempt.NumProjectiles > 1)
+                                        spellPower -= 50;
+                                    else if(newSpellAttempt.IsNegativeRedirectable)
+                                        spellPower += 200;
+                                    else if (newSpellAttempt.IsSelfTargeted || newSpellAttempt.MetaSpellType == SpellType.Enchantment || newSpellAttempt.VitalDamageType == DamageType.Stamina || newSpellAttempt.VitalDamageType == DamageType.Mana || newSpellAttempt.DamageType.HasFlag(DamageType.Stamina) || newSpellAttempt.DamageType.HasFlag(DamageType.Mana) || newSpellAttempt.Destination == PropertyAttribute2nd.Stamina || newSpellAttempt.Destination == PropertyAttribute2nd.Mana)
+                                        spellPower += 50;
+                                }
+
+                                if (mana >= newSpellAttempt.BaseMana && magicSkill >= spellPower)
+                                {
+                                    newSpellId = newSpellIdAttempt;
+                                    newSpellLevel = spellLevel;
+                                }
+                                else
+                                    break;
+                            }
+                        }
+
+                        while (newSpellId != SpellId.Undef && newSpellLevel > 0)
+                        {
+                            if (newSpells.Contains(newSpellId))
+                            {
+                                // Let's try a lower level version of the same spell.
+                                newSpellLevel--;
+                                if (newSpellLevel > 0)
+                                {
+                                    var lowerSpellAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, newSpellLevel, true);
+                                    if (lowerSpellAttempt != SpellId.Undef)
+                                        newSpellId = lowerSpellAttempt;
+                                }
+                                else
+                                    entry.Spell = (int)level1SpellId; // Let's go ahead and add it at level 1 anyway to keep it in the spellbook.
+                            }
+                            else
+                            {
+                                entry.Spell = (int)newSpellId;
+                                newSpells.Add(newSpellId);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                weenie.WeeniePropertiesSpellBook = weenie.WeeniePropertiesSpellBook.OrderBy(s => s.Probability).ThenBy(s => s.Spell).ToList();
+
+                // Some creatures have small chances of casting a higher level spell than they should be able to, the above code does not take that into account, the code below will restore this behavior.
+                foreach (var entry in newSpells)
+                {
+                    var spellList = weenie.WeeniePropertiesSpellBook.Where(s => s.Spell == (int)entry).OrderByDescending(s => s.Probability).ToList();
+
+                    if(spellList.Count > 1)
+                    {
+                        var spell = (SpellId)spellList[0].Spell;
+                        var spellLevel = SpellLevelProgression.GetSpellLevel(spell);
+                        var level1SpellId = SpellLevelProgression.GetLevel1SpellId(spell);
+
+                        for(int i = spellList.Count - 1; i > 0; i--)
+                        {
+                            SpellId newSpellIdAttempt = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel + i, true);
+                            if (newSpellIdAttempt != SpellId.Undef)
+                                spellList[i].Spell = (int)newSpellIdAttempt;
+                        }
+                    }
+                }
+
+                foreach (var entry in weenie.WeeniePropertiesSpellBook)
+                {
+                    Entity.Spell currentSpell = new Entity.Spell(entry.Spell);
+
+                    if (currentSpell.MetaSpellType == SpellType.PortalSummon || currentSpell.MetaSpellType == SpellType.PortalSending || currentSpell.MetaSpellType == SpellType.PortalLink || currentSpell.MetaSpellType == SpellType.PortalRecall || currentSpell.MetaSpellType == SpellType.FellowPortalSending)
+                        continue;
+                }
+
+                // Export the original weenie for comparison/backup purposes.
+                var sql_filename = WeenieSQLWriter.GetDefaultFileName(weenieOriginal);
+                var writer = new StreamWriter(sql_folder + sql_filename);
+
+                try
+                {
+                    WeenieSQLWriter.CreateSQLDELETEStatement(weenieOriginal, writer);
+                    writer.WriteLine();
+                    WeenieSQLWriter.CreateSQLINSERTStatement(weenieOriginal, writer);
+                    writer.Close();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {sql_folder}{sql_filename}");
+                    return;
+                }
+
+                // And finally export the modified weenie.
+                var sql_filename_new = WeenieSQLWriter.GetDefaultFileName(weenie, $" - Level {creature.Level} - Scaled spell levels");
+                writer = new StreamWriter(sql_folder + sql_filename_new);
+
+                try
+                {
+                    WeenieSQLWriter.CreateSQLDELETEStatement(weenie, writer);
+                    writer.WriteLine();
+                    WeenieSQLWriter.CreateSQLINSERTStatement(weenie, writer);
+                    writer.Close();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {sql_folder}{sql_filename_new}");
+                    return;
+                }
+
+                CommandHandlerHelper.WriteOutputInfo(session, $"Exported \"{sql_folder}{sql_filename}\" and \"{sql_filename_new}\"");
+            }
+            else
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Creature has no known spells.");
+                return;
+            }
+        }
+
+        [CommandHandler("scaleCreatureKnownSpells", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 0, "Scales the spells of the last appraised creature to match the creature skill levels")]
+        public static void HandleScaleCreatureSpells(Session session, params string[] parameters)
+        {
+            var obj = CommandHandlerHelper.GetLastAppraisedObject(session);
+
+            Creature creature = obj as Creature;
+
+            if (creature == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "Invalid target.");
+                return;
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Scaling {creature.Name} spells.");
+            ScaleCreatureKnownSpells(creature, session);
+        }
+
+        [CommandHandler("scaleAllCreatureKnownSpells", AccessLevel.Developer, CommandHandlerFlag.ConsoleInvoke, 0, "", "")]
+        public static void HandleScaleAllCreatureKnownSpells(Session session, params string[] parameters)
+        {
+            var WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
+
+            var ignoreList = new List<uint>()
+            {
+                (uint)WeenieClassName.derugreen,
+                (uint)WeenieClassName.derutall,
+                (uint)WeenieClassName.derufull,
+                (uint)WeenieClassName.deruold,
+            };
+
+            foreach (var weenieTypeEntry in WeenieTypes)
+            {
+                if (weenieTypeEntry.Value != (int)WeenieType.Creature && weenieTypeEntry.Value != (int)WeenieType.Cow)
+                    continue;
+
+                if (ignoreList.Contains(weenieTypeEntry.Key))
+                    continue;
+
+                var weenie = DatabaseManager.World.GetWeenie(weenieTypeEntry.Key);
+
+                var obj = WorldObjectFactory.CreateNewWorldObject(weenie.ClassId);
+                var creature = obj as Creature;
+
+                if (creature != null)
+                    ScaleCreatureKnownSpells(creature, session);
+
+                if (obj != null)
+                    obj.Destroy();
+            }
         }
     }
 }

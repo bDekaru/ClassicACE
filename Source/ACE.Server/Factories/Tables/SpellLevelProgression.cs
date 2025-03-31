@@ -8868,5 +8868,13 @@ namespace ACE.Server.Factories.Tables
             else
                 return SpellId.Undef;
         }
+
+        public static int GetSpellLevel(SpellId spellId)
+        {
+            var spellLevels = GetSpellLevels(spellId);
+            if (spellLevels == null)
+                return 0;
+            return spellLevels.IndexOf(spellId) + 1;
+        }
     }
 }

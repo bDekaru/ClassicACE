@@ -52,16 +52,46 @@ namespace ACE.Server.WorldObjects
             switch (skill)
             {
                 case MagicSchool.CreatureEnchantment:
-                    return GetCreatureSkill(Skill.CreatureEnchantment);
+                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                        return GetCreatureSkill(Skill.CreatureEnchantment);
+                    else
+                    {
+                        var life = GetCreatureSkill(Skill.LifeMagic);
+                        var war = GetCreatureSkill(Skill.WarMagic);
+                        if (life.Current > war.Current)
+                            return life;
+                        else
+                            return war;
+                    }
                 case MagicSchool.ItemEnchantment:
-                    return GetCreatureSkill(Skill.ItemEnchantment);
+                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                        return GetCreatureSkill(Skill.ItemEnchantment);
+                    else
+                    {
+                        var life = GetCreatureSkill(Skill.LifeMagic);
+                        var war = GetCreatureSkill(Skill.WarMagic);
+                        if (life.Current > war.Current)
+                            return life;
+                        else
+                            return war;
+                    }
                 case MagicSchool.LifeMagic:
                     return GetCreatureSkill(Skill.LifeMagic);
                 case MagicSchool.VoidMagic:
-                    return GetCreatureSkill(Skill.VoidMagic);
+                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                        return GetCreatureSkill(Skill.VoidMagic);
+                    else
+                    {
+                        var life = GetCreatureSkill(Skill.LifeMagic);
+                        var war = GetCreatureSkill(Skill.WarMagic);
+                        if (life.Current > war.Current)
+                            return life;
+                        else
+                            return war;
+                    }
                 case MagicSchool.WarMagic:
                     return GetCreatureSkill(Skill.WarMagic);
-            }
+                }
             return null;
         }
 
