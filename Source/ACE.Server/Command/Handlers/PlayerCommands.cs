@@ -2078,5 +2078,22 @@ namespace ACE.Server.Command.Handlers
             else
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Can't find a road to follow.", ChatMessageType.Help));
         }
+
+        /// <summary>
+        /// Force resend of all inventory objects. Can fix rare cases of ghost items.
+        /// Can only be used once every minute.
+        /// </summary>
+        [CommandHandler("invSend", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Force resend of all inventory objects. Can fix rare cases of ghost items. Can only be used once every minute.")]
+        public static void HandleInvSend(Session session, params string[] parameters)
+        {
+            if (DateTime.UtcNow - session.Player.PrevInvSend < TimeSpan.FromMinutes(1))
+            {
+                session.Player.SendTransientError("You have used this command too recently!");
+                return;
+            }
+
+            session.Player.SendInventoryAndWieldedItems();
+            session.Player.PrevInvSend = DateTime.UtcNow;
+        }
     }
 }
