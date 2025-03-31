@@ -970,7 +970,7 @@ namespace ACE.Server.WorldObjects
             if (!PropertyManager.GetBool("bz_whispers_enabled").Item)
                 return;
 
-            if ((!IsPK && !IsPKL) || ThreadSafeRandom.Next(0.0f, 1.0f) > 0.2f)
+            if ((!IsPK && !IsPKL) || ThreadSafeRandom.Next(0.0f, 1.0f) > PropertyManager.GetDouble("bz_whispers_chance").Item)
                 return;
 
             List<Player> validPlayers;

@@ -1030,7 +1030,8 @@ namespace ACE.Server.Managers
 
                 ("hot_dungeon_bonus_xp", new Property<double>(1.0, "Extra xp earned for kills when inside hot dungeons. 1.0 means 100% more xp.")),
                 ("exploration_bonus_xp", new Property<double>(0.5, "Extra xp earned while completing exploration assignment's objectives. 1.0 means 100% more xp.")),
-                ("relive_bonus_xp", new Property<double>(1.0, "Extra xp earned while reliving levels after a death that resulted in lost levels. 1.0 means 100% more xp."))
+                ("relive_bonus_xp", new Property<double>(1.0, "Extra xp earned while reliving levels after a death that resulted in lost levels. 1.0 means 100% more xp.")),
+                ("bz_whispers_chance", new Property<double>(0.2, "CustomDM: The chance a player will receive a bz whisper every bz_whispers_interval"))
                 );
         
         public static readonly ReadOnlyDictionary<string, Property<string>> DefaultStringProperties =
