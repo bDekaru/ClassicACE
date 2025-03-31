@@ -43,8 +43,6 @@ namespace ACE.Server.WorldObjects
         private const double enchantmentTickInterval = 0.5;
 
         private double PvPInciteTickTimestamp;
-        private const double PvPInciteTickInterval = 600;
-        private const double PvPInciteInitialDelay = 3600;
 
         public void Player_Tick(double currentUnixTime)
         {
@@ -137,11 +135,11 @@ namespace ACE.Server.WorldObjects
             }
 
             if (PvPInciteTickTimestamp == 0)
-                PvPInciteTickTimestamp = Time.GetFutureUnixTime(PvPInciteInitialDelay);
+                PvPInciteTickTimestamp = Time.GetFutureUnixTime(PropertyManager.GetLong("bz_whispers_login_delay").Item);
             else if (currentUnixTime > PvPInciteTickTimestamp)
             {
                 PvPInciteTick(currentUnixTime);
-                PvPInciteTickTimestamp = Time.GetFutureUnixTime(PvPInciteTickInterval);
+                PvPInciteTickTimestamp = Time.GetFutureUnixTime(PropertyManager.GetLong("bz_whispers_interval").Item);
             }
 
             if (enchantmentTickTimestamp == 0 || currentUnixTime > enchantmentTickTimestamp)
@@ -969,16 +967,22 @@ namespace ACE.Server.WorldObjects
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
+            if (!PropertyManager.GetBool("bz_whispers_enabled").Item)
+                return;
+
             if ((!IsPK && !IsPKL) || ThreadSafeRandom.Next(0.0f, 1.0f) > 0.2f)
                 return;
 
-            List<Player> possiblePlayers;
-
-            if(GameplayMode == GameplayModes.HardcorePK)
-                possiblePlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.HardcorePK && e.Level >= Level && e.Level <= Level + 5 && !e.IsOvertlyPlussed).ToList();
+            List<Player> validPlayers;
+            if (GameplayMode == GameplayModes.HardcorePK)
+                validPlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.HardcorePK &&!e.IsOvertlyPlussed).ToList();
             else
-                possiblePlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.Regular && e.IsPK && e.Level >= Level && e.Level <= Level + 5 && !e.IsOvertlyPlussed).ToList();
+                validPlayers = PlayerManager.GetAllOnline().Where(e => e.Guid != Guid && e.GameplayMode == GameplayModes.Regular && e.IsPK && !e.IsOvertlyPlussed).ToList();
 
+            if (validPlayers.Count + 1 < PropertyManager.GetLong("bz_whispers_min_pop").Item)
+                return;
+
+            List<Player> possiblePlayers = validPlayers.Where(e => e.Level >= Level && e.Level <= Level + 5 && !e.IsOvertlyPlussed).ToList();
             if (possiblePlayers.Count() > 0)
             {
                 var validPossiblePlayers = new List<Player>();
