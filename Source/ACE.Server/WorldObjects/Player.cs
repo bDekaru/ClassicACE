@@ -117,7 +117,6 @@ namespace ACE.Server.WorldObjects
         public const float MaxRadarRange_Outdoors = 75.0f;
 
         public DateTime PrevObjSend;
-        public DateTime PrevInvSend;
         public DateTime PrevWho;
         public DateTime PrevLeaderboardHCXPCommandRequestTimestamp;
         public DateTime PrevLeaderboardHCPvPCommandRequestTimestamp;

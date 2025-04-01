@@ -53,7 +53,7 @@ namespace ACE.Server.Command.Handlers
 
             if (showCurrent)
             {
-                if(discordChannel == 0)
+                if (discordChannel == 0)
                     CommandHandlerHelper.WriteOutputInfo(session, $"Current world population: {PlayerManager.GetOnlineCount():N0}", ChatMessageType.Broadcast);
                 else
                     DiscordChatBridge.SendMessage(discordChannel, $"Current world population: {PlayerManager.GetOnlineCount():N0}");
@@ -1555,11 +1555,11 @@ namespace ACE.Server.Command.Handlers
 
             bool IsPkLeaderboard = true;
             bool onlyLiving = false;
-            foreach(var par in parameters)
+            foreach (var par in parameters)
             {
                 if (par == "npk")
                     IsPkLeaderboard = false;
-                else if(par == "living")
+                else if (par == "living")
                     onlyLiving = true;
             }
 
@@ -1573,7 +1573,7 @@ namespace ACE.Server.Command.Handlers
             message.Append($"Hardcore {(IsPkLeaderboard ? "PK" : "NPK")} {(onlyLiving ? "Living" : "All-Time")} Characters by XP: \n");
             message.Append("-----------------------\n");
             uint playerCounter = 1;
-            foreach(var entry in leaderboard)
+            foreach (var entry in leaderboard)
             {
                 var label = playerCounter < 10 ? $" {playerCounter}." : $"{playerCounter}.";
                 var deathStatus = onlyLiving ? "" : $"{(entry.Living ? " - Living" : $" - Killed by {entry.KillerName}{(entry.KillerLevel > 0 && entry.WasPvP ? $"(Level {entry.KillerLevel})" : "")}")}";
@@ -2034,7 +2034,7 @@ namespace ACE.Server.Command.Handlers
 
             var landblockDescription = DatabaseManager.World.GetLandblockDescriptionsByLandblock(player.CurrentLandblock.Id.Landblock).FirstOrDefault();
 
-            if(landblockDescription != null)
+            if (landblockDescription != null)
                 CommandHandlerHelper.WriteOutputInfo(session, $"Current Location: {landblockDescription.Name}\nDirections: {landblockDescription.Directions}\nReference: {landblockDescription.Reference}\nMacro Region: {landblockDescription.MacroRegion}\nMicro Region: {landblockDescription.MicroRegion}");
             else
                 CommandHandlerHelper.WriteOutputInfo(session, $"You are at an unknown location.");
@@ -2079,21 +2079,13 @@ namespace ACE.Server.Command.Handlers
                 session.Network.EnqueueSend(new GameMessageSystemChat($"Can't find a road to follow.", ChatMessageType.Help));
         }
 
-        /// <summary>
-        /// Force resend of all inventory objects. Can fix rare cases of ghost items.
-        /// Can only be used once every minute.
-        /// </summary>
-        [CommandHandler("invSend", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Force resend of all inventory objects. Can fix rare cases of ghost items. Can only be used once every minute.")]
-        public static void HandleInvSend(Session session, params string[] parameters)
+        [CommandHandler("fso", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Fixes stuck item in the offhand.")]
+        [CommandHandler("fixStuckOffhand", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Fixes stuck items in the offhand.")]
+        public static void HandleFixStuckOffhand(Session session, params string[] parameters)
         {
-            if (DateTime.UtcNow - session.Player.PrevInvSend < TimeSpan.FromMinutes(1))
-            {
-                session.Player.SendTransientError("You have used this command too recently!");
-                return;
-            }
+            session.Network.EnqueueSend(new GameMessageSystemChat("Attempting to fix stuck offhand.", ChatMessageType.Broadcast));
 
-            session.Player.SendInventoryAndWieldedItems();
-            session.Player.PrevInvSend = DateTime.UtcNow;
+            session.Player.FixStuckEquippedItemIcon(EquipMask.Shield);
         }
     }
 }

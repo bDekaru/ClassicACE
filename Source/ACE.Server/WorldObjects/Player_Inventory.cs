@@ -1600,10 +1600,59 @@ namespace ACE.Server.WorldObjects
                         log.Warn($"0x{dequippedItem.Guid}:{dequippedItem.Name} for player {Name} lost from Unequip failure.");
                     return false;
                 }
+
+                if (!FixStuckEquippedItemIconPending)
+                {
+                    FixStuckEquippedItemIconPending = true;
+
+                    var actionChain = new ActionChain();
+                    actionChain.AddDelaySeconds(0.25);
+                    actionChain.AddAction(this, () => FixStuckEquippedItemIcon(location));
+                    actionChain.EnqueueChain();
+                }
+
                 return true;
             }
             else
                 return false;
+        }
+
+        private bool FixStuckEquippedItemIconPending;
+
+        /// <summary>
+        // There appears to be a bug possibly on the client that causes item icons to become stuck as wielded when the unwield is initiated by the server.
+        // This seems to happens more often when the client is under heavy load.
+        // This function will check for and fix the issue without the player having to relog.
+        /// <summary>
+        public void FixStuckEquippedItemIcon(EquipMask location)
+        {
+            if (EquippedObjects.Values.FirstOrDefault(e => e.CurrentWieldedLocation == location) == null)
+            {
+                WorldObject item = WorldObjectFactory.CreateNewWorldObject((int)ACE.Server.Factories.Enum.WeenieClassName.placeholder);
+                if (item != null)
+                {
+                    item.IconId = 0x000F6C; // Use the shield slot icon so it draws less attention when it briefly shows as wielded.
+                    Session.Network.EnqueueSend(new GameMessageCreateObject(item));
+
+                    var actionChain = new ActionChain();
+                    actionChain.AddDelaySeconds(0.25);
+                    actionChain.AddAction(this, () =>
+                    {
+                        if (EquippedObjects.Values.FirstOrDefault(e => e.CurrentWieldedLocation == location) == null)
+                            Session.Network.EnqueueSend(new GameEventWieldItem(Session, item.Guid.Full, location));
+                    });
+                    actionChain.AddDelaySeconds(0.1);
+                    actionChain.AddAction(this, () =>
+                    {
+                        Session.Network.EnqueueSend(new GameMessageDeleteObject(item));
+                        item.Destroy();
+                        FixStuckEquippedItemIconPending = false;
+                    });
+                    actionChain.EnqueueChain();
+                }
+            }
+            else
+                FixStuckEquippedItemIconPending = false;
         }
 
         /// <summary>
