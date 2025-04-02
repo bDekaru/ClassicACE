@@ -354,7 +354,7 @@ namespace ACE.Server.WorldObjects
             new List<uint>{ 50258 },
             new List<uint>{ 50259 },
             new List<uint>{ 50260 },
-            new List<uint>{ 50261 }
+            new List<uint>{ 50308 }
         };
 
         private List<List<uint>> VirindiChests = new List<List<uint>>
