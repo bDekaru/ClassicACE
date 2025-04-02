@@ -224,9 +224,16 @@ namespace ACE.Server.Entity
 
             foreach (var instance in instances)
             {
+                var instanceWeenie = DatabaseManager.World.GetCachedWeenie(instance.WeenieClassId);
+                if (instanceWeenie.WeenieType == WeenieType.Portal)
+                    continue;
+
                 Position instancePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
                 PositionsForExplorationMarkers.Add(instancePos);
             }
+
+            if (PositionsForExplorationMarkers.Count == 0)
+                return;
 
             PositionsForExplorationMarkers.Shuffle();
             if (LandblockInfo != null && LandblockInfo.NumCells >= 30)
@@ -320,24 +327,25 @@ namespace ACE.Server.Entity
                         entryPos = randomPos;
                 }
 
-                var allMarkers = worldObjects.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker).ToList();
-                allMarkers.AddRange(pendingAdditions.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker).ToList());
-                allMarkers = allMarkers.Where(i => !pendingRemovals.Contains(i.Key)).ToList();
+                var allMarkersAndPortals = worldObjects.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker || i.Value.WeenieType == WeenieType.Portal).ToList();
+                allMarkersAndPortals.AddRange(pendingAdditions.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker || i.Value.WeenieType == WeenieType.Portal).ToList());
+                allMarkersAndPortals = allMarkersAndPortals.Where(i => !pendingRemovals.Contains(i.Key)).ToList();
 
-                foreach (var obj in allMarkers)
+                foreach (var obj in allMarkersAndPortals)
                 {
-                    var marker = obj.Value;
+                    var markerOrPortal = obj.Value;
+                    var minDistance = markerOrPortal.WeenieType == WeenieType.Portal ? 10 : 50;
 
                     float distance;
                     if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
                     {
-                        if(!Pathfinder.GetRouteDistance(entryPos, marker.Location, AgentWidth.Narrow, out distance))
-                            distance = entryPos.DistanceTo(marker.Location);
+                        if(!Pathfinder.GetRouteDistance(entryPos, markerOrPortal.Location, AgentWidth.Narrow, out distance))
+                            distance = entryPos.DistanceTo(markerOrPortal.Location);
                     }
                     else
-                        distance = entryPos.DistanceTo(marker.Location);
+                        distance = entryPos.DistanceTo(markerOrPortal.Location);
 
-                    if (distance < 50)
+                    if (distance < minDistance)
                     {
                         attempts++;
                         if (attempts < 10)
