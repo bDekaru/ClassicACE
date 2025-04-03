@@ -43,7 +43,7 @@ namespace ACE.Server.WorldObjects
         public bool RemoveKnownSpell(uint spellId)
         {
             var removed = Biota.TryRemoveKnownSpell((int)spellId, BiotaDatabaseLock);
-            if(removed)
+            if (removed)
                 ChangesDetected = true;
             return removed;
         }
@@ -124,8 +124,8 @@ namespace ACE.Server.WorldObjects
         {
             if (!Biota.TryRemoveKnownSpell((int)spellId, BiotaDatabaseLock))
             {
-                if(!suppressErrorMessage)
-                log.Error("Invalid spellId passed to Player.RemoveSpellFromSpellBook");
+                if (!suppressErrorMessage)
+                    log.Error("Invalid spellId passed to Player.RemoveSpellFromSpellBook");
                 return false;
             }
 
@@ -539,6 +539,28 @@ namespace ACE.Server.WorldObjects
                     }
                 }
             }
+        }
+        public void GrantRoadSpeedBuff()
+        {
+            var spell = new Spell(SpellId.OnTheRoad);
+            var addResult = EnchantmentManager.Add(spell, null, null, true);
+            Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(Session, new Enchantment(this, addResult.Enchantment)));
+            HandleRunRateUpdate(spell);
+
+            OnRoadStatus = 2;
+        }
+
+        public void RemoveRoadSpeedBuff()
+        {
+            var propertiesEnchantmentRegistry = EnchantmentManager.GetEnchantment((uint)SpellId.OnTheRoad, null);
+            if (propertiesEnchantmentRegistry != null)
+            {
+                EnchantmentManager.Dispel(propertiesEnchantmentRegistry);
+                if (!Teleporting)
+                    HandleRunRateUpdate(new Spell(propertiesEnchantmentRegistry.SpellId));
+            }
+
+            OnRoadStatus = 0;
         }
     }
 }

@@ -2062,8 +2062,37 @@ namespace ACE.Server.Command.Handlers
 
             var distanceToRoad = landblock.GetDistanceToNearestRoad(forwardPosition, out var roadPosition, player.Location);
 
+            var previousRoadPositions = new List<uint>();
+            previousRoadPositions.Add(roadPosition.Cell);
             if (roadPosition != null && distanceToRoad < LandDefs.CellLength * 2)
             {
+                var dir = Math.Abs((int)Math.Floor(player.Location.PhysPosition().heading_diff(roadPosition.PhysPosition())));
+                var heightDiff = Math.Abs(player.Location.PositionZ - roadPosition.PositionZ);
+                var counter = 0;
+                if (dir < 3 && heightDiff < 25)
+                {
+                    for (int maxSections = 0; maxSections < 30; maxSections++)
+                    {
+                        forwardPosition = forwardPosition.InFrontOf(LandDefs.CellLength * 1.5);
+                        landblock.GetDistanceToNearestRoad(forwardPosition, out var nextRoadPosition, roadPosition);
+
+                        if (nextRoadPosition == null)
+                            break;
+
+                        dir = Math.Abs((int)Math.Floor(player.Location.PhysPosition().heading_diff(nextRoadPosition.PhysPosition())));
+                        heightDiff += Math.Abs(player.Location.PositionZ - roadPosition.PositionZ);
+                        if (!previousRoadPositions.Contains(nextRoadPosition.Cell) && dir < 3 && heightDiff < 25)
+                        {
+                            session.Network.EnqueueSend(new GameMessageSystemChat($"{nextRoadPosition.ToLOCString()}", ChatMessageType.Help));
+                            counter++;
+                            previousRoadPositions.Add(nextRoadPosition.Cell);
+                            roadPosition = nextRoadPosition;
+                        }
+                        else
+                            break;
+                    }
+                }
+
                 player.CreateMoveToChain(roadPosition, (success) =>
                 {
                     if (success)

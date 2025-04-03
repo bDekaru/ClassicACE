@@ -656,6 +656,7 @@ namespace ACE.Server.WorldObjects
             IsLoggingOut = true;
 
             EndSneaking();
+            RemoveRoadSpeedBuff();
 
             PlayerManager.AddPlayerToFinalLogoffQueue(this);
 

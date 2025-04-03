@@ -753,5 +753,6 @@ namespace ACE.Entity.Enum
         BlockModLowering = 752,
         ExtraBlockModRaising = 753,
         ExtraBlockModLowering = 754,
+        ExtraRunSkillRaisingRoad = 755,
     }
 }

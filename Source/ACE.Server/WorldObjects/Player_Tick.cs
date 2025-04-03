@@ -44,6 +44,10 @@ namespace ACE.Server.WorldObjects
 
         private double PvPInciteTickTimestamp;
 
+        private double RoadCheckTimestamp;
+        private const double RoadCheckInterval = 2.5;
+        private int OnRoadStatus;
+
         public void Player_Tick(double currentUnixTime)
         {
             if (CharacterSaveFailed)
@@ -141,12 +145,39 @@ namespace ACE.Server.WorldObjects
                 PvPInciteTick(currentUnixTime);
                 PvPInciteTickTimestamp = Time.GetFutureUnixTime(PropertyManager.GetLong("bz_whispers_interval").Item);
             }
-
+               
             if (enchantmentTickTimestamp == 0 || currentUnixTime > enchantmentTickTimestamp)
             {
                 if (EnchantmentManager.HasEnchantments)
                     EnchantmentManager.HeartBeat(enchantmentTickInterval, false);
                 enchantmentTickTimestamp = Time.GetFutureUnixTime(enchantmentTickInterval);
+            }
+
+
+            if (RoadCheckTimestamp == 0 || currentUnixTime > RoadCheckTimestamp)
+            {
+                if (!Indoors && CurrentLandblock != null && CurrentLandblock.PhysicsLandblock.OnRoad(Location.Pos))
+                {
+                    // We require 2 ticks before activating the buff as a way to minimize activations while just crossing the road
+                    // as that will make the player momentarily pause their movement which can be annoying if you're not following the road.
+                    if (OnRoadStatus == 1)
+                    {
+                        Session.Network.EnqueueSend(new GameMessageSystemChat("Your run speed increases due to being on a road.", ChatMessageType.Broadcast));
+                        GrantRoadSpeedBuff();
+                    }
+                    else if (OnRoadStatus == 0)
+                        OnRoadStatus = 1;
+                }
+                else if(OnRoadStatus != 0)
+                {
+                    if(OnRoadStatus == 2)
+                    {
+                        Session.Network.EnqueueSend(new GameMessageSystemChat("Your run speed returns to normal as you are no longer on a road.", ChatMessageType.Broadcast));
+                        RemoveRoadSpeedBuff();
+                    }
+                    OnRoadStatus = 0;
+                }
+                RoadCheckTimestamp = Time.GetFutureUnixTime(RoadCheckInterval);
             }
         }
 

@@ -6533,6 +6533,7 @@ namespace ACE.Entity.Enum
         CantripHeartBlocker2,
         CantripHeartBlocker3,
         CantripHeartBlocker4,
+        OnTheRoad,
 
         NumSpells = 8192,
 

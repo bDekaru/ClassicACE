@@ -733,6 +733,7 @@ namespace ACE.Server.WorldObjects
             LastTeleportStartTimestamp = Time.GetUnixTime();
 
             EndSneaking();
+            RemoveRoadSpeedBuff();
 
             if (fromPortal)
                 LastPortalTeleportTimestamp = LastTeleportStartTimestamp;
@@ -934,6 +935,7 @@ namespace ACE.Server.WorldObjects
             LastTeleportStartTimestamp = Time.GetUnixTime();
 
             EndSneaking();
+            RemoveRoadSpeedBuff();
 
             if (fromPortal)
                 LastPortalTeleportTimestamp = LastTeleportStartTimestamp;
