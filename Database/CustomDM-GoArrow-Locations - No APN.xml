@@ -45638,4 +45638,36 @@ This tree grows atop the large cataracts overlooking the Chapel on Xi Ru's Islan
     <retired>N</retired>
     <tod_req>0</tod_req>
   </location>
+  <location>
+    <id>2728</id>
+    <latitude>-18.4</latitude>
+    <longitude>58.2</longitude>
+    <name>Cave to Temple of Forgetfulness</name>
+    <type>Portal</type>
+    <arrival_latitude>-88.8</arrival_latitude>
+    <arrival_longitude>0.1</arrival_longitude>
+    <description></description>
+    <date_added>2000-07-06T00:00:00.0000000-07:00</date_added>
+    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
+    <dungeon_id>
+    </dungeon_id>
+    <retired>N</retired>
+    <tod_req>0</tod_req>
+  </location>
+  <location>
+    <id>2729</id>
+    <latitude>-18.4</latitude>
+    <longitude>58.2</longitude>
+    <name>Cave to Temple of Enlightenment</name>
+    <type>Portal</type>
+    <arrival_latitude>84.6</arrival_latitude>
+    <arrival_longitude>0.2</arrival_longitude>
+    <description></description>
+    <date_added>2000-07-06T00:00:00.0000000-07:00</date_added>
+    <last_update>2005-02-16T17:14:19.0970000-08:00</last_update>
+    <dungeon_id>
+    </dungeon_id>
+    <retired>N</retired>
+    <tod_req>0</tod_req>
+  </location>
 </atlas>
