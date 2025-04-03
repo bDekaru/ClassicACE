@@ -156,7 +156,7 @@ namespace ACE.Server.WorldObjects
 
             if (RoadCheckTimestamp == 0 || currentUnixTime > RoadCheckTimestamp)
             {
-                if (!Indoors && CurrentLandblock != null && CurrentLandblock.PhysicsLandblock.OnRoad(Location.Pos))
+                if (!IsLoggingOut && !Indoors && CurrentLandblock != null && CurrentLandblock.PhysicsLandblock.OnRoad(Location.Pos))
                 {
                     // We require 2 ticks before activating the buff as a way to minimize activations while just crossing the road
                     // as that will make the player momentarily pause their movement which can be annoying if you're not following the road.
