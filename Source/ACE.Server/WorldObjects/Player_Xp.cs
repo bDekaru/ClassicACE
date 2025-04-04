@@ -584,9 +584,6 @@ namespace ACE.Server.WorldObjects
         {
             var vitae = EnchantmentManager.GetVitae();
 
-            var isDecay = amount < 0;
-            amount = Math.Abs(amount);
-
             long xpLeft = amount;
 
             if (vitae == null)
@@ -595,6 +592,9 @@ namespace ACE.Server.WorldObjects
                 log.Error(Environment.StackTrace);
                 return xpLeft;
             }
+
+            if (vitae.StatModValue.EpsilonEquals(1.0f) || vitae.StatModValue > 1.0f)
+                return xpLeft;
 
             var vitaePenalty = vitae.StatModValue;
             var startPenalty = vitaePenalty;
@@ -607,7 +607,7 @@ namespace ACE.Server.WorldObjects
             {
                 curPool -= maxPool;
                 vitaePenalty = EnchantmentManager.ReduceVitae();
-                if (vitaePenalty == 1.0f)
+                if (vitaePenalty.EpsilonEquals(1.0f) || vitaePenalty > 1.0f)
                     break;
                 maxPool = (int)VitaeCPPoolThreshold(vitaePenalty, DeathLevel.Value);
 
@@ -617,8 +617,11 @@ namespace ACE.Server.WorldObjects
 
             xpLeft = Math.Max(xpLeft, 0);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !isDecay)
-                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your Vitae penalty consumes {amount - xpLeft} experience!", ChatMessageType.Magic));
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                var xpConsumed = amount - xpLeft;
+                Session.Network.EnqueueSend(new GameMessageSystemChat($"Your Vitae penalty consumes {xpConsumed:N0} experience!", ChatMessageType.Magic));
+            }
 
             Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.VitaeCpPool, VitaeCpPool.Value));
 
@@ -626,10 +629,8 @@ namespace ACE.Server.WorldObjects
             {
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
-                    if(isDecay)
-                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Your Vitae recovers! Your Vitae penalty is now {(int)(100 - (vitaePenalty * 100))}%.", ChatMessageType.Magic));
-                    else
-                        Session.Network.EnqueueSend(new GameMessageSystemChat($"Your experience has reduced your Vitae penalty! It is now {(int)(100 - (vitaePenalty * 100))}%.", ChatMessageType.Magic));
+                    var newVitaePenaltyPercent = (int)(100 - (vitaePenalty * 100));
+                    Session.Network.EnqueueSend(new GameMessageSystemChat($"Your experience has reduced your Vitae penalty! It is now {newVitaePenaltyPercent:N0}%.", ChatMessageType.Magic));
                 }
                 else
                     Session.Network.EnqueueSend(new GameMessageSystemChat("Your experience has reduced your Vitae penalty!", ChatMessageType.Magic));
