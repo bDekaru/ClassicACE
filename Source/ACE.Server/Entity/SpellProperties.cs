@@ -532,5 +532,18 @@ namespace ACE.Server.Entity
         /// </summary>
         public bool IsDudProjectile;
 
+        private static List<SpellId> Metaspells = new List<SpellId> { SpellId.EmpowerSpell, SpellId.QuickenSpell, SpellId.EnchainSpell, SpellId.ExtendSpell, SpellId.MaximizeSpell, SpellId.DelaySpell };
+        public bool IsMetaspell
+        {
+            get
+            {
+                return Metaspells.Contains((SpellId)Id);
+            }
+        }
+
+        public bool IsEnchainedSpell;
+        public int EnchainedSpellCounter;
+
+        public bool IsExtendedSpell;
     }
 }

@@ -99,6 +99,8 @@ namespace ACE.Server.WorldObjects
 
             dieEntered = true;
 
+            ClearAllDoTsAndHoTs();
+
             UpdateVital(Health, 0);
 
             if (topDamager != null)

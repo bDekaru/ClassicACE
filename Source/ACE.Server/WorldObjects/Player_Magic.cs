@@ -666,7 +666,7 @@ namespace ACE.Server.WorldObjects
                 EnqueueBroadcast(new GameMessageHearSpeech(spellWords, GetNameWithSuffix(), Guid.Full, ChatMessageType.Spellcasting), LocalBroadcastRange);
         }
 
-        public static float CastSpeed = 2.0f;       // from retail pcaps, player animation speed for windup / first half of cast gesture
+        public float CastSpeed = 2.0f;       // from retail pcaps, player animation speed for windup / first half of cast gesture
 
         public void DoWindupGestures(Spell spell, bool isWeaponSpell, ActionChain castChain)
         {
@@ -1203,6 +1203,18 @@ namespace ACE.Server.WorldObjects
 
             var spellChain = new ActionChain();
             //StartPos = new Physics.Common.Position(PhysicsObj.Position);
+
+            CastSpeed = 2.0f;
+            if (!spell.IsMetaspell)
+            {
+                var quickenSpell = EnchantmentManager.GetEnchantments(SpellCategory.QuickenSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                if (quickenSpell != null && quickenSpell.StatModValue > 0)
+                {
+                    CastSpeed *= 2;
+                    quickenSpell.StatModValue--;
+                    quickenSpell.StartTime = 0;
+                }
+            }
 
             // do wind-up gestures: fastcast has no windup (creature enchantments)
             DoWindupGestures(spell, isWeaponSpell, spellChain);

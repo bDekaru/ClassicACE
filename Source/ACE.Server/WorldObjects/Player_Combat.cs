@@ -516,7 +516,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Simplified player take damage function, only called for DoTs currently
         /// </summary>
-        public override void TakeDamageOverTime(float _amount, DamageType damageType)
+        public override void TakeDamageOverTime(float _amount, DamageType damageType, bool suppressEffects = false, bool? isPhysical = null)
         {
             if (Invincible || IsDead || IsOnNoDamageLandblock) return;
 
@@ -542,28 +542,30 @@ namespace ACE.Server.WorldObjects
             // send damage text message
             //if (PropertyManager.GetBool("show_dot_messages").Item)
             //{
-            string damageTypeString;
-            switch (damageType)
-            {
-                case DamageType.Fire:
-                    damageTypeString = "fire ";
-                    break;
-                case DamageType.Nether:
-                    damageTypeString = "nether ";
-                    break;
-                default:
-                    damageTypeString = "";
-                    break;
-            }
-            var chatMessageType = damageType == DamageType.Nether ? ChatMessageType.Magic : ChatMessageType.Combat;
+            string damageTypeString = "";
+            if (damageType != DamageType.Health)
+                damageTypeString = $"{damageType.GetName().ToLower()} ";
+
+            ChatMessageType chatMessageType;
+
+            if(!isPhysical.HasValue)
+                chatMessageType = damageType == DamageType.Health ? ChatMessageType.Combat: ChatMessageType.Magic;
+            else if(isPhysical.Value == true)
+                chatMessageType = ChatMessageType.Combat;
+            else
+                chatMessageType = ChatMessageType.Magic;
+
             var text = $"You receive {amount} points of periodic {damageTypeString}damage.";
             SendMessage(text, chatMessageType);
             //}
 
-            // splatter effects
-            //var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creature.GetSplatterHeight() + creature.GetSplatterDir(this)));  // not sent in retail, but great visual indicator?
-            var splatter = new GameMessageScript(Guid, damageType == DamageType.Nether ? PlayScript.HealthDownVoid : PlayScript.DirtyFightingDamageOverTime);
-            EnqueueBroadcast(splatter);
+            if (!suppressEffects)
+            {
+                // splatter effects
+                //var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creature.GetSplatterHeight() + creature.GetSplatterDir(this)));  // not sent in retail, but great visual indicator?
+                var splatter = new GameMessageScript(Guid, damageType == DamageType.Nether ? PlayScript.HealthDownVoid : PlayScript.DirtyFightingDamageOverTime);
+                EnqueueBroadcast(splatter);
+            }
 
             if (Health.Current <= 0)
             {
@@ -577,7 +579,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (percent >= 0.1f)
+            if (!suppressEffects && percent >= 0.1f)
                 EnqueueBroadcast(new GameMessageSound(Guid, Sound.Wound1, 1.0f));
         }
 

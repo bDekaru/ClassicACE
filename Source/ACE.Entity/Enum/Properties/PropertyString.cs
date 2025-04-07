@@ -110,5 +110,8 @@ namespace ACE.Entity.Enum.Properties
         ChargenClothing                 = 9018,
         ChargenSkillsSecondary          = 9019,
         ArcaneLoreRollLog               = 9020,
+
+        DamageOverTimeLog               = 9021,
+        HealOverTimeLog                 = 9022,
     }
 }

@@ -330,6 +330,8 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(msgPurgeBadEnchantments, new GameMessageSystemChat("Your augmentation prevents the tides of death from ripping away your current enchantments!", ChatMessageType.Broadcast));
             }
 
+            ClearAllDoTsAndHoTs();
+
             // wait for the death animation to finish
             var dieChain = new ActionChain();
             var animLength = DatManager.PortalDat.ReadFromDat<MotionTable>(MotionTableId).GetAnimationLength(MotionCommand.Dead);

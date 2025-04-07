@@ -9,6 +9,7 @@ using ACE.Server.Factories.Tables;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Network.Structure;
 using ACE.Server.WorldObjects.Entity;
 using System;
 using System.Collections.Generic;
@@ -320,46 +321,71 @@ namespace ACE.Server.WorldObjects
             var isPerfectBlock = false;
             var damageBlocked = 0f;
 
-            var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower, ref resisted, ref blocked, ref isPerfectBlock, ref damageBlocked);
-
-            creatureTarget.OnAttackReceived(sourceCreature, CombatType.Magic, critical, resisted);
-
-            if (damage != null)
+            if (Spell.IsExtendedSpell && Spell.MetaSpellType != ACE.Entity.Enum.SpellType.LifeProjectile)
             {
-                if (Spell.MetaSpellType == ACE.Entity.Enum.SpellType.EnchantmentProjectile)
+                int baseDamage;
+
+                var maximizeSpell = EnchantmentManager.GetEnchantments(SpellCategory.MaximizeSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                if (maximizeSpell != null && maximizeSpell.StatModValue > 0)
                 {
-                    // handle EnchantmentProjectile successfully landing on target
-                    ProjectileSource.CreateEnchantment(creatureTarget, ProjectileSource, ProjectileLauncher, Spell, false, FromProc);
+                    baseDamage = Spell.MaxDamage;
+
+                    maximizeSpell.StatModValue--;
+                    maximizeSpell.StartTime = 0;
+
+                    if (player != null)
+                        player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, maximizeSpell)));
                 }
                 else
+                    baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
+
+                creatureTarget.ApplyDoT(baseDamage / 2, baseDamage * 2, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School));
+
+                creatureTarget.OnAttackReceived(ProjectileSource, CombatType.Magic, critical, resisted);
+            }
+            else
+            {
+                var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower, ref resisted, ref blocked, ref isPerfectBlock, ref damageBlocked);
+
+                creatureTarget.OnAttackReceived(ProjectileSource, CombatType.Magic, critical, resisted);
+
+                if (damage != null)
                 {
-                    DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower, blocked, isPerfectBlock, damageBlocked);
-
-                    if (player != null && player != creatureTarget)
+                    if (Spell.MetaSpellType == ACE.Entity.Enum.SpellType.EnchantmentProjectile)
                     {
-                        var currentTime = Time.GetUnixTime();
-                        if (player.NextTechniqueNegativeActivationTime <= currentTime)
+                        // handle EnchantmentProjectile successfully landing on target
+                        ProjectileSource.CreateEnchantment(creatureTarget, ProjectileSource, ProjectileLauncher, Spell, false, FromProc);
+                    }
+                    else
+                    {
+                        DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower, blocked, isPerfectBlock, damageBlocked);
+
+                        if (player != null && player != creatureTarget)
                         {
-                            var techniqueTrinket = player.GetEquippedTrinket();
-                            if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Opportunist)
+                            var currentTime = Time.GetUnixTime();
+                            if (player.NextTechniqueNegativeActivationTime <= currentTime)
                             {
-                                var chance = 0.3f;
-                                if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                var techniqueTrinket = player.GetEquippedTrinket();
+                                if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Opportunist)
                                 {
-                                    // Chance of inflicting self damage while using the Opportunist technique.
-                                    var criticalSelf = false;
-                                    var critDefendedSelf = false;
-                                    var overpowerSelf = false;
-                                    var resistedSelf = false;
-                                    var blockedSelf = false;
-                                    var isPerfectBlockSelf = false;
-                                    var damageBlockedSelf = 0f;
+                                    var chance = 0.3f;
+                                    if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                                    {
+                                        // Chance of inflicting self damage while using the Opportunist technique.
+                                        var criticalSelf = false;
+                                        var critDefendedSelf = false;
+                                        var overpowerSelf = false;
+                                        var resistedSelf = false;
+                                        var blockedSelf = false;
+                                        var isPerfectBlockSelf = false;
+                                        var damageBlockedSelf = 0f;
 
-                                    var damage2 = CalculateDamage(ProjectileSource, player, ref criticalSelf, ref critDefendedSelf, ref overpowerSelf, ref resistedSelf, ref blockedSelf, ref isPerfectBlockSelf, ref damageBlockedSelf);
-                                    if(damage2 != null)
-                                        DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf, blocked, isPerfectBlock, damageBlocked);
+                                        var damage2 = CalculateDamage(ProjectileSource, player, ref criticalSelf, ref critDefendedSelf, ref overpowerSelf, ref resistedSelf, ref blockedSelf, ref isPerfectBlockSelf, ref damageBlockedSelf);
+                                        if (damage2 != null)
+                                            DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf, blocked, isPerfectBlock, damageBlocked);
 
-                                    player.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
+                                        player.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
+                                    }
                                 }
                             }
                         }
@@ -379,7 +405,7 @@ namespace ACE.Server.WorldObjects
                 // TODO: instead of ProjectileLauncher is Caster, perhaps a SpellProjectile.CanProc bool that defaults to true,
                 // but is set to false if the source of a spell is from a proc, to prevent multi procs?
 
-                if (sourceCreature != null && ProjectileTarget != null && !FromProc)
+                if (ProjectileSource != null && ProjectileTarget != null && !FromProc)
                 {
                     // TODO figure out why cross-landblock group operations are happening here. We shouldn't need this code Mag-nus 2021-02-09
                     bool threadSafe = true;
@@ -387,95 +413,134 @@ namespace ACE.Server.WorldObjects
                     if (LandblockManager.CurrentlyTickingLandblockGroupsMultiThreaded)
                     {
                         // Ok... if we got here, we're likely in the parallel landblock physics processing.
-                        if (sourceCreature.CurrentLandblock == null || creatureTarget.CurrentLandblock == null || sourceCreature.CurrentLandblock.CurrentLandblockGroup != creatureTarget.CurrentLandblock.CurrentLandblockGroup)
+                        if (ProjectileSource.CurrentLandblock == null || ProjectileSource.CurrentLandblock == null || ProjectileSource.CurrentLandblock.CurrentLandblockGroup != target.CurrentLandblock.CurrentLandblockGroup)
                             threadSafe = false;
                     }
 
                     if (threadSafe)
                     {
-                        // This can result in spell projectiles being added to either sourceCreature or creatureTargets landblock.
-                        sourceCreature.TryProcEquippedItems(sourceCreature, creatureTarget, false, ProjectileLauncher);
+                        if (sourceCreature != null && creatureTarget != null)
+                        {
+                            // This can result in spell projectiles being added to either sourceCreature or creatureTargets landblock.
+                            sourceCreature.TryProcEquippedItems(sourceCreature, creatureTarget, false, ProjectileLauncher);
+                        }
 
                         if (!FromProc && !resisted && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {
-                            switch (Spell.DamageType)
+                            if(Spell.IsEnchainedSpell && Spell.EnchainedSpellCounter > 0)
                             {
-                                case DamageType.Cold:
-                                    if (isPvP)
+                                var spreadChance = 0.7f;
+                                if (spreadChance < ThreadSafeRandom.Next(0.0f, 1.0f))
+                                    Spell.IsEnchainedSpell = false;
+                                else
+                                    Spell.EnchainedSpellCounter++;
+                            }
+
+                            if (Spell.IsEnchainedSpell)
+                            {
+                                var level1SpellId = SpellLevelProgression.GetLevel1SpellId((SpellId)Spell.Id);
+                                var newSpellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
+                                if (newSpellId != SpellId.Undef)
+                                {
+                                    var newSpell = new Spell(newSpellId);
+                                    if (!newSpell.NotFound)
                                     {
-                                        // The regular freezing spell was found to change PvP dynamics too much so lower attack speed instead.
-                                        var leadenWeapon = new Spell(SpellId.LeadenWeapon5);
-                                        leadenWeapon.Duration = 10;
-                                        if (!leadenWeapon.NotFound)
-                                            sourceCreature.TryCastSpell(leadenWeapon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                                        newSpell.IsEnchainedSpell = true;
 
-                                        // And something negative for casters as well.
-                                        var hermeticVoid = new Spell(SpellId.HermeticVoid5);
-                                        hermeticVoid.Duration = 10;
-                                        if (!hermeticVoid.NotFound)
-                                            sourceCreature.TryCastSpell(hermeticVoid, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                                    }
-                                    else
-                                    {
-                                        var freezingSpell = new Spell(SpellId.Freezing);
-                                        if (!freezingSpell.NotFound)
-                                            sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                                    }
-                                    break;
-
-                                case DamageType.Fire:
-                                    var burningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.Burning1, (int)Spell.Level, true);
-                                    var burningSpell = new Spell(burningSpellId);
-                                    if (!burningSpell.NotFound)
-                                        sourceCreature.TryCastSpell(burningSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                                    break;
-
-                                case DamageType.Acid:
-                                    var acidSpellPierce = new Spell(SpellId.MeltingPierce);
-                                    if (!acidSpellPierce.NotFound)
-                                        sourceCreature.TryCastSpell(acidSpellPierce, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                                    var acidSpellBludgeon = new Spell(SpellId.MeltingBludgeon);
-                                    if (!acidSpellBludgeon.NotFound)
-                                        sourceCreature.TryCastSpell(acidSpellBludgeon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                                    var acidSpellSlash = new Spell(SpellId.MeltingSlash);
-                                    if (!acidSpellSlash.NotFound)
-                                        sourceCreature.TryCastSpell(acidSpellSlash, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                                    break;
-
-                                case DamageType.Electric:
-                                    var spreadChance = 0.7f;
-                                    if (spreadChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                    {
-                                        var lightningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.LightningBolt1, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
-                                        var lightningSpell = new Spell(lightningSpellId);
-
-                                        if (!lightningSpell.NotFound)
+                                        var list = GetNearbyTargets(creatureTarget);
+                                        if (list.Count > 0)
                                         {
-                                            var list = GetNearbyTargets(creatureTarget);
-                                            if (list.Count > 0)
+                                            var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
+                                            var actionChain = new ActionChain();
+                                            actionChain.AddDelaySeconds(0.1);
+                                            actionChain.AddAction(creatureTarget, () =>
                                             {
-                                                var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
-                                                var actionChain = new ActionChain();
-                                                actionChain.AddDelaySeconds(0.1);
-                                                actionChain.AddAction(creatureTarget, () =>
-                                                {
-                                                    if (sourceCreature != null && !sourceCreature.IsDestroyed && creatureTarget != null && !creatureTarget.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && ProjectileLauncher != null && !ProjectileLauncher.IsDestroyed)
-                                                        sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
-                                                });
-                                                actionChain.EnqueueChain();
-                                            }
+                                                if (ProjectileSource != null && !ProjectileSource.IsDestroyed && creatureTarget != null && !creatureTarget.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && ProjectileLauncher != null && !ProjectileLauncher.IsDestroyed)
+                                                    ProjectileSource.TryCastSpell(newSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
+                                            });
+                                            actionChain.EnqueueChain();
                                         }
                                     }
-                                    break;
+                                }
                             }
+                            //switch (Spell.DamageType)
+                            //{
+                            //    case DamageType.Cold:
+                            //        if (isPvP)
+                            //        {
+                            //            // The regular freezing spell was found to change PvP dynamics too much so lower attack speed instead.
+                            //            var leadenWeapon = new Spell(SpellId.LeadenWeapon5);
+                            //            leadenWeapon.Duration = 10;
+                            //            if (!leadenWeapon.NotFound)
+                            //                sourceCreature.TryCastSpell(leadenWeapon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+
+                            //            // And something negative for casters as well.
+                            //            var hermeticVoid = new Spell(SpellId.HermeticVoid5);
+                            //            hermeticVoid.Duration = 10;
+                            //            if (!hermeticVoid.NotFound)
+                            //                sourceCreature.TryCastSpell(hermeticVoid, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                            //        }
+                            //        else
+                            //        {
+                            //            var freezingSpell = new Spell(SpellId.Freezing);
+                            //            if (!freezingSpell.NotFound)
+                            //                sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                            //        }
+                            //        break;
+
+                            //    case DamageType.Fire:
+                            //        var burningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.Burning1, (int)Spell.Level, true);
+                            //        var burningSpell = new Spell(burningSpellId);
+                            //        if (!burningSpell.NotFound)
+                            //            sourceCreature.TryCastSpell(burningSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                            //        break;
+
+                            //    case DamageType.Acid:
+                            //        var acidSpellPierce = new Spell(SpellId.MeltingPierce);
+                            //        if (!acidSpellPierce.NotFound)
+                            //            sourceCreature.TryCastSpell(acidSpellPierce, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+
+                            //        var acidSpellBludgeon = new Spell(SpellId.MeltingBludgeon);
+                            //        if (!acidSpellBludgeon.NotFound)
+                            //            sourceCreature.TryCastSpell(acidSpellBludgeon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+
+                            //        var acidSpellSlash = new Spell(SpellId.MeltingSlash);
+                            //        if (!acidSpellSlash.NotFound)
+                            //            sourceCreature.TryCastSpell(acidSpellSlash, creatureTarget, null, ProjectileLauncher, false, false, false, false);
+                            //        break;
+
+                            //    case DamageType.Electric:
+                            //        var spreadChance = 0.7f;
+                            //        if (spreadChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                            //        {
+                            //            var lightningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.LightningBolt1, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
+                            //            var lightningSpell = new Spell(lightningSpellId);
+
+                            //            if (!lightningSpell.NotFound)
+                            //            {
+                            //                var list = GetNearbyTargets(creatureTarget);
+                            //                if (list.Count > 0)
+                            //                {
+                            //                    var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
+                            //                    var actionChain = new ActionChain();
+                            //                    actionChain.AddDelaySeconds(0.1);
+                            //                    actionChain.AddAction(creatureTarget, () =>
+                            //                    {
+                            //                        if (sourceCreature != null && !sourceCreature.IsDestroyed && creatureTarget != null && !creatureTarget.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && ProjectileLauncher != null && !ProjectileLauncher.IsDestroyed)
+                            //                            sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
+                            //                    });
+                            //                    actionChain.EnqueueChain();
+                            //                }
+                            //            }
+                            //        }
+                            //        break;
+                            //}
                         }
                     }
                     else
                     {
-                        // sourceCreature and creatureTarget are now in different landblock groups.
-                        // What has likely happened is that sourceCreature sent a projectile toward creatureTarget. Before impact, sourceCreature was teleported away.
+                        // ProjectileSource and target are now in different landblock groups.
+                        // What has likely happened is that sourceCreature sent a projectile toward creatureTarget. Before impact, ProjectileSource was teleported away.
                         // To perform this fully thread safe, we would enqueue the work onto worldManager.
                         // WorldManager.EnqueueAction(new ActionEventDelegate(() => sourceCreature.TryProcEquippedItems(creatureTarget, false)));
                         // But, to keep it simple, we will just ignore it and not bother with TryProcEquippedItems for this particular impact.
@@ -765,7 +830,20 @@ namespace ACE.Server.WorldObjects
                         skillBonus = Spell.MinDamage * percentageBonus;
                     }
                 }
-                baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
+
+                var maximizeSpell = EnchantmentManager.GetEnchantments(SpellCategory.MaximizeSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                if (maximizeSpell != null && maximizeSpell.StatModValue > 0)
+                {
+                    baseDamage = Spell.MaxDamage;
+
+                    maximizeSpell.StatModValue--;
+                    maximizeSpell.StartTime = 0;
+
+                    if (sourcePlayer != null)
+                        sourcePlayer.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(sourcePlayer.Session, new Enchantment(sourcePlayer, maximizeSpell)));
+                }
+                else
+                    baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {

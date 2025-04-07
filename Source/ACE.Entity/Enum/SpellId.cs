@@ -6534,6 +6534,12 @@ namespace ACE.Entity.Enum
         CantripHeartBlocker3,
         CantripHeartBlocker4,
         OnTheRoad,
+        EmpowerSpell,
+        QuickenSpell,
+        EnchainSpell,
+        ExtendSpell,
+        MaximizeSpell,
+        DelaySpell,
 
         NumSpells = 8192,
 

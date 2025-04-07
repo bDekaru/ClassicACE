@@ -56,6 +56,9 @@ namespace ACE.Server.WorldObjects
 
         private void SetPropertiesAtLogOut()
         {
+            RemoveRoadSpeedBuff();
+            SaveDotsAndHots();
+
             LogoffTimestamp = Time.GetUnixTime();
             // These properties are used with offline players to determine passup rates
             SetProperty(PropertyInt.CurrentLoyaltyAtLastLogoff, (int)GetCreatureSkill(Skill.Loyalty).Current);

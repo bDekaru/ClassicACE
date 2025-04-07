@@ -161,6 +161,8 @@ namespace ACE.Server.WorldObjects
                 actionChain.EnqueueChain();
             }
 
+            RestoreDotsAndHots();
+
             log.DebugFormat("[LOGIN] Account {0} entered the world with character {1} (0x{2}) at {3}.", Account.AccountName, Name, Guid, DateTime.Now.ToCommonString());
         }
 

@@ -754,5 +754,11 @@ namespace ACE.Entity.Enum
         ExtraBlockModRaising = 753,
         ExtraBlockModLowering = 754,
         ExtraRunSkillRaisingRoad = 755,
+        EmpowerSpell = 756,
+        QuickenSpell = 757,
+        EnchainSpell = 758,
+        ExtendSpell = 759,
+        MaximizeSpell = 760,
+        DelaySpell = 761,
     }
 }
