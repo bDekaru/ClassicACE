@@ -6540,6 +6540,10 @@ namespace ACE.Entity.Enum
         ExtendSpell,
         MaximizeSpell,
         DelaySpell,
+        Blink,
+        Ensnare,
+        Mesmerize,
+        AblativeArmor,
 
         NumSpells = 8192,
 

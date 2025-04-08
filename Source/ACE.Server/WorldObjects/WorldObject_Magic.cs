@@ -1562,6 +1562,50 @@ namespace ACE.Server.WorldObjects
                         recallDID = targetPlayer.LinkedPortalTwoDID;
                     }
                     break;
+                case SpellId.Blink:
+                    if (player != null)
+                    {
+                        var validBlinkDestination = false;
+                        for (int i = 1; i <= 4; i++)
+                        {
+                            var distance = spell.StatModVal;
+                            if (player.Indoors)
+                                distance /= 2;
+
+                            var blinkLoc = new Position(player.Location);
+                            blinkLoc.Rotate(player.LatestMovementHeading);
+                            blinkLoc = blinkLoc.InFrontOf(distance / i);
+
+                            if(!player.AdjustBlinkDestination(blinkLoc))
+                                continue;
+
+                            WorldObject testObject = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.placeholder);
+                            testObject.Location = blinkLoc;
+                            testObject.IgnoreCollisions = false;
+                            testObject.GravityStatus = false;
+                            testObject.SuppressGenerateEffect = true;
+                            if (!testObject.EnterWorld())
+                            {
+                                testObject.Destroy();
+                                continue;
+                            }
+
+                            if (player.IsMeleeVisible(testObject))
+                            {
+                                validBlinkDestination = true;
+
+                                testObject.Destroy();
+                                WorldManager.ThreadSafeBlink(player, blinkLoc);
+                                break;
+                            }
+                            else
+                                testObject.Destroy();
+                        }
+
+                        if (!validBlinkDestination)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat("The Blink has failed!", ChatMessageType.Magic));
+                    }
+                    return;
             }
 
             if (recall != PositionType.Undef)

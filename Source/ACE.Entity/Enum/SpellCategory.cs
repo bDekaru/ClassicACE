@@ -760,5 +760,9 @@ namespace ACE.Entity.Enum
         ExtendSpell = 759,
         MaximizeSpell = 760,
         DelaySpell = 761,
+        Blink = 762,
+        Ensnare = 763,
+        Mesmerize = 764,
+        AblativeArmor = 765,
     }
 }

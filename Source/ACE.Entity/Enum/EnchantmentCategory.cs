@@ -10,15 +10,4 @@ namespace ACE.Entity.Enum
         Vitae           = 0x4,
         Cooldown        = 0x8,
     };
-
-    public enum EnchantmentCustomKeyType
-    {
-        Undef,
-        EmpowerSpell,
-        QuickenSpell,
-        EnchainSpell,
-        ExtendSpell,
-        MaximizeSpell,
-        DelaySpell,
-    }
 }

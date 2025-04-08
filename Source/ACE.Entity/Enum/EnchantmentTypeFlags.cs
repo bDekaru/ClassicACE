@@ -28,7 +28,6 @@ namespace ACE.Entity.Enum
         Vitae                  = 0x0800000,
         Cooldown               = 0x1000000,
         Beneficial             = 0x2000000,
-        Custom                 = 0x4000000,
         StatTypes              = 0x00000FF,
     }
 }

@@ -149,14 +149,6 @@ namespace ACE.Server.WorldObjects.Managers
             // check for existing spell in this category
             var entries = GetEnchantments(spell.Category);
 
-            if (entries.Count > 0 && spell.Flags.HasFlag(SpellFlags.Unsurpassable))
-            {
-                result.Enchantment = null;
-                result.StackType = StackType.None;
-                result.SurpassedSpell = new Spell(entries[0].SpellId, false);
-                return result;
-            }
-
             // if none, add new record
             if (entries.Count == 0)
             {
@@ -167,6 +159,13 @@ namespace ACE.Server.WorldObjects.Managers
 
                 result.Enchantment = newEntry;
                 result.StackType = StackType.Initial;
+                return result;
+            }
+            else if (spell.Flags.HasFlag(SpellFlags.Unsurpassable))
+            {
+                result.Enchantment = null;
+                result.StackType = StackType.None;
+                result.SurpassedSpell = new Spell(entries[0].SpellId, false);
                 return result;
             }
 

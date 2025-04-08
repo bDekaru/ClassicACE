@@ -85,6 +85,8 @@ namespace ACE.Server.WorldObjects
         public double LastPlayerMovementCheckTime;
         public int MovementEnforcementCounter;
 
+        public float LatestMovementHeading = 0;
+
         public double NextTechniqueActivationTime = 0;
         public double NextTechniqueNegativeActivationTime = 0;
 

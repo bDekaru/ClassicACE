@@ -7,6 +7,7 @@ namespace ACE.Entity.Enum
         LinkedLifestone,
         LastPortal,
         LinkedPortalOne,
-        LinkedPortalTwo
+        LinkedPortalTwo,
+        Blink
     }
 }
