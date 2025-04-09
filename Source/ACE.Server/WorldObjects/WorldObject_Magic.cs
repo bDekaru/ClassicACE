@@ -304,11 +304,11 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         protected bool HandleCastSpell(Spell spell, WorldObject target, WorldObject itemCaster = null, WorldObject weapon = null, bool isWeaponSpell = false, bool fromProc = false, bool equip = false, bool showMsg = true, WorldObject sourceOverride = null)
         {
-            var delay = 0;
+            var delay = 0f;
             if (!spell.IsMetaspell && showMsg == true && fromProc == false) // showMsg == false means this was not a spell that was cast by the player directly.
             {
                 var empowerSpell = EnchantmentManager.GetEnchantments(SpellCategory.EmpowerSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (empowerSpell != null && empowerSpell.StatModValue > 0)
+                if (empowerSpell != null && empowerSpell.StatModKey > 0)
                 {
                     var level1SpellId = SpellLevelProgression.GetLevel1SpellId((SpellId)spell.Id);
                     var newSpellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, (int)spell.Level + 1);
@@ -320,7 +320,7 @@ namespace ACE.Server.WorldObjects
                             newSpell.IntensityMod = spell.IntensityMod;
                             spell = newSpell;
 
-                            empowerSpell.StatModValue--;
+                            empowerSpell.StatModKey--;
                             empowerSpell.StartTime = 0;
 
                             if (this is Player player)
@@ -330,11 +330,11 @@ namespace ACE.Server.WorldObjects
                 }
 
                 var delaySpell = EnchantmentManager.GetEnchantments(SpellCategory.DelaySpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (delaySpell != null && delaySpell.StatModValue > 0)
+                if (delaySpell != null && delaySpell.StatModKey > 0)
                 {
-                    delay = 3;
+                    delay = delaySpell.StatModValue;
 
-                    delaySpell.StatModValue--;
+                    delaySpell.StatModKey--;
                     delaySpell.StartTime = 0;
 
                     if (this is Player player)
@@ -652,13 +652,13 @@ namespace ACE.Server.WorldObjects
             if (!spell.IsMetaspell)
             {
                 var extendSpell = EnchantmentManager.GetEnchantments(SpellCategory.ExtendSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (extendSpell != null && extendSpell.StatModValue > 0)
+                if (extendSpell != null && extendSpell.StatModKey > 0)
                 {
                     spell.IsExtendedSpell = true;
 
                     spell.Duration *= 2;
 
-                    extendSpell.StatModValue--;
+                    extendSpell.StatModKey--;
                     extendSpell.StartTime = 0;
                 }
             }
@@ -677,8 +677,15 @@ namespace ACE.Server.WorldObjects
                 if (!spell.IsBeneficial && this is Creature creatureCaster)
                     playerTarget.SetCurrentAttacker(creatureCaster);
             }
-            else if (target is Creature creature)
+            else if (target is Creature creature && addResult.Enchantment != null)
+            {
+                if (spell.Id == (int)SpellId.Ensnare)
+                    creature.Ensnare();
+                else if (spell.Id == (int)SpellId.Mesmerize)
+                    creature.Mesmerize();
+
                 creature.UpdateMoveSpeed();
+            }
 
             if (playerTarget == null && target.Wielder is Player wielder)
                 playerTarget = wielder;
@@ -715,14 +722,14 @@ namespace ACE.Server.WorldObjects
             int tryBoost;
 
             var maximizeSpell = EnchantmentManager.GetEnchantments(SpellCategory.MaximizeSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-            if (maximizeSpell != null && maximizeSpell.StatModValue > 0)
+            if (maximizeSpell != null && maximizeSpell.StatModKey > 0)
             {
                 if (maxBoostValue < 0)
                     tryBoost = minBoostValue;
                 else
                     tryBoost = maxBoostValue;
 
-                maximizeSpell.StatModValue--;
+                maximizeSpell.StatModKey--;
                 maximizeSpell.StartTime = 0;
 
                 if (player != null)
@@ -732,7 +739,7 @@ namespace ACE.Server.WorldObjects
                 tryBoost = ThreadSafeRandom.Next(minBoostValue, maxBoostValue);
 
             var extendSpell = EnchantmentManager.GetEnchantments(SpellCategory.ExtendSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-            if (extendSpell != null && extendSpell.StatModValue > 0)
+            if (extendSpell != null && extendSpell.StatModKey > 0)
             {
                 spell.IsExtendedSpell = true;
 
@@ -744,7 +751,7 @@ namespace ACE.Server.WorldObjects
                     targetCreature.ApplyDoT(tryBoost / 2, tryBoost * 2, CombatType.Magic, spell.VitalDamageType, this, null, creature?.GetCreatureSkill(spell.School));
                 }
 
-                extendSpell.StatModValue--;
+                extendSpell.StatModKey--;
                 extendSpell.StartTime = 0;
 
                 if (player != null)
@@ -1338,12 +1345,12 @@ namespace ACE.Server.WorldObjects
             }
 
             var enchainSpell = EnchantmentManager.GetEnchantments(SpellCategory.EnchainSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-            if (enchainSpell != null && enchainSpell.StatModValue > 0)
+            if (enchainSpell != null && enchainSpell.StatModKey > 0)
             {
                 spell.IsEnchainedSpell = true;
                 spell.EnchainedSpellCounter = 0;
 
-                enchainSpell.StatModValue--;
+                enchainSpell.StatModKey--;
                 enchainSpell.StartTime = 0;
 
                 if (this is Player player)
@@ -1353,11 +1360,11 @@ namespace ACE.Server.WorldObjects
             if (spell.MetaSpellType != SpellType.LifeProjectile)
             {
                 var extendSpell = EnchantmentManager.GetEnchantments(SpellCategory.ExtendSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (extendSpell != null && extendSpell.StatModValue > 0)
+                if (extendSpell != null && extendSpell.StatModKey > 0)
                 {
                     spell.IsExtendedSpell = true;
 
-                    extendSpell.StatModValue--;
+                    extendSpell.StatModKey--;
                     extendSpell.StartTime = 0;
 
                     if (this is Player player)
@@ -1488,7 +1495,7 @@ namespace ACE.Server.WorldObjects
 
             var targetPlayer = targetCreature as Player;
 
-            if (player != null && player.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
+            if (player != null && player.PKTimerActive && (ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || spell.Index == (int)PortalRecallType.Blink))
             {
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -1562,7 +1569,9 @@ namespace ACE.Server.WorldObjects
                         recallDID = targetPlayer.LinkedPortalTwoDID;
                     }
                     break;
-                case SpellId.Blink:
+                case SpellId.Blink1:
+                case SpellId.Blink2:
+                case SpellId.Blink3:
                     if (player != null)
                     {
                         var validBlinkDestination = false;
@@ -1667,7 +1676,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (player != null && player.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
+            if (player != null && player.PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -1795,7 +1804,7 @@ namespace ACE.Server.WorldObjects
         {
             if (targetCreature is Player targetPlayer)
             {
-                if (targetPlayer.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (targetPlayer.IsPK || targetPlayer.IsPKL)))
+                if (targetPlayer.PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 {
                     targetPlayer.Session.Network.EnqueueSend(new GameEventWeenieError(targetPlayer.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                     return;
@@ -1838,7 +1847,7 @@ namespace ACE.Server.WorldObjects
             if (targetPlayer == null || targetPlayer.Fellowship == null)
                 return false;
 
-            if (targetPlayer.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (targetPlayer.IsPK || targetPlayer.IsPKL)))
+            if (targetPlayer.PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 targetPlayer.Session.Network.EnqueueSend(new GameEventWeenieError(targetPlayer.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return false;

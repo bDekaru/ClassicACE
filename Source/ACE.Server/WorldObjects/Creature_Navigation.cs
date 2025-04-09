@@ -388,6 +388,16 @@ namespace ACE.Server.WorldObjects
                 MovementParams.Sticky |
                 MovementParams.UseFinalHeading;
 
+            motion.MotionFlags = MotionFlags.StickToObject;
+
+            if (IsSnared)
+            {
+                motion.MoveToParameters.MovementParameters ^= MovementParams.CanWalk;
+                motion.MoveToParameters.MovementParameters &= ~(MovementParams.CanRun | MovementParams.Sticky);
+
+                motion.MotionFlags &= ~MotionFlags.StickToObject;
+            }
+
             motion.MoveToParameters.DistanceToObject = distanceToObject;
             motion.MoveToParameters.Speed = speed;
 
@@ -414,6 +424,14 @@ namespace ACE.Server.WorldObjects
                 MovementParams.ModifyInterpretedState |
                 MovementParams.CancelMoveTo |
                 MovementParams.StopCompletely;
+
+            if (IsSnared)
+            {
+                motion.MoveToParameters.MovementParameters ^= MovementParams.CanWalk;
+                motion.MoveToParameters.MovementParameters &= ~(MovementParams.CanRun | MovementParams.Sticky);
+
+                motion.MotionFlags &= ~MotionFlags.StickToObject;
+            }
 
             motion.MoveToParameters.DistanceToObject = distanceToObject;
             motion.MoveToParameters.Speed = speed;

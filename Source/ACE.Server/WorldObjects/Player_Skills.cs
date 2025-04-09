@@ -524,10 +524,9 @@ namespace ACE.Server.WorldObjects
             var power = scroll.Spell.Power;
 
             // level 1/7/8 scrolls can be learned by anyone?
-            if (power < 50 || power >= 300) return true;
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM && (power < 50 || power >= 300)) return true;
 
-            var magicSkill = scroll.Spell.GetMagicSkill();
-            var playerSkill = GetCreatureSkill(magicSkill);
+            var playerSkill = GetCreatureSkill(scroll.Spell.School);
 
             var minSkill = power - magicSkillCheckMargin;
 

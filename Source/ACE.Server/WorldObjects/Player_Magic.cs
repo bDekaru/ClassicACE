@@ -150,6 +150,12 @@ namespace ACE.Server.WorldObjects
                 SendSpellCastingDoneEvent(WeenieError.TargetNotAcquired, isCombatCasting);
                 return;
             }
+            else if ((spellId == (int)SpellId.Ensnare || spellId == (int)SpellId.Mesmerize) && target is Player)
+            {
+                SendSpellCastingDoneEvent(WeenieError.TargetNotAcquired, isCombatCasting);
+                SendTransientError("This spell cannot be cast on players.");
+                return;
+            }
 
             if (!isCombatCasting)
                 LastAttackTarget = target;
@@ -1208,10 +1214,10 @@ namespace ACE.Server.WorldObjects
             if (!spell.IsMetaspell)
             {
                 var quickenSpell = EnchantmentManager.GetEnchantments(SpellCategory.QuickenSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (quickenSpell != null && quickenSpell.StatModValue > 0)
+                if (quickenSpell != null && quickenSpell.StatModKey > 0)
                 {
                     CastSpeed *= 2;
-                    quickenSpell.StatModValue--;
+                    quickenSpell.StatModKey--;
                     quickenSpell.StartTime = 0;
                 }
             }
@@ -1266,7 +1272,7 @@ namespace ACE.Server.WorldObjects
                     TryCastItemEnchantment_WithRedirects(spell, target, itemCaster);
 
                     // use target resistance?
-                    Proficiency.OnSuccessUse(this, GetCreatureSkill(Skill.ItemEnchantment), spell.PowerMod);
+                    Proficiency.OnSuccessUse(this, GetCreatureSkill(spell.School), spell.PowerMod);
 
                     if (spell.IsHarmful)
                     {

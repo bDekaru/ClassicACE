@@ -7968,6 +7968,114 @@ namespace ACE.Server.Factories.Tables
             SpellId.CantripHeartBlocker4,
         };
 
+        public static readonly List<SpellId> EmpowerSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.EmpowerSpell1,
+            SpellId.Undef,
+            SpellId.EmpowerSpell2,
+            SpellId.Undef,
+            SpellId.EmpowerSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> QuickenSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.QuickenSpell1,
+            SpellId.Undef,
+            SpellId.QuickenSpell2,
+            SpellId.Undef,
+            SpellId.QuickenSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> EnchainSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.EnchainSpell1,
+            SpellId.Undef,
+            SpellId.EnchainSpell2,
+            SpellId.Undef,
+            SpellId.EnchainSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> ExtendSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.ExtendSpell1,
+            SpellId.Undef,
+            SpellId.ExtendSpell2,
+            SpellId.Undef,
+            SpellId.ExtendSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> MaximizeSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.MaximizeSpell1,
+            SpellId.Undef,
+            SpellId.MaximizeSpell2,
+            SpellId.Undef,
+            SpellId.MaximizeSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> DelaySpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.DelaySpell1,
+            SpellId.Undef,
+            SpellId.DelaySpell2,
+            SpellId.Undef,
+            SpellId.DelaySpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> Blink = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.Blink1,
+            SpellId.Undef,
+            SpellId.Blink2,
+            SpellId.Undef,
+            SpellId.Blink3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> AblativeAmorSelf = new List<SpellId>()
+        {
+            SpellId.AblativeArmorSelf1,
+            SpellId.AblativeArmorSelf2,
+            SpellId.AblativeArmorSelf3,
+            SpellId.AblativeArmorSelf4,
+            SpellId.AblativeArmorSelf5,
+            SpellId.AblativeArmorSelf6,
+            SpellId.AblativeArmorSelf7,
+            SpellId.AblativeArmorSelf8,
+        };
+
+        public static readonly List<SpellId> AblativeAmorOther = new List<SpellId>()
+        {
+            SpellId.AblativeArmorOther1,
+            SpellId.AblativeArmorOther2,
+            SpellId.AblativeArmorOther3,
+            SpellId.AblativeArmorOther4,
+            SpellId.AblativeArmorOther5,
+            SpellId.AblativeArmorOther6,
+            SpellId.AblativeArmorOther7,
+            SpellId.AblativeArmorOther8,
+        };
+
         static SpellLevelProgression()
         {
             // takes ~5ms

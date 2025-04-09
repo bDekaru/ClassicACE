@@ -532,12 +532,13 @@ namespace ACE.Server.Entity
         /// </summary>
         public bool IsDudProjectile;
 
-        private static List<SpellId> Metaspells = new List<SpellId> { SpellId.EmpowerSpell, SpellId.QuickenSpell, SpellId.EnchainSpell, SpellId.ExtendSpell, SpellId.MaximizeSpell, SpellId.DelaySpell };
+        private static List<SpellId> Metaspells = new List<SpellId> { SpellId.EmpowerSpell1, SpellId.QuickenSpell1, SpellId.EnchainSpell1, SpellId.ExtendSpell1, SpellId.MaximizeSpell1, SpellId.DelaySpell1 };
         public bool IsMetaspell
         {
             get
             {
-                return Metaspells.Contains((SpellId)Id);
+                var level1SpellId = SpellLevelProgression.GetLevel1SpellId((SpellId)Id);
+                return Metaspells.Contains(level1SpellId);
             }
         }
 

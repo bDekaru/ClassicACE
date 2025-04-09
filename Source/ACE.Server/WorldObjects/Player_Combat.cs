@@ -674,7 +674,7 @@ namespace ACE.Server.WorldObjects
                     {
                         if (blocked)
                         {
-                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{(perfectblock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} damage!{(sourceStunned ? $" The {source.Name} is stunned!" : "")}", ChatMessageType.CombatSelf));
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{(perfectblock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} points of {damageType.GetName()} damage!{(sourceStunned ? $" The {source.Name} is stunned!" : "")}", ChatMessageType.CombatSelf));
 
                             if (sourceStunned)
                             {
@@ -686,7 +686,7 @@ namespace ACE.Server.WorldObjects
                             EnqueueBroadcast(blockSound);
                         }
                         else
-                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} damage!", ChatMessageType.CombatSelf));
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} points of {damageType.GetName()} damage!", ChatMessageType.CombatSelf));
                     }
                 }
     

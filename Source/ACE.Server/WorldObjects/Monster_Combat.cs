@@ -511,15 +511,5 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyBool.NeverAttack) ?? false;
             set { if (!value) RemoveProperty(PropertyBool.NeverAttack); else SetProperty(PropertyBool.NeverAttack, value); }
         }
-
-        private double StunnedUntilTimestamp;
-        private double NextStunEffectTimestamp;
-        private static double StunEffectFrequency = 0.5;
-
-        public void StunFor(double seconds)
-        {
-            StunnedUntilTimestamp = Time.GetFutureUnixTime(seconds);
-            NextStunEffectTimestamp = 0;
-        }
     }
 }

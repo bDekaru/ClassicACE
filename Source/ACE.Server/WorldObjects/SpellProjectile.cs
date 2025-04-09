@@ -326,11 +326,11 @@ namespace ACE.Server.WorldObjects
                 int baseDamage;
 
                 var maximizeSpell = EnchantmentManager.GetEnchantments(SpellCategory.MaximizeSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (maximizeSpell != null && maximizeSpell.StatModValue > 0)
+                if (maximizeSpell != null && maximizeSpell.StatModKey > 0)
                 {
                     baseDamage = Spell.MaxDamage;
 
-                    maximizeSpell.StatModValue--;
+                    maximizeSpell.StatModKey--;
                     maximizeSpell.StartTime = 0;
 
                     if (player != null)
@@ -832,11 +832,11 @@ namespace ACE.Server.WorldObjects
                 }
 
                 var maximizeSpell = EnchantmentManager.GetEnchantments(SpellCategory.MaximizeSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (maximizeSpell != null && maximizeSpell.StatModValue > 0)
+                if (maximizeSpell != null && maximizeSpell.StatModKey > 0)
                 {
                     baseDamage = Spell.MaxDamage;
 
-                    maximizeSpell.StatModValue--;
+                    maximizeSpell.StatModKey--;
                     maximizeSpell.StartTime = 0;
 
                     if (sourcePlayer != null)
@@ -1257,13 +1257,13 @@ namespace ACE.Server.WorldObjects
                         {
                             if (blocked)
                             {
-                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{(isPerfectBlock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.Magic));
+                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{(isPerfectBlock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} points of {Spell.DamageType.GetName()} damage!", ChatMessageType.Magic));
 
                                 var blockSound = new GameMessageSound(Guid, Sound.HitLeather1, 1.0f);
                                 EnqueueBroadcast(blockSound);
                             }
                             else
-                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} damage!", ChatMessageType.Magic));
+                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} points of {Spell.DamageType.GetName()} damage!", ChatMessageType.Magic));
                         }
                     }
 

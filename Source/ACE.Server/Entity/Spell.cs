@@ -143,8 +143,7 @@ namespace ACE.Server.Entity
             var baseRate = ComponentLoss;
 
             // get magic skill mod
-            var magicSkill = GetMagicSkill();
-            var playerSkill = player.GetCreatureSkill(magicSkill);
+            var playerSkill = player.GetCreatureSkill(School);
             var skillMod = Math.Min(1.0f, (float)Power / playerSkill.Current);
 
             var componentBurnChanceMod = 1.0f + player.CachedComponentBurnRateMod;
