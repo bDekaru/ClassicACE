@@ -1210,17 +1210,11 @@ namespace ACE.Server.WorldObjects
             var spellChain = new ActionChain();
             //StartPos = new Physics.Common.Position(PhysicsObj.Position);
 
+            ApplyPreCastMetaSpells(ref spell);
+
             CastSpeed = 2.0f;
-            if (!spell.IsMetaspell)
-            {
-                var quickenSpell = EnchantmentManager.GetEnchantments(SpellCategory.QuickenSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (quickenSpell != null && quickenSpell.StatModKey > 0)
-                {
-                    CastSpeed *= 2;
-                    quickenSpell.StatModKey--;
-                    quickenSpell.StartTime = 0;
-                }
-            }
+            if (spell.IsQuickenedSpell)
+                CastSpeed *= 2;
 
             // do wind-up gestures: fastcast has no windup (creature enchantments)
             DoWindupGestures(spell, isWeaponSpell, spellChain);

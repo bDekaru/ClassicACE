@@ -8052,7 +8052,7 @@ namespace ACE.Server.Factories.Tables
             SpellId.Undef,
         };
 
-        public static readonly List<SpellId> AblativeAmorSelf = new List<SpellId>()
+        public static readonly List<SpellId> AblativeArmorSelf = new List<SpellId>()
         {
             SpellId.AblativeArmorSelf1,
             SpellId.AblativeArmorSelf2,
@@ -8064,7 +8064,7 @@ namespace ACE.Server.Factories.Tables
             SpellId.AblativeArmorSelf8,
         };
 
-        public static readonly List<SpellId> AblativeAmorOther = new List<SpellId>()
+        public static readonly List<SpellId> AblativeArmorOther = new List<SpellId>()
         {
             SpellId.AblativeArmorOther1,
             SpellId.AblativeArmorOther2,
@@ -8852,6 +8852,15 @@ namespace ACE.Server.Factories.Tables
                 AddSpells(HeartBlocker);
                 AddSpells(TurnShield);
                 AddSpells(CantripHeartBlocker);
+                AddSpells(EmpowerSpell);
+                AddSpells(QuickenSpell);
+                AddSpells(EnchainSpell);
+                AddSpells(ExtendSpell);
+                AddSpells(MaximizeSpell);
+                AddSpells(DelaySpell);
+                AddSpells(Blink);
+                AddSpells(AblativeArmorSelf);
+                AddSpells(AblativeArmorOther);
             }
         }
 
@@ -8937,14 +8946,19 @@ namespace ACE.Server.Factories.Tables
 
         public static SpellId GetLevel1SpellId(SpellId spellId)
         {
-            foreach(var spellProgressionEntry in spellProgression)
+            if (spellId == SpellId.Undef)
+                return SpellId.Undef;
+
+            foreach (var spellProgressionEntry in spellProgression)
             {
                 foreach(var entry in spellProgressionEntry.Value)
                 {
                     if (spellId == entry)
                     {
                         if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
                             return TranslateLevel1SpellIdForCustomDM(spellProgressionEntry.Key);
+                        }
                         else
                             return spellProgressionEntry.Key;
                     }
@@ -8956,6 +8970,9 @@ namespace ACE.Server.Factories.Tables
 
         public static SpellId GetSpellAtLevel(SpellId level1SpellId, int level, bool ifNoMatchReturnLowestPossibleLevel = false)
         {
+            if (level1SpellId == SpellId.Undef)
+                return SpellId.Undef;
+
             var spellLevels = GetSpellLevels(level1SpellId);
 
             if (spellLevels == null)

@@ -764,5 +764,6 @@ namespace ACE.Entity.Enum
         Snare = 763,
         Mesmerize = 764,
         AblativeArmor = 765,
+        Resurrect = 766,
     }
 }

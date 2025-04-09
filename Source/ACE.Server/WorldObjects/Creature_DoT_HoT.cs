@@ -25,7 +25,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public void ApplyHoT(int tickAmount, int totalAmount, DamageType vitalType, WorldObject source, CombatType combatType, string? sourceDescription = null)
+        public void ApplyHoT(int tickAmount, int totalAmount, DamageType vitalType, WorldObject source, CombatType combatType, string sourceMessage = null)
         {
             if (vitalType != DamageType.Health && vitalType != DamageType.Stamina && vitalType != DamageType.Mana)
             {
@@ -54,22 +54,22 @@ namespace ACE.Server.WorldObjects
             if (sourcePlayer != null)
             {
                 var targetName = source == this ? "yourself" : Name;
-                if(sourceDescription == null || combatType != CombatType.Magic)
+                if (combatType != CombatType.Magic || sourceMessage == null || sourceMessage == "")
                     sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"You infuse {targetName} with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
                 else
-                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"With {sourceDescription} you infuse {targetName} with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"With {sourceMessage} you infuse {targetName} with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
             }
 
             if (targetPlayer != null && targetPlayer != sourcePlayer)
             {
-                if (sourceDescription == null || combatType != CombatType.Magic)
+                if (combatType != CombatType.Magic || sourceMessage == null || sourceMessage == "")
                     targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} infuses you with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
                 else
-                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} casts {sourceDescription} and infuses you with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} casts {sourceMessage} and infuses you with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
             }
         }
 
-        public void ApplyDoT(int tickAmount, int totalAmount, CombatType combatType, DamageType damageType, WorldObject source, WorldObject sourceWeapon, CreatureSkill attackSkill)
+        public void ApplyDoT(int tickAmount, int totalAmount, bool isCritical, CombatType combatType, DamageType damageType, WorldObject source, WorldObject sourceWeapon, CreatureSkill attackSkill, string sourceMessage = null)
         {
             var sourceCreature = source as Creature;
             var sourcePlayer = source as Player;
@@ -160,15 +160,24 @@ namespace ACE.Server.WorldObjects
             string verb = null, plural = null;
             var percent = totalAmount / Health.MaxValue;
             Strings.GetAttackVerb(damageType, percent, ref verb, ref plural);
+            var critMsg = isCritical ? "Critical hit! " : "";
 
-            if (sourcePlayer != null)
+            if (sourcePlayer != null || sourceMessage == "")
             {
                 var targetName = source == this ? "yourself" : Name;
-                sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"You {verb} {targetName} with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+                if(sourceMessage == null)
+                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{critMsg}You {verb} {targetName} with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+                else
+                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{critMsg}Your {sourceMessage} {plural} {targetName} with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
             }
 
             if (targetPlayer != null && targetPlayer != sourcePlayer)
-                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} {plural} you with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+            {
+                if (sourceMessage == null || sourceMessage == "")
+                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{critMsg}{sourcePlayer.Name} {plural} you with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+                else
+                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{critMsg}{sourcePlayer.Name}'s {sourceMessage} {plural} you with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+            }
         }
 
         public void DoTHotHeartbeat()

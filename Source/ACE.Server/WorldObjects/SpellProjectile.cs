@@ -321,25 +321,70 @@ namespace ACE.Server.WorldObjects
             var isPerfectBlock = false;
             var damageBlocked = 0f;
 
-            if (Spell.IsExtendedSpell && Spell.MetaSpellType != ACE.Entity.Enum.SpellType.LifeProjectile)
+            if (Spell.IsExtendedSpell && Spell.MetaSpellType == ACE.Entity.Enum.SpellType.Projectile)
             {
+                var critDamageBonus = 0.0f;
                 int baseDamage;
 
-                var maximizeSpell = EnchantmentManager.GetEnchantments(SpellCategory.MaximizeSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (maximizeSpell != null && maximizeSpell.StatModKey > 0)
-                {
+                if (Spell.IsMaximizedSpell)
                     baseDamage = Spell.MaxDamage;
-
-                    maximizeSpell.StatModKey--;
-                    maximizeSpell.StartTime = 0;
-
-                    if (player != null)
-                        player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, maximizeSpell)));
-                }
                 else
                     baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
 
-                creatureTarget.ApplyDoT(baseDamage / 2, baseDamage * 2, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School));
+                var attackSkill = sourceCreature?.GetCreatureSkill(Spell.School);
+
+                // critical hit
+                var criticalChance = GetWeaponMagicCritFrequency(ProjectileLauncher, sourceCreature, attackSkill, creatureTarget, isPvP);
+
+                TacticAndTechniqueType techniqueId = TacticAndTechniqueType.None;
+                WorldObject techniqueTrinket = null;
+
+                if (player != null && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                {
+                    techniqueTrinket = player.GetEquippedTrinket();
+                    if (techniqueTrinket != null)
+                        techniqueId = (TacticAndTechniqueType)techniqueTrinket.TacticAndTechniqueId;
+                }
+
+                if (player != null && ProjectileSource != target)
+                {
+                    if (techniqueId == TacticAndTechniqueType.Opportunist)
+                        criticalChance += 0.10f;
+                }
+
+                if (ProjectileLauncher == target)
+                    criticalChance = 0.0f; // Self-damage never crits.
+
+                if (ThreadSafeRandom.Next(0.0f, 1.0f) < criticalChance)
+                {
+                    if (targetPlayer != null && targetPlayer.AugmentationCriticalDefense > 0)
+                    {
+                        var criticalDefenseMod = player != null ? 0.05f : 0.25f;
+                        var criticalDefenseChance = targetPlayer.AugmentationCriticalDefense * criticalDefenseMod;
+
+                        if (criticalDefenseChance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                            critDefended = true;
+                    }
+
+                    if (!critDefended)
+                        critical = true;
+                }
+
+                if (critical)
+                {
+                    if (isPvP) // PvP: 50% of the MIN damage added to normal damage roll
+                        critDamageBonus = Spell.MinDamage * 0.5f;
+                    else   // PvE: 50% of the MAX damage added to normal damage roll
+                        critDamageBonus = Spell.MaxDamage * 0.5f;
+
+                    var weaponCritDamageMod = GetWeaponCritDamageMod(ProjectileLauncher, sourceCreature, attackSkill, creatureTarget, isPvP);
+
+                    critDamageBonus *= weaponCritDamageMod;
+                }
+
+                var damage = (int)Math.Round(baseDamage + critDamageBonus);
+
+                creatureTarget.ApplyDoT(damage / 2, damage * 2, critical, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
 
                 creatureTarget.OnAttackReceived(ProjectileSource, CombatType.Magic, critical, resisted);
             }
@@ -463,78 +508,6 @@ namespace ACE.Server.WorldObjects
                                     }
                                 }
                             }
-                            //switch (Spell.DamageType)
-                            //{
-                            //    case DamageType.Cold:
-                            //        if (isPvP)
-                            //        {
-                            //            // The regular freezing spell was found to change PvP dynamics too much so lower attack speed instead.
-                            //            var leadenWeapon = new Spell(SpellId.LeadenWeapon5);
-                            //            leadenWeapon.Duration = 10;
-                            //            if (!leadenWeapon.NotFound)
-                            //                sourceCreature.TryCastSpell(leadenWeapon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                            //            // And something negative for casters as well.
-                            //            var hermeticVoid = new Spell(SpellId.HermeticVoid5);
-                            //            hermeticVoid.Duration = 10;
-                            //            if (!hermeticVoid.NotFound)
-                            //                sourceCreature.TryCastSpell(hermeticVoid, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                            //        }
-                            //        else
-                            //        {
-                            //            var freezingSpell = new Spell(SpellId.Freezing);
-                            //            if (!freezingSpell.NotFound)
-                            //                sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                            //        }
-                            //        break;
-
-                            //    case DamageType.Fire:
-                            //        var burningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.Burning1, (int)Spell.Level, true);
-                            //        var burningSpell = new Spell(burningSpellId);
-                            //        if (!burningSpell.NotFound)
-                            //            sourceCreature.TryCastSpell(burningSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                            //        break;
-
-                            //    case DamageType.Acid:
-                            //        var acidSpellPierce = new Spell(SpellId.MeltingPierce);
-                            //        if (!acidSpellPierce.NotFound)
-                            //            sourceCreature.TryCastSpell(acidSpellPierce, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                            //        var acidSpellBludgeon = new Spell(SpellId.MeltingBludgeon);
-                            //        if (!acidSpellBludgeon.NotFound)
-                            //            sourceCreature.TryCastSpell(acidSpellBludgeon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                            //        var acidSpellSlash = new Spell(SpellId.MeltingSlash);
-                            //        if (!acidSpellSlash.NotFound)
-                            //            sourceCreature.TryCastSpell(acidSpellSlash, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                            //        break;
-
-                            //    case DamageType.Electric:
-                            //        var spreadChance = 0.7f;
-                            //        if (spreadChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                            //        {
-                            //            var lightningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.LightningBolt1, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
-                            //            var lightningSpell = new Spell(lightningSpellId);
-
-                            //            if (!lightningSpell.NotFound)
-                            //            {
-                            //                var list = GetNearbyTargets(creatureTarget);
-                            //                if (list.Count > 0)
-                            //                {
-                            //                    var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
-                            //                    var actionChain = new ActionChain();
-                            //                    actionChain.AddDelaySeconds(0.1);
-                            //                    actionChain.AddAction(creatureTarget, () =>
-                            //                    {
-                            //                        if (sourceCreature != null && !sourceCreature.IsDestroyed && creatureTarget != null && !creatureTarget.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && ProjectileLauncher != null && !ProjectileLauncher.IsDestroyed)
-                            //                            sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
-                            //                    });
-                            //                    actionChain.EnqueueChain();
-                            //                }
-                            //            }
-                            //        }
-                            //        break;
-                            //}
                         }
                     }
                     else
@@ -831,17 +804,8 @@ namespace ACE.Server.WorldObjects
                     }
                 }
 
-                var maximizeSpell = EnchantmentManager.GetEnchantments(SpellCategory.MaximizeSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (maximizeSpell != null && maximizeSpell.StatModKey > 0)
-                {
+                if (Spell.IsMaximizedSpell)
                     baseDamage = Spell.MaxDamage;
-
-                    maximizeSpell.StatModKey--;
-                    maximizeSpell.StartTime = 0;
-
-                    if (sourcePlayer != null)
-                        sourcePlayer.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(sourcePlayer.Session, new Enchantment(sourcePlayer, maximizeSpell)));
-                }
                 else
                     baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
 
@@ -1224,13 +1188,13 @@ namespace ACE.Server.WorldObjects
                     if (sourcePlayer == target)
                         yourselfOrTargetName = "yourself";
 
-                    var attackerMsg = $"{critMsg}{overpowerMsg}{sneakMsg}You {verb} {yourselfOrTargetName} for {amount} points with {Spell.Name}.{critProt}";
+                    var attackerMsg = $"{critMsg}{overpowerMsg}{sneakMsg}You {verb} {yourselfOrTargetName} for {amount} points with {Spell.NameWithMetaspellAdjectives}.{critProt}";
 
                     // could these crit / sneak attack?
                     if (nonHealth)
                     {
                         var vital = Spell.Category == SpellCategory.StaminaLowering ? "stamina" : "mana";
-                        attackerMsg = $"With {Spell.Name} you drain {amount} points of {vital} from {yourselfOrTargetName}.";
+                        attackerMsg = $"With {Spell.NameWithMetaspellAdjectives} you drain {amount} points of {vital} from {yourselfOrTargetName}.";
                     }
 
                     if (!sourcePlayer.SquelchManager.Squelches.Contains(target, ChatMessageType.Magic))
@@ -1241,12 +1205,12 @@ namespace ACE.Server.WorldObjects
                 {
                     var critProt = critDefended ? " Your augmentation allows you to avoid a critical hit!" : "";
 
-                    var defenderMsg = $"{critMsg}{overpowerMsg}{sneakMsg}{ProjectileSource.Name} {plural} you for {amount} points with {Spell.Name}.{critProt}";
+                    var defenderMsg = $"{critMsg}{overpowerMsg}{sneakMsg}{ProjectileSource.Name} {plural} you for {amount} points with {Spell.NameWithMetaspellAdjectives}.{critProt}";
 
                     if (nonHealth)
                     {
                         var vital = Spell.Category == SpellCategory.StaminaLowering ? "stamina" : "mana";
-                        defenderMsg = $"{ProjectileSource.Name} casts {Spell.Name} and drains {amount} points of your {vital}.";
+                        defenderMsg = $"{ProjectileSource.Name} casts {Spell.NameWithMetaspellAdjectives} and drains {amount} points of your {vital}.";
                     }
 
                     if (!targetPlayer.SquelchManager.Squelches.Contains(ProjectileSource, ChatMessageType.Magic))
