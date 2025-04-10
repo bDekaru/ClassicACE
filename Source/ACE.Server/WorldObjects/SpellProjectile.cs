@@ -1073,7 +1073,7 @@ namespace ACE.Server.WorldObjects
                     if (nonHealth)
                     {
                         var vital = Spell.Category == SpellCategory.StaminaLowering ? "stamina" : "mana";
-                        defenderMsg = $"{ProjectileSource.Name} casts {Spell.NameWithMetaspellAdjectives} and drains {amount} points of your {vital}.";
+                        defenderMsg = $"{ProjectileSource.Name} {(Spell.IsQuickcastSpell ? "quickcasts" : "casts")} {Spell.NameWithMetaspellAdjectivesWithoutQuickcast} and drains {amount} points of your {vital}.";
                     }
 
                     if (!targetPlayer.SquelchManager.Squelches.Contains(ProjectileSource, ChatMessageType.Magic))

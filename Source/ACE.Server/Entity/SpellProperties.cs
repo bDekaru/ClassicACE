@@ -543,7 +543,7 @@ namespace ACE.Server.Entity
         }
 
         public bool IsEnchainedSpell;
-        public int EnchainedSpellCounter;
+        public List<uint> EnchainedTargetGuids;
 
         public bool IsEmpoweredSpell;
         public bool IsQuickcastSpell;
@@ -555,11 +555,12 @@ namespace ACE.Server.Entity
 
         public string NameWithMetaspellAdjectives { get { return $"{(IsDelayedSpell ? "delayed " : "")}{(IsQuickcastSpell ? "quickcast " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
         public string NameWithMetaspellAdjectivesWithoutDelayed { get { return $"{(IsQuickcastSpell ? "quickcast " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
+        public string NameWithMetaspellAdjectivesWithoutQuickcast { get { return $"{(IsDelayedSpell ? "delayed " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
 
         public void CopyMetaspellsFrom(Spell spell)
         {
             IsEnchainedSpell = spell.IsEnchainedSpell;
-            EnchainedSpellCounter = spell.EnchainedSpellCounter;
+            EnchainedTargetGuids = spell.EnchainedTargetGuids;
             IsEmpoweredSpell = spell.IsEmpoweredSpell;
             IsQuickcastSpell = spell.IsQuickcastSpell;
             IsExtendedSpell = spell.IsExtendedSpell;

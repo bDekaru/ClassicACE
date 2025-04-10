@@ -441,76 +441,13 @@ namespace ACE.Server.WorldObjects
                 SendSpellCastingDoneEvent(WeenieError.None);
                 return false;
             }
-            else if (IsInvalidTarget(spell, target))
+            else if (IsInvalidTargetForSpell(spell, target))
             {
                 Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, $"This spell cannot be cast on {target.Name}."));
                 SendSpellCastingDoneEvent(WeenieError.None);
                 return false;
             }
             return true;
-        }
-
-        /// <summary>
-        /// Determines whether the target for the spell being cast is invalid
-        /// </summary>
-        protected bool IsInvalidTarget(Spell spell, WorldObject target)
-        {
-            var targetPlayer = target as Player;
-            var targetCreature = target as Creature;
-
-            // ensure target is enchantable
-            if (!target.IsEnchantable) return true;
-
-            // Self targeted spells should have a target of self
-            if (spell.Flags.HasFlag(SpellFlags.SelfTargeted) && target != this)
-                return true;
-
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && spell.IsResurrectionSpell)
-            {
-                var targetCorpse = target as Corpse;
-                if (targetCorpse == null || targetCorpse.VictimId.Value == Guid.Full || targetCorpse.IsMonster)
-                    return true;
-            }
-            // Invalidate non Item Enchantment spells cast against non Creatures or Players
-            else if (spell.School != MagicSchool.ItemEnchantment && targetCreature == null)
-                return true;
-
-            // Invalidate beneficial spells against Creature/Non-player targets
-            if (targetCreature != null && targetPlayer == null && spell.IsBeneficial)
-                return true;
-
-            // check item spells
-            if (targetCreature == null && target.WielderId != null)
-            {
-                var parent = CurrentLandblock.GetObject(target.WielderId.Value) as Player;
-
-                // Invalidate beneficial spells against monster wielded items
-                if (parent == null && spell.IsBeneficial)
-                    return true;
-
-                // Invalidate harmful spells against player wielded items, depending on pk status
-                if (parent != null && spell.IsHarmful && CheckPKStatusVsTarget(parent, spell) != null)
-                    return true;
-            }
-
-            // verify target type for item enchantment
-            if (spell.School == MagicSchool.ItemEnchantment && !VerifyNonComponentTargetType(spell, target))
-            {
-                if (spell.DispelSchool != MagicSchool.ItemEnchantment || !PropertyManager.GetBool("item_dispel").Item)
-                    return true;
-            }
-
-            // brittlemail / lure / other negative item spells cannot be cast with player as target
-
-            // TODO: by end of retail, players couldn't cast any negative spells on themselves
-            // this feature is currently in ace for dev testing...
-            if (target == this && spell.IsNegativeRedirectable)
-                return true;
-
-            if (targetCreature != null && targetCreature != this && spell.NonComponentTargetType == ItemType.Creature && !CanDamage(targetCreature))
-                return true;
-
-            return false;
         }
 
         public bool VerifySpellRange(WorldObject target, TargetCategory targetCategory, Spell spell, WorldObject casterItem, uint magicSkill)
@@ -1609,56 +1546,6 @@ namespace ACE.Server.WorldObjects
                 else
                     HandleActionMagicCastUnTargetedSpell(MagicState.CastQueue.SpellId, MagicState.CastQueue.CasterItem, MagicState.CastQueue.IsCombatCasting);
             }
-        }
-
-        public static bool VerifyNonComponentTargetType(Spell spell, WorldObject target)
-        {
-            // untargeted spell projectiles
-            if (target == null)
-                return spell.NonComponentTargetType == ItemType.None;
-
-            switch (spell.NonComponentTargetType)
-            {
-                case ItemType.Creature:
-                    return target is Creature;
-
-                // banes / lures
-                case ItemType.Vestements:
-                    //return target is Clothing || target.IsShield;
-                    return target is Creature || target is Clothing || target.IsShield;
-
-                case ItemType.Weapon:
-                    //return target is MeleeWeapon || target is MissileLauncher;
-                    return target is Creature || target is MeleeWeapon || target is MissileLauncher || target.IsThrownWeapon;
-
-                case ItemType.Caster:
-                    //return target is Caster;
-                    return target is Creature || target is Caster;
-
-                case ItemType.WeaponOrCaster:
-                    //return target is MeleeWeapon || target is MissileLauncher || target is Caster;
-                    return target is Creature || target is MeleeWeapon || target is MissileLauncher || target.IsThrownWeapon || target is Caster;
-
-                case ItemType.Portal:
-
-                    if (spell.MetaSpellType == SpellType.PortalRecall || spell.MetaSpellType == SpellType.PortalSummon)
-                        return target is Creature;
-                    else
-                        return target is Portal;
-
-                case ItemType.LockableMagicTarget:
-                    return target is Door || target is Chest;
-
-                // Essence Lull?
-                case ItemType.Item:
-                    return !(target is Creature);
-
-                case ItemType.LifeStone:
-                    return target is Lifestone;
-            }
-
-            log.Error($"VerifyNonComponentTargetType({spell.Id} - {spell.Name}, {target.Name}) - unexpected NonComponentTargetType {spell.NonComponentTargetType}");
-            return false;
         }
 
         /// <summary>
