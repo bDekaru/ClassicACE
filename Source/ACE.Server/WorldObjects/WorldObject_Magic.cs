@@ -2785,7 +2785,9 @@ namespace ACE.Server.WorldObjects
                 if (spell.MetaSpellType == SpellType.Projectile ||
                     spell.MetaSpellType == SpellType.EnchantmentProjectile ||
                     spell.MetaSpellType == SpellType.Boost ||
-                    spell.MetaSpellType == SpellType.Enchantment)
+                    spell.MetaSpellType == SpellType.Enchantment ||
+                    spell.MetaSpellType == SpellType.Transfer ||
+                    spell.MetaSpellType == SpellType.Dispel)
                 {
                     if (!(spell.IsSelfTargeted && SpellLevelProgression.GetOtherSpellId((SpellId)spell.Id) == SpellId.Undef)) // Do not enchain self spells that do not have other target versions
                     {
@@ -2863,7 +2865,7 @@ namespace ACE.Server.WorldObjects
                     actionChain.AddDelaySeconds(0.1);
                     actionChain.AddAction(target, () =>
                     {
-                        if (caster != null && !caster.IsDestroyed && target != null && !target.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && weapon != null && !weapon.IsDestroyed)
+                        if (caster != null && !caster.IsDestroyed && target != null && !target.IsDestroyed && newTarget != null && !newTarget.IsDestroyed)
                             caster.TryCastSpell(newSpell, newTarget, null, weapon, false, false, true, true, target);
                     });
                     actionChain.EnqueueChain();
