@@ -2819,8 +2819,18 @@ namespace ACE.Server.WorldObjects
                 spell.EnchainedTargetGuids = new List<uint>();
                 spell.EnchainedTargetGuids.Add(target.Guid.Full);
 
-                if (!spell.IsSelfTargeted && SpellLevelProgression.GetSelfSpellId((SpellId)spell.Id) == SpellId.Undef)
-                    spell.EnchainedTargetGuids.Add(Guid.Full); // If we do not have a self version remove caster from valid enchain targets.
+                if (spell.IsHarmful || (!spell.IsSelfTargeted && SpellLevelProgression.GetSelfSpellId((SpellId)spell.Id) == SpellId.Undef))
+                    spell.EnchainedTargetGuids.Add(Guid.Full); // If we're harmful or do not have a self version remove caster from valid enchain targets.
+
+                if(spell.IsHarmful && caster is Player player && player.Fellowship != null)
+                {
+                    // Avoid chaining harmfull spells to fellowship members.
+                    var fellows = player.Fellowship.GetFellowshipMembers();
+                    foreach(var fellow in fellows)
+                    {
+                        spell.EnchainedTargetGuids.Add(fellow.Key);
+                    }
+                }
             }
             else if (spell.EnchainedTargetGuids.Count >= 10)
             {
@@ -2899,6 +2909,9 @@ namespace ACE.Server.WorldObjects
                 if (excludedGuids != null && excludedGuids.Contains(creature.Guid.Full))
                     continue;
 
+                if (spell.IsHarmful && casterCreature.CheckPKStatusVsTarget(creature, spell) != null)
+                    continue;
+
                 if (casterCreature != null && casterCreature.IsInvalidTargetForSpell(spell, creature, true))
                     continue;
 
@@ -2937,11 +2950,14 @@ namespace ACE.Server.WorldObjects
             var targets = new List<Creature>();
             foreach (var obj in visible)
             {
-                if (excludedGuids != null && excludedGuids.Contains(obj.WeenieObj.WorldObject.Guid.Full))
-                    continue;
-
                 var creature = obj.WeenieObj.WorldObject as Creature;
                 if (creature == null || creature.Teleporting || creature.IsDead)
+                    continue;
+
+                if (excludedGuids != null && excludedGuids.Contains(creature.Guid.Full))
+                    continue;
+
+                if (spell.IsHarmful && casterCreature.CheckPKStatusVsTarget(creature, spell) != null)
                     continue;
 
                 if (casterCreature != null && casterCreature.IsInvalidTargetForSpell(spell, creature, true))
