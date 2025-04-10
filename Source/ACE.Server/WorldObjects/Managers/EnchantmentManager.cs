@@ -161,6 +161,13 @@ namespace ACE.Server.WorldObjects.Managers
                 result.StackType = StackType.Initial;
                 return result;
             }
+            else if (spell.Flags.HasFlag(SpellFlags.Unsurpassable))
+            {
+                result.Enchantment = null;
+                result.StackType = StackType.None;
+                result.SurpassedSpell = new Spell(entries[0].SpellId, false);
+                return result;
+            }
 
             result.BuildStack(entries, spell, caster, equip, isWeaponSpell);
 
@@ -322,6 +329,39 @@ namespace ACE.Server.WorldObjects.Managers
             return true;
         }
 
+        public virtual bool HandleSnareAndMesmerizeRemoval(PropertiesEnchantmentRegistry entry)
+        {
+            if (WorldObject is Creature creature)
+            {
+                if (entry.SpellCategory == SpellCategory.Snare)
+                {
+                    if (creature.IsSnared)
+                    {
+                        creature.RemoveSnare();
+                        creature.SnareCooldown = true;
+                        entry.StartTime += entry.StatModValue;
+                        return false;
+                    }
+                    else if (creature.SnareCooldown)
+                        creature.SnareCooldown = false;
+                }
+                else if (entry.SpellCategory == SpellCategory.Mesmerize)
+                {
+                    if (creature.IsMesmerized)
+                    {
+                        creature.RemoveMesmerize();
+                        creature.MesmerizeCooldown = true;
+                        entry.StartTime += entry.StatModValue;
+                        return false;
+                    }
+                    else if (creature.MesmerizeCooldown)
+                        creature.MesmerizeCooldown = false;
+                }
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Removes a spell from the enchantment registry, and
         /// sends the relevant network messages for spell removal
@@ -329,6 +369,9 @@ namespace ACE.Server.WorldObjects.Managers
         public virtual void Remove(PropertiesEnchantmentRegistry entry, bool sound = true)
         {
             if (entry == null)
+                return;
+
+            if (!HandleSnareAndMesmerizeRemoval(entry))
                 return;
 
             if (WorldObject.Biota.PropertiesEnchantmentRegistry.TryRemoveEnchantment(entry.SpellId, entry.CasterObjectId, WorldObject.BiotaDatabaseLock))
@@ -553,6 +596,9 @@ namespace ACE.Server.WorldObjects.Managers
             if (entry == null)
                 return;
 
+            if (!HandleSnareAndMesmerizeRemoval(entry))
+                return;
+
             var spellID = entry.SpellId;
 
             if (WorldObject.Biota.PropertiesEnchantmentRegistry.TryRemoveEnchantment(entry.SpellId, entry.CasterObjectId, WorldObject.BiotaDatabaseLock))
@@ -572,6 +618,9 @@ namespace ACE.Server.WorldObjects.Managers
 
             foreach (var entry in entries)
             {
+                if (!HandleSnareAndMesmerizeRemoval(entry))
+                    continue;
+
                 if (WorldObject.Biota.PropertiesEnchantmentRegistry.TryRemoveEnchantment(entry.SpellId, entry.CasterObjectId, WorldObject.BiotaDatabaseLock))
                     WorldObject.ChangesDetected = true;
             }
@@ -957,6 +1006,11 @@ namespace ACE.Server.WorldObjects.Managers
         public virtual int GetBodyArmorMod(bool positive)
         {
             return GetModifier(EnchantmentTypeFlags.BodyArmorValue, positive);
+        }
+
+        public virtual PropertiesEnchantmentRegistry GetAblativeArmor()
+        {
+            return GetEnchantments(SpellCategory.AblativeArmor).OrderByDescending(o => o.PowerLevel).FirstOrDefault();
         }
 
         /// <summary>

@@ -9,6 +9,7 @@ using ACE.Server.Factories.Tables;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Network.Structure;
 using ACE.Server.WorldObjects.Entity;
 using System;
 using System.Collections.Generic;
@@ -289,7 +290,7 @@ namespace ACE.Server.WorldObjects
                 player.EndSneaking();
                 player.LastHitSpellProjectile = Spell;
             }
-            
+
             // ensure caster can damage target
             var sourceCreature = ProjectileSource as Creature;
             if (sourceCreature != null && !sourceCreature.CanDamage(creatureTarget))
@@ -322,7 +323,7 @@ namespace ACE.Server.WorldObjects
 
             var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower, ref resisted, ref blocked, ref isPerfectBlock, ref damageBlocked);
 
-            creatureTarget.OnAttackReceived(sourceCreature, CombatType.Magic, critical, resisted);
+            creatureTarget.OnAttackReceived(ProjectileSource, CombatType.Magic, critical, resisted);
 
             if (damage != null)
             {
@@ -333,7 +334,10 @@ namespace ACE.Server.WorldObjects
                 }
                 else
                 {
-                    DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower, blocked, isPerfectBlock, damageBlocked);
+                    if (Spell.IsExtendedSpell)
+                        creatureTarget.ApplyDoT((int)(damage.Value / 2), (int)(damage.Value * 2), critical, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
+                    else
+                        DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower, blocked, isPerfectBlock, damageBlocked);
 
                     if (player != null && player != creatureTarget)
                     {
@@ -356,10 +360,15 @@ namespace ACE.Server.WorldObjects
                                     var damageBlockedSelf = 0f;
 
                                     var damage2 = CalculateDamage(ProjectileSource, player, ref criticalSelf, ref critDefendedSelf, ref overpowerSelf, ref resistedSelf, ref blockedSelf, ref isPerfectBlockSelf, ref damageBlockedSelf);
-                                    if(damage2 != null)
-                                        DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf, blocked, isPerfectBlock, damageBlocked);
+                                    if (damage2 != null)
+                                    {
+                                        if (Spell.IsExtendedSpell)
+                                            creatureTarget.ApplyDoT((int)(damage2.Value / 2), (int)(damage2.Value * 2), criticalSelf, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
+                                        else
+                                            DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf, blocked, isPerfectBlock, damageBlocked);
 
-                                    player.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
+                                        player.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
+                                    }
                                 }
                             }
                         }
@@ -379,7 +388,7 @@ namespace ACE.Server.WorldObjects
                 // TODO: instead of ProjectileLauncher is Caster, perhaps a SpellProjectile.CanProc bool that defaults to true,
                 // but is set to false if the source of a spell is from a proc, to prevent multi procs?
 
-                if (sourceCreature != null && ProjectileTarget != null && !FromProc)
+                if (ProjectileSource != null && ProjectileTarget != null && !FromProc)
                 {
                     // TODO figure out why cross-landblock group operations are happening here. We shouldn't need this code Mag-nus 2021-02-09
                     bool threadSafe = true;
@@ -387,149 +396,41 @@ namespace ACE.Server.WorldObjects
                     if (LandblockManager.CurrentlyTickingLandblockGroupsMultiThreaded)
                     {
                         // Ok... if we got here, we're likely in the parallel landblock physics processing.
-                        if (sourceCreature.CurrentLandblock == null || creatureTarget.CurrentLandblock == null || sourceCreature.CurrentLandblock.CurrentLandblockGroup != creatureTarget.CurrentLandblock.CurrentLandblockGroup)
+                        if (ProjectileSource.CurrentLandblock == null || ProjectileSource.CurrentLandblock == null || ProjectileSource.CurrentLandblock.CurrentLandblockGroup != target.CurrentLandblock.CurrentLandblockGroup)
                             threadSafe = false;
                     }
 
                     if (threadSafe)
                     {
-                        // This can result in spell projectiles being added to either sourceCreature or creatureTargets landblock.
-                        sourceCreature.TryProcEquippedItems(sourceCreature, creatureTarget, false, ProjectileLauncher);
-
-                        if (!FromProc && !resisted && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        if (sourceCreature != null && creatureTarget != null)
                         {
-                            switch (Spell.DamageType)
-                            {
-                                case DamageType.Cold:
-                                    if (isPvP)
-                                    {
-                                        // The regular freezing spell was found to change PvP dynamics too much so lower attack speed instead.
-                                        var leadenWeapon = new Spell(SpellId.LeadenWeapon5);
-                                        leadenWeapon.Duration = 10;
-                                        if (!leadenWeapon.NotFound)
-                                            sourceCreature.TryCastSpell(leadenWeapon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                                        // And something negative for casters as well.
-                                        var hermeticVoid = new Spell(SpellId.HermeticVoid5);
-                                        hermeticVoid.Duration = 10;
-                                        if (!hermeticVoid.NotFound)
-                                            sourceCreature.TryCastSpell(hermeticVoid, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                                    }
-                                    else
-                                    {
-                                        var freezingSpell = new Spell(SpellId.Freezing);
-                                        if (!freezingSpell.NotFound)
-                                            sourceCreature.TryCastSpell(freezingSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                                    }
-                                    break;
-
-                                case DamageType.Fire:
-                                    var burningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.Burning1, (int)Spell.Level, true);
-                                    var burningSpell = new Spell(burningSpellId);
-                                    if (!burningSpell.NotFound)
-                                        sourceCreature.TryCastSpell(burningSpell, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                                    break;
-
-                                case DamageType.Acid:
-                                    var acidSpellPierce = new Spell(SpellId.MeltingPierce);
-                                    if (!acidSpellPierce.NotFound)
-                                        sourceCreature.TryCastSpell(acidSpellPierce, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                                    var acidSpellBludgeon = new Spell(SpellId.MeltingBludgeon);
-                                    if (!acidSpellBludgeon.NotFound)
-                                        sourceCreature.TryCastSpell(acidSpellBludgeon, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-
-                                    var acidSpellSlash = new Spell(SpellId.MeltingSlash);
-                                    if (!acidSpellSlash.NotFound)
-                                        sourceCreature.TryCastSpell(acidSpellSlash, creatureTarget, null, ProjectileLauncher, false, false, false, false);
-                                    break;
-
-                                case DamageType.Electric:
-                                    var spreadChance = 0.7f;
-                                    if (spreadChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                    {
-                                        var lightningSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.LightningBolt1, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
-                                        var lightningSpell = new Spell(lightningSpellId);
-
-                                        if (!lightningSpell.NotFound)
-                                        {
-                                            var list = GetNearbyTargets(creatureTarget);
-                                            if (list.Count > 0)
-                                            {
-                                                var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
-                                                var actionChain = new ActionChain();
-                                                actionChain.AddDelaySeconds(0.1);
-                                                actionChain.AddAction(creatureTarget, () =>
-                                                {
-                                                    if (sourceCreature != null && !sourceCreature.IsDestroyed && creatureTarget != null && !creatureTarget.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && ProjectileLauncher != null && !ProjectileLauncher.IsDestroyed)
-                                                        sourceCreature.TryCastSpell(lightningSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
-                                                });
-                                                actionChain.EnqueueChain();
-                                            }
-                                        }
-                                    }
-                                    break;
-                            }
+                            // This can result in spell projectiles being added to either sourceCreature or creatureTargets landblock.
+                            sourceCreature.TryProcEquippedItems(sourceCreature, creatureTarget, false, ProjectileLauncher);
                         }
+
+                        HandleEnchainSpell(Spell, ProjectileSource, ProjectileLauncher, creatureTarget);
                     }
                     else
                     {
-                        // sourceCreature and creatureTarget are now in different landblock groups.
-                        // What has likely happened is that sourceCreature sent a projectile toward creatureTarget. Before impact, sourceCreature was teleported away.
+                        // ProjectileSource and target are now in different landblock groups.
+                        // What has likely happened is that sourceCreature sent a projectile toward creatureTarget. Before impact, ProjectileSource was teleported away.
                         // To perform this fully thread safe, we would enqueue the work onto worldManager.
                         // WorldManager.EnqueueAction(new ActionEventDelegate(() => sourceCreature.TryProcEquippedItems(creatureTarget, false)));
                         // But, to keep it simple, we will just ignore it and not bother with TryProcEquippedItems for this particular impact.
                     }
                 }
+
+                // also called on resist
+                if (player != null && targetPlayer == null)
+                    player.OnAttackMonster(creatureTarget);
+
+                if (player == null && targetPlayer == null)
+                {
+                    // check for faction combat
+                    if (sourceCreature != null && creatureTarget != null && (sourceCreature.AllowFactionCombat(creatureTarget) || sourceCreature.PotentialFoe(creatureTarget)))
+                        sourceCreature.MonsterOnAttackMonster(creatureTarget);
+                }
             }
-
-            // also called on resist
-            if (player != null && targetPlayer == null)
-                player.OnAttackMonster(creatureTarget);
-
-            if (player == null && targetPlayer == null)
-            {
-                // check for faction combat
-                if (sourceCreature != null && creatureTarget != null && (sourceCreature.AllowFactionCombat(creatureTarget) || sourceCreature.PotentialFoe(creatureTarget)))
-                    sourceCreature.MonsterOnAttackMonster(creatureTarget);
-            }
-        }
-
-        public List<Creature> GetNearbyTargets(Creature aroundCreature)
-        {
-            List<Physics.PhysicsObj> visible;
-
-            if (ProjectileSource is Player sourcePlayer)
-                visible = sourcePlayer.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null);
-            else
-                visible = ProjectileSource.PhysicsObj.ObjMaint.GetVisibleTargetsValues();
-            visible.Sort(aroundCreature.DistanceComparator);
-
-            var targets = new List<Creature>();
-            foreach (var obj in visible)
-            {
-                if (obj.ID == aroundCreature.PhysicsObj.ID)
-                    continue;
-
-                var creature = obj.WeenieObj.WorldObject as Creature;
-                if (creature == null || creature.Teleporting || creature.IsDead) continue;
-
-                if (ProjectileSource != null && ProjectileSource.CheckPKStatusVsTarget(creature, null) != null)
-                    continue;
-
-                if (!creature.Attackable && creature.TargetingTactic == TargetingTactic.None || creature.Teleporting)
-                    continue;
-
-                if (!aroundCreature.IsDirectVisible(creature, 1))
-                    continue;
-
-                var cylDist = GetCylinderDistance(creature);
-                if (cylDist > 10)
-                    return targets;
-
-                targets.Add(creature);
-            }
-            return targets;
         }
 
         /// <summary>
@@ -583,7 +484,7 @@ namespace ACE.Server.WorldObjects
                 return null;
 
             var shieldMod = 1.0f;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !Spell.IsExtendedSpell)
             {
                 var shield = target.GetEquippedShield();
                 if (shield != null && target != source)
@@ -765,7 +666,11 @@ namespace ACE.Server.WorldObjects
                         skillBonus = Spell.MinDamage * percentageBonus;
                     }
                 }
-                baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
+
+                if (Spell.IsMaximizedSpell)
+                    baseDamage = Spell.MaxDamage;
+                else
+                    baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
 
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
@@ -1146,13 +1051,13 @@ namespace ACE.Server.WorldObjects
                     if (sourcePlayer == target)
                         yourselfOrTargetName = "yourself";
 
-                    var attackerMsg = $"{critMsg}{overpowerMsg}{sneakMsg}You {verb} {yourselfOrTargetName} for {amount} points with {Spell.Name}.{critProt}";
+                    var attackerMsg = $"{critMsg}{overpowerMsg}{sneakMsg}You {verb} {yourselfOrTargetName} for {amount} points with {Spell.NameWithMetaspellAdjectives}.{critProt}";
 
                     // could these crit / sneak attack?
                     if (nonHealth)
                     {
                         var vital = Spell.Category == SpellCategory.StaminaLowering ? "stamina" : "mana";
-                        attackerMsg = $"With {Spell.Name} you drain {amount} points of {vital} from {yourselfOrTargetName}.";
+                        attackerMsg = $"With {Spell.NameWithMetaspellAdjectives} you drain {amount} points of {vital} from {yourselfOrTargetName}.";
                     }
 
                     if (!sourcePlayer.SquelchManager.Squelches.Contains(target, ChatMessageType.Magic))
@@ -1163,12 +1068,12 @@ namespace ACE.Server.WorldObjects
                 {
                     var critProt = critDefended ? " Your augmentation allows you to avoid a critical hit!" : "";
 
-                    var defenderMsg = $"{critMsg}{overpowerMsg}{sneakMsg}{ProjectileSource.Name} {plural} you for {amount} points with {Spell.Name}.{critProt}";
+                    var defenderMsg = $"{critMsg}{overpowerMsg}{sneakMsg}{ProjectileSource.Name} {plural} you for {amount} points with {Spell.NameWithMetaspellAdjectives}.{critProt}";
 
                     if (nonHealth)
                     {
                         var vital = Spell.Category == SpellCategory.StaminaLowering ? "stamina" : "mana";
-                        defenderMsg = $"{ProjectileSource.Name} casts {Spell.Name} and drains {amount} points of your {vital}.";
+                        defenderMsg = $"{ProjectileSource.Name} {(Spell.IsQuickcastSpell ? "quickcasts" : "casts")} {Spell.NameWithMetaspellAdjectivesWithoutQuickcast} and drains {amount} points of your {vital}.";
                     }
 
                     if (!targetPlayer.SquelchManager.Squelches.Contains(ProjectileSource, ChatMessageType.Magic))
@@ -1179,13 +1084,13 @@ namespace ACE.Server.WorldObjects
                         {
                             if (blocked)
                             {
-                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{(isPerfectBlock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} damage!", ChatMessageType.Magic));
+                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{(isPerfectBlock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} points of {Spell.DamageType.GetName()} damage!", ChatMessageType.Magic));
 
                                 var blockSound = new GameMessageSound(Guid, Sound.HitLeather1, 1.0f);
                                 EnqueueBroadcast(blockSound);
                             }
                             else
-                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} damage!", ChatMessageType.Magic));
+                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} points of {Spell.DamageType.GetName()} damage!", ChatMessageType.Magic));
                         }
                     }
 

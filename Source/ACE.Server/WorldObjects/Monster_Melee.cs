@@ -58,7 +58,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (!AiImmobile)
+            if (!AiImmobile && !IsSnared)
                 PhysicsObj.stick_to_object(AttackTarget.PhysicsObj.ID);
             DoSwingMotion(AttackTarget, motionCommand.Value, out float animLength, out var attackFrames);
 
@@ -408,7 +408,7 @@ namespace ACE.Server.WorldObjects
             var motion = new Motion(this, motionCommand, animSpeed);
             motion.MotionState.TurnSpeed = 2.25f;
 
-            if (!AiImmobile)
+            if (!AiImmobile && !IsSnared)
             {
                 motion.MotionFlags |= MotionFlags.StickToObject;
                 motion.MoveToParameters.MovementParameters |= MovementParams.Sticky;

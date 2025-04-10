@@ -34,7 +34,15 @@ namespace ACE.Server.WorldObjects
                 Spell = new Server.Entity.Spell(SpellDID.Value, false);
 
             if (Spell != null)
-                LongDesc = $"Inscribed spell: {Spell.Name}\n{Spell.Description}";
+            {
+                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                    LongDesc = $"Inscribed spell: {Spell.Name}\n{Spell.Description}";
+                else
+                {
+                    ShortDesc = null;
+                    LongDesc = $"School: {(Spell.School == MagicSchool.VoidMagic ? "Any" : Spell.GetMagicSkill().ToSentence())}";
+                }
+            }
             Use = "Use this item to attempt to learn its spell.";
         }
 
@@ -90,16 +98,17 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                var skill = Spell.GetMagicSkill();
-                var playerSkill = player.GetCreatureSkill(skill);
+                var scrollMagicSkill = Spell.GetMagicSkill();
+                var playerSkill = player.GetCreatureSkill(Spell.School);
 
                 if (!player.CanReadScroll(this))
                 {
+                    var skillName = scrollMagicSkill == playerSkill.Skill ? playerSkill.Skill.ToSentence() : "any magic skills";
                     var msg = "";
                     if (playerSkill.AdvancementClass < SkillAdvancementClass.Trained)
-                        msg = $"You are not trained in {playerSkill.Skill.ToSentence()}!";
+                        msg = $"You are not trained in {skillName}!";
                     else
-                        msg = $"You are not skilled enough in {playerSkill.Skill.ToSentence()} to learn this spell.";
+                        msg = $"You are not skilled enough in {skillName} to learn this spell.";
 
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat(msg, ChatMessageType.Broadcast));
                     return;

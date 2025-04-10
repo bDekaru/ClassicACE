@@ -22,6 +22,7 @@ namespace ACE.Entity.Enum
         FastCast                        = 0x4000,
         IndoorLongRange                 = 0x8000,
         DamageOverTime                  = 0x10000,
-        UNKNOWN                         = 0x20000
+        UNKNOWN                         = 0x20000,
+        Unsurpassable                   = 0x40000, // CustomDM
     }
 }

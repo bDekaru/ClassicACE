@@ -70,7 +70,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
+            if (PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -143,7 +143,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void HandleActionTeleToLifestone()
         {
-            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
+            if (PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -222,7 +222,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
+            if (PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -297,7 +297,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
+            if (PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -396,7 +396,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
+            if (PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -523,7 +523,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
+            if (PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -613,7 +613,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (IsPK || IsPKL)))
+            if (PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -854,47 +854,19 @@ namespace ACE.Server.WorldObjects
             //    Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.ITeleported));
         }
 
-        /// <summary>
-        /// This is not thread-safe. Consider using WorldManager.ThreadSafeBlink() instead if you're calling this from a multi-threaded subsection.
-        /// </summary>
-        public void Blink(Position destination, bool fromPortal)
+        public bool AdjustBlinkDestination(Position destination)
         {
-            if (destination == null || Teleporting)
-                return;
-
-            destination = new Position(destination);
-
-            if (destination.PositionX == 0 && destination.PositionY == 0 && destination.Cell == 0) // Trying to catch invalid position.
-                destination = new Position(Sanctuary) ?? new Position(Instantiation) ?? new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f);
-
-            // Check currentFogColor set for player. If LandblockManager.GlobalFogColor is set, don't bother checking, dungeons didn't clear like this on retail worlds.
-            // if not clear, reset to clear before portaling in case portaling to dungeon (no current way to fast check unloaded landblock for IsDungeon or current FogColor)
-            // client doesn't respond to any change inside dungeons, and only queues for change if in dungeon, executing change upon next teleport
-            // so if we delay teleport long enough to ensure clear arrives before teleport, we don't get fog carrying over into dungeon.
-
-            if (currentFogColor.HasValue && currentFogColor != EnvironChangeType.Clear && !LandblockManager.GlobalFogColor.HasValue)
-            {
-                var delayBlink = new ActionChain();
-                delayBlink.AddAction(this, () => ClearFogColor());
-                delayBlink.AddDelaySeconds(1);
-                delayBlink.AddAction(this, () => WorldManager.ThreadSafeBlink(this, destination, null, fromPortal));
-
-                delayBlink.EnqueueChain();
-
-                return;
-            }
-
             destination.PositionZ += 0.005f * (ObjScale ?? 1.0f);
 
-            var distance = Location.DistanceTo(destination);
-
-            if(!CurrentLandblock.IsDungeon)
+            if (!CurrentLandblock.IsDungeon)
                 destination.UpdateCell();
 
             if (!destination.Indoors && !Underground)
             {
-                if(!Indoors)
+                if (!Indoors)
+                {
                     destination.AdjustMapCoords();
+                }
                 else
                 {
                     var sortCell = LScape.get_landcell(destination.Cell) as SortCell;
@@ -913,6 +885,35 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
+                if (!Indoors)
+                {
+                    // Avoid teleporting into indoor cells that are not part of an outdoor building.
+                    // Example: in CustomDM /teleloc 0xA9B40031 [155.792755 16.280209 94.005005] -0.083369 0.000000 0.000000 -0.996519 and blink forward without the below code will blink into the removed Arcanum building.
+                    var outdoorCellId = Location.GetOutdoorCell();
+                    var landblock = LandblockManager.GetLandblock(Location.LandblockId, false, false);
+
+                    if (landblock != null && landblock.PhysicsLandblock != null && landblock.PhysicsLandblock.Buildings != null)
+                    {
+                        var validBuilding = false;
+
+                        foreach (var landScapeBuilding in landblock.PhysicsLandblock.Buildings)
+                        {
+                            if (landScapeBuilding.CurCell.ID == outdoorCellId)
+                            {
+                                validBuilding = true;
+                                break;
+                            }
+                        }
+
+                        if (!validBuilding)
+                        {
+                            // Redirect to outdoor cell
+                            destination.LandblockId = new LandblockId(outdoorCellId);
+                            return true;
+                        }
+                    }
+                }
+
                 AdjustDungeon(destination);
 
                 var height = PhysicsObj.GetHeight();
@@ -923,12 +924,53 @@ namespace ACE.Server.WorldObjects
                         destination = Pathfinder.GetClosestPointOnMesh(destination, AgentWidth.Narrow);
 
                         if (destination == null || !destination.IsValidIndoorCell(height))
-                            return;
+                            return false;
                     }
                     else
-                        return;
+                        return false;
                 }
             }
+
+            return true;
+        }
+
+        /// <summary>
+        /// This is not thread-safe. Consider using WorldManager.ThreadSafeBlink() instead if you're calling this from a multi-threaded subsection.
+        /// </summary>
+        public void Blink(Position destination, bool fromPortal)
+        {
+            if (destination == null || Teleporting)
+                return;
+
+            // Check currentFogColor set for player. If LandblockManager.GlobalFogColor is set, don't bother checking, dungeons didn't clear like this on retail worlds.
+            // if not clear, reset to clear before portaling in case portaling to dungeon (no current way to fast check unloaded landblock for IsDungeon or current FogColor)
+            // client doesn't respond to any change inside dungeons, and only queues for change if in dungeon, executing change upon next teleport
+            // so if we delay teleport long enough to ensure clear arrives before teleport, we don't get fog carrying over into dungeon.
+
+            if (currentFogColor.HasValue && currentFogColor != EnvironChangeType.Clear && !LandblockManager.GlobalFogColor.HasValue)
+            {
+                var delayBlink = new ActionChain();
+                delayBlink.AddAction(this, () => ClearFogColor());
+                delayBlink.AddDelaySeconds(1);
+                delayBlink.AddAction(this, () => WorldManager.ThreadSafeBlink(this, destination, null, fromPortal));
+
+                delayBlink.EnqueueChain();
+
+                return;
+            }
+
+            destination = new Position(destination);
+
+            if (destination.PositionX == 0 && destination.PositionY == 0 && destination.Cell == 0) // Trying to catch invalid position.
+                destination = new Position(Sanctuary) ?? new Position(Instantiation) ?? new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f);
+
+            if (!AdjustBlinkDestination(destination))
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("The Blink has failed!", ChatMessageType.Magic));
+                return;
+            }
+
+            var distance = Location.DistanceTo(destination);
 
             Teleporting = true;
             LastTeleportTime = DateTime.UtcNow;
@@ -967,7 +1009,7 @@ namespace ACE.Server.WorldObjects
                     LandblockManager.RelocateObjectForPhysics(this, distance <= 192 && !InDungeon);
             }
             else
-                Session.Network.EnqueueSend(new GameMessageSystemChat("Blink failed!", ChatMessageType.Broadcast));
+                Session.Network.EnqueueSend(new GameMessageSystemChat("The Blink has failed!", ChatMessageType.Magic));
 
             Teleporting = false;
         }

@@ -1622,5 +1622,17 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyFloat.VitaeDecayTimestamp);
             set { if (!value.HasValue) RemoveProperty(PropertyFloat.VitaeDecayTimestamp); else SetProperty(PropertyFloat.VitaeDecayTimestamp, value.Value); }
         }
+
+        public string DamageOverTimeLog
+        {
+            get => GetProperty(PropertyString.DamageOverTimeLog);
+            set { if (value == null) RemoveProperty(PropertyString.DamageOverTimeLog); else SetProperty(PropertyString.DamageOverTimeLog, value); }
+        }
+
+        public string HealOverTimeLog
+        {
+            get => GetProperty(PropertyString.HealOverTimeLog);
+            set { if (value == null) RemoveProperty(PropertyString.HealOverTimeLog); else SetProperty(PropertyString.HealOverTimeLog, value); }
+        }
     }
 }

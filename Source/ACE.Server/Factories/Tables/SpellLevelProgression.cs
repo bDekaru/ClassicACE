@@ -8,6 +8,8 @@ namespace ACE.Server.Factories.Tables
     public static class SpellLevelProgression
     {
         private static readonly Dictionary<SpellId, List<SpellId>> spellProgression = new Dictionary<SpellId, List<SpellId>>();
+        private static readonly Dictionary<SpellId, SpellId> spellSelfOtherTranslation = new Dictionary<SpellId, SpellId>();
+        private static readonly Dictionary<SpellId, SpellId> spellOtherSelfTranslation = new Dictionary<SpellId, SpellId>();
 
         public static readonly List<SpellId> StrengthOther = new List<SpellId>()
         {
@@ -7968,6 +7970,114 @@ namespace ACE.Server.Factories.Tables
             SpellId.CantripHeartBlocker4,
         };
 
+        public static readonly List<SpellId> EmpowerSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.EmpowerSpell1,
+            SpellId.Undef,
+            SpellId.EmpowerSpell2,
+            SpellId.Undef,
+            SpellId.EmpowerSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> QuickcastSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.QuickcastSpell1,
+            SpellId.Undef,
+            SpellId.QuickcastSpell2,
+            SpellId.Undef,
+            SpellId.QuickcastSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> EnchainSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.EnchainSpell1,
+            SpellId.Undef,
+            SpellId.EnchainSpell2,
+            SpellId.Undef,
+            SpellId.EnchainSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> ExtendSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.ExtendSpell1,
+            SpellId.Undef,
+            SpellId.ExtendSpell2,
+            SpellId.Undef,
+            SpellId.ExtendSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> MaximizeSpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.MaximizeSpell1,
+            SpellId.Undef,
+            SpellId.MaximizeSpell2,
+            SpellId.Undef,
+            SpellId.MaximizeSpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> DelaySpell = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.DelaySpell1,
+            SpellId.Undef,
+            SpellId.DelaySpell2,
+            SpellId.Undef,
+            SpellId.DelaySpell3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> Blink = new List<SpellId>()
+        {
+            SpellId.Undef,
+            SpellId.Blink1,
+            SpellId.Undef,
+            SpellId.Blink2,
+            SpellId.Undef,
+            SpellId.Blink3,
+            SpellId.Undef,
+            SpellId.Undef,
+        };
+
+        public static readonly List<SpellId> AblativeArmorSelf = new List<SpellId>()
+        {
+            SpellId.AblativeArmorSelf1,
+            SpellId.AblativeArmorSelf2,
+            SpellId.AblativeArmorSelf3,
+            SpellId.AblativeArmorSelf4,
+            SpellId.AblativeArmorSelf5,
+            SpellId.AblativeArmorSelf6,
+            SpellId.AblativeArmorSelf7,
+            SpellId.AblativeArmorSelf8,
+        };
+
+        public static readonly List<SpellId> AblativeArmorOther = new List<SpellId>()
+        {
+            SpellId.AblativeArmorOther1,
+            SpellId.AblativeArmorOther2,
+            SpellId.AblativeArmorOther3,
+            SpellId.AblativeArmorOther4,
+            SpellId.AblativeArmorOther5,
+            SpellId.AblativeArmorOther6,
+            SpellId.AblativeArmorOther7,
+            SpellId.AblativeArmorOther8,
+        };
+
         static SpellLevelProgression()
         {
             // takes ~5ms
@@ -7976,25 +8086,35 @@ namespace ACE.Server.Factories.Tables
 
             AddSpells(StrengthOther);
             AddSpells(StrengthSelf);
+            AddSpellTargetTranslation(StrengthSelf, StrengthOther);
             AddSpells(WeaknessOther);
             AddSpells(WeaknessSelf);
+            AddSpellTargetTranslation(WeaknessSelf, WeaknessOther);
             AddSpells(HealOther);
             AddSpells(HealSelf);
+            AddSpellTargetTranslation(HealSelf, HealOther);
             AddSpells(HarmOther);
             AddSpells(HarmSelf);
+            AddSpellTargetTranslation(HarmSelf, HarmOther);
             AddSpells(InfuseMana);
             AddSpells(VulnerabilityOther);
             AddSpells(VulnerabilitySelf);
+            AddSpellTargetTranslation(VulnerabilitySelf, VulnerabilityOther);
             AddSpells(InvulnerabilityOther);
             AddSpells(InvulnerabilitySelf);
+            AddSpellTargetTranslation(InvulnerabilitySelf, InvulnerabilityOther);
             AddSpells(FireProtectionOther);
             AddSpells(FireProtectionSelf);
+            AddSpellTargetTranslation(FireProtectionSelf, FireProtectionOther);
             AddSpells(FireVulnerabilityOther);
             AddSpells(FireVulnerabilitySelf);
+            AddSpellTargetTranslation(FireVulnerabilitySelf, FireVulnerabilityOther);
             AddSpells(ArmorOther);
             AddSpells(ArmorSelf);
+            AddSpellTargetTranslation(ArmorSelf, ArmorOther);
             AddSpells(ImperilOther);
             AddSpells(ImperilSelf);
+            AddSpellTargetTranslation(ImperilSelf, ImperilOther);
             AddSpells(FlameBolt);
             AddSpells(FrostBolt);
             AddSpells(BloodDrinkerSelf);
@@ -8008,6 +8128,7 @@ namespace ACE.Server.Factories.Tables
             AddSpells(Impenetrability);
             AddSpells(RejuvenationOther);
             AddSpells(RejuvenationSelf);
+            AddSpellTargetTranslation(RejuvenationSelf, RejuvenationOther);
             AddSpells(AcidStream);
             AddSpells(ShockWave);
             AddSpells(LightningBolt);
@@ -8030,169 +8151,253 @@ namespace ACE.Server.Factories.Tables
             AddSpells(SummonPortal);
             AddSpells(RegenerationOther);
             AddSpells(RegenerationSelf);
+            AddSpellTargetTranslation(RegenerationSelf, RegenerationOther);
             AddSpells(FesterOther);
             AddSpells(FesterSelf);
+            AddSpellTargetTranslation(FesterSelf, FesterOther);
             AddSpells(ExhaustionOther);
             AddSpells(ExhaustionSelf);
+            AddSpellTargetTranslation(ExhaustionSelf, ExhaustionOther);
             AddSpells(ManaRenewalOther);
             AddSpells(ManaRenewalSelf);
+            AddSpellTargetTranslation(ManaRenewalSelf, ManaRenewalOther);
             AddSpells(ManaDepletionOther);
             AddSpells(ManaDepletionSelf);
+            AddSpellTargetTranslation(ManaDepletionSelf, ManaDepletionOther);
             AddSpells(ImpregnabilityOther);
             AddSpells(ImpregnabilitySelf);
+            AddSpellTargetTranslation(ImpregnabilitySelf, ImpregnabilityOther);
             AddSpells(DefenselessnessOther);
+            AddSpells(DefenselessnessSelf);
+            AddSpellTargetTranslation(DefenselessnessSelf, DefenselessnessOther);
             AddSpells(MagicResistanceOther);
             AddSpells(MagicResistanceSelf);
+            AddSpellTargetTranslation(MagicResistanceSelf, MagicResistanceOther);
             AddSpells(MagicYieldOther);
             AddSpells(MagicYieldSelf);
+            AddSpellTargetTranslation(MagicYieldSelf, MagicYieldOther);
             AddSpells(LightWeaponsMasteryOther);
             AddSpells(LightWeaponsMasterySelf);
+            AddSpellTargetTranslation(LightWeaponsMasterySelf, LightWeaponsMasteryOther);
             AddSpells(LightWeaponsIneptitudeOther);
             AddSpells(LightWeaponsIneptitudeSelf);
+            AddSpellTargetTranslation(LightWeaponsIneptitudeSelf, LightWeaponsIneptitudeOther);
             AddSpells(FinesseWeaponsMasteryOther);
             AddSpells(FinesseWeaponsMasterySelf);
+            AddSpellTargetTranslation(FinesseWeaponsMasterySelf, FinesseWeaponsMasteryOther);
             AddSpells(FinesseWeaponsIneptitudeOther);
             AddSpells(FinesseWeaponsIneptitudeSelf);
+            AddSpellTargetTranslation(FinesseWeaponsIneptitudeSelf, FinesseWeaponsIneptitudeOther);
             AddSpells(MaceMasteryOther);
             AddSpells(MaceMasterySelf);
+            AddSpellTargetTranslation(MaceMasterySelf, MaceMasteryOther);
             AddSpells(MaceIneptitudeOther);
             AddSpells(MaceIneptitudeSelf);
+            AddSpellTargetTranslation(MaceIneptitudeSelf, MaceIneptitudeOther);
             AddSpells(SpearMasteryOther);
             AddSpells(SpearMasterySelf);
+            AddSpellTargetTranslation(SpearMasterySelf, SpearMasteryOther);
             AddSpells(SpearIneptitudeOther);
             AddSpells(SpearIneptitudeSelf);
+            AddSpellTargetTranslation(SpearIneptitudeSelf, SpearIneptitudeOther);
             AddSpells(StaffMasteryOther);
             AddSpells(StaffMasterySelf);
+            AddSpellTargetTranslation(StaffMasterySelf, StaffMasteryOther);
             AddSpells(StaffIneptitudeOther);
             AddSpells(StaffIneptitudeSelf);
+            AddSpellTargetTranslation(StaffIneptitudeSelf, StaffIneptitudeOther);
             AddSpells(HeavyWeaponsMasteryOther);
             AddSpells(HeavyWeaponsMasterySelf);
+            AddSpellTargetTranslation(HeavyWeaponsMasterySelf, HeavyWeaponsMasteryOther);
             AddSpells(HeavyWeaponsIneptitudeOther);
             AddSpells(HeavyWeaponsIneptitudeSelf);
+            AddSpellTargetTranslation(HeavyWeaponsIneptitudeSelf, HeavyWeaponsIneptitudeOther);
             AddSpells(UnarmedCombatMasteryOther);
             AddSpells(UnarmedCombatMasterySelf);
+            AddSpellTargetTranslation(UnarmedCombatMasterySelf, UnarmedCombatMasteryOther);
             AddSpells(UnarmedCombatIneptitudeOther);
             AddSpells(UnarmedCombatIneptitudeSelf);
+            AddSpellTargetTranslation(UnarmedCombatIneptitudeSelf, UnarmedCombatIneptitudeOther);
             AddSpells(MissileWeaponsMasteryOther);
             AddSpells(MissileWeaponsMasterySelf);
+            AddSpellTargetTranslation(MissileWeaponsMasterySelf, MissileWeaponsMasteryOther);
             AddSpells(MissileWeaponsIneptitudeOther);
             AddSpells(MissileWeaponsIneptitudeSelf);
+            AddSpellTargetTranslation(MissileWeaponsIneptitudeSelf, MissileWeaponsIneptitudeOther);
             AddSpells(CrossbowMasteryOther);
             AddSpells(CrossbowMasterySelf);
+            AddSpellTargetTranslation(CrossbowMasterySelf, CrossbowMasteryOther);
             AddSpells(CrossbowIneptitudeOther);
             AddSpells(CrossbowIneptitudeSelf);
+            AddSpellTargetTranslation(CrossbowIneptitudeSelf, CrossbowIneptitudeOther);
             AddSpells(AcidProtectionOther);
             AddSpells(AcidProtectionSelf);
+            AddSpellTargetTranslation(AcidProtectionSelf, AcidProtectionOther);
             AddSpells(AcidVulnerabilityOther);
             AddSpells(AcidVulnerabilitySelf);
+            AddSpellTargetTranslation(AcidVulnerabilitySelf, AcidVulnerabilityOther);
             AddSpells(ThrownWeaponMasteryOther);
             AddSpells(ThrownWeaponMasterySelf);
+            AddSpellTargetTranslation(ThrownWeaponMasterySelf, ThrownWeaponMasteryOther);
             AddSpells(ThrownWeaponIneptitudeOther);
             AddSpells(ThrownWeaponIneptitudeSelf);
+            AddSpellTargetTranslation(ThrownWeaponIneptitudeSelf, ThrownWeaponIneptitudeOther);
             AddSpells(CreatureEnchantmentMasterySelf);
             AddSpells(CreatureEnchantmentMasteryOther);
+            AddSpellTargetTranslation(CreatureEnchantmentMasterySelf, CreatureEnchantmentMasteryOther);
             AddSpells(CreatureEnchantmentIneptitudeOther);
             AddSpells(CreatureEnchantmentIneptitudeSelf);
+            AddSpellTargetTranslation(CreatureEnchantmentIneptitudeSelf, CreatureEnchantmentIneptitudeOther);
             AddSpells(ItemEnchantmentMasterySelf);
             AddSpells(ItemEnchantmentMasteryOther);
+            AddSpellTargetTranslation(ItemEnchantmentMasterySelf, ItemEnchantmentMasteryOther);
             AddSpells(ItemEnchantmentIneptitudeOther);
             AddSpells(ItemEnchantmentIneptitudeSelf);
+            AddSpellTargetTranslation(ItemEnchantmentIneptitudeSelf, ItemEnchantmentIneptitudeOther);
             AddSpells(LifeMagicMasterySelf);
             AddSpells(LifeMagicMasteryOther);
+            AddSpellTargetTranslation(LifeMagicMasterySelf, LifeMagicMasteryOther);
             AddSpells(LifeMagicIneptitudeSelf);
             AddSpells(LifeMagicIneptitudeOther);
+            AddSpellTargetTranslation(LifeMagicIneptitudeSelf, LifeMagicIneptitudeOther);
             AddSpells(WarMagicMasterySelf);
             AddSpells(WarMagicMasteryOther);
+            AddSpellTargetTranslation(WarMagicMasterySelf, WarMagicMasteryOther);
             AddSpells(WarMagicIneptitudeSelf);
             AddSpells(WarMagicIneptitudeOther);
+            AddSpellTargetTranslation(WarMagicIneptitudeSelf, WarMagicIneptitudeOther);
             AddSpells(ManaMasterySelf);
             AddSpells(ManaMasteryOther);
+            AddSpellTargetTranslation(ManaMasterySelf, ManaMasteryOther);
             AddSpells(ManaIneptitudeSelf);
             AddSpells(ManaIneptitudeOther);
+            AddSpellTargetTranslation(ManaIneptitudeSelf, ManaIneptitudeOther);
             AddSpells(ArcaneEnlightenmentSelf);
             AddSpells(ArcaneEnlightenmentOther);
+            AddSpellTargetTranslation(ArcaneEnlightenmentSelf, ArcaneEnlightenmentOther);
             AddSpells(ArcaneBenightednessSelf);
             AddSpells(ArcaneBenightednessOther);
+            AddSpellTargetTranslation(ArcaneBenightednessSelf, ArcaneBenightednessOther);
             AddSpells(ArmorExpertiseSelf);
             AddSpells(ArmorExpertiseOther);
+            AddSpellTargetTranslation(ArmorExpertiseSelf, ArmorExpertiseOther);
             AddSpells(ArmorIgnoranceSelf);
             AddSpells(ArmorIgnoranceOther);
+            AddSpellTargetTranslation(ArmorIgnoranceSelf, ArmorIgnoranceOther);
             AddSpells(ItemExpertiseSelf);
             AddSpells(ItemExpertiseOther);
+            AddSpellTargetTranslation(ItemExpertiseSelf, ItemExpertiseOther);
             AddSpells(ItemIgnoranceSelf);
             AddSpells(ItemIgnoranceOther);
+            AddSpellTargetTranslation(ItemIgnoranceSelf, ItemIgnoranceOther);
             AddSpells(MagicItemExpertiseSelf);
             AddSpells(MagicItemExpertiseOther);
+            AddSpellTargetTranslation(MagicItemExpertiseSelf, MagicItemExpertiseOther);
             AddSpells(MagicItemIgnoranceSelf);
             AddSpells(MagicItemIgnoranceOther);
+            AddSpellTargetTranslation(MagicItemIgnoranceSelf, MagicItemIgnoranceOther);
             AddSpells(WeaponExpertiseSelf);
             AddSpells(WeaponExpertiseOther);
+            AddSpellTargetTranslation(WeaponExpertiseSelf, WeaponExpertiseOther);
             AddSpells(WeaponIgnoranceSelf);
             AddSpells(WeaponIgnoranceOther);
+            AddSpellTargetTranslation(WeaponIgnoranceSelf, WeaponIgnoranceOther);
             AddSpells(MonsterAttunementSelf);
             AddSpells(MonsterAttunementOther);
+            AddSpellTargetTranslation(MonsterAttunementSelf, MonsterAttunementOther);
             AddSpells(MonsterUnfamiliaritySelf);
             AddSpells(MonsterUnfamiliarityOther);
+            AddSpellTargetTranslation(MonsterUnfamiliaritySelf, MonsterUnfamiliarityOther);
             AddSpells(PersonAttunementSelf);
             AddSpells(PersonAttunementOther);
+            AddSpellTargetTranslation(PersonAttunementSelf, PersonAttunementOther);
             AddSpells(PersonUnfamiliaritySelf);
             AddSpells(PersonUnfamiliarityOther);
+            AddSpellTargetTranslation(PersonUnfamiliaritySelf, PersonUnfamiliarityOther);
             AddSpells(DeceptionMasterySelf);
             AddSpells(DeceptionMasteryOther);
+            AddSpellTargetTranslation(DeceptionMasterySelf, DeceptionMasteryOther);
             AddSpells(DeceptionIneptitudeSelf);
             AddSpells(DeceptionIneptitudeOther);
+            AddSpellTargetTranslation(DeceptionIneptitudeSelf, DeceptionIneptitudeOther);
             AddSpells(HealingMasterySelf);
             AddSpells(HealingMasteryOther);
+            AddSpellTargetTranslation(HealingMasterySelf, HealingMasteryOther);
             AddSpells(HealingIneptitudeSelf);
             AddSpells(HealingIneptitudeOther);
+            AddSpellTargetTranslation(HealingIneptitudeSelf, HealingIneptitudeOther);
             AddSpells(LeadershipMasterySelf);
             AddSpells(LeadershipMasteryOther);
+            AddSpellTargetTranslation(LeadershipMasterySelf, LeadershipMasteryOther);
             AddSpells(LeadershipIneptitudeSelf);
             AddSpells(LeadershipIneptitudeOther);
+            AddSpellTargetTranslation(LeadershipIneptitudeSelf, LeadershipIneptitudeOther);
             AddSpells(LockpickMasterySelf);
             AddSpells(LockpickMasteryOther);
+            AddSpellTargetTranslation(LockpickMasterySelf, LockpickMasteryOther);
             AddSpells(LockpickIneptitudeSelf);
             AddSpells(LockpickIneptitudeOther);
+            AddSpellTargetTranslation(LockpickIneptitudeSelf, LockpickIneptitudeOther);
             AddSpells(FealtySelf);
             AddSpells(FealtyOther);
+            AddSpellTargetTranslation(FealtySelf, FealtyOther);
             AddSpells(FaithlessnessSelf);
             AddSpells(FaithlessnessOther);
+            AddSpellTargetTranslation(FaithlessnessSelf, FaithlessnessOther);
             AddSpells(JumpingMasterySelf);
             AddSpells(JumpingMasteryOther);
+            AddSpellTargetTranslation(JumpingMasterySelf, JumpingMasteryOther);
             AddSpells(SprintSelf);
             AddSpells(SprintOther);
+            AddSpellTargetTranslation(SprintSelf, SprintOther);
             AddSpells(LeadenFeetSelf);
             AddSpells(LeadenFeetOther);
+            AddSpellTargetTranslation(LeadenFeetSelf, LeadenFeetOther);
             AddSpells(JumpingIneptitudeSelf);
             AddSpells(JumpingIneptitudeOther);
+            AddSpellTargetTranslation(JumpingIneptitudeSelf, JumpingIneptitudeOther);
             AddSpells(BludgeonProtectionSelf);
             AddSpells(BludgeonProtectionOther);
+            AddSpellTargetTranslation(BludgeonProtectionSelf, BludgeonProtectionOther);
             AddSpells(ColdProtectionSelf);
             AddSpells(ColdProtectionOther);
+            AddSpellTargetTranslation(ColdProtectionSelf, ColdProtectionOther);
             AddSpells(BludgeonVulnerabilitySelf);
             AddSpells(BludgeonVulnerabilityOther);
+            AddSpellTargetTranslation(BludgeonVulnerabilitySelf, BludgeonVulnerabilityOther);
             AddSpells(ColdVulnerabilitySelf);
             AddSpells(ColdVulnerabilityOther);
+            AddSpellTargetTranslation(ColdVulnerabilitySelf, ColdVulnerabilityOther);
             AddSpells(LightningProtectionSelf);
             AddSpells(LightningProtectionOther);
+            AddSpellTargetTranslation(LightningProtectionSelf, LightningProtectionOther);
             AddSpells(LightningVulnerabilitySelf);
             AddSpells(LightningVulnerabilityOther);
+            AddSpellTargetTranslation(LightningVulnerabilitySelf, LightningVulnerabilityOther);
             AddSpells(BladeProtectionSelf);
             AddSpells(BladeProtectionOther);
+            AddSpellTargetTranslation(BladeProtectionSelf, BladeProtectionOther);
             AddSpells(BladeVulnerabilitySelf);
             AddSpells(BladeVulnerabilityOther);
+            AddSpellTargetTranslation(BladeVulnerabilitySelf, BladeVulnerabilityOther);
             AddSpells(PiercingProtectionSelf);
             AddSpells(PiercingProtectionOther);
+            AddSpellTargetTranslation(PiercingProtectionSelf, PiercingProtectionOther);
             AddSpells(PiercingVulnerabilitySelf);
             AddSpells(PiercingVulnerabilityOther);
+            AddSpellTargetTranslation(PiercingVulnerabilitySelf, PiercingVulnerabilityOther);
             AddSpells(RevitalizeSelf);
             AddSpells(RevitalizeOther);
+            AddSpellTargetTranslation(RevitalizeSelf, RevitalizeOther);
             AddSpells(EnfeebleSelf);
             AddSpells(EnfeebleOther);
+            AddSpellTargetTranslation(EnfeebleSelf, EnfeebleOther);
             AddSpells(ManaBoostSelf);
             AddSpells(ManaBoostOther);
+            AddSpellTargetTranslation(ManaBoostSelf, ManaBoostOther);
             AddSpells(ManaDrainSelf);
             AddSpells(ManaDrainOther);
+            AddSpellTargetTranslation(ManaDrainSelf, ManaDrainOther);
             AddSpells(InfuseHealth);
             AddSpells(DrainHealth);
             AddSpells(InfuseStamina);
@@ -8200,32 +8405,46 @@ namespace ACE.Server.Factories.Tables
             AddSpells(DrainMana);
             AddSpells(HealthToStaminaOther);
             AddSpells(HealthToStaminaSelf);
+            AddSpellTargetTranslation(HealthToStaminaSelf, HealthToStaminaOther);
             AddSpells(HealthToManaSelf);
             AddSpells(HealthToManaOther);
+            AddSpellTargetTranslation(HealthToManaSelf, HealthToManaOther);
             AddSpells(ManaToHealthOther);
             AddSpells(ManaToHealthSelf);
+            AddSpellTargetTranslation(ManaToHealthSelf, ManaToHealthOther);
             AddSpells(ManaToStaminaSelf);
             AddSpells(ManaToStaminaOther);
+            AddSpellTargetTranslation(ManaToStaminaSelf, ManaToStaminaOther);
             AddSpells(EnduranceSelf);
-            AddSpells(EnduranceOther);
+            AddSpells(EnduranceOther);            
+            AddSpellTargetTranslation(EnduranceSelf, EnduranceOther);
             AddSpells(FrailtySelf);
             AddSpells(FrailtyOther);
+            AddSpellTargetTranslation(FrailtySelf, FrailtyOther);
             AddSpells(CoordinationSelf);
             AddSpells(CoordinationOther);
+            AddSpellTargetTranslation(CoordinationSelf, CoordinationOther);
             AddSpells(ClumsinessSelf);
             AddSpells(ClumsinessOther);
+            AddSpellTargetTranslation(ClumsinessSelf, ClumsinessOther);
             AddSpells(QuicknessSelf);
             AddSpells(QuicknessOther);
+            AddSpellTargetTranslation(QuicknessSelf, QuicknessOther);
             AddSpells(SlownessSelf);
             AddSpells(SlownessOther);
+            AddSpellTargetTranslation(SlownessSelf, SlownessOther);
             AddSpells(FocusSelf);
             AddSpells(FocusOther);
+            AddSpellTargetTranslation(FocusSelf, FocusOther);
             AddSpells(BafflementSelf);
             AddSpells(BafflementOther);
+            AddSpellTargetTranslation(BafflementSelf, BafflementOther);
             AddSpells(WillpowerSelf);
             AddSpells(WillpowerOther);
+            AddSpellTargetTranslation(WillpowerSelf, WillpowerOther);
             AddSpells(FeeblemindSelf);
             AddSpells(FeeblemindOther);
+            AddSpellTargetTranslation(FeeblemindSelf, FeeblemindOther);
             AddSpells(HermeticVoid);
             AddSpells(HermeticLinkSelf);
             AddSpells(Brittlemail);
@@ -8247,23 +8466,30 @@ namespace ACE.Server.Factories.Tables
             AddSpells(TurnBlade);
             AddSpells(DefenderSelf);
             AddSpells(LureBlade);
-            AddSpells(DefenselessnessSelf);
             AddSpells(StaminaToHealthOther);
             AddSpells(StaminaToHealthSelf);
+            AddSpellTargetTranslation(StaminaToHealthSelf, StaminaToHealthOther);
             AddSpells(StaminaToManaOther);
             AddSpells(StaminaToManaSelf);
+            AddSpellTargetTranslation(StaminaToManaSelf, StaminaToManaOther);
             AddSpells(CookingMasteryOther);
             AddSpells(CookingMasterySelf);
+            AddSpellTargetTranslation(CookingMasterySelf, CookingMasteryOther);
             AddSpells(CookingIneptitudeOther);
             AddSpells(CookingIneptitudeSelf);
+            AddSpellTargetTranslation(CookingIneptitudeSelf, CookingIneptitudeOther);
             AddSpells(FletchingMasteryOther);
             AddSpells(FletchingMasterySelf);
+            AddSpellTargetTranslation(FletchingMasterySelf, FletchingMasteryOther);
             AddSpells(FletchingIneptitudeOther);
             AddSpells(FletchingIneptitudeSelf);
+            AddSpellTargetTranslation(FletchingIneptitudeSelf, FletchingIneptitudeOther);
             AddSpells(AlchemyMasteryOther);
             AddSpells(AlchemyMasterySelf);
+            AddSpellTargetTranslation(AlchemyMasterySelf, AlchemyMasteryOther);
             AddSpells(AlchemyIneptitudeOther);
             AddSpells(AlchemyIneptitudeSelf);
+            AddSpellTargetTranslation(AlchemyIneptitudeSelf, AlchemyIneptitudeOther);
             AddSpells(AcidStreak);
             AddSpells(FlameStreak);
             AddSpells(ForceStreak);
@@ -8277,24 +8503,36 @@ namespace ACE.Server.Factories.Tables
             AddSpells(DispelAllNeutralSelf);
             AddSpells(DispelAllGoodSelf);
             AddSpells(DispelAllBadSelf);
+            AddSpellTargetTranslation(DispelAllNeutralSelf, DispelAllNeutralOther);
+            AddSpellTargetTranslation(DispelAllGoodSelf, DispelAllGoodOther);
+            AddSpellTargetTranslation(DispelAllBadSelf, DispelAllBadOther);
             AddSpells(DispelCreatureNeutralOther);
             AddSpells(DispelCreatureGoodOther);
             AddSpells(DispelCreatureBadOther);
             AddSpells(DispelCreatureNeutralSelf);
             AddSpells(DispelCreatureGoodSelf);
             AddSpells(DispelCreatureBadSelf);
+            AddSpellTargetTranslation(DispelCreatureNeutralSelf, DispelCreatureNeutralOther);
+            AddSpellTargetTranslation(DispelCreatureGoodSelf, DispelCreatureGoodOther);
+            AddSpellTargetTranslation(DispelCreatureBadSelf, DispelCreatureBadOther);
             AddSpells(DispelItemNeutralOther);
             AddSpells(DispelItemGoodOther);
             AddSpells(DispelItemBadOther);
             AddSpells(DispelItemNeutralSelf);
             AddSpells(DispelItemGoodSelf);
             AddSpells(DispelItemBadSelf);
+            AddSpellTargetTranslation(DispelItemNeutralSelf, DispelItemNeutralOther);
+            AddSpellTargetTranslation(DispelItemGoodSelf, DispelItemGoodOther);
+            AddSpellTargetTranslation(DispelItemBadSelf, DispelItemBadOther);
             AddSpells(DispelLifeNeutralOther);
             AddSpells(DispelLifeGoodOther);
             AddSpells(DispelLifeBadOther);
             AddSpells(DispelLifeNeutralSelf);
             AddSpells(DispelLifeGoodSelf);
             AddSpells(DispelLifeBadSelf);
+            AddSpellTargetTranslation(DispelLifeNeutralSelf, DispelLifeNeutralOther);
+            AddSpellTargetTranslation(DispelLifeGoodSelf, DispelLifeGoodOther);
+            AddSpellTargetTranslation(DispelLifeBadSelf, DispelLifeBadOther);
             AddSpells(RecallAsmolum);
             AddSpells(PortalSendTrial);
             AddSpells(CANTRIPALCHEMICALPROWESS);
@@ -8441,8 +8679,10 @@ namespace ACE.Server.Factories.Tables
             AddSpells(PortalSendingIzjiQoTest);
             AddSpells(ArcanumSalvagingSelf);
             AddSpells(ArcanumSalvagingOther);
+            AddSpellTargetTranslation(ArcanumSalvagingSelf, ArcanumSalvagingOther);
             AddSpells(NuhmudirasWisdom);
             AddSpells(NuhmudirasWisdomOther);
+            AddSpellTargetTranslation(NuhmudirasWisdom, NuhmudirasWisdomOther);
             AddSpells(Intoxication);
             AddSpells(AxemansBoon);
             AddSpells(BowmansBoon);
@@ -8539,16 +8779,20 @@ namespace ACE.Server.Factories.Tables
             AddSpells(MiniRing);
             AddSpells(PortalSendingAssassinsRoost);
             AddSpells(TwoHandedBoon);
+            AddSpells(TwoHandedMasteryOther);
             AddSpells(TwoHandedMasterySelf);
+            AddSpellTargetTranslation(TwoHandedMasterySelf, TwoHandedMasteryOther);
             AddSpells(CANTRIPGEARCRAFTAPTITUDE);
             AddSpells(CANTRIPTWOHANDEDAPTITUDE);
             AddSpells(GearcraftIneptitude);
             AddSpells(GearcraftIneptitudeSelf);
+            AddSpellTargetTranslation(GearcraftIneptitudeSelf, GearcraftIneptitude);
             AddSpells(GearcraftMastery);
             AddSpells(GearcraftMasterySelf);
+            AddSpellTargetTranslation(GearcraftMasterySelf, GearcraftMastery);
             AddSpells(TwoHandedIneptitude);
             AddSpells(TwoHandedIneptitudeSelf);
-            AddSpells(TwoHandedMasteryOther);
+            AddSpellTargetTranslation(TwoHandedIneptitudeSelf, TwoHandedIneptitude);
             AddSpells(SetGearCraftAptitude);
             AddSpells(SetTwoHandedAptitude);
             AddSpells(ExposeWeakness);
@@ -8584,6 +8828,7 @@ namespace ACE.Server.Factories.Tables
             AddSpells(Corruption);
             AddSpells(VoidMagicMasteryOther);
             AddSpells(VoidMagicMasterySelf);
+            AddSpellTargetTranslation(VoidMagicMasterySelf, VoidMagicMasteryOther);
             AddSpells(VoidMagicIneptitudeOther);
             AddSpells(CantripVoidMagicAptitude);
             AddSpells(SetVoidMagicAptitude);
@@ -8642,18 +8887,23 @@ namespace ACE.Server.Factories.Tables
             AddSpells(DirtyFightingIneptitudeOther);
             AddSpells(DirtyFightingMasteryOther);
             AddSpells(DirtyFightingMasterySelf);
+            AddSpellTargetTranslation(DirtyFightingMasterySelf, DirtyFightingMasteryOther);
             AddSpells(DualWieldIneptitudeOther);
             AddSpells(DualWieldMasteryOther);
             AddSpells(DualWieldMasterySelf);
+            AddSpellTargetTranslation(DualWieldMasterySelf, DualWieldMasteryOther);
             AddSpells(RecklessnessIneptitudeOther);
             AddSpells(RecklessnessMasteryOther);
             AddSpells(RecklessnessMasterySelf);
+            AddSpellTargetTranslation(RecklessnessMasterySelf, RecklessnessMasteryOther);
             AddSpells(ShieldIneptitudeOther);
             AddSpells(ShieldMasteryOther);
             AddSpells(ShieldMasterySelf);
+            AddSpellTargetTranslation(ShieldMasterySelf, ShieldMasteryOther);
             AddSpells(SneakAttackIneptitudeOther);
             AddSpells(SneakAttackMasteryOther);
             AddSpells(SneakAttackMasterySelf);
+            AddSpellTargetTranslation(SneakAttackMasterySelf, SneakAttackMasteryOther);
             AddSpells(CantripDirtyFightingProwess);
             AddSpells(CantripDualWieldAptitude);
             AddSpells(CantripRecklessnessProwess);
@@ -8678,6 +8928,7 @@ namespace ACE.Server.Factories.Tables
             AddSpells(SwiftKillerOther);
             AddSpells(SummoningMasteryOther);
             AddSpells(SummoningMasterySelf);
+            AddSpellTargetTranslation(SummoningMasterySelf, SummoningMasteryOther);
             AddSpells(CantripSummoningProwess);
             AddSpells(SummoningIneptitudeOther);
             AddSpells(CloakSummoningMastery);
@@ -8721,29 +8972,44 @@ namespace ACE.Server.Factories.Tables
             {
                 AddSpells(ArmorMasterySelf);
                 AddSpells(ArmorMasteryOther);
+                AddSpellTargetTranslation(ArmorMasterySelf, ArmorMasteryOther);
                 AddSpells(ArmorIneptitudeOther);
                 AddSpells(CantripArmorAptitude);
                 AddSpells(AwarenessMasterySelf);
                 AddSpells(AwarenessMasteryOther);
+                AddSpellTargetTranslation(AwarenessMasterySelf, AwarenessMasteryOther);
                 AddSpells(AwarenessIneptitudeOther);
                 AddSpells(CantripAwarenessAptitude);
                 AddSpells(AppraiseMasterySelf);
                 AddSpells(AppraiseMasteryOther);
+                AddSpellTargetTranslation(AppraiseMasterySelf, AppraiseMasteryOther);
                 AddSpells(AppraiseIneptitudeOther);
                 AddSpells(CantripAppraiseAptitude);
                 AddSpells(SneakingMasterySelf);
                 AddSpells(SneakingMasteryOther);
+                AddSpellTargetTranslation(SneakingMasterySelf, SneakingMasteryOther);
                 AddSpells(SneakingIneptitudeOther);
                 AddSpells(CantripSneakingAptitude);
                 AddSpells(Resurrect);
                 AddSpells(FellowshipHeal);
                 AddSpells(HotSelf);
                 AddSpells(HotOther);
+                AddSpellTargetTranslation(HotSelf, HotOther);
                 AddSpells(Bleeding);
                 AddSpells(Burning);
                 AddSpells(HeartBlocker);
                 AddSpells(TurnShield);
                 AddSpells(CantripHeartBlocker);
+                AddSpells(EmpowerSpell);
+                AddSpells(QuickcastSpell);
+                AddSpells(EnchainSpell);
+                AddSpells(ExtendSpell);
+                AddSpells(MaximizeSpell);
+                AddSpells(DelaySpell);
+                AddSpells(Blink);
+                AddSpells(AblativeArmorSelf);
+                AddSpells(AblativeArmorOther);
+                AddSpellTargetTranslation(AblativeArmorSelf, AblativeArmorOther);
             }
         }
 
@@ -8754,6 +9020,42 @@ namespace ACE.Server.Factories.Tables
                 if (spell != SpellId.Undef)
                     spellProgression.Add(spell, spells);
             }
+        }
+
+        private static void AddSpellTargetTranslation(List<SpellId> selfSpells, List<SpellId> otherSpells)
+        {
+            for(int i = 0; i < selfSpells.Count; i++)
+            {
+                SpellId selfSpell = selfSpells.Count > i ? selfSpells[i] : SpellId.Undef;
+                SpellId otherSpell = otherSpells.Count > i ? otherSpells[i] : SpellId.Undef;
+
+                if (selfSpell != SpellId.Undef)
+                    spellSelfOtherTranslation.Add(selfSpell, otherSpell);
+                if (otherSpell != SpellId.Undef)
+                    spellOtherSelfTranslation.Add(otherSpell, selfSpell);
+            }
+        }
+
+        public static SpellId GetOtherSpellId(SpellId spellId)
+        {
+            if (spellId == SpellId.Undef)
+                return SpellId.Undef;
+
+            if (spellSelfOtherTranslation.TryGetValue(spellId, out var otherSpellId))
+                return otherSpellId;
+
+            return SpellId.Undef;
+        }
+
+        public static SpellId GetSelfSpellId(SpellId spellId)
+        {
+            if (spellId == SpellId.Undef)
+                return SpellId.Undef;
+
+            if (spellOtherSelfTranslation.TryGetValue(spellId, out var selfSpellId))
+                return selfSpellId;
+
+            return SpellId.Undef;
         }
 
         public static SpellId TranslateLevel1SpellIdForCustomDM(SpellId spellId)
@@ -8829,14 +9131,19 @@ namespace ACE.Server.Factories.Tables
 
         public static SpellId GetLevel1SpellId(SpellId spellId)
         {
-            foreach(var spellProgressionEntry in spellProgression)
+            if (spellId == SpellId.Undef)
+                return SpellId.Undef;
+
+            foreach (var spellProgressionEntry in spellProgression)
             {
                 foreach(var entry in spellProgressionEntry.Value)
                 {
                     if (spellId == entry)
                     {
                         if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        {
                             return TranslateLevel1SpellIdForCustomDM(spellProgressionEntry.Key);
+                        }
                         else
                             return spellProgressionEntry.Key;
                     }
@@ -8848,6 +9155,9 @@ namespace ACE.Server.Factories.Tables
 
         public static SpellId GetSpellAtLevel(SpellId level1SpellId, int level, bool ifNoMatchReturnLowestPossibleLevel = false)
         {
+            if (level1SpellId == SpellId.Undef)
+                return SpellId.Undef;
+
             var spellLevels = GetSpellLevels(level1SpellId);
 
             if (spellLevels == null)

@@ -346,21 +346,24 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Simplified monster take damage over time function, only called for DoTs currently
         /// </summary>
-        public virtual void TakeDamageOverTime(float amount, DamageType damageType)
+        public virtual void TakeDamageOverTime(float amount, DamageType damageType, bool suppressEffects = false, bool? isPhysical = null)
         {
             if (IsDead) return;
 
             TakeDamage(null, damageType, amount);
 
-            // splatter effects
-            var hitSound = new GameMessageSound(Guid, Sound.HitFlesh1, 0.5f);
-            //var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + playerSource.GetSplatterHeight() + playerSource.GetSplatterDir(this));
-            var splatter = new GameMessageScript(Guid, damageType == DamageType.Nether ? PlayScript.HealthDownVoid : PlayScript.DirtyFightingDamageOverTime);
-            EnqueueBroadcast(hitSound, splatter);
+            if (!suppressEffects)
+            {
+                // splatter effects
+                var hitSound = new GameMessageSound(Guid, Sound.HitFlesh1, 0.5f);
+                //var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + playerSource.GetSplatterHeight() + playerSource.GetSplatterDir(this));
+                var splatter = new GameMessageScript(Guid, damageType == DamageType.Nether ? PlayScript.HealthDownVoid : PlayScript.DirtyFightingDamageOverTime);
+                EnqueueBroadcast(hitSound, splatter);
+            }
 
             if (Health.Current <= 0) return;
 
-            if (amount >= Health.MaxValue * 0.25f)
+            if (!suppressEffects && amount >= Health.MaxValue * 0.25f)
             {
                 var painSound = (Sound)Enum.Parse(typeof(Sound), "Wound" + ThreadSafeRandom.Next(1, 3), true);
                 EnqueueBroadcast(new GameMessageSound(Guid, painSound, 1.0f));
@@ -370,7 +373,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Notifies the damage over time (DoT) source player of the tick damage amount
         /// </summary>
-        public void TakeDamageOverTime_NotifySource(Player source, DamageType damageType, float amount, bool aetheria = false)
+        public void TakeDamageOverTime_NotifySource(Player source, DamageType damageType, float amount, bool aetheria = false, bool isPhysical = false)
         {
             if (!PropertyManager.GetBool("show_dot_messages").Item)
                 return;
@@ -385,31 +388,34 @@ namespace ACE.Server.WorldObjects
 
             string msg = null;
 
-            var type = ChatMessageType.CombatSelf;
+            ChatMessageType type;
+            if (isPhysical)
+                type = ChatMessageType.CombatSelf;
+            else
+                type = ChatMessageType.Magic;
 
-            if (damageType == DamageType.Nether)
+
+            var targetName = source == this ? "yourself" : Name;
+            if (!aetheria)
             {
-                msg = $"You {verb} {Name} for {iAmount} points of periodic nether damage!";
-                type = ChatMessageType.Magic;
-            }
-            else if (damageType == DamageType.Fire)
-            {
-                msg = $"You {verb} {Name} for {iAmount} points of periodic fire damage!";
-                type = ChatMessageType.Magic;
-            }
-            else if (aetheria)
-            {
-                msg = $"With Surge of Affliction you {verb} {iAmount} points of health from {Name}!";
-                type = ChatMessageType.Magic;
+                if (damageType == DamageType.Health && isPhysical)
+                {
+                    /*var skill = source.GetCreatureSkill(Skill.DirtyFighting);
+                    var attack = skill.AdvancementClass == SkillAdvancementClass.Specialized ? "Bleeding Assault" : "Bleeding Blow";
+                    msg = $"With {attack} you {verb} {iAmount} points of health from {Name}!";*/
+
+                    msg = $"You bleed {targetName} for {iAmount} points of periodic health damage!";
+                }
+                else
+                {
+                    msg = $"You {verb} {targetName} for {iAmount} points of periodic {damageType.GetName().ToLower()} damage!";
+                    type = ChatMessageType.Magic;
+                }
             }
             else
             {
-                /*var skill = source.GetCreatureSkill(Skill.DirtyFighting);
-                var attack = skill.AdvancementClass == SkillAdvancementClass.Specialized ? "Bleeding Assault" : "Bleeding Blow";
-                msg = $"With {attack} you {verb} {iAmount} points of health from {Name}!";*/
-
-                msg = $"You bleed {Name} for {iAmount} points of periodic health damage!";
-                type = ChatMessageType.CombatSelf;
+                msg = $"With Surge of Affliction you {verb} {iAmount} points of health from {targetName}!";
+                type = ChatMessageType.Magic;
             }
             source.SendMessage(msg, type);
         }
@@ -454,8 +460,12 @@ namespace ACE.Server.WorldObjects
                 var painSound = (Sound)Enum.Parse(typeof(Sound), "Wound" + ThreadSafeRandom.Next(1, 3), true);
                 target.EnqueueBroadcast(new GameMessageSound(target.Guid, painSound, 1.0f));
             }
-            var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + GetSplatterHeight() + GetSplatterDir(target));
-            target.EnqueueBroadcast(new GameMessageScript(target.Guid, splatter));
+
+            if (damage > 0)
+            {
+                var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + GetSplatterHeight() + GetSplatterDir(target));
+                target.EnqueueBroadcast(new GameMessageScript(target.Guid, splatter));
+            }
         }
 
         public CombatStyle AiAllowedCombatStyle
@@ -504,16 +514,6 @@ namespace ACE.Server.WorldObjects
         {
             get => GetProperty(PropertyBool.NeverAttack) ?? false;
             set { if (!value) RemoveProperty(PropertyBool.NeverAttack); else SetProperty(PropertyBool.NeverAttack, value); }
-        }
-
-        private double StunnedUntilTimestamp;
-        private double NextStunEffectTimestamp;
-        private static double StunEffectFrequency = 0.5;
-
-        public void StunFor(double seconds)
-        {
-            StunnedUntilTimestamp = Time.GetFutureUnixTime(seconds);
-            NextStunEffectTimestamp = 0;
         }
     }
 }

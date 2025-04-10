@@ -18,6 +18,9 @@ namespace ACE.Server.WorldObjects
         /// <param name="add">If the skill doesn't exist for this biota, adds it</param>
         public CreatureSkill GetCreatureSkill(Skill skill, bool add = true)
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (skill == Skill.ItemEnchantment || skill == Skill.CreatureEnchantment || skill == Skill.VoidMagic))
+                skill = GetHighestMagicSkill();
+
             if (Skills.TryGetValue(skill, out var value))
                 return value;
 
@@ -52,43 +55,13 @@ namespace ACE.Server.WorldObjects
             switch (skill)
             {
                 case MagicSchool.CreatureEnchantment:
-                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                        return GetCreatureSkill(Skill.CreatureEnchantment);
-                    else
-                    {
-                        var life = GetCreatureSkill(Skill.LifeMagic);
-                        var war = GetCreatureSkill(Skill.WarMagic);
-                        if (life.Current > war.Current)
-                            return life;
-                        else
-                            return war;
-                    }
+                    return GetCreatureSkill(Skill.CreatureEnchantment);
                 case MagicSchool.ItemEnchantment:
-                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                        return GetCreatureSkill(Skill.ItemEnchantment);
-                    else
-                    {
-                        var life = GetCreatureSkill(Skill.LifeMagic);
-                        var war = GetCreatureSkill(Skill.WarMagic);
-                        if (life.Current > war.Current)
-                            return life;
-                        else
-                            return war;
-                    }
+                    return GetCreatureSkill(Skill.ItemEnchantment);
                 case MagicSchool.LifeMagic:
                     return GetCreatureSkill(Skill.LifeMagic);
                 case MagicSchool.VoidMagic:
-                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                        return GetCreatureSkill(Skill.VoidMagic);
-                    else
-                    {
-                        var life = GetCreatureSkill(Skill.LifeMagic);
-                        var war = GetCreatureSkill(Skill.WarMagic);
-                        if (life.Current > war.Current)
-                            return life;
-                        else
-                            return war;
-                    }
+                    return GetCreatureSkill(Skill.VoidMagic);
                 case MagicSchool.WarMagic:
                     return GetCreatureSkill(Skill.WarMagic);
                 }

@@ -386,8 +386,9 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        Skill CachedHighestMeleeSkill = Skill.None;
-        Skill CachedHighestMissileSkill = Skill.None;
+        public Skill CachedHighestMeleeSkill = Skill.None;
+        public Skill CachedHighestMissileSkill = Skill.None;
+        public Skill CachedHighestMagicSkill = Skill.None;
 
         /// <summary>
         /// Returns the highest melee skill for the player
@@ -465,6 +466,42 @@ namespace ACE.Server.WorldObjects
             }
 
             return maxMissile.Skill;
+        }
+
+        public Skill GetHighestMagicSkill()
+        {
+            if (!(this is Player) && CachedHighestMagicSkill != Skill.None)
+                return CachedHighestMagicSkill;
+
+            CreatureSkill maxMagic;
+
+            var lifeMagic = GetCreatureSkill(Skill.LifeMagic, false);
+            maxMagic = lifeMagic;
+
+            var warMagic = GetCreatureSkill(Skill.WarMagic, false);
+            if (warMagic.Current > maxMagic.Current)
+                maxMagic = warMagic;
+
+            if (ConfigManager.Config.Server.WorldRuleset != Ruleset.CustomDM)
+            {
+                var creatureEnchantment = GetCreatureSkill(Skill.CreatureEnchantment, false);
+                if (creatureEnchantment.Current > maxMagic.Current)
+                    maxMagic = creatureEnchantment;
+                var itemEnchantment = GetCreatureSkill(Skill.ItemEnchantment, false);
+                if (itemEnchantment.Current > maxMagic.Current)
+                    maxMagic = itemEnchantment;
+            }
+
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
+            {
+                var voidMagic = GetCreatureSkill(Skill.VoidMagic, false);
+                if (voidMagic.Current > maxMagic.Current)
+                    maxMagic = voidMagic;
+            }
+
+            CachedHighestMagicSkill = maxMagic.Skill;
+
+            return maxMagic.Skill;
         }
 
         /// <summary>
@@ -799,6 +836,13 @@ namespace ACE.Server.WorldObjects
                         NextNoCounterResetTime = Time.GetFutureUnixTime(NoCounterInterval);
                     AttacksReceivedWithoutBeingAbleToCounter++;
                 }
+            }
+
+            if (IsMesmerized)
+            {
+                var enchantments = EnchantmentManager.GetEnchantments(SpellCategory.Mesmerize);
+                if (enchantments != null && enchantments.Count > 0)
+                    EnchantmentManager.Dispel(enchantments);
             }
 
             numRecentAttacksReceived++;

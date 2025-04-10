@@ -350,12 +350,27 @@ namespace ACE.Server.Factories.Tables.Wcids
             SpellId.CurseWeakness1,
         };
 
+        private static readonly List<SpellId> miscSpells = new List<SpellId>()
+        {
+        };
+
         private static readonly List<SpellId> allSpells;
 
         static ScrollWcids()
         {
             if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
             {
+                miscSpells = new List<SpellId>()
+                {
+                    SpellId.EmpowerSpell1,
+                    SpellId.QuickcastSpell1,
+                    SpellId.EnchainSpell1,
+                    SpellId.ExtendSpell1,
+                    SpellId.MaximizeSpell1,
+                    SpellId.DelaySpell1,
+                    SpellId.Blink1,
+                };
+
                 lifeSpells = new List<SpellId>()
                 { 
                     // life spells
@@ -403,6 +418,10 @@ namespace ACE.Server.Factories.Tables.Wcids
                     SpellId.FellowHeal1,
                     SpellId.HoTSelf1,
                     SpellId.HoTOther1,
+                    SpellId.Ensnare,
+                    SpellId.Mesmerize,
+                    SpellId.AblativeArmorSelf1,
+                    SpellId.AblativeArmorOther1
                 };
             }
             else if (ConfigManager.Config.Server.WorldRuleset <= Ruleset.Infiltration)
@@ -477,6 +496,7 @@ namespace ACE.Server.Factories.Tables.Wcids
             allSpells = new List<SpellId>();
             allSpells.AddRange(lifeSpells);
             allSpells.AddRange(warSpells);
+            allSpells.AddRange(miscSpells);
 
             if (ConfigManager.Config.Server.WorldRuleset != Ruleset.CustomDM)
             {

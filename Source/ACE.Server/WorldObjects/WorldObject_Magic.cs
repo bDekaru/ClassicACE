@@ -338,83 +338,193 @@ namespace ACE.Server.WorldObjects
             //    }
             //}
 
-            switch (spell.MetaSpellType)
+            if (showMsg && !fromProc && this is Creature) // showMsg == false means this was not a spell that was cast directly.
+                ApplyPostCastMetaspells(ref spell);
+
+            if (spell.SpellDelay == 0)
             {
-                case SpellType.Enchantment:
-                case SpellType.FellowEnchantment:
+                switch (spell.MetaSpellType)
+                {
+                    case SpellType.Enchantment:
+                    case SpellType.FellowEnchantment:
 
-                    // TODO: replace with some kind of 'rootOwner unless equip' concept?
-                    if (itemCaster != null && (equip || itemCaster is Gem || itemCaster is Food))
-                        CreateEnchantment(targetCreature ?? target, itemCaster, itemCaster, spell, equip, false, showMsg);
-                    else
-                        CreateEnchantment(targetCreature ?? target, this, weapon, spell, equip, false, showMsg, isWeaponSpell: isWeaponSpell);
+                        // TODO: replace with some kind of 'rootOwner unless equip' concept?
+                        if (itemCaster != null && (equip || itemCaster is Gem || itemCaster is Food))
+                            CreateEnchantment(targetCreature ?? target, itemCaster, itemCaster, spell, equip, false, showMsg);
+                        else
+                            CreateEnchantment(targetCreature ?? target, this, weapon, spell, equip, false, showMsg, isWeaponSpell: isWeaponSpell);
 
-                    break;
+                        break;
 
-                case SpellType.Boost:
-                case SpellType.FellowBoost:
+                    case SpellType.Boost:
+                    case SpellType.FellowBoost:
 
-                    if (spell.IsResurrectionSpell)
-                        HandleCastSpell_Ress(spell, targetCorpse, new Position(Location), showMsg);
-                    else
-                        HandleCastSpell_Boost(spell, targetCreature, showMsg);
-                    break;
+                        if (spell.IsResurrectionSpell)
+                            HandleCastSpell_Ress(spell, targetCorpse, new Position(Location), showMsg);
+                        else
+                            HandleCastSpell_Boost(spell, targetCreature, showMsg);
+                        break;
 
-                case SpellType.Transfer:
+                    case SpellType.Transfer:
 
-                    HandleCastSpell_Transfer(spell, targetCreature, showMsg);
-                    break;
+                        HandleCastSpell_Transfer(spell, targetCreature, showMsg);
+                        break;
 
-                case SpellType.Projectile:
-                case SpellType.LifeProjectile:
-                case SpellType.EnchantmentProjectile:
+                    case SpellType.Projectile:
+                    case SpellType.LifeProjectile:
+                    case SpellType.EnchantmentProjectile:
 
-                    HandleCastSpell_Projectile(spell, targetCreature, itemCaster, weapon, isWeaponSpell, fromProc, sourceOverride);
-                    break;
+                        HandleCastSpell_Projectile(spell, targetCreature, itemCaster, weapon, isWeaponSpell, fromProc, sourceOverride);
+                        break;
 
-                case SpellType.PortalLink:
+                    case SpellType.PortalLink:
 
-                    HandleCastSpell_PortalLink(spell, target);
-                    break;
+                        HandleCastSpell_PortalLink(spell, target);
+                        break;
 
-                case SpellType.PortalRecall:
+                    case SpellType.PortalRecall:
 
-                    HandleCastSpell_PortalRecall(spell, targetCreature);
-                    break;
+                        HandleCastSpell_PortalRecall(spell, targetCreature);
+                        break;
 
-                case SpellType.PortalSummon:
+                    case SpellType.PortalSummon:
 
-                    HandleCastSpell_PortalSummon(spell, targetCreature, itemCaster);
-                    break;
+                        HandleCastSpell_PortalSummon(spell, targetCreature, itemCaster);
+                        break;
 
-                case SpellType.PortalSending:
+                    case SpellType.PortalSending:
 
-                    HandleCastSpell_PortalSending(spell, targetCreature, itemCaster);
-                    break;
+                        HandleCastSpell_PortalSending(spell, targetCreature, itemCaster);
+                        break;
 
-                case SpellType.FellowPortalSending:
+                    case SpellType.FellowPortalSending:
 
-                    HandleCastSpell_FellowPortalSending(spell, targetCreature, itemCaster);
-                    break;
+                        HandleCastSpell_FellowPortalSending(spell, targetCreature, itemCaster);
+                        break;
 
-                case SpellType.Dispel:
-                case SpellType.FellowDispel:
+                    case SpellType.Dispel:
+                    case SpellType.FellowDispel:
 
-                    HandleCastSpell_Dispel(spell, targetCreature ?? target, showMsg);
-                    break;
+                        HandleCastSpell_Dispel(spell, targetCreature ?? target, showMsg);
+                        break;
 
-                default:
+                    default:
 
-                    if (this is Player player)
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat("Spell not implemented, yet!", ChatMessageType.Magic));
+                        if (this is Player player)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat("Spell not implemented, yet!", ChatMessageType.Magic));
 
-                    return false;
+                        return false;
+                }
+
+                // play spell effects
+                DoSpellEffects(spell, this, target);
+
+                if (targetCreature != null &&
+                    spell.MetaSpellType != SpellType.Projectile &&
+                    spell.MetaSpellType != SpellType.LifeProjectile &&
+                    spell.MetaSpellType != SpellType.EnchantmentProjectile)
+                {
+                    HandleEnchainSpell(spell, this, weapon, targetCreature);
+                }                
+
+                return true;
             }
+            else
+            {
+                if (this is Player player)
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You delay the casting of {spell.NameWithMetaspellAdjectivesWithoutDelayed} by {spell.SpellDelay:N0} seconds.", ChatMessageType.Magic));
 
-            // play spell effects
-            DoSpellEffects(spell, this, target);
+                var delayChain = new ActionChain();
+                delayChain.AddDelaySeconds(spell.SpellDelay);
+                delayChain.AddAction(this, () =>
+                {
+                    // Check if we should still cast this spell
+                    if (target == null || target.IsDestroyed || target.Teleporting || IsDestroyed || Teleporting || CurrentLandblock == null || target.CurrentLandblock == null || CurrentLandblock.CurrentLandblockGroup != target.CurrentLandblock.CurrentLandblockGroup)
+                    {
+                        if (this is Player player)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"Your {spell.NameWithMetaspellAdjectives} failed to cast!", ChatMessageType.Magic));
+                        return;
+                    }
 
-            return true;
+                    switch (spell.MetaSpellType)
+                    {
+                        case SpellType.Enchantment:
+                        case SpellType.FellowEnchantment:
+
+                            // TODO: replace with some kind of 'rootOwner unless equip' concept?
+                            if (itemCaster != null && (equip || itemCaster is Gem || itemCaster is Food))
+                                CreateEnchantment(targetCreature ?? target, itemCaster, itemCaster, spell, equip, false, showMsg);
+                            else
+                                CreateEnchantment(targetCreature ?? target, this, weapon, spell, equip, false, showMsg, isWeaponSpell: isWeaponSpell);
+
+                            break;
+
+                        case SpellType.Boost:
+                        case SpellType.FellowBoost:
+
+                            if (spell.IsResurrectionSpell)
+                                HandleCastSpell_Ress(spell, targetCorpse, new Position(Location), showMsg);
+                            else
+                                HandleCastSpell_Boost(spell, targetCreature, showMsg);
+                            break;
+
+                        case SpellType.Transfer:
+
+                            HandleCastSpell_Transfer(spell, targetCreature, showMsg);
+                            break;
+
+                        case SpellType.Projectile:
+                        case SpellType.LifeProjectile:
+                        case SpellType.EnchantmentProjectile:
+
+                            HandleCastSpell_Projectile(spell, targetCreature, itemCaster, weapon, isWeaponSpell, fromProc, sourceOverride);
+                            break;
+
+                        case SpellType.PortalLink:
+
+                            HandleCastSpell_PortalLink(spell, target);
+                            break;
+
+                        case SpellType.PortalRecall:
+
+                            HandleCastSpell_PortalRecall(spell, targetCreature);
+                            break;
+
+                        case SpellType.PortalSummon:
+
+                            HandleCastSpell_PortalSummon(spell, targetCreature, itemCaster);
+                            break;
+
+                        case SpellType.PortalSending:
+
+                            HandleCastSpell_PortalSending(spell, targetCreature, itemCaster);
+                            break;
+
+                        case SpellType.FellowPortalSending:
+
+                            HandleCastSpell_FellowPortalSending(spell, targetCreature, itemCaster);
+                            break;
+
+                        case SpellType.Dispel:
+                        case SpellType.FellowDispel:
+
+                            HandleCastSpell_Dispel(spell, targetCreature ?? target, showMsg);
+                            break;
+
+                        default:
+
+                            if (this is Player player)
+                                player.Session.Network.EnqueueSend(new GameMessageSystemChat("Spell not implemented, yet!", ChatMessageType.Magic));
+                            return;
+                    }
+
+                    // play spell effects
+                    DoSpellEffects(spell, this, target);
+                });
+                delayChain.EnqueueChain();
+
+                return true;
+            }
         }
 
         /// <summary>
@@ -485,6 +595,15 @@ namespace ACE.Server.WorldObjects
                 case StackType.Surpassed:
                     suffix = $", but it is surpassed by {addResult.SurpassedSpell.Name}";
                     break;
+                case StackType.None:
+                    suffix = $", but it is blocked by {addResult.SurpassedSpell.Name}";
+                    break;
+            }
+
+            if(spell.IsExtendedSpell && addResult.Enchantment != null)
+            {
+                spell.Duration *= 2;
+                addResult.Enchantment.Duration = spell.Duration;
             }
 
             if (aetheriaProc)
@@ -508,7 +627,7 @@ namespace ACE.Server.WorldObjects
                         targetName = casterCheck ? "yourself" : "you";
 
                     if(showMsg)
-                        player.SendChatMessage(player, $"{casterName} casts {spell.Name} on {targetName}{suffix}.", ChatMessageType.Magic);
+                        player.SendChatMessage(player, $"{casterName} {(spell.IsQuickcastSpell ? "quickcast" : "cast")}{(casterCheck ? "" : "s")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on {targetName}{suffix}.", ChatMessageType.Magic);
                 }
             }
 
@@ -516,15 +635,25 @@ namespace ACE.Server.WorldObjects
 
             if (playerTarget != null)
             {
-                playerTarget.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(playerTarget.Session, new Enchantment(playerTarget, addResult.Enchantment)));
+                if (addResult.Enchantment != null)
+                {
+                    playerTarget.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(playerTarget.Session, new Enchantment(playerTarget, addResult.Enchantment)));
 
-                playerTarget.HandleSpellHooks(spell);
+                    playerTarget.HandleSpellHooks(spell);
+                }
 
                 if (!spell.IsBeneficial && this is Creature creatureCaster)
                     playerTarget.SetCurrentAttacker(creatureCaster);
             }
-            else if (target is Creature creature)
+            else if (target is Creature creature && addResult.Enchantment != null)
+            {
+                if (spell.Id == (int)SpellId.Ensnare)
+                    creature.Ensnare();
+                else if (spell.Id == (int)SpellId.Mesmerize)
+                    creature.Mesmerize();
+
                 creature.UpdateMoveSpeed();
+            }
 
             if (playerTarget == null && target.Wielder is Player wielder)
                 playerTarget = wielder;
@@ -534,7 +663,7 @@ namespace ACE.Server.WorldObjects
                 var targetName = target == playerTarget ? "you" : $"your {target.Name}";
 
                 if (showMsg)
-                    playerTarget.SendChatMessage(this, $"{caster.Name} cast {spell.Name} on {targetName}{suffix}", ChatMessageType.Magic);
+                    playerTarget.SendChatMessage(this, $"{caster.Name} {(spell.IsQuickcastSpell ? "quickcasts" : "casts")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on {targetName}{suffix}", ChatMessageType.Magic);
             }
         }
 
@@ -558,7 +687,34 @@ namespace ACE.Server.WorldObjects
 
             var resistanceType = minBoostValue > 0 ? GetBoostResistanceType(spell.VitalDamageType) : GetDrainResistanceType(spell.VitalDamageType);
 
-            int tryBoost = ThreadSafeRandom.Next(minBoostValue, maxBoostValue);
+            int tryBoost;
+
+            if (spell.IsMaximizedSpell)
+            {
+                if (maxBoostValue < 0)
+                    tryBoost = minBoostValue;
+                else
+                    tryBoost = maxBoostValue;
+            }
+            else
+                tryBoost = ThreadSafeRandom.Next(minBoostValue, maxBoostValue);
+
+            if (spell.IsExtendedSpell)
+            {
+                if (tryBoost > 0)
+                    targetCreature.ApplyHoT(tryBoost / 2, tryBoost * 2, spell.VitalDamageType, this, CombatType.Magic, spell.NameWithMetaspellAdjectives);
+                else
+                {
+                    var damageRating = creature?.GetDamageRating() ?? 0;
+                    var damageRatingMod = Creature.AdditiveCombine(Creature.GetPositiveRatingMod(damageRating));
+
+                    tryBoost = (int)(tryBoost * damageRatingMod);
+
+                    tryBoost = Math.Abs(tryBoost);
+                    targetCreature.ApplyDoT(tryBoost / 2, tryBoost * 2, false, CombatType.Magic, spell.VitalDamageType, this, null, creature?.GetCreatureSkill(spell.School), spell.NameWithMetaspellAdjectives);
+                }
+                return;
+            }
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && targetCreature != this && tryBoost < 0)
             {
@@ -625,15 +781,15 @@ namespace ACE.Server.WorldObjects
                 if (player != targetCreature)
                 {
                     if (spell.IsBeneficial)
-                        casterMessage = $"With {spell.Name} you restore {boost} points of {srcVital} to {targetCreature.Name}.";
+                        casterMessage = $"With {spell.NameWithMetaspellAdjectives} you restore {boost} points of {srcVital} to {targetCreature.Name}.";
                     else
-                        casterMessage = $"With {spell.Name} you drain {Math.Abs(boost)} points of {srcVital} from {targetCreature.Name}.";
+                        casterMessage = $"With {spell.NameWithMetaspellAdjectives} you drain {Math.Abs(boost)} points of {srcVital} from {targetCreature.Name}.";
                 }
                 else
                 {
                     var verb = spell.IsBeneficial ? "restore" : "drain";
 
-                    casterMessage = $"You cast {spell.Name} and {verb} {Math.Abs(boost)} points of your {srcVital}.";
+                    casterMessage = $"You {(spell.IsQuickcastSpell ? "quickcast" : "cast")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} and {verb} {Math.Abs(boost)} points of your {srcVital}.";
                 }
 
                 if (showMsg)
@@ -645,10 +801,10 @@ namespace ACE.Server.WorldObjects
                 string targetMessage;
 
                 if (spell.IsBeneficial)
-                    targetMessage = $"{NameWithMaterial} casts {spell.Name} and restores {boost} points of your {srcVital}.";
+                    targetMessage = $"{NameWithMaterial} {(spell.IsQuickcastSpell ? "quickcasts" : "casts")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} and restores {boost} points of your {srcVital}.";
                 else
                 {
-                    targetMessage = $"{NameWithMaterial} casts {spell.Name} and drains {Math.Abs(boost)} points of your {srcVital}.";
+                    targetMessage = $"{NameWithMaterial} {(spell.IsQuickcastSpell ? "quickcasts" : "casts")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} and drains {Math.Abs(boost)} points of your {srcVital}.";
 
                     if (creature != null)
                         targetPlayer.SetCurrentAttacker(creature);
@@ -765,7 +921,13 @@ namespace ACE.Server.WorldObjects
 
             int minBoostValue = Math.Min(spell.Boost, spell.MaxBoost);
             int maxBoostValue = Math.Max(spell.Boost, spell.MaxBoost);
-            int boost = ThreadSafeRandom.Next(minBoostValue, maxBoostValue);
+
+            int boost;
+            if (spell.IsMaximizedSpell)
+                boost = maxBoostValue;
+            else
+                boost = ThreadSafeRandom.Next(minBoostValue, maxBoostValue);
+
             targetPlayer.UpdateVital(targetPlayer.Health, boost);
             targetPlayer.UpdateVital(targetPlayer.Stamina, boost);
             targetPlayer.UpdateVital(targetPlayer.Mana, boost);
@@ -774,7 +936,7 @@ namespace ACE.Server.WorldObjects
             {
                 string casterMessage;
 
-                casterMessage = $"With {spell.Name} you resurrect {targetPlayer.Name}.";
+                casterMessage = $"With {spell.NameWithMetaspellAdjectives} you resurrect {targetPlayer.Name}.";
 
                 if (showMsg)
                     player.SendChatMessage(player, casterMessage, ChatMessageType.Magic);
@@ -784,7 +946,7 @@ namespace ACE.Server.WorldObjects
             {
                 string targetMessage;
 
-                targetMessage = $"{NameWithMaterial} casts {spell.Name} and resurrects you.";
+                targetMessage = $"{NameWithMaterial} {(spell.IsQuickcastSpell ? "quickcasts" : "casts")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} and resurrects you.";
 
                 if (showMsg)
                     targetPlayer.SendChatMessage(this, targetMessage, ChatMessageType.Magic);
@@ -1042,16 +1204,16 @@ namespace ACE.Server.WorldObjects
 
             if (playerSource != null && playerDestination != null && transferSource.Guid == destination.Guid)
             {
-                sourceMsg = $"You cast {spell.Name} on yourself and lose {srcVitalChange} points of {srcVital} and also gain {destVitalChange} points of {destVital}";
+                sourceMsg = $"You {(spell.IsQuickcastSpell ? "quickcast" : "cast")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on yourself and lose {srcVitalChange} points of {srcVital} and also gain {destVitalChange} points of {destVital}";
             }
             else
             {
                 if (playerSource != null)
                 {
                     if (transferSource == this)
-                        sourceMsg = $"You lose {srcVitalChange} points of {srcVital} due to casting {spell.Name} on {targetCreature.Name}";
+                        sourceMsg = $"You lose {srcVitalChange} points of {srcVital} due to {(spell.IsQuickcastSpell ? "quickcasting" : "casting")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on {targetCreature.Name}";
                     else
-                        targetMsg = $"You lose {srcVitalChange} points of {srcVital} due to {caster.Name} casting {spell.Name} on you";
+                        targetMsg = $"You lose {srcVitalChange} points of {srcVital} due to {caster.Name} {(spell.IsQuickcastSpell ? "quickcasting" : "casting")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on you";
 
                     if (destination is Creature creatureDestination)
                         playerSource.SetCurrentAttacker(creatureDestination);
@@ -1060,9 +1222,9 @@ namespace ACE.Server.WorldObjects
                 if (playerDestination != null)
                 {
                     if (destination == this)
-                        sourceMsg = $"You gain {destVitalChange} points of {destVital} due to casting {spell.Name} on {targetCreature.Name}";
+                        sourceMsg = $"You gain {destVitalChange} points of {destVital} due to {(spell.IsQuickcastSpell ? "quickcasting" : "casting")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on {targetCreature.Name}";
                     else
-                        targetMsg = $"You gain {destVitalChange} points of {destVital} due to {caster.Name} casting {spell.Name} on you";
+                        targetMsg = $"You gain {destVitalChange} points of {destVital} due to {caster.Name} {(spell.IsQuickcastSpell ? "quickcasting" : "casting")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on you";
                 }
             }
 
@@ -1267,7 +1429,7 @@ namespace ACE.Server.WorldObjects
 
             var targetPlayer = targetCreature as Player;
 
-            if (player != null && player.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
+            if (player != null && player.PKTimerActive && (ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || spell.Index == (int)PortalRecallType.Blink))
             {
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -1341,6 +1503,52 @@ namespace ACE.Server.WorldObjects
                         recallDID = targetPlayer.LinkedPortalTwoDID;
                     }
                     break;
+                case SpellId.Blink1:
+                case SpellId.Blink2:
+                case SpellId.Blink3:
+                    if (player != null)
+                    {
+                        var validBlinkDestination = false;
+                        for (int i = 1; i <= 4; i++)
+                        {
+                            var distance = spell.StatModVal;
+                            if (player.Indoors)
+                                distance /= 2;
+
+                            var blinkLoc = new Position(player.Location);
+                            blinkLoc.Rotate(player.LatestMovementHeading);
+                            blinkLoc = blinkLoc.InFrontOf(distance / i);
+
+                            if(!player.AdjustBlinkDestination(blinkLoc))
+                                continue;
+
+                            WorldObject testObject = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.placeholder);
+                            testObject.Location = blinkLoc;
+                            testObject.IgnoreCollisions = false;
+                            testObject.GravityStatus = false;
+                            testObject.SuppressGenerateEffect = true;
+                            if (!testObject.EnterWorld())
+                            {
+                                testObject.Destroy();
+                                continue;
+                            }
+
+                            if (player.IsMeleeVisible(testObject))
+                            {
+                                validBlinkDestination = true;
+
+                                testObject.Destroy();
+                                WorldManager.ThreadSafeBlink(player, blinkLoc);
+                                break;
+                            }
+                            else
+                                testObject.Destroy();
+                        }
+
+                        if (!validBlinkDestination)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat("The Blink has failed!", ChatMessageType.Magic));
+                    }
+                    return;
             }
 
             if (recall != PositionType.Undef)
@@ -1402,7 +1610,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (player != null && player.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
+            if (player != null && player.PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 player.Session.Network.EnqueueSend(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return;
@@ -1530,7 +1738,7 @@ namespace ACE.Server.WorldObjects
         {
             if (targetCreature is Player targetPlayer)
             {
-                if (targetPlayer.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (targetPlayer.IsPK || targetPlayer.IsPKL)))
+                if (targetPlayer.PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 {
                     targetPlayer.Session.Network.EnqueueSend(new GameEventWeenieError(targetPlayer.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                     return;
@@ -1573,7 +1781,7 @@ namespace ACE.Server.WorldObjects
             if (targetPlayer == null || targetPlayer.Fellowship == null)
                 return false;
 
-            if (targetPlayer.PKTimerActive && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (targetPlayer.IsPK || targetPlayer.IsPKL)))
+            if (targetPlayer.PKTimerActive && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 targetPlayer.Session.Network.EnqueueSend(new GameEventWeenieError(targetPlayer.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
                 return false;
@@ -1631,9 +1839,9 @@ namespace ACE.Server.WorldObjects
                 string casterMsg;
 
                 if (player == target)
-                    casterMsg = $"You cast {spell.Name} on yourself{suffix}";
+                    casterMsg = $"You {(spell.IsQuickcastSpell ? "quickcast" : "cast")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on yourself{suffix}";
                 else
-                    casterMsg = $"You cast {spell.Name} on {target.Name}{suffix}";
+                    casterMsg = $"You {(spell.IsQuickcastSpell ? "quickcast" : "cast")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on {target.Name}{suffix}";
 
                 if(showMsg)
                     player.SendChatMessage(player, casterMsg, ChatMessageType.Magic);
@@ -1641,7 +1849,7 @@ namespace ACE.Server.WorldObjects
 
             if (target is Player targetPlayer && targetPlayer != player)
             {
-                var targetMsg = $"{NameWithMaterial} casts {spell.Name} on you{suffix.Replace("and dispel", "and dispels")}";
+                var targetMsg = $"{NameWithMaterial} {(spell.IsQuickcastSpell ? "quickcasts" : "casts")} {spell.NameWithMetaspellAdjectivesWithoutQuickcast} on you{suffix.Replace("and dispel", "and dispels")}";
 
                 if (showMsg)
                     targetPlayer.SendChatMessage(this, targetMsg, ChatMessageType.Magic);
@@ -2373,10 +2581,10 @@ namespace ACE.Server.WorldObjects
                         {
                             // 'fails to affect'?
                             if (player != null && targetCreature != null)
-                                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You fail to affect {targetCreature.Name} with {spell.Name}", ChatMessageType.Magic));
+                                player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You fail to affect {targetCreature.Name} with {spell.NameWithMetaspellAdjectives}", ChatMessageType.Magic));
 
                             if (targetPlayer != null && !targetPlayer.SquelchManager.Squelches.Contains(this, ChatMessageType.Magic))
-                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name} fails to affect you with {spell.Name}", ChatMessageType.Magic));
+                                targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name} fails to affect you with {spell.NameWithMetaspellAdjectives}", ChatMessageType.Magic));
                         }
                     }
                 }
@@ -2410,10 +2618,10 @@ namespace ACE.Server.WorldObjects
                     {
                         // 'fails to affect'?
                         if (player != null)
-                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You fail to affect {targetCreature.Name} with {spell.Name}", ChatMessageType.Magic));
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You fail to affect {targetCreature.Name} with {spell.NameWithMetaspellAdjectives}", ChatMessageType.Magic));
 
                         if (targetPlayer != null && !targetPlayer.SquelchManager.Squelches.Contains(this, ChatMessageType.Magic))
-                            targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name} fails to affect you with {spell.Name}", ChatMessageType.Magic));
+                            targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{Name} fails to affect you with {spell.NameWithMetaspellAdjectives}", ChatMessageType.Magic));
                     }
                 }
             }
@@ -2469,6 +2677,289 @@ namespace ACE.Server.WorldObjects
                     return target.EquippedObjects.Values.Where(i => (i.ItemType & spell.NonComponentTargetType) != 0 && (i.ValidLocations & EquipMask.Selectable) != 0 && i.IsEnchantable).ToList();
             }
             return null;
+        }
+
+        public void ApplyPreCastMetaSpells(ref Spell spell)
+        {
+            if (!spell.IsMetaspell)
+            {
+                var player = this as Player;
+
+                var quickcastSpell = EnchantmentManager.GetEnchantments(SpellCategory.QuickcastSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                if (quickcastSpell != null && quickcastSpell.StatModKey > 0)
+                {
+                    spell.IsQuickcastSpell = true;
+
+                    quickcastSpell.StatModKey--;
+                    quickcastSpell.StartTime = 0;
+
+                    if (player != null)
+                        player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, quickcastSpell)));
+                }
+            }
+        }
+
+        public void ApplyPostCastMetaspells(ref Spell spell)
+        {
+            if (!spell.IsMetaspell && !spell.IsEnchainedSpell)
+            {
+                var player = this as Player;
+
+                var empowerSpell = EnchantmentManager.GetEnchantments(SpellCategory.EmpowerSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                if (empowerSpell != null && empowerSpell.StatModKey > 0)
+                {
+                    var level1SpellId = SpellLevelProgression.GetLevel1SpellId((SpellId)spell.Id);
+                    var newSpellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, (int)spell.Level + 1);
+                    if (newSpellId != SpellId.Undef)
+                    {
+                        var newSpell = new Spell(newSpellId);
+                        if (!newSpell.NotFound)
+                        {
+                            spell.IsEmpoweredSpell = true;
+
+                            newSpell.CopyMetaspellsFrom(spell);
+                            newSpell.IntensityMod = spell.IntensityMod;
+                            spell = newSpell;
+
+                            empowerSpell.StatModKey--;
+                            empowerSpell.StartTime = 0;
+
+                            if (player != null)
+                                player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, empowerSpell)));
+                        }
+                    }
+                }
+
+                var delaySpell = EnchantmentManager.GetEnchantments(SpellCategory.DelaySpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                if (delaySpell != null && delaySpell.StatModKey > 0)
+                {
+                    spell.IsDelayedSpell = true;
+
+                    spell.SpellDelay = delaySpell.StatModValue;
+
+                    delaySpell.StatModKey--;
+                    delaySpell.StartTime = 0;
+
+                    if (player != null)
+                        player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, delaySpell)));
+                }
+
+                if (spell.MetaSpellType == SpellType.Projectile ||
+                    spell.MetaSpellType == SpellType.EnchantmentProjectile ||
+                    spell.MetaSpellType == SpellType.Enchantment ||
+                    spell.MetaSpellType == SpellType.FellowEnchantment ||
+                    spell.MetaSpellType == SpellType.Boost ||
+                    spell.MetaSpellType == SpellType.FellowBoost)
+                {
+                    var extendSpell = EnchantmentManager.GetEnchantments(SpellCategory.ExtendSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                    if (extendSpell != null && extendSpell.StatModKey > 0)
+                    {
+                        spell.IsExtendedSpell = true;
+
+                        extendSpell.StatModKey--;
+                        extendSpell.StartTime = 0;
+
+                        if (player != null)
+                            player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, extendSpell)));
+                    }
+                }
+
+                if (spell.MetaSpellType == SpellType.Projectile ||
+                    spell.MetaSpellType == SpellType.EnchantmentProjectile ||
+                    spell.MetaSpellType == SpellType.Boost ||
+                    spell.MetaSpellType == SpellType.FellowBoost)
+                {
+                    var maximizeSpell = EnchantmentManager.GetEnchantments(SpellCategory.MaximizeSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                    if (maximizeSpell != null && maximizeSpell.StatModKey > 0)
+                    {
+                        spell.IsMaximizedSpell = true;
+
+                        maximizeSpell.StatModKey--;
+                        maximizeSpell.StartTime = 0;
+
+                        if (player != null)
+                            player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, maximizeSpell)));
+                    }
+                }
+
+                if (spell.MetaSpellType == SpellType.Projectile ||
+                    spell.MetaSpellType == SpellType.EnchantmentProjectile ||
+                    spell.MetaSpellType == SpellType.Boost ||
+                    spell.MetaSpellType == SpellType.Enchantment ||
+                    spell.MetaSpellType == SpellType.Transfer ||
+                    spell.MetaSpellType == SpellType.Dispel)
+                {
+                    if (!(spell.IsSelfTargeted && SpellLevelProgression.GetOtherSpellId((SpellId)spell.Id) == SpellId.Undef)) // Do not enchain self spells that do not have other target versions
+                    {
+                        var enchainSpell = EnchantmentManager.GetEnchantments(SpellCategory.EnchainSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                        if (enchainSpell != null && enchainSpell.StatModKey > 0)
+                        {
+                            spell.IsEnchainedSpell = true;
+                            spell.EnchainedTargetGuids = null;
+
+                            enchainSpell.StatModKey--;
+                            enchainSpell.StartTime = 0;
+
+                            if (player != null)
+                                player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, enchainSpell)));
+                        }
+                    }
+                }
+            }
+        }
+
+        public void HandleEnchainSpell(Spell spell, WorldObject caster, WorldObject weapon, Creature target)
+        {
+            if (spell == null || target == null || spell.IsMetaspell || !spell.IsEnchainedSpell)
+                return;
+
+            var spellId = (SpellId)spell.Id;
+            if (spell.EnchainedTargetGuids == null)
+            {
+                spell.EnchainedTargetGuids = new List<uint>();
+                spell.EnchainedTargetGuids.Add(target.Guid.Full);
+
+                if (!spell.IsSelfTargeted && SpellLevelProgression.GetSelfSpellId((SpellId)spell.Id) == SpellId.Undef)
+                    spell.EnchainedTargetGuids.Add(Guid.Full); // If we do not have a self version remove caster from valid enchain targets.
+            }
+            else if (spell.EnchainedTargetGuids.Count >= 10)
+            {
+                spell.IsEnchainedSpell = false;
+                return;
+            }
+            else if (spell.EnchainedTargetGuids.Count > 1)
+            {
+                var spreadChance = 0.7f;
+                if (spreadChance < ThreadSafeRandom.Next(0.0f, 1.0f))
+                {
+                    spell.IsEnchainedSpell = false;
+                    return;
+                }
+            }
+
+            var newTarget = GetClosestValidSpellTarget(10, caster, target, spell, spell.EnchainedTargetGuids);
+            if (newTarget != null)
+            {
+                if (spell.IsSelfTargeted && this != newTarget)
+                    spellId = SpellLevelProgression.GetOtherSpellId(spellId);
+                else if (!spell.IsSelfTargeted && this == newTarget)
+                    spellId = SpellLevelProgression.GetSelfSpellId(spellId);
+
+                var level1SpellId = SpellLevelProgression.GetLevel1SpellId(spellId);
+                var newSpellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, (int)Math.Max(Math.Ceiling(spell.Level / 2f), 1), true);
+
+                if (newSpellId == SpellId.Undef)
+                    newSpellId = spellId;
+
+                if (newSpellId != SpellId.Undef)
+                {
+                    var newSpell = new Spell(newSpellId);
+                    if (!newSpell.NotFound)
+                    {
+                        newSpell.CopyMetaspellsFrom(spell);
+                        newSpell.EnchainedTargetGuids.Add(newTarget.Guid.Full);
+                        newSpell.IntensityMod = spell.IntensityMod;
+                    }
+
+                    var actionChain = new ActionChain();
+                    actionChain.AddDelaySeconds(0.1);
+                    actionChain.AddAction(target, () =>
+                    {
+                        if (caster != null && !caster.IsDestroyed && target != null && !target.IsDestroyed && newTarget != null && !newTarget.IsDestroyed)
+                            caster.TryCastSpell(newSpell, newTarget, null, weapon, false, false, true, true, target);
+                    });
+                    actionChain.EnqueueChain();
+                }
+            }
+        }
+
+        public static Creature GetClosestValidSpellTarget(int maxDistance, WorldObject caster, Creature aroundCreature, Spell spell, List<uint> excludedGuids)
+        {
+            List<Physics.PhysicsObj> visible;
+
+            var casterPlayer = caster as Player;
+            var casterCreature = caster as Creature;
+
+            if (casterPlayer != null)
+            {
+                visible = casterPlayer.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && o.WeenieObj.WorldObject is Creature);
+                visible.Add(casterPlayer.PhysicsObj);
+                visible.Remove(aroundCreature.PhysicsObj);
+            }
+            else
+                visible = aroundCreature.PhysicsObj.ObjMaint.GetVisibleTargetsValues();
+            visible.Sort(aroundCreature.DistanceComparator);
+
+            foreach (var obj in visible)
+            {
+                var creature = obj.WeenieObj.WorldObject as Creature;
+                if (creature == null || creature.Teleporting || creature.IsDead)
+                    continue;
+
+                if (excludedGuids != null && excludedGuids.Contains(creature.Guid.Full))
+                    continue;
+
+                if (casterCreature != null && casterCreature.IsInvalidTargetForSpell(spell, creature, true))
+                    continue;
+
+                if (!creature.Attackable && creature.TargetingTactic == TargetingTactic.None || creature.Teleporting)
+                    continue;
+
+                if (!aroundCreature.IsDirectVisible(creature, 1))
+                    continue;
+
+                var cylDist = aroundCreature.GetCylinderDistance(creature);
+                if (cylDist > maxDistance)
+                    return null;
+
+                return creature;
+            }
+            return null;
+        }
+
+        public static List<Creature> GetNearbyValidSpellTargets(int maxDistance, WorldObject caster, Creature aroundCreature, Spell spell, List<uint> excludedGuids)
+        {
+            List<Physics.PhysicsObj> visible;
+
+            var casterPlayer = caster as Player;
+            var casterCreature = caster as Creature;
+
+            if (casterPlayer != null)
+            {
+                visible = casterPlayer.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null && o.WeenieObj.WorldObject is Creature);
+                visible.Add(casterPlayer.PhysicsObj);
+                visible.Remove(aroundCreature.PhysicsObj);
+            }
+            else
+                visible = aroundCreature.PhysicsObj.ObjMaint.GetVisibleTargetsValues();
+            visible.Sort(aroundCreature.DistanceComparator);
+
+            var targets = new List<Creature>();
+            foreach (var obj in visible)
+            {
+                if (excludedGuids != null && excludedGuids.Contains(obj.WeenieObj.WorldObject.Guid.Full))
+                    continue;
+
+                var creature = obj.WeenieObj.WorldObject as Creature;
+                if (creature == null || creature.Teleporting || creature.IsDead)
+                    continue;
+
+                if (casterCreature != null && casterCreature.IsInvalidTargetForSpell(spell, creature, true))
+                    continue;
+
+                if (!creature.Attackable && creature.TargetingTactic == TargetingTactic.None || creature.Teleporting)
+                    continue;
+
+                if (!aroundCreature.IsDirectVisible(creature, 1))
+                    continue;
+
+                var cylDist = aroundCreature.GetCylinderDistance(creature);
+                if (cylDist > maxDistance)
+                    return targets;
+
+                targets.Add(creature);
+            }
+            return targets;
         }
     }
 }

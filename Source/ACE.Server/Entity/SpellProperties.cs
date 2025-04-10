@@ -463,7 +463,7 @@ namespace ACE.Server.Entity
         /// <summary>
         /// The minimum spell power to dispel (unused?)
         /// </summary>
-        public int MinPower { get => _spell.MinPower ?? 0;  }
+        public int MinPower { get => _spell.MinPower ?? 0; }
 
         /// <summary>
         /// The maximum spell power to dispel
@@ -491,7 +491,7 @@ namespace ACE.Server.Entity
         /// <summary>
         /// The maximum # of spells to dispel
         /// </summary>
-        public int Number { get =>_spell.Number ?? 0; }
+        public int Number { get => _spell.Number ?? 0; }
 
         /// <summary>
         /// Number * NumberVariance = the minimum # of spells to dispel
@@ -532,5 +532,41 @@ namespace ACE.Server.Entity
         /// </summary>
         public bool IsDudProjectile;
 
+        private static List<SpellId> Metaspells = new List<SpellId> { SpellId.EmpowerSpell1, SpellId.QuickcastSpell1, SpellId.EnchainSpell1, SpellId.ExtendSpell1, SpellId.MaximizeSpell1, SpellId.DelaySpell1 };
+        public bool IsMetaspell
+        {
+            get
+            {
+                var level1SpellId = SpellLevelProgression.GetLevel1SpellId((SpellId)Id);
+                return Metaspells.Contains(level1SpellId);
+            }
+        }
+
+        public bool IsEnchainedSpell;
+        public List<uint> EnchainedTargetGuids;
+
+        public bool IsEmpoweredSpell;
+        public bool IsQuickcastSpell;
+        public bool IsExtendedSpell;
+        public bool IsMaximizedSpell;
+
+        public bool IsDelayedSpell;
+        public float SpellDelay;
+
+        public string NameWithMetaspellAdjectives { get { return $"{(IsDelayedSpell ? "delayed " : "")}{(IsQuickcastSpell ? "quickcast " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
+        public string NameWithMetaspellAdjectivesWithoutDelayed { get { return $"{(IsQuickcastSpell ? "quickcast " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
+        public string NameWithMetaspellAdjectivesWithoutQuickcast { get { return $"{(IsDelayedSpell ? "delayed " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
+
+        public void CopyMetaspellsFrom(Spell spell)
+        {
+            IsEnchainedSpell = spell.IsEnchainedSpell;
+            EnchainedTargetGuids = spell.EnchainedTargetGuids;
+            IsEmpoweredSpell = spell.IsEmpoweredSpell;
+            IsQuickcastSpell = spell.IsQuickcastSpell;
+            IsExtendedSpell = spell.IsExtendedSpell;
+            IsMaximizedSpell = spell.IsMaximizedSpell;
+            IsDelayedSpell = spell.IsDelayedSpell;
+            SpellDelay = spell.SpellDelay;
+        }
     }
 }

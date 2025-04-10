@@ -94,7 +94,7 @@ namespace ACE.Server.WorldObjects
             if (turnTo)
                 TurnTo(AttackTarget);
             else
-                MoveTo(AttackTarget, 2.0f);
+                MoveTo(AttackTarget, MaxMeleeRange - 0.05f);
 
             //moveBit = false;
         }

@@ -35,6 +35,15 @@ namespace ACE.Server.Network.GameAction.Actions
             //if (!moveToState.StandingLongJump)
                 session.Player.BroadcastMovement(moveToState);
 
+            if (moveToState.RawMotionState.ForwardCommand == ACE.Entity.Enum.MotionCommand.WalkForward)
+                session.Player.LatestMovementHeading = 0;
+            else if (moveToState.RawMotionState.ForwardCommand == ACE.Entity.Enum.MotionCommand.WalkBackwards)
+                session.Player.LatestMovementHeading = 180;
+            else if (moveToState.RawMotionState.SidestepCommand == ACE.Entity.Enum.MotionCommand.SideStepRight)
+                session.Player.LatestMovementHeading = -90;
+            else if (moveToState.RawMotionState.SidestepCommand == ACE.Entity.Enum.MotionCommand.SideStepLeft)
+                session.Player.LatestMovementHeading = 90;
+
             if (session.Player.IsAfk)
             {
                 if (moveToState.RawMotionState.CurrentHoldKey == ACE.Entity.Enum.HoldKey.Run)

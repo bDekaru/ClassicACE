@@ -238,8 +238,12 @@ namespace ACE.Server.WorldObjects
                         var painSound = (Sound)Enum.Parse(typeof(Sound), "Wound" + ThreadSafeRandom.Next(1, 3), true);
                         Session.Network.EnqueueSend(new GameMessageSound(target.Guid, painSound, 1.0f));
                     }
-                    var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + GetSplatterHeight() + GetSplatterDir(target));
-                    Session.Network.EnqueueSend(new GameMessageScript(target.Guid, splatter));
+
+                    if (damageEvent.Damage > 0)
+                    {
+                        var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + GetSplatterHeight() + GetSplatterDir(target));
+                        Session.Network.EnqueueSend(new GameMessageScript(target.Guid, splatter));
+                    }
                 }
 
                 // handle Dirty Fighting
@@ -516,7 +520,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Simplified player take damage function, only called for DoTs currently
         /// </summary>
-        public override void TakeDamageOverTime(float _amount, DamageType damageType)
+        public override void TakeDamageOverTime(float _amount, DamageType damageType, bool suppressEffects = false, bool? isPhysical = null)
         {
             if (Invincible || IsDead || IsOnNoDamageLandblock) return;
 
@@ -542,28 +546,30 @@ namespace ACE.Server.WorldObjects
             // send damage text message
             //if (PropertyManager.GetBool("show_dot_messages").Item)
             //{
-            string damageTypeString;
-            switch (damageType)
-            {
-                case DamageType.Fire:
-                    damageTypeString = "fire ";
-                    break;
-                case DamageType.Nether:
-                    damageTypeString = "nether ";
-                    break;
-                default:
-                    damageTypeString = "";
-                    break;
-            }
-            var chatMessageType = damageType == DamageType.Nether ? ChatMessageType.Magic : ChatMessageType.Combat;
+            string damageTypeString = "";
+            if (damageType != DamageType.Health)
+                damageTypeString = $"{damageType.GetName().ToLower()} ";
+
+            ChatMessageType chatMessageType;
+
+            if(!isPhysical.HasValue)
+                chatMessageType = damageType == DamageType.Health ? ChatMessageType.Combat: ChatMessageType.Magic;
+            else if(isPhysical.Value == true)
+                chatMessageType = ChatMessageType.Combat;
+            else
+                chatMessageType = ChatMessageType.Magic;
+
             var text = $"You receive {amount} points of periodic {damageTypeString}damage.";
             SendMessage(text, chatMessageType);
             //}
 
-            // splatter effects
-            //var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creature.GetSplatterHeight() + creature.GetSplatterDir(this)));  // not sent in retail, but great visual indicator?
-            var splatter = new GameMessageScript(Guid, damageType == DamageType.Nether ? PlayScript.HealthDownVoid : PlayScript.DirtyFightingDamageOverTime);
-            EnqueueBroadcast(splatter);
+            if (!suppressEffects)
+            {
+                // splatter effects
+                //var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creature.GetSplatterHeight() + creature.GetSplatterDir(this)));  // not sent in retail, but great visual indicator?
+                var splatter = new GameMessageScript(Guid, damageType == DamageType.Nether ? PlayScript.HealthDownVoid : PlayScript.DirtyFightingDamageOverTime);
+                EnqueueBroadcast(splatter);
+            }
 
             if (Health.Current <= 0)
             {
@@ -577,7 +583,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (percent >= 0.1f)
+            if (!suppressEffects && percent >= 0.1f)
                 EnqueueBroadcast(new GameMessageSound(Guid, Sound.Wound1, 1.0f));
         }
 
@@ -672,7 +678,7 @@ namespace ACE.Server.WorldObjects
                     {
                         if (blocked)
                         {
-                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{(perfectblock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} damage!{(sourceStunned ? $" The {source.Name} is stunned!" : "")}", ChatMessageType.CombatSelf));
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{(perfectblock ? "Perfect Block! " : "")}Your shield blocks {damageBlocked:N0} points of {damageType.GetName()} damage!{(sourceStunned ? $" The {source.Name} is stunned!" : "")}", ChatMessageType.CombatSelf));
 
                             if (sourceStunned)
                             {
@@ -681,16 +687,21 @@ namespace ACE.Server.WorldObjects
                             }
 
                             var blockSound = new GameMessageSound(Guid, Sound.HitPlate1, 1.0f);
-                            EnqueueBroadcast(blockSound);
+                            var spark = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Spark" + creatureAttacker.GetSplatterHeight() + creatureAttacker.GetSplatterDir(this)));
+                            EnqueueBroadcast(blockSound, spark);
                         }
                         else
-                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} damage!", ChatMessageType.CombatSelf));
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} points of {damageType.GetName()} damage!", ChatMessageType.CombatSelf));
                     }
                 }
     
                 var hitSound = new GameMessageSound(Guid, GetHitSound(source, bodyPart), 1.0f);
-                var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creatureAttacker.GetSplatterHeight() + creatureAttacker.GetSplatterDir(this)));
-                EnqueueBroadcast(hitSound, splatter);
+                EnqueueBroadcast(hitSound);
+                if (damageTaken > 0)
+                {
+                    var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creatureAttacker.GetSplatterHeight() + creatureAttacker.GetSplatterDir(this)));
+                    EnqueueBroadcast(splatter);
+                }
             }
 
             if (percent >= 0.1f)

@@ -3533,7 +3533,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 return;
             }
 
-            ExportSQLWeenie(weenie, session, withFolders, !withFolders && (session == null || session.State != Network.Enum.SessionState.WorldConnected));
+            ExportSQLWeenie(weenie, session, withFolders/*, !withFolders && (session == null || session.State != Network.Enum.SessionState.WorldConnected)*/);
         }
 
         public static void ExportSQLWeenie(Weenie weenie, Session session = null, bool withFolders = false, bool openAfterExport = false)
@@ -4989,6 +4989,10 @@ namespace ACE.Server.Command.Handlers.Processors
             if (!toSql)
             {
                 creature.IsModified = true;
+
+                creature.CachedHighestMeleeSkill = Skill.None;
+                creature.CachedHighestMissileSkill = Skill.None;
+                creature.CachedHighestMagicSkill = Skill.None;
 
                 creature.PlayParticleEffect(PlayScript.AetheriaLevelUp, creature.Guid);
 

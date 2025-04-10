@@ -365,7 +365,7 @@ namespace ACE.Server.WorldObjects
             criticalHeal = ThreadSafeRandom.Next(0.0f, 1.0f) < 0.1f;
             if (criticalHeal) healAmount *= 2;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM || target.PKTimerActive)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !target.PKTimerActive)
             {
                 var vital = target.GetCreatureVital(BoosterEnum);
                 missingVital = vital.Missing;

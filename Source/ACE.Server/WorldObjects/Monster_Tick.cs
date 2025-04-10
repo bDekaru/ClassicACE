@@ -43,23 +43,59 @@ namespace ACE.Server.WorldObjects
 
             NextMonsterTickTime = currentUnixTime + ThreadSafeRandom.Next((float)monsterTickInterval * 0.5f, (float)monsterTickInterval * 1.5f); // Add some randomization here to keep creatures from acting in perfect synch.
 
+            bool interruptTick = false;
             if (StunnedUntilTimestamp != 0)
             {
                 if (StunnedUntilTimestamp >= currentUnixTime)
                 {
                     if (NextStunEffectTimestamp <= currentUnixTime)
                     {
-                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpLeftBack));
-                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpRightBack));
-                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpLeftFront));
-                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpRightFront));
+                        EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterUpLeftBack), new GameMessageScript(Guid, PlayScript.SplatterUpRightBack), new GameMessageScript(Guid, PlayScript.SplatterUpLeftFront), new GameMessageScript(Guid, PlayScript.SplatterUpRightFront));
                         NextStunEffectTimestamp = currentUnixTime + StunEffectFrequency;
                     }
-                    return;
+                    interruptTick = true;
                 }
                 else
                     StunnedUntilTimestamp = 0;
             }
+
+            if (IsMesmerized)
+            {
+                if (NextMesmerizeEffectTimestamp <= currentUnixTime)
+                {
+                    EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterMidLeftBack), new GameMessageScript(Guid, PlayScript.SplatterMidRightBack), new GameMessageScript(Guid, PlayScript.SplatterMidLeftFront), new GameMessageScript(Guid, PlayScript.SplatterMidRightFront));
+                    NextMesmerizeEffectTimestamp = currentUnixTime + MesmerizeEffectFrequency;
+                }
+                interruptTick = true;
+            }
+            else if(MesmerizeCooldown)
+            {
+                if (NextMesmerizeEffectTimestamp <= currentUnixTime)
+                {
+                    EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterMidRightBack));
+                    NextMesmerizeEffectTimestamp = currentUnixTime + MesmerizeEffectFrequency;
+                }
+            }
+
+            if (IsSnared)
+            {
+                if (NextSnareEffectTimestamp <= currentUnixTime)
+                {
+                    EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterLowLeftBack), new GameMessageScript(Guid, PlayScript.SplatterLowRightBack), new GameMessageScript(Guid, PlayScript.SplatterLowLeftFront), new GameMessageScript(Guid, PlayScript.SplatterLowRightFront));
+                    NextSnareEffectTimestamp = currentUnixTime + SnareEffectFrequency;
+                }
+            }
+            if (SnareCooldown)
+            {
+                if (NextSnareEffectTimestamp <= currentUnixTime)
+                {
+                    EnqueueBroadcast(new GameMessageScript(Guid, PlayScript.SplatterLowRightBack));
+                    NextSnareEffectTimestamp = currentUnixTime + SnareEffectFrequency;
+                }
+            }
+
+            if (interruptTick)
+                return;
 
             if (!IsAwake)
             {
@@ -437,7 +473,7 @@ namespace ACE.Server.WorldObjects
 
                                             if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                             {
-                                                if (PathfindingEnabled && !LastRouteStartAttemptWasNullRoute)
+                                                if (PathfindingEnabled && Indoors && !LastRouteStartAttemptWasNullRoute)
                                                     TryWandering(160, 200, 5);
                                                 else
                                                     TryWandering(100, 260, 7);
@@ -480,6 +516,129 @@ namespace ACE.Server.WorldObjects
             // pets drawing aggro
             if (combatPet != null)
                 combatPet.PetCheckMonsters();
+        }
+
+        private double StunnedUntilTimestamp;
+        private double NextStunEffectTimestamp;
+        private static double StunEffectFrequency = 0.5;
+
+        public void StunFor(double seconds)
+        {
+            IsEmotePending = false;
+            IsWanderingPending = false;
+            IsRouteStartPending = false;
+
+            if (IsEmoting)
+                EndEmoting();
+
+            if (IsWandering)
+                EndWandering();
+
+            if (IsRouting)
+                EndRoute();
+
+            if (IsAttacking)
+                EndAttack();
+
+            if (HasPendingMovement)
+                CancelMoveTo(WeenieError.ObjectGone);
+
+            StunnedUntilTimestamp = Time.GetFutureUnixTime(seconds);
+            NextStunEffectTimestamp = 0;
+        }
+
+        private double NextSnareEffectTimestamp;
+        private static double SnareEffectFrequency = 0.5;
+
+        public bool IsSnared { get; private set; }
+        public bool SnareCooldown { get; set; }
+        public void Ensnare()
+        {
+            IsEmotePending = false;
+            IsWanderingPending = false;
+            IsRouteStartPending = false;
+
+            if (IsEmoting)
+                EndEmoting();
+
+            if (IsWandering)
+                EndWandering();
+
+            if (IsRouting)
+                EndRoute();
+
+            if (IsAttacking)
+                EndAttack();
+
+            if (HasPendingMovement)
+                CancelMoveTo(WeenieError.ObjectGone);
+
+            IsSnared = true;
+            NextSnareEffectTimestamp = 0;
+        }
+
+        public void RemoveSnare()
+        {
+            if (IsSnared)
+            {
+                IsEmotePending = false;
+                IsWanderingPending = false;
+                IsRouteStartPending = false;
+
+                if (IsEmoting)
+                    EndEmoting();
+
+                if (IsWandering)
+                    EndWandering();
+
+                if (IsRouting)
+                    EndRoute();
+
+                if (IsAttacking)
+                    EndAttack();
+
+                if (HasPendingMovement)
+                    CancelMoveTo(WeenieError.ObjectGone);
+
+                IsSnared = false;
+            }
+        }
+
+        private double NextMesmerizeEffectTimestamp;
+        private static double MesmerizeEffectFrequency = 0.5;
+
+        public bool IsMesmerized { get; private set; }
+        public bool MesmerizeCooldown { get; set; }
+
+        public void Mesmerize()
+        {
+            IsEmotePending = false;
+            IsWanderingPending = false;
+            IsRouteStartPending = false;
+
+            if (IsEmoting)
+                EndEmoting();
+
+            if (IsWandering)
+                EndWandering();
+
+            if (IsRouting)
+                EndRoute();
+
+            if (IsAttacking)
+                EndAttack();
+
+            if (HasPendingMovement)
+                CancelMoveTo(WeenieError.ObjectGone);
+
+            IsMesmerized = true;
+            NextMesmerizeEffectTimestamp = 0;
+        }
+
+        public void RemoveMesmerize()
+        {
+            if(IsMesmerized)
+                IsMesmerized = false;
         }
     }
 }

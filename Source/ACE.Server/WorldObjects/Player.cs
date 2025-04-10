@@ -85,6 +85,8 @@ namespace ACE.Server.WorldObjects
         public double LastPlayerMovementCheckTime;
         public int MovementEnforcementCounter;
 
+        public float LatestMovementHeading = 0;
+
         public double NextTechniqueActivationTime = 0;
         public double NextTechniqueNegativeActivationTime = 0;
 
@@ -656,7 +658,6 @@ namespace ACE.Server.WorldObjects
             IsLoggingOut = true;
 
             EndSneaking();
-            RemoveRoadSpeedBuff();
 
             PlayerManager.AddPlayerToFinalLogoffQueue(this);
 
@@ -788,6 +789,114 @@ namespace ACE.Server.WorldObjects
             PlayerManager.SwitchPlayerFromOnlineToOffline(this);
 
             log.DebugFormat("[LOGOUT] Account {0} exited the world with character {1} (0x{2}) at {3}.", Account.AccountName, Name, Guid, DateTime.Now.ToCommonString());
+        }
+
+        public void SaveDotsAndHots()
+        {
+            lock (DoTHoTListLock)
+            {
+                if (ActiveDamageOverTimeList != null && ActiveDamageOverTimeList.Count > 0)
+                {
+                    var dotStrings = new List<string>();
+                    foreach (var entry in ActiveDamageOverTimeList)
+                    {
+                        dotStrings.Add($"{entry.TickAmount}:{entry.TotalAmount}:{(int)entry.DamageType}:{entry.CasterMods:0.00}:{entry.CasterWeaponResistanceMod:0.00}");
+                    }
+
+                    DamageOverTimeLog = string.Join(",", dotStrings);
+                }
+                else
+                    DamageOverTimeLog = null;
+
+                if (ActiveHealOverTimeList != null && ActiveHealOverTimeList.Count > 0)
+                {
+                    var hotStrings = new List<string>();
+                    foreach (var entry in ActiveHealOverTimeList)
+                    {
+                        hotStrings.Add($"{entry.TickAmount}:{entry.TotalAmount}:{(int)entry.VitalType}");
+                    }
+                    HealOverTimeLog = string.Join(",", hotStrings);
+                }
+                else
+                    HealOverTimeLog = null;
+            }
+        }
+
+        public void RestoreDotsAndHots()
+        {
+            lock (DoTHoTListLock)
+            {
+                if (DamageOverTimeLog != null)
+                {
+                    var dotStrings = DamageOverTimeLog.Split(",");
+                    foreach (var entry in dotStrings)
+                    {
+                        var entryStrings = entry.Split(":");
+                        if (!int.TryParse(entryStrings[0], out var tickAmount))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT TickAmount from string: {entryStrings}");
+                            continue;
+                        }
+                        if (!int.TryParse(entryStrings[1], out var totalAmount))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT TotalAmount from string: {entryStrings}");
+                            continue;
+                        }
+                        if (!Enum.TryParse(entryStrings[2], out CombatType combatType))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT CombatType from string: {entryStrings}");
+                            continue;
+                        }
+                        if (!Enum.TryParse(entryStrings[3], out DamageType damageType))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT DamageType from string: {entryStrings}");
+                            continue;
+                        }
+                        if (!float.TryParse(entryStrings[4], out var casterMods))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT CasterMods from string: {entryStrings}");
+                            continue;
+                        }
+                        if (!float.TryParse(entryStrings[5], out var casterWeaponResistanceMod))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT CasterWeaponResistanceMod from string: {entryStrings}");
+                            continue;
+                        }
+
+                        ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, null, casterMods, casterWeaponResistanceMod));
+                    }
+
+                    DamageOverTimeLog = null;
+                }
+
+                if (HealOverTimeLog != null)
+                {
+                    var hotStrings = HealOverTimeLog.Split(",");
+                    foreach (var entry in hotStrings)
+                    {
+                        var entryStrings = entry.Split(":");
+                        if (!int.TryParse(entryStrings[0], out var tickAmount))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore HoT TickAmount from string: {entryStrings}");
+                            continue;
+                        }
+                        if (!int.TryParse(entryStrings[1], out var totalAmount))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore HoT TotalAmount from string: {entryStrings}");
+                            continue;
+                        }
+                        if (!Enum.TryParse(entryStrings[2], out DamageType damageType))
+                        {
+                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT DamageType from string: {entryStrings}");
+                            continue;
+                        }
+
+                        ActiveHealOverTimeList.Add(new HoTInfo(tickAmount, totalAmount, damageType, null));
+                    }
+
+                    HealOverTimeLog = null;
+                }
+            }
         }
 
         public void HandleMRT()

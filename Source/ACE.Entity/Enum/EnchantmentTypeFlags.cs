@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace ACE.Entity.Enum
 {
@@ -22,7 +22,7 @@ namespace ACE.Entity.Enum
         Multiplicative         = 0x0004000,
         Additive               = 0x0008000,
         AttackSkills           = 0x0010000,
-        DefenseSkills          = 0x0020000,
+        DefenseSkills          = 0x0020000, 
         Multiplicative_Degrade = 0x0100000,
         Additive_Degrade       = 0x0200000,
         Vitae                  = 0x0800000,

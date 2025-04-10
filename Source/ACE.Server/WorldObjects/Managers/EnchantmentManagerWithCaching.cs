@@ -171,6 +171,8 @@ namespace ACE.Server.WorldObjects.Managers
             hasEnchantments = null;
             hasVitae = null;
 
+            hasAblativeArmor = null;
+
             attributeModAdditiveCache.Clear();
             attributeModMultiplierCache.Clear();
 
@@ -316,6 +318,29 @@ namespace ACE.Server.WorldObjects.Managers
             bodyArmorModCache = base.GetBodyArmorMod();
 
             return bodyArmorModCache.Value;
+        }
+
+        private bool? hasAblativeArmor;
+
+        /// <summary>
+        /// Returns the top ablative armor enchantment if it exists.
+        /// </summary>
+        public override PropertiesEnchantmentRegistry GetAblativeArmor()
+        {
+            if(!hasAblativeArmor.HasValue)
+            {
+                var ablativeArmor = base.GetAblativeArmor();
+                if (ablativeArmor != null)
+                    hasAblativeArmor = true;
+                return ablativeArmor;
+            }
+            else
+            {
+                if (hasAblativeArmor.Value == true)
+                    return base.GetAblativeArmor();
+                else
+                    return null;
+            }
         }
 
         private readonly Dictionary<DamageType, float> resistanceModCache = new Dictionary<DamageType, float>();

@@ -16,6 +16,7 @@ using log4net;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using Position = ACE.Entity.Position;
 
 namespace ACE.Server.WorldObjects
@@ -60,6 +61,48 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public int numRecentAttacksReceived;
         public float attacksReceivedPerSecond;
+
+        public struct DoTInfo
+        {
+            public int TickAmount;
+            public int TotalAmount;
+            public CombatType CombatType;
+            public DamageType DamageType;
+            public WorldObject Source;
+            public float CasterMods;
+            public float CasterWeaponResistanceMod;
+
+            public DoTInfo(int tickAmount, int totalAmount, CombatType combatType, DamageType damageType, WorldObject source, float casterMods = 1.0f, float casterWeaponResistanceMod = 1.0f)
+            {
+                TickAmount = tickAmount;
+                TotalAmount = totalAmount;
+                CombatType = combatType;
+                DamageType = damageType;
+                Source = source;
+                CasterMods = casterMods;
+                CasterWeaponResistanceMod = casterWeaponResistanceMod;
+            }
+        }
+
+        public struct HoTInfo
+        {
+            public int TickAmount;
+            public int TotalAmount;
+            public WorldObject Source;
+            public DamageType VitalType;
+
+            public HoTInfo(int tickAmount, int totalAmount, DamageType vitalType, WorldObject source)
+            {
+                TickAmount = tickAmount;
+                TotalAmount = totalAmount;
+                Source = source;
+                VitalType = vitalType;
+            }
+        }
+
+        public readonly ReaderWriterLockSlim DoTHoTListLock = new ReaderWriterLockSlim();
+        public List<DoTInfo> ActiveDamageOverTimeList = new List<DoTInfo>();
+        public List<HoTInfo> ActiveHealOverTimeList = new List<HoTInfo>();
 
         /// <summary>
         /// Currently used to handle some edge cases for faction mobs

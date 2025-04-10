@@ -161,7 +161,7 @@ namespace ACE.Server.WorldObjects
             //    return new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
             //}
 
-            if (player.PKTimerActive && !PortalIgnoresPkAttackTimer && !(ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && (player.IsPK || player.IsPKL)))
+            if (player.PKTimerActive && !PortalIgnoresPkAttackTimer && ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
                 return silent ? new ActivationResult(false) : new ActivationResult(new GameEventWeenieError(player.Session, WeenieError.YouHaveBeenInPKBattleTooRecently));
             }

@@ -673,6 +673,43 @@ namespace ACE.Server.Entity
             if (ShieldMod != 1.0f && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 DamageBlocked = damageBeforeShieldMod - Damage;
 
+            var ablativeArmor = defender.EnchantmentManager.GetAblativeArmor();
+            if (ablativeArmor != null)
+            {
+                if (ablativeArmor.StatModKey > 0)
+                {
+                    float reducedAmount;
+                    ablativeArmor.StatModKey--;
+                    if (ablativeArmor.StatModValue >= Damage)
+                    {
+                        reducedAmount = Damage;
+                        ablativeArmor.StatModValue -= Damage;
+                    }
+                    else
+                    {
+                        reducedAmount = ablativeArmor.StatModValue;
+                        ablativeArmor.StatModValue = 0;
+                    }
+
+                    if (reducedAmount > 0)
+                    {
+                        Damage -= reducedAmount;
+                        if (playerDefender != null)
+                        {
+                            var spell = new Spell(ablativeArmor.SpellId);
+                            playerDefender.SendMessage($"{spell.Name} has absorbed {reducedAmount:N0} points of {DamageType.GetName()} damage!", ChatMessageType.Magic);
+                        }
+
+                        var hitSound = new GameMessageSound(defender.Guid, Sound.HitPlate1, 1.0f);
+                        var spark = new GameMessageScript(defender.Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Spark" + attacker.GetSplatterHeight() + attacker.GetSplatterDir(defender)));
+                        defender.EnqueueBroadcast(hitSound, spark);
+                    }
+                }
+
+                if (ablativeArmor.StatModKey == 0 || ablativeArmor.StatModValue < 1)
+                    defender.EnchantmentManager.Remove(ablativeArmor);
+            }
+
             return Damage;
         }
 
