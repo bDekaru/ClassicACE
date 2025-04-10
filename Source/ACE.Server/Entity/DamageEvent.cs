@@ -687,11 +687,9 @@ namespace ACE.Server.Entity
                     }
                     else
                     {
-                        reducedAmount = Damage - ablativeArmor.StatModValue;
+                        reducedAmount = ablativeArmor.StatModValue;
                         ablativeArmor.StatModValue = 0;
                     }
-
-                    playerDefender.SendMessage($"{ablativeArmor.StatModKey} {ablativeArmor.StatModValue}", ChatMessageType.Broadcast);
 
                     if (reducedAmount > 0)
                     {

@@ -460,8 +460,12 @@ namespace ACE.Server.WorldObjects
                 var painSound = (Sound)Enum.Parse(typeof(Sound), "Wound" + ThreadSafeRandom.Next(1, 3), true);
                 target.EnqueueBroadcast(new GameMessageSound(target.Guid, painSound, 1.0f));
             }
-            var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + GetSplatterHeight() + GetSplatterDir(target));
-            target.EnqueueBroadcast(new GameMessageScript(target.Guid, splatter));
+
+            if (damage > 0)
+            {
+                var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + GetSplatterHeight() + GetSplatterDir(target));
+                target.EnqueueBroadcast(new GameMessageScript(target.Guid, splatter));
+            }
         }
 
         public CombatStyle AiAllowedCombatStyle

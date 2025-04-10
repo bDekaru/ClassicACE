@@ -238,8 +238,12 @@ namespace ACE.Server.WorldObjects
                         var painSound = (Sound)Enum.Parse(typeof(Sound), "Wound" + ThreadSafeRandom.Next(1, 3), true);
                         Session.Network.EnqueueSend(new GameMessageSound(target.Guid, painSound, 1.0f));
                     }
-                    var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + GetSplatterHeight() + GetSplatterDir(target));
-                    Session.Network.EnqueueSend(new GameMessageScript(target.Guid, splatter));
+
+                    if (damageEvent.Damage > 0)
+                    {
+                        var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + GetSplatterHeight() + GetSplatterDir(target));
+                        Session.Network.EnqueueSend(new GameMessageScript(target.Guid, splatter));
+                    }
                 }
 
                 // handle Dirty Fighting
@@ -683,7 +687,8 @@ namespace ACE.Server.WorldObjects
                             }
 
                             var blockSound = new GameMessageSound(Guid, Sound.HitPlate1, 1.0f);
-                            EnqueueBroadcast(blockSound);
+                            var spark = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Spark" + creatureAttacker.GetSplatterHeight() + creatureAttacker.GetSplatterDir(this)));
+                            EnqueueBroadcast(blockSound, spark);
                         }
                         else
                             Session.Network.EnqueueSend(new GameMessageSystemChat($"Your shield obstructs {damageBlocked:N0} points of {damageType.GetName()} damage!", ChatMessageType.CombatSelf));
@@ -691,8 +696,12 @@ namespace ACE.Server.WorldObjects
                 }
     
                 var hitSound = new GameMessageSound(Guid, GetHitSound(source, bodyPart), 1.0f);
-                var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creatureAttacker.GetSplatterHeight() + creatureAttacker.GetSplatterDir(this)));
-                EnqueueBroadcast(hitSound, splatter);
+                EnqueueBroadcast(hitSound);
+                if (damageTaken > 0)
+                {
+                    var splatter = new GameMessageScript(Guid, (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + creatureAttacker.GetSplatterHeight() + creatureAttacker.GetSplatterDir(this)));
+                    EnqueueBroadcast(splatter);
+                }
             }
 
             if (percent >= 0.1f)
