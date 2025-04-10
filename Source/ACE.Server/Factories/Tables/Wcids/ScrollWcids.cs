@@ -363,7 +363,7 @@ namespace ACE.Server.Factories.Tables.Wcids
                 miscSpells = new List<SpellId>()
                 {
                     SpellId.EmpowerSpell1,
-                    SpellId.QuickenSpell1,
+                    SpellId.QuickcastSpell1,
                     SpellId.EnchainSpell1,
                     SpellId.ExtendSpell1,
                     SpellId.MaximizeSpell1,

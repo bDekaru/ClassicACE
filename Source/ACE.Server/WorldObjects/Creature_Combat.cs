@@ -473,28 +473,28 @@ namespace ACE.Server.WorldObjects
             if (!(this is Player) && CachedHighestMagicSkill != Skill.None)
                 return CachedHighestMagicSkill;
 
-            Entity.CreatureSkill maxMagic;
+            CreatureSkill maxMagic;
 
-            var lifeMagic = GetCreatureSkill(Skill.LifeMagic);
+            var lifeMagic = GetCreatureSkill(Skill.LifeMagic, false);
             maxMagic = lifeMagic;
 
-            var warMagic = GetCreatureSkill(Skill.WarMagic);
+            var warMagic = GetCreatureSkill(Skill.WarMagic, false);
             if (warMagic.Current > maxMagic.Current)
                 maxMagic = warMagic;
 
             if (ConfigManager.Config.Server.WorldRuleset != Ruleset.CustomDM)
             {
-                var creatureEnchantment = GetCreatureSkill(Skill.CreatureEnchantment);
+                var creatureEnchantment = GetCreatureSkill(Skill.CreatureEnchantment, false);
                 if (creatureEnchantment.Current > maxMagic.Current)
                     maxMagic = creatureEnchantment;
-                var itemEnchantment = GetCreatureSkill(Skill.ItemEnchantment);
+                var itemEnchantment = GetCreatureSkill(Skill.ItemEnchantment, false);
                 if (itemEnchantment.Current > maxMagic.Current)
                     maxMagic = itemEnchantment;
             }
 
             if (ConfigManager.Config.Server.WorldRuleset == Ruleset.EoR)
             {
-                var voidMagic = GetCreatureSkill(Skill.VoidMagic);
+                var voidMagic = GetCreatureSkill(Skill.VoidMagic, false);
                 if (voidMagic.Current > maxMagic.Current)
                     maxMagic = voidMagic;
             }

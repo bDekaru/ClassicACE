@@ -338,7 +338,7 @@ namespace ACE.Server.WorldObjects
             //    }
             //}
 
-            if (showMsg && fromProc == false && this is Creature) // showMsg == false means this was not a spell that was cast directly.
+            if (showMsg && !fromProc && this is Creature) // showMsg == false means this was not a spell that was cast directly.
                 ApplyPostCastMetaspells(ref spell);
 
             if (spell.SpellDelay == 0)
@@ -419,10 +419,21 @@ namespace ACE.Server.WorldObjects
                 // play spell effects
                 DoSpellEffects(spell, this, target);
 
+                if (this != targetCreature &&
+                    spell.MetaSpellType != SpellType.Projectile &&
+                    spell.MetaSpellType != SpellType.LifeProjectile &&
+                    spell.MetaSpellType != SpellType.EnchantmentProjectile)
+                {
+                    HandleEnchainSpell(spell, this, weapon, targetCreature);
+                }                
+
                 return true;
             }
             else
             {
+                if (this is Player player)
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"You delay the casting of {spell.NameWithMetaspellAdjectivesWithoutDelayed} by {spell.SpellDelay:N0} seconds.", ChatMessageType.Magic));
+
                 var delayChain = new ActionChain();
                 delayChain.AddDelaySeconds(spell.SpellDelay);
                 delayChain.AddAction(this, () =>
@@ -2669,23 +2680,23 @@ namespace ACE.Server.WorldObjects
             {
                 var player = this as Player;
 
-                var quickenSpell = EnchantmentManager.GetEnchantments(SpellCategory.QuickenSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
-                if (quickenSpell != null && quickenSpell.StatModKey > 0)
+                var quickcastSpell = EnchantmentManager.GetEnchantments(SpellCategory.QuickcastSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
+                if (quickcastSpell != null && quickcastSpell.StatModKey > 0)
                 {
-                    spell.IsQuickenedSpell = true;
+                    spell.IsQuickcastSpell = true;
 
-                    quickenSpell.StatModKey--;
-                    quickenSpell.StartTime = 0;
+                    quickcastSpell.StatModKey--;
+                    quickcastSpell.StartTime = 0;
 
                     if (player != null)
-                        player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, quickenSpell)));
+                        player.Session.Network.EnqueueSend(new GameEventMagicUpdateEnchantment(player.Session, new Enchantment(player, quickcastSpell)));
                 }
             }
         }
 
         public void ApplyPostCastMetaspells(ref Spell spell)
         {
-            if (!spell.IsMetaspell)
+            if (!spell.IsMetaspell && !spell.IsEnchainedSpell)
             {
                 var player = this as Player;
 
@@ -2699,7 +2710,9 @@ namespace ACE.Server.WorldObjects
                         var newSpell = new Spell(newSpellId);
                         if (!newSpell.NotFound)
                         {
-                            newSpell.IsEmpoweredSpell = true;
+                            spell.IsEmpoweredSpell = true;
+
+                            newSpell.CopyMetaspellsFrom(spell);
                             newSpell.IntensityMod = spell.IntensityMod;
                             spell = newSpell;
 
@@ -2716,6 +2729,7 @@ namespace ACE.Server.WorldObjects
                 if (delaySpell != null && delaySpell.StatModKey > 0)
                 {
                     spell.IsDelayedSpell = true;
+
                     spell.SpellDelay = delaySpell.StatModValue;
 
                     delaySpell.StatModKey--;
@@ -2764,7 +2778,9 @@ namespace ACE.Server.WorldObjects
                 }
 
                 if (spell.MetaSpellType == SpellType.Projectile ||
-                    spell.MetaSpellType == SpellType.EnchantmentProjectile)
+                    spell.MetaSpellType == SpellType.EnchantmentProjectile ||
+                    spell.MetaSpellType == SpellType.Boost ||
+                    spell.MetaSpellType == SpellType.Enchantment)
                 {
                     var enchainSpell = EnchantmentManager.GetEnchantments(SpellCategory.EnchainSpell).OrderByDescending(o => o.StatModValue).FirstOrDefault();
                     if (enchainSpell != null && enchainSpell.StatModKey > 0)
@@ -2782,6 +2798,94 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        List<SpellCategory> ExtendableSpellCategories = new List<SpellCategory> { };
+        public void HandleEnchainSpell(Spell spell, WorldObject caster, WorldObject weapon, Creature target)
+        {
+            if (spell == null || target == null || spell.IsMetaspell || !spell.IsEnchainedSpell)
+                return;
+
+            if (spell.EnchainedSpellCounter >= 10)
+            {
+                spell.IsEnchainedSpell = false;
+                return;
+            }
+            else if (spell.EnchainedSpellCounter > 0)
+            {
+                var spreadChance = 0.7f;
+                if (spreadChance < ThreadSafeRandom.Next(0.0f, 1.0f))
+                {
+                    spell.IsEnchainedSpell = false;
+                    return;
+                }
+            }
+            spell.EnchainedSpellCounter++;
+
+            var level1SpellId = SpellLevelProgression.GetLevel1SpellId((SpellId)spell.Id);
+            var newSpellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, (int)Math.Max(Math.Ceiling(spell.Level / 2f), 1), true);
+
+            if (newSpellId == SpellId.Undef)
+                newSpellId = (SpellId)spell.Id;
+
+            if (newSpellId != SpellId.Undef)
+            {
+                var newSpell = new Spell(newSpellId);
+                if (!newSpell.NotFound)
+                {
+                    newSpell.CopyMetaspellsFrom(spell);
+                    newSpell.IntensityMod = spell.IntensityMod;
+
+                    var list = GetNearbyEnchainTargets(caster, target, newSpell);
+                    if (list.Count > 0)
+                    {
+                        var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
+                        var actionChain = new ActionChain();
+                        actionChain.AddDelaySeconds(0.1);
+                        actionChain.AddAction(target, () =>
+                        {
+                            if (caster != null && !caster.IsDestroyed && target != null && !target.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && weapon != null && !weapon.IsDestroyed)
+                                caster.TryCastSpell(newSpell, newTarget, null, weapon, false, false, true, true, target);
+                        });
+                        actionChain.EnqueueChain();
+                    }
+                }
+            }
+        }
+
+        public static List<Creature> GetNearbyEnchainTargets(WorldObject caster, Creature aroundCreature, Spell spell)
+        {
+            List<Physics.PhysicsObj> visible;
+
+            if (caster is Player sourcePlayer)
+                visible = sourcePlayer.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null);
+            else
+                visible = aroundCreature.PhysicsObj.ObjMaint.GetVisibleTargetsValues();
+            visible.Sort(aroundCreature.DistanceComparator);
+
+            var targets = new List<Creature>();
+            foreach (var obj in visible)
+            {
+                if (obj.ID == aroundCreature.PhysicsObj.ID)
+                    continue;
+
+                var creature = obj.WeenieObj.WorldObject as Creature;
+                if (creature == null || creature.Teleporting || creature.IsDead)
+                    continue;
+
+                if (caster != null && caster.CheckPKStatusVsTarget(creature, spell) != null)
+                    continue;
+
+                if (!creature.Attackable && creature.TargetingTactic == TargetingTactic.None || creature.Teleporting)
+                    continue;
+
+                if (!aroundCreature.IsDirectVisible(creature, 1))
+                    continue;
+
+                var cylDist = aroundCreature.GetCylinderDistance(creature);
+                if (cylDist > 10)
+                    return targets;
+
+                targets.Add(creature);
+            }
+            return targets;
+        }
     }
 }

@@ -793,8 +793,7 @@ namespace ACE.Server.WorldObjects
 
         public void SaveDotsAndHots()
         {
-            DoTHoTListLock.EnterReadLock();
-            try
+            lock (DoTHoTListLock)
             {
                 if (ActiveDamageOverTimeList != null && ActiveDamageOverTimeList.Count > 0)
                 {
@@ -821,16 +820,11 @@ namespace ACE.Server.WorldObjects
                 else
                     HealOverTimeLog = null;
             }
-            finally
-            {
-                DoTHoTListLock.ExitReadLock();
-            }
         }
 
         public void RestoreDotsAndHots()
         {
-            DoTHoTListLock.EnterWriteLock();
-            try
+            lock (DoTHoTListLock)
             {
                 if (DamageOverTimeLog != null)
                 {
@@ -902,10 +896,6 @@ namespace ACE.Server.WorldObjects
 
                     HealOverTimeLog = null;
                 }
-            }
-            finally
-            {
-                DoTHoTListLock.ExitWriteLock();
             }
         }
 

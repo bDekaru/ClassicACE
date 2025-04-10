@@ -40,7 +40,7 @@ namespace ACE.Server.WorldObjects
                 else
                 {
                     ShortDesc = null;
-                    LongDesc = null;
+                    LongDesc = $"School: {(Spell.School == MagicSchool.VoidMagic ? "Any" : Spell.GetMagicSkill().ToSentence())}";
                 }
             }
             Use = "Use this item to attempt to learn its spell.";

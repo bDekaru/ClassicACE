@@ -614,21 +614,24 @@ namespace ACE.Server.WorldObjects
             if (isWeaponSpell)
                 castingPreCheckStatus = CastingPreCheckStatus.Success;
 
-            // limit casting time between war and void
-            if (spell.School == MagicSchool.VoidMagic && LastSuccessCast_School == MagicSchool.WarMagic ||
-                spell.School == MagicSchool.WarMagic && LastSuccessCast_School == MagicSchool.VoidMagic)
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
             {
-                // roll each time?
-                var timeLimit = ThreadSafeRandom.Next(3.0f, 5.0f);
-
-                if (Time.GetUnixTime() - LastSuccessCast_Time < timeLimit)
+                // limit casting time between war and void
+                if (spell.School == MagicSchool.VoidMagic && LastSuccessCast_School == MagicSchool.WarMagic ||
+                    spell.School == MagicSchool.WarMagic && LastSuccessCast_School == MagicSchool.VoidMagic)
                 {
-                    var curType = spell.School == MagicSchool.WarMagic ? "War" : "Void";
-                    var prevType = LastSuccessCast_School == MagicSchool.VoidMagic ? "Nether" : "Elemental";
+                    // roll each time?
+                    var timeLimit = ThreadSafeRandom.Next(3.0f, 5.0f);
 
-                    Session.Network.EnqueueSend(new GameMessageSystemChat($"The {prevType} energies permeating your blood cause this {curType} magic to fail.", ChatMessageType.Magic));
+                    if (Time.GetUnixTime() - LastSuccessCast_Time < timeLimit)
+                    {
+                        var curType = spell.School == MagicSchool.WarMagic ? "War" : "Void";
+                        var prevType = LastSuccessCast_School == MagicSchool.VoidMagic ? "Nether" : "Elemental";
 
-                    castingPreCheckStatus = CastingPreCheckStatus.CastFailed;
+                        Session.Network.EnqueueSend(new GameMessageSystemChat($"The {prevType} energies permeating your blood cause this {curType} magic to fail.", ChatMessageType.Magic));
+
+                        castingPreCheckStatus = CastingPreCheckStatus.CastFailed;
+                    }
                 }
             }
             return castingPreCheckStatus;
@@ -1213,7 +1216,7 @@ namespace ACE.Server.WorldObjects
             ApplyPreCastMetaSpells(ref spell);
 
             CastSpeed = 2.0f;
-            if (spell.IsQuickenedSpell)
+            if (spell.IsQuickcastSpell)
                 CastSpeed *= 2;
 
             // do wind-up gestures: fastcast has no windup (creature enchantments)

@@ -290,7 +290,7 @@ namespace ACE.Server.WorldObjects
                 player.EndSneaking();
                 player.LastHitSpellProjectile = Spell;
             }
-            
+
             // ensure caster can damage target
             var sourceCreature = ProjectileSource as Creature;
             if (sourceCreature != null && !sourceCreature.CanDamage(creatureTarget))
@@ -321,112 +321,50 @@ namespace ACE.Server.WorldObjects
             var isPerfectBlock = false;
             var damageBlocked = 0f;
 
-            if (Spell.IsExtendedSpell && Spell.MetaSpellType == ACE.Entity.Enum.SpellType.Projectile)
-            {
-                var critDamageBonus = 0.0f;
-                int baseDamage;
+            var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower, ref resisted, ref blocked, ref isPerfectBlock, ref damageBlocked);
 
-                if (Spell.IsMaximizedSpell)
-                    baseDamage = Spell.MaxDamage;
+            creatureTarget.OnAttackReceived(ProjectileSource, CombatType.Magic, critical, resisted);
+
+            if (damage != null)
+            {
+                if (Spell.MetaSpellType == ACE.Entity.Enum.SpellType.EnchantmentProjectile)
+                {
+                    // handle EnchantmentProjectile successfully landing on target
+                    ProjectileSource.CreateEnchantment(creatureTarget, ProjectileSource, ProjectileLauncher, Spell, false, FromProc);
+                }
                 else
-                    baseDamage = ThreadSafeRandom.Next(Spell.MinDamage, Spell.MaxDamage);
-
-                var attackSkill = sourceCreature?.GetCreatureSkill(Spell.School);
-
-                // critical hit
-                var criticalChance = GetWeaponMagicCritFrequency(ProjectileLauncher, sourceCreature, attackSkill, creatureTarget, isPvP);
-
-                TacticAndTechniqueType techniqueId = TacticAndTechniqueType.None;
-                WorldObject techniqueTrinket = null;
-
-                if (player != null && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 {
-                    techniqueTrinket = player.GetEquippedTrinket();
-                    if (techniqueTrinket != null)
-                        techniqueId = (TacticAndTechniqueType)techniqueTrinket.TacticAndTechniqueId;
-                }
-
-                if (player != null && ProjectileSource != target)
-                {
-                    if (techniqueId == TacticAndTechniqueType.Opportunist)
-                        criticalChance += 0.10f;
-                }
-
-                if (ProjectileLauncher == target)
-                    criticalChance = 0.0f; // Self-damage never crits.
-
-                if (ThreadSafeRandom.Next(0.0f, 1.0f) < criticalChance)
-                {
-                    if (targetPlayer != null && targetPlayer.AugmentationCriticalDefense > 0)
-                    {
-                        var criticalDefenseMod = player != null ? 0.05f : 0.25f;
-                        var criticalDefenseChance = targetPlayer.AugmentationCriticalDefense * criticalDefenseMod;
-
-                        if (criticalDefenseChance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                            critDefended = true;
-                    }
-
-                    if (!critDefended)
-                        critical = true;
-                }
-
-                if (critical)
-                {
-                    if (isPvP) // PvP: 50% of the MIN damage added to normal damage roll
-                        critDamageBonus = Spell.MinDamage * 0.5f;
-                    else   // PvE: 50% of the MAX damage added to normal damage roll
-                        critDamageBonus = Spell.MaxDamage * 0.5f;
-
-                    var weaponCritDamageMod = GetWeaponCritDamageMod(ProjectileLauncher, sourceCreature, attackSkill, creatureTarget, isPvP);
-
-                    critDamageBonus *= weaponCritDamageMod;
-                }
-
-                var damage = (int)Math.Round(baseDamage + critDamageBonus);
-
-                creatureTarget.ApplyDoT(damage / 2, damage * 2, critical, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
-
-                creatureTarget.OnAttackReceived(ProjectileSource, CombatType.Magic, critical, resisted);
-            }
-            else
-            {
-                var damage = CalculateDamage(ProjectileSource, creatureTarget, ref critical, ref critDefended, ref overpower, ref resisted, ref blocked, ref isPerfectBlock, ref damageBlocked);
-
-                creatureTarget.OnAttackReceived(ProjectileSource, CombatType.Magic, critical, resisted);
-
-                if (damage != null)
-                {
-                    if (Spell.MetaSpellType == ACE.Entity.Enum.SpellType.EnchantmentProjectile)
-                    {
-                        // handle EnchantmentProjectile successfully landing on target
-                        ProjectileSource.CreateEnchantment(creatureTarget, ProjectileSource, ProjectileLauncher, Spell, false, FromProc);
-                    }
+                    if (Spell.IsExtendedSpell)
+                        creatureTarget.ApplyDoT((int)(damage.Value / 2), (int)(damage.Value * 2), critical, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
                     else
-                    {
                         DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower, blocked, isPerfectBlock, damageBlocked);
 
-                        if (player != null && player != creatureTarget)
+                    if (player != null && player != creatureTarget)
+                    {
+                        var currentTime = Time.GetUnixTime();
+                        if (player.NextTechniqueNegativeActivationTime <= currentTime)
                         {
-                            var currentTime = Time.GetUnixTime();
-                            if (player.NextTechniqueNegativeActivationTime <= currentTime)
+                            var techniqueTrinket = player.GetEquippedTrinket();
+                            if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Opportunist)
                             {
-                                var techniqueTrinket = player.GetEquippedTrinket();
-                                if (techniqueTrinket != null && techniqueTrinket.TacticAndTechniqueId == (int)TacticAndTechniqueType.Opportunist)
+                                var chance = 0.3f;
+                                if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                 {
-                                    var chance = 0.3f;
-                                    if (chance > ThreadSafeRandom.Next(0.0f, 1.0f))
-                                    {
-                                        // Chance of inflicting self damage while using the Opportunist technique.
-                                        var criticalSelf = false;
-                                        var critDefendedSelf = false;
-                                        var overpowerSelf = false;
-                                        var resistedSelf = false;
-                                        var blockedSelf = false;
-                                        var isPerfectBlockSelf = false;
-                                        var damageBlockedSelf = 0f;
+                                    // Chance of inflicting self damage while using the Opportunist technique.
+                                    var criticalSelf = false;
+                                    var critDefendedSelf = false;
+                                    var overpowerSelf = false;
+                                    var resistedSelf = false;
+                                    var blockedSelf = false;
+                                    var isPerfectBlockSelf = false;
+                                    var damageBlockedSelf = 0f;
 
-                                        var damage2 = CalculateDamage(ProjectileSource, player, ref criticalSelf, ref critDefendedSelf, ref overpowerSelf, ref resistedSelf, ref blockedSelf, ref isPerfectBlockSelf, ref damageBlockedSelf);
-                                        if (damage2 != null)
+                                    var damage2 = CalculateDamage(ProjectileSource, player, ref criticalSelf, ref critDefendedSelf, ref overpowerSelf, ref resistedSelf, ref blockedSelf, ref isPerfectBlockSelf, ref damageBlockedSelf);
+                                    if (damage2 != null)
+                                    {
+                                        if (Spell.IsExtendedSpell)
+                                            creatureTarget.ApplyDoT((int)(damage2.Value / 2), (int)(damage2.Value * 2), criticalSelf, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
+                                        else
                                             DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf, blocked, isPerfectBlock, damageBlocked);
 
                                         player.NextTechniqueNegativeActivationTime = currentTime + Player.TechniqueNegativeActivationInterval;
@@ -470,45 +408,7 @@ namespace ACE.Server.WorldObjects
                             sourceCreature.TryProcEquippedItems(sourceCreature, creatureTarget, false, ProjectileLauncher);
                         }
 
-                        if (!FromProc && !resisted && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                        {
-                            if(Spell.IsEnchainedSpell && Spell.EnchainedSpellCounter > 0)
-                            {
-                                var spreadChance = 0.7f;
-                                if (spreadChance < ThreadSafeRandom.Next(0.0f, 1.0f))
-                                    Spell.IsEnchainedSpell = false;
-                                else
-                                    Spell.EnchainedSpellCounter++;
-                            }
-
-                            if (Spell.IsEnchainedSpell)
-                            {
-                                var level1SpellId = SpellLevelProgression.GetLevel1SpellId((SpellId)Spell.Id);
-                                var newSpellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, (int)Math.Max(Math.Ceiling(Spell.Level / 2f), 1), true);
-                                if (newSpellId != SpellId.Undef)
-                                {
-                                    var newSpell = new Spell(newSpellId);
-                                    if (!newSpell.NotFound)
-                                    {
-                                        newSpell.IsEnchainedSpell = true;
-
-                                        var list = GetNearbyTargets(creatureTarget);
-                                        if (list.Count > 0)
-                                        {
-                                            var newTarget = list.ElementAt(ThreadSafeRandom.Next(0, list.Count - 1));
-                                            var actionChain = new ActionChain();
-                                            actionChain.AddDelaySeconds(0.1);
-                                            actionChain.AddAction(creatureTarget, () =>
-                                            {
-                                                if (ProjectileSource != null && !ProjectileSource.IsDestroyed && creatureTarget != null && !creatureTarget.IsDestroyed && newTarget != null && !newTarget.IsDestroyed && ProjectileLauncher != null && !ProjectileLauncher.IsDestroyed)
-                                                    ProjectileSource.TryCastSpell(newSpell, newTarget, null, ProjectileLauncher, false, false, true, true, creatureTarget);
-                                            });
-                                            actionChain.EnqueueChain();
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        HandleEnchainSpell(Spell, ProjectileSource, ProjectileLauncher, creatureTarget);
                     }
                     else
                     {
@@ -519,55 +419,18 @@ namespace ACE.Server.WorldObjects
                         // But, to keep it simple, we will just ignore it and not bother with TryProcEquippedItems for this particular impact.
                     }
                 }
+
+                // also called on resist
+                if (player != null && targetPlayer == null)
+                    player.OnAttackMonster(creatureTarget);
+
+                if (player == null && targetPlayer == null)
+                {
+                    // check for faction combat
+                    if (sourceCreature != null && creatureTarget != null && (sourceCreature.AllowFactionCombat(creatureTarget) || sourceCreature.PotentialFoe(creatureTarget)))
+                        sourceCreature.MonsterOnAttackMonster(creatureTarget);
+                }
             }
-
-            // also called on resist
-            if (player != null && targetPlayer == null)
-                player.OnAttackMonster(creatureTarget);
-
-            if (player == null && targetPlayer == null)
-            {
-                // check for faction combat
-                if (sourceCreature != null && creatureTarget != null && (sourceCreature.AllowFactionCombat(creatureTarget) || sourceCreature.PotentialFoe(creatureTarget)))
-                    sourceCreature.MonsterOnAttackMonster(creatureTarget);
-            }
-        }
-
-        public List<Creature> GetNearbyTargets(Creature aroundCreature)
-        {
-            List<Physics.PhysicsObj> visible;
-
-            if (ProjectileSource is Player sourcePlayer)
-                visible = sourcePlayer.PhysicsObj.ObjMaint.GetVisibleObjectsValuesWhere(o => o.WeenieObj.WorldObject != null);
-            else
-                visible = ProjectileSource.PhysicsObj.ObjMaint.GetVisibleTargetsValues();
-            visible.Sort(aroundCreature.DistanceComparator);
-
-            var targets = new List<Creature>();
-            foreach (var obj in visible)
-            {
-                if (obj.ID == aroundCreature.PhysicsObj.ID)
-                    continue;
-
-                var creature = obj.WeenieObj.WorldObject as Creature;
-                if (creature == null || creature.Teleporting || creature.IsDead) continue;
-
-                if (ProjectileSource != null && ProjectileSource.CheckPKStatusVsTarget(creature, null) != null)
-                    continue;
-
-                if (!creature.Attackable && creature.TargetingTactic == TargetingTactic.None || creature.Teleporting)
-                    continue;
-
-                if (!aroundCreature.IsDirectVisible(creature, 1))
-                    continue;
-
-                var cylDist = GetCylinderDistance(creature);
-                if (cylDist > 10)
-                    return targets;
-
-                targets.Add(creature);
-            }
-            return targets;
         }
 
         /// <summary>
@@ -621,7 +484,7 @@ namespace ACE.Server.WorldObjects
                 return null;
 
             var shieldMod = 1.0f;
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !Spell.IsExtendedSpell)
             {
                 var shield = target.GetEquippedShield();
                 if (shield != null && target != source)

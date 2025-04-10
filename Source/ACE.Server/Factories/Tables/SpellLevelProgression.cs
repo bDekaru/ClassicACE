@@ -7980,14 +7980,14 @@ namespace ACE.Server.Factories.Tables
             SpellId.Undef,
         };
 
-        public static readonly List<SpellId> QuickenSpell = new List<SpellId>()
+        public static readonly List<SpellId> QuickcastSpell = new List<SpellId>()
         {
             SpellId.Undef,
-            SpellId.QuickenSpell1,
+            SpellId.QuickcastSpell1,
             SpellId.Undef,
-            SpellId.QuickenSpell2,
+            SpellId.QuickcastSpell2,
             SpellId.Undef,
-            SpellId.QuickenSpell3,
+            SpellId.QuickcastSpell3,
             SpellId.Undef,
             SpellId.Undef,
         };
@@ -8853,7 +8853,7 @@ namespace ACE.Server.Factories.Tables
                 AddSpells(TurnShield);
                 AddSpells(CantripHeartBlocker);
                 AddSpells(EmpowerSpell);
-                AddSpells(QuickenSpell);
+                AddSpells(QuickcastSpell);
                 AddSpells(EnchainSpell);
                 AddSpells(ExtendSpell);
                 AddSpells(MaximizeSpell);

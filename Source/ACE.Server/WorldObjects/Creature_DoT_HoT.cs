@@ -13,15 +13,10 @@ namespace ACE.Server.WorldObjects
     {
         public void ClearAllDoTsAndHoTs()
         {
-            DoTHoTListLock.EnterWriteLock();
-            try
+            lock(DoTHoTListLock)
             {
                 ActiveDamageOverTimeList.Clear();
                 ActiveHealOverTimeList.Clear();
-            }
-            finally
-            {
-                DoTHoTListLock.ExitWriteLock();
             }
         }
 
@@ -41,14 +36,9 @@ namespace ACE.Server.WorldObjects
 
             tickAmount = (int)Math.Round(tickAmount * heartbeatMod);
 
-            DoTHoTListLock.EnterWriteLock();
-            try
+            lock(DoTHoTListLock)
             {
                 ActiveHealOverTimeList.Add(new HoTInfo(tickAmount, totalAmount, vitalType, source));
-            }
-            finally
-            {
-                DoTHoTListLock.ExitWriteLock();
             }
 
             if (sourcePlayer != null)
@@ -141,14 +131,9 @@ namespace ACE.Server.WorldObjects
 
             var casterMods = elementalDamageMod * slayerMod * absorbMod;
 
-            DoTHoTListLock.EnterWriteLock();
-            try
+            lock(DoTHoTListLock)
             {
                 ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, source, casterMods, weaponResistanceMod));
-            }
-            finally
-            {
-                DoTHoTListLock.ExitWriteLock();
             }
 
             if (targetPlayer != null && sourceCreature != null)
@@ -185,267 +170,254 @@ namespace ACE.Server.WorldObjects
             if (IsDead)
                 return;
 
-            DoTHoTListLock.EnterUpgradeableReadLock();
-            try
+            lock (DoTHoTListLock)
             {
                 if ((ActiveDamageOverTimeList == null || ActiveDamageOverTimeList.Count == 0) && (ActiveHealOverTimeList == null || ActiveHealOverTimeList.Count == 0))
                     return;
 
-                DoTHoTListLock.EnterWriteLock();
-                try
+                var player = this as Player;
+
+                if (ActiveDamageOverTimeList != null && ActiveDamageOverTimeList.Count > 0)
                 {
-                    var player = this as Player;
+                    bool isDead = false;
 
-                    if (ActiveDamageOverTimeList != null && ActiveDamageOverTimeList.Count > 0)
+                    var totalTickAmountPerDamageTypeMagic = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Damagers)>();
+                    var totalTickAmountPerDamageTypePhysical = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Damagers)>();
+
+                    var totalTickAmount = 0.0f;
+
+                    var updatedDamageOverTimeList = new List<DoTInfo>();
+                    foreach (var dot in ActiveDamageOverTimeList)
                     {
-                        bool isDead = false;
+                        var baseTickAmount = Math.Min(dot.TickAmount, dot.TotalAmount);
+                        var totalAmountRemaining = Math.Max(dot.TotalAmount - dot.TickAmount, 0);
 
-                        var totalTickAmountPerDamageTypeMagic = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Damagers)>();
-                        var totalTickAmountPerDamageTypePhysical = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Damagers)>();
+                        if (totalAmountRemaining > 0)
+                            updatedDamageOverTimeList.Add(new DoTInfo(dot.TickAmount, totalAmountRemaining, dot.CombatType, dot.DamageType, dot.Source, dot.CasterMods, dot.CasterWeaponResistanceMod));
 
-                        var totalTickAmount = 0.0f;
+                        var resistanceMod = (float)Math.Max(0.0f, GetResistanceMod(GetResistanceType(dot.DamageType), this, null, dot.CasterWeaponResistanceMod));
 
-                        var updatedDamageOverTimeList = new List<DoTInfo>();
-                        foreach (var dot in ActiveDamageOverTimeList)
+                        var tickAmount = baseTickAmount * dot.CasterMods * resistanceMod;
+
+                        // make sure the target's current health is not exceeded
+                        if (totalTickAmount + tickAmount >= Health.Current)
                         {
-                            var baseTickAmount = Math.Min(dot.TickAmount, dot.TotalAmount);
-                            var totalAmountRemaining = Math.Max(dot.TotalAmount - dot.TickAmount, 0);
+                            tickAmount = Health.Current - totalTickAmount;
+                            isDead = true;
+                        }
 
-                            if (totalAmountRemaining > 0)
-                                updatedDamageOverTimeList.Add(new DoTInfo(dot.TickAmount, totalAmountRemaining, dot.CombatType, dot.DamageType, dot.Source, dot.CasterMods, dot.CasterWeaponResistanceMod));
-
-                            var resistanceMod = (float)Math.Max(0.0f, GetResistanceMod(GetResistanceType(dot.DamageType), this, null, dot.CasterWeaponResistanceMod));
-
-                            var tickAmount = baseTickAmount * dot.CasterMods * resistanceMod;
-
-                            // make sure the target's current health is not exceeded
-                            if (totalTickAmount + tickAmount >= Health.Current)
+                        if (dot.CombatType == CombatType.Magic)
+                        {
+                            var elementTotalTickAmountMagic = 0.0f;
+                            Dictionary<WorldObject, float> elementDamagersMagic = null;
+                            if (totalTickAmountPerDamageTypeMagic.TryGetValue(dot.DamageType, out var value))
                             {
-                                tickAmount = Health.Current - totalTickAmount;
-                                isDead = true;
-                            }
-
-                            if (dot.CombatType == CombatType.Magic)
-                            {
-                                var elementTotalTickAmountMagic = 0.0f;
-                                Dictionary<WorldObject, float> elementDamagersMagic = null;
-                                if (totalTickAmountPerDamageTypeMagic.TryGetValue(dot.DamageType, out var value))
-                                {
-                                    elementTotalTickAmountMagic = value.TotalTickAmount + tickAmount;
-                                    elementDamagersMagic = value.Damagers;
-                                }
-                                else
-                                {
-                                    elementTotalTickAmountMagic = tickAmount;
-                                    elementDamagersMagic = new Dictionary<WorldObject, float>();
-                                }
-
-                                if (dot.Source != null)
-                                {
-                                    if (elementDamagersMagic.ContainsKey(dot.Source))
-                                        elementDamagersMagic[dot.Source] += tickAmount;
-                                    else
-                                        elementDamagersMagic.Add(dot.Source, tickAmount);
-
-                                    DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
-                                }
-
-                                totalTickAmountPerDamageTypeMagic[dot.DamageType] = (elementTotalTickAmountMagic, elementDamagersMagic);
+                                elementTotalTickAmountMagic = value.TotalTickAmount + tickAmount;
+                                elementDamagersMagic = value.Damagers;
                             }
                             else
                             {
-                                var elementTotalTickAmountPhysical = 0.0f;
-                                Dictionary<WorldObject, float> elementDamagersPhysical = null;
-                                if (totalTickAmountPerDamageTypePhysical.TryGetValue(dot.DamageType, out var value))
-                                {
-                                    elementTotalTickAmountPhysical = value.TotalTickAmount + tickAmount;
-                                    elementDamagersPhysical = value.Damagers;
-                                }
+                                elementTotalTickAmountMagic = tickAmount;
+                                elementDamagersMagic = new Dictionary<WorldObject, float>();
+                            }
+
+                            if (dot.Source != null)
+                            {
+                                if (elementDamagersMagic.ContainsKey(dot.Source))
+                                    elementDamagersMagic[dot.Source] += tickAmount;
                                 else
-                                {
-                                    elementTotalTickAmountPhysical = tickAmount;
-                                    elementDamagersPhysical = new Dictionary<WorldObject, float>();
-                                }
+                                    elementDamagersMagic.Add(dot.Source, tickAmount);
 
-                                if (dot.Source != null)
-                                {
-                                    if (elementDamagersPhysical.ContainsKey(dot.Source))
-                                        elementDamagersPhysical[dot.Source] += tickAmount;
-                                    else
-                                        elementDamagersPhysical.Add(dot.Source, tickAmount);
-
-                                    DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
-                                }
-
-                                totalTickAmountPerDamageTypePhysical[dot.DamageType] = (elementTotalTickAmountPhysical, elementDamagersPhysical);
+                                DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
                             }
 
-                            if (isDead)
-                                break;
+                            totalTickAmountPerDamageTypeMagic[dot.DamageType] = (elementTotalTickAmountMagic, elementDamagersMagic);
                         }
-                        ActiveDamageOverTimeList = updatedDamageOverTimeList;
-
-                        totalTickAmountPerDamageTypeMagic = totalTickAmountPerDamageTypeMagic.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
-                        totalTickAmountPerDamageTypePhysical = totalTickAmountPerDamageTypePhysical.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
-
-                        var playedEffects = false;
-                        foreach (var entry in totalTickAmountPerDamageTypeMagic)
+                        else
                         {
-                            TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects, false);
-
-                            if (!playedEffects)
-                                playedEffects = true;
-
-                            if (!IsAlive)
-                                return;
-
-                            foreach (var kvp in entry.Value.Damagers)
+                            var elementTotalTickAmountPhysical = 0.0f;
+                            Dictionary<WorldObject, float> elementDamagersPhysical = null;
+                            if (totalTickAmountPerDamageTypePhysical.TryGetValue(dot.DamageType, out var value))
                             {
-                                var damager = kvp.Key;
-                                var amount = kvp.Value;
-
-                                if (Invincible || IsDead || IsOnNoDamageLandblock)
-                                    amount = 0;
-
-                                var damageSourcePlayer = damager as Player;
-                                if (damageSourcePlayer != null && damageSourcePlayer != this)
-                                {
-                                    if (player != null)
-                                        Player.UpdatePKTimers(damageSourcePlayer, player);
-
-                                    TakeDamageOverTime_NotifySource(damageSourcePlayer, entry.Key, amount, false, false);
-
-                                    if (IsAlive)
-                                        EmoteManager.OnDamage(damageSourcePlayer);
-                                }
+                                elementTotalTickAmountPhysical = value.TotalTickAmount + tickAmount;
+                                elementDamagersPhysical = value.Damagers;
                             }
+                            else
+                            {
+                                elementTotalTickAmountPhysical = tickAmount;
+                                elementDamagersPhysical = new Dictionary<WorldObject, float>();
+                            }
+
+                            if (dot.Source != null)
+                            {
+                                if (elementDamagersPhysical.ContainsKey(dot.Source))
+                                    elementDamagersPhysical[dot.Source] += tickAmount;
+                                else
+                                    elementDamagersPhysical.Add(dot.Source, tickAmount);
+
+                                DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
+                            }
+
+                            totalTickAmountPerDamageTypePhysical[dot.DamageType] = (elementTotalTickAmountPhysical, elementDamagersPhysical);
                         }
 
-                        foreach (var entry in totalTickAmountPerDamageTypePhysical)
+                        if (isDead)
+                            break;
+                    }
+                    ActiveDamageOverTimeList = updatedDamageOverTimeList;
+
+                    totalTickAmountPerDamageTypeMagic = totalTickAmountPerDamageTypeMagic.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
+                    totalTickAmountPerDamageTypePhysical = totalTickAmountPerDamageTypePhysical.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
+
+                    var playedEffects = false;
+                    foreach (var entry in totalTickAmountPerDamageTypeMagic)
+                    {
+                        TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects, false);
+
+                        if (!playedEffects)
+                            playedEffects = true;
+
+                        if (!IsAlive)
+                            return;
+
+                        foreach (var kvp in entry.Value.Damagers)
                         {
-                            TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects, true);
+                            var damager = kvp.Key;
+                            var amount = kvp.Value;
 
-                            if (!playedEffects)
-                                playedEffects = true;
+                            if (Invincible || IsDead || IsOnNoDamageLandblock)
+                                amount = 0;
 
-                            if (!IsAlive)
-                                return;
-
-                            foreach (var kvp in entry.Value.Damagers)
+                            var damageSourcePlayer = damager as Player;
+                            if (damageSourcePlayer != null && damageSourcePlayer != this)
                             {
-                                var damager = kvp.Key;
-                                var amount = kvp.Value;
+                                if (player != null)
+                                    Player.UpdatePKTimers(damageSourcePlayer, player);
 
-                                if (Invincible || IsDead || IsOnNoDamageLandblock)
-                                    amount = 0;
+                                TakeDamageOverTime_NotifySource(damageSourcePlayer, entry.Key, amount, false, false);
 
-                                var damageSourcePlayer = damager as Player;
-                                if (damageSourcePlayer != null && damageSourcePlayer != this)
-                                {
-                                    if (player != null)
-                                        Player.UpdatePKTimers(damageSourcePlayer, player);
-
-                                    TakeDamageOverTime_NotifySource(damageSourcePlayer, entry.Key, amount, false, true);
-
-                                    if (IsAlive)
-                                        EmoteManager.OnDamage(damageSourcePlayer);
-                                }
+                                if (IsAlive)
+                                    EmoteManager.OnDamage(damageSourcePlayer);
                             }
                         }
                     }
 
-                    if (ActiveHealOverTimeList != null && ActiveHealOverTimeList.Count > 0)
+                    foreach (var entry in totalTickAmountPerDamageTypePhysical)
                     {
-                        var totalTickAmountPerVitalType = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Healers)>();
+                        TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects, true);
 
-                        var updatedHealOverTimeList = new List<HoTInfo>();
-                        foreach (var hot in ActiveHealOverTimeList)
+                        if (!playedEffects)
+                            playedEffects = true;
+
+                        if (!IsAlive)
+                            return;
+
+                        foreach (var kvp in entry.Value.Damagers)
                         {
-                            var baseTickAmount = Math.Min(hot.TickAmount, hot.TotalAmount);
-                            var totalAmountRemaining = Math.Max(hot.TotalAmount - hot.TickAmount, 0);
+                            var damager = kvp.Key;
+                            var amount = kvp.Value;
 
-                            if (totalAmountRemaining > 0)
-                                updatedHealOverTimeList.Add(new HoTInfo(hot.TickAmount, totalAmountRemaining, hot.VitalType, hot.Source));
+                            if (Invincible || IsDead || IsOnNoDamageLandblock)
+                                amount = 0;
 
-                            var healingRateMod = GetHealingRatingMod();
-
-                            var tickAmount = baseTickAmount * healingRateMod;
-
-                            var vitalTypeTotalTickAmount = 0.0f;
-                            Dictionary<WorldObject, float> vitalTypeHealers = null;
-                            if (totalTickAmountPerVitalType.TryGetValue(hot.VitalType, out var value))
+                            var damageSourcePlayer = damager as Player;
+                            if (damageSourcePlayer != null && damageSourcePlayer != this)
                             {
-                                vitalTypeTotalTickAmount = value.TotalTickAmount + tickAmount;
-                                vitalTypeHealers = value.Healers;
-                            }
-                            else
-                            {
-                                vitalTypeTotalTickAmount = tickAmount;
-                                vitalTypeHealers = new Dictionary<WorldObject, float>();
-                            }
+                                if (player != null)
+                                    Player.UpdatePKTimers(damageSourcePlayer, player);
 
-                            if (hot.Source != null)
-                            {
-                                if (vitalTypeHealers.ContainsKey(hot.Source))
-                                    vitalTypeHealers[hot.Source] += tickAmount;
-                                else
-                                    vitalTypeHealers.Add(hot.Source, tickAmount);
+                                TakeDamageOverTime_NotifySource(damageSourcePlayer, entry.Key, amount, false, true);
 
-                                if(hot.VitalType == DamageType.Health)
-                                    DamageHistory.OnHeal((uint)tickAmount);
-                            }
-
-                            totalTickAmountPerVitalType[hot.VitalType] = (vitalTypeTotalTickAmount, vitalTypeHealers);
-                        }
-                        ActiveHealOverTimeList = updatedHealOverTimeList;
-
-                        totalTickAmountPerVitalType = totalTickAmountPerVitalType.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
-
-                        var playedEffects = false;
-                        foreach (var entry in totalTickAmountPerVitalType)
-                        {
-                            var healAmount = UpdateVitalDelta(Health, (int)Math.Round(entry.Value.TotalTickAmount));
-
-                            if (player != null)
-                            {
-                                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                                    player.SendMessage($"You receive {healAmount} points of periodic {(entry.Key == DamageType.Health ? "healing" : $"{entry.Key.GetName().ToLower()} gain")}.", PropertyManager.GetBool("aetheria_heal_color").Item ? ChatMessageType.Broadcast : ChatMessageType.Combat);
-                                else
-                                    player.SendMessage($"You receive {healAmount} points of periodic {(entry.Key == DamageType.Health ? "healing" : $"{entry.Key.GetName().ToLower()} gain")}.", ChatMessageType.Magic);
-                            }
-
-                            if (!playedEffects)
-                                playedEffects = true;
-
-                            if (!IsAlive)
-                                return;
-
-                            foreach (var kvp in entry.Value.Healers)
-                            {
-                                var healer = kvp.Key;
-                                var amount = kvp.Value;
-
-                                if (IsDead)
-                                    amount = 0;
-
-                                var healSourcePlayer = healer as Player;
-                                if (healSourcePlayer != null && healSourcePlayer != this)
-                                {
-                                    var targetName = healSourcePlayer == this ? "yourself" : Name;
-                                    healSourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"You {(entry.Key == DamageType.Health ? "heal" : "infuse")} {targetName} with {amount} points of periodic {(entry.Key == DamageType.Health ? "healing" : $"{entry.Key.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
-                                }
+                                if (IsAlive)
+                                    EmoteManager.OnDamage(damageSourcePlayer);
                             }
                         }
                     }
                 }
-                finally
+
+                if (ActiveHealOverTimeList != null && ActiveHealOverTimeList.Count > 0)
                 {
-                    DoTHoTListLock.ExitWriteLock();
+                    var totalTickAmountPerVitalType = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Healers)>();
+
+                    var updatedHealOverTimeList = new List<HoTInfo>();
+                    foreach (var hot in ActiveHealOverTimeList)
+                    {
+                        var baseTickAmount = Math.Min(hot.TickAmount, hot.TotalAmount);
+                        var totalAmountRemaining = Math.Max(hot.TotalAmount - hot.TickAmount, 0);
+
+                        if (totalAmountRemaining > 0)
+                            updatedHealOverTimeList.Add(new HoTInfo(hot.TickAmount, totalAmountRemaining, hot.VitalType, hot.Source));
+
+                        var healingRateMod = GetHealingRatingMod();
+
+                        var tickAmount = baseTickAmount * healingRateMod;
+
+                        var vitalTypeTotalTickAmount = 0.0f;
+                        Dictionary<WorldObject, float> vitalTypeHealers = null;
+                        if (totalTickAmountPerVitalType.TryGetValue(hot.VitalType, out var value))
+                        {
+                            vitalTypeTotalTickAmount = value.TotalTickAmount + tickAmount;
+                            vitalTypeHealers = value.Healers;
+                        }
+                        else
+                        {
+                            vitalTypeTotalTickAmount = tickAmount;
+                            vitalTypeHealers = new Dictionary<WorldObject, float>();
+                        }
+
+                        if (hot.Source != null)
+                        {
+                            if (vitalTypeHealers.ContainsKey(hot.Source))
+                                vitalTypeHealers[hot.Source] += tickAmount;
+                            else
+                                vitalTypeHealers.Add(hot.Source, tickAmount);
+
+                            if (hot.VitalType == DamageType.Health)
+                                DamageHistory.OnHeal((uint)tickAmount);
+                        }
+
+                        totalTickAmountPerVitalType[hot.VitalType] = (vitalTypeTotalTickAmount, vitalTypeHealers);
+                    }
+                    ActiveHealOverTimeList = updatedHealOverTimeList;
+
+                    totalTickAmountPerVitalType = totalTickAmountPerVitalType.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
+
+                    var playedEffects = false;
+                    foreach (var entry in totalTickAmountPerVitalType)
+                    {
+                        var healAmount = UpdateVitalDelta(Health, (int)Math.Round(entry.Value.TotalTickAmount));
+
+                        if (player != null)
+                        {
+                            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                                player.SendMessage($"You receive {healAmount} points of periodic {(entry.Key == DamageType.Health ? "healing" : $"{entry.Key.GetName().ToLower()} gain")}.", PropertyManager.GetBool("aetheria_heal_color").Item ? ChatMessageType.Broadcast : ChatMessageType.Combat);
+                            else
+                                player.SendMessage($"You receive {healAmount} points of periodic {(entry.Key == DamageType.Health ? "healing" : $"{entry.Key.GetName().ToLower()} gain")}.", ChatMessageType.Magic);
+                        }
+
+                        if (!playedEffects)
+                            playedEffects = true;
+
+                        if (!IsAlive)
+                            return;
+
+                        foreach (var kvp in entry.Value.Healers)
+                        {
+                            var healer = kvp.Key;
+                            var amount = kvp.Value;
+
+                            if (IsDead)
+                                amount = 0;
+
+                            var healSourcePlayer = healer as Player;
+                            if (healSourcePlayer != null && healSourcePlayer != this)
+                            {
+                                var targetName = healSourcePlayer == this ? "yourself" : Name;
+                                healSourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"You {(entry.Key == DamageType.Health ? "heal" : "infuse")} {targetName} with {amount} points of periodic {(entry.Key == DamageType.Health ? "healing" : $"{entry.Key.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                            }
+                        }
+                    }
                 }
-            }
-            finally
-            {
-                DoTHoTListLock.ExitUpgradeableReadLock();
             }
         }
     }

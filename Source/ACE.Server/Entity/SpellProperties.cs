@@ -532,7 +532,7 @@ namespace ACE.Server.Entity
         /// </summary>
         public bool IsDudProjectile;
 
-        private static List<SpellId> Metaspells = new List<SpellId> { SpellId.EmpowerSpell1, SpellId.QuickenSpell1, SpellId.EnchainSpell1, SpellId.ExtendSpell1, SpellId.MaximizeSpell1, SpellId.DelaySpell1 };
+        private static List<SpellId> Metaspells = new List<SpellId> { SpellId.EmpowerSpell1, SpellId.QuickcastSpell1, SpellId.EnchainSpell1, SpellId.ExtendSpell1, SpellId.MaximizeSpell1, SpellId.DelaySpell1 };
         public bool IsMetaspell
         {
             get
@@ -546,13 +546,26 @@ namespace ACE.Server.Entity
         public int EnchainedSpellCounter;
 
         public bool IsEmpoweredSpell;
-        public bool IsQuickenedSpell;
+        public bool IsQuickcastSpell;
         public bool IsExtendedSpell;
         public bool IsMaximizedSpell;
 
         public bool IsDelayedSpell;
         public float SpellDelay;
 
-        public string NameWithMetaspellAdjectives { get { return $"{(IsDelayedSpell ? "delayed " : "")}{(IsQuickenedSpell ? "quickened " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
+        public string NameWithMetaspellAdjectives { get { return $"{(IsDelayedSpell ? "delayed " : "")}{(IsQuickcastSpell ? "quickcast " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
+        public string NameWithMetaspellAdjectivesWithoutDelayed { get { return $"{(IsQuickcastSpell ? "quickcast " : "")}{(IsExtendedSpell ? "extended " : "")}{(IsEnchainedSpell ? "enchained " : "")}{(IsMaximizedSpell ? "maximized " : "")}{(IsEmpoweredSpell ? "empowered " : "")}{Name}"; } }
+
+        public void CopyMetaspellsFrom(Spell spell)
+        {
+            IsEnchainedSpell = spell.IsEnchainedSpell;
+            EnchainedSpellCounter = spell.EnchainedSpellCounter;
+            IsEmpoweredSpell = spell.IsEmpoweredSpell;
+            IsQuickcastSpell = spell.IsQuickcastSpell;
+            IsExtendedSpell = spell.IsExtendedSpell;
+            IsMaximizedSpell = spell.IsMaximizedSpell;
+            IsDelayedSpell = spell.IsDelayedSpell;
+            SpellDelay = spell.SpellDelay;
+        }
     }
 }
