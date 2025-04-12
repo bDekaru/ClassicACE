@@ -65,7 +65,7 @@ namespace ACE.Server.WorldObjects
                     {
                         player.Exploration1MarkerProgressTracker--;
                         var msg = $"{player.Exploration1MarkerProgressTracker:N0} marker{(player.Exploration1MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                        player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
+                        player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.Fellowship, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                         if (player.Exploration1MarkerProgressTracker == 0)
                         {
@@ -83,7 +83,7 @@ namespace ACE.Server.WorldObjects
                     {
                         player.Exploration2MarkerProgressTracker--;
                         var msg = $"{player.Exploration2MarkerProgressTracker:N0} marker{(player.Exploration2MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                        player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
+                        player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.Fellowship, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                         if (player.Exploration2MarkerProgressTracker == 0)
                         {
@@ -101,7 +101,7 @@ namespace ACE.Server.WorldObjects
                     {
                         player.Exploration3MarkerProgressTracker--;
                         var msg = $"{player.Exploration3MarkerProgressTracker:N0} marker{(player.Exploration3MarkerProgressTracker != 1 ? "s" : "")} remaining.";
-                        player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.None, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
+                        player.EarnXP((-player.Level ?? -1) - 1000, XpType.Exploration, null, null, 0, null, ShareType.Fellowship, msg, PropertyManager.GetDouble("exploration_bonus_xp").Item + 0.5);
 
                         if (player.Exploration3MarkerProgressTracker == 0)
                         {
