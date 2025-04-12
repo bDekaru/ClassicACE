@@ -2382,7 +2382,7 @@ namespace ACE.Server.WorldObjects
             return true;
         }
 
-        private WeenieError CheckWieldRequirements(WorldObject item)
+        public WeenieError CheckWieldRequirements(WorldObject item)
         {
             if (!PropertyManager.GetBool("use_wield_requirements").Item)
                 return WeenieError.None;

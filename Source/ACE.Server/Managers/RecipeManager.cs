@@ -92,13 +92,26 @@ namespace ACE.Server.Managers
 
             var percentSuccess = GetRecipeChance(player, source, target, recipe);
 
+            var resultWieldError = WeenieError.None;
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && recipe.SuccessWCID != 0)
+            {
+                var testItem = WorldObjectFactory.CreateNewWorldObject(recipe.SuccessWCID);
+                if (testItem != null)
+                {
+                    if(testItem.ValidLocations != EquipMask.None)
+                        resultWieldError = player.CheckWieldRequirements(testItem);
+                    testItem.Destroy();
+                }
+            }
+
             if (percentSuccess == null)
             {
                 player.SendUseDoneEvent();
                 return;
             }
 
-            var showDialog = HasDifficulty(recipe) && player.GetCharacterOption(CharacterOption.UseCraftingChanceOfSuccessDialog);
+            var hasDifficulty = HasDifficulty(recipe);
+            var showDialog = (resultWieldError != WeenieError.None || hasDifficulty) && player.GetCharacterOption(CharacterOption.UseCraftingChanceOfSuccessDialog);
 
             if (!confirmed && player.LumAugSkilledCraft > 0)
                 player.SendMessage($"Your Aura of the Craftman augmentation increased your skill by {player.LumAugSkilledCraft}!");
@@ -135,9 +148,9 @@ namespace ACE.Server.Managers
             if (showDialog && !confirmed)
             {
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && recipe.IsTinkering())
-                    actionChain.AddAction(player, () => ShowDialog(player, source, target, null, percentSuccess.Value));
+                    actionChain.AddAction(player, () => ShowDialog(player, source, target, null, hasDifficulty ? percentSuccess.Value : null, resultWieldError));
                 else
-                    actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, percentSuccess.Value));
+                    actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, hasDifficulty ? percentSuccess.Value : null, resultWieldError));
                 actionChain.AddAction(player, () => player.IsBusy = false);
                 
                 log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance on confirmation dialog: {percentSuccess.Value}");
@@ -341,7 +354,7 @@ namespace ACE.Server.Managers
             4.5f    // 10
         };
 
-        public static void ShowDialog(Player player, WorldObject source, WorldObject target, Recipe recipe, double successChance)
+        public static void ShowDialog(Player player, WorldObject source, WorldObject target, Recipe recipe, double? successChance, WeenieError wieldError = WeenieError.None)
         {
             if(recipe == null)
             {
@@ -366,33 +379,43 @@ namespace ACE.Server.Managers
                 return;
             }
 
-            var percent = successChance * 100;
+            var msg = "";
+            if (successChance.HasValue)
+            {
+                var percent = successChance.Value * 100;
 
-            // retail messages:
+                // retail messages:
 
-            // You determine that you have a 100 percent chance to succeed.
-            // You determine that you have a 99 percent chance to succeed.
-            // You determine that you have a 38 percent chance to succeed. 5 percent is due to your augmentation.
+                // You determine that you have a 100 percent chance to succeed.
+                // You determine that you have a 99 percent chance to succeed.
+                // You determine that you have a 38 percent chance to succeed. 5 percent is due to your augmentation.
 
-            var floorMsg = $"You determine that you have a {percent.Round()} percent chance to succeed.";
+                var floorMsg = $"You determine that you have a {percent.Round()} percent chance to succeed.";
 
-            var numAugs = recipe.IsImbuing() ? player.AugmentationBonusImbueChance : 0;
+                var numAugs = recipe.IsImbuing() ? player.AugmentationBonusImbueChance : 0;
 
-            if (numAugs > 0)
-                floorMsg += $"\n{numAugs * 5} percent is due to your augmentation.";
+                if (numAugs > 0)
+                    floorMsg += $"\n{numAugs * 5} percent is due to your augmentation.";
 
-            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), floorMsg))
+                msg = floorMsg;
+
+                if (PropertyManager.GetBool("craft_exact_msg").Item)
+                {
+                    var exactMsg = $"You have a {(float)percent} percent chance of using {source.NameWithMaterial} on {target.NameWithMaterial}.";
+
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat(exactMsg, ChatMessageType.Craft));
+                }
+            }
+
+            if (wieldError != WeenieError.None)
+                msg += $"{(msg.Length > 0 ? "\n\n": "")}Warning: You do not currently meet the requirements to wield the resulting item!\n\n";
+
+            if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), msg))
             {
                 player.SendUseDoneEvent(WeenieError.ConfirmationInProgress);
                 return;
             }
 
-            if (PropertyManager.GetBool("craft_exact_msg").Item)
-            {
-                var exactMsg = $"You have a {(float)percent} percent chance of using {source.NameWithMaterial} on {target.NameWithMaterial}.";
-
-                player.Session.Network.EnqueueSend(new GameMessageSystemChat(exactMsg, ChatMessageType.Craft));
-            }
             player.SendUseDoneEvent();
         }
 
