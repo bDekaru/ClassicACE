@@ -92,14 +92,21 @@ namespace ACE.Server.Managers
 
             var percentSuccess = GetRecipeChance(player, source, target, recipe);
 
-            var resultWieldError = WeenieError.None;
+            var wieldError = false;
+            var activateError = false;
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && recipe.SuccessWCID != 0)
             {
                 var testItem = WorldObjectFactory.CreateNewWorldObject(recipe.SuccessWCID);
                 if (testItem != null)
                 {
-                    if(testItem.ValidLocations != EquipMask.None)
-                        resultWieldError = player.CheckWieldRequirements(testItem);
+                    if (testItem.ValidLocations != EquipMask.None)
+                    {
+                        wieldError = player.CheckWieldRequirements(testItem) != WeenieError.None;
+                        activateError = !testItem.CheckUseRequirements(player, true).Success;
+                    }
+                    else if(testItem.ItemUseable.HasValue && testItem.ItemUseable != Usable.Undef && testItem.ItemUseable != Usable.No)
+                        activateError = !testItem.CheckUseRequirements(player, true).Success;
+
                     testItem.Destroy();
                 }
             }
@@ -111,7 +118,7 @@ namespace ACE.Server.Managers
             }
 
             var hasDifficulty = HasDifficulty(recipe);
-            var showDialog = (resultWieldError != WeenieError.None || hasDifficulty) && player.GetCharacterOption(CharacterOption.UseCraftingChanceOfSuccessDialog);
+            var showDialog = (wieldError || activateError || hasDifficulty) && player.GetCharacterOption(CharacterOption.UseCraftingChanceOfSuccessDialog);
 
             if (!confirmed && player.LumAugSkilledCraft > 0)
                 player.SendMessage($"Your Aura of the Craftman augmentation increased your skill by {player.LumAugSkilledCraft}!");
@@ -148,9 +155,9 @@ namespace ACE.Server.Managers
             if (showDialog && !confirmed)
             {
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && recipe.IsTinkering())
-                    actionChain.AddAction(player, () => ShowDialog(player, source, target, null, hasDifficulty ? percentSuccess.Value : null, resultWieldError));
+                    actionChain.AddAction(player, () => ShowDialog(player, source, target, null, hasDifficulty ? percentSuccess.Value : null, wieldError, activateError));
                 else
-                    actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, hasDifficulty ? percentSuccess.Value : null, resultWieldError));
+                    actionChain.AddAction(player, () => ShowDialog(player, source, target, recipe, hasDifficulty ? percentSuccess.Value : null, wieldError, activateError));
                 actionChain.AddAction(player, () => player.IsBusy = false);
                 
                 log.Info($"Player = {player.Name}; Tool = {source.Name}; Target = {target.Name}; Chance on confirmation dialog: {percentSuccess.Value}");
@@ -354,7 +361,7 @@ namespace ACE.Server.Managers
             4.5f    // 10
         };
 
-        public static void ShowDialog(Player player, WorldObject source, WorldObject target, Recipe recipe, double? successChance, WeenieError wieldError = WeenieError.None)
+        public static void ShowDialog(Player player, WorldObject source, WorldObject target, Recipe recipe, double? successChance, bool wieldError = false, bool activateError = false)
         {
             if(recipe == null)
             {
@@ -407,8 +414,10 @@ namespace ACE.Server.Managers
                 }
             }
 
-            if (wieldError != WeenieError.None)
-                msg += $"{(msg.Length > 0 ? "\n\n": "")}Warning: You do not currently meet the requirements to wield the resulting item!\n\n";
+            if (wieldError)
+                msg += $"{(msg.Length > 0 ? "\n\n" : "")}Warning: You do not currently meet the requirements to wield the resulting item!\n\n";
+            else if (activateError)
+                msg += $"{(msg.Length > 0 ? "\n\n" : "")}Warning: You do not currently meet the requirements to activate the resulting item!\n\n";
 
             if (!player.ConfirmationManager.EnqueueSend(new Confirmation_CraftInteration(player.Guid, source.Guid, target.Guid), msg))
             {
