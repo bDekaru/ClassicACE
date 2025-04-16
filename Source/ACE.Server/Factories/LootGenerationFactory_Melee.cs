@@ -148,7 +148,11 @@ namespace ACE.Server.Factories
                 wo.WeaponTime = (int)(wo.WeaponTime * weaponSpeedMod);
             }
 
-            if (profile.LootQualityMod >= 0)
+            var allowSpecialProperties = true;
+            if (profile is TreasureDeathExtended extendedProfile)
+                allowSpecialProperties = extendedProfile.AllowSpecialProperties;
+
+            if (profile.LootQualityMod >= 0 && allowSpecialProperties)
             {
                 var counter = 0;
                 if (counter < 2 && RollShieldCleaving(profile, wo))

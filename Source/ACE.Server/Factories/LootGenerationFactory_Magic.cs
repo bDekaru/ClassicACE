@@ -256,8 +256,15 @@ namespace ACE.Server.Factories
 
             if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
             {
-                TryMutate_HeritageRequirement(wo, profile, roll);
-                TryMutate_AllegianceRequirement(wo, profile, roll);
+                var allowSpecialProperties = true;
+                if (profile is TreasureDeathExtended extendedProfile)
+                    allowSpecialProperties = extendedProfile.AllowSpecialProperties;
+
+                if (allowSpecialProperties)
+                {
+                    TryMutate_HeritageRequirement(wo, profile, roll);
+                    TryMutate_AllegianceRequirement(wo, profile, roll);
+                }
             }
 
             CalculateArcaneLore(wo, roll.AllSpells, roll.LifeCreatureEnchantments, roll.Cantrips, roll.MinEffectiveSpellcraft, roll.MaxEffectiveSpellcraft, roll.RolledEffectiveSpellcraft, true, out roll.MinArcaneLore, out roll.MaxArcaneLore, out roll.RolledArcaneLore);

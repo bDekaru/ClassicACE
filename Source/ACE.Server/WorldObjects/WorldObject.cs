@@ -1311,46 +1311,78 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public bool CanHaveExtraSpells()
+        public bool CanHaveExtraSpells
         {
-            if (ExtraSpellsMaxOverride != null && ExtraSpellsMaxOverride > 0)
-                return true;
-            else
-                return ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0;
-        }
-
-        public int GetMaxExtraSpellsCount()
-        {
-            if (ExtraSpellsMaxOverride != null)
-                return Math.Max(ExtraSpellsMaxOverride ?? 0, 0);
-
-            var baseSlots = (int)Math.Floor((ItemWorkmanship ?? 0) / 2f);
-            if(IsRobe)
-                return baseSlots == 0 ? 1 : (baseSlots * 2);
-            return baseSlots;
-        }
-
-        public int GetMaxTinkerCount()
-        {
-            if (TinkerMaxCountOverride != null && TinkerMaxCountOverride > 0)
-                return TinkerMaxCountOverride.Value;
-            else if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0)
+            get
             {
-                var workmanship = ItemWorkmanship ?? 0;
-                var maxTinkerCount = (int)Math.Floor(workmanship / 3.1f) + 1;
-                if (HasArmorLevel())
-                    maxTinkerCount += Math.Min(workmanship - 1, 2);
-                return maxTinkerCount;
+                if (ExtraSpellsMaxOverride.HasValue && ExtraSpellsMaxOverride > 0)
+                    return true;
+                else
+                    return ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0;
             }
-            else
-                return 0;
         }
 
-        public int GetMinSalvageQualityForTinkering()
+        public int MaxExtraSpellsCount
         {
-            return (int)Math.Floor((TinkerWorkmanshipOverride ?? ItemWorkmanship ?? 0) / 3.5f) * 4;
+            get
+            {
+                if (ExtraSpellsMaxOverride.HasValue)
+                    return Math.Max(ExtraSpellsMaxOverride.Value, 0);
+
+                var baseSlots = (int)Math.Floor((ItemWorkmanship ?? 0) / 2f);
+                if (IsRobe)
+                    return baseSlots == 0 ? 1 : (baseSlots * 2);
+                return baseSlots;
+            }
         }
 
+        public bool CanBeTinkered
+        {
+            get
+            {
+                if (TinkerMaxCountOverride.HasValue && TinkerMaxCountOverride > 0)
+                    return true;
+                else if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0)
+                    return true;
+                else
+                    return false;
+            }
+        }
+
+        public int MaxTinkerCount
+        {
+            get
+            {
+                if (TinkerMaxCountOverride.HasValue)
+                    return Math.Max(TinkerMaxCountOverride.Value, 0);
+                else if (ItemWorkmanship > 0 && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0)
+                {
+                    var workmanship = ItemWorkmanship ?? 0;
+                    var maxTinkerCount = (int)Math.Floor(workmanship / 3.1f) + 1;
+                    if (HasArmorLevel())
+                        maxTinkerCount += Math.Min(workmanship - 1, 2);
+                    return maxTinkerCount;
+                }
+                else
+                    return 0;
+            }
+        }
+
+        public int MinSalvageQualityForTinkering
+        {
+            get
+            {
+                return (int)Math.Floor((TinkerWorkmanshipOverride ?? ItemWorkmanship ?? 0) / 3.5f) * 4;
+            }
+        }
+
+        public bool HasSpells
+        {
+            get
+            {
+                return SpellDID.HasValue || ProcSpell.HasValue || (Biota != null && Biota.PropertiesSpellBook != null && Biota.PropertiesSpellBook.Count > 0);
+            }
+        }
         public double GetHighestTierAroundObject(float maxDistance)
         {
             double? maxTier = null;

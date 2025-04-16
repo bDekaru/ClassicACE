@@ -1260,7 +1260,7 @@ namespace ACE.Server.Factories
             return CreateRandomLootObjects(tier, 0.0f, category, treasureItemType, armorType, weaponType);
         }
 
-        public static WorldObject CreateRandomLootObjects(int tier, float lootQualityMod, TreasureItemCategory category, TreasureItemType_Orig treasureItemType = TreasureItemType_Orig.Undef, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef, TreasureHeritageGroup heritageGroup = TreasureHeritageGroup.Invalid)
+        public static WorldObject CreateRandomLootObjects(int tier, float lootQualityMod, TreasureItemCategory category, TreasureItemType_Orig treasureItemType = TreasureItemType_Orig.Undef, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef, TreasureHeritageGroup heritageGroup = TreasureHeritageGroup.Invalid, bool allowSpecialProperties = true)
         {
             var treasureDeath = new TreasureDeathExtended()
             {
@@ -1286,7 +1286,9 @@ namespace ACE.Server.Factories
                 MundaneItemMaxAmount = 1,
                 MundaneItemTypeSelectionChances = 7,
 
-                UnknownChances = 21
+                UnknownChances = 21,
+
+                AllowSpecialProperties = allowSpecialProperties
             };
 
             return CreateRandomLootObjects(treasureDeath, category);

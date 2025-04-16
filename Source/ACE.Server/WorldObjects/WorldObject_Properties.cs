@@ -3587,5 +3587,17 @@ namespace ACE.Server.WorldObjects
             get => GetProperty(PropertyString.ArcaneLoreRollLog);
             set { if (value == null) RemoveProperty(PropertyString.ArcaneLoreRollLog); else SetProperty(PropertyString.ArcaneLoreRollLog, value); }
         }
+
+        public bool IsVendorGeneratedItem
+        {
+            get => GetProperty(PropertyBool.IsVendorGeneratedItem) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.IsVendorGeneratedItem); else SetProperty(PropertyBool.IsVendorGeneratedItem, value); }
+        }
+
+        public bool BlockSpellExtraction
+        {
+            get => GetProperty(PropertyBool.BlockSpellExtraction) ?? false;
+            set { if (!value) RemoveProperty(PropertyBool.BlockSpellExtraction); else SetProperty(PropertyBool.BlockSpellExtraction, value); }
+        }
     }
 }

@@ -1,5 +1,6 @@
 using ACE.Common;
 using ACE.Database;
+using ACE.Database.Models.World;
 using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Models;
@@ -14,6 +15,8 @@ using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Spell = ACE.Server.Entity.Spell;
+using Weenie = ACE.Entity.Models.Weenie;
 
 namespace ACE.Server.WorldObjects
 {
@@ -116,7 +119,10 @@ namespace ACE.Server.WorldObjects
                         player.SendUseDoneEvent();
                         return;
                     case InjectSpellResult.TargetCannotContainMoreSpells:
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {data.Target.NameWithMaterial} cannot contain any more spells.", ChatMessageType.Craft));
+                        if(data.Target.MaxExtraSpellsCount == 0)
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {data.Target.NameWithMaterial} cannot receive spell tranfers.", ChatMessageType.Craft));
+                        else
+                            player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {data.Target.NameWithMaterial} cannot contain any more spells.", ChatMessageType.Craft));
                         player.SendUseDoneEvent();
                         return;
                     case InjectSpellResult.RequiresConfirmation:
@@ -182,10 +188,11 @@ namespace ACE.Server.WorldObjects
 
                 if (target.Retained == true)
                 {
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} is Retained!.", ChatMessageType.Craft));
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} is Retained!", ChatMessageType.Craft));
                     player.SendUseDoneEvent();
                     return;
                 }
+
                 int spellCount = 0;
                 var allSpells = target.Biota.GetKnownSpellsIds(target.BiotaDatabaseLock).Select(i => (SpellId)i).ToList();
                 if (target.ProcSpell != null && target.ProcSpell != 0)
@@ -219,6 +226,13 @@ namespace ACE.Server.WorldObjects
                 if (spellCount == 0)
                 {
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} does not have any valid spells to extract.", ChatMessageType.Craft));
+                    player.SendUseDoneEvent();
+                    return;
+                }
+
+                if (target.BlockSpellExtraction)
+                {
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot have its spells extracted!", ChatMessageType.Craft));
                     player.SendUseDoneEvent();
                     return;
                 }
@@ -278,6 +292,19 @@ namespace ACE.Server.WorldObjects
                         var newScroll = WorldObjectFactory.CreateNewWorldObject(50130); // Spell Transfer Scroll
                         newScroll.SpellDID = (uint)spellToExtractId;
                         newScroll.Name += spellName;
+
+                        var spellScrollBlankWeenie =  DatabaseManager.World.GetScrollWeenie((uint)spellToExtractId);
+                        if (spellScrollBlankWeenie != null)
+                        {
+                            Database.Models.World.Weenie spellScrollWeenie = DatabaseManager.World.GetWeenie(spellScrollBlankWeenie.WeenieClassId);
+                            if (spellScrollWeenie != null)
+                            {
+                                var scrollIconId = spellScrollWeenie.GetProperty(ACE.Entity.Enum.Properties.PropertyDataId.Icon);
+                                if (scrollIconId.HasValue && scrollIconId != 0)
+                                    newScroll.IconId = scrollIconId.Value;
+                            }
+                        }
+
                         if (player.TryCreateInInventoryWithNetworking(newScroll)) // Create the transfer scroll
                             player.TryConsumeFromInventoryWithNetworking(target); // Destroy the item
                         else
@@ -509,7 +536,7 @@ namespace ACE.Server.WorldObjects
             RemoveTinkerSpellsFromList(data.Target.TinkerLog, data.LifeCreatureEnchantments);
             RemoveTinkerSpellsFromList(data.Target.TinkerLog, data.Cantrips);
 
-            if (spellToReplace == null && (data.Target.ExtraSpellsCount ?? 0) >= data.Target.GetMaxExtraSpellsCount())
+            if (spellToReplace == null && (data.Target.ExtraSpellsCount ?? 0) >= data.Target.MaxExtraSpellsCount)
             {
                 data.Result = InjectSpellResult.TargetCannotContainMoreSpells;
                 return data;

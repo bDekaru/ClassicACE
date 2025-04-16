@@ -718,14 +718,24 @@ namespace ACE.Server.Network.Structure
                     hasExtraPropertiesText = true;
                 }
 
-                var maxTinkers = wo.GetMaxTinkerCount();
-                if (maxTinkers > 0)
+                if (wo.CanBeTinkered)
                 {
-                    if (hasExtraPropertiesText)
-                        extraPropertiesText += "\n";
-                    extraPropertiesText += $"Tinkering Count: {wo.NumTimesTinkered}/{maxTinkers}.\n";
-                    extraPropertiesText += $"Minimum Salvage Workmanship: {wo.GetMinSalvageQualityForTinkering()}.";
-                    hasExtraPropertiesText = true;
+                    var maxTinkers = wo.MaxTinkerCount;
+                    if (maxTinkers > 0)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Tinkering Count: {wo.NumTimesTinkered}/{maxTinkers}.\n";
+                        extraPropertiesText += $"Minimum Salvage Workmanship: {wo.MinSalvageQualityForTinkering}.";
+                        hasExtraPropertiesText = true;
+                    }
+                    else
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"This item cannot be tinkered.";
+                        hasExtraPropertiesText = true;
+                    }
                 }
 
                 if (wo.TinkerLog != null)
@@ -754,11 +764,30 @@ namespace ACE.Server.Network.Structure
                     }
                 }
 
-                if (wo.CanHaveExtraSpells())
+                if (wo.CanHaveExtraSpells)
+                {
+                    var maxExtraSpells = wo.MaxExtraSpellsCount;
+                    if (maxExtraSpells > 0)
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Extra Spells Count: {wo.ExtraSpellsCount ?? 0}/{maxExtraSpells}.";
+                        hasExtraPropertiesText = true;
+                    }
+                    else
+                    {
+                        if (hasExtraPropertiesText)
+                            extraPropertiesText += "\n";
+                        extraPropertiesText += $"Spells cannot be transferred to this item.";
+                        hasExtraPropertiesText = true;
+                    }
+                }
+
+                if(wo.BlockSpellExtraction)
                 {
                     if (hasExtraPropertiesText)
                         extraPropertiesText += "\n";
-                    extraPropertiesText += $"Extra Spells Count: {wo.ExtraSpellsCount ?? 0}/{wo.GetMaxExtraSpellsCount()}.";
+                    extraPropertiesText += $"Spells cannot be extracted from this item.";
                     hasExtraPropertiesText = true;
                 }
 

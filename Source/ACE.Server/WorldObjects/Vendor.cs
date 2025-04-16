@@ -455,7 +455,7 @@ namespace ACE.Server.WorldObjects
             }
 
             bool isFireSale = EventManager.FireSaleTownName != "" && EventManager.FireSaleTownName == GetProperty(PropertyString.TownName);
-            RotUniques(!isFireSale);
+            RotUniques(isFireSale);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 RestockRandomItems();
@@ -1179,13 +1179,16 @@ namespace ACE.Server.WorldObjects
                 if (!isFireSale && IsSetupForFireSale)
                     IsSetupForFireSale = false;
                 interval = VendorRestockInterval != 0 ? VendorRestockInterval : PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item;
+
+                if (isFireSale)
+                    interval /= 6;
             }
 
             if ((DateTime.UtcNow - LastRestockTime).TotalSeconds < interval)
                 return;
             LastRestockTime = DateTime.UtcNow;
 
-            RotUniques(!isFireSale);
+            RotUniques(isFireSale);
 
             // Decay our recent income and outflow so prices can change accordingly.
             var currentTime = Time.GetUnixTime();
@@ -1201,7 +1204,7 @@ namespace ACE.Server.WorldObjects
             UpdateHappyVendor();
 
             int randomItemStockAmount;
-            if (performFireSaleSetup)
+            if (isFireSale)
                 randomItemStockAmount = ShopRandomItemStockAmount * EventManager.FireSaleItemStockAmountMultiplier;
             else
                 randomItemStockAmount = ShopRandomItemStockAmount;
@@ -1347,12 +1350,32 @@ namespace ACE.Server.WorldObjects
 
         private void AddRandomItem(TreasureItemType_Orig treasureItemType, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef, bool isFireSaleItem = false)
         {
+            var shopQualityMod = ShopQualityMod;
+            var allowSpecialProperties = false;
+
+            if (isFireSaleItem)
+            {
+                shopQualityMod = Math.Max(ShopQualityMod, 0.4f);
+                allowSpecialProperties = true;
+            }
+
             var itemTier = RollTier(Tier ?? 1);
-            var item = LootGenerationFactory.CreateRandomLootObjects(itemTier, ShopQualityMod, (DealMagicalItems ?? false) ? TreasureItemCategory.MagicItem : TreasureItemCategory.Item, treasureItemType, armorType, weaponType, ShopHeritage);
+            var item = LootGenerationFactory.CreateRandomLootObjects(itemTier, shopQualityMod, (DealMagicalItems ?? false) ? TreasureItemCategory.MagicItem : TreasureItemCategory.Item, treasureItemType, armorType, weaponType, ShopHeritage, allowSpecialProperties);
             if (item == null)
                 return;
 
             item.IsFireSaleItem = isFireSaleItem;
+            item.IsVendorGeneratedItem = true;
+
+            if (!isFireSaleItem)
+            {
+                if (item.CanHaveExtraSpells)
+                    item.ExtraSpellsMaxOverride = 0;
+                if (item.CanBeTinkered)
+                    item.TinkerMaxCountOverride = 0;
+                if (item.HasSpells)
+                    item.BlockSpellExtraction = true;
+            }
 
             var amount = item.StackSize ?? 1;
             if (amount > 1)
@@ -1392,7 +1415,7 @@ namespace ACE.Server.WorldObjects
         /// Unique items in the vendor's inventory sold to the vendor by players
         /// expire after vendor_unique_rot_time seconds
         /// </summary>
-        private void RotUniques(bool forceRotAllFireSaleItems)
+        private void RotUniques(bool isFireSale)
         {
             List<WorldObject> itemsToRemove = null;
 
@@ -1411,7 +1434,13 @@ namespace ACE.Server.WorldObjects
                 if (VendorStockTimeToRot != 0)
                     rotTime = rotTime.AddSeconds(VendorStockTimeToRot);
                 else
-                    rotTime = rotTime.AddSeconds(PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item);
+                {
+                    var time = PropertyManager.GetDouble("vendor_unique_rot_time", 300).Item;
+                    if (uniqueItem.IsFireSaleItem)
+                        time /= 6;
+                    
+                    rotTime = rotTime.AddSeconds(time);
+                }
 
                 if (DateTime.UtcNow >= rotTime)
                 {
@@ -1420,7 +1449,7 @@ namespace ACE.Server.WorldObjects
 
                     itemsToRemove.Add(uniqueItem);
                 }
-                else if(forceRotAllFireSaleItems && uniqueItem.IsFireSaleItem)
+                else if(!isFireSale && uniqueItem.IsFireSaleItem)
                 {
                     if (itemsToRemove == null)
                         itemsToRemove = new List<WorldObject>();

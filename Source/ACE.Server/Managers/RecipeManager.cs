@@ -899,13 +899,13 @@ namespace ACE.Server.Managers
 
             if (recipe.IsTinkering() && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (target.NumTimesTinkered >= target.GetMaxTinkerCount() && source.MaterialType != MaterialType.Ivory && source.MaterialType != MaterialType.Leather) // Ivory and leather do not consume tinker slots.
+                if (target.NumTimesTinkered >= target.MaxTinkerCount && source.MaterialType != MaterialType.Ivory && source.MaterialType != MaterialType.Leather) // Ivory and leather do not consume tinker slots.
                 {
-                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot be tinkered any further.", ChatMessageType.Broadcast));
+                    player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {target.NameWithMaterial} cannot be tinkered{(target.NumTimesTinkered > 0 ? " any further." : ".")}", ChatMessageType.Broadcast));
                     return false;
                 }
 
-                if(Math.Floor(source.Workmanship ?? 0) < target.GetMinSalvageQualityForTinkering())
+                if(Math.Floor(source.Workmanship ?? 0) < target.MinSalvageQualityForTinkering)
                 {
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat($"The {source.NameWithMaterial} cannot be applied to {target.NameWithMaterial} because its workmanship is not high enough.", ChatMessageType.Broadcast));
                     return false;
@@ -1954,7 +1954,7 @@ namespace ACE.Server.Managers
                     {
                         skipMutateScript = true;
 
-                        var slotCount = target.GetMaxExtraSpellsCount();
+                        var slotCount = target.MaxExtraSpellsCount;
 
                         if (!target.IsRobe)
                             target.ExtraSpellsMaxOverride = slotCount + 1;
