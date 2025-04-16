@@ -952,6 +952,7 @@ namespace ACE.Server.WorldObjects
         private float ShopQualityMod = 0.0f;
         private bool RandomItemGenerationInitialized = false;
         private bool IsStarterOutpostVendor = false;
+        private bool IsWildernessVendor = false;
 
         private bool sellsRandomArmor;
         private bool sellsRandomMeleeWeapons;
@@ -1061,6 +1062,9 @@ namespace ACE.Server.WorldObjects
                     case "Stonehold":
                         Tier = 4;
                         ShopQualityMod = 0.0f;
+                        break;
+                    default:
+                        IsWildernessVendor = true;
                         break;
                 }
             }
@@ -1367,7 +1371,7 @@ namespace ACE.Server.WorldObjects
             item.IsFireSaleItem = isFireSaleItem;
             item.IsVendorGeneratedItem = true;
 
-            if (!isFireSaleItem)
+            if (!isFireSaleItem && !IsWildernessVendor)
             {
                 if (item.CanHaveExtraSpells)
                     item.ExtraSpellsMaxOverride = 0;
