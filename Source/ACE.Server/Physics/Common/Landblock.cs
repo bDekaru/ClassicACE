@@ -294,7 +294,11 @@ namespace ACE.Server.Physics.Common
         {
             var cellX = (int)Math.Floor(x / LandDefs.CellLength);
             var cellY = (int)Math.Floor(y / LandDefs.CellLength);
-            var terrain = Terrain[cellX * (LandDefs.BlockSide + 1) + cellY];     // ensure within bounds?
+
+            cellX = Math.Clamp(cellX, 0, LandDefs.BlockSide);
+            cellY = Math.Clamp(cellY, 0, LandDefs.BlockSide);
+
+            var terrain = Terrain[cellX * (LandDefs.BlockSide + 1) + cellY];
             return (terrain & 0x3) != 0;    // TODO: more complicated check for within road range
         }
 
@@ -303,13 +307,16 @@ namespace ACE.Server.Physics.Common
             int x = (int)(obj.X / TileLength);
             int y = (int)(obj.Y / TileLength);
 
+            x = Math.Clamp(x, 0, LandDefs.BlockSide);
+            y = Math.Clamp(y, 0, LandDefs.BlockSide);
+
             float rMin = RoadWidth;
             float rMax = TileLength - RoadWidth;
 
             int x0 = x;
-            int x1 = x0 + 1;
+            int x1 = Math.Clamp(x0 + 1, 0, LandDefs.BlockSide);
             int y0 = y;
-            int y1 = y0 + 1;
+            int y1 = Math.Clamp(y0 + 1, 0, LandDefs.BlockSide);
 
             uint r0 = GetRoad(x0, y0);
             uint r1 = GetRoad(x0, y1);
