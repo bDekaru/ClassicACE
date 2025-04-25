@@ -6,6 +6,7 @@ using ACE.Common.Extensions;
 using ACE.Database;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
+using ACE.Server.Factories.Entity;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.WorldObjects;
 
@@ -264,140 +265,150 @@ namespace ACE.Server.Managers
             PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
         }
 
+        public static int RollOnlineLevel()
+        {
+            var levelSpreadMap = new Dictionary<int, int>();
+            var onlinePlayers = PlayerManager.GetAllOnline();
+
+            foreach (var player in onlinePlayers)
+            {
+                if (player.GodState != null || player.IsOvertlyPlussed)
+                    continue;
+
+                var level = player.Level ?? 1;
+                if (levelSpreadMap.ContainsKey(level))
+                    levelSpreadMap[level]++;
+                else
+                    levelSpreadMap[level] = 1;
+            }
+
+            if (levelSpreadMap.Count == 0)
+                return 0;
+
+            var levelChance = new ChanceTable<int>(ChanceTableType.Weight);
+            foreach (var entry in levelSpreadMap)
+            {
+                levelChance.Add((entry.Key, entry.Value));
+            }
+
+            return levelChance.Roll();
+        }
+
         public static void RollHotDungeon(ushort forceLandblock = 0)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_interval").Item);
-
-            var onlinePlayers = PlayerManager.GetAllOnline();
-
-            if (onlinePlayers.Count > 0 || forceLandblock != 0)
+            var onlineLevel = RollOnlineLevel();
+            if (onlineLevel > 0 || forceLandblock != 0)
             {
-                var averageLevel = 0;
-                var godCharactersCount = 0;
-                foreach (var player in onlinePlayers)
+                List<ExplorationSite> possibleDungeonList;
+
+                if (forceLandblock == 0)
                 {
-                    if (player.GodState == null && !player.IsOvertlyPlussed)
-                        averageLevel += player.Level ?? 1;
-                    else
-                        godCharactersCount++;
+                    var minLevel = Math.Max(onlineLevel - (int)(onlineLevel * 0.1f), 1);
+                    var maxLevel = onlineLevel + (int)(onlineLevel * 0.2f);
+                    if (onlineLevel > 100)
+                        maxLevel = int.MaxValue;
+                    possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, onlineLevel);
                 }
-                var onlineMinusGods = onlinePlayers.Count - godCharactersCount;
+                else
+                    possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLandblock(forceLandblock);
 
-                if (onlineMinusGods > 0 || forceLandblock != 0)
+                if (possibleDungeonList.Count != 0)
                 {
-                    List<ExplorationSite> possibleDungeonList;
+                    var dungeon = possibleDungeonList[ThreadSafeRandom.Next(0, possibleDungeonList.Count - 1)];
 
-                    if (forceLandblock == 0)
+                    string dungeonName;
+                    string dungeonDirections;
+                    var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)dungeon.Landblock).FirstOrDefault();
+                    if (entryLandblock != null)
                     {
-                        averageLevel /= onlineMinusGods;
-
-                        var minLevel = Math.Max(averageLevel - (int)(averageLevel * 0.1f), 1);
-                        var maxLevel = averageLevel + (int)(averageLevel * 0.2f);
-                        if (averageLevel > 100)
-                            maxLevel = int.MaxValue;
-                        possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLevelRange(minLevel, maxLevel, averageLevel);
+                        dungeonName = entryLandblock.Name;
+                        if (entryLandblock.MicroRegion != "")
+                            dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MicroRegion}";
+                        else if (entryLandblock.MacroRegion != "" && entryLandblock.MacroRegion != "Dereth")
+                            dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MacroRegion}";
+                        else
+                            dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference}";
                     }
                     else
-                        possibleDungeonList = DatabaseManager.World.GetExplorationSitesByLandblock(forceLandblock);
-
-                    if (possibleDungeonList.Count != 0)
                     {
-                        var dungeon = possibleDungeonList[ThreadSafeRandom.Next(0, possibleDungeonList.Count - 1)];
-
-                        string dungeonName;
-                        string dungeonDirections;
-                        var entryLandblock = DatabaseManager.World.GetLandblockDescriptionsByLandblock((ushort)dungeon.Landblock).FirstOrDefault();
-                        if (entryLandblock != null)
-                        {
-                            dungeonName = entryLandblock.Name;
-                            if (entryLandblock.MicroRegion != "")
-                                dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MicroRegion}";
-                            else if (entryLandblock.MacroRegion != "" && entryLandblock.MacroRegion != "Dereth")
-                                dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference} in {entryLandblock.MacroRegion}";
-                            else
-                                dungeonDirections = $"{entryLandblock.Directions} {entryLandblock.Reference}";
-                        }
-                        else
-                        {
-                            dungeonName = $"unknown location({dungeon.Landblock})";
-                            dungeonDirections = "at an unknown location";
-                        }
-
-                        HotDungeonLandblock = dungeon.Landblock;
-                        HotDungeonName = dungeonName;
-
-                        var dungeonLevel = Math.Clamp(dungeon.Level, dungeon.MinLevel, dungeon.MaxLevel != 0 ? dungeon.MaxLevel : int.MaxValue);
-                        HotDungeonDescription = $"Extra experience rewards dungeon: {dungeonName} located {dungeonDirections}. Dungeon level: {dungeonLevel:N0}.";
-
-                        NextHotDungeonEnd = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_duration").Item);
-                        NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_interval").Item);
-
-                        var timeRemaining = TimeSpan.FromSeconds(PropertyManager.GetDouble("hot_dungeon_duration").Item).GetFriendlyString();
-
-                        var msg = $"{dungeonName} will be giving extra experience rewards for the next {timeRemaining}! The dungeon level is {dungeonLevel:N0}. The entrance is located {dungeonDirections}!";
-                        PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
-                        PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
-
-                        return;
+                        dungeonName = $"unknown location({dungeon.Landblock})";
+                        dungeonDirections = "at an unknown location";
                     }
+
+                    HotDungeonLandblock = dungeon.Landblock;
+                    HotDungeonName = dungeonName;
+
+                    var dungeonLevel = Math.Clamp(dungeon.Level, dungeon.MinLevel, dungeon.MaxLevel != 0 ? dungeon.MaxLevel : int.MaxValue);
+                    HotDungeonDescription = $"Extra experience rewards dungeon: {dungeonName} located {dungeonDirections}. Dungeon level: {dungeonLevel:N0}.";
+
+                    NextHotDungeonEnd = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_duration").Item);
+                    NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_interval").Item);
+
+                    var timeRemaining = TimeSpan.FromSeconds(PropertyManager.GetDouble("hot_dungeon_duration").Item).GetFriendlyString();
+
+                    var msg = $"{dungeonName} will be giving extra experience rewards for the next {timeRemaining}! The dungeon level is {dungeonLevel:N0}. The entrance is located {dungeonDirections}!";
+                    PlayerManager.BroadcastToAll(new GameMessageSystemChat(msg, ChatMessageType.WorldBroadcast));
+                    PlayerManager.LogBroadcastChat(Channel.AllBroadcast, null, msg);
+
+                    return;
                 }
             }
 
             NextHotDungeonRoll = Time.GetFutureUnixTime(PropertyManager.GetDouble("hot_dungeon_roll_delay").Item); // We failed to select a new hot dungeon, reschedule it.
         }
 
-        public static List<string> PossibleFireSaleTowns = new List<string>()
+        public static List<(string Name, int Tier)> PossibleFireSaleTowns = new List<(string, int)>()
         {
-            "Arwic",
-            "Eastham",
-            "Rithwic",
-            "Cragstone",
-            "Holtburg",
-            "Glenden Wood",
-            "Mayoi",
-            "Yanshi",
-            "Shoushi",
-            "Hebian-to",
-            "Underground City",
-            "Samsur",
-            "Zaikhal",
-            "Yaraq",
-            "Qalaba'r",
-            "Tufa",
-            "Xarabydun",
-            "Uziz",
-            "Dryreach",
-            "Baishi",
-            "Sawato",
-            "Fort Tethana",
-            "Crater Lake",
-            "Plateau",
-            "Stonehold",
-            "Kara",
-            "Wai Jhou",
-            "Lytelthorpe",
-            "Lin",
-            "Nanto",
-            "Tou-Tou",
-            "Al-Arqas",
-            "Al-Jalima",
-            "Khayyaban",
-            "Neydisa Castle",
-            "Ayan Baqur",
-            "Kryst",
-            "MacNiall's Freehold",
-            "Linvak Tukal",
-            "Danby's Outpost",
-            "Ahurenga",
-            "Bluespire",
-            "Greenspire",
-            "Redspire",
-            "Timaru",
-            "Candeth Keep",
-            "Bandit Castle"
+            ("Arwic", 2),
+            ("Eastham", 2),
+            ("Rithwic", 1),
+            ("Cragstone", 2),
+            ("Holtburg", 1),
+            ("Glenden Wood", 2),
+            ("Mayoi", 2),
+            ("Yanshi", 1),
+            ("Shoushi", 1),
+            ("Hebian-to", 2),
+            ("Underground City", 1),
+            ("Samsur", 1),
+            ("Zaikhal", 2),
+            ("Yaraq", 1),
+            ("Qalaba'r", 3),
+            ("Tufa", 1),
+            ("Xarabydun", 1),
+            ("Uziz", 2),
+            ("Dryreach", 3),
+            ("Baishi", 2),
+            ("Sawato", 2),
+            ("Fort Tethana", 4),
+            ("Crater Lake", 3),
+            ("Plateau", 3),
+            ("Stonehold", 4),
+            ("Kara", 3),
+            ("Wai Jhou", 4),
+            ("Lytelthorpe", 1),
+            ("Lin", 2),
+            ("Nanto", 1),
+            ("Tou-Tou", 2),
+            ("Al-Arqas", 1),
+            ("Al-Jalima", 2),
+            ("Khayyaban", 2),
+            ("Neydisa Castle", 3),
+            ("Ayan Baqur", 4),
+            ("Kryst", 2),
+            ("MacNiall's Freehold", 3),
+            ("Linvak Tukal", 3),
+            ("Danby's Outpost", 3),
+            ("Ahurenga", 2),
+            ("Bluespire", 1),
+            ("Greenspire", 1),
+            ("Redspire", 1),
+            ("Timaru", 3),
+            ("Candeth Keep", 4),
+            ("Bandit Castle", 3)
         };
 
         public static string FireSaleTownName = "";
@@ -450,21 +461,29 @@ namespace ACE.Server.Managers
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
-            NextFireSaleTownRoll = Time.GetFutureUnixTime(FireSaleTownInterval);
-
-            var onlinePlayers = PlayerManager.GetAllOnline();
-
-            if (onlinePlayers.Count > 0 || forceTown != "")
+            var onlineLevel = RollOnlineLevel();
+            if (onlineLevel > 0 || forceTown != "")
             {
-                if (forceTown == "")
-                    FireSaleTownName = PossibleFireSaleTowns[ThreadSafeRandom.Next(0, PossibleFireSaleTowns.Count - 1)];
-                else if (PossibleFireSaleTowns.Contains(forceTown))
-                    FireSaleTownName = forceTown;
-                else
-                    return;
+                var newFireTownSale = "";
 
-                if (FireSaleTownName != "")
+                if (forceTown == "")
                 {
+                    var onlineTier = Math.Clamp((int)Creature.CalculateExtendedTier(onlineLevel), 1, 4); // Cap tier to 4 as that is currently the max town tier.
+
+                    var filteredFireSaleTowns = PossibleFireSaleTowns.Where(t => t.Tier == onlineTier).ToList();
+                    if (filteredFireSaleTowns.Count > 0)
+                        newFireTownSale = filteredFireSaleTowns[ThreadSafeRandom.Next(0, filteredFireSaleTowns.Count - 1)].Name;
+                }
+                else
+                {
+                    var filteredFireSaleTowns = PossibleFireSaleTowns.Where(t => t.Name.Contains(forceTown)).ToList();
+                    if (filteredFireSaleTowns.Count > 0)
+                        newFireTownSale = forceTown;
+                }
+
+                if (newFireTownSale != "")
+                {
+                    FireSaleTownName = newFireTownSale;
                     FireSaleTownDescription = $"Current Fire Sale Town: {FireSaleTownName}.";
 
                     NextFireSaleTownEnd = Time.GetFutureUnixTime(FireSaleTownDuration);
