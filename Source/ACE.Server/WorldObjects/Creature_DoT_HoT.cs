@@ -1,3 +1,4 @@
+using ACE.Common;
 using ACE.Entity.Enum;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
@@ -116,7 +117,8 @@ namespace ACE.Server.WorldObjects
                 slayerMod = GetWeaponCreatureSlayerModifier(sourceWeapon, sourceCreature, this);
             }
 
-            if (attackSkill != null && Player.MagicSkills.Contains(attackSkill.Skill))
+            var isMagic = attackSkill != null && Player.MagicSkills.Contains(attackSkill.Skill);
+            if (isMagic)
             {
                 absorbMod = SpellProjectile.GetAbsorbMod(source, this);
 
@@ -136,32 +138,34 @@ namespace ACE.Server.WorldObjects
                 ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, source, casterMods, weaponResistanceMod));
             }
 
+            var resistanceMod = (float)Math.Max(0.0f, GetResistanceMod(GetResistanceType(damageType), this, null, weaponResistanceMod));
+            var estimatedTotalAmount = totalAmount * casterMods * resistanceMod; // This is estimated as it could change if the target changes resistances while this dot ticks.
+
             if (targetPlayer != null && sourceCreature != null)
                 targetPlayer.SetCurrentAttacker(sourceCreature);
 
             if (isPvP)
                 Player.UpdatePKTimers(sourcePlayer, targetPlayer);
 
-            string verb = null, plural = null;
-            var percent = totalAmount / Health.MaxValue;
-            Strings.GetAttackVerb(damageType, percent, ref verb, ref plural);
             var critMsg = isCritical ? "Critical hit! " : "";
+            var messageType = ChatMessageType.Magic;
+            var damageTypeString = damageType.GetName().ToLower();
 
             if (sourcePlayer != null || sourceMessage == "")
             {
                 var targetName = source == this ? "yourself" : Name;
-                if(sourceMessage == null)
-                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{critMsg}You {verb} {targetName} with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+                if (sourceMessage == null)
+                    sourcePlayer.SendMessage($"{critMsg}Your attack adds {estimatedTotalAmount:N0} points of periodic {damageTypeString} damage to {targetName}.", messageType);
                 else
-                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{critMsg}Your {sourceMessage} {plural} {targetName} with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+                    sourcePlayer.SendMessage($"{critMsg}Your {sourceMessage} adds {estimatedTotalAmount:N0} points of periodic {damageTypeString} damage to {targetName}.", messageType);
             }
 
-            if (targetPlayer != null && targetPlayer != sourcePlayer)
+            if (targetPlayer != null && targetPlayer != source)
             {
                 if (sourceMessage == null || sourceMessage == "")
-                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{critMsg}{sourcePlayer.Name} {plural} you with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+                    targetPlayer.SendMessage($"{critMsg}{source.Name}'s attack adds {estimatedTotalAmount:N0} points of periodic {damageTypeString} damage to you.", messageType);
                 else
-                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{critMsg}{sourcePlayer.Name}'s {sourceMessage} {plural} you with periodic {damageType.GetName().ToLower()} damage.", ChatMessageType.Magic));
+                    targetPlayer.SendMessage($"{critMsg}{source.Name}'s {sourceMessage} adds {estimatedTotalAmount:N0} points of periodic {damageTypeString} damage to you.", messageType);
             }
         }
 
@@ -181,8 +185,7 @@ namespace ACE.Server.WorldObjects
                 {
                     bool isDead = false;
 
-                    var totalTickAmountPerDamageTypeMagic = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Damagers)>();
-                    var totalTickAmountPerDamageTypePhysical = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Damagers)>();
+                    var totalTickAmountPerDamageType = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Damagers)>();
 
                     var totalTickAmount = 0.0f;
 
@@ -206,73 +209,42 @@ namespace ACE.Server.WorldObjects
                             isDead = true;
                         }
 
-                        if (dot.CombatType == CombatType.Magic)
+                        var elementTotalTickAmount = 0.0f;
+                        Dictionary<WorldObject, float> elementDamagers = null;
+                        if (totalTickAmountPerDamageType.TryGetValue(dot.DamageType, out var value))
                         {
-                            var elementTotalTickAmountMagic = 0.0f;
-                            Dictionary<WorldObject, float> elementDamagersMagic = null;
-                            if (totalTickAmountPerDamageTypeMagic.TryGetValue(dot.DamageType, out var value))
-                            {
-                                elementTotalTickAmountMagic = value.TotalTickAmount + tickAmount;
-                                elementDamagersMagic = value.Damagers;
-                            }
-                            else
-                            {
-                                elementTotalTickAmountMagic = tickAmount;
-                                elementDamagersMagic = new Dictionary<WorldObject, float>();
-                            }
-
-                            if (dot.Source != null)
-                            {
-                                if (elementDamagersMagic.ContainsKey(dot.Source))
-                                    elementDamagersMagic[dot.Source] += tickAmount;
-                                else
-                                    elementDamagersMagic.Add(dot.Source, tickAmount);
-
-                                DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
-                            }
-
-                            totalTickAmountPerDamageTypeMagic[dot.DamageType] = (elementTotalTickAmountMagic, elementDamagersMagic);
+                            elementTotalTickAmount = value.TotalTickAmount + tickAmount;
+                            elementDamagers = value.Damagers;
                         }
                         else
                         {
-                            var elementTotalTickAmountPhysical = 0.0f;
-                            Dictionary<WorldObject, float> elementDamagersPhysical = null;
-                            if (totalTickAmountPerDamageTypePhysical.TryGetValue(dot.DamageType, out var value))
-                            {
-                                elementTotalTickAmountPhysical = value.TotalTickAmount + tickAmount;
-                                elementDamagersPhysical = value.Damagers;
-                            }
-                            else
-                            {
-                                elementTotalTickAmountPhysical = tickAmount;
-                                elementDamagersPhysical = new Dictionary<WorldObject, float>();
-                            }
-
-                            if (dot.Source != null)
-                            {
-                                if (elementDamagersPhysical.ContainsKey(dot.Source))
-                                    elementDamagersPhysical[dot.Source] += tickAmount;
-                                else
-                                    elementDamagersPhysical.Add(dot.Source, tickAmount);
-
-                                DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
-                            }
-
-                            totalTickAmountPerDamageTypePhysical[dot.DamageType] = (elementTotalTickAmountPhysical, elementDamagersPhysical);
+                            elementTotalTickAmount = tickAmount;
+                            elementDamagers = new Dictionary<WorldObject, float>();
                         }
+
+                        if (dot.Source != null)
+                        {
+                            if (elementDamagers.ContainsKey(dot.Source))
+                                elementDamagers[dot.Source] += tickAmount;
+                            else
+                                elementDamagers.Add(dot.Source, tickAmount);
+
+                            DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
+                        }
+
+                        totalTickAmountPerDamageType[dot.DamageType] = (elementTotalTickAmount, elementDamagers);
 
                         if (isDead)
                             break;
                     }
                     ActiveDamageOverTimeList = updatedDamageOverTimeList;
 
-                    totalTickAmountPerDamageTypeMagic = totalTickAmountPerDamageTypeMagic.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
-                    totalTickAmountPerDamageTypePhysical = totalTickAmountPerDamageTypePhysical.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
+                    totalTickAmountPerDamageType = totalTickAmountPerDamageType.OrderByDescending(o => o.Value.TotalTickAmount).ToDictionary();
 
                     var playedEffects = false;
-                    foreach (var entry in totalTickAmountPerDamageTypeMagic)
+                    foreach (var entry in totalTickAmountPerDamageType)
                     {
-                        TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects, false);
+                        TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects);
 
                         if (!playedEffects)
                             playedEffects = true;
@@ -294,39 +266,7 @@ namespace ACE.Server.WorldObjects
                                 if (player != null)
                                     Player.UpdatePKTimers(damageSourcePlayer, player);
 
-                                TakeDamageOverTime_NotifySource(damageSourcePlayer, entry.Key, amount, false, false);
-
-                                if (IsAlive)
-                                    EmoteManager.OnDamage(damageSourcePlayer);
-                            }
-                        }
-                    }
-
-                    foreach (var entry in totalTickAmountPerDamageTypePhysical)
-                    {
-                        TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects, true);
-
-                        if (!playedEffects)
-                            playedEffects = true;
-
-                        if (!IsAlive)
-                            return;
-
-                        foreach (var kvp in entry.Value.Damagers)
-                        {
-                            var damager = kvp.Key;
-                            var amount = kvp.Value;
-
-                            if (Invincible || IsDead || IsOnNoDamageLandblock)
-                                amount = 0;
-
-                            var damageSourcePlayer = damager as Player;
-                            if (damageSourcePlayer != null && damageSourcePlayer != this)
-                            {
-                                if (player != null)
-                                    Player.UpdatePKTimers(damageSourcePlayer, player);
-
-                                TakeDamageOverTime_NotifySource(damageSourcePlayer, entry.Key, amount, false, true);
+                                TakeDamageOverTime_NotifySource(damageSourcePlayer, entry.Key, amount, false);
 
                                 if (IsAlive)
                                     EmoteManager.OnDamage(damageSourcePlayer);
@@ -419,6 +359,135 @@ namespace ACE.Server.WorldObjects
                     }
                 }
             }
+        }
+
+        public void ApplySkillAndInnateDoTs(WorldObject source, WorldObject weapon, float baseDamage, DamageType damageType, Skill attackSkill)
+        {
+            if (baseDamage == 0)
+                return;
+
+            var hasMultistrikeDoT = weapon != null && (weapon.WeaponSkill == Skill.Dagger || (weapon.WeaponSkill == Skill.Sword && weapon.W_AttackType.IsMultiStrike()));
+            var hasInnateDoT = source.AttacksCauseBleedChance.HasValue && source.AttacksCauseBleedChance > 0;
+            var hasInnateWeaponDoT = weapon != null && weapon.AttacksCauseBleedChance.HasValue && weapon.AttacksCauseBleedChance > 0;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && baseDamage > 0 && (hasMultistrikeDoT || hasInnateDoT || hasInnateWeaponDoT))
+            {
+                var chance = 0d;
+                if (hasInnateDoT)
+                    chance = source.AttacksCauseBleedChance.Value;
+
+                if (hasInnateWeaponDoT && weapon.AttacksCauseBleedChance.Value > chance)
+                    chance = weapon.AttacksCauseBleedChance.Value;
+
+                if (hasMultistrikeDoT || chance > ThreadSafeRandom.Next(0.0f, 1.0f))
+                {
+                    var damageTotal = (int)(5 + Math.Round(baseDamage * 1.5f));
+                    var damageTick = damageTotal / 5;
+                    var hemorrhaged = false;
+
+                    if (0.10 > ThreadSafeRandom.Next(0.0f, 1.0f))
+                        hemorrhaged = DoTHemorrhage(source, CombatType.Melee, damageType);
+
+                    if (!hemorrhaged)
+                        ApplyDoT(damageTick, damageTotal, false, CombatType.Melee, damageType, source, weapon, GetCreatureSkill(attackSkill));
+                }
+            }
+        }
+
+        public bool DoTHemorrhage(WorldObject source, CombatType combatType, DamageType damageType)
+        {
+            if (IsDead)
+                return false;
+
+            var sourceCreature = source as Creature;
+            var sourcePlayer = source as Player;
+            var targetPlayer = this as Player;
+            var isPvP = sourcePlayer != null && targetPlayer != null;
+
+            if (source == null || IsDead || Invincible || IsOnNoDamageLandblock)
+                return false;
+
+            // check lifestone protection
+            if (targetPlayer != null && targetPlayer.UnderLifestoneProtection)
+            {
+                if (sourcePlayer != null)
+                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"The Lifestone's magic protects {targetPlayer.Name} from the attack!", ChatMessageType.Magic));
+
+                targetPlayer.HandleLifestoneProtection();
+                return false;
+            }
+
+            List<DoTInfo> hemorrhageList;
+            lock (DoTHoTListLock)
+            {
+                hemorrhageList = ActiveDamageOverTimeList.Where(e => e.Source == source && e.CombatType == combatType && e.DamageType == damageType).OrderByDescending(d => d.TotalAmount).ToList();
+
+                if (hemorrhageList.Count == 0)
+                    return false;
+
+                //ActiveDamageOverTimeList.Remove(hemorrhageList.First());
+                ActiveDamageOverTimeList = ActiveDamageOverTimeList.Where(e => e.Source != source || e.CombatType != combatType || e.DamageType != damageType).ToList();
+            }
+
+            var damage = 0f;
+            foreach(var entry in hemorrhageList)
+            {
+                var resistanceMod = (float)Math.Max(0.0f, GetResistanceMod(GetResistanceType(entry.DamageType), this, null, entry.CasterWeaponResistanceMod));
+
+                damage += entry.TotalAmount * entry.CasterMods * resistanceMod;
+            }
+
+            damage = Math.Min(damage, Health.MaxValue * 0.75f);
+
+            if (damage > 0)
+            {
+                if (targetPlayer != null && sourceCreature != null)
+                    targetPlayer.SetCurrentAttacker(sourceCreature);
+
+                if (isPvP)
+                    Player.UpdatePKTimers(sourcePlayer, targetPlayer);
+
+                TakeDamage(null, damageType, damage);
+
+                // splatter effects
+                var hitSound = new GameMessageSound(Guid, Sound.HitFlesh1, 0.5f);
+                //var splatter = (PlayScript)Enum.Parse(typeof(PlayScript), "Splatter" + playerSource.GetSplatterHeight() + playerSource.GetSplatterDir(this));
+                var splatter = new GameMessageScript(Guid, damageType == DamageType.Nether ? PlayScript.HealthDownVoid : PlayScript.DirtyFightingDamageOverTime);
+                EnqueueBroadcast(hitSound, splatter);
+
+                if (!IsDead)
+                {
+
+                    if (damage >= Health.MaxValue * 0.25f)
+                    {
+                        var painSound = (Sound)Enum.Parse(typeof(Sound), "Wound" + ThreadSafeRandom.Next(1, 3), true);
+                        EnqueueBroadcast(new GameMessageSound(Guid, painSound, 1.0f));
+                    }
+
+                    string verb = null, plural = null;
+                    var percent = damage / Health.MaxValue;
+                    Strings.GetAttackVerb(damageType, percent, ref verb, ref plural);
+                    var messageType = ChatMessageType.x1B;
+                    var damageTypeString = damageType.GetName().ToLower();
+
+                    if (damageType == DamageType.Health || damageType == DamageType.Slash || damageType == DamageType.Pierce || damageType == DamageType.Bludgeon)
+                    {
+                        verb = "bleed";
+                        plural = "bleeds";
+                    }
+
+                    if (sourcePlayer != null)
+                    {
+                        var targetName = source == this ? "yourself" : Name;
+                        sourcePlayer.SendMessage($"Hemorrhage! You {verb} {targetName} with {damage:N0} points of {damageTypeString} damage!", messageType);
+                    }
+
+                    if (targetPlayer != null && targetPlayer != sourcePlayer)
+                        targetPlayer.SendMessage($"Hemorrhage! {sourcePlayer.Name} {plural} you with {damage:N0} points of {damageTypeString} damage.", messageType);
+                }
+            }
+
+            return true;
         }
     }
 }

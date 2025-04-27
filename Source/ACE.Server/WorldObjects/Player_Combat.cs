@@ -520,7 +520,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Simplified player take damage function, only called for DoTs currently
         /// </summary>
-        public override void TakeDamageOverTime(float _amount, DamageType damageType, bool suppressEffects = false, bool? isPhysical = null)
+        public override void TakeDamageOverTime(float _amount, DamageType damageType, bool suppressEffects = false)
         {
             if (Invincible || IsDead || IsOnNoDamageLandblock) return;
 
@@ -550,17 +550,8 @@ namespace ACE.Server.WorldObjects
             if (damageType != DamageType.Health)
                 damageTypeString = $"{damageType.GetName().ToLower()} ";
 
-            ChatMessageType chatMessageType;
-
-            if(!isPhysical.HasValue)
-                chatMessageType = damageType == DamageType.Health ? ChatMessageType.Combat: ChatMessageType.Magic;
-            else if(isPhysical.Value == true)
-                chatMessageType = ChatMessageType.Combat;
-            else
-                chatMessageType = ChatMessageType.Magic;
-
             var text = $"You receive {amount} points of periodic {damageTypeString}damage.";
-            SendMessage(text, chatMessageType);
+            SendMessage(text, ChatMessageType.Magic);
             //}
 
             if (!suppressEffects)

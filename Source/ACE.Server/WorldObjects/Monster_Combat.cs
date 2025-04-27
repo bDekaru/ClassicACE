@@ -346,7 +346,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Simplified monster take damage over time function, only called for DoTs currently
         /// </summary>
-        public virtual void TakeDamageOverTime(float amount, DamageType damageType, bool suppressEffects = false, bool? isPhysical = null)
+        public virtual void TakeDamageOverTime(float amount, DamageType damageType, bool suppressEffects = false)
         {
             if (IsDead) return;
 
@@ -373,7 +373,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Notifies the damage over time (DoT) source player of the tick damage amount
         /// </summary>
-        public void TakeDamageOverTime_NotifySource(Player source, DamageType damageType, float amount, bool aetheria = false, bool isPhysical = false)
+        public void TakeDamageOverTime_NotifySource(Player source, DamageType damageType, float amount, bool aetheria = false)
         {
             if (!PropertyManager.GetBool("show_dot_messages").Item)
                 return;
@@ -385,38 +385,28 @@ namespace ACE.Server.WorldObjects
             string verb = null, plural = null;
             var percent = amount / Health.MaxValue;
             Strings.GetAttackVerb(notifyType, percent, ref verb, ref plural);
+            var damageTypeString = notifyType.GetName().ToLower();
 
             string msg = null;
 
-            ChatMessageType type;
-            if (isPhysical)
-                type = ChatMessageType.CombatSelf;
-            else
-                type = ChatMessageType.Magic;
-
+            ChatMessageType type = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM ? ChatMessageType.x1B : ChatMessageType.Magic;
 
             var targetName = source == this ? "yourself" : Name;
             if (!aetheria)
             {
-                if (notifyType == DamageType.Health && isPhysical)
+                if (notifyType == DamageType.Health || notifyType == DamageType.Slash || notifyType == DamageType.Pierce || notifyType == DamageType.Bludgeon)
                 {
                     /*var skill = source.GetCreatureSkill(Skill.DirtyFighting);
                     var attack = skill.AdvancementClass == SkillAdvancementClass.Specialized ? "Bleeding Assault" : "Bleeding Blow";
                     msg = $"With {attack} you {verb} {iAmount} points of health from {Name}!";*/
 
-                    msg = $"You bleed {targetName} for {iAmount} points of periodic health damage!";
+                    verb = "bleed";
                 }
-                else
-                {
-                    msg = $"You {verb} {targetName} for {iAmount} points of periodic {notifyType.GetName().ToLower()} damage!";
-                    type = ChatMessageType.Magic;
-                }
+
+                msg = $"You {verb} {targetName} for {iAmount} points of periodic {damageTypeString} damage!";
             }
             else
-            {
                 msg = $"With Surge of Affliction you {verb} {iAmount} points of health from {targetName}!";
-                type = ChatMessageType.Magic;
-            }
             source.SendMessage(msg, type);
         }
 

@@ -381,6 +381,8 @@ namespace ACE.Server.WorldObjects
 
             var prevTime = 0.0f;
             bool targetProc = false;
+            var dotBaseDamage = 0f;
+            var dotDamageType = DamageType.Undef;
 
             for (var i = 0; i < numStrikes; i++)
             {
@@ -400,6 +402,16 @@ namespace ACE.Server.WorldObjects
                     }
 
                     var damageEvent = DamageTarget(creature, weapon);
+
+                    if (damageEvent != null && damageEvent.HasDamage)
+                    {
+                        var dotBaseDamageCandidate = (damageEvent.BaseDamage * damageEvent.AttributeMod * damageEvent.PowerMod * damageEvent.ArmorMod) - damageEvent.DamageBlocked;
+                        if (dotBaseDamageCandidate > dotBaseDamage)
+                            dotBaseDamage = dotBaseDamageCandidate;
+
+                        if (dotDamageType == DamageType.Undef)
+                            dotDamageType = damageEvent.DamageType;
+                    }
 
                     // handle target procs
                     if (damageEvent != null && damageEvent.HasDamage && !targetProc)
@@ -426,6 +438,8 @@ namespace ACE.Server.WorldObjects
                 //if (numStrikes == 1 || TwoHandedCombat)
                 //actionChain.AddDelaySeconds(swingTime);
             }
+
+            actionChain.AddAction(this, () => creature.ApplySkillAndInnateDoTs(this, weapon, dotBaseDamage, dotDamageType, GetCurrentWeaponSkill()));
 
             //actionChain.AddDelaySeconds(animLength - swingTime * numStrikes);
             actionChain.AddDelaySeconds(animLength - prevTime);
