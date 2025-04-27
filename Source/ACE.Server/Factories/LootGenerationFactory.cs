@@ -590,7 +590,10 @@ namespace ACE.Server.Factories
                 TwoHandedWeaponWcids.TryGetValue(roll.Wcid, out weaponType))
             {
                 roll.ItemType = TreasureItemType_Orig.Weapon;
-                roll.WeaponType = weaponType;
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+                    roll.WeaponType = weaponType;
+                else
+                    roll.WeaponType = TreasureRoll.GetWeaponTypeFromWeapon(item);
                 MutateMeleeWeapon(item, profile, isMagical, roll);
             }
             else if (BowWcids_Aluvian.TryGetValue(roll.Wcid, out weaponType) ||
@@ -600,7 +603,10 @@ namespace ACE.Server.Factories
                 AtlatlWcids.TryGetValue(roll.Wcid, out weaponType))
             {
                 roll.ItemType = TreasureItemType_Orig.Weapon;
-                roll.WeaponType = weaponType;
+                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
+                    roll.WeaponType = weaponType;
+                else
+                    roll.WeaponType = TreasureRoll.GetWeaponTypeFromWeapon(item);
                 MutateMissileWeapon(item, profile, isMagical, null, roll);
             }
             else if (CasterWcids.Contains(roll.Wcid))

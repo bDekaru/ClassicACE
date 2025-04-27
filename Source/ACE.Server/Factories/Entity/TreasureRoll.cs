@@ -49,6 +49,99 @@ namespace ACE.Server.Factories.Entity
             return ItemType.ToString();
         }
 
+        public static TreasureWeaponType GetWeaponTypeFromWeapon(WorldObject weapon)
+        {
+            switch (weapon.WeaponSkill)
+            {
+                case Skill.UnarmedCombat:
+                    return TreasureWeaponType.Unarmed;
+                case Skill.Sword:
+                    if(weapon.DefaultCombatStyle == CombatStyle.TwoHanded)
+                        return TreasureWeaponType.TwoHandedSword;
+                    else if (weapon.W_AttackType.IsMultiStrike())
+                        return TreasureWeaponType.SwordMS;
+                    else
+                        return TreasureWeaponType.Sword;
+                case Skill.Axe:
+                    if (weapon.DefaultCombatStyle == CombatStyle.TwoHanded)
+                        return TreasureWeaponType.TwoHandedAxe;
+                    else
+                        return TreasureWeaponType.Axe;
+                case Skill.Mace:
+                    if (weapon.DefaultCombatStyle == CombatStyle.TwoHanded)
+                        return TreasureWeaponType.TwoHandedMace;
+                    else
+                        return TreasureWeaponType.Mace;
+                case Skill.Spear:
+                    if (weapon.DefaultCombatStyle == CombatStyle.TwoHanded)
+                        return TreasureWeaponType.TwoHandedSpear;
+                    else
+                        return TreasureWeaponType.Spear;
+                case Skill.Dagger:
+                    if (weapon.W_AttackType.IsMultiStrike())
+                        return TreasureWeaponType.DaggerMS;
+                    else
+                        return TreasureWeaponType.Dagger;
+                case Skill.Staff:
+                    return TreasureWeaponType.Staff;
+                case Skill.Bow:
+                    if (weapon.WeenieClassId == (int)Enum.WeenieClassName.bowshort || weapon.WeenieClassId == (int)Enum.WeenieClassName.nayin || weapon.WeenieClassId == (int)Enum.WeenieClassName.shouyumi)
+                        return TreasureWeaponType.BowShort; 
+                    return TreasureWeaponType.Bow;
+                case Skill.Crossbow:
+                    if (weapon.WeenieClassId == (int)Enum.WeenieClassName.crossbowlight)
+                        return TreasureWeaponType.CrossbowLight;
+                    else
+                        return TreasureWeaponType.Crossbow;
+                case Skill.ThrownWeapon:
+                    switch ((Enum.WeenieClassName)weapon.WeenieClassId)
+                    {
+                        case Enum.WeenieClassName.dart:
+                        case Enum.WeenieClassName.dartacid:
+                        case Enum.WeenieClassName.dartflame:
+                        case Enum.WeenieClassName.dartfrost:
+                        case Enum.WeenieClassName.dartelectric:
+                        case Enum.WeenieClassName.axethrowing:
+                        case Enum.WeenieClassName.axethrowingacid:
+                        case Enum.WeenieClassName.axethrowingfire:
+                        case Enum.WeenieClassName.axethrowingfrost:
+                        case Enum.WeenieClassName.axethrowingelectric:
+                        case Enum.WeenieClassName.clubthrowing:
+                        case Enum.WeenieClassName.clubthrowingacid:
+                        case Enum.WeenieClassName.clubthrowingfire:
+                        case Enum.WeenieClassName.clubthrowingfrost:
+                        case Enum.WeenieClassName.clubthrowingelectric:
+                        case Enum.WeenieClassName.daggerthrowing:
+                        case Enum.WeenieClassName.daggerthrowingacid:
+                        case Enum.WeenieClassName.daggerthrowingfire:
+                        case Enum.WeenieClassName.daggerthrowingfrost:
+                        case Enum.WeenieClassName.daggerthrowingelectric:
+                        case Enum.WeenieClassName.javelin:
+                        case Enum.WeenieClassName.javelinacid:
+                        case Enum.WeenieClassName.javelinfire:
+                        case Enum.WeenieClassName.javelinfrost:
+                        case Enum.WeenieClassName.javelinelectric:
+                        case Enum.WeenieClassName.shuriken:
+                        case Enum.WeenieClassName.shurikenacid:
+                        case Enum.WeenieClassName.shurikenfire:
+                        case Enum.WeenieClassName.shurikenfrost:
+                        case Enum.WeenieClassName.shurikenelectric:
+                        case Enum.WeenieClassName.djarid:
+                        case Enum.WeenieClassName.djaridacid:
+                        case Enum.WeenieClassName.djaridfire:
+                        case Enum.WeenieClassName.djaridfrost:
+                        case Enum.WeenieClassName.djaridelectric:
+                            return TreasureWeaponType.Thrown;
+                        case Enum.WeenieClassName.atlatl:
+                            return TreasureWeaponType.AtlatlRegular;
+                        default:
+                            return TreasureWeaponType.Atlatl;
+                    }
+                default:
+                    return TreasureWeaponType.Undef;
+            }
+        }
+
         /// <summary>
         /// Returns TRUE if this roll is for a MeleeWeapon / MissileWeapon / Caster
         /// </summary>
