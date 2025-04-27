@@ -398,7 +398,7 @@ namespace ACE.Server.WorldObjects
             var targetName = source == this ? "yourself" : Name;
             if (!aetheria)
             {
-                if (damageType == DamageType.Health && isPhysical)
+                if (notifyType == DamageType.Health && isPhysical)
                 {
                     /*var skill = source.GetCreatureSkill(Skill.DirtyFighting);
                     var attack = skill.AdvancementClass == SkillAdvancementClass.Specialized ? "Bleeding Assault" : "Bleeding Blow";
@@ -408,7 +408,7 @@ namespace ACE.Server.WorldObjects
                 }
                 else
                 {
-                    msg = $"You {verb} {targetName} for {iAmount} points of periodic {damageType.GetName().ToLower()} damage!";
+                    msg = $"You {verb} {targetName} for {iAmount} points of periodic {notifyType.GetName().ToLower()} damage!";
                     type = ChatMessageType.Magic;
                 }
             }
