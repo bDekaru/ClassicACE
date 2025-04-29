@@ -1762,10 +1762,12 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                var currentVersion = 1;
+                var currentVersion = 2;
+                if (Version == null)
+                    Version = 0;
 
                 // The following code makes sure the item fits into CustomDM's ruleset as not all database entries have been updated.
-                if (Version == null || Version < currentVersion)
+                if (Version < currentVersion)
                 {
                     // These changes are applied even to items owned by monsters, do not update item version here as that would prevent the full changes from being applied later.
 
@@ -1796,213 +1798,226 @@ namespace ACE.Server.WorldObjects
                     }
                 }
 
-                if (Version == null || Version < currentVersion)
+                if (Version < currentVersion)
                 {
-                    Version = currentVersion; // Bring item version up to current.
-
-                    if (ItemWorkmanship == null && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && WeenieType != WeenieType.Missile && WeenieType != WeenieType.Ammunition)
+                    if (Version < 1)
                     {
-                        var estimatedTier = EstimateItemTier();
-
-                        // Add default ExtraSpellsMaxOverride value to quest items.
-                        if (ExtraSpellsMaxOverride == null && ResistMagic == null)
+                        if (ItemWorkmanship == null && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && WeenieType != WeenieType.Missile && WeenieType != WeenieType.Ammunition)
                         {
-                            switch (estimatedTier)
+                            var tier = (int)(Tier ?? EstimateItemTier());
+
+                            // Add default ExtraSpellsMaxOverride value to quest items.
+                            if (ExtraSpellsMaxOverride == null && ResistMagic == null)
                             {
-                                default:
-                                case 1: ExtraSpellsMaxOverride = 1; break;
-                                case 2: ExtraSpellsMaxOverride = 2; break;
-                                case 3: ExtraSpellsMaxOverride = 2; break;
-                                case 4: ExtraSpellsMaxOverride = 2; break;
-                                case 5: ExtraSpellsMaxOverride = 3; break;
-                                case 6: ExtraSpellsMaxOverride = 3; break;
-                            }
-
-                            if (IsRobe)
-                                ExtraSpellsMaxOverride *= 2;
-
-                            BaseItemDifficultyOverride = ItemDifficulty;
-                            BaseSpellcraftOverride = ItemSpellcraft;
-                        }
-
-                        // Add default TinkerMaxCountOverride value to quest items.
-                        if (TinkerMaxCountOverride == null)
-                        {
-                            switch (estimatedTier)
-                            {
-                                default:
-                                case 1: TinkerWorkmanshipOverride = 1; break;
-                                case 2: TinkerWorkmanshipOverride = 4; break;
-                                case 3: TinkerWorkmanshipOverride = 5; break;
-                                case 4: TinkerWorkmanshipOverride = 6; break;
-                                case 5: TinkerWorkmanshipOverride = 8; break;
-                                case 6: TinkerWorkmanshipOverride = 10; break;
-                            }
-
-                            TinkerMaxCountOverride = 2;
-                        }
-
-                        // Remove invalid properties from items accessible by players, keep them on monster's items.
-                        if (CriticalMultiplier.HasValue)
-                        {
-                            log.Warn($"Removed invalid CriticalMultiplier {CriticalMultiplier:0.00} from {Name}.");
-                            CriticalMultiplier = null;
-                        }
-
-                        if (CriticalFrequency.HasValue)
-                        {
-                            log.Warn($"Removed invalid CriticalFrequency {CriticalFrequency:0.00} from {Name}.");
-                            CriticalFrequency = null;
-                        }
-
-                        if (IgnoreArmor.HasValue)
-                        {
-                            log.Warn($"Removed invalid IgnoreArmor {IgnoreArmor:0.00} from {Name}.");
-                            IgnoreArmor = null;
-                        }
-
-                        if (IgnoreShield.HasValue)
-                        {
-                            log.Warn($"Removed invalid IgnoreShield {IgnoreShield:0.00} from {Name}.");
-                            IgnoreShield = null;
-                        }
-
-                        if (ResistanceModifier.HasValue)
-                        {
-                            log.Warn($"Removed invalid ResistanceModifier {ResistanceModifier:0.00} from {Name}.");
-                            ResistanceModifier = null;
-                        }
-                        if (ResistanceModifierType.HasValue)
-                        {
-                            log.Warn($"Removed invalid ResistanceModifierType {ResistanceModifierType} from {Name}.");
-                            ResistanceModifierType = null;
-                        }
-                    }
-
-                    // Remove invalid spells from items accessible by players, keep the spells on monster's items.
-                    if (SpellDID.HasValue)
-                    {
-                        if (SpellsToReplace.TryGetValue((SpellId)SpellDID, out var replacementId))
-                        {
-                            if (replacementId < 0)
-                            {
-                                var originalSpellId = (SpellId)SpellDID;
-                                Spell originalSpell = new Spell(originalSpellId);
-
-                                int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
-
-                                SpellId spellLevel1Id = SpellId.Undef;
-                                if (this is Caster)
-                                    spellLevel1Id = CasterSlotSpells.PseudoRandomRoll(this, (int)WeenieClassId);
-                                else if (this is Gem)
-                                    spellLevel1Id = SpellSelectionTable.PseudoRandomRoll(1, (int)WeenieClassId);
-
-                                if (spellLevel1Id != SpellId.Undef)
+                                switch (tier)
                                 {
-                                    var spellId = SpellLevelProgression.GetSpellAtLevel(spellLevel1Id, level);
-
-                                    SpellDID = (uint)spellId;
-
-                                    log.Warn($"Replaced invalid spell {originalSpellId} with {spellId} as a DID spell on {Name}.");
+                                    default:
+                                    case 1: ExtraSpellsMaxOverride = 1; break;
+                                    case 2: ExtraSpellsMaxOverride = 2; break;
+                                    case 3: ExtraSpellsMaxOverride = 2; break;
+                                    case 4: ExtraSpellsMaxOverride = 2; break;
+                                    case 5: ExtraSpellsMaxOverride = 3; break;
+                                    case 6: ExtraSpellsMaxOverride = 3; break;
                                 }
-                                else
-                                    log.Warn($"Failed to replace invalid spell {originalSpellId} as a DID spell on {Name}. Unhandled item type.");
+
+                                if (IsRobe)
+                                    ExtraSpellsMaxOverride *= 2;
+
+                                BaseItemDifficultyOverride = ItemDifficulty;
+                                BaseSpellcraftOverride = ItemSpellcraft;
                             }
-                            else if (replacementId > 0)
+
+                            // Add default TinkerMaxCountOverride value to quest items.
+                            if (TinkerMaxCountOverride == null)
                             {
-                                var originalSpellId = (SpellId)SpellDID;
-
-                                SpellDID = (uint)replacementId;
-
-                                log.Warn($"Replaced invalid spell {originalSpellId} with {(SpellId)replacementId} as a DID spell on {Name}.");
-                            }
-                            else
-                            {
-                                var originalSpellId = (SpellId)SpellDID;
-
-                                RemoveProperty(PropertyDataId.Spell);
-
-                                log.Warn($"Removed invalid spell {originalSpellId} as a DID spell on {Name}.");
-                            }
-                        }
-                    }
-
-                    if (ProcSpell.HasValue)
-                    {
-                        if (SpellsToReplace.TryGetValue((SpellId)ProcSpell, out var replacementId))
-                        {
-                            if (replacementId < 0)
-                            {
-                                var originalSpellId = (SpellId)ProcSpell;
-
-                                int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
-
-                                SpellId procSpellLevel1Id = SpellId.Undef;
-                                if (this is MeleeWeapon)
-                                    procSpellLevel1Id = MeleeSpells.PseudoRandomRollProc((int)WeenieClassId);
-                                else if (this is MissileLauncher || this is Missile)
-                                    procSpellLevel1Id = MissileSpells.PseudoRandomRollProc((int)WeenieClassId);
-
-                                if (procSpellLevel1Id != SpellId.Undef)
+                                switch (tier)
                                 {
-                                    var procSpellId = SpellLevelProgression.GetSpellAtLevel(procSpellLevel1Id, level);
-
-                                    Spell spell = new Spell(procSpellId);
-                                    ProcSpellRate = 0.15f;
-                                    ProcSpell = (uint)procSpellId;
-                                    ProcSpellSelfTargeted = spell.IsSelfTargeted;
-
-                                    log.Warn($"Replaced invalid spell {originalSpellId} with {procSpellId} as a proc on {Name}.");
+                                    default:
+                                    case 1: TinkerWorkmanshipOverride = 1; break;
+                                    case 2: TinkerWorkmanshipOverride = 4; break;
+                                    case 3: TinkerWorkmanshipOverride = 5; break;
+                                    case 4: TinkerWorkmanshipOverride = 6; break;
+                                    case 5: TinkerWorkmanshipOverride = 8; break;
+                                    case 6: TinkerWorkmanshipOverride = 10; break;
                                 }
-                                else
-                                    log.Warn($"Failed to replace invalid spell {originalSpellId} as a proc spell on {Name}. Unhandled item type.");
+
+                                TinkerMaxCountOverride = 2;
                             }
-                            else if (replacementId > 0)
+
+                            // Remove invalid properties from items accessible by players, keep them on monster's items.
+                            if (CriticalMultiplier.HasValue)
                             {
-                                var originalSpellId = (SpellId)ProcSpell;
-
-                                Spell spell = new Spell(replacementId);
-
-                                ProcSpellRate = 0.15f;
-                                ProcSpell = (uint)replacementId;
-                                ProcSpellSelfTargeted = spell.IsSelfTargeted;
-
-                                log.Warn($"Replaced invalid spell {originalSpellId} with {(SpellId)replacementId} as a proc on {Name}.");
+                                log.Warn($"Removed invalid CriticalMultiplier {CriticalMultiplier:0.00} from {Name}.");
+                                CriticalMultiplier = null;
                             }
-                            else
+
+                            if (CriticalFrequency.HasValue)
                             {
-                                var originalSpellId = (SpellId)ProcSpell;
+                                log.Warn($"Removed invalid CriticalFrequency {CriticalFrequency:0.00} from {Name}.");
+                                CriticalFrequency = null;
+                            }
 
-                                RemoveProperty(PropertyFloat.ProcSpellRate);
-                                RemoveProperty(PropertyDataId.ProcSpell);
-                                RemoveProperty(PropertyBool.ProcSpellSelfTargeted);
+                            if (IgnoreArmor.HasValue)
+                            {
+                                log.Warn($"Removed invalid IgnoreArmor {IgnoreArmor:0.00} from {Name}.");
+                                IgnoreArmor = null;
+                            }
 
-                                log.Warn($"Removed invalid spell {originalSpellId} as a proc on {Name}.");
+                            if (IgnoreShield.HasValue)
+                            {
+                                log.Warn($"Removed invalid IgnoreShield {IgnoreShield:0.00} from {Name}.");
+                                IgnoreShield = null;
+                            }
+
+                            if (ResistanceModifier.HasValue)
+                            {
+                                log.Warn($"Removed invalid ResistanceModifier {ResistanceModifier:0.00} from {Name}.");
+                                ResistanceModifier = null;
+                            }
+                            if (ResistanceModifierType.HasValue)
+                            {
+                                log.Warn($"Removed invalid ResistanceModifierType {ResistanceModifierType} from {Name}.");
+                                ResistanceModifierType = null;
                             }
                         }
-                    }
 
-                    var list = Biota.GetKnownSpellsIds(BiotaDatabaseLock);
-                    foreach (var entry in list)
-                    {
-                        if (SpellsToReplace.TryGetValue((SpellId)entry, out var replacementId))
+                        // Remove invalid spells from items accessible by players, keep the spells on monster's items.
+                        if (SpellDID.HasValue)
                         {
-                            if (Biota.TryRemoveKnownSpell(entry, BiotaDatabaseLock))
+                            if (SpellsToReplace.TryGetValue((SpellId)SpellDID, out var replacementId))
                             {
                                 if (replacementId < 0)
                                 {
-                                    log.Warn($"Failed to replace invalid spell {(SpellId)entry} as a proc spell on {Name}. Unhandled item type.");
+                                    var originalSpellId = (SpellId)SpellDID;
+                                    Spell originalSpell = new Spell(originalSpellId);
+
+                                    int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
+
+                                    SpellId spellLevel1Id = SpellId.Undef;
+                                    if (this is Caster)
+                                        spellLevel1Id = CasterSlotSpells.PseudoRandomRoll(this, (int)WeenieClassId);
+                                    else if (this is Gem)
+                                        spellLevel1Id = SpellSelectionTable.PseudoRandomRoll(1, (int)WeenieClassId);
+
+                                    if (spellLevel1Id != SpellId.Undef)
+                                    {
+                                        var spellId = SpellLevelProgression.GetSpellAtLevel(spellLevel1Id, level);
+
+                                        SpellDID = (uint)spellId;
+
+                                        log.Warn($"Replaced invalid spell {originalSpellId} with {spellId} as a DID spell on {Name}.");
+                                    }
+                                    else
+                                        log.Warn($"Failed to replace invalid spell {originalSpellId} as a DID spell on {Name}. Unhandled item type.");
                                 }
                                 else if (replacementId > 0)
                                 {
-                                    Biota.GetOrAddKnownSpell(replacementId, BiotaDatabaseLock, out _);
-                                    log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} on {Name}.");
+                                    var originalSpellId = (SpellId)SpellDID;
+
+                                    SpellDID = (uint)replacementId;
+
+                                    log.Warn($"Replaced invalid spell {originalSpellId} with {(SpellId)replacementId} as a DID spell on {Name}.");
                                 }
                                 else
-                                    log.Warn($"Removed invalid spell {(SpellId)entry} from {Name}.");
+                                {
+                                    var originalSpellId = (SpellId)SpellDID;
+
+                                    RemoveProperty(PropertyDataId.Spell);
+
+                                    log.Warn($"Removed invalid spell {originalSpellId} as a DID spell on {Name}.");
+                                }
+                            }
+                        }
+
+                        if (ProcSpell.HasValue)
+                        {
+                            if (SpellsToReplace.TryGetValue((SpellId)ProcSpell, out var replacementId))
+                            {
+                                if (replacementId < 0)
+                                {
+                                    var originalSpellId = (SpellId)ProcSpell;
+
+                                    int level = Math.Clamp(Math.Abs(replacementId), 1, 8);
+
+                                    SpellId procSpellLevel1Id = SpellId.Undef;
+                                    if (this is MeleeWeapon)
+                                        procSpellLevel1Id = MeleeSpells.PseudoRandomRollProc((int)WeenieClassId);
+                                    else if (this is MissileLauncher || this is Missile)
+                                        procSpellLevel1Id = MissileSpells.PseudoRandomRollProc((int)WeenieClassId);
+
+                                    if (procSpellLevel1Id != SpellId.Undef)
+                                    {
+                                        var procSpellId = SpellLevelProgression.GetSpellAtLevel(procSpellLevel1Id, level);
+
+                                        Spell spell = new Spell(procSpellId);
+                                        ProcSpellRate = 0.15f;
+                                        ProcSpell = (uint)procSpellId;
+                                        ProcSpellSelfTargeted = spell.IsSelfTargeted;
+
+                                        log.Warn($"Replaced invalid spell {originalSpellId} with {procSpellId} as a proc on {Name}.");
+                                    }
+                                    else
+                                        log.Warn($"Failed to replace invalid spell {originalSpellId} as a proc spell on {Name}. Unhandled item type.");
+                                }
+                                else if (replacementId > 0)
+                                {
+                                    var originalSpellId = (SpellId)ProcSpell;
+
+                                    Spell spell = new Spell(replacementId);
+
+                                    ProcSpellRate = 0.15f;
+                                    ProcSpell = (uint)replacementId;
+                                    ProcSpellSelfTargeted = spell.IsSelfTargeted;
+
+                                    log.Warn($"Replaced invalid spell {originalSpellId} with {(SpellId)replacementId} as a proc on {Name}.");
+                                }
+                                else
+                                {
+                                    var originalSpellId = (SpellId)ProcSpell;
+
+                                    RemoveProperty(PropertyFloat.ProcSpellRate);
+                                    RemoveProperty(PropertyDataId.ProcSpell);
+                                    RemoveProperty(PropertyBool.ProcSpellSelfTargeted);
+
+                                    log.Warn($"Removed invalid spell {originalSpellId} as a proc on {Name}.");
+                                }
+                            }
+                        }
+
+                        var list = Biota.GetKnownSpellsIds(BiotaDatabaseLock);
+                        foreach (var entry in list)
+                        {
+                            if (SpellsToReplace.TryGetValue((SpellId)entry, out var replacementId))
+                            {
+                                if (Biota.TryRemoveKnownSpell(entry, BiotaDatabaseLock))
+                                {
+                                    if (replacementId < 0)
+                                    {
+                                        log.Warn($"Failed to replace invalid spell {(SpellId)entry} as a proc spell on {Name}. Unhandled item type.");
+                                    }
+                                    else if (replacementId > 0)
+                                    {
+                                        Biota.GetOrAddKnownSpell(replacementId, BiotaDatabaseLock, out _);
+                                        log.Warn($"Replaced invalid spell {(SpellId)entry} with {(SpellId)replacementId} on {Name}.");
+                                    }
+                                    else
+                                        log.Warn($"Removed invalid spell {(SpellId)entry} from {Name}.");
+                                }
                             }
                         }
                     }
+
+                    if (Version < 2)
+                    {
+                        if (ArmorLevel.HasValue && ArmorLevel > 0)
+                        {
+                            var tier = (int)(Tier ?? EstimateItemTier());
+
+                            LootGenerationFactory.ReplaceArmorLevelRequirements(this, tier);
+                        }
+                    }
+
+                    Version = currentVersion; // Bring item version up to current.
                 }
             }
         }

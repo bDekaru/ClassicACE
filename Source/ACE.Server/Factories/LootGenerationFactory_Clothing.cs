@@ -117,7 +117,87 @@ namespace ACE.Server.Factories
                 wo.WieldDifficulty = wieldDifficulty;
             }
 
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                ReplaceArmorLevelRequirements(wo, profile.Tier);
+
             return success;
+        }
+
+        public static void ReplaceArmorLevelRequirements(WorldObject wo, int tier)
+        {
+            if (wo.ArmorLevel.HasValue && wo.ArmorLevel > 0)
+            {
+                var hasLevelRequirement = false;
+                if (wo.WieldRequirements == WieldRequirement.Level)
+                    hasLevelRequirement = true;
+                else if (wo.WieldRequirements2 == WieldRequirement.Level)
+                    hasLevelRequirement = true;
+                else if (wo.WieldRequirements3 == WieldRequirement.Level)
+                    hasLevelRequirement = true;
+                else if (wo.WieldRequirements4 == WieldRequirement.Level)
+                    hasLevelRequirement = true;
+
+                var hasArmorOrManaRequirement = false;
+                if ((wo.WieldRequirements == WieldRequirement.RawSkill && wo.WieldSkillType == (int)Skill.Armor) || (wo.WieldRequirements == WieldRequirement.RawSecondaryAttrib && wo.WieldSkillType == (int)PropertyAttribute2nd.MaxMana))
+                    hasArmorOrManaRequirement = true;
+                else if ((wo.WieldRequirements2 == WieldRequirement.RawSkill && wo.WieldSkillType2 == (int)Skill.Armor) || (wo.WieldRequirements2 == WieldRequirement.RawSecondaryAttrib && wo.WieldSkillType2 == (int)PropertyAttribute2nd.MaxMana))
+                    hasArmorOrManaRequirement = true;
+                else if ((wo.WieldRequirements3 == WieldRequirement.RawSkill && wo.WieldSkillType3 == (int)Skill.Armor) || (wo.WieldRequirements3 == WieldRequirement.RawSecondaryAttrib && wo.WieldSkillType3 == (int)PropertyAttribute2nd.MaxMana))
+                    hasArmorOrManaRequirement = true;
+                else if ((wo.WieldRequirements4 == WieldRequirement.RawSkill && wo.WieldSkillType4 == (int)Skill.Armor) || (wo.WieldRequirements4 == WieldRequirement.RawSecondaryAttrib && wo.WieldSkillType4 == (int)PropertyAttribute2nd.MaxMana))
+                    hasArmorOrManaRequirement = true;
+
+                if (hasLevelRequirement && !hasArmorOrManaRequirement)
+                {
+                    var newWieldRequirements = WieldRequirement.Invalid;
+                    var newWieldSkillType = 0;
+                    var newWieldDifficulty = 0;
+
+                    if (wo.IsClothArmor)
+                    {
+                        newWieldRequirements = WieldRequirement.RawSecondaryAttrib;
+                        newWieldSkillType = (int)PropertyAttribute2nd.MaxMana;
+                        newWieldDifficulty = ((tier - 1) * 30) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 70;
+                    }
+                    else if(wo.IsShield)
+                    {
+                        newWieldRequirements = WieldRequirement.RawSkill;
+                        newWieldSkillType = (int)Skill.Shield;
+                        newWieldDifficulty = ((tier - 1) * 15) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 100;
+                    }
+                    else
+                    {
+                        newWieldRequirements = WieldRequirement.RawSkill;
+                        newWieldSkillType = (int)Skill.Armor;
+                        newWieldDifficulty = ((tier - 1) * 15) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 40;
+                    }
+
+                    if (wo.WieldRequirements == WieldRequirement.Level)
+                    {
+                        wo.WieldRequirements = newWieldRequirements;
+                        wo.WieldSkillType = newWieldSkillType;
+                        wo.WieldDifficulty = newWieldDifficulty;
+                    }
+                    else if (wo.WieldRequirements2 == WieldRequirement.Level)
+                    {
+                        wo.WieldRequirements2 = newWieldRequirements;
+                        wo.WieldSkillType2 = newWieldSkillType;
+                        wo.WieldDifficulty2 = newWieldDifficulty;
+                    }
+                    else if (wo.WieldRequirements3 == WieldRequirement.Level)
+                    {
+                        wo.WieldRequirements3 = newWieldRequirements;
+                        wo.WieldSkillType3 = newWieldSkillType;
+                        wo.WieldDifficulty3 = newWieldDifficulty;
+                    }
+                    else if (wo.WieldRequirements4 == WieldRequirement.Level)
+                    {
+                        wo.WieldRequirements4 = newWieldRequirements;
+                        wo.WieldSkillType4 = newWieldSkillType;
+                        wo.WieldDifficulty4 = newWieldDifficulty;
+                    }
+                }
+            }
         }
 
         private static string GetMutationScript_ArmorLevel(WorldObject wo, TreasureRoll roll)

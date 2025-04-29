@@ -251,10 +251,10 @@ namespace ACE.Server.Factories
 
         private static void AddActivationRequirements(WorldObject wo, TreasureDeath profile, TreasureRoll roll)
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.Infiltration)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
                 TryMutate_ItemSkillLimit(wo, roll); // ItemSkill/LevelLimit
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
             {
                 var allowSpecialProperties = true;
                 if (profile is TreasureDeathExtended extendedProfile)
@@ -267,7 +267,8 @@ namespace ACE.Server.Factories
                 }
             }
 
-            CalculateArcaneLore(wo, roll.AllSpells, roll.LifeCreatureEnchantments, roll.Cantrips, roll.MinEffectiveSpellcraft, roll.MaxEffectiveSpellcraft, roll.RolledEffectiveSpellcraft, true, out roll.MinArcaneLore, out roll.MaxArcaneLore, out roll.RolledArcaneLore);
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                CalculateArcaneLore(wo, roll.AllSpells, roll.LifeCreatureEnchantments, roll.Cantrips, roll.MinEffectiveSpellcraft, roll.MaxEffectiveSpellcraft, roll.RolledEffectiveSpellcraft, true, out roll.MinArcaneLore, out roll.MaxArcaneLore, out roll.RolledArcaneLore);
         }
 
         private static bool TryMutate_HeritageRequirement(WorldObject wo, TreasureDeath profile, TreasureRoll roll)
@@ -327,97 +328,19 @@ namespace ACE.Server.Factories
             var skill = Skill.None;
 
             if (roll.IsMeleeWeapon || roll.IsMissileWeapon)
-            {
                 skill = wo.WeaponSkill;
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && wo.WieldRequirements == WieldRequirement.RawSkill && wo.WieldDifficulty > wo.ItemSkillLevelLimit)
-                    wo.ItemSkillLevelLimit = wo.WieldDifficulty + ThreadSafeRandom.Next(5, 20);
-            }
             else if (roll.IsArmor)
             {
                 var rng = ThreadSafeRandom.Next(0.0f, 1.0f);
 
-                if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                if (rng < 0.5f)
                 {
-                    if (rng < 0.5f)
-                    {
-                        skill = Skill.MeleeDefense;
-                    }
-                    else
-                    {
-                        skill = Skill.MissileDefense;
-                        wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 0.7f);
-                    }
+                    skill = Skill.MeleeDefense;
                 }
                 else
                 {
-                    if (!roll.IsClothArmor)
-                    {
-                        if (rng < 0.33f)
-                        {
-                            skill = Skill.MeleeDefense;
-                        }
-                        else if (rng < 0.66f)
-                        {
-                            skill = Skill.MissileDefense;
-                            wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 3f / 5f);
-                        }
-                        else
-                        {
-                            if (wo.IsShield)
-                            {
-                                skill = Skill.Shield;
-                                wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 3f / 4f);
-                            }
-                            else
-                            {
-                                skill = Skill.Armor;
-                                wo.ItemSkillLevelLimit = (int)(((wo.ItemSkillLevelLimit * 3f) + 30) / 4f);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if (rng < 0.33f)
-                        {
-                            skill = Skill.MagicDefense;
-                            wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 3f / 7f);
-                        }
-                        else if (rng < 0.66f)
-                        {
-                            skill = Skill.ManaConversion;
-                            wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 3f / 6f);
-                        }
-                        else
-                        {
-                            if (roll.LifeCreatureEnchantments != null)
-                            {
-                                foreach (var spellId in roll.LifeCreatureEnchantments)
-                                {
-                                    if (SpellLevelProgression.GetLevel1SpellId(spellId) == SpellId.WarMagicMasteryOther1)
-                                    {
-                                        skill = Skill.WarMagic;
-                                        break;
-                                    }
-                                    else if (SpellLevelProgression.GetLevel1SpellId(spellId) == SpellId.LifeMagicMasteryOther1)
-                                    {
-                                        skill = Skill.LifeMagic;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (skill == Skill.None)
-                            {
-                                var skillRoll = ThreadSafeRandom.Next(0, 1);
-                                if (skillRoll == 0)
-                                    skill = Skill.WarMagic;
-                                else
-                                    skill = Skill.LifeMagic;
-                            }
-
-                            wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 3f / 4f);
-                        }
-                    }
+                    skill = Skill.MissileDefense;
+                    wo.ItemSkillLevelLimit = (int)(wo.ItemSkillLevelLimit * 0.7f);
                 }
             }
             else
