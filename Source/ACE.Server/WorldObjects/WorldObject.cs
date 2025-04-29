@@ -1618,7 +1618,21 @@ namespace ACE.Server.WorldObjects
             if (wieldDifficulty != null)
             {
                 if (wieldRequirements == WieldRequirement.Level)
-                    requirementEstimatedTier = (int)Creature.CalculateExtendedTier(wieldDifficulty ?? 0);
+                {
+                    var levelRequirement = wieldDifficulty ?? 0;
+                    if (levelRequirement < 15)
+                        requirementEstimatedTier = 1;
+                    else if (levelRequirement < 30)
+                        requirementEstimatedTier = 2;
+                    else if (levelRequirement < 50)
+                        requirementEstimatedTier = 3;
+                    else if (levelRequirement < 70)
+                        requirementEstimatedTier = 4;
+                    else if (levelRequirement < 90)
+                        requirementEstimatedTier = 5;
+                    else
+                        requirementEstimatedTier = 6;
+                }
                 else if (wieldRequirements == WieldRequirement.RawSkill)
                 {
                     if (wieldSkillType == (int)Skill.Axe || wieldSkillType == (int)Skill.Dagger || wieldSkillType == (int)Skill.Spear || wieldSkillType == (int)Skill.Sword || wieldSkillType == (int)Skill.ThrownWeapon || wieldSkillType == (int)Skill.UnarmedCombat)
