@@ -1756,20 +1756,20 @@ namespace ACE.Server.WorldObjects
                     // These changes are applied even to items owned by monsters, do not update item version here as that would prevent the full changes from being applied later.
 
                     // Convert weapon skills to merged ones
-                    if (WieldSkillType.HasValue)
+                    if ((WieldRequirements == WieldRequirement.RawSkill || WieldRequirements == WieldRequirement.Skill || WieldRequirements == WieldRequirement.Training) && WieldSkillType.HasValue)
                         WieldSkillType = (int)ConvertToMoASkill((Skill)WieldSkillType);
-                    if (WieldSkillType2.HasValue)
+                    if ((WieldRequirements2 == WieldRequirement.RawSkill || WieldRequirements2 == WieldRequirement.Skill || WieldRequirements2 == WieldRequirement.Training) && WieldSkillType2.HasValue)
                         WieldSkillType2 = (int)ConvertToMoASkill((Skill)WieldSkillType2);
-                    if (WieldSkillType3.HasValue)
+                    if ((WieldRequirements3 == WieldRequirement.RawSkill || WieldRequirements3 == WieldRequirement.Skill || WieldRequirements3 == WieldRequirement.Training) && WieldSkillType3.HasValue)
                         WieldSkillType3 = (int)ConvertToMoASkill((Skill)WieldSkillType3);
-                    if (WieldSkillType4.HasValue)
+                    if ((WieldRequirements4 == WieldRequirement.RawSkill || WieldRequirements4 == WieldRequirement.Skill || WieldRequirements4 == WieldRequirement.Training) && WieldSkillType4.HasValue)
                         WieldSkillType4 = (int)ConvertToMoASkill((Skill)WieldSkillType4);
                 }
 
                 var owner = Wielder ?? Container;
                 bool ownerIsMonster = owner != null && owner is Creature creatureOwner && !creatureOwner.Guid.IsPlayer() && (creatureOwner.Attackable || creatureOwner.TargetingTactic != TargetingTactic.None);
                 if (ownerIsMonster)
-                    return;
+                    return; // Monsters can keep unmodified items for now due to balance reasons.
 
                 if (owner is Container containerOwner)
                     UpdateGameplayMode(containerOwner);
@@ -1782,7 +1782,7 @@ namespace ACE.Server.WorldObjects
                     }
                 }
 
-                if (Version == null || Version < currentVersion) // Monsters can keep unmodified items for now due to balance reasons.
+                if (Version == null || Version < currentVersion)
                 {
                     Version = currentVersion; // Bring item version up to current.
 
