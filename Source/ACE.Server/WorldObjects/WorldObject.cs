@@ -1336,7 +1336,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public bool CanBeTinkered
+         public bool CanBeTinkered
         {
             get
             {
@@ -1805,6 +1805,8 @@ namespace ACE.Server.WorldObjects
                         if (ItemWorkmanship == null && (ItemType & (ItemType.WeaponOrCaster | ItemType.Vestements | ItemType.Jewelry)) != 0 && WeenieType != WeenieType.Missile && WeenieType != WeenieType.Ammunition)
                         {
                             var tier = (int)(Tier ?? EstimateItemTier());
+                            if (!Tier.HasValue)
+                                Tier = tier;
 
                             // Add default ExtraSpellsMaxOverride value to quest items.
                             if (ExtraSpellsMaxOverride == null && ResistMagic == null)
@@ -2012,6 +2014,8 @@ namespace ACE.Server.WorldObjects
                         if (ArmorLevel.HasValue && ArmorLevel > 0)
                         {
                             var tier = (int)(Tier ?? EstimateItemTier());
+                            if (!Tier.HasValue)
+                                Tier = tier;
 
                             LootGenerationFactory.ReplaceArmorLevelRequirements(this, tier);
                         }

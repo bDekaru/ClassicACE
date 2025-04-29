@@ -254,7 +254,7 @@ namespace ACE.Server.Factories
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
                 TryMutate_ItemSkillLimit(wo, roll); // ItemSkill/LevelLimit
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
             {
                 var allowSpecialProperties = true;
                 if (profile is TreasureDeathExtended extendedProfile)
@@ -267,8 +267,7 @@ namespace ACE.Server.Factories
                 }
             }
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                CalculateArcaneLore(wo, roll.AllSpells, roll.LifeCreatureEnchantments, roll.Cantrips, roll.MinEffectiveSpellcraft, roll.MaxEffectiveSpellcraft, roll.RolledEffectiveSpellcraft, true, out roll.MinArcaneLore, out roll.MaxArcaneLore, out roll.RolledArcaneLore);
+            CalculateArcaneLore(wo, roll.AllSpells, roll.LifeCreatureEnchantments, roll.Cantrips, roll.MinEffectiveSpellcraft, roll.MaxEffectiveSpellcraft, roll.RolledEffectiveSpellcraft, true, out roll.MinArcaneLore, out roll.MaxArcaneLore, out roll.RolledArcaneLore);
         }
 
         private static bool TryMutate_HeritageRequirement(WorldObject wo, TreasureDeath profile, TreasureRoll roll)
