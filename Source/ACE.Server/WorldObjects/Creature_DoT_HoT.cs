@@ -483,7 +483,7 @@ namespace ACE.Server.WorldObjects
                     }
 
                     if (targetPlayer != null && targetPlayer != sourcePlayer)
-                        targetPlayer.SendMessage($"Hemorrhage! {sourcePlayer.Name} {plural} you with {damage:N0} points of {damageTypeString} damage.", messageType);
+                        targetPlayer.SendMessage($"Hemorrhage! {source.Name} {plural} you with {damage:N0} points of {damageTypeString} damage.", messageType);
                 }
             }
 
