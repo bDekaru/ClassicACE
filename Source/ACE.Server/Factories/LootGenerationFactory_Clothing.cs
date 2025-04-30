@@ -118,24 +118,24 @@ namespace ACE.Server.Factories
             }
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                ReplaceArmorLevelRequirements(wo, profile.Tier);
+                ReplaceArmorLevelRequirements(wo);
 
             return success;
         }
 
-        public static void ReplaceArmorLevelRequirements(WorldObject wo, int tier)
+        public static void ReplaceArmorLevelRequirements(WorldObject wo)
         {
             if (wo.ArmorLevel.HasValue && wo.ArmorLevel > 0)
             {
-                var hasLevelRequirement = false;
+                var levelRequirement = 0;
                 if (wo.WieldRequirements == WieldRequirement.Level)
-                    hasLevelRequirement = true;
+                    levelRequirement = wo.WieldDifficulty ?? 0;
                 else if (wo.WieldRequirements2 == WieldRequirement.Level)
-                    hasLevelRequirement = true;
+                    levelRequirement = wo.WieldDifficulty2 ?? 0;
                 else if (wo.WieldRequirements3 == WieldRequirement.Level)
-                    hasLevelRequirement = true;
+                    levelRequirement = wo.WieldDifficulty3 ?? 0;
                 else if (wo.WieldRequirements4 == WieldRequirement.Level)
-                    hasLevelRequirement = true;
+                    levelRequirement = wo.WieldDifficulty4 ?? 0;
 
                 var hasArmorOrManaRequirement = false;
                 if ((wo.WieldRequirements == WieldRequirement.RawSkill && wo.WieldSkillType == (int)Skill.Armor) || (wo.WieldRequirements == WieldRequirement.RawSecondaryAttrib && wo.WieldSkillType == (int)PropertyAttribute2nd.MaxMana))
@@ -147,8 +147,22 @@ namespace ACE.Server.Factories
                 else if ((wo.WieldRequirements4 == WieldRequirement.RawSkill && wo.WieldSkillType4 == (int)Skill.Armor) || (wo.WieldRequirements4 == WieldRequirement.RawSecondaryAttrib && wo.WieldSkillType4 == (int)PropertyAttribute2nd.MaxMana))
                     hasArmorOrManaRequirement = true;
 
-                if (hasLevelRequirement && !hasArmorOrManaRequirement)
+                if (levelRequirement > 0 && !hasArmorOrManaRequirement)
                 {
+                    var armorLevelTier = 0;
+                    if (levelRequirement < 15)
+                        armorLevelTier = 1;
+                    else if (levelRequirement < 30)
+                        armorLevelTier = 2;
+                    else if (levelRequirement < 50)
+                        armorLevelTier = 3;
+                    else if (levelRequirement < 70)
+                        armorLevelTier = 4;
+                    else if (levelRequirement < 90)
+                        armorLevelTier = 5;
+                    else
+                        armorLevelTier = 6;
+
                     var newWieldRequirements = WieldRequirement.Invalid;
                     var newWieldSkillType = 0;
                     var newWieldDifficulty = 0;
@@ -157,20 +171,22 @@ namespace ACE.Server.Factories
                     {
                         newWieldRequirements = WieldRequirement.RawSecondaryAttrib;
                         newWieldSkillType = (int)PropertyAttribute2nd.MaxMana;
-                        newWieldDifficulty = ((tier - 1) * 30) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 70;
+                        newWieldDifficulty = ((armorLevelTier - 1) * 30) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 70;
                     }
                     else if(wo.IsShield)
                     {
                         newWieldRequirements = WieldRequirement.RawSkill;
                         newWieldSkillType = (int)Skill.Shield;
-                        newWieldDifficulty = ((tier - 1) * 15) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 100;
+                        newWieldDifficulty = ((armorLevelTier - 1) * 15) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 100;
                     }
                     else
                     {
                         newWieldRequirements = WieldRequirement.RawSkill;
                         newWieldSkillType = (int)Skill.Armor;
-                        newWieldDifficulty = ((tier - 1) * 15) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 40;
+                        newWieldDifficulty = ((armorLevelTier - 1) * 15) + (int)Math.Round((float)wo.ArmorLevel * 0.75f) + 40;
                     }
+
+                    newWieldDifficulty -= newWieldDifficulty % 5;
 
                     if (wo.WieldRequirements == WieldRequirement.Level)
                     {

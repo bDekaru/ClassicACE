@@ -2011,14 +2011,11 @@ namespace ACE.Server.WorldObjects
 
                     if (Version < 2)
                     {
-                        if (ArmorLevel.HasValue && ArmorLevel > 0)
-                        {
-                            var tier = (int)(Tier ?? EstimateItemTier());
-                            if (!Tier.HasValue)
-                                Tier = tier;
+                        if (!Tier.HasValue)
+                            Tier = EstimateItemTier();
 
-                            LootGenerationFactory.ReplaceArmorLevelRequirements(this, tier);
-                        }
+                        if (ArmorLevel.HasValue && ArmorLevel > 0)
+                            LootGenerationFactory.ReplaceArmorLevelRequirements(this);
                     }
 
                     Version = currentVersion; // Bring item version up to current.
