@@ -46,17 +46,17 @@ namespace ACE.Server.WorldObjects
             {
                 var targetName = source == this ? "yourself" : Name;
                 if (combatType != CombatType.Magic || sourceMessage == null || sourceMessage == "")
-                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"You infuse {targetName} with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"You infuse {targetName} with {totalAmount:N0} points of periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
                 else
-                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"With {sourceMessage} you infuse {targetName} with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"With {sourceMessage} you infuse {targetName} {totalAmount:N0} points of with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
             }
 
             if (targetPlayer != null && targetPlayer != sourcePlayer)
             {
                 if (combatType != CombatType.Magic || sourceMessage == null || sourceMessage == "")
-                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} infuses you with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} infuses you with {totalAmount:N0} points of periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
                 else
-                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} casts {sourceMessage} and infuses you with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} casts {sourceMessage} and infuses you with {totalAmount:N0} points of periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
             }
         }
 
@@ -80,66 +80,15 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            var damageResistRatingMod = GetDamageResistRatingMod(combatType, false);
-
-            var pvpMod = 1.0f;
-            if (isPvP)
-            {
-                var pkDamageResistRatingMod = GetNegativeRatingMod(targetPlayer.GetPKDamageResistRating());
-
-                damageResistRatingMod = AdditiveCombine(damageResistRatingMod, pkDamageResistRatingMod);
-
-                pvpMod = (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low", "pvp_dmg_mod_high", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
-                if (damageType == DamageType.Nether)
-                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_void_dot", "pvp_dmg_mod_high_void_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
-                else
-                    pvpMod *= (float)PropertyManager.GetInterpolatedDouble(sourcePlayer.Level ?? 1, "pvp_dmg_mod_low_dot", "pvp_dmg_mod_high_dot", "pvp_dmg_mod_low_level", "pvp_dmg_mod_high_level");
-            }
-
-            var heartbeatMod = (float)HeartbeatInterval / 5.0f; // Modifier to account for non-default heartbeat intervals.
-
             var dotResistRatingMod = GetNegativeRatingMod(GetDotResistanceRating());
 
-            var modifiers = damageResistRatingMod * dotResistRatingMod * pvpMod * heartbeatMod;
-
-            tickAmount = (int)Math.Round(tickAmount * modifiers);
-            totalAmount = (int)Math.Round(totalAmount * modifiers);
-
-            var weaponResistanceMod = 1.0f;
-            var elementalDamageMod = 1.0f;
-            var slayerMod = 1.0f;
-            var absorbMod = 1.0f;
-
-            if (sourceWeapon != null)
-            {
-                weaponResistanceMod = GetWeaponResistanceModifier(sourceWeapon, sourceCreature, attackSkill, damageType);
-                elementalDamageMod = GetCasterElementalDamageModifier(sourceWeapon, sourceCreature, this, damageType);
-                slayerMod = GetWeaponCreatureSlayerModifier(sourceWeapon, sourceCreature, this);
-            }
-
-            var isMagic = attackSkill != null && Player.MagicSkills.Contains(attackSkill.Skill);
-            if (isMagic)
-            {
-                absorbMod = SpellProjectile.GetAbsorbMod(source, this);
-
-                //http://acpedia.org/wiki/Announcements_-_2014/01_-_Forces_of_Nature - Aegis is 72% effective in PvP
-                if (isPvP && (targetPlayer.CombatMode == CombatMode.Melee || targetPlayer.CombatMode == CombatMode.Missile) && Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                {
-                    absorbMod = 1 - absorbMod;
-                    absorbMod *= 0.72f;
-                    absorbMod = 1 - absorbMod;
-                }
-            }
-
-            var casterMods = elementalDamageMod * slayerMod * absorbMod;
+            tickAmount = (int)Math.Round(tickAmount * dotResistRatingMod);
+            totalAmount = (int)Math.Round(totalAmount * dotResistRatingMod);
 
             lock(DoTHoTListLock)
             {
-                ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, source, casterMods, weaponResistanceMod));
+                ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, source));
             }
-
-            var resistanceMod = (float)Math.Max(0.0f, GetResistanceMod(GetResistanceType(damageType), this, null, weaponResistanceMod));
-            var estimatedTotalAmount = totalAmount * casterMods * resistanceMod; // This is estimated as it could change if the target changes resistances while this dot ticks.
 
             if (targetPlayer != null && sourceCreature != null)
                 targetPlayer.SetCurrentAttacker(sourceCreature);
@@ -147,7 +96,7 @@ namespace ACE.Server.WorldObjects
             if (isPvP)
                 Player.UpdatePKTimers(sourcePlayer, targetPlayer);
 
-            var critMsg = isCritical ? "Critical hit! " : "";
+            var critMsg = isCritical ? "Critical hit!  " : "";
             var messageType = ChatMessageType.Magic;
             var damageTypeString = damageType.GetName().ToLower();
 
@@ -155,22 +104,30 @@ namespace ACE.Server.WorldObjects
             {
                 var targetName = source == this ? "yourself" : Name;
                 if (sourceMessage == null)
-                    sourcePlayer.SendMessage($"{critMsg}Your attack adds {estimatedTotalAmount:N0} points of periodic {damageTypeString} damage to {targetName}.", messageType);
+                    sourcePlayer.SendMessage($"{critMsg}Your attack adds {totalAmount:N0} points of periodic {damageTypeString} damage to {targetName}.", messageType);
                 else
-                    sourcePlayer.SendMessage($"{critMsg}Your {sourceMessage} adds {estimatedTotalAmount:N0} points of periodic {damageTypeString} damage to {targetName}.", messageType);
+                    sourcePlayer.SendMessage($"{critMsg}Your {sourceMessage} adds {totalAmount:N0} points of periodic {damageTypeString} damage to {targetName}.", messageType);
             }
 
             if (targetPlayer != null && targetPlayer != source)
             {
                 if (sourceMessage == null || sourceMessage == "")
-                    targetPlayer.SendMessage($"{critMsg}{source.Name}'s attack adds {estimatedTotalAmount:N0} points of periodic {damageTypeString} damage to you.", messageType);
+                    targetPlayer.SendMessage($"{critMsg}{source.Name}'s attack adds {totalAmount:N0} points of periodic {damageTypeString} damage to you.", messageType);
                 else
-                    targetPlayer.SendMessage($"{critMsg}{source.Name}'s {sourceMessage} adds {estimatedTotalAmount:N0} points of periodic {damageTypeString} damage to you.", messageType);
+                    targetPlayer.SendMessage($"{critMsg}{source.Name}'s {sourceMessage} adds {totalAmount:N0} points of periodic {damageTypeString} damage to you.", messageType);
             }
         }
 
-        public void DoTHotHeartbeat()
+        private double DoTHoT_TickTimestamp;
+        private const double DoTHoT_TickInterval = 2.5;
+
+        public void DoTHotTick(double currentUnixTime)
         {
+            if (DoTHoT_TickTimestamp != 0 && currentUnixTime <= DoTHoT_TickTimestamp)
+                return;
+
+            DoTHoT_TickTimestamp = Time.GetFutureUnixTime(DoTHoT_TickInterval);
+
             if (IsDead)
                 return;
 
@@ -192,15 +149,11 @@ namespace ACE.Server.WorldObjects
                     var updatedDamageOverTimeList = new List<DoTInfo>();
                     foreach (var dot in ActiveDamageOverTimeList)
                     {
-                        var baseTickAmount = Math.Min(dot.TickAmount, dot.TotalAmount);
+                        var tickAmount = (float)Math.Min(dot.TickAmount, dot.TotalAmount);
                         var totalAmountRemaining = Math.Max(dot.TotalAmount - dot.TickAmount, 0);
 
                         if (totalAmountRemaining > 0)
-                            updatedDamageOverTimeList.Add(new DoTInfo(dot.TickAmount, totalAmountRemaining, dot.CombatType, dot.DamageType, dot.Source, dot.CasterMods, dot.CasterWeaponResistanceMod));
-
-                        var resistanceMod = (float)Math.Max(0.0f, GetResistanceMod(GetResistanceType(dot.DamageType), this, null, dot.CasterWeaponResistanceMod));
-
-                        var tickAmount = baseTickAmount * dot.CasterMods * resistanceMod;
+                            updatedDamageOverTimeList.Add(new DoTInfo(dot.TickAmount, totalAmountRemaining, dot.CombatType, dot.DamageType, dot.Source));
 
                         // make sure the target's current health is not exceeded
                         if (totalTickAmount + tickAmount >= Health.Current)
@@ -361,7 +314,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public void ApplySkillAndInnateDoTs(WorldObject source, WorldObject weapon, float baseDamage, DamageType damageType, Skill attackSkill)
+        public void ApplySkillAndInnateDoTs(WorldObject source, WorldObject weapon, float baseDamage, DamageType damageType, bool isCritical, Skill attackSkill)
         {
             if (baseDamage == 0)
                 return;
@@ -381,7 +334,7 @@ namespace ACE.Server.WorldObjects
 
                 if (hasMultistrikeDoT || chance > ThreadSafeRandom.Next(0.0f, 1.0f))
                 {
-                    var damageTotal = (int)(5 + Math.Round(baseDamage * 1.5f));
+                    var damageTotal = 5 + (int)Math.Round(baseDamage);
                     var damageTick = damageTotal / 5;
                     var hemorrhaged = false;
 
@@ -389,7 +342,7 @@ namespace ACE.Server.WorldObjects
                         hemorrhaged = DoTHemorrhage(source, CombatType.Melee, damageType);
 
                     if (!hemorrhaged)
-                        ApplyDoT(damageTick, damageTotal, false, CombatType.Melee, damageType, source, weapon, GetCreatureSkill(attackSkill));
+                        ApplyDoT(damageTick, damageTotal, isCritical, CombatType.Melee, damageType, source, weapon, GetCreatureSkill(attackSkill));
                 }
             }
         }
@@ -425,19 +378,14 @@ namespace ACE.Server.WorldObjects
                 if (hemorrhageList.Count == 0)
                     return false;
 
-                //ActiveDamageOverTimeList.Remove(hemorrhageList.First());
                 ActiveDamageOverTimeList = ActiveDamageOverTimeList.Where(e => e.Source != source || e.CombatType != combatType || e.DamageType != damageType).ToList();
             }
 
             var damage = 0f;
             foreach(var entry in hemorrhageList)
             {
-                var resistanceMod = (float)Math.Max(0.0f, GetResistanceMod(GetResistanceType(entry.DamageType), this, null, entry.CasterWeaponResistanceMod));
-
-                damage += entry.TotalAmount * entry.CasterMods * resistanceMod;
+                damage += entry.TotalAmount;
             }
-
-            damage = Math.Min(damage, Health.MaxValue * 0.75f);
 
             if (damage > 0)
             {

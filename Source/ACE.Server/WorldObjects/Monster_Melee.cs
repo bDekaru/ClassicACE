@@ -80,6 +80,7 @@ namespace ACE.Server.WorldObjects
             bool targetProc = false;
             var dotBaseDamage = 0f;
             var dotDamageType = DamageType.Undef;
+            var dotIsCritical = false;
             WorldObject dotWeapon = null;
 
             for (var i = 0; i < numStrikes; i++)
@@ -111,9 +112,10 @@ namespace ACE.Server.WorldObjects
 
                     if (damageEvent.HasDamage)
                     {
-                        var dotBaseDamageCandidate = (damageEvent.BaseDamage * damageEvent.AttributeMod * damageEvent.PowerMod * damageEvent.ArmorMod) - damageEvent.DamageBlocked;
-                        if (dotBaseDamageCandidate > dotBaseDamage)
-                            dotBaseDamage = dotBaseDamageCandidate;
+                        dotBaseDamage += damageEvent.Damage;
+
+                        if (damageEvent.IsCritical)
+                            dotIsCritical = true;
 
                         if (dotDamageType == DamageType.Undef)
                         {
@@ -175,7 +177,7 @@ namespace ACE.Server.WorldObjects
                 });
             }
 
-            actionChain.AddAction(this, () => targetCreature.ApplySkillAndInnateDoTs(this, weapon, dotBaseDamage, dotDamageType, GetCurrentWeaponSkill()));
+            actionChain.AddAction(this, () => targetCreature.ApplySkillAndInnateDoTs(this, weapon, dotBaseDamage, dotDamageType, dotIsCritical, GetCurrentWeaponSkill()));
 
             actionChain.EnqueueChain();
 
