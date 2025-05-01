@@ -416,8 +416,6 @@ namespace ACE.Server.Factories.Tables.Wcids
 
                     SpellId.Resurrect1,
                     SpellId.FellowHeal1,
-                    SpellId.HoTSelf1,
-                    SpellId.HoTOther1,
                     SpellId.Ensnare,
                     SpellId.Mesmerize,
                     SpellId.AblativeArmorSelf1,

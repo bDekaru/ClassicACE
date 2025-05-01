@@ -32,31 +32,29 @@ namespace ACE.Server.WorldObjects
             var sourcePlayer = source as Player;
             var targetPlayer = this as Player;
 
-            //Todo: add support for other vital types
-            var heartbeatMod = (float)HeartbeatInterval / 5.0f; // Modifier to account for non-default heartbeat intervals.
-
-            tickAmount = (int)Math.Round(tickAmount * heartbeatMod);
-
             lock(DoTHoTListLock)
             {
                 ActiveHealOverTimeList.Add(new HoTInfo(tickAmount, totalAmount, vitalType, source));
             }
 
+            var messageType = combatType == CombatType.Magic ? ChatMessageType.Magic : ChatMessageType.Broadcast;
+            var vitalTypeString = vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain";
+
             if (sourcePlayer != null)
             {
                 var targetName = source == this ? "yourself" : Name;
                 if (combatType != CombatType.Magic || sourceMessage == null || sourceMessage == "")
-                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"You infuse {targetName} with {totalAmount:N0} points of periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"You infuse {targetName} with {totalAmount:N0} points of periodic {vitalTypeString}.", messageType));
                 else
-                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"With {sourceMessage} you infuse {targetName} {totalAmount:N0} points of with periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    sourcePlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"With {sourceMessage} you infuse {targetName} {totalAmount:N0} points of with periodic {vitalTypeString}.", messageType));
             }
 
             if (targetPlayer != null && targetPlayer != sourcePlayer)
             {
                 if (combatType != CombatType.Magic || sourceMessage == null || sourceMessage == "")
-                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} infuses you with {totalAmount:N0} points of periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} infuses you with {totalAmount:N0} points of periodic {vitalTypeString}.", messageType));
                 else
-                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} casts {sourceMessage} and infuses you with {totalAmount:N0} points of periodic {(vitalType == DamageType.Health ? "healing" : $"{vitalType.GetName().ToLower()} gain")}.", ChatMessageType.Magic));
+                    targetPlayer.Session.Network.EnqueueSend(new GameMessageSystemChat($"{sourcePlayer.Name} casts {sourceMessage} and infuses you with {totalAmount:N0} points of periodic {vitalTypeString}.", messageType));
             }
         }
 
@@ -278,7 +276,19 @@ namespace ACE.Server.WorldObjects
                     var playedEffects = false;
                     foreach (var entry in totalTickAmountPerVitalType)
                     {
-                        var healAmount = UpdateVitalDelta(Health, (int)Math.Round(entry.Value.TotalTickAmount));
+                        var healAmount = 0;
+                        switch(entry.Key)
+                        {
+                            case DamageType.Health:
+                                healAmount = UpdateVitalDelta(Health, (int)Math.Round(entry.Value.TotalTickAmount));
+                                break;
+                            case DamageType.Stamina:
+                                healAmount = UpdateVitalDelta(Stamina, (int)Math.Round(entry.Value.TotalTickAmount));
+                                break;
+                            case DamageType.Mana:
+                                healAmount = UpdateVitalDelta(Mana, (int)Math.Round(entry.Value.TotalTickAmount));
+                                break;
+                        }
 
                         if (player != null)
                         {

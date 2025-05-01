@@ -182,7 +182,7 @@ namespace ACE.Server.WorldObjects
 
         private double NextAlchemyProcAttemptTime = 0;
         private static double AlchemyProcAttemptInterval = 120;
-        public void TryProcAlchemyHoT(Player healer, Creature target, int difficulty)
+        public void TryProcAlchemyHoT(Player healer, Creature target, int difficulty, int healAmount, PropertyAttribute2nd vital)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
@@ -192,13 +192,10 @@ namespace ACE.Server.WorldObjects
 
             var isSelfTarget = healer == target;
 
-            var procSpellId = SpellId.Undef;
-
             var currentTime = Time.GetUnixTime();
             if (NextAlchemyProcAttemptTime > currentTime)
                 return;
 
-            bool showCastMessage = false;
             var skill = healer.GetCreatureSkill(Skill.Alchemy);
             if (skill.AdvancementClass >= SkillAdvancementClass.Trained)
             {
@@ -208,50 +205,25 @@ namespace ACE.Server.WorldObjects
                 if (rng >= skillCheck)
                     return;
 
-                int spellLevel;
-                if (skill.Current < 200)
-                    spellLevel = 1;
-                else if (skill.Current < 300)
-                    spellLevel = 2;
-                else if (skill.Current < 400)
-                    spellLevel = 3;
-                else
-                    spellLevel = 4;
-
-                if(isSelfTarget)
-                    procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.HoTSelf1, spellLevel);
-                else
-                    procSpellId = SpellLevelProgression.GetSpellAtLevel(SpellId.HoTOther1, spellLevel);
-            }
-
-            if (procSpellId == SpellId.Undef)
-                return;
-
-            var spell = new Spell(procSpellId);
-
-            if (spell.NotFound)
-            {
-                if (healer is Player player)
+                var vitalType = DamageType.Undef;
+                switch (vital)
                 {
-                    if (spell._spellBase == null)
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"SpellId {ProcSpell.Value} Invalid.", ChatMessageType.System));
-                    else
-                        player.Session.Network.EnqueueSend(new GameMessageSystemChat($"{spell.Name} spell not implemented, yet!", ChatMessageType.System));
+                    case PropertyAttribute2nd.MaxHealth:
+                        vitalType = DamageType.Health;
+                        break;
+                    case PropertyAttribute2nd.MaxStamina:
+                        vitalType = DamageType.Stamina;
+                        break;
+                    case PropertyAttribute2nd.MaxMana:
+                        vitalType = DamageType.Mana;
+                        break;
                 }
-                return;
-            }
 
-            if (spell.NonComponentTargetType == ItemType.None)
-                healer.TryCastSpell(spell, null, null, null, true, true, true, showCastMessage);
-            else if (spell.NonComponentTargetType == ItemType.Vestements)
-            {
-                // TODO: spell.NonComponentTargetType should probably always go through TryCastSpell_WithItemRedirects,
-                // however i don't feel like testing every possible known type of item procspell in the current db to ensure there are no regressions
-                // current test case: 33990 Composite Bow casting Tattercoat
-                healer.TryCastSpell_WithRedirects(spell, target, null, null, true, true);
+                if (isSelfTarget)
+                    healer.ApplyHoT((int)(healAmount / 2.5), healAmount * 4, vitalType, healer, CombatType.Melee);
+                else
+                    target.ApplyHoT((int)(healAmount / 2.5), healAmount * 4, vitalType, healer, CombatType.Melee);
             }
-            else
-                healer.TryCastSpell(spell, target, null, null, true, true, true, showCastMessage);
 
             NextAlchemyProcAttemptTime = currentTime + AlchemyProcAttemptInterval;
             Proficiency.OnSuccessUse(healer, skill, difficulty);
@@ -309,8 +281,6 @@ namespace ACE.Server.WorldObjects
             var healingSkill = healer.GetCreatureSkill(Skill.Healing);
             Proficiency.OnSuccessUse(healer, healingSkill, difficulty);
 
-            TryProcAlchemyHoT(healer, target, difficulty);
-
             var pkLoweredMessage = "";
             //if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && healer.PKTimerActive)
             //    pkLoweredMessage = " Your recent PvP activity lowers the effectiveness of this action.";
@@ -322,6 +292,8 @@ namespace ACE.Server.WorldObjects
 
             if (healer != target)
                 target.Session.Network.EnqueueSend(new GameMessageSystemChat($"{healer.Name} heals you for {healAmount} {BoosterEnum.ToString()} points.", ChatMessageType.Broadcast));
+
+            TryProcAlchemyHoT(healer, target, difficulty, (int)healAmount, vital.Vital);
 
             if (UsesLeft <= 0 && !UnlimitedUse)
                 healer.TryConsumeFromInventoryWithNetworking(this, 1);
