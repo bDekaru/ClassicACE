@@ -800,7 +800,7 @@ namespace ACE.Server.WorldObjects
                     var dotStrings = new List<string>();
                     foreach (var entry in ActiveDamageOverTimeList)
                     {
-                        dotStrings.Add($"{entry.TickAmount}:{entry.TotalAmount}:{(int)entry.DamageType}:{entry.CasterMods:0.00}:{entry.CasterWeaponResistanceMod:0.00}");
+                        dotStrings.Add($"{entry.TickAmount}:{entry.TotalAmount}:{(int)entry.DamageType}");
                     }
 
                     DamageOverTimeLog = string.Join(",", dotStrings);
@@ -852,18 +852,8 @@ namespace ACE.Server.WorldObjects
                             log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT DamageType from string: {entryStrings}");
                             continue;
                         }
-                        if (!float.TryParse(entryStrings[4], out var casterMods))
-                        {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT CasterMods from string: {entryStrings}");
-                            continue;
-                        }
-                        if (!float.TryParse(entryStrings[5], out var casterWeaponResistanceMod))
-                        {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT CasterWeaponResistanceMod from string: {entryStrings}");
-                            continue;
-                        }
 
-                        ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, null, casterMods, casterWeaponResistanceMod));
+                        ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, null));
                     }
 
                     DamageOverTimeLog = null;

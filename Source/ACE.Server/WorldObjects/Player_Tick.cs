@@ -138,6 +138,8 @@ namespace ACE.Server.WorldObjects
                 vitaeTickTimestamp = Time.GetFutureUnixTime(vitaeTickInterval);
             }
 
+            DoTHotTick(currentUnixTime);
+
             if (PvPInciteTickTimestamp == 0)
                 PvPInciteTickTimestamp = Time.GetFutureUnixTime(PropertyManager.GetLong("bz_whispers_login_delay").Item);
             else if (currentUnixTime > PvPInciteTickTimestamp)

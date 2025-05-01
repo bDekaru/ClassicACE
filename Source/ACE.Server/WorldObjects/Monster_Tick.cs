@@ -41,6 +41,8 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            DoTHotTick(currentUnixTime);
+
             NextMonsterTickTime = currentUnixTime + ThreadSafeRandom.Next((float)monsterTickInterval * 0.5f, (float)monsterTickInterval * 1.5f); // Add some randomization here to keep creatures from acting in perfect synch.
 
             bool interruptTick = false;

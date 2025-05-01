@@ -335,7 +335,7 @@ namespace ACE.Server.WorldObjects
                 else
                 {
                     if (Spell.IsExtendedSpell)
-                        creatureTarget.ApplyDoT((int)(damage.Value / 2), (int)(damage.Value * 2), critical, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
+                        creatureTarget.ApplyDoT((int)(damage.Value / 4), (int)(damage.Value * 2), critical, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
                     else
                         DamageTarget(creatureTarget, damage.Value, critical, critDefended, overpower, blocked, isPerfectBlock, damageBlocked);
 
@@ -363,7 +363,7 @@ namespace ACE.Server.WorldObjects
                                     if (damage2 != null)
                                     {
                                         if (Spell.IsExtendedSpell)
-                                            creatureTarget.ApplyDoT((int)(damage2.Value / 2), (int)(damage2.Value * 2), criticalSelf, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
+                                            creatureTarget.ApplyDoT((int)(damage2.Value / 4), (int)(damage2.Value * 2), criticalSelf, CombatType.Magic, Spell.DamageType, ProjectileSource, ProjectileLauncher, sourceCreature?.GetCreatureSkill(Spell.School), Spell.NameWithMetaspellAdjectives);
                                         else
                                             DamageTarget(player, damage2.Value, criticalSelf, critDefendedSelf, overpowerSelf, blocked, isPerfectBlock, damageBlocked);
 

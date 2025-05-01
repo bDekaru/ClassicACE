@@ -702,7 +702,7 @@ namespace ACE.Server.WorldObjects
             if (spell.IsExtendedSpell)
             {
                 if (tryBoost > 0)
-                    targetCreature.ApplyHoT(tryBoost / 2, tryBoost * 2, spell.VitalDamageType, this, CombatType.Magic, spell.NameWithMetaspellAdjectives);
+                    targetCreature.ApplyHoT(tryBoost / 4, tryBoost * 2, spell.VitalDamageType, this, CombatType.Magic, spell.NameWithMetaspellAdjectives);
                 else
                 {
                     var damageRating = creature?.GetDamageRating() ?? 0;
@@ -711,7 +711,7 @@ namespace ACE.Server.WorldObjects
                     tryBoost = (int)(tryBoost * damageRatingMod);
 
                     tryBoost = Math.Abs(tryBoost);
-                    targetCreature.ApplyDoT(tryBoost / 2, tryBoost * 2, false, CombatType.Magic, spell.VitalDamageType, this, null, creature?.GetCreatureSkill(spell.School), spell.NameWithMetaspellAdjectives);
+                    targetCreature.ApplyDoT(tryBoost / 4, tryBoost * 2, false, CombatType.Magic, spell.VitalDamageType, this, null, creature?.GetCreatureSkill(spell.School), spell.NameWithMetaspellAdjectives);
                 }
                 return;
             }

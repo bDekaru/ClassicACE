@@ -69,18 +69,14 @@ namespace ACE.Server.WorldObjects
             public CombatType CombatType;
             public DamageType DamageType;
             public WorldObject Source;
-            public float CasterMods;
-            public float CasterWeaponResistanceMod;
 
-            public DoTInfo(int tickAmount, int totalAmount, CombatType combatType, DamageType damageType, WorldObject source, float casterMods = 1.0f, float casterWeaponResistanceMod = 1.0f)
+            public DoTInfo(int tickAmount, int totalAmount, CombatType combatType, DamageType damageType, WorldObject source)
             {
                 TickAmount = tickAmount;
                 TotalAmount = totalAmount;
                 CombatType = combatType;
                 DamageType = damageType;
                 Source = source;
-                CasterMods = casterMods;
-                CasterWeaponResistanceMod = casterWeaponResistanceMod;
             }
         }
 
