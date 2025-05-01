@@ -163,6 +163,7 @@
     <None Remove="Entity\Mutations\Recipes\38000012 - Armoredillo Hide.txt" />
     <None Remove="Entity\Mutations\Recipes\38000013 - Marble - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\38000013 - Marble.txt" />
+    <None Remove="Entity\Mutations\Recipes\38000014 - Wool.txt - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\38000014 - Wool.txt" />
     <None Remove="Entity\Mutations\Recipes\38000015 - Reedshark Hide - CustomDM.txt" />
     <None Remove="Entity\Mutations\Recipes\38000015 - Reedshark Hide.txt" />
@@ -369,6 +370,7 @@
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000013 - Marble.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000013 - Marble - CustomDM.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000014 - Wool.txt" />
+    <EmbeddedResource Include="Entity\Mutations\Recipes\38000014 - Wool - CustomDM.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000015 - Reedshark Hide.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000015 - Reedshark Hide - CustomDM.txt" />
     <EmbeddedResource Include="Entity\Mutations\Recipes\38000016 - Ceramic.txt" />
