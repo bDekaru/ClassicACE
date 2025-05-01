@@ -11,7 +11,8 @@ namespace ACE.Server.Factories.Entity
         public TreasureWeaponType ForceWeaponType { get; set; }
         public TreasureHeritageGroup ForceHeritage { get; set; }
         public bool ForContainer { get; set; }
-        public bool AllowSpecialProperties { get; set; }
+
+        public bool AllowSpecialProperties = true;
 
         public TreasureDeathExtended()
         {
@@ -24,6 +25,7 @@ namespace ACE.Server.Factories.Entity
             ForceWeaponType = other.ForceWeaponType;
             ForceHeritage = other.ForceHeritage;
             ForContainer = other.ForContainer;
+            AllowSpecialProperties = other.AllowSpecialProperties;
         }
 
         public TreasureDeathExtended(TreasureDeath other) : base(other)
