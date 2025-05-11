@@ -28,7 +28,7 @@ namespace ACE.Server.Factories
             // Loop depending on how many items you are creating
             for (int i = 0; i < numItems; i++)
             {
-                var testItem = LootGenerationFactory.CreateRandomLootObjects(profile, Enum.TreasureItemCategory.MagicItem);
+                var testItem = LootGenerationFactory.CreateRandomLootObjects_Test(profile, Enum.TreasureItemCategory.MagicItem);
                 lootStats.AddItem(testItem, logStats);
             }
 
@@ -149,7 +149,6 @@ namespace ACE.Server.Factories
             displayStats += ($" \n Treasure Items \n " +
                     $"---- \n " +
                     $"Armor={ls.ArmorCount} \n " +
-                    $"Shield={ls.ShieldCount} \n " +
                     $"MeleeWeapon={ls.MeleeWeaponCount} \n " +
                     $"Caster={ls.CasterCount} \n " +
                     $"MissileWeapon={ls.MissileWeaponCount} \n " +
@@ -179,7 +178,6 @@ namespace ACE.Server.Factories
 
             displayStats += $"\n Drop Rates \n ----\n " +
                                 $"Armor= {ls.ArmorCount / ls.TotalItems * 100}% \n " +
-                                $"Shield= {ls.ShieldCount / ls.TotalItems * 100}% \n " +
                                 $"MeleeWeapon= {ls.MeleeWeaponCount / ls.TotalItems * 100}% \n " +
                                 $"Caster= {ls.CasterCount / ls.TotalItems * 100}% \n " +
                                 $"MissileWeapon= {ls.MissileWeaponCount / ls.TotalItems * 100}% \n " +

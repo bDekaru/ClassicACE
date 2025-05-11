@@ -140,7 +140,7 @@ namespace ACE.Server.Factories.Entity
                         filtered.Add((TreasureTableType.ChanceWcid, field));
                     else if (fieldName.Contains("Boolean"))
                         filtered.Add((TreasureTableType.ChanceBool, field));
-                    else if (fieldName.Contains("TreasureItemType_Orig"))
+                    else if (fieldName.Contains("TreasureItemType"))
                         filtered.Add((TreasureTableType.ChanceItemType, field));
                     else if (fieldName.Contains("TreasureHeritageGroup"))
                         filtered.Add((TreasureTableType.ChanceHeritage, field));

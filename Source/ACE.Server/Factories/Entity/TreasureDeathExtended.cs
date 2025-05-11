@@ -6,7 +6,7 @@ namespace ACE.Server.Factories.Entity
     public class TreasureDeathExtended : TreasureDeath
     {
         public double ExtendedTier { get; set; }
-        public TreasureItemType_Orig ForceTreasureItemType { get; set; }
+        public TreasureItemType ForceTreasureItemType { get; set; }
         public TreasureArmorType ForceArmorType { get; set; }
         public TreasureWeaponType ForceWeaponType { get; set; }
         public TreasureHeritageGroup ForceHeritage { get; set; }

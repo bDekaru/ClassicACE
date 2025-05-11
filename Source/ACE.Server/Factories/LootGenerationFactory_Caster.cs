@@ -12,116 +12,44 @@ namespace ACE.Server.Factories
 {
     public static partial class LootGenerationFactory
     {
-        /// <summary>
-        /// Creates Caster (Wand, Staff, Orb)
-        /// </summary>
-        public static WorldObject CreateCaster(TreasureDeath profile, bool isMagical, int wield = -1, bool forceWar = false, bool mutate = true)
+        public static WorldObject CreateCaster(TreasureDeath profile, bool isMagical)
         {
-            // Refactored 11/20/19  - HarliQ
-            int casterWeenie = 0;
+            // this function is only used by test methods, and is not part of regular lootgen
+            var treasureRoll = new TreasureRoll(TreasureItemType.Caster);
+            treasureRoll.WeaponType = TreasureWeaponType.Caster;
+            treasureRoll.Wcid = CasterWcids.Roll(profile.Tier);
 
-            if (wield == -1)
-                wield = RollWieldDifficulty(profile.Tier, TreasureWeaponType.Caster);
-
-            casterWeenie = (int)CasterWcids.Roll(profile.Tier, forceWar);
-
-            WorldObject wo = WorldObjectFactory.CreateNewWorldObject((uint)casterWeenie);
-
-            if (wo != null && mutate)
-                MutateCaster(wo, profile, isMagical, wield);
+            var wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
+            MutateCaster(wo, profile, isMagical, treasureRoll);
 
             return wo;
         }
 
-        private static void MutateCaster(WorldObject wo, TreasureDeath profile, bool isMagical, int? wieldDifficulty = null, TreasureRoll roll = null)
+        private static void MutateCaster(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll)
         {
-            if (wieldDifficulty != null)
+            // mutate ManaConversionMod
+            var mutationFilter = MutationCache.GetMutation("Casters.caster.txt");
+            mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
+
+            // mutate ElementalDamageMod / WieldRequirements
+            var isElemental = wo.W_DamageType != DamageType.Undef;
+            var scriptName = GetCasterScript(isElemental);
+
+            mutationFilter = MutationCache.GetMutation(scriptName);
+            mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
+
+            // this part was not handled by mutation filter
+            if (wo.WieldRequirements == WieldRequirement.RawSkill)
             {
-                // previous method
-
-                var wieldRequirement = WieldRequirement.RawSkill;
-                var wieldSkillType = Skill.None;
-
-                double elementalDamageMod = 0;
-
-                if (wieldDifficulty == 0)
-                {
-                    if (profile.Tier > 6)
-                    {
-                        wieldRequirement = WieldRequirement.Level;
-                        wieldSkillType = Skill.Axe;  // Set by examples from PCAP data
-
-                        wieldDifficulty = profile.Tier switch
-                        {
-                            7 => 150, // In this instance, used for indicating player level, rather than skill level
-                            _ => 180, // In this instance, used for indicating player level, rather than skill level
-                        };
-                    }
-                }
+                if (wo.W_DamageType == DamageType.Nether)
+                    wo.WieldSkillType = (int)Skill.VoidMagic;
                 else
-                {
-                    elementalDamageMod = RollElementalDamageMod(wieldDifficulty.Value);
-
-                    if (wo.W_DamageType == DamageType.Nether)
-                        wieldSkillType = Skill.VoidMagic;
-                    else
-                        wieldSkillType = Skill.WarMagic;
-                }
-
-                // ManaConversionMod
-                var manaConversionMod = RollManaConversionMod(profile.Tier);
-                if (manaConversionMod > 0.0f)
-                    wo.ManaConversionMod = manaConversionMod;
-
-                // ElementalDamageMod
-                if (elementalDamageMod > 1.0f)
-                    wo.ElementalDamageMod = elementalDamageMod;
-
-                // WieldRequirements
-                if (wieldDifficulty > 0 || wieldRequirement == WieldRequirement.Level)
-                {
-                    wo.WieldRequirements = wieldRequirement;
-                    wo.WieldSkillType = (int)wieldSkillType;
-                    wo.WieldDifficulty = wieldDifficulty;
-                }
-                else
-                {
-                    wo.WieldRequirements = WieldRequirement.Invalid;
-                    wo.WieldSkillType = null;
-                    wo.WieldDifficulty = null;
-                }
-
-                // WeaponDefense
-                wo.WeaponDefense = RollWeaponDefense(wieldDifficulty.Value, profile);
+                    wo.WieldSkillType = (int)Skill.WarMagic;
             }
-            else
-            {
-                // new method - mutation scripts
 
-                // mutate ManaConversionMod
-                var mutationFilter = MutationCache.GetMutation("Casters.caster.txt");
-                mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
-
-                // mutate ElementalDamageMod / WieldRequirements
-                var isElemental = wo.W_DamageType != DamageType.Undef;
-                var scriptName = GetCasterScript(isElemental);
-
-                mutationFilter = MutationCache.GetMutation(scriptName);
-                mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
-
-                // this part was not handled by mutation filter
-                if (wo.WieldRequirements == WieldRequirement.RawSkill)
-                {
-                    if (wo.W_DamageType == DamageType.Nether)
-                        wo.WieldSkillType = (int)Skill.VoidMagic;
-                    else
-                        wo.WieldSkillType = (int)Skill.WarMagic;
-                }
-
-                // mutate WeaponDefense
-                mutationFilter = MutationCache.GetMutation("Casters.weapon_defense.txt");
-                mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
-            }
+            // mutate WeaponDefense
+            mutationFilter = MutationCache.GetMutation("Casters.weapon_defense.txt");
+            mutationFilter.TryMutate(wo, profile.Tier, profile.LootQualityMod);
 
             var allowSpecialProperties = true;
             if (profile is TreasureDeathExtended extendedProfile)

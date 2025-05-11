@@ -1,8 +1,11 @@
+using System;
+
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum;
 using ACE.Server.Entity;
 using ACE.Server.Factories.Entity;
+using ACE.Server.Factories.Enum;
 using ACE.Server.Factories.Tables;
 using ACE.Server.WorldObjects;
 using System.Collections.Generic;
@@ -11,7 +14,27 @@ namespace ACE.Server.Factories
 {
     public static partial class LootGenerationFactory
     {
-        private static void MutateGem(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll = null)
+        /// <summary>
+        /// This is only called by /testlootgen command
+        /// The actual lootgen system doesn't use this.
+        /// </summary>
+        private static WorldObject CreateGem(TreasureDeath profile, bool isMagical)
+        {
+            var treasureRoll = new TreasureRoll(TreasureItemType.Gem);
+
+            var gemClass = GemClassChance.Roll(profile.Tier);
+            var gemResult = GemMaterialChance.Roll(gemClass);
+
+            treasureRoll.Wcid = gemResult.ClassName;
+
+            var wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
+
+            MutateGem(wo, profile, isMagical, treasureRoll);
+
+            return wo;
+        }
+
+        private static void MutateGem(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll)
         {
             // workmanship
             wo.ItemWorkmanship = WorkmanshipChance.Roll(profile.Tier, profile.LootQualityMod);
@@ -37,7 +60,6 @@ namespace ACE.Server.Factories
                 AssignMagic_Gem(wo, profile, roll);
 
                 wo.UiEffects = UiEffects.Magical;
-
                 wo.ItemUseable = Usable.Contained;
             }
 

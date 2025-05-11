@@ -243,9 +243,9 @@ namespace ACE.Server.Factories.Entity
             return chanceTable;
         }
 
-        public static ChanceTable<TreasureItemType_Orig> ParseChanceTable_ItemType(string[] lines, int startLine)
+        public static ChanceTable<TreasureItemType> ParseChanceTable_ItemType(string[] lines, int startLine)
         {
-            var chanceTable = new ChanceTable<TreasureItemType_Orig>();
+            var chanceTable = new ChanceTable<TreasureItemType>();
 
             for (var i = startLine + 1; i < lines.Length; i++)
             {
@@ -260,9 +260,9 @@ namespace ACE.Server.Factories.Entity
                 if (line.StartsWith("//"))
                     continue;
 
-                var match = Regex.Match(line, @"TreasureItemType_Orig.([^,]+),\s+([\d.]+)");
+                var match = Regex.Match(line, @"TreasureItemType.([^,]+),\s+([\d.]+)");
 
-                if (!match.Success || !System.Enum.TryParse(match.Groups[1].Value, out TreasureItemType_Orig itemType) || !float.TryParse(match.Groups[2].Value, out var chance))
+                if (!match.Success || !System.Enum.TryParse(match.Groups[1].Value, out TreasureItemType itemType) || !float.TryParse(match.Groups[2].Value, out var chance))
                 {
                     Console.WriteLine($"Couldn't parse {line}");
                     continue;
@@ -352,7 +352,7 @@ namespace ACE.Server.Factories.Entity
                     return TreasureTableType.ChanceBool;
                 case "TreasureHeritageGroup":
                     return TreasureTableType.ChanceHeritage;
-                case "TreasureItemType_Orig":
+                case "TreasureItemType":
                     return TreasureTableType.ChanceItemType;
                 case "TreasureArmorType":
                     return TreasureTableType.ChanceArmorType;

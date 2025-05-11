@@ -7,10 +7,10 @@ namespace ACE.Server.Factories.Tables.Wcids
 {
     public static class SpecialItemsWcids
     {
-        private static ChanceTable<TreasureItemType_Orig> specialItemCategory = new ChanceTable<TreasureItemType_Orig>(ChanceTableType.Weight)
+        private static ChanceTable<TreasureItemType> specialItemCategory = new ChanceTable<TreasureItemType>(ChanceTableType.Weight)
         {
-            (TreasureItemType_Orig.Salvage,                 1.0f ),
-            (TreasureItemType_Orig.SpecialItem_Unmutated,   1.0f ),
+            (TreasureItemType.Salvage,                 1.0f ),
+            (TreasureItemType.SpecialItem_Unmutated,   1.0f ),
         };
 
         private static ChanceTable<WeenieClassName> specialItemsUnmutatedWcids = new ChanceTable<WeenieClassName>(ChanceTableType.Weight)
@@ -48,10 +48,10 @@ namespace ACE.Server.Factories.Tables.Wcids
             treasureRoll.ItemType = specialItemCategory.Roll();
             switch (treasureRoll.ItemType)
             {
-                case TreasureItemType_Orig.Salvage:
+                case TreasureItemType.Salvage:
                     return specialItemsSalvageWcids.Roll(profile.LootQualityMod);
                 default:
-                case TreasureItemType_Orig.SpecialItem_Unmutated:
+                case TreasureItemType.SpecialItem_Unmutated:
                     return specialItemsUnmutatedWcids.Roll(profile.LootQualityMod);
             }
         }

@@ -11,11 +11,9 @@ namespace ACE.Server.Factories
 {
     public static partial class LootGenerationFactory
     {
-        /// <summary>
-        /// Creates and optionally mutates a new MeleeWeapon
-        /// </summary>
         public static WorldObject CreateMeleeWeapon(TreasureDeath profile, bool isMagical, MeleeWeaponSkill weaponSkill = MeleeWeaponSkill.Undef, bool mutate = true)
         {
+            // this function is only used by test methods, and is not part of regular lootgen
             var wcid = 0;
 
             if (weaponSkill == MeleeWeaponSkill.Undef)
@@ -104,11 +102,15 @@ namespace ACE.Server.Factories
                     break;
             }
 
-            var wo = WorldObjectFactory.CreateNewWorldObject((uint)wcid);
+            var treasureRoll = new TreasureRoll(TreasureItemType.Weapon);
+            treasureRoll.WeaponType = weaponSkill;
+            treasureRoll.Wcid = wcid;
+
+            var wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
 
             if (wo != null && mutate)
             {
-                if (!MutateMeleeWeapon(wo, profile, isMagical))
+                if (!MutateMeleeWeapon(wo, profile, isMagical, treasureRoll))
                 {
                     log.Warn($"[LOOT] {wo.WeenieClassId} - {wo.Name} is not a MeleeWeapon");
                     return null;
@@ -117,7 +119,7 @@ namespace ACE.Server.Factories
             return wo;
         }
 
-        private static bool MutateMeleeWeapon(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll = null)
+        private static bool MutateMeleeWeapon(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll)
         {
             if (!(wo is MeleeWeapon || wo.IsThrownWeapon))
                 return false;
@@ -210,7 +212,7 @@ namespace ACE.Server.Factories
 
             // item value
             //if (wo.HasMutateFilter(MutateFilter.Value))   // fixme: data
-                MutateValue(wo, profile.Tier, roll);
+            MutateValue(wo, profile.Tier, roll);
 
             // long description
             wo.LongDesc = GetLongDesc(wo);

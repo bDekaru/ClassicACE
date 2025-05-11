@@ -573,7 +573,7 @@ namespace ACE.Server.Factories
         private static List<SpellId> RollCantrips(WorldObject wo, TreasureDeath profile, TreasureRoll roll)
         {
             // no cantrips on dinnerware?
-            if (roll.ItemType == TreasureItemType_Orig.ArtObject)
+            if (roll.ItemType == TreasureItemType.ArtObject)
                 return null;
 
             int numCantrips;
@@ -809,7 +809,7 @@ namespace ACE.Server.Factories
             {
                 return 1;
             }
-            else if (roll.ItemType == TreasureItemType_Orig.Jewelry)
+            else if (roll.ItemType == TreasureItemType.Jewelry)
             {
                 if (!roll.HasArmorLevel(wo))
                     return 2;

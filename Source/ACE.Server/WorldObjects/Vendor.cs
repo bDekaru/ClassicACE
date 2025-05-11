@@ -1226,72 +1226,72 @@ namespace ACE.Server.WorldObjects
             {
                 if (!sellsRandomMeleeWeapons && !sellsRandomMissileWeapons && !sellsRandomCasters && sellsRandomArmor && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                    AddRandomItem(TreasureItemType.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsRandomMeleeWeapons && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Weapon, TreasureArmorType.Undef, TreasureWeaponType.MeleeWeapon, isFireSale);
+                    AddRandomItem(TreasureItemType.Weapon, TreasureArmorType.Undef, TreasureWeaponType.MeleeWeapon, isFireSale);
                     added++;
                     if (sellsRandomArmor && added < itemsToGenerate)
                     {
-                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                        AddRandomItem(TreasureItemType.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                         added++;
                     }
                 }
                 if (sellsRandomMissileWeapons && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Weapon, TreasureArmorType.Undef, TreasureWeaponType.MissileWeapon, isFireSale);
+                    AddRandomItem(TreasureItemType.Weapon, TreasureArmorType.Undef, TreasureWeaponType.MissileWeapon, isFireSale);
                     added++;
                     if (sellsRandomArmor && added < itemsToGenerate)
                     {
-                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                        AddRandomItem(TreasureItemType.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                         added++;
                     }
                 }
                 if (sellsRandomCasters && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Caster, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                    AddRandomItem(TreasureItemType.Caster, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                     if (sellsRandomArmor && added < itemsToGenerate)
                     {
-                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                        AddRandomItem(TreasureItemType.Armor, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                         added++;
                     }
                 }
                 if (sellsRandomClothing && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Clothing, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                    AddRandomItem(TreasureItemType.Clothing, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                     if (added < itemsToGenerate)
                     {
-                        AddRandomItem(TreasureItemType_Orig.Armor, TreasureArmorType.Cloth, TreasureWeaponType.Undef, isFireSale);
+                        AddRandomItem(TreasureItemType.Armor, TreasureArmorType.Cloth, TreasureWeaponType.Undef, isFireSale);
                         added++;
                     }
                 }
                 if (sellsRandomJewelry && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Jewelry, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                    AddRandomItem(TreasureItemType.Jewelry, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsRandomGems && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Gem, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                    AddRandomItem(TreasureItemType.Gem, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsRandomScrolls && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Scroll, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                    AddRandomItem(TreasureItemType.Scroll, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsSalvage && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.Salvage, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                    AddRandomItem(TreasureItemType.Salvage, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
                 if (sellsSpecialItems && added < itemsToGenerate)
                 {
-                    AddRandomItem(TreasureItemType_Orig.SpecialItem, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
+                    AddRandomItem(TreasureItemType.SpecialItem, TreasureArmorType.Undef, TreasureWeaponType.Undef, isFireSale);
                     added++;
                 }
             }
@@ -1352,7 +1352,7 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        private void AddRandomItem(TreasureItemType_Orig treasureItemType, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef, bool isFireSaleItem = false)
+        private void AddRandomItem(TreasureItemType treasureItemType, TreasureArmorType armorType = TreasureArmorType.Undef, TreasureWeaponType weaponType = TreasureWeaponType.Undef, bool isFireSaleItem = false)
         {
             var shopQualityMod = ShopQualityMod;
             var allowSpecialProperties = false;

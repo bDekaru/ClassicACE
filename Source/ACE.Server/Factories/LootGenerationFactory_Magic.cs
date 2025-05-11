@@ -61,15 +61,15 @@ namespace ACE.Server.Factories
 
                 var maxSpellMana = maxBaseMana;
 
-                if (wo.SpellDID != null)
-                {
-                    var spell = new Server.Entity.Spell(wo.SpellDID.Value);
+            if (wo.SpellDID != null)
+            {
+                var spell = new Server.Entity.Spell(wo.SpellDID.Value);
 
-                    var castableMana = (int)spell.BaseMana * 5;
+                var castableMana = (int)spell.BaseMana * 5;
 
-                    if (castableMana > maxSpellMana)
-                        maxSpellMana = castableMana;
-                }
+                if (castableMana > maxSpellMana)
+                    maxSpellMana = castableMana;
+            }
 
                 wo.ItemMaxMana = RollItemMaxMana(wo, roll, maxSpellMana);
                 wo.ItemCurMana = wo.ItemMaxMana;
@@ -157,7 +157,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Calculates the ManaRate for an item
         /// </summary>
-        public static float CalculateManaRate(int maxBaseMana)
+        private static float CalculateManaRate(int maxBaseMana)
         {
             if (maxBaseMana <= 0)
                 maxBaseMana = 1;

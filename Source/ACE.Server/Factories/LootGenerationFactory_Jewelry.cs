@@ -1,18 +1,32 @@
-using System.Linq;
-
 using ACE.Common;
 using ACE.Database.Models.World;
-using ACE.Entity.Enum;
-using ACE.Server.Entity;
 using ACE.Server.Factories.Entity;
+using ACE.Server.Factories.Enum;
 using ACE.Server.Factories.Tables;
+using ACE.Server.Factories.Tables.Wcids;
 using ACE.Server.WorldObjects;
 
 namespace ACE.Server.Factories
 {
     public static partial class LootGenerationFactory
     {
-        private static void MutateJewelry(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll = null)
+        /// <summary>
+        /// This is only called by /testlootgen command
+        /// The actual lootgen system doesn't use this.
+        /// </summary>
+        private static WorldObject CreateJewelry(TreasureDeath profile, bool isMagical)
+        {
+            var treasureRoll = new TreasureRoll(TreasureItemType.Jewelry);
+            treasureRoll.Wcid = JewelryWcids.Roll(profile.Tier);
+
+            var wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
+
+            MutateJewelry(wo, profile, isMagical, treasureRoll);
+
+            return wo;
+        }
+
+        private static void MutateJewelry(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll)
         {
             // material type
             var materialType = GetMaterialType(wo, profile.Tier);
@@ -51,12 +65,12 @@ namespace ACE.Server.Factories
             }
 
             // gear rating (t8)
-            if (roll != null && profile.Tier == 8)
+            if (profile.Tier == 8)
                 TryMutateGearRating(wo, profile, roll);
 
             // item value
             //  if (wo.HasMutateFilter(MutateFilter.Value))     // fixme: data
-                MutateValue(wo, profile.Tier, roll);
+            MutateValue(wo, profile.Tier, roll);
 
             wo.LongDesc = GetLongDesc(wo);
         }

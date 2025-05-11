@@ -2368,10 +2368,10 @@ namespace ACE.Server.Command.Handlers
             session.Player.TryCreateInInventoryWithNetworking(wo);
         }
 
-        [CommandHandler("lootgentype", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Generate a piece of loot from the LootGenerationFactory.", "<TreasureItemType_Orig> <tier> <TreasureArmorType|TreasureWeaponType>")]
+        [CommandHandler("lootgentype", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1, "Generate a piece of loot from the LootGenerationFactory.", "<TreasureItemType> <tier> <TreasureArmorType|TreasureWeaponType>")]
         public static void HandleLootGenType(Session session, params string[] parameters)
         {
-            TreasureItemType_Orig treasureType = TreasureItemType_Orig.Undef;
+            TreasureItemType treasureType = TreasureItemType.Undef;
             TreasureArmorType armorType = TreasureArmorType.Undef;
             TreasureWeaponType weaponType = TreasureWeaponType.Undef;
 

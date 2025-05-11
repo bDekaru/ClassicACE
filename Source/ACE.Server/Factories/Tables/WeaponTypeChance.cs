@@ -67,24 +67,31 @@ namespace ACE.Server.Factories.Tables
                                                                 // and not deeper in WeaponWcids.cs
         };
 
-        private static ChanceTable<TreasureWeaponType> MeleeChances = new ChanceTable<TreasureWeaponType>()
+        /// <summary>
+        /// Even chance for all melee weapon types
+        /// Only used for test methods
+        /// </summary>
+        public static ChanceTable<TreasureWeaponType> MeleeChances = new ChanceTable<TreasureWeaponType>()
         {
-            ( TreasureWeaponType.Sword,           1.25f ),
-            ( TreasureWeaponType.Mace,            1.25f ),
-            ( TreasureWeaponType.Axe,             1.25f ),
-            ( TreasureWeaponType.Spear,           1.25f ),
-            ( TreasureWeaponType.Unarmed,         1.25f ),
-            ( TreasureWeaponType.Staff,           1.25f ),
-            ( TreasureWeaponType.Dagger,          1.25f ),
-            ( TreasureWeaponType.TwoHandedWeapon, 1.25f ),      // see TreasureWeaponType for an explanation of why this is here,
-                                                                // and not deeper in WeaponWcids.cs
+            ( TreasureWeaponType.Sword,           0.125f ),
+            ( TreasureWeaponType.Mace,            0.125f ),
+            ( TreasureWeaponType.Axe,             0.125f ),
+            ( TreasureWeaponType.Spear,           0.125f ),
+            ( TreasureWeaponType.Unarmed,         0.125f ),
+            ( TreasureWeaponType.Staff,           0.125f ),
+            ( TreasureWeaponType.Dagger,          0.125f ),
+            ( TreasureWeaponType.TwoHandedWeapon, 0.125f ),
         };
 
-        private static ChanceTable<TreasureWeaponType> MissileChances = new ChanceTable<TreasureWeaponType>()
+        /// <summary>
+        /// Roughly even chance for all missile weapon types
+        /// Only used for test methods
+        /// </summary>
+        public static ChanceTable<TreasureWeaponType> MissileChances = new ChanceTable<TreasureWeaponType>()
         {
-            ( TreasureWeaponType.Bow,             0.34f ),
-            ( TreasureWeaponType.Crossbow,        0.33f ),
-            ( TreasureWeaponType.Atlatl,          0.33f ),
+            ( TreasureWeaponType.Bow,             0.334f ),
+            ( TreasureWeaponType.Crossbow,        0.333f ),
+            ( TreasureWeaponType.Atlatl,          0.333f ),
         };
 
         private static readonly List<ChanceTable<TreasureWeaponType>> weaponTiers = new List<ChanceTable<TreasureWeaponType>>()

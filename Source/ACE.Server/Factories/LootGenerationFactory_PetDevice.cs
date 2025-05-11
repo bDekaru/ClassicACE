@@ -30,7 +30,7 @@ namespace ACE.Server.Factories
             petDevice.ItemWorkmanship = WorkmanshipChance.Roll(tier);
         }
 
-        public static int GeneratePetDeviceRating(int tier)
+        private static int GeneratePetDeviceRating(int tier)
         {
             // thanks to morosity for this formula!
             var baseRating = ThreadSafeRandom.Next(1, 10);

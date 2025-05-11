@@ -38,4 +38,20 @@ namespace ACE.Server.Factories.Enum
         Overrobe,
         Cloth
     }
+
+    public static class TreasureArmorTypeHelper
+    {
+        public static bool IsSocietyArmor(this TreasureArmorType armorType)
+        {
+            switch (armorType)
+            {
+                case TreasureArmorType.Society:
+                case TreasureArmorType.CelestialHand:
+                case TreasureArmorType.EldrytchWeb:
+                case TreasureArmorType.RadiantBlood:
+                    return true;
+            }
+            return false;
+        }
+    }
 }

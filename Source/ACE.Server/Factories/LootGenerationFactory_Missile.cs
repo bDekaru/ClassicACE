@@ -17,6 +17,7 @@ namespace ACE.Server.Factories
         /// </summary>
         public static WorldObject CreateMissileWeapon(TreasureDeath profile, bool isMagical, MissileWeaponSkill weaponSkill = MissileWeaponSkill.Undef, bool mutate = true)
         {
+            // this function is only used by test methods, and is not part of regular lootgen
             int wcid;
 
             if (weaponSkill == MissileWeaponSkill.Undef || weaponSkill == MissileWeaponSkill.MissileWeapons)
@@ -52,15 +53,19 @@ namespace ACE.Server.Factories
                     break;
             }
 
-            WorldObject wo = WorldObjectFactory.CreateNewWorldObject((uint)wcid);
+            var treasureRoll = new TreasureRoll(TreasureItemType.Weapon);
+            treasureRoll.WeaponType = weaponSkill;
+            treasureRoll.Wcid = wcid;
+
+            var wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
 
             if (wo != null && mutate)
-                MutateMissileWeapon(wo, profile, isMagical, wieldDifficulty);
-            
+                MutateMissileWeapon(wo, profile, isMagical, wieldDifficulty, treasureRoll);
+
             return wo;
         }
 
-        private static void MutateMissileWeapon(WorldObject wo, TreasureDeath profile, bool isMagical, int? wieldDifficulty = null, TreasureRoll roll = null)
+        private static void MutateMissileWeapon(WorldObject wo, TreasureDeath profile, bool isMagical, int? wieldDifficulty = null, TreasureRoll roll)
         {
             // new method / mutation scripts
             var isElemental = wo.W_DamageType != DamageType.Undef;
@@ -146,7 +151,7 @@ namespace ACE.Server.Factories
 
             // item value
             //if (wo.HasMutateFilter(MutateFilter.Value))   // fixme: data
-                MutateValue(wo, profile.Tier, roll);
+            MutateValue(wo, profile.Tier, roll);
 
             // long description
             wo.LongDesc = GetLongDesc(wo);
