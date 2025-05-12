@@ -313,14 +313,8 @@ namespace ACE.Server.WorldObjects
             if (creature == null) return 0;
 
             var attackType = GetCombatType();
-            var defenseSkill = attackType == CombatType.Missile ? Skill.MissileDefense : Skill.MeleeDefense;
-            var defenseMod = defenseSkill == Skill.MeleeDefense ? GetWeaponMeleeDefenseModifier(creature) : 1.0f;
-            var effectiveDefense = (uint)Math.Round(creature.GetCreatureSkill(defenseSkill).Current * defenseMod);
-
-            if (creature.IsExhausted) effectiveDefense = 0;
-
-            //var baseStr = defenseMod != 1.0f ? $" (base: {creature.GetCreatureSkill(defenseSkill).Current})" : "";
-            //Console.WriteLine("Defense skill: " + effectiveDefense + baseStr);
+            var isPvP = target is Player;
+            var effectiveDefense = creature.GetEffectiveDefenseSkill(attackType, isPvP);
 
             return effectiveDefense;
         }
@@ -376,7 +370,7 @@ namespace ACE.Server.WorldObjects
             if (creatureAttacker == null)
                 return;
 
-            var defenseSkillType = attackType == CombatType.Missile ? Skill.MissileDefense : Skill.MeleeDefense;
+            var defenseSkillType = GetDefenseSkill(attackType);
             var defenseSkill = GetCreatureSkill(defenseSkillType);
 
             var difficulty = creatureAttacker.GetCreatureSkill(creatureAttacker.GetCurrentWeaponSkill()).Current;

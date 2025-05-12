@@ -648,7 +648,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public uint GetEffectiveDefenseSkill(CombatType combatType, bool isPvP)
         {
-            var defenseSkill = combatType == CombatType.Missile ? Skill.MissileDefense : Skill.MeleeDefense;
+            var defenseSkill = GetDefenseSkill(combatType);
             var defenseMod = defenseSkill == Skill.MissileDefense ? GetWeaponMissileDefenseModifier(this) : GetWeaponMeleeDefenseModifier(this);
             var burdenMod = GetBurdenMod();
 
@@ -673,6 +673,9 @@ namespace ACE.Server.WorldObjects
                 pveMod = 1.1f;
 
             var effectiveDefense = (uint)Math.Round(skill.Current * pveMod * defenseMod * burdenMod * stanceMod + defenseImbues);
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && combatType == CombatType.Missile)
+                effectiveDefense = (uint)Math.Round(effectiveDefense * 0.625f);
 
             if (IsExhausted) effectiveDefense = 0;
 
@@ -775,7 +778,7 @@ namespace ACE.Server.WorldObjects
             // in order for this specific ability to work. This benefit is tied to Endurance only, and it caps out at around a 75% chance
             // to avoid losing a point of stamina per successful evasion.
 
-            var defenseSkillType = attackType == CombatType.Missile ? Skill.MissileDefense : Skill.MeleeDefense;
+            var defenseSkillType = GetDefenseSkill(attackType);
             var defenseSkill = GetCreatureSkill(defenseSkillType);
 
             if (CombatMode != CombatMode.NonCombat)
@@ -1606,7 +1609,10 @@ namespace ACE.Server.WorldObjects
                 case CombatType.Melee:
                     return Skill.MeleeDefense;
                 case CombatType.Missile:
-                    return Skill.MissileDefense;
+                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                        return Skill.MeleeDefense;
+                    else
+                        return Skill.MissileDefense;
                 case CombatType.Magic:
                     return Skill.MagicDefense;
                 default:

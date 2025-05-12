@@ -1195,6 +1195,7 @@ namespace ACE.Server.WorldObjects
             else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
                 AlwaysTrained.Remove(Skill.Salvaging);
+                AlwaysTrained.Remove(Skill.MagicDefense);
 
                 PlayerSkills.Remove(Skill.TwoHandedCombat);
                 PlayerSkills.Remove(Skill.HeavyWeapons);
@@ -1235,6 +1236,8 @@ namespace ACE.Server.WorldObjects
                 PlayerSkills.Remove(Skill.ArmorTinkering);
                 PlayerSkills.Remove(Skill.MagicItemTinkering);
                 PlayerSkills.Remove(Skill.ItemTinkering);
+
+                PlayerSkills.Remove(Skill.MissileDefense);
 
                 NoLog_Landblocks.Add(0xB095); // Smuggler's Den
             }

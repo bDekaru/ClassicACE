@@ -116,7 +116,10 @@ namespace ACE.Entity.Enum
                 case Skill.Mace:
                     return "Mace";
                 case Skill.MeleeDefense:
-                    return "Melee Defense";
+                    if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                        return "Melee Defense";
+                    else
+                        return "Evasion";
                 case Skill.MissileDefense:
                     return "Missile Defense";
                 case Skill.Sling:
@@ -280,6 +283,8 @@ namespace ACE.Entity.Enum
                 ValidSkills.Remove(Skill.Crossbow);
                 ValidSkills.Remove(Skill.Mace);
                 ValidSkills.Remove(Skill.Staff);
+
+                ValidSkills.Remove(Skill.MissileDefense);
 
                 ValidSkills.Add(Skill.Axe);
                 ValidSkills.Add(Skill.Bow);
