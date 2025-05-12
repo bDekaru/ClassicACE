@@ -1772,13 +1772,13 @@ namespace ACE.Server.WorldObjects
                     // These changes are applied even to items owned by monsters, do not update item version here as that would prevent the full changes from being applied later.
 
                     // Convert weapon skills to merged ones
-                    if ((WieldRequirements == WieldRequirement.RawSkill || WieldRequirements == WieldRequirement.Skill || WieldRequirements == WieldRequirement.Training) && WieldSkillType.HasValue)
+                    if (WieldSkillType.HasValue && (WieldRequirements == WieldRequirement.RawSkill || WieldRequirements == WieldRequirement.Skill || WieldRequirements == WieldRequirement.Training))
                         WieldSkillType = (int)ConvertToMoASkill((Skill)WieldSkillType);
-                    if ((WieldRequirements2 == WieldRequirement.RawSkill || WieldRequirements2 == WieldRequirement.Skill || WieldRequirements2 == WieldRequirement.Training) && WieldSkillType2.HasValue)
+                    if (WieldSkillType2.HasValue && (WieldRequirements2 == WieldRequirement.RawSkill || WieldRequirements2 == WieldRequirement.Skill || WieldRequirements2 == WieldRequirement.Training))
                         WieldSkillType2 = (int)ConvertToMoASkill((Skill)WieldSkillType2);
-                    if ((WieldRequirements3 == WieldRequirement.RawSkill || WieldRequirements3 == WieldRequirement.Skill || WieldRequirements3 == WieldRequirement.Training) && WieldSkillType3.HasValue)
+                    if (WieldSkillType3.HasValue && (WieldRequirements3 == WieldRequirement.RawSkill || WieldRequirements3 == WieldRequirement.Skill || WieldRequirements3 == WieldRequirement.Training))
                         WieldSkillType3 = (int)ConvertToMoASkill((Skill)WieldSkillType3);
-                    if ((WieldRequirements4 == WieldRequirement.RawSkill || WieldRequirements4 == WieldRequirement.Skill || WieldRequirements4 == WieldRequirement.Training) && WieldSkillType4.HasValue)
+                    if (WieldSkillType4.HasValue && (WieldRequirements4 == WieldRequirement.RawSkill || WieldRequirements4 == WieldRequirement.Skill || WieldRequirements4 == WieldRequirement.Training))
                         WieldSkillType4 = (int)ConvertToMoASkill((Skill)WieldSkillType4);
                 }
 

@@ -1452,13 +1452,13 @@ namespace ACE.Server.Factories
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
             {
-                if (wo.WieldSkillType.HasValue)
+                if (wo.WieldSkillType.HasValue && (wo.WieldRequirements == WieldRequirement.RawSkill || wo.WieldRequirements == WieldRequirement.Skill || wo.WieldRequirements == WieldRequirement.Training))
                     wo.WieldSkillType = (int)wo.ConvertToMoASkill((Skill)wo.WieldSkillType);
-                if (wo.WieldSkillType2.HasValue)
+                if (wo.WieldSkillType2.HasValue && (wo.WieldRequirements2 == WieldRequirement.RawSkill || wo.WieldRequirements2 == WieldRequirement.Skill || wo.WieldRequirements2 == WieldRequirement.Training))
                     wo.WieldSkillType2 = (int)wo.ConvertToMoASkill((Skill)wo.WieldSkillType2);
-                if (wo.WieldSkillType3.HasValue)
+                if (wo.WieldSkillType3.HasValue && (wo.WieldRequirements3 == WieldRequirement.RawSkill || wo.WieldRequirements3 == WieldRequirement.Skill || wo.WieldRequirements3 == WieldRequirement.Training))
                     wo.WieldSkillType3 = (int)wo.ConvertToMoASkill((Skill)wo.WieldSkillType3);
-                if (wo.WieldSkillType4.HasValue)
+                if (wo.WieldSkillType4.HasValue && (wo.WieldRequirements4 == WieldRequirement.RawSkill || wo.WieldRequirements4 == WieldRequirement.Skill || wo.WieldRequirements4 == WieldRequirement.Training))
                     wo.WieldSkillType4 = (int)wo.ConvertToMoASkill((Skill)wo.WieldSkillType4);
             }
 
