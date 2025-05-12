@@ -800,7 +800,7 @@ namespace ACE.Server.WorldObjects
                     var dotStrings = new List<string>();
                     foreach (var entry in ActiveDamageOverTimeList)
                     {
-                        dotStrings.Add($"{entry.TickAmount}:{entry.TotalAmount}:{(int)entry.DamageType}");
+                        dotStrings.Add($"{entry.TickAmount}:{entry.TotalAmount}:{(int)entry.CombatType}:{(int)entry.DamageType}");
                     }
 
                     DamageOverTimeLog = string.Join(",", dotStrings);
@@ -828,32 +828,39 @@ namespace ACE.Server.WorldObjects
             {
                 if (DamageOverTimeLog != null)
                 {
-                    var dotStrings = DamageOverTimeLog.Split(",");
-                    foreach (var entry in dotStrings)
+                    try
                     {
-                        var entryStrings = entry.Split(":");
-                        if (!int.TryParse(entryStrings[0], out var tickAmount))
+                        var dotStrings = DamageOverTimeLog.Split(",");
+                        foreach (var entry in dotStrings)
                         {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT TickAmount from string: {entryStrings}");
-                            continue;
-                        }
-                        if (!int.TryParse(entryStrings[1], out var totalAmount))
-                        {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT TotalAmount from string: {entryStrings}");
-                            continue;
-                        }
-                        if (!Enum.TryParse(entryStrings[2], out CombatType combatType))
-                        {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT CombatType from string: {entryStrings}");
-                            continue;
-                        }
-                        if (!Enum.TryParse(entryStrings[3], out DamageType damageType))
-                        {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT DamageType from string: {entryStrings}");
-                            continue;
-                        }
+                            var entryStrings = entry.Split(":");
+                            if (!int.TryParse(entryStrings[0], out var tickAmount))
+                            {
+                                log.Warn($"RestoreDotsAndHots() failed to restore DoT TickAmount from string: {entryStrings}");
+                                continue;
+                            }
+                            if (!int.TryParse(entryStrings[1], out var totalAmount))
+                            {
+                                log.Warn($"RestoreDotsAndHots() failed to restore DoT TotalAmount from string: {entryStrings}");
+                                continue;
+                            }
+                            if (!Enum.TryParse(entryStrings[2], out CombatType combatType))
+                            {
+                                log.Warn($"RestoreDotsAndHots() failed to restore DoT CombatType from string: {entryStrings}");
+                                continue;
+                            }
+                            if (!Enum.TryParse(entryStrings[3], out DamageType damageType))
+                            {
+                                log.Warn($"RestoreDotsAndHots() failed to restore DoT DamageType from string: {entryStrings}");
+                                continue;
+                            }
 
-                        ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, null));
+                            ActiveDamageOverTimeList.Add(new DoTInfo(tickAmount, totalAmount, combatType, damageType, null));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.Warn($"RestoreDotsAndHots() Failed to restore DoTs from string: {DamageOverTimeLog} - {ex}");
                     }
 
                     DamageOverTimeLog = null;
@@ -861,27 +868,34 @@ namespace ACE.Server.WorldObjects
 
                 if (HealOverTimeLog != null)
                 {
-                    var hotStrings = HealOverTimeLog.Split(",");
-                    foreach (var entry in hotStrings)
+                    try
                     {
-                        var entryStrings = entry.Split(":");
-                        if (!int.TryParse(entryStrings[0], out var tickAmount))
+                        var hotStrings = HealOverTimeLog.Split(",");
+                        foreach (var entry in hotStrings)
                         {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore HoT TickAmount from string: {entryStrings}");
-                            continue;
-                        }
-                        if (!int.TryParse(entryStrings[1], out var totalAmount))
-                        {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore HoT TotalAmount from string: {entryStrings}");
-                            continue;
-                        }
-                        if (!Enum.TryParse(entryStrings[2], out DamageType damageType))
-                        {
-                            log.WarnFormat($"RestoreDotsAndHots() failed to restore DoT DamageType from string: {entryStrings}");
-                            continue;
-                        }
+                            var entryStrings = entry.Split(":");
+                            if (!int.TryParse(entryStrings[0], out var tickAmount))
+                            {
+                                log.Warn($"RestoreDotsAndHots() failed to restore HoT TickAmount from string: {entryStrings}");
+                                continue;
+                            }
+                            if (!int.TryParse(entryStrings[1], out var totalAmount))
+                            {
+                                log.Warn($"RestoreDotsAndHots() failed to restore HoT TotalAmount from string: {entryStrings}");
+                                continue;
+                            }
+                            if (!Enum.TryParse(entryStrings[2], out DamageType damageType))
+                            {
+                                log.Warn($"RestoreDotsAndHots() failed to restore DoT DamageType from string: {entryStrings}");
+                                continue;
+                            }
 
-                        ActiveHealOverTimeList.Add(new HoTInfo(tickAmount, totalAmount, damageType, null));
+                            ActiveHealOverTimeList.Add(new HoTInfo(tickAmount, totalAmount, damageType, null));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        log.Warn($"RestoreDotsAndHots() Failed to restore HoTs from string: {HealOverTimeLog} - {ex}");
                     }
 
                     HealOverTimeLog = null;
