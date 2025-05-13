@@ -674,9 +674,6 @@ namespace ACE.Server.WorldObjects
 
             var effectiveDefense = (uint)Math.Round(skill.Current * pveMod * defenseMod * burdenMod * stanceMod + defenseImbues);
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && combatType == CombatType.Missile)
-                effectiveDefense = (uint)Math.Round(effectiveDefense * 0.625f);
-
             if (IsExhausted) effectiveDefense = 0;
 
             return effectiveDefense;
@@ -1609,10 +1606,7 @@ namespace ACE.Server.WorldObjects
                 case CombatType.Melee:
                     return Skill.MeleeDefense;
                 case CombatType.Missile:
-                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                        return Skill.MeleeDefense;
-                    else
-                        return Skill.MissileDefense;
+                    return Skill.MissileDefense;
                 case CombatType.Magic:
                     return Skill.MagicDefense;
                 default:

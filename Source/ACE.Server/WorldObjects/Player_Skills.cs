@@ -1237,7 +1237,7 @@ namespace ACE.Server.WorldObjects
                 PlayerSkills.Remove(Skill.MagicItemTinkering);
                 PlayerSkills.Remove(Skill.ItemTinkering);
 
-                PlayerSkills.Remove(Skill.MissileDefense);
+                PlayerSkills.Remove(Skill.Fletching);
 
                 NoLog_Landblocks.Add(0xB095); // Smuggler's Den
             }

@@ -5260,6 +5260,7 @@ namespace ACE.Server.Command.Handlers
                     { Skill.ManaConversion, 1.0f },
 
                     { Skill.MeleeDefense, 1.5f },
+                    { Skill.MissileDefense, 0.5f },
                     { Skill.MagicDefense, 0.8f },
 
                     { Skill.Armor, 0.6f },
@@ -5291,6 +5292,7 @@ namespace ACE.Server.Command.Handlers
                     { Skill.ThrownWeapon, 10.0f },
 
                     { Skill.MeleeDefense, 3.0f },
+                    { Skill.MissileDefense, 1.0f },
                     { Skill.MagicDefense, 2.0f },
 
                     { Skill.Armor, 0.6f },
@@ -5330,6 +5332,7 @@ namespace ACE.Server.Command.Handlers
                     { Skill.ManaConversion, 1.0f },
 
                     { Skill.MeleeDefense, 1.0f },
+                    { Skill.MissileDefense, 0.5f },
                     { Skill.MagicDefense, 0.8f },
 
                     { Skill.Armor, 0.5f },
@@ -5347,7 +5350,6 @@ namespace ACE.Server.Command.Handlers
                     { Skill.Appraise, 0.2f },
                     { Skill.Cooking, 0.2f },
                     { Skill.Alchemy, 0.2f },
-                    { Skill.Fletching, 0.2f },
                     { Skill.Lockpick, 0.2f },
 
                     { Skill.Run, 0.5f },
