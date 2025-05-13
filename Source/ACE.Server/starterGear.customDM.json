@@ -456,32 +456,6 @@
             "name": "Loyalty"
         },
         {
-            "id": "37",
-            "name": "Fletching",
-            "gear": [
-                {
-                    "weenieId": "4586",
-                    "name": "Bundle of Arrowheads",
-                    "stacksize": "30"
-                },
-                {
-                    "weenieId": "4585",
-                    "name": "Bundle of Arrowshafts",
-                    "stacksize": "30"
-                },
-                {
-                    "weenieId": "5339",
-                    "name": "Bundle of Quarrelshafts",
-                    "stacksize": "30"
-                },
-                {
-                    "weenieId": "15296",
-                    "name": "Bundle of Atlatl Dart Shafts",
-                    "stacksize": "30"
-                }
-            ]
-        },
-        {
             "id": "38",
             "name": "Alchemy",
             "gear": [
@@ -712,6 +686,21 @@
                     "weenieId": "300",
                     "name": "Arrows",
                     "stacksize": "250"
+                },
+                {
+                    "weenieId": "4586",
+                    "name": "Bundle of Arrowheads",
+                    "stacksize": "30"
+                },
+                {
+                    "weenieId": "4585",
+                    "name": "Bundle of Arrowshafts",
+                    "stacksize": "30"
+                },
+                {
+                    "weenieId": "5339",
+                    "name": "Bundle of Quarrelshafts",
+                    "stacksize": "30"
                 }
             ],
             "heritage": [
@@ -763,6 +752,16 @@
                     "weenieId": "12464",
                     "name": "Atlatl Darts",
                     "stacksize": "200"
+                },
+                {
+                    "weenieId": "4586",
+                    "name": "Bundle of Arrowheads",
+                    "stacksize": "30"
+                },
+                {
+                    "weenieId": "15296",
+                    "name": "Bundle of Atlatl Dart Shafts",
+                    "stacksize": "30"
                 }
             ],
             "heritage": [

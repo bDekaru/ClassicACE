@@ -1045,6 +1045,175 @@ namespace ACE.Server.WorldObjects
             SetProperty(PropertyInt.Version, 3);
         }
 
+        public void HandleMigrateCharacterVersion3To4()
+        {
+            if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
+                return;
+
+            var version = GetProperty(PropertyInt.Version) ?? 0;
+
+            if (version != 3)
+                return;
+
+            var fletching = GetCreatureSkill(Skill.Fletching);
+            if (fletching.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to the removal of the Fletching skill you're entitled to to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(8);
+                Skills.Remove(Skill.Fletching);
+            }
+            else if (fletching.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to the removal of the Fletching skill you're entitled to to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(4);
+                Skills.Remove(Skill.Fletching);
+            }
+
+            var warMagic = GetCreatureSkill(Skill.WarMagic);
+            if (warMagic.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in War Magic skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(8);
+            }
+            else if (warMagic.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in War Magic skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(2);
+            }
+
+            var lifeMagic = GetCreatureSkill(Skill.LifeMagic);
+            if (lifeMagic.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Life Magic skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(8);
+            }
+            else if (lifeMagic.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Life Magic skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(2);
+            }
+
+            var meleeDefense = GetCreatureSkill(Skill.MeleeDefense);
+            if (meleeDefense.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Melee Defense skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(6);
+            }
+            else if (meleeDefense.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Melee Defense skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(2);
+            }
+
+            var missileDefense = GetCreatureSkill(Skill.MissileDefense);
+            if (missileDefense.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Missile Defense skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(4);
+            }
+            else if (missileDefense.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Missile Defense skill credit costs you're entitled to extra skill credits!", ChatMessageType.Magic));
+                AddSkillCredits(2);
+            }
+
+            var magicDefense = GetCreatureSkill(Skill.MagicDefense);
+            if (magicDefense.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Magic Defense skill credit costs it is being reverted to untrained and all XP and skill credits spent on it are being returned.", ChatMessageType.Magic));
+                AddSkillCredits(12);
+                AvailableExperience += magicDefense.ExperienceSpent;
+
+                magicDefense.AdvancementClass = SkillAdvancementClass.Untrained;
+                magicDefense.InitLevel = 0;
+                magicDefense.Ranks = 0;
+                magicDefense.ExperienceSpent = 0;
+
+                var updateSkill = new GameMessagePrivateUpdateSkill(this, magicDefense);
+                Session.Network.EnqueueSend(updateSkill);
+            }
+            else if (magicDefense.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Magic Defense skill credit costs it is being reverted to untrained and all XP spent on it is being returned.", ChatMessageType.Magic));
+                AvailableExperience += magicDefense.ExperienceSpent;
+
+                magicDefense.AdvancementClass = SkillAdvancementClass.Untrained;
+                magicDefense.InitLevel = 0;
+                magicDefense.Ranks = 0;
+                magicDefense.ExperienceSpent = 0;
+
+                var updateSkill = new GameMessagePrivateUpdateSkill(this, magicDefense);
+                Session.Network.EnqueueSend(updateSkill);
+            }
+
+            var armor = GetCreatureSkill(Skill.Armor);
+            if (armor.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Armor skill credit costs it is being reverted to untrained and all XP and skill credits spent on it are being returned.", ChatMessageType.Magic));
+                AddSkillCredits(16);
+                AvailableExperience += armor.ExperienceSpent;
+
+                armor.AdvancementClass = SkillAdvancementClass.Untrained;
+                armor.InitLevel = 0;
+                armor.Ranks = 0;
+                armor.ExperienceSpent = 0;
+
+                var updateSkill = new GameMessagePrivateUpdateSkill(this, armor);
+                Session.Network.EnqueueSend(updateSkill);
+            }
+            else if (armor.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Armor skill credit costs it is being reverted to untrained and all XP and skill credits spent on it are being returned.", ChatMessageType.Magic));
+                AddSkillCredits(10);
+                AvailableExperience += armor.ExperienceSpent;
+
+                armor.AdvancementClass = SkillAdvancementClass.Untrained;
+                armor.InitLevel = 0;
+                armor.Ranks = 0;
+                armor.ExperienceSpent = 0;
+
+                var updateSkill = new GameMessagePrivateUpdateSkill(this, armor);
+                Session.Network.EnqueueSend(updateSkill);
+            }
+
+            var shield = GetCreatureSkill(Skill.Shield);
+            if (shield.AdvancementClass == SkillAdvancementClass.Specialized)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Shield skill credit costs it is being reverted to untrained and all XP and skill credits spent on it are being returned.", ChatMessageType.Magic));
+                AddSkillCredits(10);
+                AvailableExperience += shield.ExperienceSpent;
+
+                shield.AdvancementClass = SkillAdvancementClass.Untrained;
+                shield.InitLevel = 0;
+                shield.Ranks = 0;
+                shield.ExperienceSpent = 0;
+
+                var updateSkill = new GameMessagePrivateUpdateSkill(this, shield);
+                Session.Network.EnqueueSend(updateSkill);
+            }
+            else if (shield.AdvancementClass == SkillAdvancementClass.Trained)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Due to changes in Shield skill credit costs it is being reverted to untrained and all XP and skill credits spent on it are being returned.", ChatMessageType.Magic));
+                AddSkillCredits(6);
+                AvailableExperience += shield.ExperienceSpent;
+
+                shield.AdvancementClass = SkillAdvancementClass.Untrained;
+                shield.InitLevel = 0;
+                shield.Ranks = 0;
+                shield.ExperienceSpent = 0;
+
+                var updateSkill = new GameMessagePrivateUpdateSkill(this, shield);
+                Session.Network.EnqueueSend(updateSkill);
+            }
+
+            SetProperty(PropertyBool.SkillTemplesTimerReset, true);
+            SetProperty(PropertyInt.Version, 4);
+
+            var xpUpdate = new GameMessagePrivateUpdatePropertyInt64(this, PropertyInt64.AvailableExperience, AvailableExperience ?? 0);
+            var availableSkillCreditsUpdate = new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.AvailableSkillCredits, AvailableSkillCredits ?? 0);
+            Session.Network.EnqueueSend(xpUpdate, availableSkillCreditsUpdate);
+        }
+
         /// <summary>
         /// Resets the skill, refunds all experience and skill credits, if allowed.
         /// </summary>

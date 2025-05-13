@@ -135,13 +135,15 @@ namespace ACE.Server.WorldObjects
 
             HandleMissingXp();
             HandleSkillCreditRefund();
-            HandleSkillTemplesReset();
             HandleSkillSpecCreditRefund();
+            HandleMigrateCharacterVersion1To2();
+            HandleMigrateCharacterVersion2To3();
+            HandleMigrateCharacterVersion3To4();
+
+            HandleSkillTemplesReset();
             HandleFreeSkillResetRenewal();
             HandleFreeAttributeResetRenewal();
             HandleFreeMasteryResetRenewal();
-            HandleMigrateCharacterVersion1To2();
-            HandleMigrateCharacterVersion2To3();
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 UpdateCustomSkillFormulae();
