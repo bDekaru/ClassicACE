@@ -471,9 +471,16 @@ namespace ACE.Server.Factories
                         if (loot != null)
                         {
                             bool added = false;
-                            if (container != null && (loot.WeenieType == WeenieType.SpellComponent || (loot.WeenieType == WeenieType.CraftTool && loot.WeenieClassId != (uint)Enum.WeenieClassName.flask))) // try to stash spell components and craft tools on a secondary pack
+                            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && container != null &&
+                                loot.WeenieClassId != (uint)Enum.WeenieClassName.flask &&
+                                (loot.WeenieType == WeenieType.SpellComponent || loot.WeenieType == WeenieType.CraftTool ||
+                                loot.ItemType == ItemType.CraftCookingBase ||
+                                loot.ItemType == ItemType.CraftFletchingBase || loot.ItemType == ItemType.CraftFletchingIntermediate ||
+                                loot.ItemType == ItemType.CraftAlchemyBase || loot.ItemType == ItemType.CraftAlchemyIntermediate)) // try to stash spell components and craft tools on a secondary pack
+                            {
                                 if (container.TryAddToInventory(loot))
                                     added = true;
+                            }
 
                             if (!added)
                                 if (player.TryAddToInventory(loot))
