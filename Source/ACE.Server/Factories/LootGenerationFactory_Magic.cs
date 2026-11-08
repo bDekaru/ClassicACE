@@ -157,7 +157,7 @@ namespace ACE.Server.Factories
         /// <summary>
         /// Calculates the ManaRate for an item
         /// </summary>
-        private static float CalculateManaRate(int maxBaseMana)
+        public static float CalculateManaRate(int maxBaseMana)
         {
             if (maxBaseMana <= 0)
                 maxBaseMana = 1;

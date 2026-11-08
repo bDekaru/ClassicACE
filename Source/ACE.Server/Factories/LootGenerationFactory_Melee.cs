@@ -11,111 +11,17 @@ namespace ACE.Server.Factories
 {
     public static partial class LootGenerationFactory
     {
-        public static WorldObject CreateMeleeWeapon(TreasureDeath profile, bool isMagical, MeleeWeaponSkill weaponSkill = MeleeWeaponSkill.Undef, bool mutate = true)
+        public static WorldObject CreateMeleeWeapon(TreasureDeath profile, bool isMagical)
         {
             // this function is only used by test methods, and is not part of regular lootgen
-            var wcid = 0;
-
-            if (weaponSkill == MeleeWeaponSkill.Undef)
-                if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
-                    weaponSkill = (MeleeWeaponSkill)ThreadSafeRandom.Next(5, 11);
-                else
-                    weaponSkill = (MeleeWeaponSkill)ThreadSafeRandom.Next(1, 4);
-
-            var heritage = HeritageChance.Roll(profile.UnknownChances, new TreasureRoll());
-
-            switch (weaponSkill)
-            {
-                case MeleeWeaponSkill.HeavyWeapons:
-
-                    wcid = (int)HeavyWeaponWcids.Roll(out _);
-                    break;
-
-                case MeleeWeaponSkill.LightWeapons:
-
-                    wcid = (int)LightWeaponWcids.Roll(out _);
-                    break;
-
-                case MeleeWeaponSkill.FinesseWeapons:
-
-                    wcid = (int)FinesseWeaponWcids.Roll(out _);
-                    break;
-
-                case MeleeWeaponSkill.TwoHandedCombat:
-
-                    wcid = (int)TwoHandedWeaponWcids.Roll(out _);
-                    break;
-
-                case MeleeWeaponSkill.Axe:
-
-                    wcid = (int)AxeWcids.Roll(heritage, profile.Tier, out _);
-                    break;
-
-                case MeleeWeaponSkill.Dagger:
-
-                    switch (heritage)
-                    {
-                        default:
-                            wcid = (int)DaggerWcids_Aluvian_Sho.Roll(profile.Tier, out _);
-                            break;
-                        case TreasureHeritageGroup.Gharundim:
-                            wcid = (int)DaggerWcids_Gharundim.Roll(profile.Tier, out _);
-                            break;
-                    }
-                    break;
-
-                case MeleeWeaponSkill.Mace:
-
-                    wcid = (int)MaceWcids.Roll(heritage, profile.Tier, out _);
-                    break;
-
-                case MeleeWeaponSkill.Spear:
-
-                    wcid = (int)SpearWcids.Roll(heritage, profile.Tier, out _);
-                    break;
-
-                case MeleeWeaponSkill.Staff:
-
-                    wcid = (int)StaffWcids.Roll(heritage, profile.Tier);
-                    break;
-
-                case MeleeWeaponSkill.Sword:
-
-                    switch (heritage)
-                    {
-                        default:
-                        case TreasureHeritageGroup.Aluvian:
-                            wcid = (int)SwordWcids_Aluvian.Roll(profile.Tier, out _);
-                            break;
-                        case TreasureHeritageGroup.Gharundim:
-                            wcid = (int)SwordWcids_Gharundim.Roll(profile.Tier, out _);
-                            break;
-                        case TreasureHeritageGroup.Sho:
-                            wcid = (int)SwordWcids_Sho.Roll(profile.Tier, out _);
-                            break;
-                    }
-                    break;
-
-                case MeleeWeaponSkill.UnarmedCombat:
-
-                    wcid = (int)UnarmedWcids.Roll(heritage, profile.Tier);
-                    break;
-            }
-
             var treasureRoll = new TreasureRoll(TreasureItemType.Weapon);
-            treasureRoll.WeaponType = weaponSkill;
-            treasureRoll.Wcid = wcid;
+            treasureRoll.WeaponType = WeaponTypeChance.MeleeChances.Roll();
+            treasureRoll.Wcid = WeaponWcids.Roll(profile, treasureRoll);
 
             var wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
 
-            if (wo != null && mutate)
-            {
-                if (!MutateMeleeWeapon(wo, profile, isMagical, treasureRoll))
-                {
-                    log.Warn($"[LOOT] {wo.WeenieClassId} - {wo.Name} is not a MeleeWeapon");
-                    return null;
-                }
-            }
+            MutateMeleeWeapon(wo, profile, isMagical, treasureRoll);
+
             return wo;
         }
 

@@ -273,10 +273,9 @@ namespace ACE.Server.WorldObjects.Managers
                         var treasureClass = (TreasureItemType?)emote.TreasureClass ?? TreasureItemType.Undef;
 
                         // Create a dummy treasure profile for passing emote values
-                        var profile = new ACE.Server.Factories.Entity.TreasureDeathExtended
+                        var profile = new Database.Models.World.TreasureDeath
                         {
                             Tier = treasureTier,
-                            ForceTreasureItemType = treasureClass,
                             //TreasureType = (uint)treasureType,
                             LootQualityMod = 0,
                             ItemChance = 100,

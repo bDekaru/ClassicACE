@@ -2380,12 +2380,12 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Returns the epic cantrips from this item's spellbook
         /// </summary>
-        public Dictionary<int, float /* probability */> EpicCantrips => Biota.GetMatchingSpells(LootGenerationFactory.EpicCantrips, BiotaDatabaseLock);
+        public Dictionary<int, float /* probability */> EpicCantrips => Biota.GetMatchingSpells(LootTables.EpicCantrips, BiotaDatabaseLock);
 
         /// <summary>
         /// Returns the legendary cantrips from this item's spellbook
         /// </summary>
-        public Dictionary<int, float /* probability */> LegendaryCantrips => Biota.GetMatchingSpells(LootGenerationFactory.LegendaryCantrips, BiotaDatabaseLock);
+        public Dictionary<int, float /* probability */> LegendaryCantrips => Biota.GetMatchingSpells(LootTables.LegendaryCantrips, BiotaDatabaseLock);
 
         private int? _maxSpellLevel;
 

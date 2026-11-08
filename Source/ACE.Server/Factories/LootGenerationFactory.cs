@@ -528,11 +528,23 @@ namespace ACE.Server.Factories
             return CreateRandomLootObjects(treasureDeath, category);
         }
 
-        private static TreasureRoll RollWcid(TreasureDeath treasureDeath, TreasureItemCategory category)
+        public static WorldObject CreateRandomLootObjects(TreasureDeath treasureDeath, TreasureItemCategory category, TreasureItemType treasureItemType = TreasureItemType.Undef)
+        {
+            var treasureRoll = RollWcid(treasureDeath, category, treasureItemType);
+
+            if (treasureRoll == null) return null;
+
+            var wo = CreateAndMutateWcid(treasureDeath, treasureRoll, category == TreasureItemCategory.MagicItem);
+
+            return wo;
+        }
+
+        private static TreasureRoll RollWcid(TreasureDeath treasureDeath, TreasureItemCategory category, TreasureItemType treasureItemType = TreasureItemType.Undef)
         {
             TreasureDeathExtended treasureDeathExtended = treasureDeath as TreasureDeathExtended;
 
-            TreasureItemType treasureItemType = treasureDeathExtended != null ? treasureDeathExtended.ForceTreasureItemType : TreasureItemType.Undef;
+            if(treasureItemType == TreasureItemType.Undef)
+                treasureItemType = treasureDeathExtended != null ? treasureDeathExtended.ForceTreasureItemType : TreasureItemType.Undef;
 
             if (treasureItemType == TreasureItemType.Undef)
                 treasureItemType = RollItemType(treasureDeath, category);
@@ -766,7 +778,8 @@ namespace ACE.Server.Factories
                     else
                     {
                         // crowns, coronets, diadems, etc.
-                        MutateArmor(wo, treasureDeath, isMagical, TreasureArmorType.Cloth, treasureRoll);
+                        treasureRoll.ArmorType = TreasureArmorType.Cloth;
+                        MutateArmor(wo, treasureDeath, isMagical, treasureRoll);
                     }
                     break;
                 case TreasureItemType.ArtObject:
@@ -800,7 +813,7 @@ namespace ACE.Server.Factories
 
                         case TreasureWeaponType.Caster:
 
-                            MutateCaster(wo, treasureDeath, isMagical, null, treasureRoll);
+                            MutateCaster(wo, treasureDeath, isMagical, treasureRoll);
                             break;
 
                         case TreasureWeaponType.Bow:
@@ -810,7 +823,7 @@ namespace ACE.Server.Factories
                         case TreasureWeaponType.Atlatl:
                         case TreasureWeaponType.AtlatlRegular:
 
-                            MutateMissileWeapon(wo, treasureDeath, isMagical, null, treasureRoll);
+                            MutateMissileWeapon(wo, treasureDeath, isMagical, treasureRoll);
                             break;
 
                         default:
@@ -822,17 +835,18 @@ namespace ACE.Server.Factories
                 case TreasureItemType.Caster:
 
                     // alternate path -- only called if TreasureItemType.Caster was specified directly
-                    MutateCaster(wo, treasureDeath, isMagical, null, treasureRoll);
+                    MutateCaster(wo, treasureDeath, isMagical, treasureRoll);
                     break;
 
                 case TreasureItemType.Armor:
                 case TreasureItemType.SocietyArmor:    // collapsed, after rolling for initial wcid
 
-                    MutateArmor(wo, treasureDeath, isMagical, treasureRoll.ArmorType, treasureRoll);
+                    MutateArmor(wo, treasureDeath, isMagical, treasureRoll);
                     break;
 
                 case TreasureItemType.Clothing:
-                    MutateArmor(wo, treasureDeath, isMagical, TreasureArmorType.Cloth, treasureRoll);
+                    treasureRoll.ArmorType = TreasureArmorType.Cloth;
+                    MutateArmor(wo, treasureDeath, isMagical, treasureRoll);
                     break;
 
                 case TreasureItemType.Cloak:
@@ -1373,14 +1387,65 @@ namespace ACE.Server.Factories
         /// This is only called by /testlootgen command
         /// The actual lootgen system doesn't use this.
         /// </summary>
-        public static WorldObject CreateRandomLootObjects_Test(TreasureDeath treasureDeath, TreasureItemCategory category)
+        public static WorldObject CreateRandomLootObjects_Test(TreasureDeath profile, bool isMagical, LootBias lootBias = LootBias.UnBiased)
         {
-            var treasureRoll = RollWcid(treasureDeath, category);
+            WorldObject wo = null;
 
-            if (treasureRoll == null) return null;
+            var treasureItemTypeChances = isMagical ? TreasureItemTypeChances.DefaultMagical : TreasureItemTypeChances.DefaultNonMagical;
 
-            var wo = CreateAndMutateWcid(treasureDeath, treasureRoll, category == TreasureItemCategory.MagicItem);
+            switch (lootBias)
+            {
+                case LootBias.Armor:
+                    treasureItemTypeChances = TreasureItemTypeChances.Armor;
+                    break;
+                case LootBias.Weapons:
+                    treasureItemTypeChances = TreasureItemTypeChances.Weapons;
+                    break;
+                case LootBias.Jewelry:
+                    treasureItemTypeChances = TreasureItemTypeChances.Jewelry;
+                    break;
 
+                case LootBias.MagicEquipment:
+                case LootBias.MixedEquipment:
+                    treasureItemTypeChances = TreasureItemTypeChances.MixedMagicEquipment;
+                    break;
+            }
+
+            var treasureItemType = treasureItemTypeChances.Roll();
+
+            switch (treasureItemType)
+            {
+                case TreasureItemType.Gem:
+                    wo = CreateGem(profile, isMagical);
+                    break;
+
+                case TreasureItemType.Armor:
+                    wo = CreateArmor(profile, isMagical, true);
+                    break;
+
+                case TreasureItemType.Clothing:
+                    wo = CreateArmor(profile, isMagical, false);
+                    break;
+
+                case TreasureItemType.Cloak:
+                    wo = CreateCloak(profile);
+                    break;
+
+                case TreasureItemType.Weapon:
+                    wo = CreateWeapon(profile, isMagical);
+                    break;
+
+                case TreasureItemType.Jewelry:
+                    wo = CreateJewelry(profile, isMagical);
+                    break;
+
+                case TreasureItemType.ArtObject:
+                    // Added Dinnerware at tail end of distribution, as
+                    // they are mutable loot drops that don't belong with the non-mutable drops
+                    // TODO: Will likely need some adjustment/fine tuning
+                    wo = CreateDinnerware(profile, isMagical);
+                    break;
+            }
             return wo;
         }
 
@@ -1429,7 +1494,8 @@ namespace ACE.Server.Factories
                 else
                 {
                     // crowns, coronets, diadems, etc.
-                    MutateArmor(item, profile, isMagical, TreasureArmorType.Cloth, roll);
+                    roll.ArmorType = TreasureArmorType.Cloth;
+                    MutateArmor(item, profile, isMagical, roll);
                 }
             }
             else if (GenericWcids.Contains(roll.Wcid))
@@ -1460,32 +1526,32 @@ namespace ACE.Server.Factories
                     roll.WeaponType = weaponType;
                 else
                     roll.WeaponType = TreasureRoll.GetWeaponTypeFromWeapon(item);
-                MutateMissileWeapon(item, profile, isMagical, null, roll);
+                MutateMissileWeapon(item, profile, isMagical, roll);
             }
             else if (CasterWcids.Contains(roll.Wcid))
             {
                 roll.ItemType = TreasureItemType.Weapon;
                 roll.WeaponType = TreasureWeaponType.Caster;
-                MutateCaster(item, profile, isMagical, null, roll);
+                MutateCaster(item, profile, isMagical, roll);
             }
             else if (ArmorWcids.TryGetValue(roll.Wcid, out var armorType))
             {
                 roll.ItemType = TreasureItemType.Armor;
                 roll.ArmorType = armorType;
-                MutateArmor(item, profile, isMagical, roll.ArmorType, roll);
+                MutateArmor(item, profile, isMagical, roll);
             }
             else if (SocietyArmorWcids.Contains(roll.Wcid))
             {
                 roll.ItemType = TreasureItemType.SocietyArmor;     // collapsed for mutation
                 roll.ArmorType = TreasureArmorType.Society;
-                MutateArmor(item, profile, isMagical, roll.ArmorType, roll);
+                MutateArmor(item, profile, isMagical, roll);
             }
             else if (ClothingWcids.Contains(roll.Wcid))
             {
                 roll.ItemType = TreasureItemType.Clothing;
                 if (item.IsClothArmor)
                     roll.ArmorType = TreasureArmorType.Cloth;
-                MutateArmor(item, profile, isMagical, roll.ArmorType, roll);
+                MutateArmor(item, profile, isMagical, roll);
             }
             // scrolls don't really get mutated, even though they are in the main mutation method still
             else if (CloakWcids.Contains(roll.Wcid))

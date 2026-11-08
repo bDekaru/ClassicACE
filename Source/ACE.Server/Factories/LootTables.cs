@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-
 using ACE.Entity.Enum;
 using ACE.Server.Factories.Tables;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ACE.Server.Factories
 {
@@ -23,31 +23,53 @@ namespace ACE.Server.Factories
         public static HashSet<int> EpicCantrips;
         public static HashSet<int> LegendaryCantrips;
 
-        private static List<SpellId[][]> cantripTables { get; } = new List<SpellId[][]>()
-        {
-            ArmorCantrips.Table,
-            JewelryCantrips.Table,
-            WandCantrips.Table,
-            MeleeCantrips.Table,
-            MissileCantrips.Table
-        };
-
         static LootTables()
         {
-            BuildCantripsTable(ref MinorCantrips, 0);
-            BuildCantripsTable(ref MajorCantrips, 1);
-            BuildCantripsTable(ref EpicCantrips, 2);
-            BuildCantripsTable(ref LegendaryCantrips, 3);
+            BuildCantripsTables();
         }
 
-        private static void BuildCantripsTable(ref HashSet<int> table, int tier)
+        private static void BuildCantripsTables()
         {
-            table = new HashSet<int>();
+            var allCantrips = new List<SpellId>();
+            allCantrips.AddRange(ArmorCantrips.GetSpellIdList(false));
+            allCantrips.AddRange(ArmorCantrips.GetSpellIdList(true));
+            allCantrips.AddRange(JewelryCantrips.GetSpellIdList());
+            allCantrips.AddRange(WandCantrips.GetSpellIdList());
+            allCantrips.AddRange(MeleeCantrips.GetSpellIdList());
+            allCantrips.AddRange(MissileCantrips.GetSpellIdList());
+            allCantrips.AddRange(ClothArmorCantrips.GetSpellIdList());
 
-            foreach (var cantripTable in cantripTables)
+            allCantrips = allCantrips.Distinct().ToList();
+
+            MinorCantrips = new HashSet<int>();
+            MajorCantrips = new HashSet<int>();
+            EpicCantrips = new HashSet<int>();
+            LegendaryCantrips = new HashSet<int>();
+
+            foreach (var level1SpellId in allCantrips)
             {
-                foreach (var category in cantripTable)
-                    table.Add((int)category[tier]);
+                for (int spellLevel = 1; spellLevel <= 4; spellLevel++)
+                {
+                    var spellId = SpellLevelProgression.GetSpellAtLevel(level1SpellId, spellLevel);
+                    if (spellId != SpellId.Undef)
+                    {
+                        switch (spellLevel)
+                        {
+                            case 1:
+                                MinorCantrips.Add((int)spellId);
+                                break;
+                            case 2:
+                                MajorCantrips.Add((int)spellId);
+                                break;
+                            case 3:
+                                EpicCantrips.Add((int)spellId);
+                                break;
+                            case 4:
+                                LegendaryCantrips.Add((int)spellId);
+                                break;
+                        }
+                    }
+                }
             }
         }
     }

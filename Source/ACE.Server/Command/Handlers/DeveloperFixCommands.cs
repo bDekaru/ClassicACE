@@ -1680,9 +1680,9 @@ namespace ACE.Server.Command.Handlers
                 {
                     var cantripLevel = 0;
 
-                    if (LootGenerationFactory.EpicCantrips.Contains(s.Spell))
+                    if (LootTables.EpicCantrips.Contains(s.Spell))
                         cantripLevel = 3;
-                    else if (LootGenerationFactory.LegendaryCantrips.Contains(s.Spell))
+                    else if (LootTables.LegendaryCantrips.Contains(s.Spell))
                         cantripLevel = 4;
 
                     if (cantripLevel == 0)
@@ -1758,7 +1758,7 @@ namespace ACE.Server.Command.Handlers
 
                 foreach (var spell in spellbook)
                 {
-                    if (LootGenerationFactory.LegendaryCantrips.Contains(spell.Spell))
+                    if (LootTables.LegendaryCantrips.Contains(spell.Spell))
                         legendaryItems.Add(spell.ObjectId);
                 }
 

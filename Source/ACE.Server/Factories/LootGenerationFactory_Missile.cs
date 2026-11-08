@@ -12,60 +12,21 @@ namespace ACE.Server.Factories
 {
     public static partial class LootGenerationFactory
     {
-        /// <summary>
-        /// Creates and optionally mutates a new MissileWeapon
-        /// </summary>
-        public static WorldObject CreateMissileWeapon(TreasureDeath profile, bool isMagical, MissileWeaponSkill weaponSkill = MissileWeaponSkill.Undef, bool mutate = true)
+        public static WorldObject CreateMissileWeapon(TreasureDeath profile, bool isMagical, bool mutate = true)
         {
             // this function is only used by test methods, and is not part of regular lootgen
-            int wcid;
-
-            if (weaponSkill == MissileWeaponSkill.Undef || weaponSkill == MissileWeaponSkill.MissileWeapons)
-                weaponSkill = (MissileWeaponSkill)ThreadSafeRandom.Next(2, 4);
-
-            int wieldDifficulty = RollWieldDifficulty(profile.Tier, TreasureWeaponType.MissileWeapon);
-
-            var heritage = HeritageChance.Roll(profile.UnknownChances, new TreasureRoll());
-
-            switch (weaponSkill)
-            {
-                default:
-                case MissileWeaponSkill.Bow:
-                    switch (heritage)
-                    {
-                        default:
-                        case TreasureHeritageGroup.Aluvian:
-                            wcid = (int)BowWcids_Aluvian.Roll(profile.Tier, out _);
-                            break;
-                        case TreasureHeritageGroup.Gharundim:
-                            wcid = (int)BowWcids_Gharundim.Roll(profile.Tier, out _);
-                            break;
-                        case TreasureHeritageGroup.Sho:
-                            wcid = (int)BowWcids_Sho.Roll(profile.Tier, out _);
-                            break;
-                    }
-                    break;
-                case MissileWeaponSkill.Crossbow:
-                    wcid = (int)CrossbowWcids.Roll(profile.Tier, out _);
-                    break;
-                case MissileWeaponSkill.ThrownWeapon:
-                    wcid = (int)AtlatlWcids.Roll(profile.Tier, out _);
-                    break;
-            }
-
             var treasureRoll = new TreasureRoll(TreasureItemType.Weapon);
-            treasureRoll.WeaponType = weaponSkill;
-            treasureRoll.Wcid = wcid;
+            treasureRoll.WeaponType = WeaponTypeChance.MissileChances.Roll();
+            treasureRoll.Wcid = WeaponWcids.Roll(profile, treasureRoll);
 
             var wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
 
-            if (wo != null && mutate)
-                MutateMissileWeapon(wo, profile, isMagical, wieldDifficulty, treasureRoll);
+            MutateMissileWeapon(wo, profile, isMagical, treasureRoll);
 
             return wo;
         }
 
-        private static void MutateMissileWeapon(WorldObject wo, TreasureDeath profile, bool isMagical, int? wieldDifficulty = null, TreasureRoll roll)
+        private static void MutateMissileWeapon(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll)
         {
             // new method / mutation scripts
             var isElemental = wo.W_DamageType != DamageType.Undef;

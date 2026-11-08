@@ -29,10 +29,10 @@ namespace ACE.Server.Factories
             if (isArmor)
             {
                 treasureRoll.ArmorType = ArmorTypeChance.Roll(profile.Tier);
-                treasureRoll.Wcid = ArmorWcids.Roll(profile, ref treasureRoll.ArmorType);
+                treasureRoll.Wcid = ArmorWcids.Roll(profile, treasureRoll);
             }
             else
-                treasureRoll.Wcid = ClothingWcids.Roll(profile);
+                treasureRoll.Wcid = ClothingWcids.Roll(profile, treasureRoll);
 
             var wo = WorldObjectFactory.CreateNewWorldObject((uint)treasureRoll.Wcid);
             treasureRoll.BaseArmorLevel = wo.ArmorLevel ?? 0;
@@ -42,7 +42,7 @@ namespace ACE.Server.Factories
             return wo;
         }
 
-        private static void MutateArmor(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureArmorType armorType, TreasureRoll roll)
+        private static void MutateArmor(WorldObject wo, TreasureDeath profile, bool isMagical, TreasureRoll roll)
         {
             // material type
             var materialType = GetMaterialType(wo, profile.Tier);
@@ -74,7 +74,7 @@ namespace ACE.Server.Factories
                 RollWieldLevelReq_T7_T8(wo, profile);
             }
 
-            AssignArmorLevel(wo, profile, roll, armorType);
+            AssignArmorLevel(wo, profile, roll);
 
             if (wo.HasMutateFilter(MutateFilter.ArmorModVsType))
                 MutateArmorModVsType(wo, profile);
@@ -105,7 +105,7 @@ namespace ACE.Server.Factories
             wo.LongDesc = GetLongDesc(wo);
         }
 
-        private static bool AssignArmorLevel(WorldObject wo, TreasureDeath profile, TreasureRoll roll, TreasureArmorType armorType)
+        private static bool AssignArmorLevel(WorldObject wo, TreasureDeath profile, TreasureRoll roll)
         {
             // retail was only divied up into a few different mutation scripts here
             // anything with ArmorLevel ran these mutation scripts
