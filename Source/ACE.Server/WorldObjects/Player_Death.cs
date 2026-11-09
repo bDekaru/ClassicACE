@@ -82,7 +82,7 @@ namespace ACE.Server.WorldObjects
 
             var broadcastMsg = new GameMessagePlayerKilled(nearbyMsg, Guid, lastDamager?.Guid ?? ObjectGuid.Invalid);
 
-            log.Debug("[CORPSE] " + nearbyMsg);
+            log.Info("[CORPSE] " + nearbyMsg);
 
             var excludePlayers = new List<Player>();
 
@@ -555,6 +555,8 @@ namespace ACE.Server.WorldObjects
             {
                 EnqueueBroadcast(new GameMessageHearSpeech(SuicideMessages[step], GetNameWithSuffix(), Guid.Full, ChatMessageType.Speech), LocalBroadcastRange);
 
+                OnTalk(SuicideMessages[step]);
+
                 var suicideChain = new ActionChain();
                 suicideChain.AddDelaySeconds(3.0f);
                 suicideChain.AddAction(this, () => HandleSuicide(numDeaths, step + 1));
@@ -983,7 +985,7 @@ namespace ACE.Server.WorldObjects
 
             msg = msg.Substring(0, msg.Length - 2);
 
-            log.Debug(msg);
+            log.Info(msg);
         }
 
         /// <summary>

@@ -14,14 +14,14 @@ namespace ACE.Server.WorldObjects
         {
             if (!Attributes.TryGetValue(attribute, out var creatureAttribute))
             {
-                log.Error($"{Name}.HandleActionRaiseAttribute({attribute}, {amount}) - invalid attribute");
+                log.Warn($"{Name}.HandleActionRaiseAttribute({attribute}, {amount}) - invalid attribute");
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute(this, creatureAttribute));
                 return false;
             }
 
             if (amount > AvailableExperience)
             {
-                //log.Error($"{Name}.HandleActionRaiseAttribute({attribute}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
+                //log.Warn($"{Name}.HandleActionRaiseAttribute({attribute}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdateAttribute(this, creatureAttribute));
                 return false;
             }
@@ -80,7 +80,7 @@ namespace ACE.Server.WorldObjects
             // ensure attribute is not already max rank
             if (creatureAttribute.IsMaxRank)
             {
-                log.Error($"{Name}.SpendAttributeXp({creatureAttribute.Attribute}, {amount}) - player tried to raise attribute beyond max rank");
+                log.Warn($"{Name}.SpendAttributeXp({creatureAttribute.Attribute}, {amount}) - player tried to raise attribute beyond max rank");
                 return false;
             }
 
@@ -90,7 +90,7 @@ namespace ACE.Server.WorldObjects
 
             if (amount > amountToEnd)
             {
-                log.Error($"{Name}.SpendAttributeXp({creatureAttribute.Attribute}, {amount}) - player tried to raise attribute beyond {amountToEnd} experience");
+                log.Warn($"{Name}.SpendAttributeXp({creatureAttribute.Attribute}, {amount}) - player tried to raise attribute beyond {amountToEnd} experience");
                 return false;   // returning error here, instead of setting amount to amountToEnd
             }
 
@@ -98,7 +98,7 @@ namespace ACE.Server.WorldObjects
             // spend xp on attribute
             if (!SpendXP(amount, sendNetworkUpdate))
             {
-                log.Error($"{Name}.SpendAttributeXp({creatureAttribute.Attribute}, {amount}) - SpendXP failed");
+                log.Warn($"{Name}.SpendAttributeXp({creatureAttribute.Attribute}, {amount}) - SpendXP failed");
                 return false;
             }
 

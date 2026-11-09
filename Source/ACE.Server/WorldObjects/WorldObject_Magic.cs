@@ -46,7 +46,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (spell.Flags.HasFlag(SpellFlags.FellowshipSpell))
+            if (spell.IsFellowshipSpell)
             {
                 if (target is not Player targetPlayer || targetPlayer.Fellowship == null)
                     return;
@@ -218,6 +218,9 @@ namespace ACE.Server.WorldObjects
 
             //Console.WriteLine($"{target.Name}.ResistSpell({Name}, {spell.Name}): magicSkill: {magicSkill}, difficulty: {difficulty}");
             bool resisted = MagicDefenseCheck(magicSkill, difficulty, out float resistChance, resistChanceMod, targetPlayer != null ? (float)targetPlayer.CachedMagicDefenseCapBonus : 5.0f);
+
+            if (targetCreature.Invincible)
+                resisted = true;
 
             if (targetPlayer != null)
             {
@@ -535,7 +538,7 @@ namespace ACE.Server.WorldObjects
             if (spell.CasterEffect != 0 && (!spell.IsProjectile || !projectileHit))
                 caster.EnqueueBroadcast(new GameMessageScript(caster.Guid, spell.CasterEffect, spell.Formula.Scale));
 
-            if (spell.TargetEffect != 0 && (!spell.IsProjectile || projectileHit))
+            if (spell.TargetEffect != 0 && (!spell.IsProjectile || projectileHit) && target != null)
             {
                 var targetBroadcaster = target.Wielder ?? target;
 

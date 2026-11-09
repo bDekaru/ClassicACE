@@ -51,6 +51,7 @@ namespace ACE.Server.Command.Handlers.Processors
             Recipe,
             Spell,
             Weenie,
+            Event,
         }
 
         public static FileType GetContentType(string[] parameters, ref string param)
@@ -67,6 +68,8 @@ namespace ACE.Server.Command.Handlers.Processors
                     return FileType.LandblockInstance;
                 else if (fileType.StartsWith("encounter"))
                     return FileType.Encounter;
+                else if (fileType.StartsWith("event"))
+                    return FileType.Event;
                 else if (fileType.StartsWith("quest"))
                     return FileType.Quest;
                 else if (fileType.StartsWith("recipe"))
@@ -494,6 +497,10 @@ namespace ACE.Server.Command.Handlers.Processors
                         ImportSQLEncounter(session, param);
                         break;
 
+                    case FileType.Event:
+                        ImportSQLEvent(session, param);
+                        break;
+
                     case FileType.Quest:
                         ImportSQLQuest(session, param);
                         break;
@@ -630,6 +637,34 @@ namespace ACE.Server.Command.Handlers.Processors
 
             foreach (var file in files)
                 ImportSQLEncounter(session, sql_folder, file.Name);
+        }
+
+        public static void ImportSQLEvent(Session session, string eventName)
+        {
+            DirectoryInfo di = VerifyContentFolder(session);
+            if (!di.Exists) return;
+
+            var sep = Path.DirectorySeparatorChar;
+
+            var sql_folder = $"{di.FullName}{sep}sql{sep}events{sep}";
+
+            var prefix = eventName;
+
+            if (eventName.Equals("all", StringComparison.OrdinalIgnoreCase))
+                prefix = "";
+
+            di = new DirectoryInfo(sql_folder);
+
+            var files = di.Exists ? di.GetFiles($"{prefix}*.sql") : null;
+
+            if (files == null || files.Length == 0)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find {sql_folder}{prefix}*.sql");
+                return;
+            }
+
+            foreach (var file in files)
+                ImportSQLEvent(session, sql_folder, file.Name);
         }
 
         public static void ImportSQLQuest(Session session, string questName)
@@ -1267,6 +1302,47 @@ namespace ACE.Server.Command.Handlers.Processors
 
             // clear any cached encounters for this landblock
             DatabaseManager.World.ClearCachedEncountersByLandblock(landblockId);
+        }
+
+        private static void ImportSQLEvent(Session session, string sql_folder, string sql_file)
+        {
+            // import sql to db
+            ImportSQL(sql_folder + sql_file);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Imported {sql_file}");
+
+            // clear cached event
+            var eventName = sql_file.TrimEnd(".sql");
+            DatabaseManager.World.ClearCachedEvent(eventName);
+
+            if (EventManager.IsEventAvailable(eventName))
+            {
+                if (EventManager.IsEventStarted(eventName, null, null))
+                {
+                    EventManager.StopEvent(eventName, null, null);
+                    CommandHandlerHelper.WriteOutputInfo(session, $"-- Event {eventName} has been stopped.");
+                }
+                if (EventManager.Events.Remove(eventName))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"-- Event {eventName} has been removed from EventManager.");
+                }
+            }
+
+            // load event from db
+            var evt = DatabaseManager.World.GetCachedEvent(eventName);
+
+            if (EventManager.Events.TryAdd(evt.Name, evt))
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"-- Event {eventName} has been added to EventManager.");
+            }
+
+            // Start the event if it needs to be
+            if (evt.State == (int)GameEventState.On)
+            {
+                if (EventManager.StartEvent(evt.Name, null, null))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"-- Event {eventName} has been started.");
+                }
+            }
         }
 
         private static void ImportSQLQuest(Session session, string sql_folder, string sql_file)
@@ -3406,7 +3482,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 ExportSQLWeenie(session, param, true);
         }
 
-        [CommandHandler("export-sql", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Exports content from database to SQL file", "<optional type> <id>\n<optional type> - landblock, encounter, quest, recipe, spell, weenie (default if not specified)\n<id> - wcid or content id to export")]
+        [CommandHandler("export-sql", AccessLevel.Developer, CommandHandlerFlag.None, 1, "Exports content from database to SQL file", "<optional type> <id>\n<optional type> - landblock, encounter, event, quest, recipe, spell, weenie (default if not specified)\n<id> - wcid or content id to export")]
         public static void HandleExportSql(Session session, params string[] parameters)
         {
             var param = parameters[0];
@@ -3430,6 +3506,10 @@ namespace ACE.Server.Command.Handlers.Processors
 
                 case FileType.Encounter:
                     ExportSQLEncounter(session, param);
+                    break;
+
+                case FileType.Event:
+                    ExportSQLEvent(session, param);
                     break;
 
                 case FileType.Quest:
@@ -3901,6 +3981,52 @@ namespace ACE.Server.Command.Handlers.Processors
                     sqlFile.WriteLine();
 
                     LandblockEncounterWriter.CreateSQLINSERTStatement(encounters, sqlFile);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                CommandHandlerHelper.WriteOutputInfo(session, $"Failed to export {sql_folder}{sql_filename}");
+                return;
+            }
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Exported {sql_folder}{sql_filename}");
+        }
+
+        public static void ExportSQLEvent(Session session, string eventName)
+        {
+            DirectoryInfo di = VerifyContentFolder(session, false);
+
+            var sep = Path.DirectorySeparatorChar;
+
+
+            var evt = DatabaseManager.World.GetCachedEvent(eventName);
+
+            if (evt == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"Couldn't find event `{eventName}`");
+                return;
+            }
+
+            var sql_folder = $"{di.FullName}{sep}sql{sep}events{sep}";
+
+            di = new DirectoryInfo(sql_folder);
+
+            if (!di.Exists)
+                di.Create();
+
+            var sql_filename = $"{eventName}.sql";
+
+            EventSQLWriter eventSQLWriter = new EventSQLWriter();
+            try
+            {
+                using (var sqlFile = new StreamWriter(sql_folder + sql_filename))
+                {
+                    eventSQLWriter.CreateSQLDELETEStatement(evt, sqlFile);
+
+                    sqlFile.WriteLine();
+
+                    eventSQLWriter.CreateSQLINSERTStatement(evt, sqlFile);
                 }
             }
             catch (Exception e)

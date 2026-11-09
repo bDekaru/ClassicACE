@@ -42,7 +42,7 @@ namespace ACE.Database.SQLFormatters.World
 
         private class NameResults
         {
-            public Models.World.Weenie Weenie{ get; set; }
+            public Models.World.Weenie Weenie { get; set; }
             public WeeniePropertiesPosition Dest { get; set; }
             public WeeniePropertiesString Name { get; set; }
         }
@@ -111,7 +111,7 @@ namespace ACE.Database.SQLFormatters.World
                 else if (name.EndsWith(" Conveyance"))
                     name = name.Replace(" Conveyance", "");
 
-                return name.Replace("\n","");
+                return name.Replace("\n", "");
             }
         }
 
@@ -146,7 +146,7 @@ namespace ACE.Database.SQLFormatters.World
                 if (WeenieClassNames != null)
                     WeenieClassNames.TryGetValue(value.WeenieClassId, out className);
 
-                if(weenieName != null && className != null)
+                if (weenieName != null && className != null)
                     label += weenieName + $"({value.WeenieClassId}/{className})";
                 else if (weenieName != null)
                     label = weenieName + $" ({value.WeenieClassId})";
@@ -163,7 +163,7 @@ namespace ACE.Database.SQLFormatters.World
 
                 var weenie = DatabaseManager.World.GetCachedWeenie(value.WeenieClassId);
 
-                if(weenie == null)
+                if (weenie == null)
                 {
                     var landblockId = value.ObjCellId >> 16;
                     log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId:X4}: LandblockInstance has entry to unknown weenieClassId: {value.WeenieClassId}");
@@ -222,7 +222,7 @@ namespace ACE.Database.SQLFormatters.World
                                         else
                                         {
                                             content += $"({entry.WeenieClassId})";
-                                            
+
                                             var landblockId = value.ObjCellId >> 16;
                                             log.Warn($"[LANDBLOCKINSTANCEWRITER] Landblock {landblockId}:{parentWeenieName}: Generator has entry to unknown weenieClassId: {entry.WeenieClassId}");
                                         }

@@ -88,7 +88,7 @@ namespace ACE.Server.Managers
             }
 
             if (recipe.IsTinkering())
-                log.DebugFormat("[TINKERING] {0}.UseObjectOnTarget({1}, {2}) | Status: {3}confirmed", player.Name, source.NameWithMaterial, target.NameWithMaterial, (confirmed ? "" : "un"));
+                log.InfoFormat("[TINKERING] {0}.UseObjectOnTarget({1}, {2}) | Status: {3}confirmed", player.Name, source.NameWithMaterial, target.NameWithMaterial, (confirmed ? "" : "un"));
 
             var percentSuccess = GetRecipeChance(player, source, target, recipe);
 
@@ -1294,8 +1294,7 @@ namespace ACE.Server.Managers
 
                 player.Session.Network.EnqueueSend(new GameMessageSystemChat(message, ChatMessageType.Craft));
 
-                if (log.IsDebugEnabled)
-                    log.Debug($"[CRAFTING] {player.Name} used {source.NameWithMaterial} on {target.NameWithMaterial} {(success ? "" : "un")}successfully. {(destroySource ? $"| {source.NameWithMaterial} was destroyed " : "")}{(destroyTarget ? $"| {target.NameWithMaterial} was destroyed " : "")}| {message}");
+                log.Info($"[CRAFTING] {player.Name} used {source.NameWithMaterial} on {target.NameWithMaterial} {(success ? "" : "un")}successfully. {(destroySource ? $"| {source.NameWithMaterial} was destroyed " : "")}{(destroyTarget ? $"| {target.NameWithMaterial} was destroyed " : "")}| {message}");
             }
             else if(source.Workmanship != null)
                 BroadcastTinkering(player, source, target, successChance, success);
@@ -1324,8 +1323,7 @@ namespace ACE.Server.Managers
             // send local broadcast
             player.EnqueueBroadcast(new GameMessageSystemChat(msg, ChatMessageType.Craft), WorldObject.LocalBroadcastRange, ChatMessageType.Craft);
 
-            if (log.IsDebugEnabled)
-                log.Debug($"[TINKERING] {msg} | Chance: {chance}");
+            log.Info($"[TINKERING] {msg} | Chance: {chance}");
         }
 
         public static WorldObject CreateItem(Player player, uint wcid, uint amount)

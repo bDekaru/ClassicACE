@@ -140,6 +140,12 @@ public partial class WorldDbContext : DbContext
             {
                 builder.EnableRetryOnFailure(10);
             });
+
+            if (config.EnableDetailedErrors)
+                optionsBuilder.EnableDetailedErrors();
+
+            if (config.EnableSensitiveDataLogging)
+                optionsBuilder.EnableSensitiveDataLogging();
         }
     }
 

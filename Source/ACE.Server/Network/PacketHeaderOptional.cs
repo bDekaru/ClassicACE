@@ -72,7 +72,8 @@ namespace ACE.Server.Network
                 long length = reader.BaseStream.Length - position;
                 if (length < 1) { IsValid = false; return; }
                 byte[] loginBytes = new byte[length];
-                reader.BaseStream.Read(loginBytes, (int)position, (int)length);
+                var i = reader.BaseStream.Read(loginBytes, (int)position, (int)length);
+                if (i != length) { IsValid = false; return; }
                 writer.Write(loginBytes);
                 reader.BaseStream.Position = position;
             }

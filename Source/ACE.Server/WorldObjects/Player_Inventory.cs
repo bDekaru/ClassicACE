@@ -97,7 +97,7 @@ namespace ACE.Server.WorldObjects
             if (!TryAddToInventory(ref item, out container, 0, false, true, allowStacking)) // We don't have enough burden available or no empty pack slot.
                 return false;
 
-            if(allowStacking && item.StackSize != currentStackSize)
+            if (allowStacking && item.StackSize != currentStackSize)
             {
                 // We've been merged.
                 item.EnqueueBroadcast(new GameMessageSetStackSize(item));
@@ -490,17 +490,17 @@ namespace ACE.Server.WorldObjects
         [Flags]
         public enum SearchLocations
         {
-            None                = 0x00,
-            MyInventory         = 0x01,
-            MyEquippedItems     = 0x02,
-            Landblock           = 0x04,
-            LastUsedContainer   = 0x08,
-            WieldedByOther      = 0x10,
-            TradedByOther       = 0x20,
-            ObjectsKnownByMe    = 0x40,
-            LastUsedHook        = 0x80,
-            LocationsICanMove   = MyInventory | MyEquippedItems | Landblock | LastUsedContainer,
-            Everywhere          = 0xFF
+            None = 0x00,
+            MyInventory = 0x01,
+            MyEquippedItems = 0x02,
+            Landblock = 0x04,
+            LastUsedContainer = 0x08,
+            WieldedByOther = 0x10,
+            TradedByOther = 0x20,
+            ObjectsKnownByMe = 0x40,
+            LastUsedHook = 0x80,
+            LocationsICanMove = MyInventory | MyEquippedItems | Landblock | LastUsedContainer,
+            Everywhere = 0xFF
         }
 
         public WorldObject FindObject(uint objectGuid, SearchLocations searchLocations)
@@ -1130,7 +1130,7 @@ namespace ACE.Server.WorldObjects
 
                                 if (isFromAPlayerCorpse)
                                 {
-                                    log.DebugFormat("[CORPSE] {0} (0x{1}) picked up {2} (0x{3}) from {4} (0x{5})", Name, Guid, item.Name, item.Guid, itemRootOwner.Name, itemRootOwner.Guid);
+                                    log.InfoFormat("[CORPSE] {0} (0x{1}) picked up {2} (0x{3}) from {4} (0x{5})", Name, Guid, item.Name, item.Guid, itemRootOwner.Name, itemRootOwner.Guid);
                                     item.SaveBiotaToDatabase();
                                 }
                             }
@@ -1401,7 +1401,7 @@ namespace ACE.Server.WorldObjects
             if (prevContainer != null && !prevContainer.Stuck && container != prevContainer)
                 item.SaveBiotaToDatabase();
 
-            if(itemWasEquipped && (item.WeenieType == WeenieType.Ammunition || item.WeenieType == WeenieType.Missile) && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            if (itemWasEquipped && (item.WeenieType == WeenieType.Ammunition || item.WeenieType == WeenieType.Missile) && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdatePropertyInt(this, PropertyInt.EncumbranceVal, EncumbranceVal ?? 0));
 
             Session.Network.EnqueueSend(
@@ -1796,7 +1796,7 @@ namespace ACE.Server.WorldObjects
 
                                 if (isFromAPlayerCorpse)
                                 {
-                                    log.DebugFormat("[CORPSE] {0} (0x{1}) picked up and wielded {2} (0x{3}) from {4} (0x{5})", Name, Guid, item.Name, item.Guid, rootOwner.Name, rootOwner.Guid);
+                                    log.InfoFormat("[CORPSE] {0} (0x{1}) picked up and wielded {2} (0x{3}) from {4} (0x{5})", Name, Guid, item.Name, item.Guid, rootOwner.Name, rootOwner.Guid);
                                     item.SaveBiotaToDatabase();
                                 }
                             }
@@ -1863,7 +1863,7 @@ namespace ACE.Server.WorldObjects
             {
                 WorldObject equippedWeapon;
 
-                if(wieldedLocation == EquipMask.Shield)
+                if (wieldedLocation == EquipMask.Shield)
                     equippedWeapon = GetEquippedMeleeWeapon(true);
                 else
                     equippedWeapon = GetDualWieldWeapon();
@@ -1893,7 +1893,7 @@ namespace ACE.Server.WorldObjects
                     }
                 }
                 else // Unwield wand/missile launcher/two-handed if dual wielding
-                {                  
+                {
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
                     {
                         Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
@@ -1998,8 +1998,8 @@ namespace ACE.Server.WorldObjects
             // verify Aetheria slot, client doesn't handle this
             if ((wieldedLocation & EquipMask.Sigil) != 0)
             {
-                if (wieldedLocation.HasFlag(EquipMask.SigilOne)   && !AetheriaFlags.HasFlag(AetheriaBitfield.Blue) ||
-                    wieldedLocation.HasFlag(EquipMask.SigilTwo)   && !AetheriaFlags.HasFlag(AetheriaBitfield.Yellow) ||
+                if (wieldedLocation.HasFlag(EquipMask.SigilOne) && !AetheriaFlags.HasFlag(AetheriaBitfield.Blue) ||
+                    wieldedLocation.HasFlag(EquipMask.SigilTwo) && !AetheriaFlags.HasFlag(AetheriaBitfield.Yellow) ||
                     wieldedLocation.HasFlag(EquipMask.SigilThree) && !AetheriaFlags.HasFlag(AetheriaBitfield.Red))
                 {
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
@@ -2150,7 +2150,7 @@ namespace ACE.Server.WorldObjects
                         {
                             if (mainhand != null)
                             {
-                                if(mainhand.IsCaster || mainhand.IsAmmoLauncher)
+                                if (mainhand.IsCaster || mainhand.IsAmmoLauncher)
                                 {
                                     if (item.Mass > 140)
                                         return false;
@@ -2398,7 +2398,7 @@ namespace ACE.Server.WorldObjects
                 if (((item.ValidLocations & (EquipMask.Clothing | EquipMask.Armor)) != 0)
                     && (heritageSpecificArmor == null || (HeritageGroup)heritageSpecificArmor != HeritageGroup))
                     return WeenieError.HeritageRequiresSpecificArmor;
-            }    
+            }
             else
             {
                 if (heritageSpecificArmor != null && (HeritageGroup)heritageSpecificArmor != HeritageGroup)
@@ -2649,7 +2649,7 @@ namespace ACE.Server.WorldObjects
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId));
                 return;
             }
-            
+
             ItemType containerValidTypes = (ItemType)(container.MerchandiseItemTypes ?? 0);
             if (containerValidTypes != 0 && (stack.ItemType & containerValidTypes) == 0)
             {
@@ -2658,7 +2658,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if ((stackRootOwner == this && containerRootOwner != this)  || (stackRootOwner != this && containerRootOwner == this)) // Movement is between the player and the world
+            if ((stackRootOwner == this && containerRootOwner != this) || (stackRootOwner != this && containerRootOwner == this)) // Movement is between the player and the world
             {
                 if (stackRootOwner is Vendor)
                 {
@@ -2691,7 +2691,7 @@ namespace ACE.Server.WorldObjects
                     }
 
                     // We make sure the stack is still valid. It could have changed during our movement
-                    if (stackOriginalContainer != stack.ContainerId || stack.StackSize < amount)
+                    if (stackOriginalContainer != stack.ContainerId || stack.StackSize <= amount)
                     {
                         log.DebugFormat("Player 0x{0:X8}:{1} tried to split an item that's no longer valid 0x{2:X8}:{3}.", Guid.Full, Name, stack.Guid.Full, stack.Name);
                         Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Split failed!")); // Custom error message
@@ -2707,7 +2707,7 @@ namespace ACE.Server.WorldObjects
                     pickupChain.AddAction(this, () =>
                     {
                         // We make sure the stack is still valid. It could have changed during our pickup animation
-                        if (stackOriginalContainer != stack.ContainerId || stack.StackSize < amount)
+                        if (stackOriginalContainer != stack.ContainerId || stack.StackSize <= amount)
                         {
                             log.DebugFormat("Player 0x{0:X8}:{1} tried to split an item that's no longer valid 0x{2:X8}:{3}.", Guid.Full, Name, stack.Guid.Full, stack.Name);
                             Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Split failed!")); // Custom error message
@@ -2881,6 +2881,15 @@ namespace ACE.Server.WorldObjects
             {
                 if (CurrentLandblock == null) // Maybe we were teleported as we were motioning to drop the item
                 {
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId, WeenieError.ActionCancelled));
+                    return;
+                }
+
+                // We make sure the stack is still valid. It could have changed during our pickup animation
+                if (FindObject(stack.Guid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out stackFoundInContainer, out stackRootOwner, out _) != stack || stack.StackSize <= amount)
+                {
+                    log.DebugFormat("Player 0x{0:X8}:{1} tried to split an item that's no longer valid 0x{2:X8}:{3}.", Guid.Full, Name, stack.Guid.Full, stack.Name);
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Split failed!")); // Custom error message
                     Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, stackId, WeenieError.ActionCancelled));
                     return;
                 }
@@ -3062,7 +3071,7 @@ namespace ACE.Server.WorldObjects
                     }
 
                     // We make sure the stack is still valid. It could have changed during our movement
-                    if (stackOriginalContainer != stack.ContainerId || stack.StackSize < amount)
+                    if (stackOriginalContainer != stack.ContainerId || stack.StackSize <= amount)
                     {
                         log.DebugFormat("Player 0x{0:X8}:{1} tried to split an item that's no longer valid 0x{2:X8}:{3}.", Guid.Full, Name, stack.Guid.Full, stack.Name);
                         Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Split failed!")); // Custom error message
@@ -3078,7 +3087,7 @@ namespace ACE.Server.WorldObjects
                     pickupChain.AddAction(this, () =>
                     {
                         // We make sure the stack is still valid. It could have changed during our pickup animation
-                        if (stackOriginalContainer != stack.ContainerId || stack.StackSize < amount)
+                        if (stackOriginalContainer != stack.ContainerId || stack.StackSize <= amount)
                         {
                             log.DebugFormat("Player 0x{0:X8}:{1} tried to split an item that's no longer valid 0x{2:X8}:{3}.", Guid.Full, Name, stack.Guid.Full, stack.Name);
                             Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Split failed!")); // Custom error message
@@ -3397,7 +3406,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if ((sourceStackRootOwner == this && targetStackRootOwner != this)  || (sourceStackRootOwner != this && targetStackRootOwner == this)) // Movement is between the player and the world
+            if ((sourceStackRootOwner == this && targetStackRootOwner != this) || (sourceStackRootOwner != this && targetStackRootOwner == this)) // Movement is between the player and the world
             {
                 if (sourceStackRootOwner is Vendor)
                 {
@@ -3632,8 +3641,7 @@ namespace ACE.Server.WorldObjects
 
             if (isFromAPlayerCorpse)
             {
-                if (log.IsDebugEnabled)
-                    log.Debug($"[CORPSE] {Name} (0x{Guid}) merged {amount:N0} {(sourceStack.IsDestroyed ? $"which resulted in the destruction" : $"leaving behind {sourceStack.StackSize:N0}")} of {sourceStack.Name} (0x{sourceStack.Guid}) to {targetStack.Name} (0x{targetStack.Guid}) from {sourceStackRootOwner.Name} (0x{sourceStackRootOwner.Guid})");
+                log.Info($"[CORPSE] {Name} (0x{Guid}) merged {amount:N0} {(sourceStack.IsDestroyed ? $"which resulted in the destruction" : $"leaving behind {sourceStack.StackSize:N0}")} of {sourceStack.Name} (0x{sourceStack.Guid}) to {targetStack.Name} (0x{targetStack.Guid}) from {sourceStackRootOwner.Name} (0x{sourceStackRootOwner.Guid})");
                 targetStack.SaveBiotaToDatabase();
             }
 
@@ -3713,6 +3721,15 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
+                // We make sure the item is still valid. It could have changed during our movement
+                if (FindObject(item.Guid, SearchLocations.MyInventory | SearchLocations.MyEquippedItems, out itemFoundInContainer, out itemRootOwner, out itemWasEquipped) != item || item.StackSize < amount)
+                {
+                    log.DebugFormat("Player 0x{0:X8}:{1} tried to give an item that's no longer valid 0x{2:X8}:{3}.", Guid.Full, Name, item.Guid.Full, item.Name);
+                    Session.Network.EnqueueSend(new GameEventCommunicationTransientString(Session, "Give failed!")); // Custom error message
+                    Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, itemGuid, WeenieError.ActionCancelled));
+                    return;
+                }
+
                 EndSneaking();
 
                 if (target is Player targetAsPlayer)
@@ -3755,7 +3772,7 @@ namespace ACE.Server.WorldObjects
             {
                 Session.Network.EnqueueSend(new GameEventWeenieErrorWithString(Session, WeenieErrorWithString._IsNotAcceptingGiftsRightNow, target.Name));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                var msg = new GameMessageSystemChat($"{Name} tries to give you {(item.StackSize > 1 ? $"{item.StackSize} " : "")}{item.GetNameWithMaterial(item.StackSize)}.", ChatMessageType.Broadcast);
+                var msg = new GameMessageSystemChat($"{Name} tries to give you {(amount > 1 ? $"{amount} " : "")}{item.GetNameWithMaterial(amount)}.", ChatMessageType.Broadcast);
                 target.Session.Network.EnqueueSend(msg);
                 return;
             }
@@ -3770,7 +3787,7 @@ namespace ACE.Server.WorldObjects
             {
                 Session.Network.EnqueueSend(new GameEventWeenieErrorWithString(Session, WeenieErrorWithString._IsTooBusyToAcceptGifts, target.Name));
                 Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full));
-                var msg = new GameMessageSystemChat($"{Name} tries to give you {(item.StackSize > 1 ? $"{item.StackSize} " : "")}{item.GetNameWithMaterial(item.StackSize)}.", ChatMessageType.Broadcast);
+                var msg = new GameMessageSystemChat($"{Name} tries to give you {(amount > 1 ? $"{amount} " : "")}{item.GetNameWithMaterial(amount)}.", ChatMessageType.Broadcast);
                 target.Session.Network.EnqueueSend(msg);
                 return;
             }
@@ -3891,12 +3908,12 @@ namespace ACE.Server.WorldObjects
 
             if (target.HasGiveOrRefuseEmoteForItem(item, out var emoteResult) || acceptAll)
             {
-                if (acceptAll ||(emoteResult.Category == EmoteCategory.Give && target.AllowGive))
+                if (acceptAll || (emoteResult.Category == EmoteCategory.Give && target.AllowGive))
                 {
                     if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !acceptAll && item.MaxStructure.HasValue && item.Structure < item.MaxStructure)
                     {
-                        if(item.ItemType == ItemType.TinkeringMaterial)
-                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{target.Name} is not interested in partial bags of {item.NameWithMaterial.Substring(0,item.NameWithMaterial.LastIndexOf(' '))}.", ChatMessageType.Broadcast));
+                        if (item.ItemType == ItemType.TinkeringMaterial)
+                            Session.Network.EnqueueSend(new GameMessageSystemChat($"{target.Name} is not interested in partial bags of {item.NameWithMaterial.Substring(0, item.NameWithMaterial.LastIndexOf(' '))}.", ChatMessageType.Broadcast));
                         else
                             Session.Network.EnqueueSend(new GameMessageSystemChat($"{target.Name} is not interested in the {item.NameWithMaterial} as it is partially used up.", ChatMessageType.Broadcast));
                         Session.Network.EnqueueSend(new GameEventInventoryServerSaveFailed(Session, item.Guid.Full, WeenieError.TradeAiRefuseEmote));
@@ -3945,7 +3962,7 @@ namespace ACE.Server.WorldObjects
             else
             {
                 if (item.WeenieType == WeenieType.Deed && target.AllowGive && target.AiAcceptEverything) // http://acpedia.org/wiki/Housing_FAQ#House_deeds
-                {                    
+                {
                     var stackSize = item.StackSize ?? 1;
 
                     var stackMsg = stackSize != 1 ? $"{stackSize} " : "";
@@ -4213,7 +4230,7 @@ namespace ACE.Server.WorldObjects
             Prev_PutItemInContainer[1] = Prev_PutItemInContainer[0];
             Prev_PutItemInContainer[0] = new PutItemInContainerEvent(itemGuid, containerGuid, placement);
         }
-        
+
         public void GiveFromEmote(WorldObject emoter, uint weenieClassId, int amount = 1, int palette = 0, float shade = 0, string extraMessage = "")
         {
             if (emoter is null || weenieClassId == 0)

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
 
     <IsPackable>false</IsPackable>
 
@@ -13,7 +13,7 @@
 
     <Description>Asheron's Call server emulator</Description>
 
-    <Copyright>© 2017-2024 ACEmulator Team and Contributors</Copyright>
+    <Copyright>© 2017-2026 ACEmulator Team and Contributors</Copyright>
 
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
 
@@ -28,9 +28,9 @@
 
   <ItemGroup>
     <PackageReference Include="Appveyor.TestLogger" Version="2.0.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.8.2" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.8.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.5.2" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.5.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,6 +43,10 @@
       <Pack>True</Pack>
       <PackagePath></PackagePath>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-4f7c-pmjv-c25w" />
   </ItemGroup>
 
 </Project>

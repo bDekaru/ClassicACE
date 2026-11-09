@@ -1,9 +1,11 @@
+using System;
 using System.IO;
 
-using Newtonsoft.Json;
+using System.Text.Json;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+using ACE.Common;
 using ACE.Server.Entity;
 
 namespace ACE.Server.Tests
@@ -14,13 +16,15 @@ namespace ACE.Server.Tests
         [TestMethod]
         public void CanParseStarterGearJson()
         {
-            string contents = File.ReadAllText("../../../../../ACE.Server/starterGear.json");
+            var testDir = AppContext.BaseDirectory;
+            var starterGearPath = Path.GetFullPath(Path.Combine(testDir, "..", "..", "..", "..", "..", "ACE.Server", "starterGear.json"));
             if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
-                contents = File.ReadAllText("../../../../../ACE.Server/starterGear.infiltration.json");
+                starterGearPath = Path.GetFullPath(Path.Combine(testDir, "..", "..", "..", "..", "..", "ACE.Server", "starterGear.infiltration.json"));
             else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                contents = File.ReadAllText("../../../../../ACE.Server/starterGear.customDM.json");
+                starterGearPath = Path.GetFullPath(Path.Combine(testDir, "..", "..", "..", "..", "..", "ACE.Server", "starterGear.customDM.json"));
+            string contents = File.ReadAllText(starterGearPath);
 
-            StarterGearConfiguration config = JsonConvert.DeserializeObject<StarterGearConfiguration>(contents);
+            StarterGearConfiguration config = JsonSerializer.Deserialize<StarterGearConfiguration>(contents, ConfigManager.SerializerOptions);
         }
     }
 }

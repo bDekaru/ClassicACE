@@ -155,35 +155,41 @@
             }
         ]
     },
-    "MySql": {
-        "Authentication": {
-            "Host": "127.0.0.1",
-            "Port": 3306,
-            "Database": "ace_auth",
-            "Username": "root",
-            "Password": ""
-        },
-        "Shard": {
-            "Host": "127.0.0.1",
-            "Port": 3306,
-            "Database": "ace_shard",
-            "Username": "root",
-            "Password": ""
-        },
-        "World": {
-            "Host": "127.0.0.1",
-            "Port": 3306,
-            "Database": "ace_world",
-            "Username": "root",
-            "Password": ""
-        }
+  "MySql": {
+    "Authentication": {
+      "Host": "127.0.0.1",
+      "Port": 3306,
+      "Database": "ace_auth",
+      "Username": "root",
+      "Password": "",
+      "EnableDetailedErrors": false,
+      "EnableSensitiveDataLogging": false
     },
-    // This section can trigger events that may happen before the world starts up, or after it shuts down
-    // The shard should be in a disconnected state from any running ACE world
-    "Offline": {
-        // Purge characters that have been deleted longer than PruneDeletedCharactersDays
-        // These characters, and their associated biotas, will be deleted permanantly!
-        "PurgeDeletedCharacters": false,
+    "Shard": {
+      "Host": "127.0.0.1",
+      "Port": 3306,
+      "Database": "ace_shard",
+      "Username": "root",
+      "Password": "",
+      "EnableDetailedErrors": false,
+      "EnableSensitiveDataLogging": false
+    },
+    "World": {
+      "Host": "127.0.0.1",
+      "Port": 3306,
+      "Database": "ace_world",
+      "Username": "root",
+      "Password": "",
+      "EnableDetailedErrors": false,
+      "EnableSensitiveDataLogging": false
+    }
+  },
+  // This section can trigger events that may happen before the world starts up, or after it shuts down
+  // The shard should be in a disconnected state from any running ACE world
+  "Offline": {
+    // Purge characters that have been deleted longer than PruneDeletedCharactersDays
+    // These characters, and their associated biotas, will be deleted permanantly!
+    "PurgeDeletedCharacters": false,
 
         // Number of days a character must have been deleted for before eligible for purging
         "PurgeDeletedCharactersDays": 30,
@@ -216,12 +222,12 @@
         // SQL files will be executed given the sort order of the full paths of the files
         "AutoApplyWorldCustomizations": true,
 
-        // When AutoApplyWorldCustomizations is set to true, the auto apply process will search for
-        // all .sql files in the following directories.
-        // This process will still use ./Content by default, or the the config_properties_string
-        // value for 'content_folder' if it exists
-        // Example: [ "C:\\MyContent", "C:\\FTPRoot\\Editor1Content", "C:\\FTPRoot\\Editor2Content" ]
-        "WorldCustomizationAddedPaths": [],
+    // When AutoApplyWorldCustomizations is set to true, the auto apply process will search for
+    // all .sql files in the following directories.
+    // This process will still use ./Content by default, or the config_properties_string
+    // value for 'content_folder' if it exists
+    // Example: [ "C:\\MyContent", "C:\\FTPRoot\\Editor1Content", "C:\\FTPRoot\\Editor2Content" ]
+    "WorldCustomizationAddedPaths": [],
 
      // When retrieving a file list of .sql files in the AutoApplyWorldCustomizations process
      // this will cause the file search to retrieve all files recursively from each directory

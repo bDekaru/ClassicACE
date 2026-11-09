@@ -461,6 +461,11 @@ namespace ACE.Database
             return cachedEncounters.TryRemove(landblock, out _);
         }
 
+        public bool ClearCachedEvent(string eventName)
+        {
+            return cachedEvents.TryRemove(eventName.ToLower(), out _);
+        }
+
 
         // =====================================
         // Event

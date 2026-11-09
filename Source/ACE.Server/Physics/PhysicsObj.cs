@@ -151,7 +151,7 @@ namespace ACE.Server.Physics
 
             // todo: only allocate these for server objects
             // get rid of 'DatObject', use the existing WeenieObj == null
-            WeenieObj = new WeenieObject();
+            WeenieObj = WeenieObject.DummyObject;
             ObjMaint = new ObjectMaint(this);
 
             if (PhysicsEngine.Instance != null && PhysicsEngine.Instance.Server)
@@ -388,7 +388,7 @@ namespace ACE.Server.Physics
             if (State.HasFlag(PhysicsState.Ethereal) && State.HasFlag(PhysicsState.IgnoreCollisions))
                 return TransitionState.OK;
 
-            if (WeenieObj != null && transition.ObjectInfo.State.HasFlag(ObjectInfoState.IsViewer) && WeenieObj.IsCreature())
+            if (WeenieObj != null && transition.ObjectInfo.State.HasFlag(ObjectInfoState.IsViewer) && WeenieObj.IsCreature)
                 return TransitionState.OK;
 
             if (State.HasFlag(PhysicsState.Ethereal) || !State.HasFlag(PhysicsState.Static) && transition.ObjectInfo.Ethereal)
@@ -403,13 +403,13 @@ namespace ACE.Server.Physics
 
             // TODO: reverse this check to make it more readable
             // TODO: investigate not initting WeenieObj for DatObjects
-            var exemption = !( /*WeenieObj == null*/ DatObject || !WeenieObj.IsPlayer() || !state.HasFlag(ObjectInfoState.IsPlayer) ||
+            var exemption = !( /*WeenieObj == null*/ DatObject || !WeenieObj.IsPlayer || !state.HasFlag(ObjectInfoState.IsPlayer) ||
                 state.HasFlag(ObjectInfoState.IsImpenetrable) || WeenieObj.IsImpenetrable() ||
                 state.HasFlag(ObjectInfoState.IsPK) && WeenieObj.IsPK() || state.HasFlag(ObjectInfoState.IsPKLite) && WeenieObj.IsPKLite());
 
             var missileIgnore = transition.ObjectInfo.MissileIgnore(this);
 
-            var isCreature = State.HasFlag(PhysicsState.Missile) || WeenieObj != null && WeenieObj.IsCreature();
+            var isCreature = State.HasFlag(PhysicsState.Missile) || WeenieObj != null && WeenieObj.IsCreature;
             //isCreature = false; // hack?
 
             if (!State.HasFlag(PhysicsState.HasPhysicsBSP) || missileIgnore || exemption)
@@ -1292,7 +1292,7 @@ namespace ACE.Server.Physics
                 return SetPositionError.OK;
             }
 
-            if (WeenieObj != null && (WeenieObj.IsStorage() || WeenieObj.IsCorpse()))
+            if (WeenieObj != null && (WeenieObj.IsStorage || WeenieObj.IsCorpse))
                 return ForceIntoCell(newCell, pos);
 
             //if (setPos.Flags.HasFlag(SetPositionFlags.DontCreateCells))
@@ -2816,9 +2816,9 @@ namespace ACE.Server.Physics
             if (CurCell == null || obj.CurCell == null)
             {
                 if (CurCell == null)
-                    log.Error($"{Name}.handle_visible_obj({obj.Name}): CurCell null");
+                    log.Warn($"{Name}.handle_visible_obj({obj.Name}): CurCell null");
                 else
-                    log.Error($"{Name}.handle_visible_obj({obj.Name}): obj.CurCell null");
+                    log.Warn($"{Name}.handle_visible_obj({obj.Name}): obj.CurCell null");
 
                 return false;
             }

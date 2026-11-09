@@ -139,7 +139,7 @@ namespace ACE.Server.WorldObjects
                     break;
             }
 
-            if(previousRegenPool != regenPool && this is Player player)
+            if (previousRegenPool != regenPool && this is Player player)
             {
                 var vitalString = "";
                 switch (vital.Vital)
@@ -165,7 +165,7 @@ namespace ACE.Server.WorldObjects
                 else if (regenPool <= regenPool * 0.75f && !(previousRegenPool <= regenPool * 0.75f))
                     fullness = $"You are still pretty full of {vitalString} food.";
 
-                if(fullness != null)
+                if (fullness != null)
                     player.Session.Network.EnqueueSend(new GameMessageSystemChat(fullness, ChatMessageType.Broadcast));
             }
 
@@ -205,7 +205,7 @@ namespace ACE.Server.WorldObjects
             var enchantmentMod = EnchantmentManager.GetRegenerationMod(vital);
 
             var augMod = 1.0f;
-            if (this is Player player && player.AugmentationFasterRegen > 0)
+            if (this is Player player && player.AugmentationFasterRegen > 0 && ForwardCommand == MotionCommand.Sleeping)
                 augMod += player.AugmentationFasterRegen;
 
             // cap rate?
@@ -223,7 +223,7 @@ namespace ACE.Server.WorldObjects
             if (intTick != 0)
             {
                 //if (this is Player)
-                    //Console.WriteLine($"VitalTick({vital.Vital.ToSentence()}): attributeMod={attributeMod}, stanceMod={stanceMod}, enchantmentMod={enchantmentMod}, regenRate={vital.RegenRate}, currentTick={currentTick}, totalTick={totalTick}, accumulated={vital.PartialRegen}");
+                //Console.WriteLine($"VitalTick({vital.Vital.ToSentence()}): attributeMod={attributeMod}, stanceMod={stanceMod}, enchantmentMod={enchantmentMod}, regenRate={vital.RegenRate}, currentTick={currentTick}, totalTick={totalTick}, accumulated={vital.PartialRegen}");
 
                 UpdateVitalDelta(vital, intTick);
                 if (vital.Vital == PropertyAttribute2nd.MaxHealth)
@@ -280,6 +280,9 @@ namespace ACE.Server.WorldObjects
             return attributeMod;
         }
 
+        private MotionCommand ForwardCommand => CurrentMovementData.MovementType == MovementType.Invalid && CurrentMovementData.Invalid != null ?
+            CurrentMovementData.Invalid.State.ForwardCommand : MotionCommand.Invalid;
+
         /// <summary>
         /// Returns the vital regeneration modifier based on player stance
         /// (combat, crouch, sitting, sleeping)
@@ -289,11 +292,11 @@ namespace ACE.Server.WorldObjects
             // only applies to players
             if ((this as Player) == null) return 1.0f;
 
-            var forwardCommand = CurrentMovementData.MovementType == MovementType.Invalid && CurrentMovementData.Invalid != null ? CurrentMovementData.Invalid.State.ForwardCommand : MotionCommand.Invalid;
+            var forwardCommand = ForwardCommand;
 
             if (vital.Vital == PropertyAttribute2nd.MaxMana)
             {
-                if(forwardCommand == MotionCommand.MeditateState && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                if (forwardCommand == MotionCommand.MeditateState && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                     return 2.0f;
                 else
                     return 1.0f;

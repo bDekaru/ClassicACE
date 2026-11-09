@@ -437,7 +437,7 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            log.DebugFormat("[HOUSE] {0}.TryMoveItemForRent({1} ({2}), {3}{4} ({5})) - Successfully moved to Slumlord.", Name, slumlord.Name, slumlord.Guid, ((item.StackSize ?? 1) > 1 ? $"{item.StackSize}x " : ""), item.Name, item.Guid);
+            log.InfoFormat("[HOUSE] {0}.TryMoveItemForRent({1} ({2}), {3}{4} ({5})) - Successfully moved to Slumlord.", Name, slumlord.Name, slumlord.Guid, ((item.StackSize ?? 1) > 1 ? $"{item.StackSize}x " : ""), item.Name, item.Guid);
             return true;
         }
 
@@ -493,8 +493,7 @@ namespace ACE.Server.WorldObjects
                 return false;
             }
 
-            if (log.IsDebugEnabled)
-                log.Debug($"[HOUSE] {Name}.TrySplitItemForRent({slumlord.Name} ({slumlord.Guid}), {item.Name} ({item.Guid}), {amount}) - Created new item {((newItem.StackSize ?? 1) > 1 ? $"{newItem.StackSize}x " : "")}{newItem.Name} ({newItem.Guid}) and moved to Slumlord.");
+            log.Info($"[HOUSE] {Name}.TrySplitItemForRent({slumlord.Name} ({slumlord.Guid}), {item.Name} ({item.Guid}), {amount}) - Created new item {((newItem.StackSize ?? 1) > 1 ? $"{newItem.StackSize}x " : "")}{newItem.Name} ({newItem.Guid}) and moved to Slumlord.");
 
             // force save of new slumlord stack
             newItem.SaveBiotaToDatabase();
@@ -576,6 +575,7 @@ namespace ACE.Server.WorldObjects
             Session.Network.EnqueueSend(new GameMessageSystemChat("You abandon your house!", ChatMessageType.Broadcast));
 
             HouseManager.RemoveRentQueue(house.Guid.Full);
+            HouseManager.DecrementTotalOwnedHousingByType(house.HouseType);
 
             house.ClearRestrictions();
 
@@ -1660,7 +1660,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (allegianceHouse.HouseType < HouseType.Villa)
+            if (allegianceHouse.HouseType != HouseType.Villa && allegianceHouse.HouseType != HouseType.Mansion)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YourMonarchsHouseIsNotAMansionOrVilla));
                 return;

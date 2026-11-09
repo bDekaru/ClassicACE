@@ -233,6 +233,14 @@ namespace ACE.Server.WorldObjects
                 var skill = activator.ConvertToMoASkill((Skill)ItemSkillLimit.Value);
                 var playerSkill = player.GetCreatureSkill(skill);
 
+                //if (playerSkill.AdvancementClass < SkillAdvancementClass.Trained)
+                //{
+                //    //return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_SkillMustBeTrained, playerSkill.Skill.ToSentence()));
+                //    player.Session.Network.EnqueueSend(new GameEventCommunicationTransientString(player.Session, $"You must have {playerSkill.Skill.ToSentence()} trained to use that item's magic"));
+                //    return new ActivationResult(false);
+                //}
+
+                // verify skill level
                 if (playerSkill.Current < ItemSkillLevelLimit.Value)
                     return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerSkill.Skill.ToSentence()));
             }
@@ -275,6 +283,24 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
+            // verify skill specialized
+            // only found on a few items, doesn't show up on ID panel so is effectively a hidden requirement unless noted in ShortDesc/LongDesc string text
+            if (ItemSpecializedOnly != null)
+            {
+                var skill = activator.ConvertToMoASkill((Skill)ItemSpecializedOnly.Value);
+                var playerSkill = player.GetCreatureSkill(skill);
+
+                if (playerSkill.AdvancementClass < SkillAdvancementClass.Specialized)
+                    return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustSpecialize_ToUseItemMagic, playerSkill.Skill.ToSentence()));
+
+                // verify skill level (if this was included)
+                if (ItemSkillLevelLimit != null)
+                {
+                    if (playerSkill.Current < ItemSkillLevelLimit.Value)
+                        return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerSkill.Skill.ToSentence()));
+                }
+            }
+
             // verify player level
             if (UseRequiresLevel != null)
             {
@@ -299,6 +325,18 @@ namespace ACE.Server.WorldObjects
 
                 if (playerVital.MaxValue < ItemAttribute2ndLevelLimit)
                     return silent? new ActivationResult(false) : new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.Your_IsTooLowToUseItemMagic, playerVital.Vital.ToSentence()));
+            }
+
+            // verify heritage group
+            if (HeritageGroup != HeritageGroup.Invalid)
+            {
+                if (this is not Creature) // Creatures are not restricted to their own hertigage group
+                {
+                    var playerHeritageGroup = player.HeritageGroup;
+
+                    if (playerHeritageGroup != HeritageGroup)
+                        return new ActivationResult(new GameEventWeenieErrorWithString(player.Session, WeenieErrorWithString.YouMustBe_ToUseItemMagic, HeritageGroup.ToSentence()));
+                }
             }
 
             // Check for a cooldown

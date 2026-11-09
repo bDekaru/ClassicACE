@@ -27,14 +27,14 @@ namespace ACE.Server.WorldObjects
 
             if (creatureSkill == null || creatureSkill.AdvancementClass < SkillAdvancementClass.Trained)
             {
-                log.Error($"{Name}.HandleActionRaiseSkill({skill}, {amount}) - trained or specialized skill not found");
+                log.Warn($"{Name}.HandleActionRaiseSkill({skill}, {amount}) - trained or specialized skill not found");
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
                 return false;
             }
 
             if (amount > AvailableExperience)
             {
-                //log.Error($"{Name}.HandleActionRaiseSkill({skill}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
+                //log.Warn($"{Name}.HandleActionRaiseSkill({skill}, {amount}) - amount > AvailableExperience ({AvailableExperience})");
                 Session.Network.EnqueueSend(new GameMessagePrivateUpdateSkill(this, creatureSkill));
                 return false;
             }
@@ -86,14 +86,14 @@ namespace ACE.Server.WorldObjects
             var skillXPTable = GetSkillXPTable(creatureSkill.AdvancementClass);
             if (skillXPTable == null)
             {
-                log.Error($"{Name}.SpendSkillXp({creatureSkill.Skill}, {amount}) - player tried to raise {creatureSkill.AdvancementClass} skill");
+                log.Warn($"{Name}.SpendSkillXp({creatureSkill.Skill}, {amount}) - player tried to raise {creatureSkill.AdvancementClass} skill");
                 return false;
             }
 
             // ensure skill is not already max rank
             if (creatureSkill.IsMaxRank)
             {
-                log.Error($"{Name}.SpendSkillXp({creatureSkill.Skill}, {amount}) - player tried to raise skill beyond max rank");
+                log.Warn($"{Name}.SpendSkillXp({creatureSkill.Skill}, {amount}) - player tried to raise skill beyond max rank");
                 return false;
             }
 
@@ -103,7 +103,7 @@ namespace ACE.Server.WorldObjects
 
             if (amount > amountToEnd)
             {
-                //log.Error($"{Name}.SpendSkillXp({creatureSkill.Skill}, {amount}) - player tried to raise skill beyond {amountToEnd} experience");
+                //log.Warn($"{Name}.SpendSkillXp({creatureSkill.Skill}, {amount}) - player tried to raise skill beyond {amountToEnd} experience");
                 return false;   // returning error here, instead of setting amount to amountToEnd
             }
 
@@ -111,7 +111,7 @@ namespace ACE.Server.WorldObjects
             // spend xp on skill
             if (!SpendXP(amount, sendNetworkUpdate))
             {
-                log.Error($"{Name}.SpendSkillXp({creatureSkill.Skill}, {amount}) - SpendXP failed");
+                log.Warn($"{Name}.SpendSkillXp({creatureSkill.Skill}, {amount}) - SpendXP failed");
                 return false;
             }
 
@@ -130,20 +130,20 @@ namespace ACE.Server.WorldObjects
         {
             if (creditsSpent > AvailableSkillCredits)
             {
-                log.Error($"{Name}.HandleActionTrainSkill({skill}, {creditsSpent}) - not enough skill credits ({AvailableSkillCredits})");
+                log.Warn($"{Name}.HandleActionTrainSkill({skill}, {creditsSpent}) - not enough skill credits ({AvailableSkillCredits})");
                 return false;
             }
 
             // get the actual cost to train the skill.
             if (!DatManager.PortalDat.SkillTable.SkillBaseHash.TryGetValue((uint)skill, out var skillBase))
             {
-                log.Error($"{Name}.HandleActionTrainSkill({skill}, {creditsSpent}) - couldn't find skill base");
+                log.Warn($"{Name}.HandleActionTrainSkill({skill}, {creditsSpent}) - couldn't find skill base");
                 return false;
             }
 
             if (creditsSpent != skillBase.TrainedCost)
             {
-                log.Error($"{Name}.HandleActionTrainSkill({skill}, {creditsSpent}) - client value differs from skillBase.TrainedCost({skillBase.TrainedCost})");
+                log.Warn($"{Name}.HandleActionTrainSkill({skill}, {creditsSpent}) - client value differs from skillBase.TrainedCost({skillBase.TrainedCost})");
                 return false;
             }
 

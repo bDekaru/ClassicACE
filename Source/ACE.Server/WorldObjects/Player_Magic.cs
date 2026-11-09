@@ -93,7 +93,7 @@ namespace ACE.Server.WorldObjects
             {
                 if (CombatMode != CombatMode.Magic)
                 {
-                    log.Error($"{Name}.HandleActionCastTargetedSpell({targetGuid:X8}, {spellId}, {casterItem?.Name}) - CombatMode mismatch {CombatMode}, LastCombatMode: {LastCombatMode}");
+                    log.Warn($"{Name}.HandleActionCastTargetedSpell({targetGuid:X8}, {spellId}, {casterItem?.Name}) - CombatMode mismatch {CombatMode}, LastCombatMode: {LastCombatMode}");
 
                     if (LastCombatMode == CombatMode.Magic)
                         CombatMode = CombatMode.Magic;
@@ -242,7 +242,7 @@ namespace ACE.Server.WorldObjects
         {
             // fellowship spell
             var spell = new Spell(spellId);
-            if ((spell.Flags & SpellFlags.FellowshipSpell) != 0)
+            if (spell.IsFellowshipSpell)
             {
                 target = this;
                 return TargetCategory.Fellowship;
@@ -296,7 +296,7 @@ namespace ACE.Server.WorldObjects
             {
                 if (CombatMode != CombatMode.Magic)
                 {
-                    log.Error($"{Name}.HandleActionMagicCastUnTargetedSpell({spellId}, {casterItem?.Name}) - CombatMode mismatch {CombatMode}, LastCombatMode: {LastCombatMode}");
+                    log.Warn($"{Name}.HandleActionMagicCastUnTargetedSpell({spellId}, {casterItem?.Name}) - CombatMode mismatch {CombatMode}, LastCombatMode: {LastCombatMode}");
 
                     if (LastCombatMode == CombatMode.Magic)
                         CombatMode = CombatMode.Magic;
@@ -610,6 +610,8 @@ namespace ACE.Server.WorldObjects
             var spellWords = spell._spellBase.GetSpellWords(DatManager.PortalDat.SpellComponentsTable);
             if (!string.IsNullOrWhiteSpace(spellWords) && !isWeaponSpell)
                 EnqueueBroadcast(new GameMessageHearSpeech(spellWords, GetNameWithSuffix(), Guid.Full, ChatMessageType.Spellcasting), LocalBroadcastRange);
+
+            OnTalk(spellWords);
         }
 
         public float CastSpeed = 2.0f;       // from retail pcaps, player animation speed for windup / first half of cast gesture
@@ -927,7 +929,7 @@ namespace ACE.Server.WorldObjects
             {
                 case CastingPreCheckStatus.Success:
 
-                    if ((spell.Flags & SpellFlags.FellowshipSpell) == 0)
+                    if (!spell.IsFellowshipSpell)
                     {
                         if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         {

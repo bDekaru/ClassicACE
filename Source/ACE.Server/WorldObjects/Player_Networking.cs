@@ -25,7 +25,7 @@ namespace ACE.Server.WorldObjects
             PlayerManager.SwitchPlayerFromOfflineToOnline(this);
             Teleporting = true;
 
-            // Save the the LoginTimestamp
+            // Save the LoginTimestamp
             var lastLoginTimestamp = Time.GetUnixTime();
 
             LoginTimestamp = lastLoginTimestamp;
@@ -198,9 +198,7 @@ namespace ACE.Server.WorldObjects
                     _ => channelName
                 };
             }
-            else if (channelName == "Olthoi" && (!IsOlthoiPlayer || !IsAdmin))
-                return;
-            else if (IsOlthoiPlayer && !IsAdmin && channelName != "Olthoi")
+            else if (channelName == "Olthoi" && !IsOlthoiPlayer)
                 return;
 
             Session.Network.EnqueueSend(new GameEventWeenieErrorWithString(Session, WeenieErrorWithString.YouHaveEnteredThe_Channel, channelName));

@@ -185,7 +185,7 @@ namespace ACE.Server.WorldObjects.Managers
 
             if (refreshSpell == null)
             {
-                var newEntry = BuildEntry(spell, caster, weapon, equip);
+                var newEntry = BuildEntry(spell, caster, weapon, equip, isWeaponSpell);
                 newEntry.LayerId = result.NextLayerId;
                 WorldObject.Biota.PropertiesEnchantmentRegistry.AddEnchantment(newEntry, WorldObject.BiotaDatabaseLock);
 
@@ -971,7 +971,9 @@ namespace ACE.Server.WorldObjects.Managers
         /// </summary>
         public float GetMultiplicativeMod(PropertyFloat statModKey)
         {
-            var enchantments = GetEnchantments_TopLayer(EnchantmentTypeFlags.Multiplicative, (uint)statModKey);
+            var typeFlags = EnchantmentTypeFlags.Float | EnchantmentTypeFlags.SingleStat | EnchantmentTypeFlags.Multiplicative;
+
+            var enchantments = GetEnchantments_TopLayer(typeFlags, (uint)statModKey);
 
             // multiplicative
             var modifier = 1.0f;
@@ -980,9 +982,12 @@ namespace ACE.Server.WorldObjects.Managers
 
             return modifier;
         }
+
         public float GetMultiplicativeMod(PropertyInt statModKey)
         {
-            var enchantments = GetEnchantments_TopLayer(EnchantmentTypeFlags.Multiplicative, (uint)statModKey);
+            var typeFlags = EnchantmentTypeFlags.Float | EnchantmentTypeFlags.SingleStat | EnchantmentTypeFlags.Multiplicative;
+
+            var enchantments = GetEnchantments_TopLayer(typeFlags, (uint)statModKey);
 
             var modifier = 1.0f;
             foreach (var enchantment in enchantments.Where(e => (e.StatModType & EnchantmentTypeFlags.Skill) == 0))
@@ -1369,7 +1374,7 @@ namespace ACE.Server.WorldObjects.Managers
         {
             var topLayerEnchantments = WorldObject.Biota.PropertiesEnchantmentRegistry.GetEnchantmentsTopLayer(WorldObject.BiotaDatabaseLock, SpellSet.SetSpells);
 
-            if(processDoTs)
+            if (processDoTs)
                 HeartBeat_DamageOverTime(topLayerEnchantments);
 
             if (decayTimers)
@@ -1451,14 +1456,25 @@ namespace ACE.Server.WorldObjects.Managers
 
             // do healing
             var healAmount = creature.UpdateVitalDelta(creature.Health, (int)Math.Round(tickAmountTotal));
-            creature.DamageHistory.OnHeal((uint)healAmount);
+
+            // account for negative HealOverTime spells, such as 5172 - Spectral Fountain Sip
+            if (healAmount >= 0)
+                creature.DamageHistory.OnHeal((uint)healAmount);
+            else
+                creature.DamageHistory.Add(creature, DamageType.Health, (uint)-healAmount);
 
             if (creature is Player player)
             {
                 if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
-                    player.SendMessage($"You receive {healAmount} points of periodic healing.", PropertyManager.GetBool("aetheria_heal_color").Item ? ChatMessageType.Broadcast : ChatMessageType.Combat);
+                    player.SendMessage($"You receive {healAmount} points of periodic {((healAmount >= 0) ? "healing" : "harm")}.", PropertyManager.GetBool("aetheria_heal_color").Item ? ChatMessageType.Broadcast : ChatMessageType.Combat);
                 else
-                    player.SendMessage($"You receive {healAmount} points of periodic healing.", ChatMessageType.Magic);
+                    player.SendMessage($"You receive {healAmount} points of periodic {((healAmount >= 0) ? "healing" : "harm")}.", ChatMessageType.Magic);
+            }
+
+            if (creature.IsDead)
+            {
+                creature.OnDeath(creature.DamageHistory.LastDamager, DamageType.Health, false);
+                creature.Die();
             }
         }
 
@@ -1575,7 +1591,7 @@ namespace ACE.Server.WorldObjects.Managers
                     damager = WorldObject.CurrentLandblock?.GetObject(enchantment.CasterObjectId);
                     if (damager == null)
                     {
-                        Console.WriteLine($"{WorldObject.Name}.ApplyDamageTick() - couldn't find damager {enchantment.CasterObjectId:X8}");
+                        //Console.WriteLine($"{WorldObject.Name}.ApplyDamageTick() - couldn't find damager {enchantment.CasterObjectId:X8}");
                         continue;
                     }
                     else
@@ -1659,7 +1675,8 @@ namespace ACE.Server.WorldObjects.Managers
                 if (isDead) break;
             }
 
-            creature.TakeDamageOverTime(tickAmountTotal, damageType);
+            if (!creature.Invincible)
+                creature.TakeDamageOverTime(tickAmountTotal, damageType);
 
             if (!creature.IsAlive) return;
 

@@ -857,6 +857,12 @@ namespace ACE.Server.Entity
         {
             var bodyParts = defender.GetBodyParts();
 
+            if (bodyParts == null)
+            {
+                Evaded = true;
+                return;
+            }
+
             // rng roll for body part
             var bodyPart = bodyParts.RollBodyPart(quadrant);
 

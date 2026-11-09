@@ -27,7 +27,7 @@ namespace ACE.Server.WorldObjects
                 var numExtraTargetItems = targetCreature.EquippedObjects.Values.Count(i => (i is Clothing || i.IsShield) && i.IsEnchantable);
                 baseCost += spell.ManaMod * (uint)numExtraTargetItems;
             }
-            else if ((spell.Flags & SpellFlags.FellowshipSpell) != 0)
+            else if (spell.IsFellowshipSpell)
             {
                 var numFellows = 1;
                 if (this is Player player && player.Fellowship != null)

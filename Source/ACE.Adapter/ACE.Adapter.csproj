@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>disable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
         <Platforms>AnyCPU</Platforms>
@@ -9,7 +9,7 @@
         <Authors>ACEmulator Contributors</Authors>
         <Company>ACEmulator</Company>
         <Description>Asheron's Call server emulator</Description>
-        <Copyright>© 2017-2024 ACEmulator Team and Contributors</Copyright>
+        <Copyright>© 2017-2026 ACEmulator Team and Contributors</Copyright>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageProjectUrl>https://emulator.ac</PackageProjectUrl>
         <RepositoryUrl>https://github.com/ACEmulator/ACE</RepositoryUrl>
@@ -35,7 +35,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="System.Text.Json" Version="8.0.5" />
+      <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-4f7c-pmjv-c25w" />
     </ItemGroup>
 
 </Project>

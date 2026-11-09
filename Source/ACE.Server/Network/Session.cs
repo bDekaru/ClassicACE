@@ -60,6 +60,7 @@ namespace ACE.Server.Network
         public bool DatWarnCell;
         public bool DatWarnPortal;
         public bool DatWarnLanguage;
+        public bool DatWarnHighRes;
 
         /// <summary>
         /// This boolean is set to true if GameMessageDDDBeginDDD is sent to the client. Used to determine when response is needed for DDD_EndDDD
@@ -170,8 +171,8 @@ namespace ACE.Server.Network
             }
             catch (Exception ex)
             {
-                log.ErrorFormat("Session TickOutbound {0} that threw an exception.", EndPointC2S);
-                log.Error(ex);
+                log.WarnFormat("Session TickOutbound {0} that threw an exception.", EndPointC2S);
+                log.Warn(ex);
             }
         }
 
