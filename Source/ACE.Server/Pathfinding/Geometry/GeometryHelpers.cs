@@ -5,12 +5,15 @@ using System.Numerics;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
-    public static class GeometryHelpers {
-        public static Vector3 FindCentroid(params Vector3[] points) {
+    public static class GeometryHelpers
+    {
+        public static Vector3 FindCentroid(params Vector3[] points)
+        {
             return FindCentroid(points);
         }
 
-        public static Vector3 FindCentroid(IEnumerable<Vector3> points) {
+        public static Vector3 FindCentroid(IEnumerable<Vector3> points)
+        {
             var x = points.Select(p => p.X).Sum();
             var y = points.Select(p => p.Y).Sum();
             var z = points.Select(p => p.Z).Sum();
@@ -25,7 +28,8 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <param name="b"></param>
         /// <param name="c"></param>
         /// <returns></returns>
-        public static Vector3 CalculateTriSurfaceNormal(Vector3 a, Vector3 b, Vector3 c) {
+        public static Vector3 CalculateTriSurfaceNormal(Vector3 a, Vector3 b, Vector3 c)
+        {
             Vector3 normal = new Vector3();
             var u = b - a;
             var v = c - a;

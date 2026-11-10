@@ -400,6 +400,8 @@ namespace ACE.Server.WorldObjects
                         RetryRoute();
                     else if (PendingContinueRoute)
                         ContinueRoute();
+                    else if (ShouldReplanRoute())
+                        ReplanRoute(); // the target moved away from where the route leads
 
                     if (IsRouting)
                         return;

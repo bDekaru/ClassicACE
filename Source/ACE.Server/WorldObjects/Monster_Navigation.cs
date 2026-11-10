@@ -706,12 +706,33 @@ namespace ACE.Server.WorldObjects
         private bool PendingRetryRoute = false;
         private bool PendingContinueRoute = false;
 
+        /// <summary>
+        /// True when CurrentRoute was planned to the attack target (not handed in by a debug command), so it may be re-planned.
+        /// </summary>
+        private bool RouteIsPlanned = false;
+
+        /// <summary>
+        /// Where the attack target was when the current route was planned.
+        /// </summary>
+        private Position RoutePlannedTargetLocation;
+
+        /// <summary>
+        /// A route is re-planned once the target has moved this far from where it was planned to...
+        /// </summary>
+        private const float RouteReplanTargetMovedDistance = 3.0f;
+
+        /// <summary>
+        /// ...but no more often than this, in seconds.
+        /// </summary>
+        private const double RouteReplanMinInterval = 5.0;
+
         public void TryRoute(List<Position> route = null)
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).TryRoute()");
 
-            if (!PathfindingEnabled || !Location.Indoors || AttackTarget == null || IsRouting)
+            // an explicitly provided route (debug commands) may also be on the surface
+            if (!PathfindingEnabled || (route == null && !Location.Indoors) || AttackTarget == null || IsRouting)
                 return;
 
             IsRouteStartPending = true;
@@ -721,6 +742,73 @@ namespace ACE.Server.WorldObjects
             CurrentRoute = route;
             CurrentRouteIndex = 0;
             LastRouteStartAttemptWasNullRoute = false;
+        }
+
+        /// <summary>
+        /// A route to the attack target that may leave this building or cave and enter another one through their doorways,
+        /// chaining one route per navmesh (see Pathfinder.FindRouteLegs).
+        /// </summary>
+        private List<Position> FindRouteThroughDoorways(AgentWidth agentWidth, out bool reachesTarget)
+        {
+            return Pathfinder.FindRouteLegs(Location, AttackTarget.Location, agentWidth, out reachesTarget)?.SelectMany(leg => leg).ToList();
+        }
+
+        /// <summary>
+        /// The mesh this creature routes on, by its size: the narrow mesh for creatures that fit it, the wide mesh for
+        /// wider ones, as narrow routes lead through gaps they can't pass.
+        /// </summary>
+        public AgentWidth GetPathfindingAgentWidth()
+        {
+            var fitsNarrow = PhysicsObj == null || PhysicsObj.GetPhysicsRadius() <= Pathfinder.NarrowAgentRadius;
+            return fitsNarrow ? AgentWidth.Narrow : AgentWidth.Wide;
+        }
+
+        /// <summary>
+        /// Plans a route to the attack target on this creature's mesh (see GetPathfindingAgentWidth).
+        /// </summary>
+        private List<Position> PlanRouteToAttackTarget()
+        {
+            // The pathfinder currently only supports pathing between locations in the same landblock.
+            if ((Location.Cell & 0xFFFF0000) != (AttackTarget.Location.Cell & 0xFFFF0000))
+                return null;
+
+            return FindRouteThroughDoorways(GetPathfindingAgentWidth(), out _);
+        }
+
+        /// <summary>
+        /// True if the attack target has moved far enough from where the current route was planned to that the route
+        /// should be planned again.
+        /// </summary>
+        private bool ShouldReplanRoute()
+        {
+            if (!RouteIsPlanned || AttackTarget == null || AttackTarget != RouteAttackTarget || RoutePlannedTargetLocation == null)
+                return false;
+
+            if (Time.GetUnixTime() - LastRouteTime < RouteReplanMinInterval)
+                return false;
+
+            return AttackTarget.Location.DistanceTo(RoutePlannedTargetLocation) > RouteReplanTargetMovedDistance;
+        }
+
+        /// <summary>
+        /// Plans the route again towards the attack target's current location. If no route is found the current one is
+        /// kept, e.g. while the target stands somewhere off the mesh for a moment.
+        /// </summary>
+        private void ReplanRoute()
+        {
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).ReplanRoute()");
+
+            LastRouteTime = Time.GetUnixTime();
+            RoutePlannedTargetLocation = new Position(AttackTarget.Location);
+
+            var route = PlanRouteToAttackTarget();
+            if (route == null || route.Count == 0)
+                return;
+
+            CurrentRoute = route;
+            CurrentRouteIndex = 0;
+            PendingContinueRoute = true; // head for the new route's first waypoint on the next tick
         }
 
         private void StartRoute()
@@ -739,20 +827,16 @@ namespace ACE.Server.WorldObjects
             IsRouteStartPending = false;
             IsRouting = true;
 
-            if (CurrentRoute == null && (Location.Cell & 0xFFFF0000) == (AttackTarget.Location.Cell & 0xFFFF0000)) // The pathfinder currently only supports pathing between locations in the same landblock.
-            {
-                CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Wide);
+            RouteIsPlanned = CurrentRoute == null;
+            RoutePlannedTargetLocation = new Position(AttackTarget.Location);
 
-                if (CurrentRoute == null || CurrentRoute.Count == 0)
-                    CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Narrow); // If no route found on the wide mesh try the narrow mesh.
-                else if (AttackTarget.Location.DistanceTo(CurrentRoute[CurrentRoute.Count - 1]) > 2f)
-                    CurrentRoute = Pathfinder.FindRoute(Location, AttackTarget.Location, AgentWidth.Narrow); // If a route is found but it does not lead all the way then also try the narrow mesh.
-            }
+            if (RouteIsPlanned)
+                CurrentRoute = PlanRouteToAttackTarget();
 
             if (CurrentRoute == null || CurrentRoute.Count == 0)
             {
-                LastRouteStartAttemptWasNullRoute = true;
                 EndRoute();
+                LastRouteStartAttemptWasNullRoute = true; // after EndRoute, which clears it
                 return;
             }
             else
@@ -881,6 +965,8 @@ namespace ACE.Server.WorldObjects
             CurrentRoute = null;
             CurrentRouteIndex = 0;
             LastRouteStartAttemptWasNullRoute = false;
+            RouteIsPlanned = false;
+            RoutePlannedTargetLocation = null;
         }
 
         private double LastRequestPassageTime = 0;

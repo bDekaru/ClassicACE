@@ -31,6 +31,11 @@ namespace ACE.Server.Pathfinding.Geometry
             return loc.X >= MinX && loc.X <= MaxX && loc.Y >= MinY && loc.Y <= MaxY;
         }
 
+        public bool IntersectsRect(float minX, float minY, float maxX, float maxY)
+        {
+            return hasData && maxX >= MinX && minX <= MaxX && maxY >= MinY && minY <= MaxY;
+        }
+
         public bool IntersectsCircle(Vector3 loc, float radius)
         {
             // dumb
@@ -59,6 +64,26 @@ namespace ACE.Server.Pathfinding.Geometry
         public override string ToString()
         {
             return $"MinX:{MinX}, MinY:{MinY}, MinZ:{MinZ}, MaxX:{MaxX}, MaxY:{MaxY}, MaxZ:{MaxZ}, Width:{Width}, Height:{Height}";
+        }
+    }
+
+    /// <summary>
+    /// The parts of a physics landblock the outdoor mesh is built from, with its object lists copied. The landblock
+    /// owns and may change those lists, while the mesh builds on a background thread.
+    /// </summary>
+    public class SurfaceSnapshot
+    {
+        public ACE.Server.Physics.Common.Landblock Landblock { get; }
+        public List<ACE.Server.Physics.PhysicsObj> Buildings { get; }
+        public List<ACE.Server.Physics.PhysicsObj> StaticObjects { get; }
+        public List<ACE.Server.Physics.PhysicsObj> Scenery { get; }
+
+        public SurfaceSnapshot(ACE.Server.Physics.Common.Landblock landblock)
+        {
+            Landblock = landblock;
+            Buildings = landblock.Buildings?.Cast<ACE.Server.Physics.PhysicsObj>().ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
+            StaticObjects = landblock.StaticObjects?.ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
+            Scenery = landblock.Scenery?.ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
         }
     }
 
@@ -193,7 +218,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
             // weird vaulted ceiling environments we dont need... they have outwards facing polys on the roof
             // so we end up generating unneeded navmesh polys "outside" the dungeon if these are left in
-            if (environment.Id == 0x0D0000CA || environment.Id == 0x0D00016D)
+            if (CellGeometry.ShouldIgnoreEnvironment(environment.Id))
                 return;
 
             if (envCellIndex >= 0)
@@ -238,8 +263,7 @@ namespace ACE.Server.Pathfinding.Geometry
                     Z = vertice.Y
                 };
 
-                var index = Vertices.IndexOf(vertice);
-                if (index != -1)
+                if (_vertexLookup.TryGetValue(vertice, out var index))
                 {
                     // obj face indexes start at 1
                     poly.Add(index + 1);
@@ -247,12 +271,371 @@ namespace ACE.Server.Pathfinding.Geometry
                 else
                 {
                     Vertices.Add(vertice);
+                    _vertexLookup.Add(vertice, Vertices.Count - 1);
                     poly.Add(Vertices.Count);
                 }
             }
             Polygons.Add(poly);
             return retvertices;
         }
+
+        private readonly Dictionary<Vector3, int> _vertexLookup = new Dictionary<Vector3, int>();
+
+        private static readonly List<Frame> NoFrames = new List<Frame>();
+
+        /// <summary>
+        /// Returns the geometry as recast-ready arrays (Y up), with polygons fan-triangulated.
+        /// </summary>
+        public void GetMeshArrays(out float[] vertices, out int[] faces)
+        {
+            vertices = new float[Vertices.Count * 3];
+            for (var i = 0; i < Vertices.Count; i++)
+            {
+                vertices[i * 3] = Vertices[i].X;
+                vertices[i * 3 + 1] = Vertices[i].Y;
+                vertices[i * 3 + 2] = Vertices[i].Z;
+            }
+
+            var tris = new List<int>(Polygons.Count * 3);
+            foreach (var poly in Polygons)
+            {
+                // polygon indexes are 1-based (obj style)
+                for (var i = 2; i < poly.Count; i++)
+                {
+                    tris.Add(poly[0] - 1);
+                    tris.Add(poly[i - 1] - 1);
+                    tris.Add(poly[i] - 1);
+                }
+            }
+            faces = tris.ToArray();
+        }
+
+        #region Surface
+
+        /// <summary>
+        /// Size of the terrain sub-quads used around buildings, so terrain can be cut out of building interiors.
+        /// </summary>
+        private const float TerrainSubdivisionSize = 0.5f;
+
+        /// <summary>
+        /// Terrain this far below an interior floor (or anywhere above it, up to the cell's ceiling) is removed.
+        /// Matches the agent height: anything lower than this cannot produce a walkable span under the floor anyway.
+        /// </summary>
+        private const float TerrainCutBelowFloor = 2.0f;
+        private const float TerrainCutAboveCeiling = 0.5f;
+
+        private class CellFootprint
+        {
+            public BoundingBox2 Bounds = new BoundingBox2();
+            public List<Vector3[]> Floors = new List<Vector3[]>();
+            public List<Vector3> FloorNormals = new List<Vector3>();
+            public float MaxZ = float.MinValue;
+        }
+
+        /// <summary>
+        /// Exports the outdoors of a landblock: terrain, building exterior shells, static objects and scenery.
+        /// Interior cells are not part of it; each connected group of interior cells gets its own mesh, so spaces that
+        /// overlap without being connected never end up in the same heightfield. The interior cells in Neighbors are
+        /// only used to cut the terrain out of building interiors. Everything is in landblock-local coordinates.
+        /// </summary>
+        public void LoadSurface(SurfaceSnapshot surface)
+        {
+            var landblockId = surface.Landblock.ID;
+
+            foreach (var building in surface.Buildings)
+                AddPhysicsObj(building, landblockId, true);
+
+            foreach (var obj in surface.StaticObjects)
+                AddPhysicsObj(obj, landblockId, false);
+
+            foreach (var obj in surface.Scenery)
+                AddPhysicsObj(obj, landblockId, false);
+
+            LoadTerrain(surface.Landblock, BuildFootprints());
+        }
+
+        /// <summary>
+        /// Adds the collision shape of a physics object, following the same rules the physics engine uses:
+        /// part BSP polygons when the object has a physics BSP, otherwise cylinder spheres, otherwise spheres.
+        /// </summary>
+        private void AddPhysicsObj(ACE.Server.Physics.PhysicsObj obj, uint landblockId, bool isBuilding)
+        {
+            if (obj?.PartArray == null || obj.Position?.Frame == null)
+                return;
+
+            if (obj.State.HasFlag(ACE.Entity.Enum.PhysicsState.Ethereal))
+                return;
+
+            var offset = GetBlockOffset(obj.Position.ObjCellID, landblockId);
+
+            if (isBuilding || obj.State.HasFlag(ACE.Entity.Enum.PhysicsState.HasPhysicsBSP))
+            {
+                foreach (var part in obj.PartArray.Parts)
+                {
+                    if (part?.GfxObj?.PhysicsBSP == null || part.Pos?.Frame == null)
+                        continue;
+
+                    var gfxObj = DatManager.PortalDat.ReadFromDat<GfxObj>(part.GfxObj.ID);
+                    if (gfxObj?.PhysicsPolygons == null)
+                        continue;
+
+                    var frame = part.Pos.Frame;
+                    var scale = part.GfxObjScale;
+
+                    foreach (var poly in gfxObj.PhysicsPolygons.Values)
+                    {
+                        var points = poly.VertexIds.Select(v => frame.LocalToGlobal(gfxObj.VertexArray.Vertices[(ushort)v].Origin * scale) + offset).ToList();
+                        AddPolygon(points, NoFrames);
+                    }
+                }
+                return;
+            }
+
+            var objFrame = obj.Position.Frame;
+            var objScale = obj.Scale;
+
+            var cylSpheres = obj.PartArray.GetCylSphere();
+            if (cylSpheres != null && cylSpheres.Count > 0)
+            {
+                foreach (var cylSphere in cylSpheres)
+                {
+                    foreach (var poly in GetCylSpherePolygons(cylSphere.LowPoint * objScale, cylSphere.Height * objScale, cylSphere.Radius * objScale))
+                        AddPolygon(poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList(), NoFrames);
+                }
+                return;
+            }
+
+            var spheres = obj.PartArray.GetSphere();
+            if (spheres != null && spheres.Count > 0)
+            {
+                foreach (var sphere in spheres)
+                {
+                    foreach (var poly in GetSpherePolygons(sphere.Center * objScale, sphere.Radius * objScale))
+                        AddPolygon(poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList(), NoFrames);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Objects are occasionally re-parented to a neighboring landblock (AdjustToOutside), which puts their frame in
+        /// that landblock's coordinates. This returns the offset to bring them back into our landblock's frame.
+        /// </summary>
+        private static Vector3 GetBlockOffset(uint objCellId, uint landblockId)
+        {
+            if (objCellId == 0)
+                return Vector3.Zero;
+
+            var dx = (int)((objCellId >> 24) & 0xFF) - (int)((landblockId >> 24) & 0xFF);
+            var dy = (int)((objCellId >> 16) & 0xFF) - (int)((landblockId >> 16) & 0xFF);
+
+            return new Vector3(dx * ACE.Server.Physics.Common.LandDefs.BlockLength, dy * ACE.Server.Physics.Common.LandDefs.BlockLength, 0);
+        }
+
+        /// <summary>
+        /// Collects the floor polygons and height range of every interior cell, in landblock coordinates.
+        /// Used to cut the terrain out of building interiors.
+        /// </summary>
+        private List<CellFootprint> BuildFootprints()
+        {
+            var footprints = new List<CellFootprint>();
+            var floorZ = ACE.Server.Physics.PhysicsGlobals.FloorZ;
+
+            foreach (var cell in Neighbors)
+            {
+                var envCell = cell.EnvCell;
+                if (envCell == null)
+                    continue;
+
+                var environment = DatManager.PortalDat.ReadFromDat<Environment>(envCell.EnvironmentId);
+                if (environment == null || !environment.Cells.TryGetValue(envCell.CellStructure, out var cellStruct))
+                    continue;
+
+                var footprint = new CellFootprint();
+
+                foreach (var poly in cellStruct.PhysicsPolygons.Values)
+                {
+                    if (poly.VertexIds.Count < 3)
+                        continue;
+
+                    var points = poly.VertexIds.Select(v => Transform(cellStruct.VertexArray.Vertices[(ushort)v].Origin, envCell.Position.Orientation) + envCell.Position.Origin).ToArray();
+
+                    foreach (var p in points)
+                        footprint.MaxZ = Math.Max(footprint.MaxZ, p.Z);
+
+                    var normal = GetNewellNormal(points);
+                    if (normal.Z < floorZ)
+                        continue;
+
+                    footprint.Floors.Add(points);
+                    footprint.FloorNormals.Add(normal);
+                    foreach (var p in points)
+                        footprint.Bounds.Add(p);
+                }
+
+                if (footprint.Floors.Count > 0)
+                    footprints.Add(footprint);
+            }
+
+            return footprints;
+        }
+
+        private static Vector3 GetNewellNormal(Vector3[] points)
+        {
+            var normal = Vector3.Zero;
+            for (var i = 0; i < points.Length; i++)
+            {
+                var a = points[i];
+                var b = points[(i + 1) % points.Length];
+                normal.X += (a.Y - b.Y) * (a.Z + b.Z);
+                normal.Y += (a.Z - b.Z) * (a.X + b.X);
+                normal.Z += (a.X - b.X) * (a.Y + b.Y);
+            }
+            var length = normal.Length();
+            return length > 0 ? normal / length : Vector3.Zero;
+        }
+
+        private static bool PointInPolygon2D(Vector3[] poly, float x, float y)
+        {
+            var inside = false;
+            for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+            {
+                if (((poly[i].Y > y) != (poly[j].Y > y)) &&
+                    (x < (poly[j].X - poly[i].X) * (y - poly[i].Y) / (poly[j].Y - poly[i].Y) + poly[i].X))
+                    inside = !inside;
+            }
+            return inside;
+        }
+
+        /// <summary>
+        /// True if a terrain point at (x, y, terrainZ) lies inside an interior cell: within a floor's 2D outline,
+        /// no more than TerrainCutBelowFloor below that floor and not above the cell's ceiling.
+        /// </summary>
+        private static bool IsInsideInterior(List<CellFootprint> footprints, float x, float y, float terrainZ)
+        {
+            foreach (var footprint in footprints)
+            {
+                if (!footprint.Bounds.ContainsPoint2D(new Vector3(x, y, 0)))
+                    continue;
+                if (terrainZ > footprint.MaxZ + TerrainCutAboveCeiling)
+                    continue;
+
+                for (var i = 0; i < footprint.Floors.Count; i++)
+                {
+                    var floor = footprint.Floors[i];
+                    if (!PointInPolygon2D(floor, x, y))
+                        continue;
+
+                    var n = footprint.FloorNormals[i];
+                    var floorHeight = floor[0].Z - (n.X * (x - floor[0].X) + n.Y * (y - floor[0].Y)) / n.Z;
+
+                    if (terrainZ >= floorHeight - TerrainCutBelowFloor)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Adds the terrain, triangulated exactly like the physics landblock. Cells overlapping an interior are
+        /// subdivided and any sub-quad entirely inside an interior is dropped, so terrain doesn't poke through floors.
+        /// </summary>
+        private void LoadTerrain(ACE.Server.Physics.Common.Landblock landblock, List<CellFootprint> footprints)
+        {
+            var vertices = landblock.VertexArray.Vertices;
+            var sideCells = landblock.SideCellCount;
+            var sideVerts = landblock.SideVertexCount;
+            var cellLength = (float)ACE.Server.Physics.Common.LandDefs.BlockLength / sideCells;
+
+            for (var x = 0; x < sideCells; x++)
+            {
+                for (var y = 0; y < sideCells; y++)
+                {
+                    var z00 = vertices[x * sideVerts + y].Origin.Z;
+                    var z10 = vertices[(x + 1) * sideVerts + y].Origin.Z;
+                    var z01 = vertices[x * sideVerts + y + 1].Origin.Z;
+                    var z11 = vertices[(x + 1) * sideVerts + y + 1].Origin.Z;
+                    var swToNeCut = landblock.SWtoNEcut[x * sideCells + y];
+
+                    var x0 = x * cellLength;
+                    var y0 = y * cellLength;
+
+                    // terrain height at local offset (u, v) within this cell, using the same split as the physics polygons
+                    float TerrainZ(float u, float v)
+                    {
+                        u /= cellLength;
+                        v /= cellLength;
+                        if (swToNeCut)
+                        {
+                            if (u >= v)
+                                return z00 + (z10 - z00) * u + (z11 - z10) * v;
+                            return z00 + (z01 - z00) * v + (z11 - z01) * u;
+                        }
+                        if (u + v <= 1f)
+                            return z00 + (z10 - z00) * u + (z01 - z00) * v;
+                        return z11 + (z01 - z11) * (1f - u) + (z10 - z11) * (1f - v);
+                    }
+
+                    var relevant = footprints.Where(f => f.Bounds.IntersectsRect(x0 - 1f, y0 - 1f, x0 + cellLength + 1f, y0 + cellLength + 1f)).ToList();
+
+                    if (relevant.Count == 0)
+                    {
+                        var p00 = new Vector3(x0, y0, z00);
+                        var p10 = new Vector3(x0 + cellLength, y0, z10);
+                        var p01 = new Vector3(x0, y0 + cellLength, z01);
+                        var p11 = new Vector3(x0 + cellLength, y0 + cellLength, z11);
+
+                        // counter-clockwise from above (upward facing), matching dat floor polygons
+                        if (swToNeCut)
+                        {
+                            AddPolygon(new List<Vector3>() { p00, p10, p11 }, NoFrames);
+                            AddPolygon(new List<Vector3>() { p00, p11, p01 }, NoFrames);
+                        }
+                        else
+                        {
+                            AddPolygon(new List<Vector3>() { p00, p10, p01 }, NoFrames);
+                            AddPolygon(new List<Vector3>() { p11, p01, p10 }, NoFrames);
+                        }
+                        continue;
+                    }
+
+                    var steps = (int)Math.Ceiling(cellLength / TerrainSubdivisionSize);
+                    var step = cellLength / steps;
+
+                    var points = new Vector3[steps + 1, steps + 1];
+                    var covered = new bool[steps + 1, steps + 1];
+                    for (var i = 0; i <= steps; i++)
+                    {
+                        for (var j = 0; j <= steps; j++)
+                        {
+                            var u = i * step;
+                            var v = j * step;
+                            var p = new Vector3(x0 + u, y0 + v, TerrainZ(u, v));
+                            points[i, j] = p;
+                            covered[i, j] = IsInsideInterior(relevant, p.X, p.Y, p.Z);
+                        }
+                    }
+
+                    for (var i = 0; i < steps; i++)
+                    {
+                        for (var j = 0; j < steps; j++)
+                        {
+                            // only drop a sub-quad when it is entirely inside, so terrain still meets door thresholds
+                            if (covered[i, j] && covered[i + 1, j] && covered[i, j + 1] && covered[i + 1, j + 1])
+                                continue;
+
+                            var a = points[i, j];
+                            var b = points[i + 1, j];
+                            var c = points[i + 1, j + 1];
+                            var d = points[i, j + 1];
+                            AddPolygon(new List<Vector3>() { a, b, c }, NoFrames);
+                            AddPolygon(new List<Vector3>() { a, c, d }, NoFrames);
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
 
         public string ToObjString()
         {
@@ -520,7 +903,8 @@ namespace ACE.Server.Pathfinding.Geometry
                 var m02 = GetMidpointIndex(midpointIndices, vectors, i2, i0);
 
                 newIndices.AddRange(
-                    new[] {
+                    new[]
+                    {
                     i0,m01,m02
                     ,
                     i1,m12,m01

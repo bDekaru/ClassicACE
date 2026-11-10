@@ -9,29 +9,46 @@ using System.Text;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
-    public class CellGeometryProvider : IInputGeomProvider
+    public class CellGeometryProvider : IRcInputGeomProvider
     {
         public readonly float[] vertices;
         public readonly int[] faces;
         public readonly float[] normals;
         private RcVec3f bmin;
         private RcVec3f bmax;
-        private static LandblockGeometryExporter _obj;
         private readonly List<RcConvexVolume> volumes = new List<RcConvexVolume>();
         private readonly RcTriMesh _mesh;
 
 
+        /// <summary>
+        /// Geometry for a set of interior (dungeon) cells.
+        /// </summary>
         public static CellGeometryProvider LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors)
         {
-            _obj = new LandblockGeometryExporter(geometry, neighbors);
-            _obj.LoadLandblockInfo();
+            var exporter = new LandblockGeometryExporter(geometry, neighbors);
+            exporter.LoadLandblockInfo();
 
-            if (_obj.Vertices.Count == 0) return null;
+            return FromExporter(exporter);
+        }
 
-            var objBytes = Encoding.UTF8.GetBytes(_obj.ToObjString());
+        /// <summary>
+        /// Geometry for a landblock's outdoors: terrain, building shells, static objects and scenery. The interior cells
+        /// are only used to cut the terrain out of building interiors; their geometry goes into their own group meshes.
+        /// </summary>
+        public static CellGeometryProvider LoadSurfaceGeometry(LandblockGeometry geometry, List<CellGeometry> interiorCells, SurfaceSnapshot surface)
+        {
+            var exporter = new LandblockGeometryExporter(geometry, interiorCells);
+            exporter.LoadSurface(surface);
 
-            var context = RcObjImporter.LoadContext(objBytes);
-            return new CellGeometryProvider(context.vertexPositions, context.meshFaces);
+            return FromExporter(exporter);
+        }
+
+        private static CellGeometryProvider FromExporter(LandblockGeometryExporter exporter)
+        {
+            if (exporter.Vertices.Count == 0) return null;
+
+            exporter.GetMeshArrays(out var vertices, out var faces);
+            return new CellGeometryProvider(vertices, faces);
         }
 
         public CellGeometryProvider(List<float> vertexPositions, List<int> meshFaces)
@@ -67,12 +84,12 @@ namespace ACE.Server.Pathfinding.Geometry
             this.faces = faces;
             normals = new float[faces.Length];
             CalculateNormals();
-            bmin = new RcVec3f(vertices);
-            bmax = new RcVec3f(vertices);
+            bmin = vertices.ToVec3();
+            bmax = vertices.ToVec3();
             for (int i = 1; i < vertices.Length / 3; i++)
             {
-                bmin = RcVec3f.Min(bmin, RcVec.Create(vertices, i * 3));
-                bmax = RcVec3f.Max(bmax, RcVec.Create(vertices, i * 3));
+                bmin = RcVec3f.Min(bmin, vertices.ToVec3(i * 3));
+                bmax = RcVec3f.Max(bmax, vertices.ToVec3(i * 3));
             }
 
             _mesh = new RcTriMesh(vertices, faces);

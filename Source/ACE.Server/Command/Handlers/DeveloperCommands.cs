@@ -1597,14 +1597,27 @@ namespace ACE.Server.Command.Handlers
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"CylDist: {cylDist}", ChatMessageType.Broadcast));
 
-            if (Pathfinder.PathfindingEnabled && session.Player.Location.Landblock == obj.Location.Landblock && session.Player.Location.Indoors)
+            if (Pathfinder.PathfindingEnabled && session.Player.Location.Landblock == obj.Location.Landblock)
             {
-                bool narrowDist = Pathfinder.GetRouteDistance(session.Player.Location, obj.Location, AgentWidth.Narrow, out var narrowDistance);
-                bool wideDist = Pathfinder.GetRouteDistance(session.Player.Location, obj.Location, AgentWidth.Wide, out var wideDistance);
-
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Narrow Pathfinding Dist: {(narrowDist ? narrowDistance : "N/A")}", ChatMessageType.Broadcast));
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Wide Pathfinding Dist: {(wideDist ? wideDistance : "N/A")}", ChatMessageType.Broadcast));
+                foreach (var agentWidth in new[] { AgentWidth.Narrow, AgentWidth.Wide })
+                {
+                    var reached = Pathfinder.GetRouteLegsDistance(session.Player.Location, obj.Location, agentWidth, out var routeDistance, out var legCount, out var endGap);
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{agentWidth} Pathfinding Dist: {DescribeRouteDistance(reached, routeDistance, legCount, endGap)}", ChatMessageType.Broadcast));
+                }
             }
+        }
+
+        private static string DescribeRouteDistance(bool reached, float distance, int legCount, float endGap)
+        {
+            if (legCount == 0)
+                return "N/A (no route)";
+
+            var legs = legCount == 1 ? "1 leg" : $"{legCount} legs through doorways";
+            if (reached)
+                return $"{distance:0.00} ({legs})";
+
+            // a leg through the outdoors is missing while that mesh is still being built in the background
+            return $"N/A (partial: {distance:0.00} over {legs}, ends {endGap:0.00} short; if it crosses the outdoors, the outdoor mesh may still be loading)";
         }
 
         /// <summary>
@@ -4292,11 +4305,49 @@ namespace ACE.Server.Command.Handlers
 
             //var destination = Pathfinder.GetRandomPointOnMesh(player.Location);
             //var destination = new Position(0x019E014D, 39.844067f, -33.932358f, 6.005000f, 0.109867f, 0.000000f, 0.000000f, 0.993946f);
-            var route = Pathfinder.FindRoute(creature.Location, player.Location, AgentWidth.Narrow, true);
-            if (route == null)
+            
+            // the mesh the creature routes on, by its size, the same choice its own routing makes
+            var agentWidth = creature.GetPathfindingAgentWidth();
+            var collisionRadius = creature.PhysicsObj?.GetPhysicsRadius() ?? 0f;
+            var meshRadius = agentWidth == AgentWidth.Narrow ? Pathfinder.NarrowAgentRadius : Pathfinder.WideAgentRadius;
+            CommandHandlerHelper.WriteOutputInfo(session, $"Mesh used: {agentWidth} (collision radius {collisionRadius:0.00}m, mesh agent radius {meshRadius:0.00}m)");
+
+            // chain routes through doorways, so a creature in a building can be sent outside or into another building
+            var legs = Pathfinder.FindRouteLegs(creature.Location, player.Location, agentWidth);
+            if (legs == null)
+            {
                 CommandHandlerHelper.WriteOutputInfo(session, "Null route.");
-            else
-                creature.TryRoute(route);
+                return;
+            }
+
+            var route = legs.SelectMany(l => l).ToList();
+            var legStart = creature.Location;
+            for (var i = 0; i < legs.Count; i++)
+            {
+                var leg = legs[i];
+                var length = 0f;
+                var previous = legStart;
+                foreach (var point in leg)
+                {
+                    length += previous.DistanceTo(point);
+                    previous = point;
+                }
+
+                // the leg's first waypoint is on the leg's mesh (legStart is still on the previous leg's side of the doorway)
+                var group = Pathfinder.GetMeshGroup(leg[0]);
+                var mesh = group == Pathfinder.OutdoorGroup ? "outdoors" : $"interior group {group}";
+                CommandHandlerHelper.WriteOutputInfo(session, $"Leg {i + 1}: {mesh}, 0x{leg[0].Cell:X8} -> 0x{leg[leg.Count - 1].Cell:X8}, {leg.Count} waypoints, {length:0.00}m");
+
+                legStart = leg[leg.Count - 1];
+            }
+
+            var endGap = route[route.Count - 1].DistanceTo(player.Location);
+            CommandHandlerHelper.WriteOutputInfo(session, endGap <= 1
+                ? $"Route reaches you: {route.Count} waypoints over {legs.Count} leg(s)."
+                : $"Partial route: ends {endGap:0.00}m short. If it crosses the outdoors, the outdoor mesh may still be loading; try again.");
+
+            Pathfinder.DrawRoute(route);
+            creature.TryRoute(route);
         }
 
         [CommandHandler("RebuildPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Rebuilds pathfinding meshes for the currecnt landblock")]
