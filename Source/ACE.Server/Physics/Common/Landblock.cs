@@ -179,7 +179,8 @@ namespace ACE.Server.Physics.Common
             MaxZ = LandDefs.LandHeightTable[maxHeight]/* + 200.0f*/;
         }
 
-        public void get_land_scenes()
+        /// <param name="detached">Create and place the scenery exactly as on load, but don't add it to any cell (see CreateDetached)</param>
+        public void get_land_scenes(bool detached = false)
         {
             //Console.WriteLine("Loading scenery for " + ID.ToString("X8"));
             
@@ -274,7 +275,10 @@ namespace ACE.Server.Physics.Common
                             continue;
                         }
 
-                        physicsObj.add_obj_to_cell(cell, pos.Frame);
+                        if (detached)
+                            place_detached(physicsObj, cell, pos.Frame);
+                        else
+                            physicsObj.add_obj_to_cell(cell, pos.Frame);
                         var scale = ObjectDesc.ScaleObj(obj, globalCellX, globalCellY, j);
                         physicsObj.SetScaleStatic(scale);
                         Scenery.Add(physicsObj);
@@ -442,7 +446,9 @@ namespace ACE.Server.Physics.Common
             //EnvCell.grab_visible(StabList);
         }
 
-        public void init_buildings()
+        /// <param name="detached">Create and place the buildings exactly as on load, but don't add them to their cells
+        /// or the stab list (see CreateDetached)</param>
+        public void init_buildings(bool detached = false)
         {
             if (Info == null || SideCellCount != 8) return;
 
@@ -461,9 +467,11 @@ namespace ACE.Server.Physics.Common
                 building.Position = position;
                 cell.Building = building;
 
-                building.add_to_cell(cell); // SortCell?
+                if (!detached)
+                    building.add_to_cell(cell); // SortCell?
                 Buildings.Add(building);
-                building.add_to_stablist(ref StabList, ref maxSize, ref stabNum);
+                if (!detached)
+                    building.add_to_stablist(ref StabList, ref maxSize, ref stabNum);
             }
         }
 
@@ -488,7 +496,9 @@ namespace ACE.Server.Physics.Common
                 landCell.CurLandblock = this;
         }
 
-        public void init_static_objs()
+        /// <param name="detached">Create and place the static objects and scenery exactly as on load, but don't add
+        /// them to any cell (see CreateDetached)</param>
+        public void init_static_objs(bool detached = false)
         {
             if (SideCellCount != 8) return;
             if (StaticObjects.Count > 0)
@@ -513,7 +523,10 @@ namespace ACE.Server.Physics.Common
                         obj.DestroyObject();
                         continue;
                     }
-                    obj.add_obj_to_cell(cell, position.Frame);
+                    if (detached)
+                        place_detached(obj, cell, position.Frame);
+                    else
+                        obj.add_obj_to_cell(cell, position.Frame);
                     add_static_object(obj);
                 }
 
@@ -532,7 +545,39 @@ namespace ACE.Server.Physics.Common
                 }
             }
             if (UseSceneFiles)
-                get_land_scenes();
+                get_land_scenes(detached);
+        }
+
+        /// <summary>
+        /// Gives an object the cell and frame add_obj_to_cell would, without entering the cell. Entering it also
+        /// finds the cells the object reaches into, which on the server loads the landblocks they are in.
+        /// </summary>
+        private static void place_detached(PhysicsObj obj, ObjCell cell, AFrame frame)
+        {
+            obj.Position.ObjCellID = cell.ID;
+            obj.PartArray?.SetCellID(cell.ID);
+            obj.set_initial_frame(frame);
+        }
+
+        /// <summary>
+        /// Creates a landblock from the dat with the same terrain, buildings, static objects and scenery as when it is
+        /// loaded, in the same places, but registered nowhere: not with LScape or the LandblockManager, and its objects
+        /// are in none of its cells. Nothing else is loaded to create it, and nothing refers to it, so it can be
+        /// created on any thread, for a landblock that is not loaded, and dropped when done. Only for reading its
+        /// geometry (e.g. by the pathfinder); objects in it don't collide with anything.
+        /// Returns null for a landblock that doesn't exist.
+        /// </summary>
+        public static Landblock CreateDetached(uint landblockId)
+        {
+            var cellLandblock = DBObj.GetCellLandblock((landblockId & 0xFFFF0000) | 0xFFFF);
+            if (cellLandblock?.Height == null || cellLandblock.Height.Count != LandDefs.VertexDim * LandDefs.VertexDim
+                || cellLandblock.Terrain == null || cellLandblock.Terrain.Count != LandDefs.VertexDim * LandDefs.VertexDim)
+                return null;
+
+            var landblock = new Landblock(cellLandblock);
+            landblock.init_buildings(true);
+            landblock.init_static_objs(true);
+            return landblock;
         }
 
         public void notify_change_size()

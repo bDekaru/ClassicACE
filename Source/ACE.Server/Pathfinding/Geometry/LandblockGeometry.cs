@@ -23,10 +23,34 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public readonly Vector3 Position;
 
-        public CellGroupDoor(uint cellId, Vector3 position)
+        /// <summary>
+        /// The height of the top of the portal polygon (the lintel), in landblock coordinates
+        /// </summary>
+        public readonly float Top;
+
+        /// <summary>
+        /// The horizontal width of the portal polygon
+        /// </summary>
+        public readonly float Width;
+
+        /// <summary>
+        /// The horizontal direction out of the cell through the portal (unit length), or zero for a portal that is not
+        /// in a wall (a hole in a floor or ceiling)
+        /// </summary>
+        public readonly Vector3 Normal;
+
+        /// <summary>
+        /// True if the portal is in a wall, so a door apron can be placed in front of it (see DoorApron)
+        /// </summary>
+        public bool IsInWall => Normal != Vector3.Zero;
+
+        public CellGroupDoor(uint cellId, Vector3 position, float top, float width, Vector3 normal)
         {
             CellId = cellId;
             Position = position;
+            Top = top;
+            Width = width;
+            Normal = normal;
         }
     }
 
@@ -282,6 +306,8 @@ namespace ACE.Server.Pathfinding.Geometry
             // cell geometry type only matters for terrain, but keep the indoor/dungeon distinction for clarity
             foreach (var group in groups)
             {
+                MergeAdjacentDoors(group.Doors);
+
                 var type = group.ConnectsToOutside ? CellType.Indoors : CellType.Dungeon;
                 foreach (var cellId in group.CellIds.OrderBy(c => c))
                     group.Cells.Add(CellGeometry.FromCache(cellId, type));
@@ -296,18 +322,134 @@ namespace ACE.Server.Pathfinding.Geometry
             if (environment == null || !environment.Cells.TryGetValue(envCell.CellStructure, out var cellStruct))
                 return;
 
+            // the middle of the cell, to tell which side of a portal is outside
+            Vector3 ToLandblock(Vector3 v) => LandblockGeometryExporter.Transform(v, envCell.Position.Orientation) + envCell.Position.Origin;
+            var cellCenter = cellStruct.VertexArray.Vertices.Values.Aggregate(Vector3.Zero, (a, v) => a + ToLandblock(v.Origin)) / Math.Max(1, cellStruct.VertexArray.Vertices.Count);
+
             foreach (var portal in envCell.CellPortals.Where(p => p.OtherCellId == 0xFFFF))
             {
                 if (!cellStruct.Polygons.TryGetValue(portal.PolygonId, out var polygon) || polygon.VertexIds.Count == 0)
                     continue;
 
                 var points = polygon.VertexIds
-                    .Select(v => LandblockGeometryExporter.Transform(cellStruct.VertexArray.Vertices[(ushort)v].Origin, envCell.Position.Orientation) + envCell.Position.Origin)
+                    .Select(v => ToLandblock(cellStruct.VertexArray.Vertices[(ushort)v].Origin))
                     .ToList();
 
                 var center = points.Aggregate(Vector3.Zero, (a, b) => a + b) / points.Count;
-                group.Doors.Add(new CellGroupDoor(cellId, new Vector3(center.X, center.Y, points.Min(p => p.Z))));
+                var normal = GetOutwardNormal(points, center, cellCenter);
+
+                // the width along the wall; for a portal not in a wall, the larger horizontal extent
+                float width;
+                if (normal != Vector3.Zero)
+                {
+                    var along = new Vector3(-normal.Y, normal.X, 0f);
+                    width = points.Max(p => Vector3.Dot(p, along)) - points.Min(p => Vector3.Dot(p, along));
+                }
+                else
+                    width = Math.Max(points.Max(p => p.X) - points.Min(p => p.X), points.Max(p => p.Y) - points.Min(p => p.Y));
+
+                group.Doors.Add(new CellGroupDoor(cellId, new Vector3(center.X, center.Y, points.Min(p => p.Z)), points.Max(p => p.Z), width, normal));
             }
+        }
+
+        /// <summary>
+        /// Wall portals this close to the same plane count as one wall.
+        /// </summary>
+        private const float SameWallDistance = 0.5f;
+
+        /// <summary>
+        /// Wall portals whose openings are this close along the wall or in height count as touching.
+        /// </summary>
+        private const float TouchingDistance = 0.1f;
+
+        /// <summary>
+        /// Merges wall portals that together make up one opening: an opening split between cells, like the lower and
+        /// upper half of a cave mouth or the two leaves of a double door. On their own each half could be too low or
+        /// have no floor under it. The merged doorway spans both, in the cell of the lowest one.
+        /// </summary>
+        private static void MergeAdjacentDoors(List<CellGroupDoor> doors)
+        {
+            var merged = true;
+            while (merged)
+            {
+                merged = false;
+                for (var i = 0; i < doors.Count && !merged; i++)
+                {
+                    for (var j = i + 1; j < doors.Count && !merged; j++)
+                    {
+                        if (TryMergeDoors(doors[i], doors[j], out var door))
+                        {
+                            doors[i] = door;
+                            doors.RemoveAt(j);
+                            merged = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        private static bool TryMergeDoors(CellGroupDoor a, CellGroupDoor b, out CellGroupDoor door)
+        {
+            door = default;
+
+            if (!a.IsInWall || !b.IsInWall || Vector3.Dot(a.Normal, b.Normal) < 0.99f)
+                return false;
+
+            if (MathF.Abs(Vector3.Dot(a.Position - b.Position, a.Normal)) > SameWallDistance)
+                return false;
+
+            // the openings as intervals along the wall and in height
+            var along = new Vector3(-a.Normal.Y, a.Normal.X, 0f);
+            var aCenter = Vector3.Dot(a.Position, along);
+            var bCenter = Vector3.Dot(b.Position, along);
+            var aMin = aCenter - a.Width * 0.5f;
+            var aMax = aCenter + a.Width * 0.5f;
+            var bMin = bCenter - b.Width * 0.5f;
+            var bMax = bCenter + b.Width * 0.5f;
+
+            if (aMin > bMax + TouchingDistance || bMin > aMax + TouchingDistance)
+                return false;
+            if (a.Position.Z > b.Top + TouchingDistance || b.Position.Z > a.Top + TouchingDistance)
+                return false;
+
+            var lower = a.Position.Z <= b.Position.Z ? a : b;
+            var min = Math.Min(aMin, bMin);
+            var max = Math.Max(aMax, bMax);
+
+            // the merged threshold: centered along the wall, on the lower opening's wall plane and floor
+            var position = lower.Position + along * ((min + max) * 0.5f - Vector3.Dot(lower.Position, along));
+
+            door = new CellGroupDoor(lower.CellId, position, Math.Max(a.Top, b.Top), max - min, lower.Normal);
+            return true;
+        }
+
+        /// <summary>
+        /// The horizontal unit normal of a portal polygon, pointing away from the cell's center, or zero if the polygon
+        /// is (nearly) horizontal.
+        /// </summary>
+        private static Vector3 GetOutwardNormal(List<Vector3> points, Vector3 center, Vector3 cellCenter)
+        {
+            // Newell's method, robust for any planar polygon
+            var normal = Vector3.Zero;
+            for (int i = 0, j = points.Count - 1; i < points.Count; j = i++)
+            {
+                var a = points[j];
+                var b = points[i];
+                normal.X += (a.Y - b.Y) * (a.Z + b.Z);
+                normal.Y += (a.Z - b.Z) * (a.X + b.X);
+                normal.Z += (a.X - b.X) * (a.Y + b.Y);
+            }
+
+            var horizontal = new Vector3(normal.X, normal.Y, 0f);
+            var length = normal.Length();
+            if (length < 1e-6f || horizontal.Length() < 0.7f * length)
+                return Vector3.Zero; // not a wall portal (tilted more than ~45 degrees)
+
+            horizontal = Vector3.Normalize(horizontal);
+            if (Vector3.Dot(horizontal, center - cellCenter) < 0f)
+                horizontal = -horizontal;
+
+            return horizontal;
         }
     }
 }

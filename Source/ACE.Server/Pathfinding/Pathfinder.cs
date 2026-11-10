@@ -14,6 +14,7 @@ using DotRecast.Detour;
 using DotRecast.Detour.Io;
 using DotRecast.Recast;
 using DotRecast.Recast.Toolset;
+using DotRecast.Recast.Toolset.Builder;
 using log4net;
 using System;
 using System.Collections.Concurrent;
@@ -31,30 +32,134 @@ using System.Threading.Tasks;
 
 namespace ACE.Server.Pathfinding
 {
+    /// <summary>
+    /// The navmeshes built per walkable area, one per agent size. A creature routes on the smallest one it fits (see
+    /// Creature.GetPathfindingAgentWidth). The sizes come from the collision spheres of the world's monsters, split so
+    /// the clearance wasted on creatures smaller than their mesh's agent is lowest (weighted by spawn count).
+    /// </summary>
     public enum AgentWidth
     {
-        Narrow,
-        Wide
+        Small,
+        Medium,
+        Large
     }
 
     /// <summary>
-    /// Each landblock has one mesh for its outdoors (group 0: terrain, building shells, objects) and one mesh per group
-    /// of interior cells connected through cell portals (buildings, caves, dungeons). Interior groups never share a
-    /// mesh, so spaces that overlap without being connected (e.g. the basements of two neighboring houses) cannot
-    /// interfere with each other.
+    /// The outdoors of the world is one tiled mesh (see OutdoorNavMesh) with a tile per landblock, so routes cross
+    /// landblock edges. Each group of interior cells connected through cell portals (buildings, caves, dungeons) has
+    /// its own mesh. Interior groups never share a mesh, so spaces that overlap without being connected (e.g. the
+    /// basements of two neighboring houses) cannot interfere with each other.
+    ///
+    /// Interior meshes are in landblock-local coordinates, the outdoor mesh in world coordinates (a landblock's local
+    /// origin is at GeometryHelpers.GetLandblockOrigin). Recast space is Y up: (x, z, y) of a game position.
     /// </summary>
     public static class Pathfinder
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private const int VERTS_PER_POLY = 6;
-        private const int MAX_POLYS = 256;
 
         /// <summary>
-        /// The agent radius each mesh is built for: how far its walkable area keeps from walls.
+        /// The longest poly corridor and straight path a route can have. Outdoor routes can cross several landblocks.
         /// </summary>
-        public const float NarrowAgentRadius = 0.6f;
-        public const float WideAgentRadius = 1.1f;
+        private const int MAX_POLYS = 1024;
+
+        /// <summary>
+        /// The agent radius each mesh is built for: how far its walkable area keeps from walls. A creature's radius is
+        /// that of its collision spheres (Setup.Sphere x scale), which is what collides with walls. Small covers ~69%
+        /// of monster spawns (drudges, olthoi, humans), Medium ~22% (tuskers, burun, mattekars) and Large ~8% (guruks
+        /// and other big creatures); the ~1% wider than Large route on it anyway.
+        /// Each mesh's cell size is chosen so its radius is a whole number of cells (see GetCellSize).
+        /// </summary>
+        public const float SmallAgentRadius = 0.65f;
+        public const float MediumAgentRadius = 1.0f;
+        public const float LargeAgentRadius = 1.75f;
+
+        /// <summary>
+        /// The clearance each mesh needs overhead, which closes every opening lower than it on that mesh. Chosen from
+        /// the world's openings: building doorways are nearly all 2.5m tall and dungeon corridors mostly 3.0m, and
+        /// Recast loses about a cell (0.1m) voxelizing a floor and a lintel, so an opening stays open for an
+        /// agentHeight a cell under it. Small at 2.4 keeps 86% of the building doors open for its creatures (2.6
+        /// kept 41%); Medium at 2.9 keeps 99% of the dungeon openings (3.2 kept 62%). Large at 3.4 costs nothing in
+        /// dungeons, as every opening wide enough for it is also tall enough.
+        /// A creature taller than its radius' mesh routes on the next one up (see GetAgentWidth): ~2% of spawns.
+        /// </summary>
+        public const float SmallAgentHeight = 2.4f;
+        public const float MediumAgentHeight = 2.9f;
+        public const float LargeAgentHeight = 3.4f;
+
+        /// <summary>
+        /// How far a creature may exceed a mesh's agent radius or height and still route on it: under the error of
+        /// Recast's voxels, and keeps creatures measured right at a limit (the Olthoi at 0.650m radius, the Burun
+        /// Ruuk at 1.0002m) on the mesh the sizes were chosen for.
+        /// </summary>
+        private const float AgentSizeTolerance = 0.01f;
+
+        /// <summary>
+        /// The ledge height each mesh steps up (and down). A creature steps up a ledge when its foot sphere hits it
+        /// and the top is within 1.5 x StepUpHeight (see Polygon.adjust_sphere_to_plane), but the top must also
+        /// overlap the foot sphere: up to the sphere's radius always, up to its diameter only when moving fast enough
+        /// to push into the ledge. The foot sphere is the tighter limit for nearly every creature, so these are the
+        /// heights about 96% (Small) and 99-100% (Medium, Large) of each mesh's spawns climb every time.
+        /// </summary>
+        public const float SmallAgentMaxClimb = 0.4f;
+        public const float MediumAgentMaxClimb = 0.6f;
+        public const float LargeAgentMaxClimb = 0.8f;
+
+        public static float GetAgentRadius(AgentWidth agentWidth)
+        {
+            switch (agentWidth)
+            {
+                case AgentWidth.Small:
+                    return SmallAgentRadius;
+                case AgentWidth.Medium:
+                    return MediumAgentRadius;
+                default:
+                    return LargeAgentRadius;
+            }
+        }
+
+        public static float GetAgentHeight(AgentWidth agentWidth)
+        {
+            switch (agentWidth)
+            {
+                case AgentWidth.Small:
+                    return SmallAgentHeight;
+                case AgentWidth.Medium:
+                    return MediumAgentHeight;
+                default:
+                    return LargeAgentHeight;
+            }
+        }
+
+        public static float GetAgentMaxClimb(AgentWidth agentWidth)
+        {
+            switch (agentWidth)
+            {
+                case AgentWidth.Small:
+                    return SmallAgentMaxClimb;
+                case AgentWidth.Medium:
+                    return MediumAgentMaxClimb;
+                default:
+                    return LargeAgentMaxClimb;
+            }
+        }
+
+        /// <summary>
+        /// The smallest mesh a creature of this collision radius and height fits. A creature too wide or too tall
+        /// for every mesh routes on Large, the closest fit.
+        /// </summary>
+        public static AgentWidth GetAgentWidth(float radius, float height)
+        {
+            foreach (var agentWidth in new[] { AgentWidth.Small, AgentWidth.Medium })
+            {
+                if (radius <= GetAgentRadius(agentWidth) + AgentSizeTolerance && height <= GetAgentHeight(agentWidth) + AgentSizeTolerance)
+                {
+                    return agentWidth;
+                }
+            }
+            return AgentWidth.Large;
+        }
 
         /// <summary>
         /// The group index of the outdoors. Interior groups start at 1.
@@ -84,24 +189,32 @@ namespace ACE.Server.Pathfinding
 
         private const int MAX_SURFACE_MOVE_POLYS = 64;
 
+        private static readonly float BlockLength = ACE.Server.Physics.Common.LandDefs.BlockLength;
+
         /// <summary>
         /// How far around a position to look for the mesh. Positions further off the mesh than this are not on it.
         /// </summary>
         private static readonly RcVec3f QueryHalfExtents = new RcVec3f(1.25f, 1.25f, 1.25f);
 
         /// <summary>
-        /// Part of the mesh cache file names. Build setting changes are picked up automatically; bump this when the
-        /// exported geometry changes, so cached meshes built from the old geometry are not loaded.
+        /// Part of the interior mesh cache file names. Build setting changes are picked up automatically; bump this
+        /// when the exported geometry changes, so cached meshes built from the old geometry are not loaded.
         /// </summary>
-        private const int MESH_GEOMETRY_VERSION = 1;
+        private const int MESH_GEOMETRY_VERSION = 3; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons sized per agent width
 
         /// <summary>
-        /// After an outdoor mesh build fails, no new attempt is made for this long (unless a rebuild is requested).
+        /// Like MESH_GEOMETRY_VERSION, for the outdoor tiles. 2: tiles in world coordinates with a border from the
+        /// neighboring landblocks. 3: the objects of every landblock come from the dat, loaded or not.
+        /// </summary>
+        private const int OUTDOOR_MESH_GEOMETRY_VERSION = 3;
+
+        /// <summary>
+        /// After an outdoor tile build fails, no new attempt is made for this long (unless a rebuild is requested).
         /// </summary>
         private static readonly TimeSpan OutdoorBuildRetryDelay = TimeSpan.FromMinutes(5);
 
         /// <summary>
-        /// Per landblock (0xAAAA0000), when its last outdoor mesh build failed.
+        /// Per landblock (0xAAAA0000), when its last outdoor tile build failed.
         /// </summary>
         private static readonly ConcurrentDictionary<uint, DateTime> OutdoorBuildFailures = new ConcurrentDictionary<uint, DateTime>();
 
@@ -114,10 +227,16 @@ namespace ACE.Server.Pathfinding
         private const int POLYFLAG_ISLAND = 0x0100;
 
         /// <summary>
-        /// Outdoor mesh components with a vertex this close to the landblock edge are not islands: they may continue
-        /// into the neighboring landblock. Covers the mesh erosion at the edge (up to the widest agent radius).
+        /// Outdoor tile components with a vertex this close to the tile edge are not islands: they may continue into
+        /// the neighboring tile. Tiles are built with a border, so the walkable area reaches the edge exactly.
         /// </summary>
-        private const float LANDBLOCK_EDGE_TOLERANCE = 2.0f;
+        private const float TILE_EDGE_TOLERANCE = 0.25f;
+
+        /// <summary>
+        /// An outdoor route searches at most this many landblocks away from its start, in each direction, and only
+        /// requests the tiles in that range. Bounds the search on a server with many landblocks loaded.
+        /// </summary>
+        private const int MAX_ROUTE_LANDBLOCK_SPAN = 2;
 
         /// <summary>
         /// How far around a doorway to look for the mesh poly that anchors its component (doorways are not on the
@@ -141,7 +260,7 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static readonly ConditionalWeakTable<DtNavMesh, ConcurrentQueue<DtNavMeshQuery>> QueryPools = new ConditionalWeakTable<DtNavMesh, ConcurrentQueue<DtNavMeshQuery>>();
 
-        private const int MAX_POOLED_QUERIES_PER_MESH = 8;
+        private const int MAX_POOLED_QUERIES_PER_MESH = 16;
 
         /// <summary>
         /// Smallest walkable region kept, and the size below which regions are merged into their neighbors, in m².
@@ -152,7 +271,52 @@ namespace ACE.Server.Pathfinding
 
         public static string InteriorMeshDirectory => Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Pathfinding", "Meshes", "Interiors");
         public static string OutdoorMeshDirectory => Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Pathfinding", "Meshes", "Outdoors");
+
+        /// <summary>
+        /// The interior group meshes, by mesh id (see GetMeshId). Null while a mesh is loading.
+        /// </summary>
         public static readonly ConcurrentDictionary<uint, DtNavMesh?> Meshes = new ConcurrentDictionary<uint, DtNavMesh?>();
+
+        /// <summary>
+        /// Per interior mesh id, the doorways of its cell group an agent of that mesh's width can get through: those
+        /// whose door apron (see DoorApron) is connected to the rest of the mesh. Set together with the mesh.
+        /// </summary>
+        private static readonly ConcurrentDictionary<uint, List<CellGroupDoor>> PassableDoors = new ConcurrentDictionary<uint, List<CellGroupDoor>>();
+
+        /// <summary>
+        /// The door polys of reachable door aprons.
+        /// </summary>
+        private static readonly DtQueryDefaultFilter PassableDoorFilter = new DtQueryDefaultFilter(SampleAreaModifications.SAMPLE_POLYFLAGS_DOOR, POLYFLAG_ISLAND, Array.Empty<float>());
+
+        /// <summary>
+        /// How far around the center of a door apron to look for its door polys, on the mesh of an agent width. Erosion
+        /// leaves them well inside the apron; vertically they are on the threshold.
+        /// </summary>
+        private static RcVec3f GetDoorPolyHalfExtents(AgentWidth agentWidth)
+        {
+            var horizontal = DoorApron.GetDepth(agentWidth) * 0.5f + 0.25f;
+            return new RcVec3f(horizontal, 0.6f, horizontal);
+        }
+
+        /// <summary>
+        /// The outdoors of the world, per agent width.
+        /// </summary>
+        private static readonly Dictionary<AgentWidth, OutdoorNavMesh> OutdoorMeshes = new Dictionary<AgentWidth, OutdoorNavMesh>();
+
+        /// <summary>
+        /// Landblocks (0xAAAA0000) whose outdoor tiles are loaded, or loading.
+        /// </summary>
+        private static readonly ConcurrentDictionary<uint, byte> OutdoorTilesRequested = new ConcurrentDictionary<uint, byte>();
+
+        /// <summary>
+        /// Per landblock, bumped when it unloads. A tile build that finishes after its landblock unloaded is discarded.
+        /// </summary>
+        private static readonly ConcurrentDictionary<uint, int> OutdoorTileGenerations = new ConcurrentDictionary<uint, int>();
+
+        /// <summary>
+        /// Guards the generation check and the tile change that depends on it, against an unload in between.
+        /// </summary>
+        private static readonly object OutdoorTileSync = new object();
 
         /// <summary>
         /// Per landblock (0xAAAA0000), its interior cell groups.
@@ -208,6 +372,113 @@ namespace ACE.Server.Pathfinding
             }
         }
 
+        /// <summary>
+        /// A mesh group: the outdoors (one for the whole world), or a connected group of interior cells. Interior group
+        /// indices are only unique within their landblock, so a group is identified by both.
+        /// </summary>
+        private readonly struct MeshGroupKey : IEquatable<MeshGroupKey>
+        {
+            /// <summary>
+            /// The landblock of an interior group, in the format 0xAAAA0000. 0 for the outdoors.
+            /// </summary>
+            public readonly uint LandblockId;
+            public readonly int Index;
+
+            public static readonly MeshGroupKey None = new MeshGroupKey(0, NoGroup);
+            public static readonly MeshGroupKey Outdoors = new MeshGroupKey(0, OutdoorGroup);
+
+            public MeshGroupKey(uint landblockId, int index)
+            {
+                LandblockId = index == OutdoorGroup ? 0 : landblockId & 0xFFFF0000;
+                Index = index;
+            }
+
+            public bool IsOutdoor => Index == OutdoorGroup;
+            public bool IsNone => Index == NoGroup;
+
+            public bool Equals(MeshGroupKey other) => Index == other.Index && LandblockId == other.LandblockId;
+            public override bool Equals(object obj) => obj is MeshGroupKey other && Equals(other);
+            public override int GetHashCode() => HashCode.Combine(LandblockId, Index);
+            public static bool operator ==(MeshGroupKey a, MeshGroupKey b) => a.Equals(b);
+            public static bool operator !=(MeshGroupKey a, MeshGroupKey b) => !a.Equals(b);
+
+            public override string ToString() => IsOutdoor ? "outdoors" : IsNone ? "none" : $"0x{LandblockId:X8} group {Index}";
+        }
+
+        /// <summary>
+        /// A mesh to query, with a query rented from its pool. For the outdoor mesh it also holds the read lock, so
+        /// tiles don't change while it is used. Use with 'using', on one thread.
+        /// </summary>
+        private sealed class MeshLease : IDisposable
+        {
+            private readonly ConcurrentQueue<DtNavMeshQuery> pool;
+            private readonly OutdoorNavMesh outdoorMesh;
+            private bool disposed;
+
+            public readonly DtNavMeshQuery Query;
+            public readonly MeshGroupKey Group;
+
+            public bool IsOutdoor => outdoorMesh != null;
+
+            public MeshLease(DtNavMesh mesh, MeshGroupKey group, OutdoorNavMesh outdoorMesh)
+            {
+                pool = QueryPools.GetValue(mesh, _ => new ConcurrentQueue<DtNavMeshQuery>());
+                Query = pool.TryDequeue(out var query) ? query : new DtNavMeshQuery(mesh);
+                Group = group;
+                this.outdoorMesh = outdoorMesh;
+            }
+
+            /// <summary>
+            /// A position as a point on this mesh: in world coordinates outdoors, landblock-local indoors.
+            /// </summary>
+            public RcVec3f ToMesh(Position pos) => ToMeshPoint(pos.Cell, pos.Pos, IsOutdoor);
+
+            public void Dispose()
+            {
+                if (disposed)
+                    return;
+                disposed = true;
+
+                if (pool.Count < MAX_POOLED_QUERIES_PER_MESH)
+                    pool.Enqueue(Query);
+
+                outdoorMesh?.ExitRead();
+            }
+        }
+
+        /// <summary>
+        /// Limits a search to the outdoor tiles in a rect of landblocks, so a route towards an unreachable target
+        /// doesn't search every loaded tile of the world.
+        /// </summary>
+        private sealed class TileRectFilter : IDtQueryFilter
+        {
+            private readonly IDtQueryFilter inner;
+            private readonly int minX, minY, maxX, maxY;
+
+            public TileRectFilter(IDtQueryFilter inner, int minX, int minY, int maxX, int maxY)
+            {
+                this.inner = inner;
+                this.minX = minX;
+                this.minY = minY;
+                this.maxX = maxX;
+                this.maxY = maxY;
+            }
+
+            public bool PassFilter(long refs, DtMeshTile tile, DtPoly poly)
+            {
+                var header = tile?.data?.header;
+                if (header == null)
+                    return false;
+
+                return header.x >= minX && header.x <= maxX && header.y >= minY && header.y <= maxY && inner.PassFilter(refs, tile, poly);
+            }
+
+            public float GetCost(RcVec3f pa, RcVec3f pb, long prevRef, DtMeshTile prevTile, DtPoly prevPoly, long curRef, DtMeshTile curTile, DtPoly curPoly, long nextRef, DtMeshTile nextTile, DtPoly nextPoly)
+            {
+                return inner.GetCost(pa, pb, prevRef, prevTile, prevPoly, curRef, curTile, curPoly, nextRef, nextTile, nextPoly);
+            }
+        }
+
         static Pathfinder()
         {
             if (!Directory.Exists(InteriorMeshDirectory))
@@ -218,6 +489,9 @@ namespace ACE.Server.Pathfinding
             {
                 Directory.CreateDirectory(OutdoorMeshDirectory);
             }
+
+            foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
+                OutdoorMeshes[agentWidth] = new OutdoorNavMesh(agentWidth, BlockLength, VERTS_PER_POLY);
         }
 
         public static bool PathfindingEnabled { get => PropertyManager.GetBool("pathfinding").Item; }
@@ -261,20 +535,132 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Returns the mesh group a position belongs to: OutdoorGroup for the landscape, the index of its connected cell
-        /// group for interior cells, or -1 for an unknown cell.
+        /// group (within its landblock) for interior cells, or -1 for an unknown cell.
         /// </summary>
         public static int GetMeshGroup(Position pos)
         {
-            if (!pos.Indoors)
-                return OutdoorGroup;
+            return GetGroupKey(pos).Index;
+        }
 
-            return GetGroups(pos.Cell).CellToGroup.TryGetValue(pos.Cell, out var group) ? group : NoGroup;
+        private static MeshGroupKey GetGroupKey(Position pos)
+        {
+            if (!pos.Indoors)
+                return MeshGroupKey.Outdoors;
+
+            return GetGroups(pos.Cell).CellToGroup.TryGetValue(pos.Cell, out var group)
+                ? new MeshGroupKey(pos.Cell, group)
+                : MeshGroupKey.None;
+        }
+
+        private static bool TryGetCellGroup(MeshGroupKey key, out CellGroup cellGroup)
+        {
+            cellGroup = null;
+            return !key.IsOutdoor && !key.IsNone && GetGroups(key.LandblockId).ByIndex.TryGetValue(key.Index, out cellGroup);
         }
 
         private static uint GetMeshId(uint cell, int group, AgentWidth agentWidth)
         {
             return (cell & 0xFFFF0000) + ((uint)group << 4) + (uint)agentWidth;
         }
+
+        #region Coordinates
+
+        /// <summary>
+        /// A landblock-local point in world coordinates.
+        /// </summary>
+        private static Vector3 ToGlobal(uint cell, Vector3 local)
+        {
+            return local + GeometryHelpers.GetLandblockOrigin(cell);
+        }
+
+        private static Vector3 ToGlobal(Position pos)
+        {
+            return ToGlobal(pos.Cell, pos.Pos);
+        }
+
+        /// <summary>
+        /// A landblock-local point as a point in Recast space on a mesh: in world coordinates on the outdoor mesh,
+        /// unchanged on an interior mesh.
+        /// </summary>
+        private static RcVec3f ToMeshPoint(uint cell, Vector3 local, bool outdoor)
+        {
+            var p = outdoor ? ToGlobal(cell, local) : local;
+            return new RcVec3f(p.X, p.Z, p.Y);
+        }
+
+        private static Vector3 FromMeshPoint(RcVec3f p)
+        {
+            return new Vector3(p.X, p.Z, p.Y);
+        }
+
+        private static (int x, int y) GetLandblockCoords(uint cell)
+        {
+            return ((int)((cell >> 24) & 0xFF), (int)((cell >> 16) & 0xFF));
+        }
+
+        private static uint GetLandblockId(int x, int y)
+        {
+            return ((uint)x << 24) | ((uint)y << 16);
+        }
+
+        /// <summary>
+        /// Creates a position for a point on a mesh, resolving the landblock (outdoors) and the cell the point is in.
+        /// </summary>
+        /// <param name="reference">A position on the same mesh, used for the landblock and as the fallback cell of
+        /// an interior mesh</param>
+        private static Position CreatePosition(Position reference, MeshGroupKey group, RcVec3f meshPoint)
+        {
+            var point = FromMeshPoint(meshPoint);
+
+            if (group.IsOutdoor)
+                return CreateOutdoorPosition(point);
+
+            var cell = ResolveInteriorCell(reference, group.Index, point);
+            return new Position(cell, point, Quaternion.Identity);
+        }
+
+        /// <summary>
+        /// Creates a position on the landscape for a point in world coordinates.
+        /// </summary>
+        private static Position CreateOutdoorPosition(Vector3 global)
+        {
+            var x = Math.Clamp((int)MathF.Floor(global.X / BlockLength), 0, 0xFF);
+            var y = Math.Clamp((int)MathF.Floor(global.Y / BlockLength), 0, 0xFF);
+            var landblockId = GetLandblockId(x, y);
+
+            var local = new Vector3(global.X - x * BlockLength, global.Y - y * BlockLength, global.Z);
+            return new Position(GetLandCellId(landblockId, local), local, Quaternion.Identity);
+        }
+
+        private static uint ResolveInteriorCell(Position reference, int group, Vector3 point)
+        {
+            try
+            {
+                var probe = new Vector3(point.X, point.Y, point.Z + CELL_PROBE_HEIGHT);
+
+                // only the cells of this mesh's group: an overlapping cell of another group is not where we are
+                var cell = GetGroups(reference.Cell).FindCell(group, reference.Cell, probe);
+                return cell != 0 ? cell : reference.Cell;
+            }
+            catch (Exception e)
+            {
+                log.Warn($"Pathfinder: failed to resolve cell for {point} near {reference.ToLOCString()}: {e.Message}");
+                return reference.Cell;
+            }
+        }
+
+        /// <summary>
+        /// The outdoor landcell (0xAAAA0001 - 0xAAAA0040) a landblock-local point is over.
+        /// </summary>
+        private static uint GetLandCellId(uint landblockId, Vector3 point)
+        {
+            var cellLength = Position.BlockLength / 8f;
+            var x = Math.Clamp((int)(point.X / cellLength), 0, 7);
+            var y = Math.Clamp((int)(point.Y / cellLength), 0, 7);
+            return (landblockId & 0xFFFF0000) | (uint)(x * 8 + y + 1);
+        }
+
+        #endregion
 
         /// <summary>
         /// Find a route to the end position.
@@ -290,7 +676,9 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Find a route to the end position (see the other overload).
+        /// Find a route to the end position (see the other overload). Outdoor routes cross landblock edges, searching
+        /// up to MAX_ROUTE_LANDBLOCK_SPAN landblocks away from the start. Outdoor tiles load in the background, so a
+        /// route through landblocks whose tiles are not loaded yet ends at the edge of the loaded ones.
         /// </summary>
         /// <param name="reachesTarget">True if the route leads all the way to its target: the end position, or the
         /// doorway towards it when the end is in another mesh group. False for a partial route, which leads as close to
@@ -299,34 +687,34 @@ namespace ACE.Server.Pathfinding
         {
             reachesTarget = false;
 
-            if ((start.Cell & 0xFFFF0000) != (end.Cell & 0xFFFF0000))
-            {
-                log.Warn($"FindRoute only works inside a single landblock.");
+            var group = GetGroupKey(start);
+            var endGroup = GetGroupKey(end);
+            if (group.IsNone || endGroup.IsNone)
                 return null;
-            }
-
-            var group = GetMeshGroup(start);
-            var endGroup = GetMeshGroup(end);
-            if (group == NoGroup || endGroup == NoGroup)
-                return null;
-
-            if (!TryGetMesh(start, agentWidth, out var mesh) || mesh is null)
-            {
-                return null;
-            }
 
             // The end itself, or the doorways that lead towards it, each with an estimate of the distance left after it.
             var candidates = endGroup == group
                 ? new List<(Position target, float remaining)> { (end, 0f) }
-                : GetDoorCandidates(start, group, end, endGroup);
+                : GetDoorCandidates(start, group, end, endGroup, agentWidth);
             if (candidates == null || candidates.Count == 0)
                 return null; // e.g. two dungeon sections only connected by portals
 
-            using var lease = RentQuery(mesh);
+            if (group.IsOutdoor)
+            {
+                foreach (var (candidate, _) in candidates)
+                    RequestOutdoorTilesBetween(start, candidate);
+            }
+
+            using var lease = AcquireMesh(start, group, agentWidth);
+            if (lease == null)
+                return null;
+
             var query = lease.Query;
 
-            if (!TryFindNearestReachablePoly(query, start, out var startRef, out var startPt, out var startOnIsland))
+            if (!TryFindNearestReachablePoly(query, lease.ToMesh(start), out var startRef, out var startPt, out var startOnIsland))
                 return null; // the start is not on the mesh
+
+            var pathFilter = GetPathFilter(lease, start);
 
             // Path to each candidate and keep the shortest complete route, counting the estimated distance left after
             // a doorway. If no candidate can be reached, use the partial route towards the most promising one.
@@ -336,7 +724,7 @@ namespace ACE.Server.Pathfinding
 
             foreach (var (candidate, remaining) in candidates)
             {
-                var candidateWaypoints = FindWaypoints(query, startRef, startPt, startOnIsland, candidate, out var reachesCandidate);
+                var candidateWaypoints = FindWaypoints(query, pathFilter, startRef, startPt, startOnIsland, lease.ToMesh(candidate), out var reachesCandidate);
                 if (candidateWaypoints == null)
                     continue;
 
@@ -366,19 +754,32 @@ namespace ACE.Server.Pathfinding
 
             var positionList = new List<Position>(waypoints.Count);
             foreach (var waypoint in waypoints)
-                positionList.Add(CreatePosition(start, group, new Vector3(waypoint.Pos.X, waypoint.Pos.Z, waypoint.Pos.Y)));
+                positionList.Add(CreatePosition(start, group, ToRcVec3f(waypoint.Pos)));
 
-            if(drawRoute)
+            if (drawRoute)
                 DrawRoute(positionList);
 
             return positionList;
         }
 
         /// <summary>
+        /// The filter a route search runs with: every poly, but outdoors only within MAX_ROUTE_LANDBLOCK_SPAN
+        /// landblocks of the start.
+        /// </summary>
+        private static IDtQueryFilter GetPathFilter(MeshLease lease, Position start)
+        {
+            if (!lease.IsOutdoor)
+                return AllPolysFilter;
+
+            var (x, y) = GetLandblockCoords(start.Cell);
+            return new TileRectFilter(AllPolysFilter, x - MAX_ROUTE_LANDBLOCK_SPAN, y - MAX_ROUTE_LANDBLOCK_SPAN, x + MAX_ROUTE_LANDBLOCK_SPAN, y + MAX_ROUTE_LANDBLOCK_SPAN);
+        }
+
+        /// <summary>
         /// The string-pulled path from a start poly to a target, as waypoints. reachesTarget is false for a partial
         /// path, which leads as close to the target as the mesh allows. Returns null if there is no path at all.
         /// </summary>
-        private static List<Waypoint>? FindWaypoints(DtNavMeshQuery query, long startRef, RcVec3f startPt, bool startOnIsland, Position target, out bool reachesTarget)
+        private static List<Waypoint>? FindWaypoints(DtNavMeshQuery query, IDtQueryFilter pathFilter, long startRef, RcVec3f startPt, bool startOnIsland, RcVec3f target, out bool reachesTarget)
         {
             reachesTarget = false;
 
@@ -388,10 +789,10 @@ namespace ACE.Server.Pathfinding
                 ? TryFindNearestPoly(query, AllPolysFilter, target, out var endRef, out var endPt)
                 : TryFindNearestReachablePoly(query, target, out endRef, out endPt, out _);
             if (!endFound)
-                return null; // the target is not on the mesh
+                return null; // the target is not on the mesh (outdoors: possibly its tile is not loaded yet)
 
-            Span<long> polys = stackalloc long[MAX_POLYS];
-            var pathStatus = query.FindPath(startRef, endRef, startPt, endPt, AllPolysFilter, polys, out int polyCount, MAX_POLYS);
+            var polys = new long[MAX_POLYS];
+            var pathStatus = query.FindPath(startRef, endRef, startPt, endPt, pathFilter, polys, out int polyCount, MAX_POLYS);
             if (pathStatus.Failed() || polyCount == 0)
                 return null;
 
@@ -446,56 +847,73 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// For a route between the outdoors and an interior group (or between two interior groups through the outdoors),
         /// the doorways the route from start could head for: the start group's doors when leaving it, or the end
-        /// group's doors when entering it from outside. Each comes with a straight-line estimate of the distance left
-        /// from it to the end. Returns the most promising few by straight-line estimate of the whole route, best
-        /// first, for FindRoute to compare by actual path length. Null if there is no doorway to use.
+        /// group's doors when entering it from outside. The groups may be in different landblocks. Each comes with a
+        /// straight-line estimate of the distance left from it to the end. Returns the most promising few by
+        /// straight-line estimate of the whole route, best first, for FindRoute to compare by actual path length. Only
+        /// doorways an agent of the given width can get through are used (see GetDoors). Null if there is no doorway
+        /// to use.
         /// </summary>
-        private static List<(Position target, float remaining)> GetDoorCandidates(Position start, int group, Position end, int endGroup)
+        private static List<(Position target, float remaining)> GetDoorCandidates(Position start, MeshGroupKey group, Position end, MeshGroupKey endGroup, AgentWidth agentWidth)
         {
-            var groups = GetGroups(start.Cell);
-            var landblockId = start.Cell & 0xFFFF0000;
+            var startAt = ToGlobal(start);
+            var endAt = ToGlobal(end);
 
             IEnumerable<(Position target, Vector3 at, float remaining)> doors;
 
-            if (group == OutdoorGroup)
+            if (group.IsOutdoor)
             {
                 // entering a building or cave: its doorways, on the outdoor mesh
-                if (!groups.ByIndex.TryGetValue(endGroup, out var entering) || entering.Doors.Count == 0)
+                if (!TryGetCellGroup(endGroup, out var entering))
                     return null;
 
-                doors = entering.Doors.Select(d => (
-                    new Position(GetLandCellId(landblockId, d.Position), d.Position, Quaternion.Identity),
-                    d.Position,
-                    Vector3.Distance(d.Position, end.Pos)));
+                var enteringDoors = GetDoors(endGroup, entering, agentWidth);
+                if (enteringDoors.Count == 0)
+                    return null;
+
+                doors = enteringDoors.Select(d =>
+                {
+                    var at = ToGlobal(endGroup.LandblockId, d.Position);
+                    return (new Position(GetLandCellId(endGroup.LandblockId, d.Position), d.Position, Quaternion.Identity), at, Vector3.Distance(at, endAt));
+                });
             }
             else
             {
                 // leaving a building or cave, towards the outdoors or another building
-                if (!groups.ByIndex.TryGetValue(group, out var leaving) || leaving.Doors.Count == 0)
+                if (!TryGetCellGroup(group, out var leaving))
+                    return null;
+
+                var leavingDoors = GetDoors(group, leaving, agentWidth);
+                if (leavingDoors.Count == 0)
                     return null;
 
                 Func<Vector3, float> remainingFrom;
-                if (endGroup == OutdoorGroup)
-                    remainingFrom = p => Vector3.Distance(p, end.Pos);
+                if (endGroup.IsOutdoor)
+                    remainingFrom = p => Vector3.Distance(p, endAt);
                 else
                 {
-                    if (!groups.ByIndex.TryGetValue(endGroup, out var other) || other.Doors.Count == 0)
+                    if (!TryGetCellGroup(endGroup, out var other))
+                        return null;
+
+                    var otherDoorList = GetDoors(endGroup, other, agentWidth);
+                    if (otherDoorList.Count == 0)
                         return null;
 
                     // across the outdoors to the other building's best doorway, then inside to the end
-                    remainingFrom = p => other.Doors.Min(d => Vector3.Distance(p, d.Position) + Vector3.Distance(d.Position, end.Pos));
+                    var otherDoors = otherDoorList.Select(d => ToGlobal(endGroup.LandblockId, d.Position)).ToList();
+                    remainingFrom = p => otherDoors.Min(d => Vector3.Distance(p, d) + Vector3.Distance(d, endAt));
                 }
 
-                doors = leaving.Doors.Select(d => (
-                    new Position(d.CellId, d.Position, Quaternion.Identity),
-                    d.Position,
-                    remainingFrom(d.Position)));
+                doors = leavingDoors.Select(d =>
+                {
+                    var at = ToGlobal(group.LandblockId, d.Position);
+                    return (new Position(d.CellId, d.Position, Quaternion.Identity), at, remainingFrom(at));
+                });
             }
 
             var candidates = new List<(Position target, float remaining)>(MAX_DOOR_CANDIDATES);
             var chosen = new List<Vector3>(MAX_DOOR_CANDIDATES);
 
-            foreach (var door in doors.OrderBy(d => Vector3.Distance(start.Pos, d.at) + d.remaining))
+            foreach (var door in doors.OrderBy(d => Vector3.Distance(startAt, d.at) + d.remaining))
             {
                 if (chosen.Any(c => Vector3.Distance(c, door.at) < SAME_DOOR_DISTANCE))
                     continue;
@@ -524,7 +942,7 @@ namespace ACE.Server.Pathfinding
         /// Finds a route that may cross between mesh groups through doorways, by chaining FindRoute calls: each leg
         /// runs on one group's mesh, and when it ends at a doorway the next leg starts on the other side of it.
         /// Returns the legs in order (the last one may be partial), or null if not even the first leg was found.
-        /// Outdoor meshes load in the background, so a leg through the outdoors can be missing the first time.
+        /// Outdoor tiles load in the background, so a leg through the outdoors can be missing or partial the first time.
         /// </summary>
         public static List<List<Position>>? FindRouteLegs(Position start, Position end, AgentWidth agentWidth)
         {
@@ -539,7 +957,7 @@ namespace ACE.Server.Pathfinding
             reachesEnd = false;
 
             var legs = new List<List<Position>>();
-            var endGroup = GetMeshGroup(end);
+            var endGroup = GetGroupKey(end);
             var current = start;
 
             for (var i = 0; i < MAX_ROUTE_LEGS; i++)
@@ -550,8 +968,8 @@ namespace ACE.Server.Pathfinding
 
                 legs.Add(leg);
 
-                var group = GetMeshGroup(current);
-                if (group == endGroup || group == NoGroup)
+                var group = GetGroupKey(current);
+                if (group == endGroup || group.IsNone)
                 {
                     // the final leg, complete or as close as this mesh gets
                     reachesEnd = group == endGroup && legReachesTarget;
@@ -561,7 +979,7 @@ namespace ACE.Server.Pathfinding
                 if (!legReachesTarget)
                     break; // the doorway is out of reach on this mesh
 
-                current = GetOtherSideOfDoorway(current, group, leg[leg.Count - 1], endGroup);
+                current = GetOtherSideOfDoorway(group, leg[leg.Count - 1], endGroup, agentWidth);
                 if (current == null)
                     break;
             }
@@ -570,26 +988,28 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// For a leg that ended at a doorway of its group, returns the start of the next leg: the same spot in the
-        /// group on the other side (the outdoors when leaving a building, the building's door cell when entering it).
+        /// For a leg that ended at a doorway, returns the start of the next leg: the same spot in the group on the other
+        /// side (the outdoors when leaving a building, the building's door cell when entering it).
         /// </summary>
-        private static Position GetOtherSideOfDoorway(Position legStart, int group, Position legEnd, int endGroup)
+        private static Position GetOtherSideOfDoorway(MeshGroupKey group, Position legEnd, MeshGroupKey endGroup, AgentWidth agentWidth)
         {
-            var groups = GetGroups(legStart.Cell);
-            var landblockId = legStart.Cell & 0xFFFF0000;
-
             // leaving: our own doorway; entering from outside: the destination group's doorway
-            var doorGroup = group == OutdoorGroup ? endGroup : group;
-            if (!groups.ByIndex.TryGetValue(doorGroup, out var cellGroup) || cellGroup.Doors.Count == 0)
+            var doorGroup = group.IsOutdoor ? endGroup : group;
+            if (!TryGetCellGroup(doorGroup, out var cellGroup))
                 return null;
 
-            var door = cellGroup.Doors.OrderBy(d => Vector3.DistanceSquared(d.Position, legEnd.Pos)).First();
-            if (Vector3.Distance(door.Position, legEnd.Pos) > DOOR_REACH_DISTANCE)
+            var doors = GetDoors(doorGroup, cellGroup, agentWidth);
+            if (doors.Count == 0)
+                return null;
+
+            var legEndAt = ToGlobal(legEnd);
+            var door = doors.OrderBy(d => Vector3.DistanceSquared(ToGlobal(doorGroup.LandblockId, d.Position), legEndAt)).First();
+            if (Vector3.Distance(ToGlobal(doorGroup.LandblockId, door.Position), legEndAt) > DOOR_REACH_DISTANCE)
                 return null; // the leg did not make it to the doorway
 
-            return group == OutdoorGroup
+            return group.IsOutdoor
                 ? new Position(door.CellId, door.Position, Quaternion.Identity)
-                : new Position(GetLandCellId(landblockId, door.Position), door.Position, Quaternion.Identity);
+                : new Position(GetLandCellId(doorGroup.LandblockId, door.Position), door.Position, Quaternion.Identity);
         }
 
         /// <summary>
@@ -639,12 +1059,11 @@ namespace ACE.Server.Pathfinding
         private static Vector3 Flatten(Vector3 v) => new Vector3(v.X, 0f, v.Z);
 
         /// <summary>
-        /// Finds the mesh poly nearest to a position (within QueryHalfExtents). Returns false if the position is not on
-        /// the mesh. Note FindNearestPoly succeeds with a 0 ref (and the input point) when it finds nothing.
+        /// Finds the mesh poly nearest to a point (within QueryHalfExtents). Returns false if the point is not on the
+        /// mesh. Note FindNearestPoly succeeds with a 0 ref (and the input point) when it finds nothing.
         /// </summary>
-        private static bool TryFindNearestPoly(DtNavMeshQuery query, IDtQueryFilter filter, Position pos, out long polyRef, out RcVec3f point)
+        private static bool TryFindNearestPoly(DtNavMeshQuery query, IDtQueryFilter filter, RcVec3f center, out long polyRef, out RcVec3f point)
         {
-            var center = new RcVec3f(pos.PositionX, pos.PositionZ, pos.PositionY);
             var status = query.FindNearestPoly(center, QueryHalfExtents, filter, out polyRef, out point, out _);
             return status.Succeeded() && polyRef != 0;
         }
@@ -653,52 +1072,39 @@ namespace ACE.Server.Pathfinding
         /// Like TryFindNearestPoly, but prefers a poly that is not on an island. Falls back to an island poly when
         /// there is no other within reach (onIsland is then true), e.g. for a creature that stands on one.
         /// </summary>
-        private static bool TryFindNearestReachablePoly(DtNavMeshQuery query, Position pos, out long polyRef, out RcVec3f point, out bool onIsland)
+        private static bool TryFindNearestReachablePoly(DtNavMeshQuery query, RcVec3f center, out long polyRef, out RcVec3f point, out bool onIsland)
         {
             onIsland = false;
-            if (TryFindNearestPoly(query, ReachableFilter, pos, out polyRef, out point))
+            if (TryFindNearestPoly(query, ReachableFilter, center, out polyRef, out point))
                 return true;
 
-            onIsland = TryFindNearestPoly(query, AllPolysFilter, pos, out polyRef, out point);
+            onIsland = TryFindNearestPoly(query, AllPolysFilter, center, out polyRef, out point);
             return onIsland;
         }
 
-        /// <summary>
-        /// A query rented from its mesh's pool, returned on Dispose. Use with 'using'.
-        /// </summary>
-        private readonly struct QueryLease : IDisposable
+        private static DtNavMeshQuery RentQuery(DtNavMesh mesh, out ConcurrentQueue<DtNavMeshQuery> pool)
         {
-            private readonly ConcurrentQueue<DtNavMeshQuery> pool;
-            public readonly DtNavMeshQuery Query;
-
-            public QueryLease(ConcurrentQueue<DtNavMeshQuery> pool, DtNavMeshQuery query)
-            {
-                this.pool = pool;
-                Query = query;
-            }
-
-            public void Dispose()
-            {
-                if (pool.Count < MAX_POOLED_QUERIES_PER_MESH)
-                    pool.Enqueue(Query);
-            }
+            pool = QueryPools.GetValue(mesh, _ => new ConcurrentQueue<DtNavMeshQuery>());
+            return pool.TryDequeue(out var query) ? query : new DtNavMeshQuery(mesh);
         }
 
-        private static QueryLease RentQuery(DtNavMesh mesh)
+        private static void ReturnQuery(ConcurrentQueue<DtNavMeshQuery> pool, DtNavMeshQuery query)
         {
-            var pool = QueryPools.GetValue(mesh, _ => new ConcurrentQueue<DtNavMeshQuery>());
-            return new QueryLease(pool, pool.TryDequeue(out var query) ? query : new DtNavMeshQuery(mesh));
+            if (pool.Count < MAX_POOLED_QUERIES_PER_MESH)
+                pool.Enqueue(query);
         }
 
         /// <summary>
-        /// Flags the islands of a freshly loaded or built mesh: connected components of polys that cannot be walked to.
-        /// A component is kept (not an island) if it is the largest one, holds one of the seed points (doorways), or,
-        /// outdoors, reaches the landblock edge where it may continue into the neighbor. The rest are tabletops, the
-        /// tops of crates and rocks, pits you can only drop into and the like.
-        /// Must run before the mesh is published, since it changes poly flags.
+        /// Flags the islands of a mesh with a single tile, before it is published: connected components of polys that
+        /// cannot be walked to. A component is kept (not an island) if it is the largest one, holds one of the seed
+        /// points (doorways), has floor connected to a door apron (see DoorApron), or, for an outdoor tile, reaches
+        /// the tile edge where it may continue into the neighbor. The rest are tabletops, the tops of crates and rocks,
+        /// pits you can only drop into, door aprons that can't be reached (windows) and the like. Sizes are compared
+        /// without the door aprons, and a component that is only a door apron is never kept.
+        /// Must run before the tile is published, since it changes poly flags.
         /// </summary>
-        /// <param name="seeds">Points known to be reachable, in landblock coordinates</param>
-        private static void MarkIslands(DtNavMesh mesh, IEnumerable<Vector3> seeds, bool outdoor)
+        /// <param name="seeds">Points known to be reachable, on the mesh (Recast space)</param>
+        private static void MarkIslands(DtNavMesh mesh, IEnumerable<RcVec3f> seeds, bool outdoor)
         {
             var tile = mesh.GetMaxTiles() > 0 ? mesh.GetTile(0) : null;
             var data = tile?.data;
@@ -712,7 +1118,9 @@ namespace ACE.Server.Pathfinding
             // connected components over the poly links
             var component = new int[polyCount];
             Array.Fill(component, -1);
+            // the area of each component without its door aprons, and whether it has any door apron polys
             var componentArea = new List<float>();
+            var componentHasDoor = new List<bool>();
             var stack = new Stack<int>();
 
             for (var i = 0; i < polyCount; i++)
@@ -722,13 +1130,17 @@ namespace ACE.Server.Pathfinding
 
                 var id = componentArea.Count;
                 var area = 0f;
+                var hasDoor = false;
                 component[i] = id;
                 stack.Push(i);
 
                 while (stack.Count > 0)
                 {
                     var poly = data.polys[stack.Pop()];
-                    area += GetPolyArea(data, poly);
+                    if (poly.GetArea() == SampleAreaModifications.SAMPLE_POLYAREA_TYPE_DOOR)
+                        hasDoor = true;
+                    else
+                        area += GetPolyArea(data, poly);
 
                     for (var link = poly.firstLink; link != DtDetour.DT_NULL_LINK; link = tile.links[link].next)
                     {
@@ -742,6 +1154,7 @@ namespace ACE.Server.Pathfinding
                 }
 
                 componentArea.Add(area);
+                componentHasDoor.Add(hasDoor);
             }
 
             if (componentArea.Count == 1)
@@ -757,23 +1170,38 @@ namespace ACE.Server.Pathfinding
             }
             keep[largest] = true;
 
-            using (var lease = RentQuery(mesh))
+            // A component with a door apron connected to its floor can be walked to through that doorway. A door apron
+            // on its own (the doorway can't be reached from the floor, e.g. a window) is never kept.
+            for (var c = 0; c < componentArea.Count; c++)
+            {
+                if (componentHasDoor[c] && componentArea[c] > 0f)
+                    keep[c] = true;
+            }
+
+            var query = RentQuery(mesh, out var pool);
+            try
             {
                 foreach (var seed in seeds)
                 {
-                    var status = lease.Query.FindNearestPoly(new RcVec3f(seed.X, seed.Z, seed.Y), DoorSeedHalfExtents, AllPolysFilter, out var seedRef, out _, out _);
+                    var status = query.FindNearestPoly(seed, DoorSeedHalfExtents, AllPolysFilter, out var seedRef, out _, out _);
                     if (status.Failed() || seedRef == 0)
                         continue;
 
                     mesh.GetTileAndPolyByRefUnsafe(seedRef, out var seedTile, out var seedPoly);
-                    if (seedTile == tile && seedPoly != null)
+                    if (seedTile == tile && seedPoly != null && componentArea[component[seedPoly.index]] > 0f)
                         keep[component[seedPoly.index]] = true;
                 }
+            }
+            finally
+            {
+                ReturnQuery(pool, query);
             }
 
             if (outdoor)
             {
-                var blockLength = (float)ACE.Server.Physics.Common.LandDefs.BlockLength;
+                // Recast space: x and z are the horizontal axes
+                var bmin = data.header.bmin;
+                var bmax = data.header.bmax;
                 for (var i = 0; i < polyCount; i++)
                 {
                     if (keep[component[i]])
@@ -782,10 +1210,9 @@ namespace ACE.Server.Pathfinding
                     var poly = data.polys[i];
                     for (var v = 0; v < poly.vertCount; v++)
                     {
-                        // Recast space: x and z are the horizontal axes
                         var x = data.verts[poly.verts[v] * 3];
                         var z = data.verts[poly.verts[v] * 3 + 2];
-                        if (x <= LANDBLOCK_EDGE_TOLERANCE || z <= LANDBLOCK_EDGE_TOLERANCE || x >= blockLength - LANDBLOCK_EDGE_TOLERANCE || z >= blockLength - LANDBLOCK_EDGE_TOLERANCE)
+                        if (x <= bmin.X + TILE_EDGE_TOLERANCE || z <= bmin.Z + TILE_EDGE_TOLERANCE || x >= bmax.X - TILE_EDGE_TOLERANCE || z >= bmax.Z - TILE_EDGE_TOLERANCE)
                         {
                             keep[component[i]] = true;
                             break;
@@ -806,6 +1233,70 @@ namespace ACE.Server.Pathfinding
 
             if (islandPolys > 0)
                 log.Debug($"Pathfinder: flagged {islandPolys} of {polyCount} polys as islands ({keep.Count(k => !k)} of {keep.Length} components)");
+        }
+
+        /// <summary>
+        /// The doorways of a cell group an agent can get through on the group's mesh (built for that agent's width), from
+        /// the door aprons it has left (see DoorApron). Islands must be marked first. Doorways that are not in a wall
+        /// have no apron and are kept.
+        /// </summary>
+        private static List<CellGroupDoor> FindPassableDoors(DtNavMesh mesh, CellGroup cellGroup, AgentWidth agentWidth)
+        {
+            var passable = new List<CellGroupDoor>(cellGroup.Doors.Count);
+            var aprons = cellGroup.Doors.Where(d => d.IsInWall).ToList();
+            var halfExtents = GetDoorPolyHalfExtents(agentWidth);
+
+            var query = RentQuery(mesh, out var pool);
+            try
+            {
+                foreach (var door in cellGroup.Doors)
+                {
+                    if (!door.IsInWall)
+                    {
+                        passable.Add(door);
+                        continue;
+                    }
+
+                    var center = DoorApron.GetCenter(door, agentWidth);
+                    var status = query.FindNearestPoly(ToMeshPoint(0, center, false), halfExtents, PassableDoorFilter, out var doorRef, out var doorPt, out _);
+                    if (status.Failed() || doorRef == 0)
+                        continue;
+
+                    // the door poly found could belong to the apron of a doorway next to this one
+                    var found = FromMeshPoint(doorPt);
+                    var owner = aprons.OrderBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentWidth), found)).First();
+                    if (owner.CellId == door.CellId && owner.Position == door.Position)
+                        passable.Add(door);
+                }
+            }
+            finally
+            {
+                ReturnQuery(pool, query);
+            }
+
+            return passable;
+        }
+
+        /// <summary>
+        /// The doorways of a cell group an agent of the given width can get through (see FindPassableDoors). Loads the
+        /// group's mesh if it isn't yet. While the mesh is still being built that isn't known, and all doorways are
+        /// returned.
+        /// </summary>
+        private static List<CellGroupDoor> GetDoors(MeshGroupKey key, CellGroup cellGroup, AgentWidth agentWidth)
+        {
+            var meshId = GetMeshId(key.LandblockId, key.Index, agentWidth);
+            if (PassableDoors.TryGetValue(meshId, out var doors))
+                return doors;
+
+            if (!Meshes.ContainsKey(meshId) && cellGroup.CellIds.Count > 0)
+            {
+                // cached meshes load right away
+                TryLoadInteriorMesh(new Position(cellGroup.CellIds.First(), Vector3.Zero, Quaternion.Identity), key.Index);
+                if (PassableDoors.TryGetValue(meshId, out doors))
+                    return doors;
+            }
+
+            return cellGroup.Doors;
         }
 
         /// <summary>
@@ -861,7 +1352,8 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static bool HasLineOfSight(DtNavMeshQuery query, IDtQueryFilter filter, Waypoint from, Waypoint to)
         {
-            Span<long> hitPath = stackalloc long[MAX_POLYS];
+            // only the hit fraction is used, the visited polys don't need to fit
+            Span<long> hitPath = stackalloc long[MAX_SURFACE_MOVE_POLYS];
             var status = query.Raycast(from.PolyRef, ToRcVec3f(from.Pos), ToRcVec3f(to.Pos), filter, out float t, out _, hitPath, out _, hitPath.Length);
 
             // t is float.MaxValue when the ray reaches the end; allow a little slack for end points on a boundary.
@@ -916,7 +1408,7 @@ namespace ACE.Server.Pathfinding
             distance = 0f;
 
             // a route into another mesh group only leads to the doorway, see GetRouteLegsDistance for those
-            if (GetMeshGroup(start) != GetMeshGroup(end))
+            if (GetGroupKey(start) != GetGroupKey(end))
                 return false;
 
             var route = FindRoute(start, end, agentWidth, out var reachesTarget);
@@ -933,41 +1425,41 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Get a random point on the navmesh
+        /// Get a random point on the navmesh: anywhere on an interior mesh, within the landblock's reach outdoors.
         /// </summary>
         /// <param name="start"></param>
         /// <returns></returns>
         public static Position? GetRandomPointOnMesh(Position start, AgentWidth agentWidth)
         {
-            if (!TryGetMesh(start, agentWidth, out var mesh) || mesh is null)
-            {
-                return null;
-            }
+            var group = GetGroupKey(start);
+            if (group.IsOutdoor)
+                return GetRandomPointWithinCircle(start, BlockLength / 2f, agentWidth);
 
-            using var lease = RentQuery(mesh);
-            var query = lease.Query;
+            using var lease = AcquireMesh(start, group, agentWidth);
+            if (lease == null)
+                return null;
+
             var frand = new RcRand(DateTime.Now.Ticks);
 
             // never on an island, which nothing could walk to
-            var status = query.FindRandomPoint(ReachableFilter, frand, out long randomRef, out var randomPt);
+            var status = lease.Query.FindRandomPoint(ReachableFilter, frand, out long randomRef, out var randomPt);
             if (status.Failed() || randomRef == 0)
                 return null;
 
-            return CreatePosition(start, GetMeshGroup(start), new Vector3(randomPt.X, randomPt.Z, randomPt.Y));
+            return CreatePosition(start, group, randomPt);
         }
 
         public static Position? GetRandomPointWithinCircle(Position location, float radius, AgentWidth agentWidth)
         {
-            if (!TryGetMesh(location, agentWidth, out var mesh) || mesh is null)
-            {
+            var group = GetGroupKey(location);
+            using var lease = AcquireMesh(location, group, agentWidth);
+            if (lease == null)
                 return null;
-            }
 
-            using var lease = RentQuery(mesh);
             var query = lease.Query;
             var frand = new RcRand(DateTime.Now.Ticks);
 
-            if (!TryFindNearestReachablePoly(query, location, out var startRef, out var startPt, out var startOnIsland))
+            if (!TryFindNearestReachablePoly(query, lease.ToMesh(location), out var startRef, out var startPt, out var startOnIsland))
                 return null;
 
             // the search spreads out from the start poly, so on an island it has to be allowed to stay on it
@@ -976,38 +1468,35 @@ namespace ACE.Server.Pathfinding
             if (status.Failed() || randomRef == 0)
                 return null;
 
-            return CreatePosition(location, GetMeshGroup(location), new Vector3(randomPt.X, randomPt.Z, randomPt.Y));
+            return CreatePosition(location, group, randomPt);
         }
 
         public static Position? GetClosestPointOnMesh(Position location, AgentWidth agentWidth)
         {
-            if (!TryGetMesh(location, agentWidth, out var mesh) || mesh is null)
-            {
+            var group = GetGroupKey(location);
+            using var lease = AcquireMesh(location, group, agentWidth);
+            if (lease == null)
                 return null;
-            }
-
-            using var lease = RentQuery(mesh);
 
             // prefers the main area over an island, e.g. the floor beside a table rather than its top
-            if (!TryFindNearestReachablePoly(lease.Query, location, out _, out var startPt, out _))
+            if (!TryFindNearestReachablePoly(lease.Query, lease.ToMesh(location), out _, out var startPt, out _))
                 return null;
 
-            return CreatePosition(location, GetMeshGroup(location), new Vector3(startPt.X, startPt.Z, startPt.Y));
+            return CreatePosition(location, group, startPt);
         }
 
         public static Position? GetNearestWallPosition(Position location, float radius, AgentWidth agentWidth, out float distance, bool inverseNormal = false)
         {
             distance = float.MaxValue;
 
-            if (!TryGetMesh(location, agentWidth, out var mesh) || mesh is null)
-            {
+            var group = GetGroupKey(location);
+            using var lease = AcquireMesh(location, group, agentWidth);
+            if (lease == null)
                 return null;
-            }
 
-            using var lease = RentQuery(mesh);
             var query = lease.Query;
 
-            if (!TryFindNearestReachablePoly(query, location, out var startRef, out var startPt, out _))
+            if (!TryFindNearestReachablePoly(query, lease.ToMesh(location), out var startRef, out var startPt, out _))
                 return null;
 
             var status = query.FindDistanceToWall(startRef, startPt, radius, AllPolysFilter, out var wallDistance, out var wallPt, out var wallNormal);
@@ -1020,9 +1509,9 @@ namespace ACE.Server.Pathfinding
 
             distance = wallDistance;
 
-            var position = CreatePosition(location, GetMeshGroup(location), new Vector3(wallPt.X, wallPt.Z, wallPt.Y));
+            var position = CreatePosition(location, group, wallPt);
 
-            if(inverseNormal)
+            if (inverseNormal)
                 position.Rotate(new Vector3(-wallNormal.X, -wallNormal.Z, -wallNormal.Y));
             else
                 position.Rotate(new Vector3(wallNormal.X, wallNormal.Z, wallNormal.Y));
@@ -1030,64 +1519,77 @@ namespace ACE.Server.Pathfinding
             return position;
         }
 
+        #region Mesh access
+
         /// <summary>
-        /// Creates a position for a point on a mesh, resolving the cell the point is actually in.
+        /// The mesh of a position's group, ready to query, or null if it is not loaded (yet). Interior meshes load from
+        /// their cache right away; missing ones build in the background, as do outdoor tiles.
         /// </summary>
-        /// <param name="reference">A position on the same mesh, used for the landblock and as the fallback cell</param>
-        private static Position CreatePosition(Position reference, int group, Vector3 point)
+        private static MeshLease AcquireMesh(Position pos, MeshGroupKey group, AgentWidth agentWidth)
         {
-            var cell = ResolveCell(reference, group, point);
-            return new Position(cell, point, Quaternion.Identity);
+            if (group.IsNone)
+                return null;
+
+            if (group.IsOutdoor)
+                return AcquireOutdoorMesh(pos.Cell, agentWidth);
+
+            var meshId = GetMeshId(group.LandblockId, group.Index, agentWidth);
+            if (!Meshes.TryGetValue(meshId, out var mesh))
+            {
+                TryLoadInteriorMesh(pos, group.Index);
+                Meshes.TryGetValue(meshId, out mesh);
+            }
+
+            return mesh is null ? null : new MeshLease(mesh, group, null);
         }
 
-        private static uint ResolveCell(Position reference, int group, Vector3 point)
+        /// <summary>
+        /// The outdoor mesh, under its read lock, if the tile of the given landblock is in it. Otherwise requests the
+        /// tile and returns null.
+        /// </summary>
+        private static MeshLease AcquireOutdoorMesh(uint cell, AgentWidth agentWidth)
         {
+            var landblockId = cell & 0xFFFF0000;
+            var outdoorMesh = OutdoorMeshes[agentWidth];
+
+            var hasTile = false;
+            outdoorMesh.EnterRead();
             try
             {
-                var landblockId = reference.Cell & 0xFFFF0000;
-                var probe = new Vector3(point.X, point.Y, point.Z + CELL_PROBE_HEIGHT);
-
-                if (group == OutdoorGroup)
-                    return GetLandCellId(landblockId, probe);
-
-                // only the cells of this mesh's group: an overlapping cell of another group is not where we are
-                var cell = GetGroups(reference.Cell).FindCell(group, reference.Cell, probe);
-                return cell != 0 ? cell : reference.Cell;
+                if (outdoorMesh.HasTile(landblockId))
+                {
+                    hasTile = true;
+                    return new MeshLease(outdoorMesh.Mesh, MeshGroupKey.Outdoors, outdoorMesh);
+                }
             }
-            catch (Exception e)
+            finally
             {
-                log.Warn($"Pathfinder: failed to resolve cell for {point} near {reference.ToLOCString()}: {e.Message}");
-                return reference.Cell;
+                // on success the lease releases the lock
+                if (!hasTile)
+                    outdoorMesh.ExitRead();
             }
+
+            TryLoadOutdoorTile(landblockId);
+            return null;
         }
 
         /// <summary>
-        /// The outdoor landcell (0xAAAA0001 - 0xAAAA0040) a landblock-local point is over.
+        /// Requests the outdoor tiles of the landblocks between two positions (inclusive), as far as a route from a
+        /// searches (MAX_ROUTE_LANDBLOCK_SPAN).
         /// </summary>
-        private static uint GetLandCellId(uint landblockId, Vector3 point)
+        private static void RequestOutdoorTilesBetween(Position a, Position b)
         {
-            var cellLength = Position.BlockLength / 8f;
-            var x = Math.Clamp((int)(point.X / cellLength), 0, 7);
-            var y = Math.Clamp((int)(point.Y / cellLength), 0, 7);
-            return (landblockId & 0xFFFF0000) | (uint)(x * 8 + y + 1);
-        }
+            var (ax, ay) = GetLandblockCoords(a.Cell);
+            var (bx, by) = GetLandblockCoords(b.Cell);
 
-        private static bool TryGetMesh(Position pos, AgentWidth agentWidth, out DtNavMesh? mesh)
-        {
-            mesh = null;
+            bx = Math.Clamp(bx, ax - MAX_ROUTE_LANDBLOCK_SPAN, ax + MAX_ROUTE_LANDBLOCK_SPAN);
+            by = Math.Clamp(by, ay - MAX_ROUTE_LANDBLOCK_SPAN, ay + MAX_ROUTE_LANDBLOCK_SPAN);
 
-            var group = GetMeshGroup(pos);
-            if (group == NoGroup)
-                return false;
-
-            var meshId = GetMeshId(pos.Cell, group, agentWidth);
-
-            if (Meshes.TryGetValue(meshId, out mesh))
-                return mesh is not null;
-
-            // Interior meshes load synchronously, outdoor meshes in the background.
-            TryLoadMesh(pos);
-            return Meshes.TryGetValue(meshId, out mesh) && mesh is not null;
+            for (var x = Math.Max(0, Math.Min(ax, bx)); x <= Math.Min(0xFF, Math.Max(ax, bx)); x++)
+            {
+                for (var y = Math.Max(0, Math.Min(ay, by)); y <= Math.Min(0xFF, Math.Max(ay, by)); y++)
+                    TryLoadOutdoorTile(GetLandblockId(x, y));
+            }
         }
 
         public static void TryUnloadMesh(Position pos)
@@ -1105,8 +1607,21 @@ namespace ACE.Server.Pathfinding
             var landblockId = cell & 0xFFFF0000;
 
             foreach (var meshId in Meshes.Keys.Where(k => (k & 0xFFFF0000) == landblockId).ToList())
+            {
                 Meshes.TryRemove(meshId, out _);
+                PassableDoors.TryRemove(meshId, out _);
+            }
 
+            lock (OutdoorTileSync)
+            {
+                // a tile build still running for this landblock is discarded when it finishes
+                OutdoorTileGenerations.AddOrUpdate(landblockId, 1, (_, generation) => generation + 1);
+
+                foreach (var outdoorMesh in OutdoorMeshes.Values)
+                    outdoorMesh.RemoveTile(landblockId);
+            }
+
+            OutdoorTilesRequested.TryRemove(landblockId, out _);
             Groups.TryRemove(landblockId, out _);
             OutdoorBuildFailures.TryRemove(landblockId, out _);
         }
@@ -1114,21 +1629,32 @@ namespace ACE.Server.Pathfinding
         private static void UnloadMesh(uint cell, int group)
         {
             foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
+            {
                 Meshes.TryRemove(GetMeshId(cell, group, agentWidth), out _);
-        }
-
-        public static void TryLoadMesh(Position pos, bool rebuildMesh = false)
-        {
-            var group = GetMeshGroup(pos);
-
-            if (group == OutdoorGroup)
-                TryLoadOutdoorMesh(pos, rebuildMesh);
-            else if (group != NoGroup)
-                TryLoadInteriorMesh(pos, group, rebuildMesh);
+                PassableDoors.TryRemove(GetMeshId(cell, group, agentWidth), out _);
+            }
         }
 
         /// <summary>
-        /// The cache file of a mesh. The name includes a hash of the build settings and MESH_GEOMETRY_VERSION, so a
+        /// Loads (or builds) the mesh of a position's group: its interior group mesh, or the outdoor tile of its
+        /// landblock. With rebuildMesh, the mesh is built again from the geometry, ignoring the cache.
+        /// </summary>
+        public static void TryLoadMesh(Position pos, bool rebuildMesh = false)
+        {
+            var group = GetGroupKey(pos);
+
+            if (group.IsOutdoor)
+                TryLoadOutdoorTile(pos.Cell, rebuildMesh);
+            else if (!group.IsNone)
+                TryLoadInteriorMesh(pos, group.Index, rebuildMesh);
+        }
+
+        #endregion
+
+        #region Mesh building and caching
+
+        /// <summary>
+        /// The cache file of a mesh. The name includes a hash of the build settings and the geometry version, so a
         /// mesh built with other settings or older geometry is never loaded; it is rebuilt instead.
         /// </summary>
         private static string GetMeshPath(string directory, uint meshId, bool outdoor, AgentWidth agentWidth)
@@ -1141,18 +1667,27 @@ namespace ACE.Server.Pathfinding
             return MeshCacheKeys.GetOrAdd((outdoor, agentWidth), key =>
             {
                 var s = GetMeshSettings(key.outdoor, key.agentWidth);
+
+                // Outdoor tiles have their own version (appended below). They keep the interior version they were
+                // keyed with before it went past 1, so bumping MESH_GEOMETRY_VERSION doesn't invalidate them.
+                var geometryVersion = key.outdoor ? 1 : MESH_GEOMETRY_VERSION;
+
                 var text = FormattableString.Invariant(
-                    $"{MESH_GEOMETRY_VERSION}|{VERTS_PER_POLY}|{s.vertsPerPoly}|{s.partitioning}|{s.cellSize}|{s.cellHeight}|{s.agentHeight}|{s.agentRadius}|{s.agentMaxClimb}|{s.agentMaxSlope}|{s.minRegionSize}|{s.mergedRegionSize}|{s.edgeMaxLen}|{s.edgeMaxError}|{s.detailSampleDist}|{s.detailSampleMaxError}|{s.filterLowHangingObstacles}|{s.filterLedgeSpans}|{s.filterWalkableLowHeightSpans}");
+                    $"{geometryVersion}|{VERTS_PER_POLY}|{s.vertsPerPoly}|{s.partitioning}|{s.cellSize}|{s.cellHeight}|{s.agentHeight}|{s.agentRadius}|{s.agentMaxClimb}|{s.agentMaxSlope}|{s.minRegionSize}|{s.mergedRegionSize}|{s.edgeMaxLen}|{s.edgeMaxError}|{s.detailSampleDist}|{s.detailSampleMaxError}|{s.filterLowHangingObstacles}|{s.filterLedgeSpans}|{s.filterWalkableLowHeightSpans}");
+
+                if (key.outdoor)
+                    text += FormattableString.Invariant($"|tiled|{OUTDOOR_MESH_GEOMETRY_VERSION}|{BlockLength}|{LandblockGeometryExporter.SurfaceMargin}");
+
                 return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)), 0, 4);
             });
         }
 
         /// <summary>
-        /// Reads a cached mesh. A file that cannot be read (e.g. truncated) is deleted, so the mesh gets rebuilt.
+        /// Reads cached mesh data. A file that cannot be read (e.g. truncated) is deleted, so the mesh gets rebuilt.
         /// </summary>
-        private static bool TryReadMeshFile(string meshPath, out DtNavMesh? mesh)
+        private static bool TryReadMeshData(string meshPath, out DtMeshData meshData)
         {
-            mesh = null;
+            meshData = null;
 
             if (!File.Exists(meshPath))
                 return false;
@@ -1163,22 +1698,46 @@ namespace ACE.Server.Pathfinding
                 if (bytes.Length == 0)
                     throw new InvalidDataException("empty file");
 
-                var meshData = new DtMeshDataReader().Read(new RcByteBuffer(bytes), VERTS_PER_POLY, true);
+                meshData = new DtMeshDataReader().Read(new RcByteBuffer(bytes), VERTS_PER_POLY, true);
+                if (meshData?.header == null)
+                    throw new InvalidDataException("no mesh data");
 
-                var navMesh = new DtNavMesh();
-                var status = navMesh.Init(meshData, VERTS_PER_POLY, 0);
-                if (status.Failed())
-                    throw new InvalidDataException($"mesh init failed ({status})");
-
-                mesh = navMesh;
                 return true;
             }
             catch (Exception e)
             {
                 log.Warn($"Pathfinder: discarding unreadable mesh file {meshPath}: {e.Message}");
                 TryDeleteFile(meshPath);
+                meshData = null;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Reads a cached single-tile (interior) mesh.
+        /// </summary>
+        private static bool TryReadMeshFile(string meshPath, out DtNavMesh? mesh)
+        {
+            mesh = null;
+
+            if (!TryReadMeshData(meshPath, out var meshData))
+                return false;
+
+            mesh = CreateSingleTileMesh(meshData);
+            if (mesh == null)
+            {
+                log.Warn($"Pathfinder: discarding mesh file {meshPath}: mesh init failed");
+                TryDeleteFile(meshPath);
+                return false;
+            }
+            return true;
+        }
+
+        private static DtNavMesh CreateSingleTileMesh(DtMeshData meshData)
+        {
+            var mesh = new DtNavMesh();
+            var status = mesh.Init(meshData, VERTS_PER_POLY, 0);
+            return status.Failed() ? null : mesh;
         }
 
         private static void TryDeleteFile(string path)
@@ -1193,21 +1752,12 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        private static DtNavMesh? BuildAndSaveMesh(CellGeometryProvider geom, RcNavMeshBuildSettings settings, uint meshId, string meshPath)
+        /// <summary>
+        /// Saves mesh data to its cache file, and deletes the cache files of the same mesh built with other settings or
+        /// geometry, which are stale now.
+        /// </summary>
+        private static void SaveMeshData(DtMeshData meshData, uint meshId, string meshPath)
         {
-            var builder = new NavMeshBuilder();
-            var res = builder.Build(geom, settings);
-            if (res is null)
-                return null;
-
-            var mesh = new DtNavMesh();
-            var status = mesh.Init(res, VERTS_PER_POLY, 0);
-            if (status.Failed())
-            {
-                log.Warn($"Pathfinder: could not initialize the built mesh 0x{meshId:X8} ({status})");
-                return null;
-            }
-
             // write to a temporary file and move it into place, so an interrupted write never leaves a truncated mesh
             var tempPath = $"{meshPath}.{Guid.NewGuid():N}.tmp";
             try
@@ -1215,11 +1765,10 @@ namespace ACE.Server.Pathfinding
                 using (var stream = File.Create(tempPath))
                 using (var writer = new BinaryWriter(stream))
                 {
-                    new DtMeshDataWriter().Write(writer, res, RcByteOrder.LITTLE_ENDIAN, false);
+                    new DtMeshDataWriter().Write(writer, meshData, RcByteOrder.LITTLE_ENDIAN, false);
                 }
                 File.Move(tempPath, meshPath, true);
 
-                // cache files of this mesh built with other settings or geometry are stale now
                 var directory = Path.GetDirectoryName(meshPath);
                 foreach (var stale in Directory.GetFiles(directory, $"{meshId:X8}*.mesh"))
                 {
@@ -1234,7 +1783,23 @@ namespace ACE.Server.Pathfinding
                 if (File.Exists(tempPath))
                     TryDeleteFile(tempPath);
             }
+        }
 
+        private static DtNavMesh? BuildAndSaveMesh(CellGeometryProvider geom, RcNavMeshBuildSettings settings, uint meshId, string meshPath)
+        {
+            var builder = new NavMeshBuilder();
+            var res = builder.Build(geom, settings);
+            if (res is null)
+                return null;
+
+            var mesh = CreateSingleTileMesh(res);
+            if (mesh == null)
+            {
+                log.Warn($"Pathfinder: could not initialize the built mesh 0x{meshId:X8}");
+                return null;
+            }
+
+            SaveMeshData(res, meshId, meshPath);
             return mesh;
         }
 
@@ -1283,7 +1848,9 @@ namespace ACE.Server.Pathfinding
             if (!GetGroups(landblockId).ByIndex.TryGetValue(group, out var cellGroup))
                 return;
 
-            var doors = cellGroup.Doors.Select(d => d.Position).ToList();
+            // Doorways in a wall have a door apron, which keeps their component by itself when it can be reached (see
+            // MarkIslands). Seeding with them would also keep an apron that can't be reached, so only the others seed.
+            var seeds = cellGroup.Doors.Where(d => !d.IsInWall).Select(d => ToMeshPoint(landblockId, d.Position, false)).ToList();
             var toBuild = new List<(AgentWidth agentWidth, uint meshId, string meshPath)>();
 
             foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
@@ -1297,7 +1864,8 @@ namespace ACE.Server.Pathfinding
                 {
                     if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
                     {
-                        MarkIslands(cachedMesh, doors, false);
+                        MarkIslands(cachedMesh, seeds, false);
+                        PassableDoors[meshId] = FindPassableDoors(cachedMesh, cellGroup, agentWidth);
                         Meshes.TryUpdate(meshId, cachedMesh, null);
                         continue;
                     }
@@ -1315,7 +1883,8 @@ namespace ACE.Server.Pathfinding
 
             RunMeshBuild(() =>
             {
-                CellGeometryProvider geom = null;
+                // the cells are loaded once; each width gets its own door aprons (see DoorApron)
+                Dictionary<AgentWidth, CellGeometryProvider> geoms = null;
 
                 foreach (var (agentWidth, meshId, meshPath) in toBuild)
                 {
@@ -1323,23 +1892,24 @@ namespace ACE.Server.Pathfinding
                     // until a rebuild is requested.
                     try
                     {
-                        geom ??= CellGeometryProvider.LoadGeometry(new LandblockGeometry(landblockId), cellGroup.Cells);
+                        geoms ??= CellGeometryProvider.LoadGeometry(new LandblockGeometry(landblockId), cellGroup.Cells, cellGroup.Doors, toBuild.Select(b => b.agentWidth));
                         // sealed rooms and orphan cells often have nothing walkable; that is expected, so only debug logging
-                        if (geom is null)
+                        if (geoms is null)
                         {
                             log.Debug($"Pathfinder: no geometry for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
                             return;
                         }
 
                         var stopwatch = Stopwatch.StartNew();
-                        var mesh = BuildAndSaveMesh(geom, GetMeshSettings(false, agentWidth), meshId, meshPath);
+                        var mesh = BuildAndSaveMesh(geoms[agentWidth], GetMeshSettings(false, agentWidth), meshId, meshPath);
                         if (mesh is null)
                         {
                             log.Debug($"Pathfinder: could not build the {agentWidth} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
                             continue;
                         }
 
-                        MarkIslands(mesh, doors, false);
+                        MarkIslands(mesh, seeds, false);
+                        PassableDoors[meshId] = FindPassableDoors(mesh, cellGroup, agentWidth);
                         Meshes.TryUpdate(meshId, mesh, null);
                         log.Debug($"Pathfinder: built {agentWidth} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location} in {stopwatch.ElapsedMilliseconds}ms");
                     }
@@ -1352,155 +1922,226 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Loads (or builds) the outdoor meshes for the landblock of pos in the background.
-        /// Until it is done, the meshes are present as null and queries return no result.
+        /// Loads (or builds) the outdoor tiles of a loaded landblock in the background, for both agent widths. Until it
+        /// is done, the tile is missing from the outdoor mesh: routes from it find no mesh, routes through it end at its
+        /// edge. Tiles are only added for loaded landblocks, and removed when they unload. Their geometry comes from
+        /// the dat alone, so it doesn't depend on which landblocks are loaded.
         /// </summary>
-        private static void TryLoadOutdoorMesh(Position pos, bool rebuildMesh = false)
+        /// <param name="force">Build the tile from the geometry even if it is loaded or cached, and replace it</param>
+        private static void TryLoadOutdoorTile(uint landblockId, bool force = false)
         {
-            var landblockId = pos.Cell & 0xFFFF0000;
-            var location = pos.ToLOCString();
+            landblockId &= 0xFFFF0000;
 
-            if (rebuildMesh)
-            {
-                UnloadMesh(landblockId, OutdoorGroup);
-                OutdoorBuildFailures.TryRemove(landblockId, out _);
-            }
-            else if (OutdoorBuildFailures.TryGetValue(landblockId, out var failedAt) && DateTime.UtcNow - failedAt < OutdoorBuildRetryDelay)
+            if (!LandblockManager.IsLoaded(new LandblockId(landblockId | 0xFFFF)))
                 return;
 
-            var pending = new List<(AgentWidth agentWidth, uint meshId)>();
+            if (force)
+            {
+                OutdoorBuildFailures.TryRemove(landblockId, out _);
+                OutdoorTilesRequested[landblockId] = 0;
+            }
+            else
+            {
+                if (OutdoorBuildFailures.TryGetValue(landblockId, out var failedAt) && DateTime.UtcNow - failedAt < OutdoorBuildRetryDelay)
+                    return;
+
+                if (!OutdoorTilesRequested.TryAdd(landblockId, 0))
+                    return; // loaded or loading
+            }
+
+            var generation = OutdoorTileGenerations.GetOrAdd(landblockId, 0);
+
+            RunMeshBuild(() => BuildOutdoorTile(landblockId, generation, force));
+        }
+
+        private static void BuildOutdoorTile(uint landblockId, int generation, bool force)
+        {
+            var (tileX, tileY) = GetLandblockCoords(landblockId);
+            var seeds = GetOutdoorDoorPositions(landblockId);
+
+            CellGeometryProvider geom = null;
+            var geometryLoaded = false;
+
             foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
             {
                 var meshId = GetMeshId(landblockId, OutdoorGroup, agentWidth);
-                if (Meshes.TryAdd(meshId, null))
-                    pending.Add((agentWidth, meshId));
-            }
+                var meshPath = GetMeshPath(OutdoorMeshDirectory, meshId, true, agentWidth);
 
-            if (pending.Count == 0)
-                return;
-
-            // Snapshot the landblock's object lists here rather than on the build thread, which would read them while
-            // the landblock may be changing them. Null if the landblock is not loaded: cached meshes can still be read.
-            SurfaceSnapshot surface = null;
-            try
-            {
-                var lbid = new LandblockId(landblockId | 0xFFFF);
-                var physicsLandblock = LandblockManager.IsLoaded(lbid) ? LandblockManager.GetLandblock(lbid, false)?.PhysicsLandblock : null;
-                if (physicsLandblock != null)
-                    surface = new SurfaceSnapshot(physicsLandblock);
-            }
-            catch (Exception e)
-            {
-                log.Warn($"Pathfinder: could not snapshot the outdoors of 0x{landblockId:X8}: {e.Message}");
-            }
-
-            RunMeshBuild(() =>
-            {
-                CellGeometryProvider geom = null;
-                var geometryFailed = false;
-
-                foreach (var (agentWidth, meshId) in pending)
+                try
                 {
-                    try
+                    DtMeshData data = null;
+                    if (!force && TryReadMeshData(meshPath, out var cached))
                     {
-                        var meshPath = GetMeshPath(OutdoorMeshDirectory, meshId, true, agentWidth);
-                        if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
+                        if (cached.header.x == tileX && cached.header.y == tileY)
+                            data = cached;
+                        else
+                            TryDeleteFile(meshPath);
+                    }
+
+                    if (data == null)
+                    {
+                        if (!geometryLoaded)
                         {
-                            MarkIslands(cachedMesh, GetOutdoorDoorPositions(landblockId), true);
-                            Meshes.TryUpdate(meshId, cachedMesh, null);
-                            continue;
+                            geometryLoaded = true;
+                            geom = CellGeometryProvider.LoadSurfaceGeometry(landblockId, GetSurfaceSources(landblockId));
                         }
 
-                        if (surface == null)
+                        if (geom is null)
                         {
-                            // not loaded (yet); drop the placeholder so a later request can try again
-                            ReleasePlaceholder(meshId);
-                            continue;
-                        }
-
-                        if (geometryFailed)
-                        {
-                            FailOutdoorBuild(landblockId, meshId);
-                            continue;
-                        }
-
-                        if (geom == null)
-                        {
-                            var geometry = new LandblockGeometry(landblockId);
-
-                            // interior cells only cut the terrain out of building interiors, their own meshes hold their geometry
-                            geom = CellGeometryProvider.LoadSurfaceGeometry(geometry, geometry.SurfaceConnectedCells, surface);
-                            if (geom is null)
-                            {
-                                log.Warn($"Pathfinder: could not load outdoor geometry for 0x{landblockId:X8}");
-                                geometryFailed = true;
-                                FailOutdoorBuild(landblockId, meshId);
-                                continue;
-                            }
+                            log.Warn($"Pathfinder: could not load outdoor geometry for 0x{landblockId:X8}");
+                            FailOutdoorBuild(landblockId);
+                            return;
                         }
 
                         var stopwatch = Stopwatch.StartNew();
-                        var mesh = BuildAndSaveMesh(geom, GetMeshSettings(true, agentWidth), meshId, meshPath);
-                        if (mesh is null)
+                        data = new NavMeshBuilder().BuildTile(geom, GetMeshSettings(true, agentWidth), tileX, tileY, BlockLength);
+                        if (data == null)
                         {
-                            // the same geometry would build the same way, so the placeholder stays and no retry is made
-                            log.Warn($"Pathfinder: could not build the {agentWidth} outdoor nav mesh for 0x{landblockId:X8}");
+                            // the same geometry would build the same way, so the request stays and no retry is made
+                            log.Warn($"Pathfinder: could not build the {agentWidth} outdoor tile for 0x{landblockId:X8}");
                             continue;
                         }
 
-                        MarkIslands(mesh, GetOutdoorDoorPositions(landblockId), true);
-                        Meshes.TryUpdate(meshId, mesh, null);
-                        log.Info($"Pathfinder: built {agentWidth} outdoor nav mesh for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.vertices.Length / 3} vertices, {geom.faces.Length / 3} triangles)");
+                        SaveMeshData(data, meshId, meshPath);
+
+                        log.Info($"Pathfinder: built {agentWidth} outdoor tile for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.vertices.Length / 3} vertices, {geom.faces.Length / 3} triangles)");
                     }
-                    catch (Exception e)
+
+                    // islands are flagged on the tile alone, before anything can query it
+                    var tileMesh = CreateSingleTileMesh(data);
+                    if (tileMesh == null)
                     {
-                        log.Warn($"Pathfinder: failed to load {agentWidth} outdoor mesh at {location}: {e}");
-                        FailOutdoorBuild(landblockId, meshId);
+                        log.Warn($"Pathfinder: could not initialize the {agentWidth} outdoor tile for 0x{landblockId:X8}");
+                        FailOutdoorBuild(landblockId);
+                        return;
+                    }
+                    MarkIslands(tileMesh, seeds, true);
+
+                    lock (OutdoorTileSync)
+                    {
+                        if (!OutdoorTileGenerations.TryGetValue(landblockId, out var current) || current != generation)
+                            return; // the landblock unloaded while this was building
+
+                        if (!OutdoorMeshes[agentWidth].SetTile(landblockId, data))
+                            log.Warn($"Pathfinder: could not add the {agentWidth} outdoor tile for 0x{landblockId:X8}");
                     }
                 }
-            });
+                catch (Exception e)
+                {
+                    log.Warn($"Pathfinder: failed to load the {agentWidth} outdoor tile for 0x{landblockId:X8}: {e}");
+                    FailOutdoorBuild(landblockId);
+                    return;
+                }
+            }
         }
 
         /// <summary>
-        /// The doorways from the outdoors into the landblock's buildings and caves, which anchor the outdoor mesh
-        /// components around them (see MarkIslands).
+        /// The landblock and its neighbors, as sources of tile geometry: terrain, buildings, static objects and scenery
+        /// as the dat places them (see Physics.Common.Landblock.CreateDetached), whether they are loaded or not. Built
+        /// on the build thread from the dat alone, so no landblock in use is read and nothing gets loaded.
         /// </summary>
-        private static IEnumerable<Vector3> GetOutdoorDoorPositions(uint landblockId)
+        private static List<SurfaceSource> GetSurfaceSources(uint landblockId)
+        {
+            var sources = new List<SurfaceSource>(9);
+            var (x, y) = GetLandblockCoords(landblockId);
+
+            for (var dx = -1; dx <= 1; dx++)
+            {
+                for (var dy = -1; dy <= 1; dy++)
+                {
+                    var nx = x + dx;
+                    var ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx > 0xFF || ny > 0xFF)
+                        continue;
+
+                    var sourceId = GetLandblockId(nx, ny);
+                    var landblock = ACE.Server.Physics.Common.Landblock.CreateDetached(sourceId);
+                    if (landblock == null)
+                        continue; // past the edge of the world
+
+                    sources.Add(new SurfaceSource(sourceId, landblock, new SurfaceSnapshot(landblock), GetSurfaceInteriorCells(sourceId)));
+                }
+            }
+
+            return sources;
+        }
+
+        /// <summary>
+        /// The interior cells of a landblock's buildings and caves, read from the dat without caching the landblock's
+        /// groups (the neighbors may not be loaded).
+        /// </summary>
+        private static List<CellGeometry> GetSurfaceInteriorCells(uint landblockId)
+        {
+            if (Groups.TryGetValue(landblockId & 0xFFFF0000, out var groups))
+                return groups.ByIndex.Values.Where(g => g.ConnectsToOutside).SelectMany(g => g.Cells).ToList();
+
+            return new LandblockGeometry(landblockId).SurfaceConnectedCells;
+        }
+
+        /// <summary>
+        /// The doorways from the outdoors into the landblock's buildings and caves, on the outdoor mesh (Recast space),
+        /// which anchor the outdoor mesh components around them (see MarkIslands).
+        /// </summary>
+        private static List<RcVec3f> GetOutdoorDoorPositions(uint landblockId)
         {
             return GetGroups(landblockId).ByIndex.Values
                 .Where(g => g.ConnectsToOutside)
                 .SelectMany(g => g.Doors)
-                .Select(d => d.Position)
+                .Select(d => ToMeshPoint(landblockId, d.Position, true))
                 .ToList();
         }
 
         /// <summary>
-        /// Removes a mesh's loading placeholder, so the next request for the mesh tries to load it again.
+        /// Records a failed outdoor tile build: the tile can be requested again, but is not retried for
+        /// OutdoorBuildRetryDelay.
         /// </summary>
-        private static void ReleasePlaceholder(uint meshId)
+        private static void FailOutdoorBuild(uint landblockId)
         {
-            Meshes.TryRemove(new KeyValuePair<uint, DtNavMesh?>(meshId, null));
+            OutdoorBuildFailures[landblockId] = DateTime.UtcNow;
+            OutdoorTilesRequested.TryRemove(landblockId, out _);
         }
 
         /// <summary>
-        /// Records a failed outdoor build: the mesh can be requested again, but is not retried for OutdoorBuildRetryDelay.
+        /// The voxel cell size of each mesh and the agent radius in whole cells. Recast erodes the walkable area by
+        /// ceil(radius / cellSize) cells, so a radius that isn't a whole number of cells is rounded up (0.65m on
+        /// 0.2m cells erodes 0.8m). Each mesh gets a cell size its agent radius divides into:
+        ///
+        ///   Interior: Small 0.65/7 (~0.093m) x 7 = 0.65m, Medium 0.1 x 10 = 1.0m, Large 0.125 x 14 = 1.75m.
+        ///   Outdoor:  Small 0.16 x 4 = 0.64m, Medium 0.2 x 5 = 1.0m, Large 0.25 x 7 = 1.75m.
+        ///
+        /// Outdoor cell sizes must divide the landblock (192m) into a whole number of cells, as a tile must be; the
+        /// only one that fits 0.65m exactly is 0.05m (16x the voxels), so Small erodes 1cm less there. Interiors keep
+        /// finer grids for narrow doorways and stairs. Large needs no fine detail (Recast's guideline is a cell size of a
+        /// half to a third of the agent radius), so its coarser grid also makes its meshes cheaper to build.
         /// </summary>
-        private static void FailOutdoorBuild(uint landblockId, uint meshId)
+        private static (float cellSize, int radiusCells) GetCellSize(bool outdoor, AgentWidth type)
         {
-            OutdoorBuildFailures[landblockId] = DateTime.UtcNow;
-            ReleasePlaceholder(meshId);
+            switch (type)
+            {
+                case AgentWidth.Small:
+                    return outdoor ? (0.16f, 4) : (SmallAgentRadius / 7f, 7);
+                case AgentWidth.Medium:
+                    return outdoor ? (0.2f, 5) : (0.1f, 10);
+                default:
+                    return outdoor ? (0.25f, 7) : (0.125f, 14);
+            }
         }
 
         private static RcNavMeshBuildSettings GetMeshSettings(bool outdoor, AgentWidth type)
         {
+            var (cellSize, radiusCells) = GetCellSize(outdoor, type);
+
             var settings = new RcNavMeshBuildSettings()
             {
-                agentHeight = type == AgentWidth.Narrow ? 2.0f : 2.2f, // 2f,
-                agentMaxClimb = type == AgentWidth.Narrow ? 0.7f : 0.8f, // 0.95f,
+                agentHeight = GetAgentHeight(type),
+                agentMaxClimb = GetAgentMaxClimb(type),
                 agentMaxSlope = 48f, // matches PhysicsGlobals.FloorZ (acos(0.664) = ~48.4 degrees), steeper is not walkable
                 cellHeight = 0.1f,
-                cellSize = 0.1f,
-                agentRadius = type == AgentWidth.Narrow ? NarrowAgentRadius : WideAgentRadius,
+                cellSize = cellSize,
+
+                // a hair under the whole number of cells, so float error in radius / cellSize can't round it up a cell
+                agentRadius = (radiusCells - 0.01f) * cellSize,
+
                 detailSampleDist = 6.0f,
                 detailSampleMaxError = 1.0f,
                 edgeMaxError = 1f,
@@ -1509,13 +2150,14 @@ namespace ACE.Server.Pathfinding
                 partitioning = (int)RcPartition.WATERSHED
             };
 
+            // Recast's own conversion (RcConfig.WalkableRadius)
+            if ((int)MathF.Ceiling(settings.agentRadius / settings.cellSize) != radiusCells)
+            {
+                log.Error($"Pathfinder: the {type} {(outdoor ? "outdoor" : "interior")} agent radius {settings.agentRadius} is not {radiusCells} cells of {settings.cellSize}m");
+            }
+
             if (outdoor)
             {
-                // Recast's guideline is a cell size of a half to a third of the agent radius. Interiors keep a finer
-                // grid for narrow doorways and stairs; over a whole landblock (192m) 0.2 cuts the voxels to a quarter.
-                // The radii still convert exactly, except Wide which rounds up from 1.1 to 1.2m (6 cells).
-                settings.cellSize = 0.2f;
-
                 // longer edges keep the poly count down over a whole landblock
                 settings.edgeMaxLen = 24.0f;
             }
@@ -1531,5 +2173,7 @@ namespace ACE.Server.Pathfinding
         {
             return Math.Max(1, (int)MathF.Round(MathF.Sqrt(area) / cellSize));
         }
+
+        #endregion
     }
 }

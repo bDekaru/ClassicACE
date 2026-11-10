@@ -921,7 +921,7 @@ namespace ACE.Server.WorldObjects
                 {
                     if (Pathfinder.PathfindingEnabled)
                     {
-                        destination = Pathfinder.GetClosestPointOnMesh(destination, AgentWidth.Narrow);
+                        destination = Pathfinder.GetClosestPointOnMesh(destination, AgentWidth.Small);
 
                         if (destination == null || !destination.IsValidIndoorCell(height))
                             return false;

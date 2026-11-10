@@ -5,6 +5,7 @@ using DotRecast.Recast;
 using DotRecast.Recast.Geom;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ACE.Server.Pathfinding.Geometry
@@ -21,24 +22,57 @@ namespace ACE.Server.Pathfinding.Geometry
 
 
         /// <summary>
-        /// Geometry for a set of interior (dungeon) cells.
+        /// Geometry for a set of interior (dungeon) cells, for the mesh of one agent width: with a door apron (see
+        /// DoorApron) sized for that agent outside each of the given doorways, marked as a door area.
         /// </summary>
-        public static CellGeometryProvider LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors)
+        public static CellGeometryProvider LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, AgentWidth agentWidth)
+        {
+            var providers = LoadGeometry(geometry, neighbors, doors, new[] { agentWidth });
+            return providers?[agentWidth];
+        }
+
+        /// <summary>
+        /// Like the other overload, for several agent widths at once: the cells and their static objects are loaded
+        /// once, and only the door aprons differ per width. Null if the cells have no geometry.
+        /// </summary>
+        public static Dictionary<AgentWidth, CellGeometryProvider> LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentWidth> agentWidths)
         {
             var exporter = new LandblockGeometryExporter(geometry, neighbors);
             exporter.LoadLandblockInfo();
 
-            return FromExporter(exporter);
+            // only cells with geometry of their own get a mesh; the aprons alone are not walkable space
+            if (exporter.Vertices.Count == 0)
+                return null;
+
+            var wallDoors = doors?.Where(d => d.IsInWall).ToList() ?? new List<CellGroupDoor>();
+            var cells = exporter.GetMark();
+            var providers = new Dictionary<AgentWidth, CellGeometryProvider>();
+
+            foreach (var agentWidth in agentWidths)
+            {
+                exporter.AddDoorAprons(wallDoors, agentWidth);
+
+                var provider = FromExporter(exporter);
+                foreach (var door in wallDoors)
+                    provider.AddConvexVolume(DoorApron.GetDoorVolume(door, agentWidth));
+                providers[agentWidth] = provider;
+
+                exporter.Truncate(cells);
+            }
+
+            return providers;
         }
 
         /// <summary>
-        /// Geometry for a landblock's outdoors: terrain, building shells, static objects and scenery. The interior cells
-        /// are only used to cut the terrain out of building interiors; their geometry goes into their own group meshes.
+        /// Geometry for a landblock's outdoor tile, in world coordinates: terrain, building shells, static objects and
+        /// scenery of the landblock and of the border strip of its neighbors (see LandblockGeometryExporter.LoadSurface).
+        /// Interior cells are only used to cut the terrain out of building interiors; their geometry goes into their own
+        /// group meshes.
         /// </summary>
-        public static CellGeometryProvider LoadSurfaceGeometry(LandblockGeometry geometry, List<CellGeometry> interiorCells, SurfaceSnapshot surface)
+        public static CellGeometryProvider LoadSurfaceGeometry(uint landblockId, IEnumerable<SurfaceSource> sources)
         {
-            var exporter = new LandblockGeometryExporter(geometry, interiorCells);
-            exporter.LoadSurface(surface);
+            var exporter = new LandblockGeometryExporter(new LandblockGeometry(landblockId), new List<CellGeometry>());
+            exporter.LoadSurface(landblockId, sources);
 
             return FromExporter(exporter);
         }
@@ -122,6 +156,7 @@ namespace ACE.Server.Pathfinding.Geometry
             vol.hmax = maxh;
             vol.verts = verts;
             vol.areaMod = areaMod;
+            volumes.Add(vol);
         }
 
         public void AddConvexVolume(RcConvexVolume convexVolume)

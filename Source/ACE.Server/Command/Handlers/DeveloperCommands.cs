@@ -1597,9 +1597,9 @@ namespace ACE.Server.Command.Handlers
 
             session.Network.EnqueueSend(new GameMessageSystemChat($"CylDist: {cylDist}", ChatMessageType.Broadcast));
 
-            if (Pathfinder.PathfindingEnabled && session.Player.Location.Landblock == obj.Location.Landblock)
+            if (Pathfinder.PathfindingEnabled)
             {
-                foreach (var agentWidth in new[] { AgentWidth.Narrow, AgentWidth.Wide })
+                foreach (var agentWidth in Enum.GetValues<AgentWidth>())
                 {
                     var reached = Pathfinder.GetRouteLegsDistance(session.Player.Location, obj.Location, agentWidth, out var routeDistance, out var legCount, out var endGap);
                     session.Network.EnqueueSend(new GameMessageSystemChat($"{agentWidth} Pathfinding Dist: {DescribeRouteDistance(reached, routeDistance, legCount, endGap)}", ChatMessageType.Broadcast));
@@ -4308,9 +4308,11 @@ namespace ACE.Server.Command.Handlers
             
             // the mesh the creature routes on, by its size, the same choice its own routing makes
             var agentWidth = creature.GetPathfindingAgentWidth();
-            var collisionRadius = creature.PhysicsObj?.GetPhysicsRadius() ?? 0f;
-            var meshRadius = agentWidth == AgentWidth.Narrow ? Pathfinder.NarrowAgentRadius : Pathfinder.WideAgentRadius;
-            CommandHandlerHelper.WriteOutputInfo(session, $"Mesh used: {agentWidth} (collision radius {collisionRadius:0.00}m, mesh agent radius {meshRadius:0.00}m)");
+            var collisionRadius = creature.PhysicsObj?.GetWallCollisionRadius() ?? 0f;
+            var collisionHeight = creature.PhysicsObj?.GetWallCollisionHeight() ?? 0f;
+            var meshRadius = Pathfinder.GetAgentRadius(agentWidth);
+            var meshHeight = Pathfinder.GetAgentHeight(agentWidth);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Mesh used: {agentWidth} (collision radius {collisionRadius:0.00}m / height {collisionHeight:0.00}m, mesh agent radius {meshRadius:0.00}m / height {meshHeight:0.00}m)");
 
             // chain routes through doorways, so a creature in a building can be sent outside or into another building
             var legs = Pathfinder.FindRouteLegs(creature.Location, player.Location, agentWidth);
@@ -4348,6 +4350,346 @@ namespace ACE.Server.Command.Handlers
 
             Pathfinder.DrawRoute(route);
             creature.TryRoute(route);
+        }
+
+        /// <summary>
+        /// A walk along a pathfinder route started by @pathto.
+        /// </summary>
+        private class PathToWalk
+        {
+            public int Id;
+            public Player Player;
+            public Position Destination;
+            public bool DrawRoute;
+
+            public List<Position> Waypoints;
+            public bool RouteReachesDestination;
+            public int Index;
+
+            public int PlanAttempts;
+            public int Replans;
+            public int WaypointRetries;
+
+            /// <summary>
+            /// The player's own movement state when the current waypoint was set out for. It changes when the player
+            /// moves themselves, which also cancels the walk.
+            /// </summary>
+            public object MoveToStateAtStart;
+            public float DistanceAtStart;
+        }
+
+        /// <summary>
+        /// Per player (guid), the id of their current @pathto walk. Starting another walk or @pathto stop changes it,
+        /// and the steps of an older walk then end.
+        /// </summary>
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<uint, int> PathToWalks = new System.Collections.Concurrent.ConcurrentDictionary<uint, int>();
+        private static int lastPathToWalkId;
+
+        /// <summary>
+        /// A waypoint counts as reached this close (3D). Waypoint heights come from the navmesh, which can be off from
+        /// the actual ground by up to about a meter outdoors.
+        /// </summary>
+        private const float PathToWaypointRadius = 0.6f;
+
+        /// <summary>
+        /// The walk counts as arrived this close to the destination.
+        /// </summary>
+        private const float PathToArriveDistance = 0.6f;
+
+        /// <summary>
+        /// How often finding a route is tried before giving up, PathToPlanRetryDelay apart (meshes load in the
+        /// background, so the first attempts in an area can find nothing).
+        /// </summary>
+        private const int PathToMaxPlanAttempts = 5;
+        private const float PathToPlanRetryDelay = 2.0f;
+
+        /// <summary>
+        /// How often a route that ends short of the destination (beyond the area a route searches, or where meshes are
+        /// still loading) is planned again from its end.
+        /// </summary>
+        private const int PathToMaxReplans = 10;
+
+        /// <summary>
+        /// How often moving to a waypoint is re-issued after it timed out while still making progress, e.g. a long
+        /// stretch at walking speed.
+        /// </summary>
+        private const int PathToMaxWaypointRetries = 5;
+
+        [CommandHandler("pathto", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, 1,
+            "Makes your character walk to a location along a pathfinder route.",
+            "<location> [draw] | stop\n" +
+            "location: map coordinates, or a cell and position as shown by @loc\n" +
+            "draw: also places a marker at every waypoint\n" +
+            "Moving yourself, or @pathto stop, ends the walk.\n" +
+            "Example: @pathto 42.1N 33.6E\n" +
+            "Example: @pathto 0xA9B40019 [84.0 7.1 94.0] draw")]
+        public static void HandlePathTo(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+
+            if (parameters[0].Equals("stop", StringComparison.OrdinalIgnoreCase))
+            {
+                var wasWalking = PathToWalks.TryRemove(player.Guid.Full, out _);
+                StopPlayerMoveTo(player);
+                CommandHandlerHelper.WriteOutputInfo(session, wasWalking ? "Stopped walking." : "You are not walking anywhere.");
+                return;
+            }
+
+            var args = parameters.ToList();
+            var drawRoute = false;
+            if (args.Count > 1 && args[args.Count - 1].Equals("draw", StringComparison.OrdinalIgnoreCase))
+            {
+                drawRoute = true;
+                args.RemoveAt(args.Count - 1);
+            }
+
+            if (!TryParsePathToDestination(args.ToArray(), out var destination, out var error))
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, $"{error}\nUsage: @pathto <location> [draw] | stop\nExample: @pathto 42.1N 33.6E\nExample: @pathto 0xA9B40019 [84.0 7.1 94.0]");
+                return;
+            }
+
+            if (!Pathfinder.PathfindingEnabled)
+                CommandHandlerHelper.WriteOutputInfo(session, "Note: the pathfinding server property is off, so creatures don't route; @pathto works regardless.");
+
+            var walk = new PathToWalk
+            {
+                Id = System.Threading.Interlocked.Increment(ref lastPathToWalkId),
+                Player = player,
+                Destination = destination,
+                DrawRoute = drawRoute
+            };
+
+            // a walk already under way ends: its id is no longer current
+            PathToWalks[player.Guid.Full] = walk.Id;
+            StopPlayerMoveTo(player);
+
+            CommandHandlerHelper.WriteOutputInfo(session, $"Walking to {destination.ToLOCString()}, {player.Location.DistanceTo(destination):0.0}m away in a straight line.");
+
+            PlanPathToWalk(walk);
+        }
+
+        private static void StopPlayerMoveTo(Player player)
+        {
+            player.StopExistingMoveToChains();
+            if (player.IsPlayerMovingTo2)
+                player.StopExistingMoveToChains2();
+        }
+
+        /// <summary>
+        /// Parses map coordinates (42.1N 33.6E) or a cell and position as shown by @loc (0xA9B40019 [84.0 7.1 94.0],
+        /// the brackets and a trailing rotation are optional).
+        /// </summary>
+        private static bool TryParsePathToDestination(string[] parameters, out Position destination, out string error)
+        {
+            destination = null;
+            error = null;
+
+            var first = parameters[0].ToLowerInvariant().TrimEnd(',');
+            if (parameters.Length == 2 && (first.EndsWith("n") || first.EndsWith("s")))
+                return CommandParameterHelpers.TryParsePosition(parameters, out error, out destination);
+
+            if (parameters.Length < 4)
+            {
+                error = "Specify map coordinates, or a cell and an x y z position.";
+                return false;
+            }
+
+            var cellText = parameters[0].StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? parameters[0].Substring(2) : parameters[0];
+            if (!uint.TryParse(cellText, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var cell))
+            {
+                error = $"{parameters[0]} is not a cell id.";
+                return false;
+            }
+
+            var coords = new float[3];
+            for (var i = 0; i < 3; i++)
+            {
+                // @loc prints its numbers with a decimal point whatever the server's culture
+                if (!float.TryParse(parameters[i + 1].Trim(' ', '[', ']'), NumberStyles.Float, CultureInfo.InvariantCulture, out coords[i]))
+                {
+                    error = $"{parameters[i + 1]} is not a number.";
+                    return false;
+                }
+            }
+
+            destination = new Position(cell, coords[0], coords[1], coords[2], 0f, 0f, 0f, 1f);
+            return true;
+        }
+
+        private static bool IsCurrentPathToWalk(PathToWalk walk)
+        {
+            return walk.Player.Session != null && walk.Player.CurrentLandblock != null
+                && PathToWalks.TryGetValue(walk.Player.Guid.Full, out var id) && id == walk.Id;
+        }
+
+        private static void EndPathToWalk(PathToWalk walk, string message)
+        {
+            PathToWalks.TryRemove(new KeyValuePair<uint, int>(walk.Player.Guid.Full, walk.Id));
+
+            if (walk.Player.Session != null)
+                CommandHandlerHelper.WriteOutputInfo(walk.Player.Session, message);
+        }
+
+        private static void PathToWalkInfo(PathToWalk walk, string message)
+        {
+            if (walk.Player.Session != null)
+                CommandHandlerHelper.WriteOutputInfo(walk.Player.Session, message);
+        }
+
+        /// <summary>
+        /// Runs a step of a walk on the player's action queue, after an optional delay.
+        /// </summary>
+        private static void EnqueuePathToStep(PathToWalk walk, Action<PathToWalk> step, float delay = 0f)
+        {
+            var actionChain = new ActionChain();
+            if (delay > 0f)
+                actionChain.AddDelaySeconds(delay);
+            actionChain.AddAction(walk.Player, () => step(walk));
+            actionChain.EnqueueChain();
+        }
+
+        /// <summary>
+        /// Finds a route from where the player is to the destination, and starts walking it.
+        /// </summary>
+        private static void PlanPathToWalk(PathToWalk walk)
+        {
+            if (!IsCurrentPathToWalk(walk))
+                return;
+
+            var player = walk.Player;
+
+            // players fit the narrow mesh, as creatures of their size do
+            var legs = Pathfinder.FindRouteLegs(player.Location, walk.Destination, AgentWidth.Small, out var reachesDestination);
+            var waypoints = legs?.SelectMany(leg => leg).ToList();
+
+            if (waypoints == null || waypoints.Count == 0)
+            {
+                if (++walk.PlanAttempts < PathToMaxPlanAttempts)
+                {
+                    PathToWalkInfo(walk, $"No route yet; the meshes here may still be loading. Trying again in {PathToPlanRetryDelay:0} seconds...");
+                    EnqueuePathToStep(walk, PlanPathToWalk, PathToPlanRetryDelay);
+                    return;
+                }
+
+                EndPathToWalk(walk, "No route found. Is the destination on walkable ground (or in a building or cave connected to the outdoors)?");
+                return;
+            }
+            walk.PlanAttempts = 0;
+
+            // a replanned route that ends where we already are gets no closer
+            if (walk.Replans > 0 && !reachesDestination && player.Location.DistanceTo(waypoints[waypoints.Count - 1]) <= PathToWaypointRadius)
+            {
+                EndPathToWalk(walk, $"No route gets any closer; stopped {player.Location.DistanceTo(walk.Destination):0.0}m from the destination.");
+                return;
+            }
+
+            walk.Waypoints = waypoints;
+            walk.RouteReachesDestination = reachesDestination;
+            walk.Index = 0;
+            walk.WaypointRetries = 0;
+
+            var length = 0f;
+            var previous = player.Location;
+            foreach (var waypoint in waypoints)
+            {
+                length += previous.DistanceTo(waypoint);
+                previous = waypoint;
+            }
+
+            var legsText = legs.Count == 1 ? "1 leg" : $"{legs.Count} legs through doorways";
+            var endText = reachesDestination
+                ? ""
+                : $", ending {waypoints[waypoints.Count - 1].DistanceTo(walk.Destination):0.0}m short of the destination (planning again from there)";
+            PathToWalkInfo(walk, $"Route: {waypoints.Count} waypoints over {legsText}, {length:0.0}m{endText}.");
+
+            if (walk.DrawRoute)
+                Pathfinder.DrawRoute(waypoints);
+
+            WalkToNextWaypoint(walk);
+        }
+
+        private static void WalkToNextWaypoint(PathToWalk walk)
+        {
+            if (!IsCurrentPathToWalk(walk))
+                return;
+
+            var player = walk.Player;
+
+            // skip the waypoints already within reach
+            while (walk.Index < walk.Waypoints.Count && player.Location.DistanceTo(walk.Waypoints[walk.Index]) <= PathToWaypointRadius)
+                walk.Index++;
+
+            if (walk.Index >= walk.Waypoints.Count)
+            {
+                OnPathToRouteEnd(walk);
+                return;
+            }
+
+            var target = walk.Waypoints[walk.Index];
+            walk.MoveToStateAtStart = player.CurrentMoveToState;
+            walk.DistanceAtStart = player.Location.DistanceTo(target);
+
+            // measured from the player's centre: waypoints count as reached where they are, not a body radius early
+            player.CreateMoveToChain(target, success => OnPathToWaypointDone(walk, success), PathToWaypointRadius, walk: true, useSpheres: false);
+        }
+
+        private static void OnPathToWaypointDone(PathToWalk walk, bool success)
+        {
+            if (!IsCurrentPathToWalk(walk))
+                return;
+
+            var player = walk.Player;
+
+            if (success)
+            {
+                walk.Index++;
+                walk.WaypointRetries = 0;
+                EnqueuePathToStep(walk, WalkToNextWaypoint);
+                return;
+            }
+
+            // moving or jumping yourself cancels a move-to
+            if (!ReferenceEquals(player.CurrentMoveToState, walk.MoveToStateAtStart))
+            {
+                EndPathToWalk(walk, "Stopped walking: you moved.");
+                return;
+            }
+
+            // the move-to timed out: go on while it is getting closer
+            var distance = player.Location.DistanceTo(walk.Waypoints[walk.Index]);
+            if (distance < walk.DistanceAtStart - 1f && ++walk.WaypointRetries <= PathToMaxWaypointRetries)
+            {
+                EnqueuePathToStep(walk, WalkToNextWaypoint);
+                return;
+            }
+
+            if (player.Location.DistanceTo(walk.Destination) <= PathToArriveDistance)
+            {
+                EndPathToWalk(walk, $"Arrived, {player.Location.DistanceTo(walk.Destination):0.0}m from the destination.");
+                return;
+            }
+
+            EndPathToWalk(walk, $"Stopped walking: stuck {distance:0.0}m from waypoint {walk.Index + 1} of {walk.Waypoints.Count} ({walk.Waypoints[walk.Index].ToLOCString()}), at {player.Location.ToLOCString()}.");
+        }
+
+        private static void OnPathToRouteEnd(PathToWalk walk)
+        {
+            var gap = walk.Player.Location.DistanceTo(walk.Destination);
+            if (gap <= PathToArriveDistance)
+            {
+                EndPathToWalk(walk, $"Arrived, {gap:0.0}m from the destination.");
+                return;
+            }
+
+            if (!walk.RouteReachesDestination && ++walk.Replans <= PathToMaxReplans)
+            {
+                PathToWalkInfo(walk, $"Reached the end of the route, {gap:0.0}m from the destination. Planning again from here...");
+                EnqueuePathToStep(walk, PlanPathToWalk);
+                return;
+            }
+
+            EndPathToWalk(walk, $"The route ended {gap:0.0}m from the destination.");
         }
 
         [CommandHandler("RebuildPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Rebuilds pathfinding meshes for the currecnt landblock")]

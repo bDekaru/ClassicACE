@@ -116,7 +116,9 @@ namespace ACE.Server.WorldObjects
             PhysicsObj.cancel_moveto();
         }
 
-        public void CreateMoveToChain2(ACE.Entity.Position target, Action<bool> callback, float? radius = null)
+        /// <param name="useSpheres">How the radius is measured. True: from the edge of the body, so the move arrives up
+        /// to radius + the body's own radius from the target. False: from the centre of the body.</param>
+        public void CreateMoveToChain2(ACE.Entity.Position target, Action<bool> callback, float? radius = null, bool walk = false, bool useSpheres = true)
         {
             if (IsPlayerMovingTo2)
                 StopExistingMoveToChains2();
@@ -144,11 +146,16 @@ namespace ACE.Server.WorldObjects
             }
 
             // send command to client
-            MoveToPosition(target, radius);
+            MoveToPosition(target, radius, walk, useSpheres);
 
             // start on server
             // forward this to PhysicsObj.MoveManager.MoveToManager
             var mvp = GetMoveToParams(target, radius);
+            if (walk)
+                mvp.CanRun = false;
+
+            // the client and the server must agree on when the move arrives (see Creature.MoveToPosition)
+            mvp.UseSpheres = useSpheres;
 
             if (!PhysicsObj.IsMovingOrAnimating)
                 //PhysicsObj.UpdateTime = PhysicsTimer.CurrentTime - PhysicsGlobals.MinQuantum;

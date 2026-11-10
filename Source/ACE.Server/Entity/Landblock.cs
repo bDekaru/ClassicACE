@@ -277,7 +277,7 @@ namespace ACE.Server.Entity
                         float distance;
                         if (Pathfinder.PathfindingEnabled && player.Location.Indoors)
                         {
-                            if(!Pathfinder.GetRouteLegsDistance(player.Location, marker.Location, AgentWidth.Narrow, out distance, out _, out _))
+                            if(!Pathfinder.GetRouteLegsDistance(player.Location, marker.Location, AgentWidth.Small, out distance, out _, out _))
                                 distance = player.Location.DistanceTo(marker.Location);
                         }
                         else
@@ -322,7 +322,7 @@ namespace ACE.Server.Entity
 
                 if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
                 {
-                    var randomPos = Pathfinder.GetRandomPointWithinCircle(entryPos, 15, AgentWidth.Wide);
+                    var randomPos = Pathfinder.GetRandomPointWithinCircle(entryPos, 15, AgentWidth.Large);
                     if (randomPos != null)
                         entryPos = randomPos;
                 }
@@ -339,7 +339,7 @@ namespace ACE.Server.Entity
                     float distance;
                     if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
                     {
-                        if(!Pathfinder.GetRouteLegsDistance(entryPos, markerOrPortal.Location, AgentWidth.Narrow, out distance, out _, out _))
+                        if(!Pathfinder.GetRouteLegsDistance(entryPos, markerOrPortal.Location, AgentWidth.Small, out distance, out _, out _))
                             distance = entryPos.DistanceTo(markerOrPortal.Location);
                     }
                     else

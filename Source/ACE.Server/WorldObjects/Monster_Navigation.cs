@@ -473,7 +473,7 @@ namespace ACE.Server.WorldObjects
             FailedMovementCount = 0;
             FailedSightCount = 0;
 
-            MoveTo(home, 0.6f);
+            MoveTo(home, 0.6f, useSpheres: false);
 
             EmoteManager.OnHomeSick(prevAttackTarget);
         }
@@ -593,7 +593,7 @@ namespace ACE.Server.WorldObjects
             IsWanderingPending = false;
             IsWandering = true;
 
-            MoveTo(WanderTarget, 2.0f, 1.0f, false);
+            MoveTo(WanderTarget, 2.0f, 1.0f, false, useSpheres: false);
         }
 
         private void EndWandering(bool forced = true)
@@ -726,13 +726,36 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private const double RouteReplanMinInterval = 5.0;
 
+        /// <summary>
+        /// The longest a planned route that falls short of the target (e.g. while outdoor tiles ahead are still
+        /// loading) is planned again on reaching its end, before routing gives up.
+        /// </summary>
+        private const int MaxPartialRouteReplans = 5;
+
+        /// <summary>
+        /// How close (3D, from the creature's centre) a route waypoint counts as reached.
+        /// </summary>
+        private const float RouteWaypointRadius = 0.6f;
+
+        /// <summary>
+        /// True if the current planned route leads all the way to the attack target, false if it ends short of it.
+        /// </summary>
+        private bool RouteReachesTarget = false;
+
+        private int PartialRouteReplanCount = 0;
+
+        /// <summary>
+        /// True if this creature routes with the pathfinder where it stands: indoors and on the landscape alike.
+        /// </summary>
+        public bool CanRouteHere => PathfindingEnabled && Location != null;
+
         public void TryRoute(List<Position> route = null)
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).TryRoute()");
 
             // an explicitly provided route (debug commands) may also be on the surface
-            if (!PathfindingEnabled || (route == null && !Location.Indoors) || AttackTarget == null || IsRouting)
+            if (!PathfindingEnabled || (route == null && !CanRouteHere) || AttackTarget == null || IsRouting)
                 return;
 
             IsRouteStartPending = true;
@@ -754,25 +777,24 @@ namespace ACE.Server.WorldObjects
         }
 
         /// <summary>
-        /// The mesh this creature routes on, by its size: the narrow mesh for creatures that fit it, the wide mesh for
-        /// wider ones, as narrow routes lead through gaps they can't pass.
+        /// The mesh this creature routes on, by its size: the smallest mesh it fits, as a smaller mesh's routes lead
+        /// through gaps and under openings it can't pass. Sized by the collision spheres, which are what collide with
+        /// walls and ceilings.
         /// </summary>
         public AgentWidth GetPathfindingAgentWidth()
         {
-            var fitsNarrow = PhysicsObj == null || PhysicsObj.GetPhysicsRadius() <= Pathfinder.NarrowAgentRadius;
-            return fitsNarrow ? AgentWidth.Narrow : AgentWidth.Wide;
+            if (PhysicsObj == null)
+                return AgentWidth.Small;
+
+            return Pathfinder.GetAgentWidth(PhysicsObj.GetWallCollisionRadius(), PhysicsObj.GetWallCollisionHeight());
         }
 
         /// <summary>
         /// Plans a route to the attack target on this creature's mesh (see GetPathfindingAgentWidth).
         /// </summary>
-        private List<Position> PlanRouteToAttackTarget()
+        private List<Position> PlanRouteToAttackTarget(out bool reachesTarget)
         {
-            // The pathfinder currently only supports pathing between locations in the same landblock.
-            if ((Location.Cell & 0xFFFF0000) != (AttackTarget.Location.Cell & 0xFFFF0000))
-                return null;
-
-            return FindRouteThroughDoorways(GetPathfindingAgentWidth(), out _);
+            return FindRouteThroughDoorways(GetPathfindingAgentWidth(), out reachesTarget);
         }
 
         /// <summary>
@@ -802,10 +824,11 @@ namespace ACE.Server.WorldObjects
             LastRouteTime = Time.GetUnixTime();
             RoutePlannedTargetLocation = new Position(AttackTarget.Location);
 
-            var route = PlanRouteToAttackTarget();
+            var route = PlanRouteToAttackTarget(out var reachesTarget);
             if (route == null || route.Count == 0)
                 return;
 
+            RouteReachesTarget = reachesTarget;
             CurrentRoute = route;
             CurrentRouteIndex = 0;
             PendingContinueRoute = true; // head for the new route's first waypoint on the next tick
@@ -830,8 +853,13 @@ namespace ACE.Server.WorldObjects
             RouteIsPlanned = CurrentRoute == null;
             RoutePlannedTargetLocation = new Position(AttackTarget.Location);
 
+            PartialRouteReplanCount = 0;
+            RouteReachesTarget = !RouteIsPlanned; // a provided route is followed as is
             if (RouteIsPlanned)
-                CurrentRoute = PlanRouteToAttackTarget();
+            {
+                CurrentRoute = PlanRouteToAttackTarget(out var reachesTarget);
+                RouteReachesTarget = reachesTarget;
+            }
 
             if (CurrentRoute == null || CurrentRoute.Count == 0)
             {
@@ -877,7 +905,8 @@ namespace ACE.Server.WorldObjects
             {
                 if (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count)
                 {
-                    EndRoute();
+                    if (!TryContinuePartialRoute())
+                        EndRoute();
                     return;
                 }
 
@@ -915,16 +944,25 @@ namespace ACE.Server.WorldObjects
                         break;
                 }
 
-                var nearbyWallPos = Pathfinder.GetNearestWallPosition(retryPos, 1.0f, AgentWidth.Narrow, out _, false);
+                // on this creature's own mesh, whose edges are where its body touches the walls
+                var agentWidth = GetPathfindingAgentWidth();
+                var nearbyWallPos = Pathfinder.GetNearestWallPosition(retryPos, 1.0f, agentWidth, out _, false);
                 if (nearbyWallPos != null)
                 {
-                    var wallAvoidingPos = nearbyWallPos.InFrontOf(1.2f);
-                    if (HasPendingMovement)
-                        CancelMoveTo(WeenieError.ObjectGone);
-                    FailedSightCount = 0;
+                    // A mesh edge can also be a drop or one side of a narrow corridor, so stepping out from it can
+                    // leave the mesh: bring the point back onto it.
+                    var wallAvoidingPos = Pathfinder.GetClosestPointOnMesh(nearbyWallPos.InFrontOf(1.2f), agentWidth);
+                    if (wallAvoidingPos != null)
+                    {
+                        if (HasPendingMovement)
+                            CancelMoveTo(WeenieError.ObjectGone);
+                        FailedSightCount = 0;
 
-                    MoveTo(wallAvoidingPos, 0.6f, 1.0f, false);
-                    return;
+                        // measured from the centre: from the edge of the body, the creature already counts as there
+                        // and doesn't move at all
+                        MoveTo(wallAvoidingPos, RouteWaypointRadius, 1.0f, false, useSpheres: false);
+                        return;
+                    }
                 }
             }
 
@@ -932,7 +970,41 @@ namespace ACE.Server.WorldObjects
                 CancelMoveTo(WeenieError.ObjectGone);
             FailedSightCount = 0;
 
-            MoveTo(RoutePositionTarget, 0.6f, 1.0f, false);
+            // measured from the centre: a waypoint counts as reached where it is, not a body radius early
+            MoveTo(RoutePositionTarget, RouteWaypointRadius, 1.0f, false, useSpheres: false);
+        }
+
+        /// <summary>
+        /// At the end of a planned route that fell short of the target, plans again from here: the route may have
+        /// ended at the edge of what was loaded (outdoor tiles load in the background). Returns false if there is
+        /// nothing more to follow: no new route, or one that gets no further than here.
+        /// </summary>
+        private bool TryContinuePartialRoute()
+        {
+            if (!RouteIsPlanned || RouteReachesTarget || AttackTarget == null || PartialRouteReplanCount >= MaxPartialRouteReplans)
+                return false;
+
+            PartialRouteReplanCount++;
+
+            if (DebugMove)
+                Console.WriteLine($"{Name} ({Guid}).TryContinuePartialRoute() - attempt {PartialRouteReplanCount}");
+
+            LastRouteTime = Time.GetUnixTime();
+            RoutePlannedTargetLocation = new Position(AttackTarget.Location);
+
+            var route = PlanRouteToAttackTarget(out var reachesTarget);
+            if (route == null || route.Count == 0)
+                return false;
+
+            // a route that ends where we already are leads nowhere
+            if (!reachesTarget && Location.DistanceTo(route[route.Count - 1]) <= 2.0f)
+                return false;
+
+            RouteReachesTarget = reachesTarget;
+            CurrentRoute = route;
+            CurrentRouteIndex = 0;
+            PendingContinueRoute = true; // head for the new route's first waypoint on the next tick
+            return true;
         }
 
         private void RetryRoute()
@@ -967,6 +1039,8 @@ namespace ACE.Server.WorldObjects
             LastRouteStartAttemptWasNullRoute = false;
             RouteIsPlanned = false;
             RoutePlannedTargetLocation = null;
+            RouteReachesTarget = false;
+            PartialRouteReplanCount = 0;
         }
 
         private double LastRequestPassageTime = 0;
@@ -1069,7 +1143,7 @@ namespace ACE.Server.WorldObjects
             IsGrantPassagePending = false;
             IsGrantingPassage = true;
 
-            MoveTo(GrantPassageTarget, 2.0f, 1.0f, false);
+            MoveTo(GrantPassageTarget, 2.0f, 1.0f, false, useSpheres: false);
         }
 
         private void EndGrantPassage(bool forced = true)

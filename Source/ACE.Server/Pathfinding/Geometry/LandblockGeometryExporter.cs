@@ -68,8 +68,8 @@ namespace ACE.Server.Pathfinding.Geometry
     }
 
     /// <summary>
-    /// The parts of a physics landblock the outdoor mesh is built from, with its object lists copied. The landblock
-    /// owns and may change those lists, while the mesh builds on a background thread.
+    /// The parts of a physics landblock the outdoor mesh is built from, with its object lists copied. For the
+    /// pathfinder this is a detached landblock (Physics.Common.Landblock.CreateDetached) that nothing else uses.
     /// </summary>
     public class SurfaceSnapshot
     {
@@ -84,6 +84,41 @@ namespace ACE.Server.Pathfinding.Geometry
             Buildings = landblock.Buildings?.Cast<ACE.Server.Physics.PhysicsObj>().ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
             StaticObjects = landblock.StaticObjects?.ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
             Scenery = landblock.Scenery?.ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
+        }
+    }
+
+    /// <summary>
+    /// One landblock's contribution to an outdoor tile: the tile's own landblock, or a neighbor whose edge strip
+    /// forms the tile's border.
+    /// </summary>
+    public class SurfaceSource
+    {
+        /// <summary>
+        /// The landblock, in the format 0xAAAA0000
+        /// </summary>
+        public uint LandblockId { get; }
+
+        /// <summary>
+        /// The terrain.
+        /// </summary>
+        public ACE.Server.Physics.Common.LandblockStruct Terrain { get; }
+
+        /// <summary>
+        /// The buildings, static objects and scenery. Null for terrain only.
+        /// </summary>
+        public SurfaceSnapshot Objects { get; }
+
+        /// <summary>
+        /// The interior cells of its buildings and caves, used to cut the terrain out of their interiors.
+        /// </summary>
+        public List<CellGeometry> InteriorCells { get; }
+
+        public SurfaceSource(uint landblockId, ACE.Server.Physics.Common.LandblockStruct terrain, SurfaceSnapshot objects, List<CellGeometry> interiorCells)
+        {
+            LandblockId = landblockId & 0xFFFF0000;
+            Terrain = terrain;
+            Objects = objects;
+            InteriorCells = interiorCells ?? new List<CellGeometry>();
         }
     }
 
@@ -108,6 +143,9 @@ namespace ACE.Server.Pathfinding.Geometry
         public void LoadLandblockInfo()
         {
             var frames = new List<Frame>();
+            var cellsById = new Dictionary<uint, CellGeometry>();
+            foreach (var cell in Neighbors)
+                cellsById[cell.CellId] = cell;
 
             foreach (var cell in Neighbors)
             {
@@ -123,11 +161,269 @@ namespace ACE.Server.Pathfinding.Geometry
                         var sFrames = frames.ToList();
                         sFrames.Add(staticObject.Frame);
                         BoundingBox2 bb = new BoundingBox2();
-                        LoadSetupOrGfxObj(staticObject.Id, sFrames, ref bb);
+
+                        // collect the static's polygons, then keep only what the server can collide with
+                        _capture = new List<List<Vector3>>();
+                        try
+                        {
+                            LoadSetupOrGfxObj(staticObject.Id, sFrames, ref bb);
+                            AddCellStatic(_capture, cell, cellsById);
+                        }
+                        finally
+                        {
+                            _capture = null;
+                        }
                     }
                 }
             }
         }
+
+        #region Cell statics
+
+        /// <summary>
+        /// While set, AddPolygon collects transformed polygons here instead of adding them to the mesh.
+        /// </summary>
+        private List<List<Vector3>> _capture;
+
+        /// <summary>
+        /// Clip boxes are grown by this much, so geometry on a cell's boundary (a shelf against a wall) stays whole.
+        /// </summary>
+        private const float CellClipMargin = 0.05f;
+
+        private readonly Dictionary<uint, CellClipBox> _cellClipBoxes = new Dictionary<uint, CellClipBox>();
+
+        /// <summary>
+        /// A cell's volume, approximated by the bounding box of its structure in the cell's own frame: an oriented box
+        /// in landblock coordinates.
+        /// </summary>
+        private sealed class CellClipBox
+        {
+            public Vector3 Origin;
+            public Vector3[] Axes;
+            public Vector3 Min;
+            public Vector3 Max;
+
+            /// <summary>
+            /// The box's bounds in landblock coordinates, for quick overlap tests.
+            /// </summary>
+            public Vector3 WorldMin;
+            public Vector3 WorldMax;
+
+            public bool Overlaps(Vector3 min, Vector3 max)
+            {
+                return min.X <= WorldMax.X && max.X >= WorldMin.X && min.Y <= WorldMax.Y && max.Y >= WorldMin.Y && min.Z <= WorldMax.Z && max.Z >= WorldMin.Z;
+            }
+
+            /// <summary>
+            /// The part of a convex polygon inside the box (Sutherland-Hodgman against its six faces). Keeps the
+            /// winding. Returns fewer than 3 points if nothing is inside.
+            /// </summary>
+            public List<Vector3> Clip(List<Vector3> polygon)
+            {
+                var result = polygon;
+                for (var axis = 0; axis < 3 && result.Count >= 3; axis++)
+                {
+                    var a = Axes[axis];
+                    var lo = GetComponent(Min, axis);
+                    var hi = GetComponent(Max, axis);
+                    result = ClipToPlane(result, p => Vector3.Dot(p - Origin, a) - lo);
+                    if (result.Count >= 3)
+                        result = ClipToPlane(result, p => hi - Vector3.Dot(p - Origin, a));
+                }
+                return result;
+            }
+
+            private static float GetComponent(Vector3 v, int axis) => axis == 0 ? v.X : axis == 1 ? v.Y : v.Z;
+
+            /// <summary>
+            /// Keeps the part of a polygon where inside(p) >= 0.
+            /// </summary>
+            private static List<Vector3> ClipToPlane(List<Vector3> polygon, Func<Vector3, float> inside)
+            {
+                var output = new List<Vector3>(polygon.Count + 2);
+                for (var i = 0; i < polygon.Count; i++)
+                {
+                    var current = polygon[i];
+                    var previous = polygon[(i + polygon.Count - 1) % polygon.Count];
+                    var dc = inside(current);
+                    var dp = inside(previous);
+
+                    if (dc >= 0f)
+                    {
+                        if (dp < 0f)
+                            output.Add(Vector3.Lerp(previous, current, dp / (dp - dc)));
+                        output.Add(current);
+                    }
+                    else if (dp >= 0f)
+                    {
+                        output.Add(Vector3.Lerp(previous, current, dp / (dp - dc)));
+                    }
+                }
+                return output;
+            }
+        }
+
+        private CellClipBox GetCellClipBox(CellGeometry cell)
+        {
+            if (_cellClipBoxes.TryGetValue(cell.CellId, out var box))
+                return box;
+
+            box = null;
+            var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvCell.EnvironmentId);
+            if (environment?.Cells != null && environment.Cells.TryGetValue(cell.EnvCell.CellStructure, out var cellStruct) && cellStruct.VertexArray.Vertices.Count > 0)
+            {
+                var min = new Vector3(float.MaxValue);
+                var max = new Vector3(float.MinValue);
+                foreach (var v in cellStruct.VertexArray.Vertices.Values)
+                {
+                    min = Vector3.Min(min, v.Origin);
+                    max = Vector3.Max(max, v.Origin);
+                }
+                min -= new Vector3(CellClipMargin);
+                max += new Vector3(CellClipMargin);
+
+                var frame = cell.EnvCell.Position;
+                box = new CellClipBox
+                {
+                    Origin = frame.Origin,
+                    Axes = new[] { Transform(Vector3.UnitX, frame.Orientation), Transform(Vector3.UnitY, frame.Orientation), Transform(Vector3.UnitZ, frame.Orientation) },
+                    Min = min,
+                    Max = max,
+                    WorldMin = new Vector3(float.MaxValue),
+                    WorldMax = new Vector3(float.MinValue)
+                };
+
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var local = new Vector3((corner & 1) == 0 ? min.X : max.X, (corner & 2) == 0 ? min.Y : max.Y, (corner & 4) == 0 ? min.Z : max.Z);
+                    var world = Transform(local, frame.Orientation) + frame.Origin;
+                    box.WorldMin = Vector3.Min(box.WorldMin, world);
+                    box.WorldMax = Vector3.Max(box.WorldMax, world);
+                }
+            }
+
+            _cellClipBoxes[cell.CellId] = box;
+            return box;
+        }
+
+        /// <summary>
+        /// Adds a static object of an interior cell, clipped to the cells the server registers it in for collision.
+        /// The server only tests a static against objects in those cells (EnvCell.find_transit_cells: its own cell,
+        /// the connected cells its bounds reach into, and the outdoor cells when it reaches through a portal to the
+        /// outside). Geometry outside them can't block anything, like the lower half of a collision box that hangs
+        /// through a floor. A static that reaches outside is kept whole.
+        /// </summary>
+        private void AddCellStatic(List<List<Vector3>> polygons, CellGeometry cell, Dictionary<uint, CellGeometry> cellsById)
+        {
+            if (polygons.Count == 0)
+                return;
+
+            var min = new Vector3(float.MaxValue);
+            var max = new Vector3(float.MinValue);
+            foreach (var polygon in polygons)
+            {
+                foreach (var p in polygon)
+                {
+                    min = Vector3.Min(min, p);
+                    max = Vector3.Max(max, p);
+                }
+            }
+
+            var boxes = new List<CellClipBox>();
+            var visited = new HashSet<uint>();
+            var queue = new Queue<CellGeometry>();
+            queue.Enqueue(cell);
+            visited.Add(cell.CellId);
+
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                var box = GetCellClipBox(current);
+                if (box == null || ReachesOutside(current, min, max))
+                {
+                    AddAll(polygons);
+                    return;
+                }
+                boxes.Add(box);
+
+                if (current.EnvCell.CellPortals == null)
+                    continue;
+
+                foreach (var portal in current.EnvCell.CellPortals)
+                {
+                    if (portal.OtherCellId == 0xFFFF)
+                        continue;
+
+                    var otherId = (current.CellId & 0xFFFF0000) | portal.OtherCellId;
+                    if (!visited.Add(otherId) || !cellsById.TryGetValue(otherId, out var other))
+                        continue;
+
+                    var otherBox = GetCellClipBox(other);
+                    if (otherBox == null || otherBox.Overlaps(min, max))
+                        queue.Enqueue(other);
+                }
+            }
+
+            foreach (var polygon in polygons)
+            {
+                foreach (var box in boxes)
+                {
+                    var clipped = box.Clip(polygon);
+                    if (clipped.Count >= 3)
+                        AddTransformedPolygon(clipped);
+                }
+            }
+        }
+
+        private void AddAll(List<List<Vector3>> polygons)
+        {
+            foreach (var polygon in polygons)
+                AddTransformedPolygon(polygon);
+        }
+
+        /// <summary>
+        /// True if bounds (in landblock coordinates) reach past one of a cell's portals to the outside, where the
+        /// server would register a static in the outdoor cells too.
+        /// </summary>
+        private bool ReachesOutside(CellGeometry cell, Vector3 min, Vector3 max)
+        {
+            if (cell.EnvCell.CellPortals == null || !cell.EnvCell.CellPortals.Any(p => p.OtherCellId == 0xFFFF))
+                return false;
+
+            var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvCell.EnvironmentId);
+            if (environment?.Cells == null || !environment.Cells.TryGetValue(cell.EnvCell.CellStructure, out var cellStruct))
+                return true;
+
+            var frame = cell.EnvCell.Position;
+            var cellCenter = cellStruct.VertexArray.Vertices.Values.Aggregate(Vector3.Zero, (a, v) => a + v.Origin) / Math.Max(1, cellStruct.VertexArray.Vertices.Count);
+            cellCenter = Transform(cellCenter, frame.Orientation) + frame.Origin;
+
+            foreach (var portal in cell.EnvCell.CellPortals.Where(p => p.OtherCellId == 0xFFFF))
+            {
+                if (!cellStruct.Polygons.TryGetValue(portal.PolygonId, out var polygon) || polygon.VertexIds.Count < 3)
+                    return true;
+
+                var points = polygon.VertexIds.Select(v => Transform(cellStruct.VertexArray.Vertices[(ushort)v].Origin, frame.Orientation) + frame.Origin).ToList();
+                var normal = Vector3.Cross(points[1] - points[0], points[2] - points[0]);
+                if (normal.LengthSquared() < 1e-12f)
+                    continue;
+                normal = Vector3.Normalize(normal);
+                if (Vector3.Dot(normal, cellCenter - points[0]) > 0f)
+                    normal = -normal; // point out of the cell
+
+                // any corner of the bounds past the portal's plane, on the outside
+                for (var corner = 0; corner < 8; corner++)
+                {
+                    var c = new Vector3((corner & 1) == 0 ? min.X : max.X, (corner & 2) == 0 ? min.Y : max.Y, (corner & 4) == 0 ? min.Z : max.Z);
+                    if (Vector3.Dot(c - points[0], normal) > 0f)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        #endregion
 
         private void LoadSetupOrGfxObj(uint id, List<Frame> sFrames, ref BoundingBox2 boundingBox, bool coneTop = false)
         {
@@ -242,10 +538,42 @@ namespace ACE.Server.Pathfinding.Geometry
             }
         }
 
+        /// <summary>
+        /// Adds the floor of a door apron (see DoorApron) for each doorway in a wall.
+        /// </summary>
+        public void AddDoorAprons(IEnumerable<CellGroupDoor> doors, AgentWidth agentWidth)
+        {
+            foreach (var door in doors)
+            {
+                if (door.IsInWall)
+                    AddPolygon(DoorApron.GetFloor(door, agentWidth), NoFrames);
+            }
+        }
+
+        /// <summary>
+        /// How much geometry has been added so far, to go back to with Truncate.
+        /// </summary>
+        public (int vertices, int polygons) GetMark()
+        {
+            return (Vertices.Count, Polygons.Count);
+        }
+
+        /// <summary>
+        /// Removes the geometry added since a mark (see GetMark), e.g. one agent width's door aprons, so the same
+        /// loaded cells can get another width's.
+        /// </summary>
+        public void Truncate((int vertices, int polygons) mark)
+        {
+            for (var i = mark.vertices; i < Vertices.Count; i++)
+                _vertexLookup.Remove(Vertices[i]);
+
+            Vertices.RemoveRange(mark.vertices, Vertices.Count - mark.vertices);
+            Polygons.RemoveRange(mark.polygons, Polygons.Count - mark.polygons);
+        }
+
         public List<Vector3> AddPolygon(List<Vector3> vertices, List<Frame> frames)
         {
-            var poly = new List<int>();
-            var retvertices = new List<Vector3>();
+            var retvertices = new List<Vector3>(vertices.Count);
             for (var i = 0; i < vertices.Count; i++)
             {
                 var vertice = vertices[vertices.Count - 1 - i];
@@ -255,13 +583,26 @@ namespace ACE.Server.Pathfinding.Geometry
                     vertice += frame.Origin;
                 }
                 retvertices.Add(vertice);
+            }
 
-                vertice = new Vector3()
-                {
-                    X = vertice.X,
-                    Y = vertice.Z,
-                    Z = vertice.Y
-                };
+            if (_capture != null)
+                _capture.Add(retvertices);
+            else
+                AddTransformedPolygon(retvertices);
+
+            return retvertices;
+        }
+
+        /// <summary>
+        /// Adds a polygon already in landblock coordinates (in the winding AddPolygon produces) to the mesh arrays.
+        /// </summary>
+        private void AddTransformedPolygon(List<Vector3> points)
+        {
+            var poly = new List<int>(points.Count);
+            foreach (var point in points)
+            {
+                // Recast space: y up
+                var vertice = new Vector3(point.X, point.Z, point.Y);
 
                 if (_vertexLookup.TryGetValue(vertice, out var index))
                 {
@@ -276,7 +617,6 @@ namespace ACE.Server.Pathfinding.Geometry
                 }
             }
             Polygons.Add(poly);
-            return retvertices;
         }
 
         private readonly Dictionary<Vector3, int> _vertexLookup = new Dictionary<Vector3, int>();
@@ -324,6 +664,20 @@ namespace ACE.Server.Pathfinding.Geometry
         private const float TerrainCutBelowFloor = 2.0f;
         private const float TerrainCutAboveCeiling = 0.5f;
 
+        /// <summary>
+        /// How far past its own landblock the geometry of an outdoor tile reaches into its neighbors. Must cover the
+        /// Recast border (the agent radius plus 3 cells, 2.5m for the Large agent): the walkable area at the
+        /// landblock edge is then eroded against the neighbor's obstacles, and the tile's edge polys line up with the
+        /// neighbor tile's, so Detour links them.
+        /// </summary>
+        public const float SurfaceMargin = 4.0f;
+
+        /// <summary>
+        /// Objects of a neighbor whose origin is further than this outside the margin are skipped without looking at
+        /// their polygons. Generous, as building shells can be large.
+        /// </summary>
+        private const float MaxObjectReach = 64.0f;
+
         private class CellFootprint
         {
             public BoundingBox2 Bounds = new BoundingBox2();
@@ -333,32 +687,78 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Exports the outdoors of a landblock: terrain, building exterior shells, static objects and scenery.
-        /// Interior cells are not part of it; each connected group of interior cells gets its own mesh, so spaces that
-        /// overlap without being connected never end up in the same heightfield. The interior cells in Neighbors are
-        /// only used to cut the terrain out of building interiors. Everything is in landblock-local coordinates.
+        /// The world rect (x, y) the surface geometry is clipped to: the tile's landblock plus SurfaceMargin.
         /// </summary>
-        public void LoadSurface(SurfaceSnapshot surface)
+        private float _clipMinX, _clipMinY, _clipMaxX, _clipMaxY;
+
+        /// <summary>
+        /// Exports the outdoors around one landblock, for its outdoor tile: terrain, building exterior shells, static
+        /// objects and scenery of the landblock itself and of the strip of each neighbor within SurfaceMargin of it.
+        /// Interior cells are not part of it; each connected group of interior cells gets its own mesh, so spaces that
+        /// overlap without being connected never end up in the same heightfield. They are only used to cut the terrain
+        /// out of building interiors. Everything is in world coordinates (see GeometryHelpers.GetLandblockOrigin).
+        /// </summary>
+        public void LoadSurface(uint landblockId, IEnumerable<SurfaceSource> sources)
         {
-            var landblockId = surface.Landblock.ID;
+            var origin = GeometryHelpers.GetLandblockOrigin(landblockId);
+            var blockLength = (float)ACE.Server.Physics.Common.LandDefs.BlockLength;
 
-            foreach (var building in surface.Buildings)
-                AddPhysicsObj(building, landblockId, true);
+            _clipMinX = origin.X - SurfaceMargin;
+            _clipMinY = origin.Y - SurfaceMargin;
+            _clipMaxX = origin.X + blockLength + SurfaceMargin;
+            _clipMaxY = origin.Y + blockLength + SurfaceMargin;
 
-            foreach (var obj in surface.StaticObjects)
-                AddPhysicsObj(obj, landblockId, false);
+            foreach (var source in sources)
+            {
+                var isOwn = source.LandblockId == (landblockId & 0xFFFF0000);
 
-            foreach (var obj in surface.Scenery)
-                AddPhysicsObj(obj, landblockId, false);
+                if (source.Objects != null)
+                {
+                    foreach (var building in source.Objects.Buildings)
+                        AddPhysicsObj(building, source.LandblockId, true, isOwn);
 
-            LoadTerrain(surface.Landblock, BuildFootprints());
+                    foreach (var obj in source.Objects.StaticObjects)
+                        AddPhysicsObj(obj, source.LandblockId, false, isOwn);
+
+                    foreach (var obj in source.Objects.Scenery)
+                        AddPhysicsObj(obj, source.LandblockId, false, isOwn);
+                }
+
+                if (source.Terrain != null)
+                    LoadTerrain(source.LandblockId, source.Terrain, BuildFootprints(source.LandblockId, source.InteriorCells));
+            }
+        }
+
+        private bool IntersectsClip(float minX, float minY, float maxX, float maxY)
+        {
+            return maxX >= _clipMinX && minX <= _clipMaxX && maxY >= _clipMinY && minY <= _clipMaxY;
+        }
+
+        /// <summary>
+        /// Adds a polygon given in world coordinates, unless it lies entirely outside the clip rect.
+        /// </summary>
+        private void AddSurfacePolygon(List<Vector3> points)
+        {
+            float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+            foreach (var p in points)
+            {
+                minX = Math.Min(minX, p.X);
+                minY = Math.Min(minY, p.Y);
+                maxX = Math.Max(maxX, p.X);
+                maxY = Math.Max(maxY, p.Y);
+            }
+
+            if (IntersectsClip(minX, minY, maxX, maxY))
+                AddPolygon(points, NoFrames);
         }
 
         /// <summary>
         /// Adds the collision shape of a physics object, following the same rules the physics engine uses:
         /// part BSP polygons when the object has a physics BSP, otherwise cylinder spheres, otherwise spheres.
         /// </summary>
-        private void AddPhysicsObj(ACE.Server.Physics.PhysicsObj obj, uint landblockId, bool isBuilding)
+        /// <param name="sourceLandblockId">The landblock whose object list holds the object</param>
+        /// <param name="isOwn">True for the tile's own landblock, whose objects are never skipped by distance</param>
+        private void AddPhysicsObj(ACE.Server.Physics.PhysicsObj obj, uint sourceLandblockId, bool isBuilding, bool isOwn)
         {
             if (obj?.PartArray == null || obj.Position?.Frame == null)
                 return;
@@ -366,7 +766,16 @@ namespace ACE.Server.Pathfinding.Geometry
             if (obj.State.HasFlag(ACE.Entity.Enum.PhysicsState.Ethereal))
                 return;
 
-            var offset = GetBlockOffset(obj.Position.ObjCellID, landblockId);
+            // Objects are occasionally re-parented to a neighboring landblock (AdjustToOutside), which puts their
+            // frame in that landblock's coordinates: the frame is relative to the landblock of their own cell.
+            var offset = GeometryHelpers.GetLandblockOrigin(obj.Position.ObjCellID != 0 ? obj.Position.ObjCellID : sourceLandblockId);
+
+            if (!isOwn)
+            {
+                var at = obj.Position.Frame.Origin + offset;
+                if (!IntersectsClip(at.X - MaxObjectReach, at.Y - MaxObjectReach, at.X + MaxObjectReach, at.Y + MaxObjectReach))
+                    return;
+            }
 
             if (isBuilding || obj.State.HasFlag(ACE.Entity.Enum.PhysicsState.HasPhysicsBSP))
             {
@@ -385,7 +794,7 @@ namespace ACE.Server.Pathfinding.Geometry
                     foreach (var poly in gfxObj.PhysicsPolygons.Values)
                     {
                         var points = poly.VertexIds.Select(v => frame.LocalToGlobal(gfxObj.VertexArray.Vertices[(ushort)v].Origin * scale) + offset).ToList();
-                        AddPolygon(points, NoFrames);
+                        AddSurfacePolygon(points);
                     }
                 }
                 return;
@@ -400,7 +809,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 foreach (var cylSphere in cylSpheres)
                 {
                     foreach (var poly in GetCylSpherePolygons(cylSphere.LowPoint * objScale, cylSphere.Height * objScale, cylSphere.Radius * objScale))
-                        AddPolygon(poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList(), NoFrames);
+                        AddSurfacePolygon(poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList());
                 }
                 return;
             }
@@ -411,36 +820,22 @@ namespace ACE.Server.Pathfinding.Geometry
                 foreach (var sphere in spheres)
                 {
                     foreach (var poly in GetSpherePolygons(sphere.Center * objScale, sphere.Radius * objScale))
-                        AddPolygon(poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList(), NoFrames);
+                        AddSurfacePolygon(poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList());
                 }
             }
         }
 
         /// <summary>
-        /// Objects are occasionally re-parented to a neighboring landblock (AdjustToOutside), which puts their frame in
-        /// that landblock's coordinates. This returns the offset to bring them back into our landblock's frame.
+        /// Collects the floor polygons and height range of a landblock's interior cells near the clip rect, in world
+        /// coordinates. Used to cut the terrain out of building interiors.
         /// </summary>
-        private static Vector3 GetBlockOffset(uint objCellId, uint landblockId)
-        {
-            if (objCellId == 0)
-                return Vector3.Zero;
-
-            var dx = (int)((objCellId >> 24) & 0xFF) - (int)((landblockId >> 24) & 0xFF);
-            var dy = (int)((objCellId >> 16) & 0xFF) - (int)((landblockId >> 16) & 0xFF);
-
-            return new Vector3(dx * ACE.Server.Physics.Common.LandDefs.BlockLength, dy * ACE.Server.Physics.Common.LandDefs.BlockLength, 0);
-        }
-
-        /// <summary>
-        /// Collects the floor polygons and height range of every interior cell, in landblock coordinates.
-        /// Used to cut the terrain out of building interiors.
-        /// </summary>
-        private List<CellFootprint> BuildFootprints()
+        private List<CellFootprint> BuildFootprints(uint landblockId, List<CellGeometry> cells)
         {
             var footprints = new List<CellFootprint>();
             var floorZ = ACE.Server.Physics.PhysicsGlobals.FloorZ;
+            var origin = GeometryHelpers.GetLandblockOrigin(landblockId);
 
-            foreach (var cell in Neighbors)
+            foreach (var cell in cells)
             {
                 var envCell = cell.EnvCell;
                 if (envCell == null)
@@ -457,7 +852,7 @@ namespace ACE.Server.Pathfinding.Geometry
                     if (poly.VertexIds.Count < 3)
                         continue;
 
-                    var points = poly.VertexIds.Select(v => Transform(cellStruct.VertexArray.Vertices[(ushort)v].Origin, envCell.Position.Orientation) + envCell.Position.Origin).ToArray();
+                    var points = poly.VertexIds.Select(v => Transform(cellStruct.VertexArray.Vertices[(ushort)v].Origin, envCell.Position.Orientation) + envCell.Position.Origin + origin).ToArray();
 
                     foreach (var p in points)
                         footprint.MaxZ = Math.Max(footprint.MaxZ, p.Z);
@@ -472,7 +867,7 @@ namespace ACE.Server.Pathfinding.Geometry
                         footprint.Bounds.Add(p);
                 }
 
-                if (footprint.Floors.Count > 0)
+                if (footprint.Floors.Count > 0 && footprint.Bounds.IntersectsRect(_clipMinX, _clipMinY, _clipMaxX, _clipMaxY))
                     footprints.Add(footprint);
             }
 
@@ -536,28 +931,33 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Adds the terrain, triangulated exactly like the physics landblock. Cells overlapping an interior are
-        /// subdivided and any sub-quad entirely inside an interior is dropped, so terrain doesn't poke through floors.
+        /// Adds the terrain cells of a landblock that overlap the clip rect, in world coordinates, triangulated exactly
+        /// like the physics landblock. Cells overlapping an interior are subdivided and any sub-quad entirely inside an
+        /// interior is dropped, so terrain doesn't poke through floors.
         /// </summary>
-        private void LoadTerrain(ACE.Server.Physics.Common.Landblock landblock, List<CellFootprint> footprints)
+        private void LoadTerrain(uint landblockId, ACE.Server.Physics.Common.LandblockStruct landblock, List<CellFootprint> footprints)
         {
             var vertices = landblock.VertexArray.Vertices;
             var sideCells = landblock.SideCellCount;
             var sideVerts = landblock.SideVertexCount;
             var cellLength = (float)ACE.Server.Physics.Common.LandDefs.BlockLength / sideCells;
+            var origin = GeometryHelpers.GetLandblockOrigin(landblockId);
 
             for (var x = 0; x < sideCells; x++)
             {
                 for (var y = 0; y < sideCells; y++)
                 {
+                    var x0 = origin.X + x * cellLength;
+                    var y0 = origin.Y + y * cellLength;
+
+                    if (!IntersectsClip(x0, y0, x0 + cellLength, y0 + cellLength))
+                        continue;
+
                     var z00 = vertices[x * sideVerts + y].Origin.Z;
                     var z10 = vertices[(x + 1) * sideVerts + y].Origin.Z;
                     var z01 = vertices[x * sideVerts + y + 1].Origin.Z;
                     var z11 = vertices[(x + 1) * sideVerts + y + 1].Origin.Z;
                     var swToNeCut = landblock.SWtoNEcut[x * sideCells + y];
-
-                    var x0 = x * cellLength;
-                    var y0 = y * cellLength;
 
                     // terrain height at local offset (u, v) within this cell, using the same split as the physics polygons
                     float TerrainZ(float u, float v)

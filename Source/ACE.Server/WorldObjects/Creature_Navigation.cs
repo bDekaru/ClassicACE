@@ -330,7 +330,9 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Used by the monster AI system to start turning / running towards a position
         /// </summary>
-        public void MoveTo(Position position, float distanceToObject = 2.0f, float speed = 1.0f, bool useFinalHeading = true, bool clientOnly = false)
+        /// <param name="useSpheres">How distanceToObject is measured. True: from the edge of the body, so the move arrives
+        /// up to distanceToObject + the body's own radius from the position. False: from the centre of the body.</param>
+        public void MoveTo(Position position, float distanceToObject = 2.0f, float speed = 1.0f, bool useFinalHeading = true, bool clientOnly = false, bool useSpheres = true)
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).MoveTo({position.ToLOCString()}, {distanceToObject}, {speed}, {clientOnly})");
@@ -338,7 +340,11 @@ namespace ACE.Server.WorldObjects
             if (!position.Indoors)
                 position.AdjustMapCoords();
 
-            var motion = GetMoveToMotion(position, distanceToObject, speed,  useFinalHeading);
+            var motion = GetMoveToMotion(position, distanceToObject, speed, useFinalHeading);
+
+            // the server's MovementParameters below copy these flags, so client and server agree on arrival
+            if (!useSpheres)
+                motion.MoveToParameters.MovementParameters &= ~MovementParams.UseSpheres;
 
             EnqueueBroadcastMotion(motion);
 

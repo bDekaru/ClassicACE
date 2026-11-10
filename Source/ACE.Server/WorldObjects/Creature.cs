@@ -340,13 +340,13 @@ namespace ACE.Server.WorldObjects
             var chestLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Wide);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Medium);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
                     chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Narrow, out _, true);
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Small, out _, true);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
@@ -467,13 +467,13 @@ namespace ACE.Server.WorldObjects
             var chestLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Wide);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Medium);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
                     chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Narrow, out _, true);
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Small, out _, true);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
@@ -531,13 +531,13 @@ namespace ACE.Server.WorldObjects
             var chestLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors)
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Wide);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Medium);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
                     chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Narrow, out _, true);
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Small, out _, true);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
@@ -596,13 +596,13 @@ namespace ACE.Server.WorldObjects
             var corpseLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(corpseLocation, 40, AgentWidth.Wide);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(corpseLocation, 40, AgentWidth.Medium);
                 if (randomPos != null)
                     corpseLocation = randomPos;
                 else
                     corpseLocation = corpseLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-                randomPos = Pathfinder.GetNearestWallPosition(corpseLocation, 20, AgentWidth.Narrow, out _, true);
+                randomPos = Pathfinder.GetNearestWallPosition(corpseLocation, 20, AgentWidth.Small, out _, true);
                 if (randomPos != null)
                     corpseLocation = randomPos;
             }
@@ -652,7 +652,7 @@ namespace ACE.Server.WorldObjects
             var triggerLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors)
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(triggerLocation, 40, AgentWidth.Narrow);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(triggerLocation, 40, AgentWidth.Small);
                 if (randomPos != null)
                     triggerLocation = randomPos;
                 else
@@ -664,7 +664,7 @@ namespace ACE.Server.WorldObjects
             var trapLocation = new Position(triggerLocation);
             if (PathfindingEnabled && Location.Indoors)
             {
-                var randomPos = Pathfinder.GetNearestWallPosition(trapLocation, 20, AgentWidth.Narrow, out _);
+                var randomPos = Pathfinder.GetNearestWallPosition(trapLocation, 20, AgentWidth.Small, out _);
                 if (randomPos != null)
                     trapLocation = randomPos;
                 else
@@ -904,14 +904,23 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Sends the network commands to move a player towards a position
         /// </summary>
-        public void MoveToPosition(Position position, float? radius = null)
+        /// <param name="walk">If true, the player walks the whole way instead of running</param>
+        /// <param name="useSpheres">How the radius is measured. True: from the edge of the body, so the move arrives up
+        /// to radius + the body's own radius from the position. False: from the centre of the body.</param>
+        public void MoveToPosition(Position position, float? radius = null, bool walk = false, bool useSpheres = true)
         {
             var distanceToObject = radius ?? 0.6f;
 
             var moveToPosition = new Motion(this, position);
             moveToPosition.MoveToParameters.DistanceToObject = distanceToObject;
 
-            SetWalkRunThreshold(moveToPosition, position);
+            if (!useSpheres)
+                moveToPosition.MoveToParameters.MovementParameters &= ~MovementParams.UseSpheres;
+
+            if (walk)
+                moveToPosition.MoveToParameters.MovementParameters &= ~(MovementParams.CanRun | MovementParams.CanCharge);
+            else
+                SetWalkRunThreshold(moveToPosition, position);
 
             EnqueueBroadcastMotion(moveToPosition);
         }

@@ -39,7 +39,7 @@ namespace ACE.Server.WorldObjects
             if (alertNearby)
                 AlertFriendly();
 
-            if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
+            if (CanRouteHere && AttackTarget != null)
             {
                 if ((!IsRanged && !IsMeleeVisible(AttackTarget, true)) || (IsRanged && (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())))
                     TryRoute();
@@ -370,7 +370,7 @@ namespace ACE.Server.WorldObjects
                 {
                     EmoteManager.OnNewEnemy(AttackTarget);
 
-                    if (PathfindingEnabled && Location.Indoors)
+                    if (CanRouteHere)
                     {
                         if ((!IsRanged && !IsMeleeVisible(AttackTarget, true)) || (IsRanged && (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())))
                             TryRoute();

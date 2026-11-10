@@ -606,6 +606,50 @@ namespace ACE.Server.Physics
             return 0.0f;
         }
 
+        /// <summary>
+        /// How far this object's collision spheres reach horizontally from its origin: the radius that collides with
+        /// walls when it moves. Uses the same spheres as transition(): the first two of the setup, scaled, or the
+        /// dummy sphere when it has none.
+        /// </summary>
+        public float GetWallCollisionRadius()
+        {
+            if (PartArray == null || PartArray.GetNumSphere() == 0)
+                return PhysicsGlobals.DummySphere.Radius;
+
+            var spheres = PartArray.GetSphere();
+            var count = Math.Min(PartArray.GetNumSphere(), 2);
+            var radius = 0.0f;
+
+            for (var i = 0; i < count; i++)
+            {
+                var sphere = spheres[i];
+                var reach = new Vector2(sphere.Center.X, sphere.Center.Y).Length() + sphere.Radius;
+                radius = Math.Max(radius, reach * Scale);
+            }
+
+            return radius;
+        }
+
+        /// <summary>
+        /// The clearance this object needs overhead when it moves: from the bottom of its foot sphere, which rests on
+        /// the floor, to the top of its highest collision sphere. Uses the same spheres as GetWallCollisionRadius.
+        /// </summary>
+        public float GetWallCollisionHeight()
+        {
+            if (PartArray == null || PartArray.GetNumSphere() == 0)
+                return PhysicsGlobals.DummySphere.Radius * 2.0f;
+
+            var spheres = PartArray.GetSphere();
+            var count = Math.Min(PartArray.GetNumSphere(), 2);
+            var bottom = spheres[0].Center.Z - spheres[0].Radius;
+            var top = float.MinValue;
+
+            for (var i = 0; i < count; i++)
+                top = Math.Max(top, spheres[i].Center.Z + spheres[i].Radius);
+
+            return (top - bottom) * Scale;
+        }
+
         public Sphere GetSelectionSphere(Sphere selectionSphere)
         {
             if (PartArray != null)

@@ -215,7 +215,7 @@ namespace ACE.Server.WorldObjects
                                 TryWandering(-45, 45, 4);
                             break;
                         case 2:
-                            if (PathfindingEnabled && Location.Indoors && !LastRouteStartAttemptWasNullRoute)
+                            if (CanRouteHere && !LastRouteStartAttemptWasNullRoute)
                             {
                                 if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                     TryWandering(160, 200, 5);
@@ -409,7 +409,7 @@ namespace ACE.Server.WorldObjects
                 });
                 innerChain.EnqueueChain();
 
-                if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
+                if (CanRouteHere && AttackTarget != null)
                 {
                     if (!IsMeleeVisible(AttackTarget, true))
                         TryRoute();
@@ -523,7 +523,7 @@ namespace ACE.Server.WorldObjects
                 });
                 innerChain.EnqueueChain();
 
-                if (PathfindingEnabled && Location.Indoors && AttackTarget != null)
+                if (CanRouteHere && AttackTarget != null)
                 {
                     if (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())
                         TryRoute();

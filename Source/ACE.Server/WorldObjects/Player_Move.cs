@@ -151,11 +151,13 @@ namespace ACE.Server.WorldObjects
             }
         }
 
-        public void CreateMoveToChain(Position target, Action<bool> callback, float? radius = null)
+        /// <param name="useSpheres">How the radius is measured. True: from the edge of the body, so the move arrives up
+        /// to radius + the body's own radius from the target. False: from the centre of the body.</param>
+        public void CreateMoveToChain(Position target, Action<bool> callback, float? radius = null, bool walk = false, bool useSpheres = true)
         {
             if (FastTick)
             {
-                CreateMoveToChain2(target, callback, radius);
+                CreateMoveToChain2(target, callback, radius, walk, useSpheres);
                 return;
             }
 
@@ -187,7 +189,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            MoveToPosition(target);
+            MoveToPosition(target, null, walk, useSpheres);
 
             moveToChainStartTime = DateTime.UtcNow;
 
