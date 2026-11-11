@@ -285,15 +285,33 @@ namespace ACE.Server.Pathfinding
         public static string OutdoorMeshDirectory => Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Pathfinding", "Meshes", "Outdoors");
 
         /// <summary>
-        /// The interior group meshes, by mesh id (see GetMeshId). Null while a mesh is loading.
+        /// The interior group meshes, by mesh id (see GetMeshId). A placeholder while a mesh is loading.
         /// </summary>
-        public static readonly ConcurrentDictionary<uint, DtNavMesh?> Meshes = new ConcurrentDictionary<uint, DtNavMesh?>();
+        private static readonly ConcurrentDictionary<uint, InteriorMesh> Meshes = new ConcurrentDictionary<uint, InteriorMesh>();
 
         /// <summary>
-        /// Per interior mesh id, the doorways of its cell group an agent of that mesh's width can get through: those
-        /// whose door apron (see DoorApron) is connected to the rest of the mesh. Set together with the mesh.
+        /// An interior group mesh and the doorways of its cell group an agent of the mesh's width can get through: those
+        /// whose door apron (see DoorApron) is connected to the rest of the mesh. Published together, so the doorways
+        /// always belong to the mesh.
+        /// A load claims its mesh id with a placeholder of its own, and only replaces that placeholder with the mesh: a
+        /// mesh that was unloaded or rebuilt while it was loading has another placeholder or none, and the stale result
+        /// is dropped. ConcurrentDictionary.TryUpdate compares by reference here, as Equals isn't overridden.
         /// </summary>
-        private static readonly ConcurrentDictionary<uint, List<CellGroupDoor>> PassableDoors = new ConcurrentDictionary<uint, List<CellGroupDoor>>();
+        private sealed class InteriorMesh
+        {
+            public readonly DtNavMesh Mesh;
+            public readonly List<CellGroupDoor> PassableDoors;
+
+            public bool IsPlaceholder => Mesh == null;
+
+            public InteriorMesh(DtNavMesh mesh, List<CellGroupDoor> passableDoors)
+            {
+                Mesh = mesh;
+                PassableDoors = passableDoors;
+            }
+
+            public static InteriorMesh CreatePlaceholder() => new InteriorMesh(null, null);
+        }
 
         /// <summary>
         /// The door polys of reachable door aprons.
@@ -1395,18 +1413,14 @@ namespace ACE.Server.Pathfinding
         private static List<CellGroupDoor> GetDoors(MeshGroupKey key, CellGroup cellGroup, AgentWidth agentWidth)
         {
             var meshId = GetMeshId(key.LandblockId, key.Index, agentWidth);
-            if (PassableDoors.TryGetValue(meshId, out var doors))
-                return doors;
-
-            if (!Meshes.ContainsKey(meshId) && cellGroup.CellIds.Count > 0)
+            if (!Meshes.TryGetValue(meshId, out var interiorMesh))
             {
                 // cached meshes load right away
-                TryLoadInteriorMesh(new Position(cellGroup.CellIds.First(), Vector3.Zero, Quaternion.Identity), key.Index);
-                if (PassableDoors.TryGetValue(meshId, out doors))
-                    return doors;
+                TryLoadInteriorMesh(key.LandblockId, key.Index);
+                Meshes.TryGetValue(meshId, out interiorMesh);
             }
 
-            return cellGroup.Doors;
+            return interiorMesh?.PassableDoors ?? cellGroup.Doors;
         }
 
         /// <summary>
@@ -1649,13 +1663,13 @@ namespace ACE.Server.Pathfinding
                 return AcquireOutdoorMesh(pos.Cell, agentWidth);
 
             var meshId = GetMeshId(group.LandblockId, group.Index, agentWidth);
-            if (!Meshes.TryGetValue(meshId, out var mesh))
+            if (!Meshes.TryGetValue(meshId, out var interiorMesh))
             {
-                TryLoadInteriorMesh(pos, group.Index);
-                Meshes.TryGetValue(meshId, out mesh);
+                TryLoadInteriorMesh(group.LandblockId, group.Index);
+                Meshes.TryGetValue(meshId, out interiorMesh);
             }
 
-            return mesh is null ? null : new MeshLease(mesh, group, null);
+            return interiorMesh == null || interiorMesh.IsPlaceholder ? null : new MeshLease(interiorMesh.Mesh, group, null);
         }
 
         /// <summary>
@@ -1721,11 +1735,9 @@ namespace ACE.Server.Pathfinding
         {
             var landblockId = cell & 0xFFFF0000;
 
+            // a mesh still loading for this landblock is dropped when it is done (see InteriorMesh)
             foreach (var meshId in Meshes.Keys.Where(k => (k & 0xFFFF0000) == landblockId).ToList())
-            {
                 Meshes.TryRemove(meshId, out _);
-                PassableDoors.TryRemove(meshId, out _);
-            }
 
             lock (OutdoorTileSync)
             {
@@ -1744,10 +1756,7 @@ namespace ACE.Server.Pathfinding
         private static void UnloadMesh(uint cell, int group)
         {
             foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
-            {
                 Meshes.TryRemove(GetMeshId(cell, group, agentWidth), out _);
-                PassableDoors.TryRemove(GetMeshId(cell, group, agentWidth), out _);
-            }
         }
 
         /// <summary>
@@ -1761,7 +1770,7 @@ namespace ACE.Server.Pathfinding
             if (group.IsOutdoor)
                 TryLoadOutdoorTile(pos.Cell, rebuildMesh);
             else if (!group.IsNone)
-                TryLoadInteriorMesh(pos, group.Index, rebuildMesh);
+                TryLoadInteriorMesh(group.LandblockId, group.Index, rebuildMesh);
         }
 
         #endregion
@@ -1951,12 +1960,12 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Loads the meshes of one interior cell group: only that group's cells and their static objects. Cached meshes
         /// load right away. Missing ones are built in the background, which can take seconds for a large dungeon; until
-        /// then the mesh is present as null and queries return no result.
+        /// then the mesh is present as a placeholder (see InteriorMesh) and queries return no result.
         /// </summary>
-        private static void TryLoadInteriorMesh(Position pos, int group, bool rebuildMesh = false)
+        private static void TryLoadInteriorMesh(uint landblockId, int group, bool rebuildMesh = false)
         {
-            var landblockId = pos.Cell & 0xFFFF0000;
-            var location = pos.ToLOCString();
+            landblockId &= 0xFFFF0000;
+            var location = $"landblock 0x{landblockId:X8}";
 
             if (rebuildMesh)
                 UnloadMesh(landblockId, group);
@@ -1967,12 +1976,13 @@ namespace ACE.Server.Pathfinding
             // Doorways in a wall have a door apron, which keeps their component by itself when it can be reached (see
             // MarkIslands). Seeding with them would also keep an apron that can't be reached, so only the others seed.
             var seeds = cellGroup.Doors.Where(d => !d.IsInWall).Select(d => ToMeshPoint(landblockId, d.Position, false)).ToList();
-            var toBuild = new List<(AgentWidth agentWidth, uint meshId, string meshPath)>();
+            var toBuild = new List<(AgentWidth agentWidth, uint meshId, string meshPath, InteriorMesh placeholder)>();
 
             foreach (var agentWidth in Enum.GetValues(typeof(AgentWidth)).Cast<AgentWidth>())
             {
                 var meshId = GetMeshId(landblockId, group, agentWidth);
-                if (!Meshes.TryAdd(meshId, null))
+                var placeholder = InteriorMesh.CreatePlaceholder();
+                if (!Meshes.TryAdd(meshId, placeholder))
                     continue;
 
                 var meshPath = GetMeshPath(InteriorMeshDirectory, meshId, false, agentWidth);
@@ -1981,8 +1991,7 @@ namespace ACE.Server.Pathfinding
                     if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
                     {
                         MarkIslands(cachedMesh, seeds, false);
-                        PassableDoors[meshId] = FindPassableDoors(cachedMesh, cellGroup, agentWidth);
-                        Meshes.TryUpdate(meshId, cachedMesh, null);
+                        Meshes.TryUpdate(meshId, new InteriorMesh(cachedMesh, FindPassableDoors(cachedMesh, cellGroup, agentWidth)), placeholder);
                         continue;
                     }
                 }
@@ -1991,19 +2000,25 @@ namespace ACE.Server.Pathfinding
                     log.Warn($"Pathfinder: could not load the {agentWidth} mesh for cell group {group} at {location}, rebuilding it: {e.Message}");
                 }
 
-                toBuild.Add((agentWidth, meshId, meshPath));
+                toBuild.Add((agentWidth, meshId, meshPath, placeholder));
             }
 
             if (toBuild.Count == 0)
                 return;
+
+            // a mesh unloaded or rebuilt since its build was queued no longer has this build's placeholder
+            bool IsCurrent(uint meshId, InteriorMesh placeholder) => Meshes.TryGetValue(meshId, out var current) && current == placeholder;
 
             RunMeshBuild(() =>
             {
                 // the cells are loaded once; each width gets its own door aprons (see DoorApron)
                 Dictionary<AgentWidth, CellGeometryProvider> geoms = null;
 
-                foreach (var (agentWidth, meshId, meshPath) in toBuild)
+                foreach (var (agentWidth, meshId, meshPath, placeholder) in toBuild)
                 {
+                    if (!IsCurrent(meshId, placeholder))
+                        continue;
+
                     // On failure the placeholder stays, so no retry is made: the same cells would fail the same way
                     // until a rebuild is requested.
                     try
@@ -2025,8 +2040,12 @@ namespace ACE.Server.Pathfinding
                         }
 
                         MarkIslands(mesh, seeds, false);
-                        PassableDoors[meshId] = FindPassableDoors(mesh, cellGroup, agentWidth);
-                        Meshes.TryUpdate(meshId, mesh, null);
+                        if (!Meshes.TryUpdate(meshId, new InteriorMesh(mesh, FindPassableDoors(mesh, cellGroup, agentWidth)), placeholder))
+                        {
+                            log.Debug($"Pathfinder: dropped the {agentWidth} nav mesh built for cell group {group} at {location}: it was unloaded or rebuilt meanwhile");
+                            continue;
+                        }
+
                         log.Debug($"Pathfinder: built {agentWidth} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location} in {stopwatch.ElapsedMilliseconds}ms ({mesh.GetTile(0)?.data?.header?.offMeshConCount ?? 0} drops)");
                     }
                     catch (Exception e)
