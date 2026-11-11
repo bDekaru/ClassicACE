@@ -4747,14 +4747,16 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"{agentWidth} mesh, {result}. Written to {path}");
         }
 
-        [CommandHandler("RebuildPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Rebuilds pathfinding meshes for the currecnt landblock")]
+        [CommandHandler("RebuildPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Rebuilds the pathfinding meshes where you stand: the meshes of the building, cave or dungeon area you are in, or the outdoor meshes of your landblock when you are outside")]
         public static void HandleRebuildPathfinding(Session session, params string[] parameters)
         {
             if (session.Player.Location != null)
             {
-                var landblock = session.Player.CurrentLandblock;
-                var landblockId = landblock.Id.Raw | 0xFFFF;
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Rebuilding pathfinding meshes for 0x{landblockId:X8}", ChatMessageType.Broadcast));
+                var location = session.Player.Location;
+                var target = location.Indoors
+                    ? $"the area around cell 0x{location.Cell:X8}"
+                    : $"the outdoors of landblock 0x{location.Cell | 0xFFFF:X8}";
+                session.Network.EnqueueSend(new GameMessageSystemChat($"Rebuilding the pathfinding meshes of {target}.", ChatMessageType.Broadcast));
 
                 Pathfinder.TryLoadMesh(session.Player.Location, true);
             }
