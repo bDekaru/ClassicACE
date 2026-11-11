@@ -921,7 +921,7 @@ namespace ACE.Server.Pathfinding
 
             if (group.IsOutdoor)
             {
-                // entering a building or cave: its doorways, on the outdoor mesh
+                // entering a building or cave: in front of its doorways, on the outdoor mesh
                 if (!TryGetCellGroup(endGroup, out var entering))
                     return null;
 
@@ -931,8 +931,8 @@ namespace ACE.Server.Pathfinding
 
                 doors = enteringDoors.Select(d =>
                 {
-                    var at = ToGlobal(endGroup.LandblockId, d.Position);
-                    return (new Position(GetLandCellId(endGroup.LandblockId, d.Position), d.Position, Quaternion.Identity), at, Vector3.Distance(at, endAt));
+                    var at = GetDoorApproach(d, endGroup.LandblockId, true, agentSize);
+                    return (CreateOutdoorPosition(at), at, Vector3.Distance(at, endAt));
                 });
             }
             else
@@ -958,7 +958,7 @@ namespace ACE.Server.Pathfinding
                         return null;
 
                     // across the outdoors to the other building's best doorway, then inside to the end
-                    var otherDoors = otherDoorList.Select(d => ToGlobal(endGroup.LandblockId, d.Position)).ToList();
+                    var otherDoors = otherDoorList.Select(d => GetDoorApproach(d, endGroup.LandblockId, true, agentSize)).ToList();
                     remainingFrom = p => otherDoors.Min(d => Vector3.Distance(p, d) + Vector3.Distance(d, endAt));
                 }
 
@@ -993,9 +993,35 @@ namespace ACE.Server.Pathfinding
         private const int MAX_ROUTE_LEGS = 4;
 
         /// <summary>
-        /// A leg must end this close to a doorway for the route to continue on the other side.
+        /// A leg must end this close to where it was headed at a doorway (see GetDoorApproach) for the route to continue
+        /// on the other side.
         /// </summary>
         private const float DOOR_REACH_DISTANCE = 2.0f;
+
+        /// <summary>
+        /// How far onto the outdoor mesh a doorway's outdoor side is placed (see GetDoorOutsidePoint).
+        /// </summary>
+        private const float DOOR_OUTSIDE_MARGIN = 0.3f;
+
+        /// <summary>
+        /// Where a route meets a doorway on the outdoor mesh, in landblock coordinates. The outdoor mesh keeps an agent
+        /// radius from the building's walls, so in front of a doorway in a wall it starts about that far out from the
+        /// threshold: the point is there, a little onto the mesh, at threshold height. A doorway that isn't in a wall
+        /// has no direction out, and the point is its threshold.
+        /// </summary>
+        private static Vector3 GetDoorOutsidePoint(CellGroupDoor door, AgentSize agentSize)
+        {
+            return door.Position + door.Normal * (GetAgentRadius(agentSize) + DOOR_OUTSIDE_MARGIN);
+        }
+
+        /// <summary>
+        /// Where a leg on the given side of a doorway heads for it, in world coordinates: the outdoor point (see
+        /// GetDoorOutsidePoint) on the outdoor mesh, the threshold on the interior mesh, whose door apron reaches it.
+        /// </summary>
+        private static Vector3 GetDoorApproach(CellGroupDoor door, uint doorLandblockId, bool outdoor, AgentSize agentSize)
+        {
+            return ToGlobal(doorLandblockId, outdoor ? GetDoorOutsidePoint(door, agentSize) : door.Position);
+        }
 
         /// <summary>
         /// Finds a route that may cross between mesh groups through doorways, by chaining FindRoute calls: each leg
@@ -1047,8 +1073,9 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// For a leg that ended at a doorway, returns the start of the next leg: the same spot in the group on the other
-        /// side (the outdoors when leaving a building, the building's door cell when entering it).
+        /// For a leg that ended at a doorway, returns the start of the next leg, on the other side of it: in front of the
+        /// doorway outdoors when leaving a building (see GetDoorOutsidePoint), at its threshold in the building's door
+        /// cell when entering it.
         /// </summary>
         private static Position GetOtherSideOfDoorway(MeshGroupKey group, Position legEnd, MeshGroupKey endGroup, AgentSize agentSize)
         {
@@ -1061,14 +1088,15 @@ namespace ACE.Server.Pathfinding
             if (doors.Count == 0)
                 return null;
 
+            // the doorway the leg headed for, from the side the leg ran on
             var legEndAt = ToGlobal(legEnd);
-            var door = doors.OrderBy(d => Vector3.DistanceSquared(ToGlobal(doorGroup.LandblockId, d.Position), legEndAt)).First();
-            if (Vector3.Distance(ToGlobal(doorGroup.LandblockId, door.Position), legEndAt) > DOOR_REACH_DISTANCE)
+            var door = doors.OrderBy(d => Vector3.DistanceSquared(GetDoorApproach(d, doorGroup.LandblockId, group.IsOutdoor, agentSize), legEndAt)).First();
+            if (Vector3.Distance(GetDoorApproach(door, doorGroup.LandblockId, group.IsOutdoor, agentSize), legEndAt) > DOOR_REACH_DISTANCE)
                 return null; // the leg did not make it to the doorway
 
             return group.IsOutdoor
                 ? new Position(door.CellId, door.Position, Quaternion.Identity)
-                : new Position(GetLandCellId(doorGroup.LandblockId, door.Position), door.Position, Quaternion.Identity);
+                : CreateOutdoorPosition(GetDoorApproach(door, doorGroup.LandblockId, true, agentSize));
         }
 
         /// <summary>
@@ -2092,7 +2120,6 @@ namespace ACE.Server.Pathfinding
         private static void BuildOutdoorTile(uint landblockId, int generation, bool force)
         {
             var (tileX, tileY) = GetLandblockCoords(landblockId);
-            var seeds = GetOutdoorDoorPositions(landblockId);
 
             CellGeometryProvider geom = null;
             var geometryLoaded = false;
@@ -2150,7 +2177,7 @@ namespace ACE.Server.Pathfinding
                         FailOutdoorBuild(landblockId);
                         return;
                     }
-                    MarkIslands(tileMesh, seeds, true);
+                    MarkIslands(tileMesh, GetOutdoorDoorPositions(landblockId, agentSize), true);
 
                     lock (OutdoorTileSync)
                     {
@@ -2214,15 +2241,16 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The doorways from the outdoors into the landblock's buildings and caves, on the outdoor mesh (Recast space),
-        /// which anchor the outdoor mesh components around them (see MarkIslands).
+        /// The doorways from the outdoors into the landblock's buildings and caves, where they meet the outdoor mesh of
+        /// an agent size (see GetDoorOutsidePoint), in Recast space. They anchor the outdoor mesh components around them
+        /// (see MarkIslands).
         /// </summary>
-        private static List<RcVec3f> GetOutdoorDoorPositions(uint landblockId)
+        private static List<RcVec3f> GetOutdoorDoorPositions(uint landblockId, AgentSize agentSize)
         {
             return GetGroups(landblockId).ByIndex.Values
                 .Where(g => g.ConnectsToOutside)
                 .SelectMany(g => g.Doors)
-                .Select(d => ToMeshPoint(landblockId, d.Position, true))
+                .Select(d => ToMeshPoint(landblockId, GetDoorOutsidePoint(d, agentSize), true))
                 .ToList();
         }
 
