@@ -456,6 +456,9 @@ namespace ACE.Server.Pathfinding
                 Query = pool.TryDequeue(out var query) ? query : new DtNavMeshQuery(mesh);
                 Group = group;
                 this.outdoorMesh = outdoorMesh;
+
+                // last, so a failure above leaves no lock behind
+                outdoorMesh?.EnterRead();
             }
 
             /// <summary>
@@ -1709,23 +1712,11 @@ namespace ACE.Server.Pathfinding
             var landblockId = cell & 0xFFFF0000;
             var outdoorMesh = OutdoorMeshes[agentSize];
 
-            var hasTile = false;
-            outdoorMesh.EnterRead();
-            try
-            {
-                if (outdoorMesh.HasTile(landblockId))
-                {
-                    hasTile = true;
-                    return new MeshLease(outdoorMesh.Mesh, MeshGroupKey.Outdoors, outdoorMesh);
-                }
-            }
-            finally
-            {
-                // on success the lease releases the lock
-                if (!hasTile)
-                    outdoorMesh.ExitRead();
-            }
+            var lease = new MeshLease(outdoorMesh.Mesh, MeshGroupKey.Outdoors, outdoorMesh);
+            if (outdoorMesh.HasTile(landblockId))
+                return lease;
 
+            lease.Dispose();
             TryLoadOutdoorTile(landblockId);
             return null;
         }
