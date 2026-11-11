@@ -297,7 +297,7 @@ namespace ACE.Server.Pathfinding.Geometry
             }
         }
 
-        private List<CellGeometry>? GetAllCells()
+        private List<CellGeometry> GetAllCells()
         {
             var ret = new List<CellGeometry>();
 

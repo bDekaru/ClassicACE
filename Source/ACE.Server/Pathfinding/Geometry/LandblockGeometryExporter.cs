@@ -1131,26 +1131,6 @@ namespace ACE.Server.Pathfinding.Geometry
 
             return triangles;
         }
-        public static Vector3 CalculateTriSurfaceNormal(Vector3 a, Vector3 b, Vector3 c)
-        {
-            Vector3 normal = new Vector3();
-            Vector3 u = new Vector3();
-            Vector3 v = new Vector3();
-
-            u.X = b.X - a.X;
-            u.Y = b.Y - a.Y;
-            u.Z = b.Z - a.Z;
-
-            v.X = c.X - a.X;
-            v.Y = c.Y - a.Y;
-            v.Z = c.Z - a.Z;
-
-            normal.X = u.Y * v.Z - u.Z * v.Y;
-            normal.Y = u.Z * v.X - u.X * v.Z;
-            normal.Z = u.X * v.Y - u.Y * v.X;
-
-            return normal;
-        }
 
         public static Vector3 Transform(Vector3 value, Quaternion rotation)
         {

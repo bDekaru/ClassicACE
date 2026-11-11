@@ -561,9 +561,18 @@ namespace ACE.Server.Pathfinding
             }
         }
 
+        /// <summary>
+        /// The interior cell groups of a landblock. Cached only while the landblock is loaded, as its unload is what
+        /// frees them (see TryUnloadMesh).
+        /// </summary>
         private static LandblockGroups GetGroups(uint cell)
         {
-            return Groups.GetOrAdd(cell & 0xFFFF0000, id => new LandblockGroups(id));
+            var landblockId = cell & 0xFFFF0000;
+            if (Groups.TryGetValue(landblockId, out var groups))
+                return groups;
+
+            groups = new LandblockGroups(landblockId);
+            return LandblockManager.IsLoaded(new LandblockId(landblockId | 0xFFFF)) ? Groups.GetOrAdd(landblockId, groups) : groups;
         }
 
         /// <summary>
@@ -703,7 +712,7 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         /// <param name="end">The ending position</param>
         /// <returns>A list of positions</returns>
-        public static List<Position>? FindRoute(Position start, Position end, AgentSize agentSize, bool drawRoute = false)
+        public static List<Position> FindRoute(Position start, Position end, AgentSize agentSize, bool drawRoute = false)
         {
             return FindRoute(start, end, agentSize, out _, drawRoute);
         }
@@ -716,7 +725,7 @@ namespace ACE.Server.Pathfinding
         /// <param name="reachesTarget">True if the route leads all the way to its target: the end position, or the
         /// doorway towards it when the end is in another mesh group. False for a partial route, which leads as close to
         /// the target as the mesh allows.</param>
-        public static List<Position>? FindRoute(Position start, Position end, AgentSize agentSize, out bool reachesTarget, bool drawRoute = false)
+        public static List<Position> FindRoute(Position start, Position end, AgentSize agentSize, out bool reachesTarget, bool drawRoute = false)
         {
             reachesTarget = false;
 
@@ -812,7 +821,7 @@ namespace ACE.Server.Pathfinding
         /// The string-pulled path from a start poly to a target, as waypoints. reachesTarget is false for a partial
         /// path, which leads as close to the target as the mesh allows. Returns null if there is no path at all.
         /// </summary>
-        private static List<Waypoint>? FindWaypoints(DtNavMeshQuery query, IDtQueryFilter pathFilter, long startRef, RcVec3f startPt, bool startOnIsland, RcVec3f target, out bool reachesTarget)
+        private static List<Waypoint> FindWaypoints(DtNavMeshQuery query, IDtQueryFilter pathFilter, long startRef, RcVec3f startPt, bool startOnIsland, RcVec3f target, out bool reachesTarget)
         {
             reachesTarget = false;
 
@@ -1032,7 +1041,7 @@ namespace ACE.Server.Pathfinding
         /// Returns the legs in order (the last one may be partial), or null if not even the first leg was found.
         /// Outdoor tiles load in the background, so a leg through the outdoors can be missing or partial the first time.
         /// </summary>
-        public static List<List<Position>>? FindRouteLegs(Position start, Position end, AgentSize agentSize)
+        public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize)
         {
             return FindRouteLegs(start, end, agentSize, out _);
         }
@@ -1040,7 +1049,7 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Like the other overload; reachesEnd is true if the legs lead all the way to the end position.
         /// </summary>
-        public static List<List<Position>>? FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd)
+        public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd)
         {
             reachesEnd = false;
 
@@ -1589,7 +1598,7 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         /// <param name="start"></param>
         /// <returns></returns>
-        public static Position? GetRandomPointOnMesh(Position start, AgentSize agentSize)
+        public static Position GetRandomPointOnMesh(Position start, AgentSize agentSize)
         {
             var group = GetGroupKey(start);
             if (group.IsOutdoor)
@@ -1609,7 +1618,7 @@ namespace ACE.Server.Pathfinding
             return CreatePosition(start, group, randomPt);
         }
 
-        public static Position? GetRandomPointWithinCircle(Position location, float radius, AgentSize agentSize)
+        public static Position GetRandomPointWithinCircle(Position location, float radius, AgentSize agentSize)
         {
             var group = GetGroupKey(location);
             using var lease = AcquireMesh(location, group, agentSize);
@@ -1631,7 +1640,7 @@ namespace ACE.Server.Pathfinding
             return CreatePosition(location, group, randomPt);
         }
 
-        public static Position? GetClosestPointOnMesh(Position location, AgentSize agentSize)
+        public static Position GetClosestPointOnMesh(Position location, AgentSize agentSize)
         {
             var group = GetGroupKey(location);
             using var lease = AcquireMesh(location, group, agentSize);
@@ -1645,7 +1654,7 @@ namespace ACE.Server.Pathfinding
             return CreatePosition(location, group, startPt);
         }
 
-        public static Position? GetNearestWallPosition(Position location, float radius, AgentSize agentSize, out float distance, bool inverseNormal = false)
+        public static Position GetNearestWallPosition(Position location, float radius, AgentSize agentSize, out float distance, bool inverseNormal = false)
         {
             distance = float.MaxValue;
 
@@ -1860,7 +1869,7 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Reads a cached single-tile (interior) mesh.
         /// </summary>
-        private static bool TryReadMeshFile(string meshPath, out DtNavMesh? mesh)
+        private static bool TryReadMeshFile(string meshPath, out DtNavMesh mesh)
         {
             mesh = null;
 
@@ -1929,7 +1938,7 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        private static DtNavMesh? BuildAndSaveMesh(CellGeometryProvider geom, MeshBuildSettings settings, uint meshId, string meshPath)
+        private static DtNavMesh BuildAndSaveMesh(CellGeometryProvider geom, MeshBuildSettings settings, uint meshId, string meshPath)
         {
             var builder = new NavMeshBuilder();
             var res = builder.Build(geom, settings);
@@ -1984,6 +1993,11 @@ namespace ACE.Server.Pathfinding
         private static void TryLoadInteriorMesh(uint landblockId, int group, bool rebuildMesh = false)
         {
             landblockId &= 0xFFFF0000;
+
+            // only a landblock's unload frees its meshes (see TryUnloadMesh)
+            if (!LandblockManager.IsLoaded(new LandblockId(landblockId | 0xFFFF)))
+                return;
+
             var location = $"landblock 0x{landblockId:X8}";
 
             if (rebuildMesh)
@@ -2110,6 +2124,12 @@ namespace ACE.Server.Pathfinding
 
         private static void BuildOutdoorTile(uint landblockId, int generation, bool force)
         {
+            // false once the landblock has unloaded since the build was queued
+            bool IsCurrent() => OutdoorTileGenerations.TryGetValue(landblockId, out var current) && current == generation;
+
+            if (!IsCurrent())
+                return;
+
             var (tileX, tileY) = GetLandblockCoords(landblockId);
 
             CellGeometryProvider geom = null;
@@ -2172,8 +2192,8 @@ namespace ACE.Server.Pathfinding
 
                     lock (OutdoorTileSync)
                     {
-                        if (!OutdoorTileGenerations.TryGetValue(landblockId, out var current) || current != generation)
-                            return; // the landblock unloaded while this was building
+                        if (!IsCurrent())
+                            return;
 
                         if (!OutdoorMeshes[agentSize].SetTile(landblockId, data))
                             log.Warn($"Pathfinder: could not add the {agentSize} outdoor tile for 0x{landblockId:X8}");

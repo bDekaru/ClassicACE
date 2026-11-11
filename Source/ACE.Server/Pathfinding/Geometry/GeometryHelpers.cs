@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 
 namespace ACE.Server.Pathfinding.Geometry
@@ -16,20 +13,6 @@ namespace ACE.Server.Pathfinding.Geometry
         {
             var blockLength = ACE.Server.Physics.Common.LandDefs.BlockLength;
             return new Vector3(((cellId >> 24) & 0xFF) * blockLength, ((cellId >> 16) & 0xFF) * blockLength, 0f);
-        }
-
-        public static Vector3 FindCentroid(params Vector3[] points)
-        {
-            return FindCentroid(points);
-        }
-
-        public static Vector3 FindCentroid(IEnumerable<Vector3> points)
-        {
-            var x = points.Select(p => p.X).Sum();
-            var y = points.Select(p => p.Y).Sum();
-            var z = points.Select(p => p.Z).Sum();
-
-            return new Vector3(x, y, z) / points.Count();
         }
 
         /// <summary>
