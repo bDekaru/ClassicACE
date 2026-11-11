@@ -227,6 +227,9 @@ namespace ACE.Server.WorldObjects
 
         public override void OnGeneration(WorldObject generator)
         {
+            // we're placed and given a home by now (EnterWorld), check and fix our home position if required.
+            Home = AdjustHomePosition();
+
             base.OnGeneration(generator);
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsMonster && Tolerance == Tolerance.None)

@@ -1043,6 +1043,10 @@ namespace ACE.Server.WorldObjects.Managers
                         // get new cell
                         newPos.LandblockId = new LandblockId(PositionExtensions.GetCell(newPos));
 
+                        // the offset was authored for the home's ground, which may differ here
+                        if (!newPos.Indoors)
+                            newPos.AdjustMapCoords();
+
                         var useFinalHeading = newPos.Rotation != Quaternion.Identity;
 
                         // TODO: handle delay for this?
@@ -1102,6 +1106,10 @@ namespace ACE.Server.WorldObjects.Managers
                         //newPos.LandblockId = new LandblockId(emote.ObjCellId.Value);
 
                         newPos.LandblockId = new LandblockId(PositionExtensions.GetCell(newPos));
+
+                        // a missing coordinate takes the creature's own, whose height may not be the ground there
+                        if (!newPos.Indoors)
+                            newPos.AdjustMapCoords();
 
                         var useFinalHeading = newPos.Rotation != Quaternion.Identity;
 

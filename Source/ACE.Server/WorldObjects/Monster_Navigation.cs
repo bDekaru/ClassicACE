@@ -687,7 +687,64 @@ namespace ACE.Server.WorldObjects
             offsetPosition = offsetPosition.InFrontOf(distance);
             offsetPosition.SetLandblock();
 
-            Home = offsetPosition;
+            Home = PlaceOnFloor(offsetPosition);
+        }
+
+        /// <summary>
+        /// Puts a point found by stepping away from the creature on the flat (it keeps the creature's height) onto the
+        /// floor there: on the creature's navmesh when there is one within reach, otherwise on the landscape when
+        /// outdoors. MoveTo checks arrival in 3D, so a point left above or below the floor (on a slope) is never
+        /// reached.
+        /// </summary>
+        private Position PlaceOnFloor(Position position)
+        {
+            if (PathfindingEnabled)
+            {
+                var onMesh = Pathfinder.GetClosestPointOnMesh(position, GetPathfindingAgentSize());
+                if (onMesh != null)
+                {
+                    onMesh.Rotation = position.Rotation;
+                    return onMesh;
+                }
+            }
+
+            if (!position.Indoors)
+                position.AdjustMapCoords();
+
+            return position;
+        }
+
+        /// <summary>
+        /// How far the navmesh floor found for a spawn home may be from it horizontally. The mesh keeps an agent radius
+        /// from walls, so a creature placed against one finds the floor that much further out; past it, the point is
+        /// not the floor under the home.
+        /// </summary>
+        private const float SpawnHomeFloorMargin = 0.25f;
+
+        /// <summary>
+        /// Indoors, a scatter spawn keeps the generator's height (see PhysicsObj.SetScatterPositionInternal), so on a
+        /// ramp or stairs the home can be above or below the floor, and MoveTo, which checks arrival in 3D, never gets
+        /// there. The home takes the floor height of the dungeon's navmesh under it, which is loaded by now when cached
+        /// (see BeforeEnterWorld). Outdoors, spawns are already placed on the landscape. Set from OnGeneration: scatter
+        /// spawns always come from a generator.
+        /// </summary>
+        protected Position AdjustHomePosition()
+        {
+            var home = new Position(Location);
+
+            if (!PathfindingEnabled || !home.Indoors)
+                return home;
+
+            var agentSize = GetPathfindingAgentSize();
+            var floor = Pathfinder.GetClosestPointOnMesh(home, agentSize);
+            if (floor == null)
+                return home;
+
+            var horizontal = new Vector2(floor.PositionX - home.PositionX, floor.PositionY - home.PositionY).Length();
+            if (horizontal <= Pathfinder.GetAgentRadius(agentSize) + SpawnHomeFloorMargin)
+                home.PositionZ = floor.PositionZ;
+
+            return home;
         }
 
         private Position WanderTarget = null;
@@ -711,7 +768,7 @@ namespace ACE.Server.WorldObjects
             offsetPosition = offsetPosition.InFrontOf(distance);
             offsetPosition.SetLandblock();
 
-            WanderTarget = offsetPosition;
+            WanderTarget = PlaceOnFloor(offsetPosition);
             IsWanderingPending = true;
         }
 

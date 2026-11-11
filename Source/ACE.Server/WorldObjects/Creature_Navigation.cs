@@ -337,9 +337,6 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).MoveTo({position.ToLOCString()}, {distanceToObject}, {speed}, {clientOnly})");
 
-            if (!position.Indoors)
-                position.AdjustMapCoords();
-
             var motion = GetMoveToMotion(position, distanceToObject, speed, useFinalHeading);
 
             // the server's MovementParameters below copy these flags, so client and server agree on arrival
