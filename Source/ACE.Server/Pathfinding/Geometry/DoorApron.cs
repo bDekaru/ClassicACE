@@ -1,5 +1,4 @@
 using DotRecast.Recast;
-using DotRecast.Recast.Toolset.Builder;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -92,7 +91,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 verts = verts,
                 hmin = door.Position.Z - MarkHeight,
                 hmax = door.Position.Z + MarkHeight,
-                areaMod = SampleAreaModifications.SAMPLE_AREAMOD_DOOR
+                areaMod = NavArea.DoorMod
             };
         }
 

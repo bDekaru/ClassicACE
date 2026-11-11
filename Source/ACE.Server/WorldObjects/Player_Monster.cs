@@ -58,7 +58,7 @@ namespace ACE.Server.WorldObjects
             if (SameFaction(monster))
                 monster.AddRetaliateTarget(this);
 
-            if (monster.MonsterState != State.Awake && (monster.Tolerance & PlayerCombatPet_RetaliateExclude) == 0)
+            if (monster.MonsterState != State.Awake && (monster.Tolerance & PlayerCombatPet_RetaliateExclude) == 0 && !monster.IgnoresAttacksWhileMovingHome)
             {
                 monster.AttackTarget = this;
                 monster.WakeUp();

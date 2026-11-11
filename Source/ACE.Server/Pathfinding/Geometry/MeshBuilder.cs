@@ -1,55 +1,39 @@
 using System;
+using System.Collections.Generic;
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
 using DotRecast.Recast;
-using DotRecast.Recast.Toolset;
-using DotRecast.Recast.Toolset.Builder;
+using DotRecast.Recast.Geom;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
 
     public class NavMeshBuilder
     {
-        public DtMeshData Build(CellGeometryProvider geom, RcNavMeshBuildSettings settings)
-        {
-            return Build(geom,
-                RcPartitionType.OfValue(settings.partitioning),
-                settings.cellSize, settings.cellHeight,
-                settings.agentMaxSlope, settings.agentHeight, settings.agentRadius, settings.agentMaxClimb,
-                settings.minRegionSize, settings.mergedRegionSize,
-                settings.edgeMaxLen, settings.edgeMaxError,
-                settings.vertsPerPoly,
-                settings.detailSampleDist, settings.detailSampleMaxError,
-                settings.filterLowHangingObstacles, settings.filterLedgeSpans, settings.filterWalkableLowHeightSpans,
-                settings.keepInterResults);
-        }
-
-        public DtMeshData Build(CellGeometryProvider geom,
-            RcPartition partitionType,
-            float cellSize, float cellHeight,
-            float agentMaxSlope, float agentHeight, float agentRadius, float agentMaxClimb,
-            int regionMinSize, int regionMergeSize,
-            float edgeMaxLen, float edgeMaxError,
-            int vertsPerPoly,
-            float detailSampleDist, float detailSampleMaxError,
-            bool filterLowHangingObstacles, bool filterLedgeSpans, bool filterWalkableLowHeightSpans,
-            bool keepInterResults)
+        /// <summary>
+        /// Builds a single-tile navmesh (an interior cell group) over all of the geometry.
+        /// </summary>
+        public DtMeshData Build(CellGeometryProvider geom, MeshBuildSettings settings)
         {
             RcConfig cfg = new RcConfig(
-                partitionType,
-                cellSize, cellHeight,
-                agentMaxSlope, agentHeight, agentRadius, agentMaxClimb,
-                regionMinSize, regionMergeSize,
-                edgeMaxLen, edgeMaxError,
-                vertsPerPoly,
-                detailSampleDist, detailSampleMaxError,
-                filterLowHangingObstacles, filterLedgeSpans, filterWalkableLowHeightSpans,
-                SampleAreaModifications.SAMPLE_AREAMOD_WALKABLE, true);
+                settings.Partitioning,
+                settings.CellSize, settings.CellHeight,
+                settings.AgentMaxSlope, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb,
+                settings.MinRegionSize, settings.MergedRegionSize,
+                settings.EdgeMaxLen, settings.EdgeMaxError,
+                settings.VertsPerPoly,
+                settings.DetailSampleDist, settings.DetailSampleMaxError,
+                settings.FilterLowHangingObstacles, settings.FilterLedgeSpans, settings.FilterWalkableLowHeightSpans,
+                NavArea.WalkableMod, true);
 
-            RcBuilderResult rcResult = BuildRecastResult(geom, cfg, keepInterResults);
-            var meshData = BuildMeshData(geom, cellSize, cellHeight, agentHeight, agentRadius, agentMaxClimb, rcResult);
+            var bcfg = new RcBuilderConfig(cfg, geom.GetMeshBoundsMin(), geom.GetMeshBoundsMax());
+            var rcResult = new RcBuilder().Build(geom, bcfg, false);
+            if (rcResult?.Mesh == null || rcResult.Mesh.npolys == 0)
+                return null;
 
-            return meshData;
+            var option = GetCreateParams(rcResult, settings.CellSize, settings.CellHeight, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb);
+
+            return CreateMeshData(option, geom, settings.VertsPerPoly, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
         }
 
         /// <summary>
@@ -58,25 +42,25 @@ namespace ACE.Server.Pathfinding.Geometry
         /// radius plus 3 cells); the border is rasterized and then trimmed, so the walkable area at the tile edge is
         /// correct and its edge polys line up with the neighboring tiles', which lets Detour link them.
         /// </summary>
-        public DtMeshData BuildTile(CellGeometryProvider geom, RcNavMeshBuildSettings settings, int tileX, int tileZ, float tileSize)
+        public DtMeshData BuildTile(CellGeometryProvider geom, MeshBuildSettings settings, int tileX, int tileZ, float tileSize)
         {
-            var tileCells = (int)MathF.Round(tileSize / settings.cellSize);
-            var borderSize = RcConfig.CalcBorder(settings.agentRadius, settings.cellSize);
+            var tileCells = (int)MathF.Round(tileSize / settings.CellSize);
+            var borderSize = RcConfig.CalcBorder(settings.AgentRadius, settings.CellSize);
 
             // the tile constructor takes the region sizes as areas in world units
-            var cellArea = settings.cellSize * settings.cellSize;
+            var cellArea = settings.CellSize * settings.CellSize;
 
             var cfg = new RcConfig(
                 true, tileCells, tileCells, borderSize,
-                RcPartitionType.OfValue(settings.partitioning),
-                settings.cellSize, settings.cellHeight,
-                settings.agentMaxSlope, settings.agentHeight, settings.agentRadius, settings.agentMaxClimb,
-                settings.minRegionSize * settings.minRegionSize * cellArea, settings.mergedRegionSize * settings.mergedRegionSize * cellArea,
-                settings.edgeMaxLen, settings.edgeMaxError,
-                settings.vertsPerPoly,
-                settings.detailSampleDist, settings.detailSampleMaxError,
-                settings.filterLowHangingObstacles, settings.filterLedgeSpans, settings.filterWalkableLowHeightSpans,
-                SampleAreaModifications.SAMPLE_AREAMOD_WALKABLE, true);
+                settings.Partitioning,
+                settings.CellSize, settings.CellHeight,
+                settings.AgentMaxSlope, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb,
+                settings.MinRegionSize * settings.MinRegionSize * cellArea, settings.MergedRegionSize * settings.MergedRegionSize * cellArea,
+                settings.EdgeMaxLen, settings.EdgeMaxError,
+                settings.VertsPerPoly,
+                settings.DetailSampleDist, settings.DetailSampleMaxError,
+                settings.FilterLowHangingObstacles, settings.FilterLedgeSpans, settings.FilterWalkableLowHeightSpans,
+                NavArea.WalkableMod, true);
 
             // the tile's xz bounds come from the tile coordinates (plus the border), only the height range from the geometry
             var bmin = new RcVec3f(0f, geom.GetMeshBoundsMin().Y, 0f);
@@ -87,53 +71,120 @@ namespace ACE.Server.Pathfinding.Geometry
             if (rcResult?.Mesh == null || rcResult.Mesh.npolys == 0)
                 return null;
 
-            var option = DemoNavMeshBuilder.GetNavMeshCreateParams(geom, settings.cellSize, settings.cellHeight, settings.agentHeight, settings.agentRadius, settings.agentMaxClimb, rcResult);
+            var option = GetCreateParams(rcResult, settings.CellSize, settings.CellHeight, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb);
             option.tileX = tileX;
             option.tileZ = tileZ;
-            option.bmin = rcResult.Mesh.bmin;
-            option.bmax = rcResult.Mesh.bmax;
 
+            return CreateMeshData(option, geom, settings.VertsPerPoly, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
+        }
+
+        /// <summary>
+        /// The parameters Detour creates the mesh data from: the polygon and detail meshes of the Recast build, with
+        /// each poly's area and flags set (see SetAreasAndFlags), and no off-mesh connections yet.
+        /// </summary>
+        private static DtNavMeshCreateParams GetCreateParams(RcBuilderResult result, float cellSize, float cellHeight, float agentHeight, float agentRadius, float agentMaxClimb)
+        {
+            var polyMesh = result.Mesh;
+            var detailMesh = result.MeshDetail;
+
+            SetAreasAndFlags(polyMesh);
+
+            var option = new DtNavMeshCreateParams
+            {
+                verts = polyMesh.verts,
+                vertCount = polyMesh.nverts,
+                polys = polyMesh.polys,
+                polyAreas = polyMesh.areas,
+                polyFlags = polyMesh.flags,
+                polyCount = polyMesh.npolys,
+                nvp = polyMesh.nvp,
+
+                walkableHeight = agentHeight,
+                walkableRadius = agentRadius,
+                walkableClimb = agentMaxClimb,
+                bmin = polyMesh.bmin,
+                bmax = polyMesh.bmax,
+                cs = cellSize,
+                ch = cellHeight,
+                buildBvTree = true,
+
+                offMeshConCount = 0,
+                offMeshConVerts = Array.Empty<float>(),
+                offMeshConRad = Array.Empty<float>(),
+                offMeshConDir = Array.Empty<int>(),
+                offMeshConAreas = Array.Empty<int>(),
+                offMeshConFlags = Array.Empty<int>(),
+                offMeshConUserID = Array.Empty<int>()
+            };
+
+            if (detailMesh != null)
+            {
+                option.detailMeshes = detailMesh.meshes;
+                option.detailVerts = detailMesh.verts;
+                option.detailVertsCount = detailMesh.nverts;
+                option.detailTris = detailMesh.tris;
+                option.detailTriCount = detailMesh.ntris;
+            }
+
+            return option;
+        }
+
+        /// <summary>
+        /// Gives each poly of the Recast build its area and flags: the walkable area Recast marks becomes Ground, and
+        /// floor is flagged Walk and door aprons Door (see NavArea, NavPolyFlags).
+        /// </summary>
+        private static void SetAreasAndFlags(RcPolyMesh polyMesh)
+        {
+            for (var i = 0; i < polyMesh.npolys; i++)
+            {
+                if (polyMesh.areas[i] == NavArea.Walkable)
+                    polyMesh.areas[i] = NavArea.Ground;
+
+                polyMesh.flags[i] = polyMesh.areas[i] == NavArea.Door ? NavPolyFlags.Door : NavPolyFlags.Walk;
+            }
+        }
+
+        /// <summary>
+        /// Creates the mesh data, with the drops down its ledges (see DropLinkFinder) as one-way off-mesh connections:
+        /// the ledges are found on the mesh without them, then the mesh data is created again with them. The drops
+        /// get their area and flags from their connections.
+        /// </summary>
+        private static DtMeshData CreateMeshData(DtNavMeshCreateParams option, IRcInputGeomProvider geom, int vertsPerPoly, float agentRadius, float agentHeight, float agentMaxClimb)
+        {
             var meshData = DtNavMeshBuilder.CreateNavMeshData(option);
             if (meshData == null)
                 return null;
 
-            return DemoNavMeshBuilder.UpdateAreaAndFlags(meshData);
+            var drops = DropLinkFinder.Find(meshData, geom, vertsPerPoly, agentRadius, agentHeight, agentMaxClimb);
+            if (drops.Count == 0)
+                return meshData;
+
+            SetOffMeshConnections(option, drops);
+
+            return DtNavMeshBuilder.CreateNavMeshData(option) ?? meshData;
         }
 
-        private DtNavMesh BuildNavMesh(DtMeshData meshData, int vertsPerPoly)
+        private static void SetOffMeshConnections(DtNavMeshCreateParams option, List<RcOffMeshConnection> connections)
         {
-            var mesh = new DtNavMesh();
-            var status = mesh.Init(meshData, vertsPerPoly, 0);
-            if (status.Failed())
+            var count = connections.Count;
+            option.offMeshConCount = count;
+            option.offMeshConVerts = new float[count * 6];
+            option.offMeshConRad = new float[count];
+            option.offMeshConDir = new int[count];
+            option.offMeshConAreas = new int[count];
+            option.offMeshConFlags = new int[count];
+            option.offMeshConUserID = new int[count];
+
+            for (var i = 0; i < count; i++)
             {
-                return null;
+                var connection = connections[i];
+                Array.Copy(connection.verts, 0, option.offMeshConVerts, i * 6, 6);
+                option.offMeshConRad[i] = connection.radius;
+                option.offMeshConDir[i] = connection.bidir ? DtDetour.DT_OFFMESH_CON_BIDIR : 0;
+                option.offMeshConAreas[i] = connection.area;
+                option.offMeshConFlags[i] = connection.flags;
+                option.offMeshConUserID[i] = i;
             }
-
-            return mesh;
-        }
-
-        private RcBuilderResult BuildRecastResult(CellGeometryProvider geom, RcConfig cfg, bool keepInterResults)
-        {
-            RcBuilderConfig bcfg = new RcBuilderConfig(cfg, geom.GetMeshBoundsMin(), geom.GetMeshBoundsMax());
-            RcBuilder rcBuilder = new RcBuilder();
-            return rcBuilder.Build(geom, bcfg, keepInterResults);
-        }
-
-        public DtMeshData BuildMeshData(CellGeometryProvider geom,
-            float cellSize, float cellHeight,
-            float agentHeight, float agentRadius, float agentMaxClimb,
-            RcBuilderResult result)
-        {
-            DtNavMeshCreateParams option = DemoNavMeshBuilder
-                .GetNavMeshCreateParams(geom, cellSize, cellHeight, agentHeight, agentRadius, agentMaxClimb, result);
-
-            var meshData = DtNavMeshBuilder.CreateNavMeshData(option);
-            if (null == meshData)
-            {
-                return null;
-            }
-
-            return DemoNavMeshBuilder.UpdateAreaAndFlags(meshData);
         }
     }
 }

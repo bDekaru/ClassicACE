@@ -161,8 +161,7 @@ namespace ACE.Server.WorldObjects
                 MoveToHome();
             if (IsMovingToHome || IsMoveToHomePending)
             {
-                if (PendingEndMoveToHome)
-                    EndMoveToHome();
+                UpdateMoveToHome();
                 return;
             }
 
@@ -323,8 +322,7 @@ namespace ACE.Server.WorldObjects
                 {
                     if (DebugMove)
                         Console.WriteLine($"{Name} ({Guid}) Target Out of Range!");
-                }
-                else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
+                }                else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
                 {
                     FailedSightCount++;
                     if (FailedSightCount >= FailedSightThreshold && HasPendingMovement)

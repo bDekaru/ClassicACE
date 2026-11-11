@@ -13,8 +13,6 @@ using DotRecast.Core.Numerics;
 using DotRecast.Detour;
 using DotRecast.Detour.Io;
 using DotRecast.Recast;
-using DotRecast.Recast.Toolset;
-using DotRecast.Recast.Toolset.Builder;
 using log4net;
 using System;
 using System.Collections.Concurrent;
@@ -53,7 +51,7 @@ namespace ACE.Server.Pathfinding
     /// Interior meshes are in landblock-local coordinates, the outdoor mesh in world coordinates (a landblock's local
     /// origin is at GeometryHelpers.GetLandblockOrigin). Recast space is Y up: (x, z, y) of a game position.
     /// </summary>
-    public static class Pathfinder
+    public static partial class Pathfinder
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -221,12 +219,6 @@ namespace ACE.Server.Pathfinding
         private static readonly ConcurrentDictionary<(bool outdoor, AgentWidth agentWidth), string> MeshCacheKeys = new ConcurrentDictionary<(bool, AgentWidth), string>();
 
         /// <summary>
-        /// Poly flag for islands: parts of a mesh that cannot be walked to from its main area or its doorways, like the
-        /// top of a table, a crate or a large rock. Set when a mesh is loaded, not saved in the mesh files.
-        /// </summary>
-        private const int POLYFLAG_ISLAND = 0x0100;
-
-        /// <summary>
         /// Outdoor tile components with a vertex this close to the tile edge are not islands: they may continue into
         /// the neighboring tile. Tiles are built with a border, so the walkable area reaches the edge exactly.
         /// </summary>
@@ -252,7 +244,26 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Every poly except islands.
         /// </summary>
-        private static readonly DtQueryDefaultFilter ReachableFilter = new DtQueryDefaultFilter(0xFFFF, POLYFLAG_ISLAND, Array.Empty<float>());
+        private static readonly DtQueryDefaultFilter ReachableFilter = new DtQueryDefaultFilter(0xFFFF, NavPolyFlags.Island, Array.Empty<float>());
+
+        /// <summary>
+        /// A drop down a ledge (see DropLinkFinder) costs this many times its length, so a creature only jumps down
+        /// when walking around is clearly longer: it can't come back up the same way.
+        /// </summary>
+        private const float DROP_COST_FACTOR = 3.0f;
+
+        /// <summary>
+        /// Every poly, for route searches: like AllPolysFilter, with drops at DROP_COST_FACTOR.
+        /// </summary>
+        private static readonly DtQueryDefaultFilter RouteFilter = CreateRouteFilter();
+
+        private static DtQueryDefaultFilter CreateRouteFilter()
+        {
+            var areaCosts = new float[DtDetour.DT_MAX_AREAS];
+            Array.Fill(areaCosts, 1.0f);
+            areaCosts[NavArea.Drop] = DROP_COST_FACTOR;
+            return new DtQueryDefaultFilter(0xFFFF, 0, areaCosts);
+        }
 
         /// <summary>
         /// A query holds per-search state and is not thread safe, while a mesh can be shared. Queries are pooled per
@@ -286,7 +297,7 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// The door polys of reachable door aprons.
         /// </summary>
-        private static readonly DtQueryDefaultFilter PassableDoorFilter = new DtQueryDefaultFilter(SampleAreaModifications.SAMPLE_POLYFLAGS_DOOR, POLYFLAG_ISLAND, Array.Empty<float>());
+        private static readonly DtQueryDefaultFilter PassableDoorFilter = new DtQueryDefaultFilter(NavPolyFlags.Door, NavPolyFlags.Island, Array.Empty<float>());
 
         /// <summary>
         /// How far around the center of a door apron to look for its door polys, on the mesh of an agent width. Erosion
@@ -754,7 +765,7 @@ namespace ACE.Server.Pathfinding
 
             var positionList = new List<Position>(waypoints.Count);
             foreach (var waypoint in waypoints)
-                positionList.Add(CreatePosition(start, group, ToRcVec3f(waypoint.Pos)));
+                positionList.Add(new RoutePosition(CreatePosition(start, group, ToRcVec3f(waypoint.Pos)), waypoint.IsDropStart));
 
             if (drawRoute)
                 DrawRoute(positionList);
@@ -769,10 +780,10 @@ namespace ACE.Server.Pathfinding
         private static IDtQueryFilter GetPathFilter(MeshLease lease, Position start)
         {
             if (!lease.IsOutdoor)
-                return AllPolysFilter;
+                return RouteFilter;
 
             var (x, y) = GetLandblockCoords(start.Cell);
-            return new TileRectFilter(AllPolysFilter, x - MAX_ROUTE_LANDBLOCK_SPAN, y - MAX_ROUTE_LANDBLOCK_SPAN, x + MAX_ROUTE_LANDBLOCK_SPAN, y + MAX_ROUTE_LANDBLOCK_SPAN);
+            return new TileRectFilter(RouteFilter, x - MAX_ROUTE_LANDBLOCK_SPAN, y - MAX_ROUTE_LANDBLOCK_SPAN, x + MAX_ROUTE_LANDBLOCK_SPAN, y + MAX_ROUTE_LANDBLOCK_SPAN);
         }
 
         /// <summary>
@@ -810,16 +821,45 @@ namespace ACE.Server.Pathfinding
             if (straightStatus.Failed() || straightPathCount == 0)
                 return null;
 
-            var waypoints = new List<Waypoint>(straightPathCount);
+            var waypoints = new List<Waypoint>(straightPathCount + 1);
             for (int i = 0; i < straightPathCount; i++)
             {
                 var entry = path[i];
+                var isDropStart = (entry.flags & DtStraightPathFlags.DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
+
                 // the end vertex of a straight path carries no poly ref, fall back to the last poly of the corridor
-                waypoints.Add(new Waypoint(ToVector3(entry.pos), entry.refs != 0 ? entry.refs : lastPolyRef));
+                waypoints.Add(new Waypoint(ToVector3(entry.pos), entry.refs != 0 ? entry.refs : lastPolyRef, isDropStart));
+
+                // The landing of a drop must be a waypoint of its own, so the drop is followed as found. String pulling
+                // can leave it out when the path goes on straight from it.
+                if (isDropStart && TryGetDropLanding(query, polys, polyCount, entry.refs, out var landing) &&
+                    (i + 1 >= straightPathCount || Vector3.DistanceSquared(ToVector3(path[i + 1].pos), landing.Pos) > 0.01f))
+                    waypoints.Add(landing);
             }
 
             reachesTarget = reachesEnd;
             return waypoints;
+        }
+
+        /// <summary>
+        /// The landing of a drop (an off-mesh connection) on a path corridor, on the poly after it.
+        /// </summary>
+        private static bool TryGetDropLanding(DtNavMeshQuery query, long[] polys, int polyCount, long dropRef, out Waypoint landing)
+        {
+            landing = default;
+
+            var index = Array.IndexOf(polys, dropRef, 0, polyCount);
+            if (index <= 0 || index + 1 >= polyCount)
+                return false;
+
+            var start = RcVec3f.Zero;
+            var end = RcVec3f.Zero;
+            var status = query.GetAttachedNavMesh().GetOffMeshConnectionPolyEndPoints(polys[index - 1], dropRef, ref start, ref end);
+            if (status.Failed())
+                return false;
+
+            landing = new Waypoint(ToVector3(end), polys[index + 1]);
+            return true;
         }
 
         private static float GetPathLength(RcVec3f start, List<Waypoint> waypoints)
@@ -1039,17 +1079,20 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// A route point in Recast space (Y up) and the poly it lies on.
+        /// A route point in Recast space (Y up) and the poly it lies on. At the start of a drop down a ledge, the poly
+        /// is the drop's off-mesh connection, and the next waypoint is its landing.
         /// </summary>
         private readonly struct Waypoint
         {
             public readonly Vector3 Pos;
             public readonly long PolyRef;
+            public readonly bool IsDropStart;
 
-            public Waypoint(Vector3 pos, long polyRef)
+            public Waypoint(Vector3 pos, long polyRef, bool isDropStart = false)
             {
                 Pos = pos;
                 PolyRef = polyRef;
+                IsDropStart = isDropStart;
             }
         }
 
@@ -1123,9 +1166,13 @@ namespace ACE.Server.Pathfinding
             var componentHasDoor = new List<bool>();
             var stack = new Stack<int>();
 
+            // the drops (one-way off-mesh connections) between components, as (from, to) poly indices
+            var drops = new List<(int dropPoly, int from, int to)>();
+
             for (var i = 0; i < polyCount; i++)
             {
-                if (component[i] != -1)
+                // drops are not part of any component, see below
+                if (component[i] != -1 || data.polys[i].GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
                     continue;
 
                 var id = componentArea.Count;
@@ -1137,7 +1184,7 @@ namespace ACE.Server.Pathfinding
                 while (stack.Count > 0)
                 {
                     var poly = data.polys[stack.Pop()];
-                    if (poly.GetArea() == SampleAreaModifications.SAMPLE_POLYAREA_TYPE_DOOR)
+                    if (poly.GetArea() == NavArea.Door)
                         hasDoor = true;
                     else
                         area += GetPolyArea(data, poly);
@@ -1145,7 +1192,8 @@ namespace ACE.Server.Pathfinding
                     for (var link = poly.firstLink; link != DtDetour.DT_NULL_LINK; link = tile.links[link].next)
                     {
                         mesh.GetTileAndPolyByRefUnsafe(tile.links[link].refs, out var neighborTile, out var neighbor);
-                        if (neighborTile != tile || neighbor == null || component[neighbor.index] != -1)
+                        if (neighborTile != tile || neighbor == null || component[neighbor.index] != -1 ||
+                            neighbor.GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
                             continue;
 
                         component[neighbor.index] = id;
@@ -1157,8 +1205,39 @@ namespace ACE.Server.Pathfinding
                 componentHasDoor.Add(hasDoor);
             }
 
+            // A drop links to the poly at its start (edge 0) and the one it lands on (edge 1).
+            for (var i = 0; i < polyCount; i++)
+            {
+                var poly = data.polys[i];
+                if (poly.GetPolyType() != DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
+                    continue;
+
+                int from = -1, to = -1;
+                for (var link = poly.firstLink; link != DtDetour.DT_NULL_LINK; link = tile.links[link].next)
+                {
+                    mesh.GetTileAndPolyByRefUnsafe(tile.links[link].refs, out var endTile, out var endPoly);
+                    if (endTile != tile || endPoly == null)
+                        continue;
+
+                    if (tile.links[link].edge == 0)
+                        from = endPoly.index;
+                    else
+                        to = endPoly.index;
+                }
+
+                drops.Add((i, from, to));
+            }
+
             if (componentArea.Count == 1)
-                return; // all connected
+            {
+                // all connected; a drop that isn't attached to the floor on both ends leads nowhere
+                foreach (var (dropPoly, from, to) in drops)
+                {
+                    if (from < 0 || to < 0)
+                        data.polys[dropPoly].flags |= NavPolyFlags.Island;
+                }
+                return;
+            }
 
             var keep = new bool[componentArea.Count];
 
@@ -1188,7 +1267,7 @@ namespace ACE.Server.Pathfinding
                         continue;
 
                     mesh.GetTileAndPolyByRefUnsafe(seedRef, out var seedTile, out var seedPoly);
-                    if (seedTile == tile && seedPoly != null && componentArea[component[seedPoly.index]] > 0f)
+                    if (seedTile == tile && seedPoly != null && component[seedPoly.index] >= 0 && componentArea[component[seedPoly.index]] > 0f)
                         keep[component[seedPoly.index]] = true;
                 }
             }
@@ -1204,7 +1283,7 @@ namespace ACE.Server.Pathfinding
                 var bmax = data.header.bmax;
                 for (var i = 0; i < polyCount; i++)
                 {
-                    if (keep[component[i]])
+                    if (component[i] < 0 || keep[component[i]])
                         continue;
 
                     var poly = data.polys[i];
@@ -1221,13 +1300,43 @@ namespace ACE.Server.Pathfinding
                 }
             }
 
+            // What a kept component drops down onto can be reached too (a pit, the floor below a balcony). Drops only
+            // go down, so only the way down: a component kept this way can still be left only by its own drops.
+            for (var changed = true; changed;)
+            {
+                changed = false;
+                foreach (var (_, from, to) in drops)
+                {
+                    if (from < 0 || to < 0)
+                        continue;
+
+                    var fromComponent = component[from];
+                    var toComponent = component[to];
+                    if (keep[fromComponent] && !keep[toComponent] && componentArea[toComponent] > 0f)
+                    {
+                        keep[toComponent] = true;
+                        changed = true;
+                    }
+                }
+            }
+
+            // a drop is usable if its start is
+            foreach (var (dropPoly, from, to) in drops)
+            {
+                if (from < 0 || to < 0 || !keep[component[from]])
+                    data.polys[dropPoly].flags |= NavPolyFlags.Island;
+            }
+
             var islandPolys = 0;
             for (var i = 0; i < polyCount; i++)
             {
+                if (component[i] < 0)
+                    continue; // a drop, flagged above
+
                 if (keep[component[i]])
                     continue;
 
-                data.polys[i].flags |= POLYFLAG_ISLAND;
+                data.polys[i].flags |= NavPolyFlags.Island;
                 islandPolys++;
             }
 
@@ -1320,7 +1429,8 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static Waypoint SnapToFloor(DtNavMeshQuery query, Waypoint waypoint)
         {
-            if (waypoint.PolyRef == 0)
+            // a drop starts on its connection, which was placed on the floor when the mesh was built
+            if (waypoint.PolyRef == 0 || waypoint.IsDropStart)
                 return waypoint;
 
             var status = query.ClosestPointOnPoly(waypoint.PolyRef, ToRcVec3f(waypoint.Pos), out var closest, out _);
@@ -1371,6 +1481,10 @@ namespace ACE.Server.Pathfinding
             {
                 var current = waypoints[i];
                 if (current.PolyRef == 0)
+                    continue;
+
+                // the ends of a drop stay where the drop was found: it was only checked from there
+                if (current.IsDropStart || waypoints[i - 1].IsDropStart)
                     continue;
 
                 var toPrev = Flatten(waypoints[i - 1].Pos - current.Pos);
@@ -1672,8 +1786,9 @@ namespace ACE.Server.Pathfinding
                 // keyed with before it went past 1, so bumping MESH_GEOMETRY_VERSION doesn't invalidate them.
                 var geometryVersion = key.outdoor ? 1 : MESH_GEOMETRY_VERSION;
 
+                // partitioning is keyed by its number, as when the settings were the DotRecast toolset's
                 var text = FormattableString.Invariant(
-                    $"{geometryVersion}|{VERTS_PER_POLY}|{s.vertsPerPoly}|{s.partitioning}|{s.cellSize}|{s.cellHeight}|{s.agentHeight}|{s.agentRadius}|{s.agentMaxClimb}|{s.agentMaxSlope}|{s.minRegionSize}|{s.mergedRegionSize}|{s.edgeMaxLen}|{s.edgeMaxError}|{s.detailSampleDist}|{s.detailSampleMaxError}|{s.filterLowHangingObstacles}|{s.filterLedgeSpans}|{s.filterWalkableLowHeightSpans}");
+                    $"{geometryVersion}|{VERTS_PER_POLY}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.MinRegionSize}|{s.MergedRegionSize}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|drops|{DropLinkFinder.Version}|{DropLinkFinder.MaxDropHeight}");
 
                 if (key.outdoor)
                     text += FormattableString.Invariant($"|tiled|{OUTDOOR_MESH_GEOMETRY_VERSION}|{BlockLength}|{LandblockGeometryExporter.SurfaceMargin}");
@@ -1785,7 +1900,7 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        private static DtNavMesh? BuildAndSaveMesh(CellGeometryProvider geom, RcNavMeshBuildSettings settings, uint meshId, string meshPath)
+        private static DtNavMesh? BuildAndSaveMesh(CellGeometryProvider geom, MeshBuildSettings settings, uint meshId, string meshPath)
         {
             var builder = new NavMeshBuilder();
             var res = builder.Build(geom, settings);
@@ -1911,7 +2026,7 @@ namespace ACE.Server.Pathfinding
                         MarkIslands(mesh, seeds, false);
                         PassableDoors[meshId] = FindPassableDoors(mesh, cellGroup, agentWidth);
                         Meshes.TryUpdate(meshId, mesh, null);
-                        log.Debug($"Pathfinder: built {agentWidth} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location} in {stopwatch.ElapsedMilliseconds}ms");
+                        log.Debug($"Pathfinder: built {agentWidth} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location} in {stopwatch.ElapsedMilliseconds}ms ({mesh.GetTile(0)?.data?.header?.offMeshConCount ?? 0} drops)");
                     }
                     catch (Exception e)
                     {
@@ -2004,7 +2119,7 @@ namespace ACE.Server.Pathfinding
 
                         SaveMeshData(data, meshId, meshPath);
 
-                        log.Info($"Pathfinder: built {agentWidth} outdoor tile for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.vertices.Length / 3} vertices, {geom.faces.Length / 3} triangles)");
+                        log.Info($"Pathfinder: built {agentWidth} outdoor tile for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.vertices.Length / 3} vertices, {geom.faces.Length / 3} triangles, {data.header.offMeshConCount} drops)");
                     }
 
                     // islands are flagged on the tile alone, before anything can query it
@@ -2127,44 +2242,47 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        private static RcNavMeshBuildSettings GetMeshSettings(bool outdoor, AgentWidth type)
+        private static MeshBuildSettings GetMeshSettings(bool outdoor, AgentWidth type)
         {
             var (cellSize, radiusCells) = GetCellSize(outdoor, type);
 
-            var settings = new RcNavMeshBuildSettings()
+            var settings = new MeshBuildSettings()
             {
-                agentHeight = GetAgentHeight(type),
-                agentMaxClimb = GetAgentMaxClimb(type),
-                agentMaxSlope = 48f, // matches PhysicsGlobals.FloorZ (acos(0.664) = ~48.4 degrees), steeper is not walkable
-                cellHeight = 0.1f,
-                cellSize = cellSize,
+                AgentHeight = GetAgentHeight(type),
+                AgentMaxClimb = GetAgentMaxClimb(type),
+                AgentMaxSlope = 48f, // matches PhysicsGlobals.FloorZ (acos(0.664) = ~48.4 degrees), steeper is not walkable
+                CellHeight = 0.1f,
+                CellSize = cellSize,
 
                 // a hair under the whole number of cells, so float error in radius / cellSize can't round it up a cell
-                agentRadius = (radiusCells - 0.01f) * cellSize,
+                AgentRadius = (radiusCells - 0.01f) * cellSize,
 
-                detailSampleDist = 6.0f,
-                detailSampleMaxError = 1.0f,
-                edgeMaxError = 1f,
-                edgeMaxLen = 12.0f,
-                vertsPerPoly = VERTS_PER_POLY,
-                partitioning = (int)RcPartition.WATERSHED
+                DetailSampleDist = 6.0f,
+                DetailSampleMaxError = 1.0f,
+                EdgeMaxError = 1f,
+                EdgeMaxLen = 12.0f,
+                VertsPerPoly = VERTS_PER_POLY,
+                Partitioning = RcPartition.WATERSHED,
+                FilterLowHangingObstacles = true,
+                FilterLedgeSpans = true,
+                FilterWalkableLowHeightSpans = true
             };
 
             // Recast's own conversion (RcConfig.WalkableRadius)
-            if ((int)MathF.Ceiling(settings.agentRadius / settings.cellSize) != radiusCells)
+            if ((int)MathF.Ceiling(settings.AgentRadius / settings.CellSize) != radiusCells)
             {
-                log.Error($"Pathfinder: the {type} {(outdoor ? "outdoor" : "interior")} agent radius {settings.agentRadius} is not {radiusCells} cells of {settings.cellSize}m");
+                log.Error($"Pathfinder: the {type} {(outdoor ? "outdoor" : "interior")} agent radius {settings.AgentRadius} is not {radiusCells} cells of {settings.CellSize}m");
             }
 
             if (outdoor)
             {
                 // longer edges keep the poly count down over a whole landblock
-                settings.edgeMaxLen = 24.0f;
+                settings.EdgeMaxLen = 24.0f;
             }
 
             // Recast takes the region sizes as the side, in cells, of a square of that area
-            settings.minRegionSize = GetRegionSize(MIN_REGION_AREA, settings.cellSize);
-            settings.mergedRegionSize = GetRegionSize(MERGE_REGION_AREA, settings.cellSize);
+            settings.MinRegionSize = GetRegionSize(MIN_REGION_AREA, settings.CellSize);
+            settings.MergedRegionSize = GetRegionSize(MERGE_REGION_AREA, settings.CellSize);
 
             return settings;
         }

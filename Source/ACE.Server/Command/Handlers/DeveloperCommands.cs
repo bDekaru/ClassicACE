@@ -4692,6 +4692,61 @@ namespace ACE.Server.Command.Handlers
             EndPathToWalk(walk, $"The route ended {gap:0.0}m from the destination.");
         }
 
+        [CommandHandler("dumproute", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld,
+            "Writes a pathfinder route and the navmesh around it to a JSON file, for debugging.",
+            "[location]\n" +
+            "Without a location: the route of your selected creature to you, on that creature's mesh.\n" +
+            "With a location: your route there, on the Small mesh (map coordinates, or a cell and position as shown by @loc).\n" +
+            "Example: @dumproute 42.1N 33.6E")]
+        public static void HandleDumpRoute(Session session, params string[] parameters)
+        {
+            var player = session.Player;
+
+            Position start;
+            Position end;
+            AgentWidth agentWidth;
+            string label;
+
+            if (parameters.Length > 0)
+            {
+                if (!TryParsePathToDestination(parameters, out var destination, out var error))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, $"{error}\nUsage: @dumproute [location]");
+                    return;
+                }
+
+                start = player.Location;
+                end = destination;
+                agentWidth = AgentWidth.Small;
+                label = $"{player.Name} to {destination.ToLOCString()}";
+            }
+            else
+            {
+                if (CommandHandlerHelper.GetQueryTarget(session) is not Creature creature || creature == player)
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, "Select a creature, or give a location.\nUsage: @dumproute [location]");
+                    return;
+                }
+
+                start = creature.Location;
+                end = player.Location;
+                agentWidth = creature.GetPathfindingAgentWidth();
+                label = $"{creature.Name} (0x{creature.Guid.Full:X8}) to {player.Name}";
+            }
+
+            var path = Pathfinder.DumpRoute(start, end, agentWidth, label, out var legs, out var reachesEnd);
+            if (path == null)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "Could not write the dump; see the server log.");
+                return;
+            }
+
+            var result = legs == null
+                ? "no route found"
+                : $"{legs.Sum(l => l.Count)} waypoints over {legs.Count} leg(s), {(reachesEnd ? "reaches the end" : "partial")}";
+            CommandHandlerHelper.WriteOutputInfo(session, $"{agentWidth} mesh, {result}. Written to {path}");
+        }
+
         [CommandHandler("RebuildPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Rebuilds pathfinding meshes for the currecnt landblock")]
         public static void HandleRebuildPathfinding(Session session, params string[] parameters)
         {
