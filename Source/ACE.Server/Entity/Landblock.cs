@@ -204,6 +204,8 @@ namespace ACE.Server.Entity
 
         public double NextExplorationMarkerRefresh;
         private double ExplorationMarkerRefreshInterval = 300;
+        private double ExplorationMarkerInitializationRetryDelay = 5;
+        private bool ExplorationMarkersInitialized = false;
         private List<Position> PositionsForExplorationMarkers;
         private int ExplorationMarkerCount;
         private int ExplorationMarkerCurrentIndex;
@@ -212,16 +214,18 @@ namespace ACE.Server.Entity
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
                 return;
 
+            ExplorationMarkersInitialized = false;
+            ExplorationMarkerCount = 0;
+
             var explorationSites = DatabaseManager.World.GetExplorationSitesByLandblock(Id.Landblock);
             if (explorationSites.Count == 0)
                 return;
 
             var instances = GetLandblockInstances(false);
-            if (instances.Count > 0)
-                PositionsForExplorationMarkers = new List<Position>();
-            else
+            if (instances.Count == 0)
                 return;
 
+            var positions = new List<Position>();
             foreach (var instance in instances)
             {
                 var instanceWeenie = DatabaseManager.World.GetCachedWeenie(instance.WeenieClassId);
@@ -229,34 +233,65 @@ namespace ACE.Server.Entity
                     continue;
 
                 Position instancePos = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
-                PositionsForExplorationMarkers.Add(instancePos);
+                positions.Add(instancePos);
+
+                // if pathfinding is enabled markers will wait for these to finish loading before spawning
+                if (Pathfinder.PathfindingEnabled)
+                    Pathfinder.TryLoadMesh(instancePos);
             }
 
-            if (PositionsForExplorationMarkers.Count == 0)
+            if (positions.Count == 0)
                 return;
 
-            PositionsForExplorationMarkers.Shuffle();
+            positions.Shuffle();
+            PositionsForExplorationMarkers = positions;
+            ExplorationMarkerCurrentIndex = 0;
+
+            int count;
             if (LandblockInfo != null && LandblockInfo.NumCells >= 30)
-                ExplorationMarkerCount = 1 + ((int)LandblockInfo.NumCells - 30) / 80;
+                count = 1 + ((int)LandblockInfo.NumCells - 30) / 80;
             else
-                ExplorationMarkerCount = 1 + PositionsForExplorationMarkers.Count / 50;
-            ExplorationMarkerCount = Math.Min(ExplorationMarkerCount, PositionsForExplorationMarkers.Count);
+                count = 1 + positions.Count / 50;
+            ExplorationMarkerCount = Math.Min(count, positions.Count);
 
-            actionQueue.EnqueueAction(new ActionEventDelegate(() =>
+            actionQueue.EnqueueAction(new ActionEventDelegate(FinishExplorationMarkersInitialization));
+        }
+
+        /// <summary>
+        /// Spawns the first exploration markers once the pathfinding meshes of their spots are loaded. Until then it
+        /// is tried again by the refresh, every ExplorationMarkerInitializationRetryDelay seconds. With pathfinding
+        /// disabled it doesn't wait: the markers spawn right away, placed without the pathfinder.
+        /// </summary>
+        private void FinishExplorationMarkersInitialization()
+        {
+            if (ExplorationMarkersInitialized || ExplorationMarkerCount == 0)
+                return;
+
+            // markers are placed on the Medium mesh and spaced along routes on the Small one
+            if (Pathfinder.PathfindingEnabled && PositionsForExplorationMarkers.Any(p => Pathfinder.IsMeshLoading(p, AgentSize.Small) || Pathfinder.IsMeshLoading(p, AgentSize.Medium)))
             {
-                for (int i = 0; i < ExplorationMarkerCount; i++)
-                {
-                    SpawnExplorationMarker();
-                }
+                NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerInitializationRetryDelay);
+                return;
+            }
 
-                NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
-            }));
+            ExplorationMarkersInitialized = true;
+
+            for (int i = 0; i < ExplorationMarkerCount; i++)
+                SpawnExplorationMarker();
+
+            NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
         }
 
         public void RefreshExplorationMarkers(bool forceRefresh = false)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM || ExplorationMarkerCount == 0)
                 return;
+
+            if (!ExplorationMarkersInitialized)
+            {
+                FinishExplorationMarkersInitialization();
+                return;
+            }
 
             var allMarkers = worldObjects.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker).ToList();
             allMarkers.AddRange(pendingAdditions.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker).ToList());
@@ -323,7 +358,7 @@ namespace ACE.Server.Entity
                 var cellFromPathfinder = false;
                 if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
                 {
-                    var randomPos = Pathfinder.GetRandomPointWithinCircle(entryPos, 15, AgentSize.Large);
+                    var randomPos = Pathfinder.GetRandomPointWithinCircle(entryPos, 15, AgentSize.Medium);
                     if (randomPos != null)
                     {
                         entryPos = randomPos;
@@ -809,6 +844,12 @@ namespace ACE.Server.Entity
         }
 
         /// <summary>
+        /// The time this tick's monster ticks have spent planning routes, in Stopwatch ticks (see Creature.PlanRoute).
+        /// Once it reaches the budget, plans that can wait are put off to the creatures' next ticks.
+        /// </summary>
+        public long RoutePlanningTime;
+
+        /// <summary>
         /// This will tick anything that can be multi-threaded safely using LandblockGroups as thread boundaries
         /// This should be called after TickPhysics() and before Tick()
         /// </summary>
@@ -841,6 +882,7 @@ namespace ACE.Server.Entity
             if (!IsDormant)
             {
                 stopwatch.Restart();
+                RoutePlanningTime = 0;
                 while (sortedCreaturesByNextTick.Count > 0) // Monster_Tick()
                 {
                     var first = sortedCreaturesByNextTick.First.Value;

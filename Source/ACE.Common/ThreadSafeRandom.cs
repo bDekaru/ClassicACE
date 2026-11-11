@@ -10,7 +10,6 @@ namespace ACE.Common
     public static class ThreadSafeRandom
     {
         //static readonly ThreadLocal<Random> random = new ThreadLocal<Random>(() => new Random());
-        //static readonly ThreadLocal<Random> random = new ThreadLocal<Random>(() => RandN.Compat.RandomShim.Create(SmallRng.Create()));
         static readonly Random random = RandN.Compat.RandomShim.Create(ThreadLocalRng.Instance);
 
         /// <summary>

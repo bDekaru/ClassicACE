@@ -199,13 +199,8 @@ namespace ACE.Server.WorldObjects
             numRecentAttacksReceived = 0;
             attacksReceivedPerSecond = 0.0f;
 
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-            {
-                PathfindingEnabled = Pathfinder.PathfindingEnabled;
-
-                if (!Tier.HasValue && WeenieType != WeenieType.Vendor)
-                    Tier = CalculateExtendedTier();
-            }
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !Tier.HasValue && WeenieType != WeenieType.Vendor)
+                Tier = CalculateExtendedTier();
         }
 
         public override void BeforeEnterWorld()
@@ -217,7 +212,7 @@ namespace ACE.Server.WorldObjects
             {
                 UpdateDefenseCapBonus();
 
-                if (PathfindingEnabled && Location != null && Location.Indoors)
+                if (UsesPathfinding && Location != null && Location.Indoors)
                     Pathfinder.TryLoadMesh(Location);
             }
 
@@ -341,7 +336,7 @@ namespace ACE.Server.WorldObjects
 
             var radius = PhysicsObj.GetRadius() + 0.5f;
             var chestLocation = new Position(Location);
-            if (PathfindingEnabled && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
+            if (UsesPathfinding && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
             {
                 var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
                 if (randomPos != null)
@@ -468,7 +463,7 @@ namespace ACE.Server.WorldObjects
 
             var radius = PhysicsObj.GetRadius() + 0.5f;
             var chestLocation = new Position(Location);
-            if (PathfindingEnabled && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
+            if (UsesPathfinding && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
             {
                 var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
                 if (randomPos != null)
@@ -532,7 +527,7 @@ namespace ACE.Server.WorldObjects
 
             var radius = PhysicsObj.GetRadius() + 0.5f;
             var chestLocation = new Position(Location);
-            if (PathfindingEnabled && Location.Indoors)
+            if (UsesPathfinding && Location.Indoors)
             {
                 var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
                 if (randomPos != null)
@@ -597,7 +592,7 @@ namespace ACE.Server.WorldObjects
 
             var radius = PhysicsObj.GetRadius() + 0.5f;
             var corpseLocation = new Position(Location);
-            if (PathfindingEnabled && Location.Indoors && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
+            if (UsesPathfinding && Location.Indoors && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
             {
                 var randomPos = Pathfinder.GetRandomPointWithinCircle(corpseLocation, 40, AgentSize.Medium);
                 if (randomPos != null)
@@ -653,7 +648,7 @@ namespace ACE.Server.WorldObjects
             var trapTrigger = WorldObjectFactory.CreateNewWorldObject(2131);
 
             var triggerLocation = new Position(Location);
-            if (PathfindingEnabled && Location.Indoors)
+            if (UsesPathfinding && Location.Indoors)
             {
                 var randomPos = Pathfinder.GetRandomPointWithinCircle(triggerLocation, 40, AgentSize.Small);
                 if (randomPos != null)
@@ -665,7 +660,7 @@ namespace ACE.Server.WorldObjects
                 triggerLocation = triggerLocation.InFrontOf(2);
 
             var trapLocation = new Position(triggerLocation);
-            if (PathfindingEnabled && Location.Indoors)
+            if (UsesPathfinding && Location.Indoors)
             {
                 var randomPos = Pathfinder.GetNearestWallPosition(trapLocation, 20, AgentSize.Small, out _);
                 if (randomPos != null)

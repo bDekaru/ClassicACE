@@ -15,6 +15,7 @@ using DotRecast.Detour.Io;
 using DotRecast.Recast;
 using log4net;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -296,13 +297,25 @@ namespace ACE.Server.Pathfinding
         /// A load claims its mesh id with a placeholder of its own, and only replaces that placeholder with the mesh: a
         /// mesh that was unloaded or rebuilt while it was loading has another placeholder or none, and the stale result
         /// is dropped. ConcurrentDictionary.TryUpdate compares by reference here, as Equals isn't overridden.
+        /// A load that ends without a mesh (nothing walkable for the size, or a failed build) replaces its placeholder
+        /// with a missing mesh the same way, which stays until the landblock unloads or the mesh is rebuilt.
         /// </summary>
         private sealed class InteriorMesh
         {
             public readonly DtNavMesh Mesh;
             public readonly List<CellGroupDoor> PassableDoors;
 
+            /// <summary>
+            /// True for a load that ended without a mesh, false for a placeholder still loading.
+            /// </summary>
+            public readonly bool IsMissing;
+
+            /// <summary>
+            /// No mesh to query: still loading, or missing.
+            /// </summary>
             public bool IsPlaceholder => Mesh == null;
+
+            public bool IsLoading => Mesh == null && !IsMissing;
 
             public InteriorMesh(DtNavMesh mesh, List<CellGroupDoor> passableDoors)
             {
@@ -310,7 +323,14 @@ namespace ACE.Server.Pathfinding
                 PassableDoors = passableDoors;
             }
 
-            public static InteriorMesh CreatePlaceholder() => new InteriorMesh(null, null);
+            private InteriorMesh(bool isMissing)
+            {
+                IsMissing = isMissing;
+            }
+
+            public static InteriorMesh CreatePlaceholder() => new InteriorMesh(false);
+
+            public static InteriorMesh CreateMissing() => new InteriorMesh(true);
         }
 
         /// <summary>
@@ -357,7 +377,17 @@ namespace ACE.Server.Pathfinding
         {
             public readonly Dictionary<int, CellGroup> ByIndex = new Dictionary<int, CellGroup>();
             public readonly Dictionary<uint, int> CellToGroup = new Dictionary<uint, int>();
+            private readonly Dictionary<uint, CellGeometry> cellsById = new Dictionary<uint, CellGeometry>();
             private readonly ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell> physicsCells = new ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell>();
+
+            /// <summary>
+            /// The cells FindCell has queued and its queue, per thread.
+            /// </summary>
+            [ThreadStatic]
+            private static HashSet<uint> searchSeen;
+
+            [ThreadStatic]
+            private static Queue<uint> searchQueue;
 
             public LandblockGroups(uint landblockId)
             {
@@ -372,6 +402,8 @@ namespace ACE.Server.Pathfinding
                     ByIndex.Add(group.Index, group);
                     foreach (var cellId in group.CellIds)
                         CellToGroup[cellId] = group.Index;
+                    foreach (var cell in group.Cells)
+                        cellsById[cell.CellId] = cell;
                 }
             }
 
@@ -381,21 +413,56 @@ namespace ACE.Server.Pathfinding
             }
 
             /// <summary>
-            /// Finds the cell of a group that contains a point, trying the reference cell first and then the group's
-            /// cells nearest to the point. Only this group's cells are considered, so an overlapping cell of an
-            /// unconnected group is never returned. Returns 0 if no cell contains the point.
+            /// Finds the cell of a group that contains a point, searching outward from the reference cell through the
+            /// group's portals, nearest first. A point next to the reference (e.g. the next waypoint of a route) is
+            /// found in a few cells instead of sorting them all. Without a reference cell in the group, the cells
+            /// nearest to the point are tried first. Only this group's cells are considered, so an overlapping cell of
+            /// an unconnected group is never returned. Returns 0 if no cell contains the point.
             /// </summary>
             public uint FindCell(int groupIndex, uint referenceCell, Vector3 point)
             {
                 if (!ByIndex.TryGetValue(groupIndex, out var group))
                     return 0;
 
-                if (group.CellIds.Contains(referenceCell) && GetPhysicsCell(referenceCell)?.point_in_cell(point) == true)
-                    return referenceCell;
-
-                foreach (var cell in group.Cells.OrderBy(c => Vector3.DistanceSquared(c.EnvCell.Position.Origin, point)))
+                if (!group.CellIds.Contains(referenceCell))
                 {
-                    if (cell.CellId != referenceCell && GetPhysicsCell(cell.CellId)?.point_in_cell(point) == true)
+                    foreach (var cell in group.Cells.OrderBy(c => Vector3.DistanceSquared(c.EnvCell.Position.Origin, point)))
+                    {
+                        if (GetPhysicsCell(cell.CellId)?.point_in_cell(point) == true)
+                            return cell.CellId;
+                    }
+                    return 0;
+                }
+
+                var landblockId = referenceCell & 0xFFFF0000;
+
+                // reused per thread: a route looks up every one of its waypoints
+                var seen = searchSeen ??= new HashSet<uint>();
+                var queue = searchQueue ??= new Queue<uint>();
+                seen.Clear();
+                queue.Clear();
+
+                seen.Add(referenceCell);
+                queue.Enqueue(referenceCell);
+
+                while (queue.Count > 0)
+                {
+                    var cellId = queue.Dequeue();
+                    if (GetPhysicsCell(cellId)?.point_in_cell(point) == true)
+                        return cellId;
+
+                    foreach (var portal in cellsById[cellId].EnvCell.CellPortals)
+                    {
+                        var otherCellId = landblockId | portal.OtherCellId;
+                        if (group.CellIds.Contains(otherCellId) && seen.Add(otherCellId))
+                            queue.Enqueue(otherCellId);
+                    }
+                }
+
+                // cells the portals didn't lead to, should a group ever hold any
+                foreach (var cell in group.Cells)
+                {
+                    if (!seen.Contains(cell.CellId) && GetPhysicsCell(cell.CellId)?.point_in_cell(point) == true)
                         return cell.CellId;
                 }
                 return 0;
@@ -794,9 +861,14 @@ namespace ACE.Server.Pathfinding
             for (int i = 0; i < waypoints.Count; i++)
                 waypoints[i] = SnapToFloor(query, waypoints[i]);
 
+            // each waypoint's cell is looked up from the previous one's, which is usually a few cells away
             var positionList = new List<Position>(waypoints.Count);
+            var previous = start;
             foreach (var waypoint in waypoints)
-                positionList.Add(new RoutePosition(CreatePosition(start, group, ToRcVec3f(waypoint.Pos)), waypoint.IsDropStart));
+            {
+                previous = new RoutePosition(CreatePosition(previous, group, ToRcVec3f(waypoint.Pos)), waypoint.IsDropStart);
+                positionList.Add(previous);
+            }
 
             if (drawRoute)
                 DrawRoute(positionList);
@@ -833,43 +905,52 @@ namespace ACE.Server.Pathfinding
             if (!endFound)
                 return null; // the target is not on the mesh (outdoors: possibly its tile is not loaded yet)
 
-            var polys = new long[MAX_POLYS];
-            var pathStatus = query.FindPath(startRef, endRef, startPt, endPt, pathFilter, polys, out int polyCount, MAX_POLYS);
-            if (pathStatus.Failed() || polyCount == 0)
-                return null;
-
-            // When the target is unreachable (or the corridor did not fit in the buffer, or the search ran out of
-            // nodes) the corridor ends on another poly: a partial route, as close to the target as the mesh allows.
-            var lastPolyRef = polys[polyCount - 1];
-            var reachesEnd = lastPolyRef == endRef;
-
-            var pathEnd = endPt;
-            if (!reachesEnd && query.ClosestPointOnPoly(lastPolyRef, endPt, out var clampedEnd, out _).Succeeded())
-                pathEnd = clampedEnd;
-
-            var path = new DtStraightPath[MAX_POLYS];
-            var straightStatus = query.FindStraightPath(startPt, pathEnd, polys, polyCount, path, out int straightPathCount, MAX_POLYS, 0);
-            if (straightStatus.Failed() || straightPathCount == 0)
-                return null;
-
-            var waypoints = new List<Waypoint>(straightPathCount + 1);
-            for (int i = 0; i < straightPathCount; i++)
+            // the buffers only live for this call (the waypoints are copied out), so they are rented
+            var polys = ArrayPool<long>.Shared.Rent(MAX_POLYS);
+            var path = ArrayPool<DtStraightPath>.Shared.Rent(MAX_POLYS);
+            try
             {
-                var entry = path[i];
-                var isDropStart = (entry.flags & DtStraightPathFlags.DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
+                var pathStatus = query.FindPath(startRef, endRef, startPt, endPt, pathFilter, polys, out int polyCount, MAX_POLYS);
+                if (pathStatus.Failed() || polyCount == 0)
+                    return null;
 
-                // the end vertex of a straight path carries no poly ref, fall back to the last poly of the corridor
-                waypoints.Add(new Waypoint(ToVector3(entry.pos), entry.refs != 0 ? entry.refs : lastPolyRef, isDropStart));
+                // When the target is unreachable (or the corridor did not fit in the buffer, or the search ran out of
+                // nodes) the corridor ends on another poly: a partial route, as close to the target as the mesh allows.
+                var lastPolyRef = polys[polyCount - 1];
+                var reachesEnd = lastPolyRef == endRef;
 
-                // The landing of a drop must be a waypoint of its own, so the drop is followed as found. String pulling
-                // can leave it out when the path goes on straight from it.
-                if (isDropStart && TryGetDropLanding(query, polys, polyCount, entry.refs, out var landing) &&
-                    (i + 1 >= straightPathCount || Vector3.DistanceSquared(ToVector3(path[i + 1].pos), landing.Pos) > 0.01f))
-                    waypoints.Add(landing);
+                var pathEnd = endPt;
+                if (!reachesEnd && query.ClosestPointOnPoly(lastPolyRef, endPt, out var clampedEnd, out _).Succeeded())
+                    pathEnd = clampedEnd;
+
+                var straightStatus = query.FindStraightPath(startPt, pathEnd, polys, polyCount, path, out int straightPathCount, MAX_POLYS, 0);
+                if (straightStatus.Failed() || straightPathCount == 0)
+                    return null;
+
+                var waypoints = new List<Waypoint>(straightPathCount + 1);
+                for (int i = 0; i < straightPathCount; i++)
+                {
+                    var entry = path[i];
+                    var isDropStart = (entry.flags & DtStraightPathFlags.DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
+
+                    // the end vertex of a straight path carries no poly ref, fall back to the last poly of the corridor
+                    waypoints.Add(new Waypoint(ToVector3(entry.pos), entry.refs != 0 ? entry.refs : lastPolyRef, isDropStart));
+
+                    // The landing of a drop must be a waypoint of its own, so the drop is followed as found. String
+                    // pulling can leave it out when the path goes on straight from it.
+                    if (isDropStart && TryGetDropLanding(query, polys, polyCount, entry.refs, out var landing) &&
+                        (i + 1 >= straightPathCount || Vector3.DistanceSquared(ToVector3(path[i + 1].pos), landing.Pos) > 0.01f))
+                        waypoints.Add(landing);
+                }
+
+                reachesTarget = reachesEnd;
+                return waypoints;
             }
-
-            reachesTarget = reachesEnd;
-            return waypoints;
+            finally
+            {
+                ArrayPool<long>.Shared.Return(polys);
+                ArrayPool<DtStraightPath>.Shared.Return(path);
+            }
         }
 
         /// <summary>
@@ -1066,10 +1147,10 @@ namespace ACE.Server.Pathfinding
                 legs.Add(leg);
 
                 var group = GetGroupKey(current);
-                if (group == endGroup || group.IsNone)
+                if (group == endGroup)
                 {
                     // the final leg, complete or as close as this mesh gets
-                    reachesEnd = group == endGroup && legReachesTarget;
+                    reachesEnd = legReachesTarget;
                     break;
                 }
 
@@ -1447,20 +1528,17 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The doorways of a cell group an agent of the given size can get through (see FindPassableDoors). Loads the
-        /// group's mesh if it isn't yet. While the mesh is still being built that isn't known, and all doorways are
-        /// returned.
+        /// group's mesh if it isn't yet. While the mesh is still loading that isn't known, and all doorways are returned.
         /// </summary>
         private static List<CellGroupDoor> GetDoors(MeshGroupKey key, CellGroup cellGroup, AgentSize agentSize)
         {
-            var meshId = GetMeshId(key.LandblockId, key.Index, agentSize);
-            if (!Meshes.TryGetValue(meshId, out var interiorMesh))
+            if (!Meshes.TryGetValue(GetMeshId(key.LandblockId, key.Index, agentSize), out var interiorMesh))
             {
-                // cached meshes load right away
                 TryLoadInteriorMesh(key.LandblockId, key.Index);
-                Meshes.TryGetValue(meshId, out interiorMesh);
+                return cellGroup.Doors;
             }
 
-            return interiorMesh?.PassableDoors ?? cellGroup.Doors;
+            return interiorMesh.PassableDoors ?? cellGroup.Doors;
         }
 
         /// <summary>
@@ -1594,6 +1672,20 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
+        /// Detour's random numbers, from ThreadSafeRandom like the rest of the server.
+        /// </summary>
+        private sealed class ThreadSafeRcRand : IRcRand
+        {
+            public static readonly ThreadSafeRcRand Instance = new ThreadSafeRcRand();
+
+            public float Next() => (float)ACE.Common.ThreadSafeRandom.Next(0f, 1f);
+            public double NextDouble() => ACE.Common.ThreadSafeRandom.Next(0f, 1f);
+
+            // ThreadSafeRandom's maximum is inclusive, and one past it must still fit an int
+            public int NextInt32() => ACE.Common.ThreadSafeRandom.Next(0, int.MaxValue - 1);
+        }
+
+        /// <summary>
         /// Get a random point on the navmesh: anywhere on an interior mesh, within the landblock's reach outdoors.
         /// </summary>
         /// <param name="start"></param>
@@ -1608,10 +1700,8 @@ namespace ACE.Server.Pathfinding
             if (lease == null)
                 return null;
 
-            var frand = new RcRand(DateTime.Now.Ticks);
-
             // never on an island, which nothing could walk to
-            var status = lease.Query.FindRandomPoint(ReachableFilter, frand, out long randomRef, out var randomPt);
+            var status = lease.Query.FindRandomPoint(ReachableFilter, ThreadSafeRcRand.Instance, out long randomRef, out var randomPt);
             if (status.Failed() || randomRef == 0)
                 return null;
 
@@ -1626,14 +1716,13 @@ namespace ACE.Server.Pathfinding
                 return null;
 
             var query = lease.Query;
-            var frand = new RcRand(DateTime.Now.Ticks);
 
             if (!TryFindNearestReachablePoly(query, lease.ToMesh(location), out var startRef, out var startPt, out var startOnIsland))
                 return null;
 
             // the search spreads out from the start poly, so on an island it has to be allowed to stay on it
             var filter = startOnIsland ? AllPolysFilter : ReachableFilter;
-            var status = query.FindRandomPointWithinCircle(startRef, startPt, radius, filter, frand, out long randomRef, out var randomPt);
+            var status = query.FindRandomPointWithinCircle(startRef, startPt, radius, filter, ThreadSafeRcRand.Instance, out long randomRef, out var randomPt);
             if (status.Failed() || randomRef == 0)
                 return null;
 
@@ -1652,6 +1741,20 @@ namespace ACE.Server.Pathfinding
                 return null;
 
             return CreatePosition(location, group, startPt);
+        }
+
+        /// <summary>
+        /// True if the mesh of a position's interior cell group isn't there yet: still loading or being built, so
+        /// queries on it return nothing for now. False once loaded, and for a mesh that couldn't be built (see
+        /// InteriorMesh.IsMissing). False outdoors and for a cell in no group.
+        /// </summary>
+        public static bool IsMeshLoading(Position pos, AgentSize agentSize)
+        {
+            var group = GetGroupKey(pos);
+            if (group.IsOutdoor || group.IsNone)
+                return false;
+
+            return !Meshes.TryGetValue(GetMeshId(group.LandblockId, group.Index, agentSize), out var interiorMesh) || interiorMesh.IsLoading;
         }
 
         public static Position GetNearestWallPosition(Position location, float radius, AgentSize agentSize, out float distance, bool inverseNormal = false)
@@ -1691,8 +1794,8 @@ namespace ACE.Server.Pathfinding
         #region Mesh access
 
         /// <summary>
-        /// The mesh of a position's group, ready to query, or null if it is not loaded (yet). Interior meshes load from
-        /// their cache right away; missing ones build in the background, as do outdoor tiles.
+        /// The mesh of a position's group, ready to query, or null if it is not loaded (yet). A mesh that isn't
+        /// loaded is loaded in the background (see TryLoadInteriorMesh), as outdoor tiles are.
         /// </summary>
         private static MeshLease AcquireMesh(Position pos, MeshGroupKey group, AgentSize agentSize)
         {
@@ -1702,14 +1805,13 @@ namespace ACE.Server.Pathfinding
             if (group.IsOutdoor)
                 return AcquireOutdoorMesh(pos.Cell, agentSize);
 
-            var meshId = GetMeshId(group.LandblockId, group.Index, agentSize);
-            if (!Meshes.TryGetValue(meshId, out var interiorMesh))
+            if (!Meshes.TryGetValue(GetMeshId(group.LandblockId, group.Index, agentSize), out var interiorMesh))
             {
                 TryLoadInteriorMesh(group.LandblockId, group.Index);
-                Meshes.TryGetValue(meshId, out interiorMesh);
+                return null;
             }
 
-            return interiorMesh == null || interiorMesh.IsPlaceholder ? null : new MeshLease(interiorMesh.Mesh, group, null);
+            return interiorMesh.IsPlaceholder ? null : new MeshLease(interiorMesh.Mesh, group, null);
         }
 
         /// <summary>
@@ -1986,9 +2088,10 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Loads the meshes of one interior cell group: only that group's cells and their static objects. Cached meshes
-        /// load right away. Missing ones are built in the background, which can take seconds for a large dungeon; until
-        /// then the mesh is present as a placeholder (see InteriorMesh) and queries return no result.
+        /// Loads the meshes of one interior cell group: only that group's cells and their static objects. Everything
+        /// runs in the background: cached meshes load in tens of ms for a large dungeon, too long for the tick that asks
+        /// for them, and missing ones are built, which can take seconds. Until then the mesh is present as a
+        /// placeholder (see InteriorMesh) and queries return no result.
         /// </summary>
         private static void TryLoadInteriorMesh(uint landblockId, int group, bool rebuildMesh = false)
         {
@@ -2009,40 +2112,55 @@ namespace ACE.Server.Pathfinding
             // Doorways in a wall have a door apron, which keeps their component by itself when it can be reached (see
             // MarkIslands). Seeding with them would also keep an apron that can't be reached, so only the others seed.
             var seeds = cellGroup.Doors.Where(d => !d.IsInWall).Select(d => ToMeshPoint(landblockId, d.Position, false)).ToList();
-            var toBuild = new List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)>();
+            var toLoad = new List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)>();
 
             foreach (var agentSize in Enum.GetValues(typeof(AgentSize)).Cast<AgentSize>())
             {
                 var meshId = GetMeshId(landblockId, group, agentSize);
                 var placeholder = InteriorMesh.CreatePlaceholder();
-                if (!Meshes.TryAdd(meshId, placeholder))
-                    continue;
-
-                var meshPath = GetMeshPath(InteriorMeshDirectory, meshId, false, agentSize);
-                try
-                {
-                    if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
-                    {
-                        MarkIslands(cachedMesh, seeds, false);
-                        Meshes.TryUpdate(meshId, new InteriorMesh(cachedMesh, FindPassableDoors(cachedMesh, cellGroup, agentSize)), placeholder);
-                        continue;
-                    }
-                }
-                catch (Exception e)
-                {
-                    log.Warn($"Pathfinder: could not load the {agentSize} mesh for cell group {group} at {location}, rebuilding it: {e.Message}");
-                }
-
-                toBuild.Add((agentSize, meshId, meshPath, placeholder));
+                if (Meshes.TryAdd(meshId, placeholder))
+                    toLoad.Add((agentSize, meshId, GetMeshPath(InteriorMeshDirectory, meshId, false, agentSize), placeholder));
             }
 
-            if (toBuild.Count == 0)
+            if (toLoad.Count == 0)
                 return;
 
-            // a mesh unloaded or rebuilt since its build was queued no longer has this build's placeholder
+            // a mesh unloaded or rebuilt since its load was queued no longer has this load's placeholder
             bool IsCurrent(uint meshId, InteriorMesh placeholder) => Meshes.TryGetValue(meshId, out var current) && current == placeholder;
 
-            RunMeshBuild(() =>
+            // cached meshes load right away, outside the build slots, so they don't wait for other landblocks' builds
+            Task.Run(() =>
+            {
+                var toBuild = new List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)>();
+
+                foreach (var entry in toLoad)
+                {
+                    var (agentSize, meshId, meshPath, placeholder) = entry;
+                    if (!IsCurrent(meshId, placeholder))
+                        continue;
+
+                    try
+                    {
+                        if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
+                        {
+                            MarkIslands(cachedMesh, seeds, false);
+                            Meshes.TryUpdate(meshId, new InteriorMesh(cachedMesh, FindPassableDoors(cachedMesh, cellGroup, agentSize)), placeholder);
+                            continue;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        log.Warn($"Pathfinder: could not load the {agentSize} mesh for cell group {group} at {location}, rebuilding it: {e.Message}");
+                    }
+
+                    toBuild.Add(entry);
+                }
+
+                if (toBuild.Count > 0)
+                    BuildInteriorMeshes(toBuild);
+            });
+
+            void BuildInteriorMeshes(List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)> toBuild) => RunMeshBuild(() =>
             {
                 // the cells are loaded once; each size gets its own door aprons (see DoorApron)
                 Dictionary<AgentSize, CellGeometryProvider> geoms = null;
@@ -2052,7 +2170,7 @@ namespace ACE.Server.Pathfinding
                     if (!IsCurrent(meshId, placeholder))
                         continue;
 
-                    // On failure the placeholder stays, so no retry is made: the same cells would fail the same way
+                    // On failure the mesh is marked missing, so no retry is made: the same cells would fail the same way
                     // until a rebuild is requested.
                     try
                     {
@@ -2061,6 +2179,8 @@ namespace ACE.Server.Pathfinding
                         if (geoms is null)
                         {
                             log.Debug($"Pathfinder: no geometry for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
+                            foreach (var entry in toBuild)
+                                MarkMissing(entry.meshId, entry.placeholder);
                             return;
                         }
 
@@ -2069,6 +2189,7 @@ namespace ACE.Server.Pathfinding
                         if (mesh is null)
                         {
                             log.Debug($"Pathfinder: could not build the {agentSize} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
+                            MarkMissing(meshId, placeholder);
                             continue;
                         }
 
@@ -2084,9 +2205,13 @@ namespace ACE.Server.Pathfinding
                     catch (Exception e)
                     {
                         log.Warn($"Pathfinder: failed to build the {agentSize} mesh for cell group {group} at {location}: {e}");
+                        MarkMissing(meshId, placeholder);
                     }
                 }
             });
+
+            // only while the load's own placeholder is there: a mesh unloaded or rebuilt meanwhile is left alone
+            void MarkMissing(uint meshId, InteriorMesh placeholder) => Meshes.TryUpdate(meshId, InteriorMesh.CreateMissing(), placeholder);
         }
 
         /// <summary>

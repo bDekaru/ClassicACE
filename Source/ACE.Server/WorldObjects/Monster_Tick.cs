@@ -275,8 +275,6 @@ namespace ACE.Server.WorldObjects
 
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && !AiIncapableOfAnyMotion)
             {
-                PathfindingEnabled = Pathfinder.PathfindingEnabled;
-
                 isMeleeVisible = IsMeleeVisible(AttackTarget, true);
                 isDirectiVisible = IsDirectVisible(AttackTarget, true);
 
@@ -386,7 +384,9 @@ namespace ACE.Server.WorldObjects
 
                 if (IsRouteStartPending)
                 {
-                    StartRoute();
+                    // without planning time left this tick, the route starts on a later one
+                    if (CanPlanRouteThisTick)
+                        StartRoute();
                     if (IsRouteStartPending)
                         return;
                 }

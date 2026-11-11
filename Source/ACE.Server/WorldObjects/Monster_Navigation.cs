@@ -701,7 +701,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private Position PlaceOnFloor(Position position)
         {
-            if (PathfindingEnabled)
+            if (UsesPathfinding)
             {
                 var onMesh = Pathfinder.GetClosestPointOnMesh(position, GetPathfindingAgentSize());
                 if (onMesh != null)
@@ -735,7 +735,7 @@ namespace ACE.Server.WorldObjects
         {
             var home = new Position(Location);
 
-            if (!PathfindingEnabled || !home.Indoors)
+            if (!UsesPathfinding || !home.Indoors)
                 return home;
 
             var agentSize = GetPathfindingAgentSize();
@@ -901,7 +901,8 @@ namespace ACE.Server.WorldObjects
             ExpectedEmoteEndTime = 0;
         }
 
-        private bool PathfindingEnabled = false;
+        private static bool UsesPathfinding => Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Pathfinder.PathfindingEnabled;
+
         private double LastRouteTime = 0;
         private WorldObject RouteAttackTarget = null;
 
@@ -976,7 +977,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// True if this creature routes with the pathfinder where it stands: indoors and on the landscape alike.
         /// </summary>
-        public bool CanRouteHere => PathfindingEnabled && Location != null;
+        public bool CanRouteHere => UsesPathfinding && Location != null;
 
         public void TryRoute(List<Position> route = null)
         {
@@ -984,7 +985,7 @@ namespace ACE.Server.WorldObjects
                 Console.WriteLine($"{Name} ({Guid}).TryRoute()");
 
             // an explicitly provided route (debug commands) may also be on the surface
-            if (!PathfindingEnabled || (route == null && !CanRouteHere) || AttackTarget == null || IsRouting)
+            if (!UsesPathfinding || (route == null && !CanRouteHere) || AttackTarget == null || IsRouting)
                 return;
 
             IsRouteStartPending = true;
@@ -1058,8 +1059,30 @@ namespace ACE.Server.WorldObjects
             if (goal == null)
                 return null;
 
-            return FindRouteThroughDoorways(goal, GetPathfindingAgentSize(), out reachesTarget);
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            try
+            {
+                return FindRouteThroughDoorways(goal, GetPathfindingAgentSize(), out reachesTarget);
+            }
+            finally
+            {
+                var landblock = CurrentLandblock;
+                if (landblock != null)
+                    landblock.RoutePlanningTime += System.Diagnostics.Stopwatch.GetTimestamp() - started;
+            }
         }
+
+        /// <summary>
+        /// The time a landblock's monster ticks may spend planning routes in one tick (see Landblock.RoutePlanningTime).
+        /// A route can take tens of ms, so a pack woken at once plans a few routes per tick instead of all of them.
+        /// </summary>
+        private static readonly long MaxRoutePlanningTimePerTick = System.Diagnostics.Stopwatch.Frequency / 50; // 20 ms
+
+        /// <summary>
+        /// True if this creature's landblock has route planning time left this tick. A plan that can wait (starting a
+        /// route, re-planning) waits for the creature's next tick otherwise.
+        /// </summary>
+        private bool CanPlanRouteThisTick => CurrentLandblock == null || CurrentLandblock.RoutePlanningTime < MaxRoutePlanningTimePerTick;
 
         /// <summary>
         /// True if the attack target has moved far enough from where the current route was planned to that the route
@@ -1076,6 +1099,9 @@ namespace ACE.Server.WorldObjects
 
             // finish the drop first: a new route planned from the ledge may lead another way
             if (IsRouteDropping)
+                return false;
+
+            if (!CanPlanRouteThisTick)
                 return false;
 
             return AttackTarget.Location.DistanceTo(RoutePlannedTargetLocation) > RouteReplanTargetMovedDistance;
