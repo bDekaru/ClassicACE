@@ -167,13 +167,17 @@ namespace ACE.Server.WorldObjects
                 if (IsWandering)
                     PendingEndWandering = true;
 
+                var wasSteppingOut = IsRouteSteppingOut;
+                IsRouteSteppingOut = false;
+
                 switch (status)
                 {
                     case WeenieError.ObjectGone:
                         FailedMovementCount = 0;
                         return;
                     case WeenieError.None:
-                        FailedMovementCount = 0;
+                        if (!wasSteppingOut)
+                            FailedMovementCount = 0;
 
                         if (IsRouting)
                         {
@@ -540,8 +544,7 @@ namespace ACE.Server.WorldObjects
                     if (DebugMove)
                         Console.WriteLine($"{Name} ({Guid}).UpdateMoveToHome() - resuming the interrupted route home");
 
-                    if (RoutePositionTarget != null && CurrentRouteIndex > 0)
-                        CurrentRouteIndex--;
+                    RewindToRouteTarget();
                     PendingContinueRoute = true;
                 }
 
@@ -918,6 +921,11 @@ namespace ACE.Server.WorldObjects
         private bool PendingContinueRoute = false;
 
         /// <summary>
+        /// True while a retry steps the creature away from the wall it got stuck on (see ContinueRoute).
+        /// </summary>
+        private bool IsRouteSteppingOut = false;
+
+        /// <summary>
         /// True when CurrentRoute was planned to the attack target (not handed in by a debug command), so it may be re-planned.
         /// </summary>
         private bool RouteIsPlanned = false;
@@ -1223,21 +1231,9 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                int retryIndex;
-                Position retryPos = RoutePositionTarget;
-                for(retryIndex = Math.Max(CurrentRouteIndex - 1, 0); retryIndex > 0; retryIndex--)
-                {
-                    // Rewind our route to the previous significant distance step.
-                    retryPos = CurrentRoute[retryIndex];
-                    if (Location.DistanceTo(retryPos) > 2.0f)
-                        continue;
-                    else
-                        break;
-                }
-
-                // on this creature's own mesh, whose edges are where its body touches the walls
+                // attempt to step away from the nearest wall, hopefully that will get us past the point we got stuck.
                 var agentSize = GetPathfindingAgentSize();
-                var nearbyWallPos = Pathfinder.GetNearestWallPosition(retryPos, 1.0f, agentSize, out _, false);
+                var nearbyWallPos = Pathfinder.GetNearestWallPosition(Location, 1.0f, agentSize, out _, false);
                 if (nearbyWallPos != null)
                 {
                     // A mesh edge can also be a drop or one side of a narrow corridor, so stepping out from it can
@@ -1249,8 +1245,10 @@ namespace ACE.Server.WorldObjects
                             CancelMoveTo(WeenieError.ObjectGone);
                         FailedSightCount = 0;
 
-                        // measured from the centre: from the edge of the body, the creature already counts as there
-                        // and doesn't move at all
+                        // after the step, the route heads for the waypoint that failed again
+                        RewindToRouteTarget();
+                        IsRouteSteppingOut = true;
+
                         MoveTo(wallAvoidingPos, RouteWaypointRadius, 1.0f, false, useSpheres: false);
                         return;
                     }
@@ -1334,6 +1332,16 @@ namespace ACE.Server.WorldObjects
             RouteDropRestoreEdgeSlide = false;
         }
 
+        /// <summary>
+        /// Points the route back at the waypoint it is heading for, so the next ContinueRoute heads for it again. Does
+        /// nothing if it already does (e.g. after an earlier rewind).
+        /// </summary>
+        private void RewindToRouteTarget()
+        {
+            if (RoutePositionTarget != null && CurrentRouteIndex > 0 && CurrentRoute?[CurrentRouteIndex - 1] == RoutePositionTarget)
+                CurrentRouteIndex--;
+        }
+
         private void RetryRoute()
         {
             if (DebugMove)
@@ -1353,6 +1361,7 @@ namespace ACE.Server.WorldObjects
             PendingEndRoute = false;
             PendingContinueRoute = false;
             PendingRetryRoute = false;
+            IsRouteSteppingOut = false;
 
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
