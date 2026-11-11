@@ -11,62 +11,6 @@ using Vector3 = System.Numerics.Vector3;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
-    class BoundingBox2
-    {
-        private bool hasData = false;
-
-        public float MinX { get; set; }
-        public float MaxX { get; set; }
-        public float MinY { get; set; }
-        public float MaxY { get; set; }
-        public float MinZ { get; set; }
-        public float MaxZ { get; set; }
-
-        public float Width { get => MaxX - MinX; }
-        public float Depth { get => MaxY - MinY; }
-        public float Height { get => MaxZ - MinZ; }
-
-        public bool ContainsPoint2D(Vector3 loc)
-        {
-            return loc.X >= MinX && loc.X <= MaxX && loc.Y >= MinY && loc.Y <= MaxY;
-        }
-
-        public bool IntersectsRect(float minX, float minY, float maxX, float maxY)
-        {
-            return hasData && maxX >= MinX && minX <= MaxX && maxY >= MinY && minY <= MaxY;
-        }
-
-        public bool IntersectsCircle(Vector3 loc, float radius)
-        {
-            // dumb
-            return loc.X + radius >= MinX && loc.X - radius <= MaxX && loc.Y + radius >= MinY && loc.Y - radius <= MaxY;
-        }
-
-        internal void Add(Vector3 pv)
-        {
-            if (!hasData || pv.X < MinX)
-                MinX = pv.X;
-            if (!hasData || pv.Y < MinY)
-                MinY = pv.Y;
-            if (!hasData || pv.Z < MinZ)
-                MinZ = pv.Z;
-
-            if (!hasData || pv.X > MaxX)
-                MaxX = pv.X;
-            if (!hasData || pv.Y > MaxY)
-                MaxY = pv.Y;
-            if (!hasData || pv.Z > MaxZ)
-                MaxZ = pv.Z;
-
-            hasData = true;
-        }
-
-        public override string ToString()
-        {
-            return $"MinX:{MinX}, MinY:{MinY}, MinZ:{MinZ}, MaxX:{MaxX}, MaxY:{MaxY}, MaxZ:{MaxZ}, Width:{Width}, Height:{Height}";
-        }
-    }
-
     /// <summary>
     /// The parts of a physics landblock the outdoor mesh is built from, with its object lists copied. For the
     /// pathfinder this is a detached landblock (Physics.Common.Landblock.CreateDetached) that nothing else uses.
@@ -127,12 +71,8 @@ namespace ACE.Server.Pathfinding.Geometry
         public List<Vector3> Vertices { get; } = new List<Vector3>();
         public List<List<int>> Polygons { get; } = new List<List<int>>();
 
-        private List<byte> Height { get; } = new List<byte>();
-        private List<ushort> Terrain { get; } = new List<ushort>();
         public LandblockGeometry Geometry { get; }
         public List<CellGeometry> Neighbors { get; }
-
-        private List<BoundingBox> BuildingBoundingBoxes = new List<BoundingBox>();
 
         public LandblockGeometryExporter(LandblockGeometry geometry, List<CellGeometry> neighbors)
         {
@@ -270,13 +210,7 @@ namespace ACE.Server.Pathfinding.Geometry
             var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvCell.EnvironmentId);
             if (environment?.Cells != null && environment.Cells.TryGetValue(cell.EnvCell.CellStructure, out var cellStruct) && cellStruct.VertexArray.Vertices.Count > 0)
             {
-                var min = new Vector3(float.MaxValue);
-                var max = new Vector3(float.MinValue);
-                foreach (var v in cellStruct.VertexArray.Vertices.Values)
-                {
-                    min = Vector3.Min(min, v.Origin);
-                    max = Vector3.Max(max, v.Origin);
-                }
+                var (min, max) = GeometryHelpers.GetBounds(cellStruct.VertexArray.Vertices.Values.Select(v => v.Origin));
                 min -= new Vector3(CellClipMargin);
                 max += new Vector3(CellClipMargin);
 
@@ -284,7 +218,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 box = new CellClipBox
                 {
                     Origin = frame.Origin,
-                    Axes = new[] { Transform(Vector3.UnitX, frame.Orientation), Transform(Vector3.UnitY, frame.Orientation), Transform(Vector3.UnitZ, frame.Orientation) },
+                    Axes = new[] { Vector3.Transform(Vector3.UnitX, frame.Orientation), Vector3.Transform(Vector3.UnitY, frame.Orientation), Vector3.Transform(Vector3.UnitZ, frame.Orientation) },
                     Min = min,
                     Max = max,
                     WorldMin = new Vector3(float.MaxValue),
@@ -294,7 +228,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 for (var corner = 0; corner < 8; corner++)
                 {
                     var local = new Vector3((corner & 1) == 0 ? min.X : max.X, (corner & 2) == 0 ? min.Y : max.Y, (corner & 4) == 0 ? min.Z : max.Z);
-                    var world = Transform(local, frame.Orientation) + frame.Origin;
+                    var world = frame.LocalToGlobal(local);
                     box.WorldMin = Vector3.Min(box.WorldMin, world);
                     box.WorldMax = Vector3.Max(box.WorldMax, world);
                 }
@@ -316,16 +250,7 @@ namespace ACE.Server.Pathfinding.Geometry
             if (polygons.Count == 0)
                 return;
 
-            var min = new Vector3(float.MaxValue);
-            var max = new Vector3(float.MinValue);
-            foreach (var polygon in polygons)
-            {
-                foreach (var p in polygon)
-                {
-                    min = Vector3.Min(min, p);
-                    max = Vector3.Max(max, p);
-                }
-            }
+            var (min, max) = GeometryHelpers.GetBounds(polygons.SelectMany(p => p));
 
             var boxes = new List<CellClipBox>();
             var visited = new HashSet<uint>();
@@ -394,14 +319,14 @@ namespace ACE.Server.Pathfinding.Geometry
 
             var frame = cell.EnvCell.Position;
             var cellCenter = cellStruct.VertexArray.Vertices.Values.Aggregate(Vector3.Zero, (a, v) => a + v.Origin) / Math.Max(1, cellStruct.VertexArray.Vertices.Count);
-            cellCenter = Transform(cellCenter, frame.Orientation) + frame.Origin;
+            cellCenter = frame.LocalToGlobal(cellCenter);
 
             foreach (var portal in cell.EnvCell.CellPortals.Where(p => p.OtherCellId == 0xFFFF))
             {
                 if (!cellStruct.Polygons.TryGetValue(portal.PolygonId, out var polygon) || polygon.VertexIds.Count < 3)
                     return true;
 
-                var points = polygon.VertexIds.Select(v => Transform(cellStruct.VertexArray.Vertices[(ushort)v].Origin, frame.Orientation) + frame.Origin).ToList();
+                var points = polygon.VertexIds.Select(v => frame.LocalToGlobal(cellStruct.VertexArray.Vertices[(ushort)v].Origin)).ToList();
                 var normal = Vector3.Cross(points[1] - points[0], points[2] - points[0]);
                 if (normal.LengthSquared() < 1e-12f)
                     continue;
@@ -493,10 +418,7 @@ namespace ACE.Server.Pathfinding.Geometry
             {
                 var vertice = vertices[vertices.Count - 1 - i];
                 foreach (var frame in frames)
-                {
-                    vertice = Transform(vertice, frame.Orientation);
-                    vertice += frame.Origin;
-                }
+                    vertice = frame.LocalToGlobal(vertice);
                 retvertices.Add(vertice);
             }
 
@@ -593,9 +515,58 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         private const float MaxObjectReach = 64.0f;
 
+        /// <summary>
+        /// The bounds of a cell footprint's floors, in world coordinates.
+        /// </summary>
+        private class FootprintBounds
+        {
+            private bool hasData = false;
+
+            public float MinX { get; set; }
+            public float MaxX { get; set; }
+            public float MinY { get; set; }
+            public float MaxY { get; set; }
+            public float MinZ { get; set; }
+            public float MaxZ { get; set; }
+
+            public bool ContainsPoint2D(Vector3 loc)
+            {
+                return loc.X >= MinX && loc.X <= MaxX && loc.Y >= MinY && loc.Y <= MaxY;
+            }
+
+            public bool IntersectsRect(float minX, float minY, float maxX, float maxY)
+            {
+                return hasData && maxX >= MinX && minX <= MaxX && maxY >= MinY && minY <= MaxY;
+            }
+
+            public void Add(Vector3 pv)
+            {
+                if (!hasData || pv.X < MinX)
+                    MinX = pv.X;
+                if (!hasData || pv.Y < MinY)
+                    MinY = pv.Y;
+                if (!hasData || pv.Z < MinZ)
+                    MinZ = pv.Z;
+
+                if (!hasData || pv.X > MaxX)
+                    MaxX = pv.X;
+                if (!hasData || pv.Y > MaxY)
+                    MaxY = pv.Y;
+                if (!hasData || pv.Z > MaxZ)
+                    MaxZ = pv.Z;
+
+                hasData = true;
+            }
+
+            public override string ToString()
+            {
+                return $"MinX:{MinX}, MinY:{MinY}, MinZ:{MinZ}, MaxX:{MaxX}, MaxY:{MaxY}, MaxZ:{MaxZ}";
+            }
+        }
+
         private class CellFootprint
         {
-            public BoundingBox2 Bounds = new BoundingBox2();
+            public FootprintBounds Bounds = new FootprintBounds();
             public List<Vector3[]> Floors = new List<Vector3[]>();
             public List<Vector3> FloorNormals = new List<Vector3>();
             public float MaxZ = float.MinValue;
@@ -616,12 +587,11 @@ namespace ACE.Server.Pathfinding.Geometry
         public void LoadSurface(uint landblockId, IEnumerable<SurfaceSource> sources)
         {
             var origin = GeometryHelpers.GetLandblockOrigin(landblockId);
-            var blockLength = (float)ACE.Server.Physics.Common.LandDefs.BlockLength;
 
             _clipMinX = origin.X - SurfaceMargin;
             _clipMinY = origin.Y - SurfaceMargin;
-            _clipMaxX = origin.X + blockLength + SurfaceMargin;
-            _clipMaxY = origin.Y + blockLength + SurfaceMargin;
+            _clipMaxX = origin.X + ACE.Entity.Position.BlockLength + SurfaceMargin;
+            _clipMaxY = origin.Y + ACE.Entity.Position.BlockLength + SurfaceMargin;
 
             foreach (var source in sources)
             {
@@ -654,16 +624,8 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         private void AddSurfacePolygon(List<Vector3> points)
         {
-            float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
-            foreach (var p in points)
-            {
-                minX = Math.Min(minX, p.X);
-                minY = Math.Min(minY, p.Y);
-                maxX = Math.Max(maxX, p.X);
-                maxY = Math.Max(maxY, p.Y);
-            }
-
-            if (IntersectsClip(minX, minY, maxX, maxY))
+            var (min, max) = GeometryHelpers.GetBounds(points);
+            if (IntersectsClip(min.X, min.Y, max.X, max.Y))
                 AddPolygon(points, NoFrames);
         }
 
@@ -779,12 +741,12 @@ namespace ACE.Server.Pathfinding.Geometry
                     if (poly.VertexIds.Count < 3)
                         continue;
 
-                    var points = poly.VertexIds.Select(v => Transform(cellStruct.VertexArray.Vertices[(ushort)v].Origin, envCell.Position.Orientation) + envCell.Position.Origin + origin).ToArray();
+                    var points = poly.VertexIds.Select(v => envCell.Position.LocalToGlobal(cellStruct.VertexArray.Vertices[(ushort)v].Origin) + origin).ToArray();
 
                     foreach (var p in points)
                         footprint.MaxZ = Math.Max(footprint.MaxZ, p.Z);
 
-                    var normal = GetNewellNormal(points);
+                    var normal = GeometryHelpers.GetPolygonNormal(points);
                     if (normal.Z < floorZ)
                         continue;
 
@@ -799,21 +761,6 @@ namespace ACE.Server.Pathfinding.Geometry
             }
 
             return footprints;
-        }
-
-        private static Vector3 GetNewellNormal(Vector3[] points)
-        {
-            var normal = Vector3.Zero;
-            for (var i = 0; i < points.Length; i++)
-            {
-                var a = points[i];
-                var b = points[(i + 1) % points.Length];
-                normal.X += (a.Y - b.Y) * (a.Z + b.Z);
-                normal.Y += (a.Z - b.Z) * (a.X + b.X);
-                normal.Z += (a.X - b.X) * (a.Y + b.Y);
-            }
-            var length = normal.Length();
-            return length > 0 ? normal / length : Vector3.Zero;
         }
 
         private static bool PointInPolygon2D(Vector3[] poly, float x, float y)
@@ -867,7 +814,7 @@ namespace ACE.Server.Pathfinding.Geometry
             var vertices = landblock.VertexArray.Vertices;
             var sideCells = landblock.SideCellCount;
             var sideVerts = landblock.SideVertexCount;
-            var cellLength = (float)ACE.Server.Physics.Common.LandDefs.BlockLength / sideCells;
+            var cellLength = (float)ACE.Entity.Position.BlockLength / sideCells;
             var origin = GeometryHelpers.GetLandblockOrigin(landblockId);
 
             for (var x = 0; x < sideCells; x++)
@@ -1130,28 +1077,6 @@ namespace ACE.Server.Pathfinding.Geometry
                 triangles.Add(new[] { Vector3.Normalize(vectors[indices[i + 2]]), Vector3.Normalize(vectors[indices[i + 1]]), Vector3.Normalize(vectors[indices[i]]) });
 
             return triangles;
-        }
-
-        public static Vector3 Transform(Vector3 value, Quaternion rotation)
-        {
-            float x2 = rotation.X + rotation.X;
-            float y2 = rotation.Y + rotation.Y;
-            float z2 = rotation.Z + rotation.Z;
-
-            float wx2 = rotation.W * x2;
-            float wy2 = rotation.W * y2;
-            float wz2 = rotation.W * z2;
-            float xx2 = rotation.X * x2;
-            float xy2 = rotation.X * y2;
-            float xz2 = rotation.X * z2;
-            float yy2 = rotation.Y * y2;
-            float yz2 = rotation.Y * z2;
-            float zz2 = rotation.Z * z2;
-
-            return new Vector3(
-                value.X * (1.0f - yy2 - zz2) + value.Y * (xy2 - wz2) + value.Z * (xz2 + wy2),
-                value.X * (xy2 + wz2) + value.Y * (1.0f - xx2 - zz2) + value.Z * (yz2 - wx2),
-                value.X * (xz2 - wy2) + value.Y * (yz2 + wx2) + value.Z * (1.0f - xx2 - yy2));
         }
 
         private static int GetMidpointIndex(Dictionary<string, int> midpointIndices, List<Vector3> vertices, int i0, int i1)

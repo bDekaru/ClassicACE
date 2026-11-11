@@ -64,28 +64,56 @@ namespace ACE.Server.Pathfinding
         private const int MAX_POLYS = 1024;
 
         /// <summary>
-        /// The agent radius each mesh is built for: how far its walkable area keeps from walls. A creature's radius is
-        /// that of its collision spheres (Setup.Sphere x scale), which is what collides with walls. Small covers ~69%
-        /// of monster spawns (drudges, olthoi, humans), Medium ~22% (tuskers, burun, mattekars) and Large ~8% (guruks
-        /// and other big creatures); the ~1% wider than Large route on it anyway.
-        /// Each mesh's cell size is chosen so its radius is a whole number of cells (see GetCellSize).
-        /// </summary>
-        public const float SmallAgentRadius = 0.65f;
-        public const float MediumAgentRadius = 1.0f;
-        public const float LargeAgentRadius = 1.75f;
-
-        /// <summary>
-        /// The clearance each mesh needs overhead, which closes every opening lower than it on that mesh. Chosen from
+        /// What each mesh is built for, per agent size.
+        ///
+        /// Radius: how far the walkable area keeps from walls. A creature's radius is that of its collision spheres
+        /// (Setup.Sphere x scale), which is what collides with walls. Small covers ~69% of monster spawns (drudges,
+        /// olthoi, humans), Medium ~22% (tuskers, burun, mattekars) and Large ~8% (guruks and other big creatures); the
+        /// ~1% wider than Large route on it anyway.
+        ///
+        /// Height: the clearance needed overhead, which closes every opening lower than it on that mesh. Chosen from
         /// the world's openings: building doorways are nearly all 2.5m tall and dungeon corridors mostly 3.0m, and
         /// Recast loses about a cell (0.1m) voxelizing a floor and a lintel, so an opening stays open for an
         /// agentHeight a cell under it. Small at 2.4 keeps 86% of the building doors open for its creatures (2.6
         /// kept 41%); Medium at 2.9 keeps 99% of the dungeon openings (3.2 kept 62%). Large at 3.4 costs nothing in
-        /// dungeons, as every opening wide enough for it is also tall enough.
-        /// A creature taller than its radius' mesh routes on the next one up (see GetAgentSize): ~2% of spawns.
+        /// dungeons, as every opening wide enough for it is also tall enough. A creature taller than its radius' mesh
+        /// routes on the next one up (see GetAgentSize): ~2% of spawns.
+        ///
+        /// MaxClimb: the ledge height stepped up (and down). A creature steps up a ledge when its foot sphere hits it
+        /// and the top is within 1.5 x StepUpHeight (see Polygon.adjust_sphere_to_plane), but the top must also
+        /// overlap the foot sphere: up to the sphere's radius always, up to its diameter only when moving fast enough
+        /// to push into the ledge. The foot sphere is the tighter limit for nearly every creature, so these are the
+        /// heights about 96% (Small) and 99-100% (Medium, Large) of each mesh's spawns climb every time.
+        ///
+        /// Cell sizes: the voxel cell size and the agent radius in whole cells, interior and outdoor. Recast erodes the
+        /// walkable area by ceil(radius / cellSize) cells, so a radius that isn't a whole number of cells is rounded
+        /// up (0.65m on 0.2m cells erodes 0.8m). Each mesh gets a cell size its agent radius divides into:
+        ///
+        ///   Interior: Small 0.65/7 (~0.093m) x 7 = 0.65m, Medium 0.1 x 10 = 1.0m, Large 0.125 x 14 = 1.75m.
+        ///   Outdoor:  Small 0.16 x 4 = 0.64m, Medium 0.2 x 5 = 1.0m, Large 0.25 x 7 = 1.75m.
+        ///
+        /// Outdoor cell sizes must divide the landblock (192m) into a whole number of cells, as a tile must be; the
+        /// only one that fits 0.65m exactly is 0.05m (16x the voxels), so Small erodes 1cm less there. Interiors keep
+        /// finer grids for narrow doorways and stairs. Large needs no fine detail (Recast's guideline is a cell size of a
+        /// half to a third of the agent radius), so its coarser grid also makes its meshes cheaper to build.
         /// </summary>
-        public const float SmallAgentHeight = 2.4f;
-        public const float MediumAgentHeight = 2.9f;
-        public const float LargeAgentHeight = 3.4f;
+        private readonly record struct AgentProfile(float Radius, float Height, float MaxClimb, float InteriorCellSize, int InteriorRadiusCells, float OutdoorCellSize, int OutdoorRadiusCells);
+
+        private static readonly AgentProfile SmallProfile = new AgentProfile(0.65f, 2.4f, 0.4f, 0.65f / 7f, 7, 0.16f, 4);
+        private static readonly AgentProfile MediumProfile = new AgentProfile(1.0f, 2.9f, 0.6f, 0.1f, 10, 0.2f, 5);
+        private static readonly AgentProfile LargeProfile = new AgentProfile(1.75f, 3.4f, 0.8f, 0.125f, 14, 0.25f, 7);
+
+        /// <summary>
+        /// Every agent size, each with its own meshes.
+        /// </summary>
+        private static readonly AgentSize[] AgentSizes = Enum.GetValues<AgentSize>();
+
+        private static AgentProfile GetProfile(AgentSize agentSize) => agentSize switch
+        {
+            AgentSize.Small => SmallProfile,
+            AgentSize.Medium => MediumProfile,
+            _ => LargeProfile
+        };
 
         /// <summary>
         /// How far a creature may exceed a mesh's agent radius or height and still route on it: under the error of
@@ -94,55 +122,11 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private const float AgentSizeTolerance = 0.01f;
 
-        /// <summary>
-        /// The ledge height each mesh steps up (and down). A creature steps up a ledge when its foot sphere hits it
-        /// and the top is within 1.5 x StepUpHeight (see Polygon.adjust_sphere_to_plane), but the top must also
-        /// overlap the foot sphere: up to the sphere's radius always, up to its diameter only when moving fast enough
-        /// to push into the ledge. The foot sphere is the tighter limit for nearly every creature, so these are the
-        /// heights about 96% (Small) and 99-100% (Medium, Large) of each mesh's spawns climb every time.
-        /// </summary>
-        public const float SmallAgentMaxClimb = 0.4f;
-        public const float MediumAgentMaxClimb = 0.6f;
-        public const float LargeAgentMaxClimb = 0.8f;
+        public static float GetAgentRadius(AgentSize agentSize) => GetProfile(agentSize).Radius;
 
-        public static float GetAgentRadius(AgentSize agentSize)
-        {
-            switch (agentSize)
-            {
-                case AgentSize.Small:
-                    return SmallAgentRadius;
-                case AgentSize.Medium:
-                    return MediumAgentRadius;
-                default:
-                    return LargeAgentRadius;
-            }
-        }
+        public static float GetAgentHeight(AgentSize agentSize) => GetProfile(agentSize).Height;
 
-        public static float GetAgentHeight(AgentSize agentSize)
-        {
-            switch (agentSize)
-            {
-                case AgentSize.Small:
-                    return SmallAgentHeight;
-                case AgentSize.Medium:
-                    return MediumAgentHeight;
-                default:
-                    return LargeAgentHeight;
-            }
-        }
-
-        public static float GetAgentMaxClimb(AgentSize agentSize)
-        {
-            switch (agentSize)
-            {
-                case AgentSize.Small:
-                    return SmallAgentMaxClimb;
-                case AgentSize.Medium:
-                    return MediumAgentMaxClimb;
-                default:
-                    return LargeAgentMaxClimb;
-            }
-        }
+        public static float GetAgentMaxClimb(AgentSize agentSize) => GetProfile(agentSize).MaxClimb;
 
         /// <summary>
         /// The smallest mesh a creature of this collision radius and height fits. A creature too wide or too tall
@@ -187,8 +171,6 @@ namespace ACE.Server.Pathfinding
         private const float CORNER_CLEARANCE = 0.3f;
 
         private const int MAX_SURFACE_MOVE_POLYS = 64;
-
-        private static readonly float BlockLength = ACE.Server.Physics.Common.LandDefs.BlockLength;
 
         /// <summary>
         /// How far around a position to look for the mesh. Positions further off the mesh than this are not on it.
@@ -529,6 +511,13 @@ namespace ACE.Server.Pathfinding
             }
 
             /// <summary>
+            /// A mesh on its own, e.g. one being prepared before it is published: no group, no lock.
+            /// </summary>
+            public MeshLease(DtNavMesh mesh) : this(mesh, MeshGroupKey.None, null)
+            {
+            }
+
+            /// <summary>
             /// A position as a point on this mesh: in world coordinates outdoors, landblock-local indoors.
             /// </summary>
             public RcVec3f ToMesh(Position pos) => ToMeshPoint(pos.Cell, pos.Pos, IsOutdoor);
@@ -590,8 +579,8 @@ namespace ACE.Server.Pathfinding
                 Directory.CreateDirectory(OutdoorMeshDirectory);
             }
 
-            foreach (var agentSize in Enum.GetValues(typeof(AgentSize)).Cast<AgentSize>())
-                OutdoorMeshes[agentSize] = new OutdoorNavMesh(agentSize, BlockLength, VERTS_PER_POLY);
+            foreach (var agentSize in AgentSizes)
+                OutdoorMeshes[agentSize] = new OutdoorNavMesh(agentSize, Position.BlockLength, VERTS_PER_POLY);
         }
 
         public static bool PathfindingEnabled { get => PropertyManager.GetBool("pathfinding").Item; }
@@ -729,15 +718,19 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Creates a position on the landscape for a point in world coordinates.
+        /// Creates a position on the landscape for a point in world coordinates: always a landcell (0xAAAA0001 - 0xAAAA0040),
+        /// the outdoor mesh's group, with the landblock and cell clamped to the world's edges.
+        /// We must use this function instead of PositionExtensions.FromGlobal as that would load the landblock
+        /// (objects and all) if it isn't loaded, and returns building and cave cells for points inside them, which belong to
+        /// other meshes.
         /// </summary>
         private static Position CreateOutdoorPosition(Vector3 global)
         {
-            var x = Math.Clamp((int)MathF.Floor(global.X / BlockLength), 0, 0xFF);
-            var y = Math.Clamp((int)MathF.Floor(global.Y / BlockLength), 0, 0xFF);
+            var x = Math.Clamp((int)MathF.Floor(global.X / Position.BlockLength), 0, 0xFF);
+            var y = Math.Clamp((int)MathF.Floor(global.Y / Position.BlockLength), 0, 0xFF);
             var landblockId = GetLandblockId(x, y);
 
-            var local = new Vector3(global.X - x * BlockLength, global.Y - y * BlockLength, global.Z);
+            var local = new Vector3(global.X - x * Position.BlockLength, global.Y - y * Position.BlockLength, global.Z);
             return new Position(GetLandCellId(landblockId, local), local, Quaternion.Identity);
         }
 
@@ -763,10 +756,9 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static uint GetLandCellId(uint landblockId, Vector3 point)
         {
-            var cellLength = Position.BlockLength / 8f;
-            var x = Math.Clamp((int)(point.X / cellLength), 0, 7);
-            var y = Math.Clamp((int)(point.Y / cellLength), 0, 7);
-            return (landblockId & 0xFFFF0000) | (uint)(x * 8 + y + 1);
+            var x = Math.Clamp((int)(point.X / Position.CellLength), 0, Position.CellSide - 1);
+            var y = Math.Clamp((int)(point.Y / Position.CellLength), 0, Position.CellSide - 1);
+            return (landblockId & 0xFFFF0000) | (uint)(x * Position.CellSide + y + 1);
         }
 
         #endregion
@@ -1207,15 +1199,25 @@ namespace ACE.Server.Pathfinding
                 return false;
 
             legCount = legs.Count;
+            var route = legs.SelectMany(l => l).ToList();
+            distance = GetRouteLength(start, route);
+            endGap = route[^1].DistanceTo(end);
+            return reachesEnd;
+        }
+
+        /// <summary>
+        /// The length of a route followed from start: the sum of the straight distances between its waypoints.
+        /// </summary>
+        public static float GetRouteLength(Position start, IEnumerable<Position> route)
+        {
+            var length = 0f;
             var previous = start;
-            foreach (var point in legs.SelectMany(l => l))
+            foreach (var point in route)
             {
-                distance += previous.DistanceTo(point);
+                length += previous.DistanceTo(point);
                 previous = point;
             }
-
-            endGap = previous.DistanceTo(end);
-            return reachesEnd;
+            return length;
         }
 
         /// <summary>
@@ -1263,18 +1265,6 @@ namespace ACE.Server.Pathfinding
 
             onIsland = TryFindNearestPoly(query, AllPolysFilter, center, out polyRef, out point);
             return onIsland;
-        }
-
-        private static DtNavMeshQuery RentQuery(DtNavMesh mesh, out ConcurrentQueue<DtNavMeshQuery> pool)
-        {
-            pool = QueryPools.GetValue(mesh, _ => new ConcurrentQueue<DtNavMeshQuery>());
-            return pool.TryDequeue(out var query) ? query : new DtNavMeshQuery(mesh);
-        }
-
-        private static void ReturnQuery(ConcurrentQueue<DtNavMeshQuery> pool, DtNavMeshQuery query)
-        {
-            if (pool.Count < MAX_POOLED_QUERIES_PER_MESH)
-                pool.Enqueue(query);
         }
 
         /// <summary>
@@ -1397,12 +1387,11 @@ namespace ACE.Server.Pathfinding
                     keep[c] = true;
             }
 
-            var query = RentQuery(mesh, out var pool);
-            try
+            using (var lease = new MeshLease(mesh))
             {
                 foreach (var seed in seeds)
                 {
-                    var status = query.FindNearestPoly(seed, DoorSeedHalfExtents, AllPolysFilter, out var seedRef, out _, out _);
+                    var status = lease.Query.FindNearestPoly(seed, DoorSeedHalfExtents, AllPolysFilter, out var seedRef, out _, out _);
                     if (status.Failed() || seedRef == 0)
                         continue;
 
@@ -1410,10 +1399,6 @@ namespace ACE.Server.Pathfinding
                     if (seedTile == tile && seedPoly != null && component[seedPoly.index] >= 0 && componentArea[component[seedPoly.index]] > 0f)
                         keep[component[seedPoly.index]] = true;
                 }
-            }
-            finally
-            {
-                ReturnQuery(pool, query);
             }
 
             if (outdoor)
@@ -1495,32 +1480,25 @@ namespace ACE.Server.Pathfinding
             var aprons = cellGroup.Doors.Where(d => d.IsInWall).ToList();
             var halfExtents = GetDoorPolyHalfExtents(agentSize);
 
-            var query = RentQuery(mesh, out var pool);
-            try
+            using var lease = new MeshLease(mesh);
+            foreach (var door in cellGroup.Doors)
             {
-                foreach (var door in cellGroup.Doors)
+                if (!door.IsInWall)
                 {
-                    if (!door.IsInWall)
-                    {
-                        passable.Add(door);
-                        continue;
-                    }
-
-                    var center = DoorApron.GetCenter(door, agentSize);
-                    var status = query.FindNearestPoly(ToMeshPoint(0, center, false), halfExtents, PassableDoorFilter, out var doorRef, out var doorPt, out _);
-                    if (status.Failed() || doorRef == 0)
-                        continue;
-
-                    // the door poly found could belong to the apron of a doorway next to this one
-                    var found = FromMeshPoint(doorPt);
-                    var owner = aprons.OrderBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentSize), found)).First();
-                    if (owner.CellId == door.CellId && owner.Position == door.Position)
-                        passable.Add(door);
+                    passable.Add(door);
+                    continue;
                 }
-            }
-            finally
-            {
-                ReturnQuery(pool, query);
+
+                var center = DoorApron.GetCenter(door, agentSize);
+                var status = lease.Query.FindNearestPoly(ToMeshPoint(0, center, false), halfExtents, PassableDoorFilter, out var doorRef, out var doorPt, out _);
+                if (status.Failed() || doorRef == 0)
+                    continue;
+
+                // the door poly found could belong to the apron of a doorway next to this one
+                var found = FromMeshPoint(doorPt);
+                var owner = aprons.OrderBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentSize), found)).First();
+                if (owner.CellId == door.CellId && owner.Position == door.Position)
+                    passable.Add(door);
             }
 
             return passable;
@@ -1662,12 +1640,7 @@ namespace ACE.Server.Pathfinding
             if (route == null || route.Count == 0 || !reachesTarget)
                 return false;
 
-            var previousRouteEntry = start;
-            foreach (var routeEntry in route)
-            {
-                distance += previousRouteEntry.DistanceTo(routeEntry);
-                previousRouteEntry = routeEntry;
-            }
+            distance = GetRouteLength(start, route);
             return true;
         }
 
@@ -1694,7 +1667,7 @@ namespace ACE.Server.Pathfinding
         {
             var group = GetGroupKey(start);
             if (group.IsOutdoor)
-                return GetRandomPointWithinCircle(start, BlockLength / 2f, agentSize);
+                return GetRandomPointWithinCircle(start, Position.BlockLength / 2f, agentSize);
 
             using var lease = AcquireMesh(start, group, agentSize);
             if (lease == null)
@@ -1757,7 +1730,12 @@ namespace ACE.Server.Pathfinding
             return !Meshes.TryGetValue(GetMeshId(group.LandblockId, group.Index, agentSize), out var interiorMesh) || interiorMesh.IsLoading;
         }
 
-        public static Position GetNearestWallPosition(Position location, float radius, AgentSize agentSize, out float distance, bool inverseNormal = false)
+        /// <summary>
+        /// The nearest point on a wall within radius of a position, on the mesh of the given agent size, facing away
+        /// from the wall (or towards it with faceWall). Null if there is no wall in range or the mesh isn't loaded.
+        /// </summary>
+        /// <param name="distance">How far the wall is from the position, or float.MaxValue if none was found</param>
+        public static Position GetNearestWallPosition(Position location, float radius, AgentSize agentSize, out float distance, bool faceWall = false)
         {
             distance = float.MaxValue;
 
@@ -1783,10 +1761,9 @@ namespace ACE.Server.Pathfinding
 
             var position = CreatePosition(location, group, wallPt);
 
-            if (inverseNormal)
-                position.Rotate(new Vector3(-wallNormal.X, -wallNormal.Z, -wallNormal.Y));
-            else
-                position.Rotate(new Vector3(wallNormal.X, wallNormal.Z, wallNormal.Y));
+            // the normal points away from the wall
+            var normal = FromMeshPoint(wallNormal);
+            position.Rotate(faceWall ? -normal : normal);
 
             return position;
         }
@@ -1885,7 +1862,7 @@ namespace ACE.Server.Pathfinding
 
         private static void UnloadMesh(uint cell, int group)
         {
-            foreach (var agentSize in Enum.GetValues(typeof(AgentSize)).Cast<AgentSize>())
+            foreach (var agentSize in AgentSizes)
                 Meshes.TryRemove(GetMeshId(cell, group, agentSize), out _);
         }
 
@@ -1928,10 +1905,10 @@ namespace ACE.Server.Pathfinding
 
                 // partitioning is keyed by its number, as when the settings were the DotRecast toolset's
                 var text = FormattableString.Invariant(
-                    $"{geometryVersion}|{VERTS_PER_POLY}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.MinRegionSize}|{s.MergedRegionSize}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|drops|{DropLinkFinder.Version}|{DropLinkFinder.MaxDropHeight}");
+                    $"{geometryVersion}|{VERTS_PER_POLY}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.MinRegionArea}|{s.MergedRegionArea}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|drops|{DropLinkFinder.Version}|{DropLinkFinder.MaxDropHeight}");
 
                 if (key.outdoor)
-                    text += FormattableString.Invariant($"|tiled|{OUTDOOR_MESH_GEOMETRY_VERSION}|{BlockLength}|{LandblockGeometryExporter.SurfaceMargin}");
+                    text += FormattableString.Invariant($"|tiled|{OUTDOOR_MESH_GEOMETRY_VERSION}|{Position.BlockLength}|{LandblockGeometryExporter.SurfaceMargin}");
 
                 return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)), 0, 4);
             });
@@ -2114,7 +2091,7 @@ namespace ACE.Server.Pathfinding
             var seeds = cellGroup.Doors.Where(d => !d.IsInWall).Select(d => ToMeshPoint(landblockId, d.Position, false)).ToList();
             var toLoad = new List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)>();
 
-            foreach (var agentSize in Enum.GetValues(typeof(AgentSize)).Cast<AgentSize>())
+            foreach (var agentSize in AgentSizes)
             {
                 var meshId = GetMeshId(landblockId, group, agentSize);
                 var placeholder = InteriorMesh.CreatePlaceholder();
@@ -2260,7 +2237,7 @@ namespace ACE.Server.Pathfinding
             CellGeometryProvider geom = null;
             var geometryLoaded = false;
 
-            foreach (var agentSize in Enum.GetValues(typeof(AgentSize)).Cast<AgentSize>())
+            foreach (var agentSize in AgentSizes)
             {
                 var meshId = GetMeshId(landblockId, OutdoorGroup, agentSize);
                 var meshPath = GetMeshPath(OutdoorMeshDirectory, meshId, true, agentSize);
@@ -2292,7 +2269,7 @@ namespace ACE.Server.Pathfinding
                         }
 
                         var stopwatch = Stopwatch.StartNew();
-                        data = new NavMeshBuilder().BuildTile(geom, GetMeshSettings(true, agentSize), tileX, tileY, BlockLength);
+                        data = new NavMeshBuilder().BuildTile(geom, GetMeshSettings(true, agentSize), tileX, tileY, Position.BlockLength);
                         if (data == null)
                         {
                             // the same geometry would build the same way, so the request stays and no retry is made
@@ -2400,40 +2377,17 @@ namespace ACE.Server.Pathfinding
             OutdoorTilesRequested.TryRemove(landblockId, out _);
         }
 
-        /// <summary>
-        /// The voxel cell size of each mesh and the agent radius in whole cells. Recast erodes the walkable area by
-        /// ceil(radius / cellSize) cells, so a radius that isn't a whole number of cells is rounded up (0.65m on
-        /// 0.2m cells erodes 0.8m). Each mesh gets a cell size its agent radius divides into:
-        ///
-        ///   Interior: Small 0.65/7 (~0.093m) x 7 = 0.65m, Medium 0.1 x 10 = 1.0m, Large 0.125 x 14 = 1.75m.
-        ///   Outdoor:  Small 0.16 x 4 = 0.64m, Medium 0.2 x 5 = 1.0m, Large 0.25 x 7 = 1.75m.
-        ///
-        /// Outdoor cell sizes must divide the landblock (192m) into a whole number of cells, as a tile must be; the
-        /// only one that fits 0.65m exactly is 0.05m (16x the voxels), so Small erodes 1cm less there. Interiors keep
-        /// finer grids for narrow doorways and stairs. Large needs no fine detail (Recast's guideline is a cell size of a
-        /// half to a third of the agent radius), so its coarser grid also makes its meshes cheaper to build.
-        /// </summary>
-        private static (float cellSize, int radiusCells) GetCellSize(bool outdoor, AgentSize type)
-        {
-            switch (type)
-            {
-                case AgentSize.Small:
-                    return outdoor ? (0.16f, 4) : (SmallAgentRadius / 7f, 7);
-                case AgentSize.Medium:
-                    return outdoor ? (0.2f, 5) : (0.1f, 10);
-                default:
-                    return outdoor ? (0.25f, 7) : (0.125f, 14);
-            }
-        }
-
         private static MeshBuildSettings GetMeshSettings(bool outdoor, AgentSize type)
         {
-            var (cellSize, radiusCells) = GetCellSize(outdoor, type);
+            // the cell size and the radius in whole cells (see AgentProfile)
+            var profile = GetProfile(type);
+            var cellSize = outdoor ? profile.OutdoorCellSize : profile.InteriorCellSize;
+            var radiusCells = outdoor ? profile.OutdoorRadiusCells : profile.InteriorRadiusCells;
 
             var settings = new MeshBuildSettings()
             {
-                AgentHeight = GetAgentHeight(type),
-                AgentMaxClimb = GetAgentMaxClimb(type),
+                AgentHeight = profile.Height,
+                AgentMaxClimb = profile.MaxClimb,
                 AgentMaxSlope = 48f, // matches PhysicsGlobals.FloorZ (acos(0.664) = ~48.4 degrees), steeper is not walkable
                 CellHeight = 0.1f,
                 CellSize = cellSize,
@@ -2464,16 +2418,10 @@ namespace ACE.Server.Pathfinding
                 settings.EdgeMaxLen = 24.0f;
             }
 
-            // Recast takes the region sizes as the side, in cells, of a square of that area
-            settings.MinRegionSize = GetRegionSize(MIN_REGION_AREA, settings.CellSize);
-            settings.MergedRegionSize = GetRegionSize(MERGE_REGION_AREA, settings.CellSize);
+            settings.MinRegionArea = MIN_REGION_AREA;
+            settings.MergedRegionArea = MERGE_REGION_AREA;
 
             return settings;
-        }
-
-        private static int GetRegionSize(float area, float cellSize)
-        {
-            return Math.Max(1, (int)MathF.Round(MathF.Sqrt(area) / cellSize));
         }
 
         #endregion

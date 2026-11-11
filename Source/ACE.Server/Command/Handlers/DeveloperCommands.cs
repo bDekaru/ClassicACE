@@ -4327,13 +4327,7 @@ namespace ACE.Server.Command.Handlers
             for (var i = 0; i < legs.Count; i++)
             {
                 var leg = legs[i];
-                var length = 0f;
-                var previous = legStart;
-                foreach (var point in leg)
-                {
-                    length += previous.DistanceTo(point);
-                    previous = point;
-                }
+                var length = Pathfinder.GetRouteLength(legStart, leg);
 
                 // the leg's first waypoint is on the leg's mesh (legStart is still on the previous leg's side of the doorway)
                 var group = Pathfinder.GetMeshGroup(leg[0]);
@@ -4589,13 +4583,7 @@ namespace ACE.Server.Command.Handlers
             walk.Index = 0;
             walk.WaypointRetries = 0;
 
-            var length = 0f;
-            var previous = player.Location;
-            foreach (var waypoint in waypoints)
-            {
-                length += previous.DistanceTo(waypoint);
-                previous = waypoint;
-            }
+            var length = Pathfinder.GetRouteLength(player.Location, waypoints);
 
             var legsText = legs.Count == 1 ? "1 leg" : $"{legs.Count} legs through doorways";
             var endText = reachesDestination

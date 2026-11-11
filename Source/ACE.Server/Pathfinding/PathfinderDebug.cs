@@ -160,9 +160,9 @@ namespace ACE.Server.Pathfinding
             if (group.IsOutdoor)
             {
                 var tileBuffer = new DtMeshTile[4];
-                for (var x = (int)MathF.Floor(min.X / BlockLength); x <= (int)MathF.Floor(max.X / BlockLength); x++)
+                for (var x = (int)MathF.Floor(min.X / Position.BlockLength); x <= (int)MathF.Floor(max.X / Position.BlockLength); x++)
                 {
-                    for (var y = (int)MathF.Floor(min.Y / BlockLength); y <= (int)MathF.Floor(max.Y / BlockLength); y++)
+                    for (var y = (int)MathF.Floor(min.Y / Position.BlockLength); y <= (int)MathF.Floor(max.Y / Position.BlockLength); y++)
                     {
                         var count = mesh.GetTilesAt(x, y, tileBuffer, tileBuffer.Length);
                         for (var t = 0; t < count; t++)

@@ -24,7 +24,6 @@ namespace ACE.Server.Pathfinding.Geometry
         private bool? _hasWalkablePolys;
         private bool? _isRamp;
         private float? _floorZ;
-        private BoundingBox _boundingBox;
         public const float MAX_FLOOR_Z_DIFF = 1.0f;
 
         private List<Plane> _walkablePlanes = new List<Plane>();
@@ -83,41 +82,9 @@ namespace ACE.Server.Pathfinding.Geometry
         public bool IsRamp => _isRamp ??= _IsRamp();
 
         /// <summary>
-        /// Wether or not this cell is a "catwalk". Catwalks are defined as walkable areas that sit above the floor of a room.
-        /// An example is in the marketplace (0x019C) side rooms.
-        /// </summary>
-        public bool IsCatwalk
-        {
-            get
-            {
-                if (WalkablePolys.Count == 0)
-                    return false;
-                // todo: this is bad, but it mostly works?  worried about false positives...
-                if (BoundingBox.Size.Length() <= 0.01f)
-                    return false;
-
-                var height = BoundingBox.MaxBounds.Z - BoundingBox.MinBounds.Z;
-                if (height <= 2f && height >= 0.25f)
-                    return true;
-
-                return false;
-            }
-        }
-
-        /// <summary>
         /// average walkable z height
         /// </summary>
         public float AverageFloorZ => _floorZ ??= GetFloorZ();
-
-        public BoundingBox BoundingBox
-        {
-            get
-            {
-                if (!_didInitPolyData)
-                    InitPolyData();
-                return _boundingBox;
-            }
-        }
 
         public Dictionary<uint, List<short>> WalkableVertexIds
         {
@@ -387,7 +354,6 @@ namespace ACE.Server.Pathfinding.Geometry
                 return;
 
             _hasWalkablePolys = false;
-            _boundingBox = new BoundingBox();
 
             var env = DatManager.PortalDat.ReadFromDat<ACE.DatLoader.FileTypes.Environment>(EnvCell.EnvironmentId);
             if (env.Cells.ContainsKey(EnvCell.CellStructure))
@@ -439,22 +405,20 @@ namespace ACE.Server.Pathfinding.Geometry
                 var poly = kv.Value;
                 var hasWalkable = false;
 
-                _boundingBox.AddVectors(poly.VertexIds.Select(vId => vertices[(ushort)vId].Origin));
-
                 for (int i = 2; i < poly.VertexIds.Count; i++)
                 {
                     var a = vertices[(ushort)poly.VertexIds[0]].Origin;
                     var b = vertices[(ushort)poly.VertexIds[i - 1]].Origin;
                     var c = vertices[(ushort)poly.VertexIds[i]].Origin;
-                    var norm = GeometryHelpers.CalculateTriSurfaceNormal(a, b, c);
+                    var plane = Plane.CreateFromVertices(a, b, c);
 
-                    if (norm.Z >= walkableThr)
+                    if (plane.Normal.Z >= walkableThr)
                     {
                         _walkableIds.Add(kv.Key);
                         _hasWalkablePolys = true;
                         hasWalkable = true;
                         _walkableTriangles.Add(new List<Vector3>() { a, b, c });
-                        _walkablePlanes.Add(Plane.CreateFromVertices(a, b, c));
+                        _walkablePlanes.Add(plane);
                     }
                 }
 

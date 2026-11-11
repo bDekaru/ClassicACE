@@ -1,9 +1,20 @@
+using System.Collections.Generic;
 using System.Numerics;
+using ACE.DatLoader.Entity;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
     public static class GeometryHelpers
     {
+        /// <summary>
+        /// A point local to a dat frame (e.g. a cell's or a static's) in the frame's parent coordinates, as the physics
+        /// engine places it (see Physics.Animation.AFrame.LocalToGlobal).
+        /// </summary>
+        public static Vector3 LocalToGlobal(this Frame frame, Vector3 local)
+        {
+            return Vector3.Transform(local, frame.Orientation) + frame.Origin;
+        }
+
         /// <summary>
         /// The world position of a landblock's south west corner: its landblock-local origin in world coordinates,
         /// where landblock (x, y) spans [x * 192, (x + 1) * 192) and the same along y.
@@ -11,28 +22,42 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <param name="cellId">Any cell id of the landblock, or the landblock id (0xAAAA0000)</param>
         public static Vector3 GetLandblockOrigin(uint cellId)
         {
-            var blockLength = ACE.Server.Physics.Common.LandDefs.BlockLength;
-            return new Vector3(((cellId >> 24) & 0xFF) * blockLength, ((cellId >> 16) & 0xFF) * blockLength, 0f);
+            return new Vector3(((cellId >> 24) & 0xFF) * ACE.Entity.Position.BlockLength, ((cellId >> 16) & 0xFF) * ACE.Entity.Position.BlockLength, 0f);
         }
 
         /// <summary>
-        /// Calculate the surface normal of a triangle
+        /// The axis-aligned bounds of a set of points.
         /// </summary>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
-        /// <param name="c"></param>
-        /// <returns></returns>
-        public static Vector3 CalculateTriSurfaceNormal(Vector3 a, Vector3 b, Vector3 c)
+        public static (Vector3 Min, Vector3 Max) GetBounds(IEnumerable<Vector3> points)
         {
-            Vector3 normal = new Vector3();
-            var u = b - a;
-            var v = c - a;
-            normal.X = u.Y * v.Z - u.Z * v.Y;
-            normal.Y = u.Z * v.X - u.X * v.Z;
-            normal.Z = u.X * v.Y - u.Y * v.X;
+            var min = new Vector3(float.MaxValue);
+            var max = new Vector3(float.MinValue);
+            foreach (var p in points)
+            {
+                min = Vector3.Min(min, p);
+                max = Vector3.Max(max, p);
+            }
+            return (min, max);
+        }
 
+        /// <summary>
+        /// The unit normal of a planar polygon by Newell's method, robust for any vertex count and for concave polygons.
+        /// Zero for a polygon without area.
+        /// </summary>
+        public static Vector3 GetPolygonNormal(IReadOnlyList<Vector3> points)
+        {
+            var normal = Vector3.Zero;
+            for (int i = 0, j = points.Count - 1; i < points.Count; j = i++)
+            {
+                var a = points[j];
+                var b = points[i];
+                normal.X += (a.Y - b.Y) * (a.Z + b.Z);
+                normal.Y += (a.Z - b.Z) * (a.X + b.X);
+                normal.Z += (a.X - b.X) * (a.Y + b.Y);
+            }
 
-            return Vector3.Normalize(normal);
+            var length = normal.Length();
+            return length > 1e-6f ? normal / length : Vector3.Zero;
         }
     }
 }

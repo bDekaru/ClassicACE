@@ -333,8 +333,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 return;
 
             // the middle of the cell, to tell which side of a portal is outside
-            Vector3 ToLandblock(Vector3 v) => LandblockGeometryExporter.Transform(v, envCell.Position.Orientation) + envCell.Position.Origin;
-            var cellCenter = cellStruct.VertexArray.Vertices.Values.Aggregate(Vector3.Zero, (a, v) => a + ToLandblock(v.Origin)) / Math.Max(1, cellStruct.VertexArray.Vertices.Count);
+            var cellCenter = cellStruct.VertexArray.Vertices.Values.Aggregate(Vector3.Zero, (a, v) => a + envCell.Position.LocalToGlobal(v.Origin)) / Math.Max(1, cellStruct.VertexArray.Vertices.Count);
 
             foreach (var portal in envCell.CellPortals.Where(p => p.OtherCellId == 0xFFFF))
             {
@@ -342,7 +341,7 @@ namespace ACE.Server.Pathfinding.Geometry
                     continue;
 
                 var points = polygon.VertexIds
-                    .Select(v => ToLandblock(cellStruct.VertexArray.Vertices[(ushort)v].Origin))
+                    .Select(v => envCell.Position.LocalToGlobal(cellStruct.VertexArray.Vertices[(ushort)v].Origin))
                     .ToList();
 
                 var center = points.Aggregate(Vector3.Zero, (a, b) => a + b) / points.Count;
@@ -472,21 +471,10 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         private static Vector3 GetOutwardNormal(List<Vector3> points, Vector3 center, Vector3 cellCenter)
         {
-            // Newell's method, robust for any planar polygon
-            var normal = Vector3.Zero;
-            for (int i = 0, j = points.Count - 1; i < points.Count; j = i++)
-            {
-                var a = points[j];
-                var b = points[i];
-                normal.X += (a.Y - b.Y) * (a.Z + b.Z);
-                normal.Y += (a.Z - b.Z) * (a.X + b.X);
-                normal.Z += (a.X - b.X) * (a.Y + b.Y);
-            }
-
+            var normal = GeometryHelpers.GetPolygonNormal(points);
             var horizontal = new Vector3(normal.X, normal.Y, 0f);
-            var length = normal.Length();
-            if (length < 1e-6f || horizontal.Length() < 0.7f * length)
-                return Vector3.Zero; // not a wall portal (tilted more than ~45 degrees)
+            if (horizontal.Length() < 0.7f)
+                return Vector3.Zero; // no area, or not a wall portal (tilted more than ~45 degrees)
 
             horizontal = Vector3.Normalize(horizontal);
             if (Vector3.Dot(horizontal, center - cellCenter) < 0f)

@@ -25,11 +25,11 @@ namespace ACE.Server.Pathfinding.Geometry
         public float AgentMaxSlope;
 
         /// <summary>
-        /// Regions smaller than MinRegionSize (the side of a square, in cells) are removed; ones smaller than
-        /// MergedRegionSize are merged into their neighbors.
+        /// Regions smaller than MinRegionArea (in m²) are removed; ones smaller than MergedRegionArea are merged into
+        /// their neighbors.
         /// </summary>
-        public int MinRegionSize;
-        public int MergedRegionSize;
+        public float MinRegionArea;
+        public float MergedRegionArea;
 
         public RcPartition Partitioning = RcPartition.WATERSHED;
 

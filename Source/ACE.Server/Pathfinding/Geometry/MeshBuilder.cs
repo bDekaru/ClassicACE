@@ -15,25 +15,12 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public DtMeshData Build(CellGeometryProvider geom, MeshBuildSettings settings)
         {
-            RcConfig cfg = new RcConfig(
-                settings.Partitioning,
-                settings.CellSize, settings.CellHeight,
-                settings.AgentMaxSlope, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb,
-                settings.MinRegionSize, settings.MergedRegionSize,
-                settings.EdgeMaxLen, settings.EdgeMaxError,
-                settings.VertsPerPoly,
-                settings.DetailSampleDist, settings.DetailSampleMaxError,
-                settings.FilterLowHangingObstacles, settings.FilterLedgeSpans, settings.FilterWalkableLowHeightSpans,
-                NavArea.WalkableMod, true);
-
-            var bcfg = new RcBuilderConfig(cfg, geom.GetMeshBoundsMin(), geom.GetMeshBoundsMax());
+            var bcfg = new RcBuilderConfig(CreateConfig(settings), geom.GetMeshBoundsMin(), geom.GetMeshBoundsMax());
             var rcResult = new RcBuilder().Build(geom, bcfg, false);
             if (rcResult?.Mesh == null || rcResult.Mesh.npolys == 0)
                 return null;
 
-            var option = GetCreateParams(rcResult, settings.CellSize, settings.CellHeight, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb);
-
-            return CreateMeshData(option, geom, settings.VertsPerPoly, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
+            return CreateMeshData(GetCreateParams(rcResult, settings), geom, settings);
         }
 
         /// <summary>
@@ -46,21 +33,7 @@ namespace ACE.Server.Pathfinding.Geometry
         {
             var tileCells = (int)MathF.Round(tileSize / settings.CellSize);
             var borderSize = RcConfig.CalcBorder(settings.AgentRadius, settings.CellSize);
-
-            // the tile constructor takes the region sizes as areas in world units
-            var cellArea = settings.CellSize * settings.CellSize;
-
-            var cfg = new RcConfig(
-                true, tileCells, tileCells, borderSize,
-                settings.Partitioning,
-                settings.CellSize, settings.CellHeight,
-                settings.AgentMaxSlope, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb,
-                settings.MinRegionSize * settings.MinRegionSize * cellArea, settings.MergedRegionSize * settings.MergedRegionSize * cellArea,
-                settings.EdgeMaxLen, settings.EdgeMaxError,
-                settings.VertsPerPoly,
-                settings.DetailSampleDist, settings.DetailSampleMaxError,
-                settings.FilterLowHangingObstacles, settings.FilterLedgeSpans, settings.FilterWalkableLowHeightSpans,
-                NavArea.WalkableMod, true);
+            var cfg = CreateConfig(settings, true, tileCells, borderSize);
 
             // the tile's xz bounds come from the tile coordinates (plus the border), only the height range from the geometry
             var bmin = new RcVec3f(0f, geom.GetMeshBoundsMin().Y, 0f);
@@ -71,18 +44,36 @@ namespace ACE.Server.Pathfinding.Geometry
             if (rcResult?.Mesh == null || rcResult.Mesh.npolys == 0)
                 return null;
 
-            var option = GetCreateParams(rcResult, settings.CellSize, settings.CellHeight, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb);
+            var option = GetCreateParams(rcResult, settings);
             option.tileX = tileX;
             option.tileZ = tileZ;
 
-            return CreateMeshData(option, geom, settings.VertsPerPoly, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
+            return CreateMeshData(option, geom, settings);
+        }
+
+        /// <summary>
+        /// The Recast config for a build: a single mesh over all of the geometry, or one tile of a tiled mesh.
+        /// </summary>
+        private static RcConfig CreateConfig(MeshBuildSettings settings, bool useTiles = false, int tileCells = 0, int borderSize = 0)
+        {
+            return new RcConfig(
+                useTiles, tileCells, tileCells, borderSize,
+                settings.Partitioning,
+                settings.CellSize, settings.CellHeight,
+                settings.AgentMaxSlope, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb,
+                settings.MinRegionArea, settings.MergedRegionArea,
+                settings.EdgeMaxLen, settings.EdgeMaxError,
+                settings.VertsPerPoly,
+                settings.DetailSampleDist, settings.DetailSampleMaxError,
+                settings.FilterLowHangingObstacles, settings.FilterLedgeSpans, settings.FilterWalkableLowHeightSpans,
+                NavArea.WalkableMod, true);
         }
 
         /// <summary>
         /// The parameters Detour creates the mesh data from: the polygon and detail meshes of the Recast build, with
         /// each poly's area and flags set (see SetAreasAndFlags), and no off-mesh connections yet.
         /// </summary>
-        private static DtNavMeshCreateParams GetCreateParams(RcBuilderResult result, float cellSize, float cellHeight, float agentHeight, float agentRadius, float agentMaxClimb)
+        private static DtNavMeshCreateParams GetCreateParams(RcBuilderResult result, MeshBuildSettings settings)
         {
             var polyMesh = result.Mesh;
             var detailMesh = result.MeshDetail;
@@ -99,13 +90,13 @@ namespace ACE.Server.Pathfinding.Geometry
                 polyCount = polyMesh.npolys,
                 nvp = polyMesh.nvp,
 
-                walkableHeight = agentHeight,
-                walkableRadius = agentRadius,
-                walkableClimb = agentMaxClimb,
+                walkableHeight = settings.AgentHeight,
+                walkableRadius = settings.AgentRadius,
+                walkableClimb = settings.AgentMaxClimb,
                 bmin = polyMesh.bmin,
                 bmax = polyMesh.bmax,
-                cs = cellSize,
-                ch = cellHeight,
+                cs = settings.CellSize,
+                ch = settings.CellHeight,
                 buildBvTree = true,
 
                 offMeshConCount = 0,
@@ -149,13 +140,13 @@ namespace ACE.Server.Pathfinding.Geometry
         /// the ledges are found on the mesh without them, then the mesh data is created again with them. The drops
         /// get their area and flags from their connections.
         /// </summary>
-        private static DtMeshData CreateMeshData(DtNavMeshCreateParams option, IRcInputGeomProvider geom, int vertsPerPoly, float agentRadius, float agentHeight, float agentMaxClimb)
+        private static DtMeshData CreateMeshData(DtNavMeshCreateParams option, IRcInputGeomProvider geom, MeshBuildSettings settings)
         {
             var meshData = DtNavMeshBuilder.CreateNavMeshData(option);
             if (meshData == null)
                 return null;
 
-            var drops = DropLinkFinder.Find(meshData, geom, vertsPerPoly, agentRadius, agentHeight, agentMaxClimb);
+            var drops = DropLinkFinder.Find(meshData, geom, settings.VertsPerPoly, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
             if (drops.Count == 0)
                 return meshData;
 
