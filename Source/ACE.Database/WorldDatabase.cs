@@ -293,36 +293,36 @@ namespace ACE.Database
         }
 
 
-        public List<(uint Wcid, Position Location)> GetPortalDestinationsByLandblock(ushort landblockId)
+        public List<(uint Wcid, Position Location)> GetPortalDestinationsByLandblock(WorldDbContext context, List<ushort> landblockIds)
         {
-            using (var context = new WorldDbContext())
-            {
-                var query = context.WeeniePropertiesPosition.FromSqlRaw($"SELECT * FROM weenie_properties_position JOIN weenie ON weenie_properties_position.object_Id=weenie.class_Id WHERE weenie.type = 7 AND weenie_properties_position.position_Type = 2 AND obj_Cell_Id >> 16 = {landblockId}");
+            var landblocks = landblockIds.Select(i => (uint)i << 16).ToList();
 
-                var positionList = new List<(uint, Position)>();
-                foreach (var result in query)
-                {
-                    positionList.Add((result.ObjectId, new Position(result.ObjCellId, result.OriginX, result.OriginY, result.AnglesZ, result.AnglesX, result.AnglesY, result.AnglesZ, result.AnglesW)));
-                }
+            var query = from weenie in context.Weenie
+                        join position in context.WeeniePropertiesPosition on weenie.ClassId equals position.ObjectId
+                        where weenie.Type == (int)WeenieType.Portal
+                            && position.PositionType == (ushort)PositionType.Destination
+                            && landblocks.Contains(position.ObjCellId & 0xFFFF0000)
+                        select position;
 
-                return positionList.ToList();
-            }
+            return query
+                .ToList()
+                .Select(r => (r.ObjectId, new Position(r.ObjCellId, r.OriginX, r.OriginY, r.OriginZ, r.AnglesX, r.AnglesY, r.AnglesZ, r.AnglesW)))
+                .ToList();
         }
 
         public List<(uint Wcid, Position Location)> GetPortalDestinationsByLandblock(List<ushort> landblockIds)
         {
             using (var context = new WorldDbContext())
             {
-                var query = context.WeeniePropertiesPosition.FromSqlRaw($"SELECT * FROM weenie_properties_position JOIN weenie ON weenie_properties_position.object_Id=weenie.class_Id WHERE weenie.type = 7 AND weenie_properties_position.position_Type = 2 AND obj_Cell_Id >> 16 IN ({string.Join(",", landblockIds)})");
+                context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
 
-                var positionList = new List<(uint, Position)>();
-                foreach (var result in query)
-                {
-                    positionList.Add((result.ObjectId, new Position(result.ObjCellId, result.OriginX, result.OriginY, result.AnglesZ, result.AnglesX, result.AnglesY, result.AnglesZ, result.AnglesW)));
-                }
-
-                return positionList.ToList();
+                return GetPortalDestinationsByLandblock(context, landblockIds);
             }
+        }
+
+        public List<(uint Wcid, Position Location)> GetPortalDestinationsByLandblock(ushort landblockId)
+        {
+            return GetPortalDestinationsByLandblock(new List<ushort> { landblockId });
         }
 
 

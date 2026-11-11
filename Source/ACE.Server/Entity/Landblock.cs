@@ -584,12 +584,6 @@ namespace ACE.Server.Entity
             {
                 landblockInstances = GetLandblockInstances(true);
                 portalDrops = DatabaseManager.World.GetPortalDestinationsByLandblock(GetAdjacents());
-
-                foreach(var destination in portalDrops)
-                {
-                    if (!destination.Location.Indoors)
-                        destination.Location.AdjustMapCoords();
-                }
             }
 
             foreach (var encounter in encounters)
