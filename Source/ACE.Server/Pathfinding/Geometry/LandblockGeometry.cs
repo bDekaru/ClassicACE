@@ -9,7 +9,8 @@ using System.Numerics;
 namespace ACE.Server.Pathfinding.Geometry
 {
     /// <summary>
-    /// A doorway from an interior cell group to the outdoors: a cell portal that leads outside.
+    /// A doorway from an interior cell group to the outdoors: a cell portal that leads outside, or one edge of the rim
+    /// of a portal that is not in a wall (see LandblockGeometry.AddRimDoors).
     /// </summary>
     public readonly struct CellGroupDoor
     {
@@ -238,7 +239,11 @@ namespace ACE.Server.Pathfinding.Geometry
             for (var i = 0; i < numCells; i++)
                 envCells[i] = DatManager.CellDat.ReadFromDat<EnvCell>(Id + minCell + (uint)i);
 
-            // union-find over portal links; portals are treated as two-way
+            // Union-find over portal links. Only links both cells list count: the physics engine only moves an object
+            // into a cell through a portal of the cell it is in, so a cell no other cell portals into can never be
+            // entered. Some dungeons keep such orphan cells where two pieces were joined, like the unused end caps
+            // of a corridor overlapping the passage that replaced them. Grouped with the passage, their floors and
+            // walls would block it on the mesh.
             var parent = Enumerable.Range(0, (int)numCells).ToArray();
             int Find(int i)
             {
@@ -260,6 +265,11 @@ namespace ACE.Server.Pathfinding.Geometry
                     var other = (int)portal.OtherCellId - (int)minCell;
                     if (other < 0 || other >= numCells)
                         continue; // outside (0xFFFF) or out of range
+
+                    var cellId = (ushort)(minCell + (uint)i);
+                    if (envCells[other]?.CellPortals?.Any(p => p.OtherCellId == cellId) != true)
+                        continue; // one-way: the other cell has no portal back
+
                     parent[Find(i)] = Find(other);
                 }
             }
@@ -338,17 +348,50 @@ namespace ACE.Server.Pathfinding.Geometry
                 var center = points.Aggregate(Vector3.Zero, (a, b) => a + b) / points.Count;
                 var normal = GetOutwardNormal(points, center, cellCenter);
 
-                // the width along the wall; for a portal not in a wall, the larger horizontal extent
-                float width;
-                if (normal != Vector3.Zero)
+                if (normal == Vector3.Zero)
                 {
-                    var along = new Vector3(-normal.Y, normal.X, 0f);
-                    width = points.Max(p => Vector3.Dot(p, along)) - points.Min(p => Vector3.Dot(p, along));
+                    AddRimDoors(group, cellId, points, center);
+                    continue;
                 }
-                else
-                    width = Math.Max(points.Max(p => p.X) - points.Min(p => p.X), points.Max(p => p.Y) - points.Min(p => p.Y));
+
+                // the width along the wall
+                var along = new Vector3(-normal.Y, normal.X, 0f);
+                var width = points.Max(p => Vector3.Dot(p, along)) - points.Min(p => Vector3.Dot(p, along));
 
                 group.Doors.Add(new CellGroupDoor(cellId, new Vector3(center.X, center.Y, points.Min(p => p.Z)), points.Max(p => p.Z), width, normal));
+            }
+        }
+
+        /// <summary>
+        /// Rim edges shorter than this horizontally get no doorway.
+        /// </summary>
+        private const float MinRimEdgeLength = 0.3f;
+
+        /// <summary>
+        /// A portal that is not in a wall (a hole in a floor or ceiling, like the mouth of a pit entrance) is crossed
+        /// over its rim, not through its middle, which is in the air. Each edge of the rim becomes a doorway of its own,
+        /// facing away from the hole, so it gets a door apron like a doorway in a wall: Recast then decides which edges
+        /// can be walked over (the rim of a pit whose sides lead down into it) and which can't (a skylight, far above
+        /// the floor), and the outdoor side of a usable edge is on the ground next to the hole.
+        /// </summary>
+        private static void AddRimDoors(CellGroup group, uint cellId, List<Vector3> points, Vector3 center)
+        {
+            for (int i = 0, j = points.Count - 1; i < points.Count; j = i++)
+            {
+                var a = points[j];
+                var b = points[i];
+
+                var edge = new Vector3(b.X - a.X, b.Y - a.Y, 0f);
+                var length = edge.Length();
+                if (length < MinRimEdgeLength)
+                    continue;
+
+                var middle = (a + b) * 0.5f;
+                var normal = Vector3.Normalize(new Vector3(-edge.Y, edge.X, 0f));
+                if (Vector3.Dot(normal, middle - center) < 0f)
+                    normal = -normal;
+
+                group.Doors.Add(new CellGroupDoor(cellId, new Vector3(middle.X, middle.Y, Math.Min(a.Z, b.Z)), Math.Max(a.Z, b.Z), length, normal));
             }
         }
 
