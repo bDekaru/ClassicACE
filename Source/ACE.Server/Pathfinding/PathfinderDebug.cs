@@ -37,9 +37,9 @@ namespace ACE.Server.Pathfinding
         /// GeometryHelpers.GetLandblockOrigin). Returns the file's path, or null if it could not be written.
         /// </summary>
         /// <param name="label">A note stored in the dump, e.g. who was routing</param>
-        public static string DumpRoute(Position start, Position end, AgentWidth agentWidth, string label, out List<List<Position>> legs, out bool reachesEnd)
+        public static string DumpRoute(Position start, Position end, AgentSize agentSize, string label, out List<List<Position>> legs, out bool reachesEnd)
         {
-            legs = FindRouteLegs(start, end, agentWidth, out reachesEnd);
+            legs = FindRouteLegs(start, end, agentSize, out reachesEnd);
 
             try
             {
@@ -54,10 +54,10 @@ namespace ACE.Server.Pathfinding
                     writer.WriteNumber("version", DUMP_FORMAT_VERSION);
                     writer.WriteString("created", DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
                     writer.WriteString("label", label ?? "");
-                    writer.WriteString("agentWidth", agentWidth.ToString());
-                    writer.WriteNumber("agentRadius", GetAgentRadius(agentWidth));
-                    writer.WriteNumber("agentHeight", GetAgentHeight(agentWidth));
-                    writer.WriteNumber("agentMaxClimb", GetAgentMaxClimb(agentWidth));
+                    writer.WriteString("agentSize", agentSize.ToString());
+                    writer.WriteNumber("agentRadius", GetAgentRadius(agentSize));
+                    writer.WriteNumber("agentHeight", GetAgentHeight(agentSize));
+                    writer.WriteNumber("agentMaxClimb", GetAgentMaxClimb(agentSize));
 
                     writer.WritePropertyName("start");
                     WriteDumpPosition(writer, start);
@@ -92,7 +92,7 @@ namespace ACE.Server.Pathfinding
                             writer.WriteEndArray();
 
                             writer.WritePropertyName("mesh");
-                            WriteDumpMesh(writer, leg[0], group, agentWidth, points);
+                            WriteDumpMesh(writer, leg[0], group, agentSize, points);
 
                             writer.WriteEndObject();
 
@@ -105,10 +105,10 @@ namespace ACE.Server.Pathfinding
                     if (legs == null)
                     {
                         writer.WritePropertyName("startMesh");
-                        WriteDumpMesh(writer, start, GetGroupKey(start), agentWidth, new List<Vector3> { ToGlobal(start) });
+                        WriteDumpMesh(writer, start, GetGroupKey(start), agentSize, new List<Vector3> { ToGlobal(start) });
 
                         writer.WritePropertyName("endMesh");
-                        WriteDumpMesh(writer, end, GetGroupKey(end), agentWidth, new List<Vector3> { ToGlobal(end) });
+                        WriteDumpMesh(writer, end, GetGroupKey(end), agentSize, new List<Vector3> { ToGlobal(end) });
                     }
 
                     writer.WriteEndObject();
@@ -140,9 +140,9 @@ namespace ACE.Server.Pathfinding
         /// Writes the polys and drops of a group's mesh within DUMP_MESH_MARGIN of the given world points, or null if
         /// the mesh is not loaded.
         /// </summary>
-        private static void WriteDumpMesh(Utf8JsonWriter writer, Position reference, MeshGroupKey group, AgentWidth agentWidth, List<Vector3> points)
+        private static void WriteDumpMesh(Utf8JsonWriter writer, Position reference, MeshGroupKey group, AgentSize agentSize, List<Vector3> points)
         {
-            using var lease = AcquireMesh(reference, group, agentWidth);
+            using var lease = AcquireMesh(reference, group, agentSize);
             if (lease == null)
             {
                 writer.WriteNullValue();

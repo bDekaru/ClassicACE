@@ -340,13 +340,13 @@ namespace ACE.Server.WorldObjects
             var chestLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Medium);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
                     chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Small, out _, true);
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentSize.Small, out _, true);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
@@ -467,13 +467,13 @@ namespace ACE.Server.WorldObjects
             var chestLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Medium);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
                     chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Small, out _, true);
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentSize.Small, out _, true);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
@@ -531,13 +531,13 @@ namespace ACE.Server.WorldObjects
             var chestLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors)
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentWidth.Medium);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
                     chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentWidth.Small, out _, true);
+                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentSize.Small, out _, true);
                 if (randomPos != null)
                     chestLocation = randomPos;
                 else
@@ -596,13 +596,13 @@ namespace ACE.Server.WorldObjects
             var corpseLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(corpseLocation, 40, AgentWidth.Medium);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(corpseLocation, 40, AgentSize.Medium);
                 if (randomPos != null)
                     corpseLocation = randomPos;
                 else
                     corpseLocation = corpseLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
 
-                randomPos = Pathfinder.GetNearestWallPosition(corpseLocation, 20, AgentWidth.Small, out _, true);
+                randomPos = Pathfinder.GetNearestWallPosition(corpseLocation, 20, AgentSize.Small, out _, true);
                 if (randomPos != null)
                     corpseLocation = randomPos;
             }
@@ -652,7 +652,7 @@ namespace ACE.Server.WorldObjects
             var triggerLocation = new Position(Location);
             if (PathfindingEnabled && Location.Indoors)
             {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(triggerLocation, 40, AgentWidth.Small);
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(triggerLocation, 40, AgentSize.Small);
                 if (randomPos != null)
                     triggerLocation = randomPos;
                 else
@@ -664,7 +664,7 @@ namespace ACE.Server.WorldObjects
             var trapLocation = new Position(triggerLocation);
             if (PathfindingEnabled && Location.Indoors)
             {
-                var randomPos = Pathfinder.GetNearestWallPosition(trapLocation, 20, AgentWidth.Small, out _);
+                var randomPos = Pathfinder.GetNearestWallPosition(trapLocation, 20, AgentSize.Small, out _);
                 if (randomPos != null)
                     trapLocation = randomPos;
                 else

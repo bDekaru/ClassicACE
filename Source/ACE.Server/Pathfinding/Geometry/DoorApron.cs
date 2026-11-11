@@ -11,7 +11,7 @@ namespace ACE.Server.Pathfinding.Geometry
     /// opening is tall enough (agentHeight), its threshold is within reach of the floor (agentMaxClimb) and it is wide
     /// enough (the agent radius). An apron that is not connected ends up removed or as an island, so the doorway is
     /// not usable on that mesh: a window, or a door too small for the agent. The result is part of the mesh data and
-    /// is cached with it, per agent width.
+    /// is cached with it, per agent size.
     /// Aprons are sized for the agent of the mesh they're built into. They are test geometry, and a bigger one would
     /// reach further over its neighbors: an apron hanging over another doorway (a window next to a door) takes that
     /// doorway's headroom.
@@ -47,35 +47,35 @@ namespace ACE.Server.Pathfinding.Geometry
         private const float MarkHeight = 0.5f;
 
         /// <summary>
-        /// How far the apron of a mesh for the given agent width reaches out of the doorway.
+        /// How far the apron of a mesh for the given agent size reaches out of the doorway.
         /// </summary>
-        public static float GetDepth(AgentWidth agentWidth)
+        public static float GetDepth(AgentSize agentSize)
         {
-            return 2f * Pathfinder.GetAgentRadius(agentWidth) + DepthMargin;
+            return 2f * Pathfinder.GetAgentRadius(agentSize) + DepthMargin;
         }
 
         /// <summary>
         /// The center of the apron's door area, in landblock coordinates: where its door polys are looked for.
         /// </summary>
-        public static Vector3 GetCenter(CellGroupDoor door, AgentWidth agentWidth)
+        public static Vector3 GetCenter(CellGroupDoor door, AgentSize agentSize)
         {
-            return door.Position + door.Normal * ((MarkStart + GetDepth(agentWidth)) * 0.5f);
+            return door.Position + door.Normal * ((MarkStart + GetDepth(agentSize)) * 0.5f);
         }
 
         /// <summary>
         /// The apron's floor quad in landblock coordinates, counter-clockwise seen from above (walkable side up).
         /// </summary>
-        public static List<Vector3> GetFloor(CellGroupDoor door, AgentWidth agentWidth)
+        public static List<Vector3> GetFloor(CellGroupDoor door, AgentSize agentSize)
         {
-            return GetQuad(door, -Overlap, GetDepth(agentWidth));
+            return GetQuad(door, -Overlap, GetDepth(agentSize));
         }
 
         /// <summary>
         /// The convex volume that marks the apron as a door area (Recast space).
         /// </summary>
-        public static RcConvexVolume GetDoorVolume(CellGroupDoor door, AgentWidth agentWidth)
+        public static RcConvexVolume GetDoorVolume(CellGroupDoor door, AgentSize agentSize)
         {
-            var quad = GetQuad(door, MarkStart, GetDepth(agentWidth));
+            var quad = GetQuad(door, MarkStart, GetDepth(agentSize));
 
             var verts = new float[quad.Count * 3];
             for (var i = 0; i < quad.Count; i++)

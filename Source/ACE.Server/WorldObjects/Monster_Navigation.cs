@@ -964,9 +964,9 @@ namespace ACE.Server.WorldObjects
         /// A route to a position that may leave this building or cave and enter another one through their doorways,
         /// chaining one route per navmesh (see Pathfinder.FindRouteLegs).
         /// </summary>
-        private List<Position> FindRouteThroughDoorways(Position goal, AgentWidth agentWidth, out bool reachesTarget)
+        private List<Position> FindRouteThroughDoorways(Position goal, AgentSize agentSize, out bool reachesTarget)
         {
-            return Pathfinder.FindRouteLegs(Location, goal, agentWidth, out reachesTarget)?.SelectMany(leg => leg).ToList();
+            return Pathfinder.FindRouteLegs(Location, goal, agentSize, out reachesTarget)?.SelectMany(leg => leg).ToList();
         }
 
         /// <summary>
@@ -974,16 +974,16 @@ namespace ACE.Server.WorldObjects
         /// through gaps and under openings it can't pass. Sized by the collision spheres, which are what collide with
         /// walls and ceilings.
         /// </summary>
-        public AgentWidth GetPathfindingAgentWidth()
+        public AgentSize GetPathfindingAgentSize()
         {
             if (PhysicsObj == null)
-                return AgentWidth.Small;
+                return AgentSize.Small;
 
-            return Pathfinder.GetAgentWidth(PhysicsObj.GetWallCollisionRadius(), PhysicsObj.GetWallCollisionHeight());
+            return Pathfinder.GetAgentSize(PhysicsObj.GetWallCollisionRadius(), PhysicsObj.GetWallCollisionHeight());
         }
 
         /// <summary>
-        /// Plans a route to the route's goal (see GetRouteGoal) on this creature's mesh (see GetPathfindingAgentWidth).
+        /// Plans a route to the route's goal (see GetRouteGoal) on this creature's mesh (see GetPathfindingAgentSize).
         /// </summary>
         private List<Position> PlanRoute(out bool reachesTarget)
         {
@@ -993,7 +993,7 @@ namespace ACE.Server.WorldObjects
             if (goal == null)
                 return null;
 
-            return FindRouteThroughDoorways(goal, GetPathfindingAgentWidth(), out reachesTarget);
+            return FindRouteThroughDoorways(goal, GetPathfindingAgentSize(), out reachesTarget);
         }
 
         /// <summary>
@@ -1179,13 +1179,13 @@ namespace ACE.Server.WorldObjects
                 }
 
                 // on this creature's own mesh, whose edges are where its body touches the walls
-                var agentWidth = GetPathfindingAgentWidth();
-                var nearbyWallPos = Pathfinder.GetNearestWallPosition(retryPos, 1.0f, agentWidth, out _, false);
+                var agentSize = GetPathfindingAgentSize();
+                var nearbyWallPos = Pathfinder.GetNearestWallPosition(retryPos, 1.0f, agentSize, out _, false);
                 if (nearbyWallPos != null)
                 {
                     // A mesh edge can also be a drop or one side of a narrow corridor, so stepping out from it can
                     // leave the mesh: bring the point back onto it.
-                    var wallAvoidingPos = Pathfinder.GetClosestPointOnMesh(nearbyWallPos.InFrontOf(1.2f), agentWidth);
+                    var wallAvoidingPos = Pathfinder.GetClosestPointOnMesh(nearbyWallPos.InFrontOf(1.2f), agentSize);
                     if (wallAvoidingPos != null)
                     {
                         if (HasPendingMovement)

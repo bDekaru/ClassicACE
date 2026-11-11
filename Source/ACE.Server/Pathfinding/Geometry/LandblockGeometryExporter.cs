@@ -456,12 +456,12 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// Adds the floor of a door apron (see DoorApron) for each doorway in a wall.
         /// </summary>
-        public void AddDoorAprons(IEnumerable<CellGroupDoor> doors, AgentWidth agentWidth)
+        public void AddDoorAprons(IEnumerable<CellGroupDoor> doors, AgentSize agentSize)
         {
             foreach (var door in doors)
             {
                 if (door.IsInWall)
-                    AddPolygon(DoorApron.GetFloor(door, agentWidth), NoFrames);
+                    AddPolygon(DoorApron.GetFloor(door, agentSize), NoFrames);
             }
         }
 
@@ -474,8 +474,8 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Removes the geometry added since a mark (see GetMark), e.g. one agent width's door aprons, so the same
-        /// loaded cells can get another width's.
+        /// Removes the geometry added since a mark (see GetMark), e.g. one agent size's door aprons, so the same
+        /// loaded cells can get another size's.
         /// </summary>
         public void Truncate((int vertices, int polygons) mark)
         {

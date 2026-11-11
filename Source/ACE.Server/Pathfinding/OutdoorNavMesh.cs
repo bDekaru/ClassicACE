@@ -26,7 +26,7 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private const int MAX_POLYS_PER_TILE = 1 << 20;
 
-        public AgentWidth AgentWidth { get; }
+        public AgentSize AgentSize { get; }
 
         public DtNavMesh Mesh { get; }
 
@@ -37,9 +37,9 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private readonly Dictionary<uint, long> tileRefs = new Dictionary<uint, long>();
 
-        public OutdoorNavMesh(AgentWidth agentWidth, float tileSize, int maxVertsPerPoly)
+        public OutdoorNavMesh(AgentSize agentSize, float tileSize, int maxVertsPerPoly)
         {
-            AgentWidth = agentWidth;
+            AgentSize = agentSize;
 
             var navMeshParams = new DtNavMeshParams
             {
@@ -53,7 +53,7 @@ namespace ACE.Server.Pathfinding
             Mesh = new DtNavMesh();
             var status = Mesh.Init(in navMeshParams, maxVertsPerPoly);
             if (status.Failed())
-                throw new InvalidOperationException($"could not initialize the {agentWidth} outdoor navmesh ({status})");
+                throw new InvalidOperationException($"could not initialize the {agentSize} outdoor navmesh ({status})");
         }
 
         public void EnterRead()

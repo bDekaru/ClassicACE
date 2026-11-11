@@ -1599,10 +1599,10 @@ namespace ACE.Server.Command.Handlers
 
             if (Pathfinder.PathfindingEnabled)
             {
-                foreach (var agentWidth in Enum.GetValues<AgentWidth>())
+                foreach (var agentSize in Enum.GetValues<AgentSize>())
                 {
-                    var reached = Pathfinder.GetRouteLegsDistance(session.Player.Location, obj.Location, agentWidth, out var routeDistance, out var legCount, out var endGap);
-                    session.Network.EnqueueSend(new GameMessageSystemChat($"{agentWidth} Pathfinding Dist: {DescribeRouteDistance(reached, routeDistance, legCount, endGap)}", ChatMessageType.Broadcast));
+                    var reached = Pathfinder.GetRouteLegsDistance(session.Player.Location, obj.Location, agentSize, out var routeDistance, out var legCount, out var endGap);
+                    session.Network.EnqueueSend(new GameMessageSystemChat($"{agentSize} Pathfinding Dist: {DescribeRouteDistance(reached, routeDistance, legCount, endGap)}", ChatMessageType.Broadcast));
                 }
             }
         }
@@ -4307,15 +4307,15 @@ namespace ACE.Server.Command.Handlers
             //var destination = new Position(0x019E014D, 39.844067f, -33.932358f, 6.005000f, 0.109867f, 0.000000f, 0.000000f, 0.993946f);
             
             // the mesh the creature routes on, by its size, the same choice its own routing makes
-            var agentWidth = creature.GetPathfindingAgentWidth();
+            var agentSize = creature.GetPathfindingAgentSize();
             var collisionRadius = creature.PhysicsObj?.GetWallCollisionRadius() ?? 0f;
             var collisionHeight = creature.PhysicsObj?.GetWallCollisionHeight() ?? 0f;
-            var meshRadius = Pathfinder.GetAgentRadius(agentWidth);
-            var meshHeight = Pathfinder.GetAgentHeight(agentWidth);
-            CommandHandlerHelper.WriteOutputInfo(session, $"Mesh used: {agentWidth} (collision radius {collisionRadius:0.00}m / height {collisionHeight:0.00}m, mesh agent radius {meshRadius:0.00}m / height {meshHeight:0.00}m)");
+            var meshRadius = Pathfinder.GetAgentRadius(agentSize);
+            var meshHeight = Pathfinder.GetAgentHeight(agentSize);
+            CommandHandlerHelper.WriteOutputInfo(session, $"Mesh used: {agentSize} (collision radius {collisionRadius:0.00}m / height {collisionHeight:0.00}m, mesh agent radius {meshRadius:0.00}m / height {meshHeight:0.00}m)");
 
             // chain routes through doorways, so a creature in a building can be sent outside or into another building
-            var legs = Pathfinder.FindRouteLegs(creature.Location, player.Location, agentWidth);
+            var legs = Pathfinder.FindRouteLegs(creature.Location, player.Location, agentSize);
             if (legs == null)
             {
                 CommandHandlerHelper.WriteOutputInfo(session, "Null route.");
@@ -4560,7 +4560,7 @@ namespace ACE.Server.Command.Handlers
             var player = walk.Player;
 
             // players fit the narrow mesh, as creatures of their size do
-            var legs = Pathfinder.FindRouteLegs(player.Location, walk.Destination, AgentWidth.Small, out var reachesDestination);
+            var legs = Pathfinder.FindRouteLegs(player.Location, walk.Destination, AgentSize.Small, out var reachesDestination);
             var waypoints = legs?.SelectMany(leg => leg).ToList();
 
             if (waypoints == null || waypoints.Count == 0)
@@ -4704,7 +4704,7 @@ namespace ACE.Server.Command.Handlers
 
             Position start;
             Position end;
-            AgentWidth agentWidth;
+            AgentSize agentSize;
             string label;
 
             if (parameters.Length > 0)
@@ -4717,7 +4717,7 @@ namespace ACE.Server.Command.Handlers
 
                 start = player.Location;
                 end = destination;
-                agentWidth = AgentWidth.Small;
+                agentSize = AgentSize.Small;
                 label = $"{player.Name} to {destination.ToLOCString()}";
             }
             else
@@ -4730,11 +4730,11 @@ namespace ACE.Server.Command.Handlers
 
                 start = creature.Location;
                 end = player.Location;
-                agentWidth = creature.GetPathfindingAgentWidth();
+                agentSize = creature.GetPathfindingAgentSize();
                 label = $"{creature.Name} (0x{creature.Guid.Full:X8}) to {player.Name}";
             }
 
-            var path = Pathfinder.DumpRoute(start, end, agentWidth, label, out var legs, out var reachesEnd);
+            var path = Pathfinder.DumpRoute(start, end, agentSize, label, out var legs, out var reachesEnd);
             if (path == null)
             {
                 CommandHandlerHelper.WriteOutputInfo(session, "Could not write the dump; see the server log.");
@@ -4744,7 +4744,7 @@ namespace ACE.Server.Command.Handlers
             var result = legs == null
                 ? "no route found"
                 : $"{legs.Sum(l => l.Count)} waypoints over {legs.Count} leg(s), {(reachesEnd ? "reaches the end" : "partial")}";
-            CommandHandlerHelper.WriteOutputInfo(session, $"{agentWidth} mesh, {result}. Written to {path}");
+            CommandHandlerHelper.WriteOutputInfo(session, $"{agentSize} mesh, {result}. Written to {path}");
         }
 
         [CommandHandler("RebuildPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Rebuilds the pathfinding meshes where you stand: the meshes of the building, cave or dungeon area you are in, or the outdoor meshes of your landblock when you are outside")]

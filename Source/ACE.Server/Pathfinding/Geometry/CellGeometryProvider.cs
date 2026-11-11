@@ -23,20 +23,20 @@ namespace ACE.Server.Pathfinding.Geometry
         private readonly RcTriMesh[] _meshes;
 
         /// <summary>
-        /// Geometry for a set of interior (dungeon) cells, for the mesh of one agent width: with a door apron (see
+        /// Geometry for a set of interior (dungeon) cells, for the mesh of one agent size: with a door apron (see
         /// DoorApron) sized for that agent outside each of the given doorways, marked as a door area.
         /// </summary>
-        public static CellGeometryProvider LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, AgentWidth agentWidth)
+        public static CellGeometryProvider LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, AgentSize agentSize)
         {
-            var providers = LoadGeometry(geometry, neighbors, doors, new[] { agentWidth });
-            return providers?[agentWidth];
+            var providers = LoadGeometry(geometry, neighbors, doors, new[] { agentSize });
+            return providers?[agentSize];
         }
 
         /// <summary>
-        /// Like the other overload, for several agent widths at once: the cells and their static objects are loaded
-        /// once, and only the door aprons differ per width. Null if the cells have no geometry.
+        /// Like the other overload, for several agent sizes at once: the cells and their static objects are loaded
+        /// once, and only the door aprons differ per size. Null if the cells have no geometry.
         /// </summary>
-        public static Dictionary<AgentWidth, CellGeometryProvider> LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentWidth> agentWidths)
+        public static Dictionary<AgentSize, CellGeometryProvider> LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentSize> agentSizes)
         {
             var exporter = new LandblockGeometryExporter(geometry, neighbors);
             exporter.LoadLandblockInfo();
@@ -47,16 +47,16 @@ namespace ACE.Server.Pathfinding.Geometry
 
             var wallDoors = doors?.Where(d => d.IsInWall).ToList() ?? new List<CellGroupDoor>();
             var cells = exporter.GetMark();
-            var providers = new Dictionary<AgentWidth, CellGeometryProvider>();
+            var providers = new Dictionary<AgentSize, CellGeometryProvider>();
 
-            foreach (var agentWidth in agentWidths)
+            foreach (var agentSize in agentSizes)
             {
-                exporter.AddDoorAprons(wallDoors, agentWidth);
+                exporter.AddDoorAprons(wallDoors, agentSize);
 
                 var provider = FromExporter(exporter);
                 foreach (var door in wallDoors)
-                    provider.AddConvexVolume(DoorApron.GetDoorVolume(door, agentWidth));
-                providers[agentWidth] = provider;
+                    provider.AddConvexVolume(DoorApron.GetDoorVolume(door, agentSize));
+                providers[agentSize] = provider;
 
                 exporter.Truncate(cells);
             }
