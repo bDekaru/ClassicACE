@@ -320,11 +320,15 @@ namespace ACE.Server.Entity
                 if (ExplorationMarkerCurrentIndex >= PositionsForExplorationMarkers.Count)
                     ExplorationMarkerCurrentIndex = 0;
 
+                var cellFromPathfinder = false;
                 if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
                 {
                     var randomPos = Pathfinder.GetRandomPointWithinCircle(entryPos, 15, AgentWidth.Large);
                     if (randomPos != null)
+                    {
                         entryPos = randomPos;
+                        cellFromPathfinder = true;
+                    }
                 }
 
                 var allMarkersAndPortals = worldObjects.Where(i => i.Value.WeenieClassId == (uint)Factories.Enum.WeenieClassName.explorationMarker || i.Value.WeenieType == WeenieType.Portal).ToList();
@@ -365,9 +369,14 @@ namespace ACE.Server.Entity
                 }
 
                 var explorationMarker = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.explorationMarker);
+                if (explorationMarker == null)
+                    return;
+
                 explorationMarker.Location = entryPos;
-                explorationMarker.Location.LandblockId = new LandblockId(explorationMarker.Location.GetCell());
-                if (!explorationMarker.EnterWorld() && explorationMarker != null)
+                if (!cellFromPathfinder)
+                    explorationMarker.Location.LandblockId = new LandblockId(explorationMarker.Location.GetCell());
+                    
+                if (!explorationMarker.EnterWorld())
                 {
                     attempts++;
                     explorationMarker.Destroy();

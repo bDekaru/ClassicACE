@@ -198,13 +198,14 @@ namespace ACE.Server.Pathfinding
         /// Part of the interior mesh cache file names. Build setting changes are picked up automatically; bump this
         /// when the exported geometry changes, so cached meshes built from the old geometry are not loaded.
         /// </summary>
-        private const int MESH_GEOMETRY_VERSION = 3; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons sized per agent width
+        private const int MESH_GEOMETRY_VERSION = 4; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons sized per agent width, 4: cell statics shaped as the server's physics objects, spheres at their centers
 
         /// <summary>
         /// Like MESH_GEOMETRY_VERSION, for the outdoor tiles. 2: tiles in world coordinates with a border from the
-        /// neighboring landblocks. 3: the objects of every landblock come from the dat, loaded or not.
+        /// neighboring landblocks. 3: the objects of every landblock come from the dat, loaded or not. 4: spheres at
+        /// their centers.
         /// </summary>
-        private const int OUTDOOR_MESH_GEOMETRY_VERSION = 3;
+        private const int OUTDOOR_MESH_GEOMETRY_VERSION = 4;
 
         /// <summary>
         /// After an outdoor tile build fails, no new attempt is made for this long (unless a rebuild is requested).
@@ -517,9 +518,9 @@ namespace ACE.Server.Pathfinding
             if (customName != "")
                 marker.Name = customName;
 
-            marker.Location = position;
-            marker.Location.LandblockId = new LandblockId(marker.Location.GetCell());
-            var landblock = LandblockManager.GetLandblock(marker.Location.LandblockId, false);
+            marker.Location = new Position(position);
+            if (!marker.Location.Indoors)
+                marker.Location.LandblockId = new LandblockId(marker.Location.GetCell());
 
             if (marker.EnterWorld())
                 return marker;

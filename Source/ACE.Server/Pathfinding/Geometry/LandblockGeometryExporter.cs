@@ -142,37 +142,35 @@ namespace ACE.Server.Pathfinding.Geometry
 
         public void LoadLandblockInfo()
         {
-            var frames = new List<Frame>();
             var cellsById = new Dictionary<uint, CellGeometry>();
             foreach (var cell in Neighbors)
                 cellsById[cell.CellId] = cell;
 
             foreach (var cell in Neighbors)
             {
-                var tempFrames = frames.ToList();
-                tempFrames.Add(cell.EnvCell.Position);
+                LoadEnvironment(cell.EnvCell.EnvironmentId, new List<Frame> { cell.EnvCell.Position }, cell.EnvCell.CellStructure);
 
-                LoadEnvironment(cell.EnvCell.EnvironmentId, tempFrames, cell.EnvCell.CellStructure);
+                if (cell.EnvCell.StaticObjects == null)
+                    continue;
 
-                if (cell.EnvCell.StaticObjects != null && cell.EnvCell.StaticObjects.Count > 0)
+                foreach (var staticObject in cell.EnvCell.StaticObjects)
                 {
-                    foreach (var staticObject in cell.EnvCell.StaticObjects)
-                    {
-                        var sFrames = frames.ToList();
-                        sFrames.Add(staticObject.Frame);
-                        BoundingBox2 bb = new BoundingBox2();
+                    // the physics object the server creates for the static (EnvCell.init_static_objects), so its shape
+                    // is posed, scaled and chosen exactly as the server's
+                    var obj = ACE.Server.Physics.PhysicsObj.makeObject(staticObject.Id, 0, false);
+                    obj.set_initial_frame(new ACE.Server.Physics.Animation.AFrame(staticObject.Frame));
 
-                        // collect the static's polygons, then keep only what the server can collide with
-                        _capture = new List<List<Vector3>>();
-                        try
-                        {
-                            LoadSetupOrGfxObj(staticObject.Id, sFrames, ref bb);
-                            AddCellStatic(_capture, cell, cellsById);
-                        }
-                        finally
-                        {
-                            _capture = null;
-                        }
+                    // collect the static's polygons, then keep only what the server can collide with
+                    _capture = new List<List<Vector3>>();
+                    try
+                    {
+                        foreach (var polygon in GetCollisionPolygons(obj, Vector3.Zero, false))
+                            AddPolygon(polygon, NoFrames);
+                        AddCellStatic(_capture, cell, cellsById);
+                    }
+                    finally
+                    {
+                        _capture = null;
                     }
                 }
             }
@@ -425,89 +423,6 @@ namespace ACE.Server.Pathfinding.Geometry
 
         #endregion
 
-        private void LoadSetupOrGfxObj(uint id, List<Frame> sFrames, ref BoundingBox2 boundingBox, bool coneTop = false)
-        {
-            if ((id & 0x02000000) != 0)
-            {
-                LoadSetup(id, sFrames, ref boundingBox, coneTop);
-            }
-            else
-            {
-                LoadGfxObj(id, sFrames, ref boundingBox);
-            }
-        }
-
-        private void LoadGfxObj(uint cellFileIndex, List<Frame> frames, ref BoundingBox2 boundingBox)
-        {
-            var gfxObj = DatManager.PortalDat.ReadFromDat<GfxObj>(cellFileIndex);
-            if (gfxObj == null)
-                return;
-            foreach (var pkv in gfxObj.PhysicsPolygons)
-            {
-                var vertices = pkv.Value.VertexIds.Select(v => gfxObj.VertexArray.Vertices[(ushort)v].Origin).ToList();
-                var pvertices = AddPolygon(vertices, frames);
-                foreach (var pv in pvertices)
-                {
-                    boundingBox.Add(pv);
-                }
-            }
-        }
-
-        private void LoadSetup(uint cellFileIndex, List<Frame> frames, ref BoundingBox2 boundingBox, bool coneTop = false)
-        {
-            //Program.Log($"Loading setup: {cellFileIndex:X8}");  
-            var setupModel = DatManager.PortalDat.ReadFromDat<SetupModel>(cellFileIndex);
-
-            // physics draw priority is child part physics polys, then cylspheres, then spheres?
-            var hasPhysicsPolys = false;
-            foreach (var partId in setupModel.Parts)
-            {
-                var gfxObj = DatManager.PortalDat.ReadFromDat<GfxObj>(partId);
-                if (gfxObj.PhysicsPolygons != null && gfxObj.PhysicsPolygons.Count > 0)
-                {
-                    hasPhysicsPolys = true;
-                    break;
-                }
-            }
-
-            if (setupModel.CylSpheres != null && setupModel.CylSpheres.Count > 0)
-            {
-                foreach (var cSphere in setupModel.CylSpheres)
-                {
-                    List<List<Vector3>> polys = GetCylSpherePolygons(cSphere.Origin, cSphere.Height, cSphere.Radius, coneTop);
-                    foreach (var poly in polys)
-                    {
-                        var pvs = AddPolygon(poly, frames);
-                        foreach (var pv in pvs)
-                            boundingBox.Add(pv);
-                    }
-                }
-            }
-
-            if (!hasPhysicsPolys && setupModel.Spheres != null && setupModel.Spheres.Count > 0)
-            {
-                foreach (var sphere in setupModel.Spheres)
-                {
-                    List<List<Vector3>> polys = GetSpherePolygons(sphere.Origin, sphere.Radius);
-                    foreach (var poly in polys)
-                    {
-                        var pvs = AddPolygon(poly, frames);
-                        foreach (var pv in pvs)
-                            boundingBox.Add(pv);
-                    }
-                }
-            }
-
-            // draw all the child parts
-            for (var i = 0; i < setupModel.Parts.Count; i++)
-            {
-                // always use PlacementFrames[0] ?
-                var tempFrames = frames.ToList(); // clone
-                tempFrames.Insert(0, setupModel.PlacementFrames[0].AnimFrame.Frames[i]);
-                LoadGfxObj(setupModel.Parts[i], tempFrames, ref boundingBox);
-            }
-        }
-
         private void LoadEnvironment(uint cellFileIndex, List<Frame> frames, int envCellIndex = -1)
         {
             var environment = DatManager.PortalDat.ReadFromDat<Environment>(cellFileIndex);
@@ -753,17 +668,13 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Adds the collision shape of a physics object, following the same rules the physics engine uses:
-        /// part BSP polygons when the object has a physics BSP, otherwise cylinder spheres, otherwise spheres.
+        /// Adds the collision shape of a physics object (see GetCollisionPolygons), in world coordinates.
         /// </summary>
         /// <param name="sourceLandblockId">The landblock whose object list holds the object</param>
         /// <param name="isOwn">True for the tile's own landblock, whose objects are never skipped by distance</param>
         private void AddPhysicsObj(ACE.Server.Physics.PhysicsObj obj, uint sourceLandblockId, bool isBuilding, bool isOwn)
         {
-            if (obj?.PartArray == null || obj.Position?.Frame == null)
-                return;
-
-            if (obj.State.HasFlag(ACE.Entity.Enum.PhysicsState.Ethereal))
+            if (obj?.Position?.Frame == null)
                 return;
 
             // Objects are occasionally re-parented to a neighboring landblock (AdjustToOutside), which puts their
@@ -777,7 +688,26 @@ namespace ACE.Server.Pathfinding.Geometry
                     return;
             }
 
-            if (isBuilding || obj.State.HasFlag(ACE.Entity.Enum.PhysicsState.HasPhysicsBSP))
+            foreach (var polygon in GetCollisionPolygons(obj, offset, isBuilding))
+                AddSurfacePolygon(polygon);
+        }
+
+        /// <summary>
+        /// The collision shape of a physics object as polygons, following the same rules the physics engine uses
+        /// (PhysicsObj.FindObjCollisions): part BSP polygons when the object has a physics BSP, otherwise cylinder
+        /// spheres, otherwise spheres. Posed and scaled as the object is, in the coordinates of its frame plus offset.
+        /// Nothing for an ethereal object.
+        /// </summary>
+        /// <param name="usePolygons">Use the part BSP polygons whatever the object's state, as for buildings</param>
+        private static IEnumerable<List<Vector3>> GetCollisionPolygons(ACE.Server.Physics.PhysicsObj obj, Vector3 offset, bool usePolygons)
+        {
+            if (obj?.PartArray == null || obj.Position?.Frame == null)
+                yield break;
+
+            if (obj.State.HasFlag(ACE.Entity.Enum.PhysicsState.Ethereal))
+                yield break;
+
+            if (usePolygons || obj.State.HasFlag(ACE.Entity.Enum.PhysicsState.HasPhysicsBSP))
             {
                 foreach (var part in obj.PartArray.Parts)
                 {
@@ -792,12 +722,9 @@ namespace ACE.Server.Pathfinding.Geometry
                     var scale = part.GfxObjScale;
 
                     foreach (var poly in gfxObj.PhysicsPolygons.Values)
-                    {
-                        var points = poly.VertexIds.Select(v => frame.LocalToGlobal(gfxObj.VertexArray.Vertices[(ushort)v].Origin * scale) + offset).ToList();
-                        AddSurfacePolygon(points);
-                    }
+                        yield return poly.VertexIds.Select(v => frame.LocalToGlobal(gfxObj.VertexArray.Vertices[(ushort)v].Origin * scale) + offset).ToList();
                 }
-                return;
+                yield break;
             }
 
             var objFrame = obj.Position.Frame;
@@ -809,9 +736,9 @@ namespace ACE.Server.Pathfinding.Geometry
                 foreach (var cylSphere in cylSpheres)
                 {
                     foreach (var poly in GetCylSpherePolygons(cylSphere.LowPoint * objScale, cylSphere.Height * objScale, cylSphere.Radius * objScale))
-                        AddSurfacePolygon(poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList());
+                        yield return poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList();
                 }
-                return;
+                yield break;
             }
 
             var spheres = obj.PartArray.GetSphere();
@@ -820,7 +747,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 foreach (var sphere in spheres)
                 {
                     foreach (var poly in GetSpherePolygons(sphere.Center * objScale, sphere.Radius * objScale))
-                        AddSurfacePolygon(poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList());
+                        yield return poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList();
                 }
             }
         }
@@ -1065,7 +992,7 @@ namespace ACE.Server.Pathfinding.Geometry
             return outStr.ToString();
         }
 
-        public static List<List<Vector3>> GetCylSpherePolygons(Vector3 origin, float height, float radius, bool coneTop = false)
+        public static List<List<Vector3>> GetCylSpherePolygons(Vector3 origin, float height, float radius)
         {
             var num_sides = 12;
             var axis = new Vector3(0, 0, height);
@@ -1130,8 +1057,6 @@ namespace ACE.Server.Pathfinding.Geometry
             pt1 = Positions.Count - 1; // Index of last point.
             pt2 = pt0 + 1;                  // Index of first point.
             var p0 = Positions[num_sides + 1];
-            if (coneTop && axis.Z > 20)
-                p0 += new Vector3(0, 0, 20);
 
             for (int i = 0; i < num_sides; i++)
             {
@@ -1173,34 +1098,38 @@ namespace ACE.Server.Pathfinding.Geometry
             return results;
         }
 
+        /// <summary>
+        /// The triangles of a sphere at the given center.
+        /// </summary>
         public static List<List<Vector3>> GetSpherePolygons(Vector3 origin, float radius)
         {
-            var results = new List<List<Vector3>>();
+            var results = new List<List<Vector3>>(UnitSphereTriangles.Count);
+            foreach (var triangle in UnitSphereTriangles)
+                results.Add(new List<Vector3>() { triangle[0] * radius + origin, triangle[1] * radius + origin, triangle[2] * radius + origin });
+
+            return results;
+        }
+
+        /// <summary>
+        /// A sphere of radius 1 around the origin: an icosahedron subdivided once, its vertices pushed out onto the
+        /// sphere. Built once, GetSpherePolygons scales and places it.
+        /// </summary>
+        private static readonly List<Vector3[]> UnitSphereTriangles = CreateUnitSphereTriangles();
+
+        private static List<Vector3[]> CreateUnitSphereTriangles()
+        {
             var vectors = new List<Vector3>();
             var indices = new List<int>();
 
             Icosahedron(vectors, indices);
+            Subdivide(vectors, indices, true);
 
-            for (var i = 0; i < 1; i++)
-                Subdivide(vectors, indices, true);
+            // reversed, the winding the sphere polygons have always had
+            var triangles = new List<Vector3[]>(indices.Count / 3);
+            for (var i = 0; i + 2 < indices.Count; i += 3)
+                triangles.Add(new[] { Vector3.Normalize(vectors[indices[i + 2]]), Vector3.Normalize(vectors[indices[i + 1]]), Vector3.Normalize(vectors[indices[i]]) });
 
-            /// normalize vectors to "inflate" the icosahedron into a sphere.
-            for (var i = 0; i < indices.Count / 3; i++)
-            {
-                var testIndicies = new List<int>();
-                for (var x = 2; x >= 0; x--)
-                {
-                    var ii = i * 3 + x;
-                    vectors[indices[ii]] = Vector3.Normalize(vectors[indices[ii]]) * radius;
-                    testIndicies.Add(indices[ii]);
-                }
-
-                // adjust height.. 
-                var h = new Vector3(0, 0, radius);
-                results.Add(new List<Vector3>() { vectors[testIndicies[0]] + h, vectors[testIndicies[1]] + h, vectors[testIndicies[2]] + h });
-            }
-
-            return results;
+            return triangles;
         }
         public static Vector3 CalculateTriSurfaceNormal(Vector3 a, Vector3 b, Vector3 c)
         {
