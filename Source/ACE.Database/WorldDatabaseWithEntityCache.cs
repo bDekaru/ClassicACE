@@ -88,6 +88,8 @@ namespace ACE.Database
             weenieClassNameToClassIdCache.Clear();
 
             weenieSpecificCachesPopulated = false;
+
+            ClearCachedPortalDestinations();
         }
 
         /// <summary>
@@ -122,6 +124,8 @@ namespace ACE.Database
 
         public bool ClearCachedWeenie(uint weenieClassId)
         {
+            ClearCachedPortalDestinations();
+
             return weenieCache.TryRemove(weenieClassId, out _);
         }
 
@@ -570,6 +574,36 @@ namespace ACE.Database
 
                 return results;
             }
+        }
+
+
+        // =====================================
+        // Portal Destinations
+        // =====================================
+
+        private readonly ConcurrentDictionary<ushort /* Landblock */, List<(uint Wcid, ACE.Entity.Position Location)>> cachedPortalDestinationsByLandblock = new ConcurrentDictionary<ushort, List<(uint Wcid, ACE.Entity.Position Location)>>();
+
+        /// <summary>
+        /// The portals whose destination is in the landblock, with their destinations. The list and its positions are
+        /// shared by every caller: read them, don't modify them.
+        /// </summary>
+        public List<(uint Wcid, ACE.Entity.Position Location)> GetCachedPortalDestinationsByLandblock(ushort landblock)
+        {
+            if (cachedPortalDestinationsByLandblock.TryGetValue(landblock, out var value))
+                return value;
+
+            var results = GetPortalDestinationsByLandblock(landblock);
+
+            return cachedPortalDestinationsByLandblock.GetOrAdd(landblock, results);
+        }
+
+        /// <summary>
+        /// Clears the cached portal destinations of every landblock. A portal's destination can move to any landblock,
+        /// so a change to any portal weenie clears them all.
+        /// </summary>
+        public void ClearCachedPortalDestinations()
+        {
+            cachedPortalDestinationsByLandblock.Clear();
         }
 
 

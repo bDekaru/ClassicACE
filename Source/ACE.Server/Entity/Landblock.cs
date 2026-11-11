@@ -583,7 +583,7 @@ namespace ACE.Server.Entity
             if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM || PropertyManager.GetBool("increase_minimum_encounter_spawn_density").Item)
             {
                 landblockInstances = GetLandblockInstances(true);
-                portalDrops = DatabaseManager.World.GetPortalDestinationsByLandblock(GetAdjacents());
+                portalDrops = GetAdjacents().SelectMany(DatabaseManager.World.GetCachedPortalDestinationsByLandblock).ToList();
             }
 
             foreach (var encounter in encounters)
