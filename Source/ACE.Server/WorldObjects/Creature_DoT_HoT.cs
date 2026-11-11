@@ -140,6 +140,8 @@ namespace ACE.Server.WorldObjects
                 {
                     bool isDead = false;
 
+                    var isImmune = Invincible || IsOnNoDamageLandblock;
+
                     var totalTickAmountPerDamageType = new Dictionary<DamageType, (float TotalTickAmount, Dictionary<WorldObject, float> Damagers)>();
 
                     var totalTickAmount = 0.0f;
@@ -180,7 +182,8 @@ namespace ACE.Server.WorldObjects
                             else
                                 elementDamagers.Add(dot.Source, tickAmount);
 
-                            DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
+                            if (!isImmune)
+                                DamageHistory.Add(dot.Source, dot.DamageType, (uint)tickAmount);
                         }
 
                         totalTickAmountPerDamageType[dot.DamageType] = (elementTotalTickAmount, elementDamagers);
@@ -195,7 +198,8 @@ namespace ACE.Server.WorldObjects
                     var playedEffects = false;
                     foreach (var entry in totalTickAmountPerDamageType)
                     {
-                        TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects);
+                        if (!isImmune)
+                            TakeDamageOverTime(entry.Value.TotalTickAmount, entry.Key, playedEffects);
 
                         if (!playedEffects)
                             playedEffects = true;
@@ -208,7 +212,7 @@ namespace ACE.Server.WorldObjects
                             var damager = kvp.Key;
                             var amount = kvp.Value;
 
-                            if (Invincible || IsDead || IsOnNoDamageLandblock)
+                            if (isImmune || IsDead)
                                 amount = 0;
 
                             var damageSourcePlayer = damager as Player;
