@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
 using Environment = ACE.DatLoader.FileTypes.Environment;
 using Frame = ACE.DatLoader.Entity.Frame;
 using Vector3 = System.Numerics.Vector3;
@@ -71,12 +70,10 @@ namespace ACE.Server.Pathfinding.Geometry
         public List<Vector3> Vertices { get; } = new List<Vector3>();
         public List<List<int>> Polygons { get; } = new List<List<int>>();
 
-        public LandblockGeometry Geometry { get; }
         public List<CellGeometry> Neighbors { get; }
 
-        public LandblockGeometryExporter(LandblockGeometry geometry, List<CellGeometry> neighbors)
+        public LandblockGeometryExporter(List<CellGeometry> neighbors)
         {
-            Geometry = geometry;
             Neighbors = neighbors;
         }
 
@@ -910,34 +907,6 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         #endregion
-
-        public string ToObjString()
-        {
-            var outStr = new StringBuilder();
-
-            var vs = Vertices.ToArray();
-            foreach (var vertex in vs)
-            {
-                //var ox = coords.IsOutside() ? coords.LBX() * 192f : 0f;
-                //var oy = coords.IsOutside() ? coords.LBY() * 192f : 0f;
-                //outStr.Append($"v {vertex.X + ox} {vertex.Y} {vertex.Z + oy}\n");
-                outStr.Append($"v {vertex.X} {vertex.Y} {vertex.Z}\n");
-            }
-
-            var ps = Polygons.ToArray();
-            foreach (var polygon in ps)
-            {
-                outStr.Append("f ");
-                var rp = polygon.ToList();
-                foreach (var indice in rp)
-                {
-                    outStr.Append($"{indice} ");
-                }
-                outStr.Append("\n");
-            }
-
-            return outStr.ToString();
-        }
 
         public static List<List<Vector3>> GetCylSpherePolygons(Vector3 origin, float height, float radius)
         {

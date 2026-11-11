@@ -45,12 +45,12 @@ namespace ACE.Server.Pathfinding
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        private const int VERTS_PER_POLY = 6;
+        private const int MaxVertsPerPoly = 6;
 
         /// <summary>
         /// The longest poly corridor and straight path a route can have. Outdoor routes can cross several landblocks.
         /// </summary>
-        private const int MAX_POLYS = 1024;
+        private const int MaxPolys = 1024;
 
         /// <summary>
         /// What each mesh is built for, per agent size.
@@ -153,7 +153,7 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Waypoints sit on the floor; the cell lookup probes slightly above it so the point is inside the cell volume.
         /// </summary>
-        private const float CELL_PROBE_HEIGHT = 0.25f;
+        private const float CellProbeHeight = 0.25f;
 
         /// <summary>
         /// How far around a position to look for the mesh. Positions further off the mesh than this are not on it.
@@ -459,7 +459,7 @@ namespace ACE.Server.Pathfinding
         {
             try
             {
-                var probe = new Vector3(point.X, point.Y, point.Z + CELL_PROBE_HEIGHT);
+                var probe = new Vector3(point.X, point.Y, point.Z + CellProbeHeight);
 
                 // only the cells of this mesh's group: an overlapping cell of another group is not where we are
                 var cell = GetGroups(reference.Cell).FindCell(group, reference.Cell, probe);
@@ -609,8 +609,8 @@ namespace ACE.Server.Pathfinding
             if (status.Failed())
                 return null;
 
-            // no wall within the radius leaves the hit point and normal at zero
-            if (wallPt.X == 0 && wallPt.Y == 0 && wallPt.Z == 0 && wallNormal.X == 0 && wallNormal.Y == 0 && wallNormal.Z == 0)
+            // no wall closer than the radius leaves the distance at the radius
+            if (wallDistance >= radius)
                 return null;
 
             distance = wallDistance;

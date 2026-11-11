@@ -23,24 +23,24 @@ namespace ACE.Server.Pathfinding
         /// Extra distance turn waypoints are pushed away from the corner they bend around, on top of the agent radius
         /// the mesh is already eroded by.
         /// </summary>
-        private const float CORNER_CLEARANCE = 0.3f;
+        private const float CornerClearance = 0.3f;
 
-        private const int MAX_SURFACE_MOVE_POLYS = 64;
+        private const int MaxSurfaceMovePolys = 64;
 
         /// <summary>
         /// An outdoor route searches at most this many landblocks away from its start, in each direction, and only
         /// requests the tiles in that range. Bounds the search on a server with many landblocks loaded.
         /// </summary>
-        private const int MAX_ROUTE_LANDBLOCK_SPAN = 2;
+        private const int MaxRouteLandblockSpan = 2;
 
         /// <summary>
         /// A drop down a ledge (see DropLinkFinder) costs this many times its length, so a creature only jumps down
         /// when walking around is clearly longer: it can't come back up the same way.
         /// </summary>
-        private const float DROP_COST_FACTOR = 3.0f;
+        private const float DropCostFactor = 3.0f;
 
         /// <summary>
-        /// Every poly, for route searches: like AllPolysFilter, with drops at DROP_COST_FACTOR.
+        /// Every poly, for route searches: like AllPolysFilter, with drops at DropCostFactor.
         /// </summary>
         private static readonly DtQueryDefaultFilter RouteFilter = CreateRouteFilter();
 
@@ -48,7 +48,7 @@ namespace ACE.Server.Pathfinding
         {
             var areaCosts = new float[DtDetour.DT_MAX_AREAS];
             Array.Fill(areaCosts, 1.0f);
-            areaCosts[NavArea.Drop] = DROP_COST_FACTOR;
+            areaCosts[NavArea.Drop] = DropCostFactor;
             return new DtQueryDefaultFilter(0xFFFF, 0, areaCosts);
         }
 
@@ -100,7 +100,7 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Find a route to the end position (see the other overload). Outdoor routes cross landblock edges, searching
-        /// up to MAX_ROUTE_LANDBLOCK_SPAN landblocks away from the start. Outdoor tiles load in the background, so a
+        /// up to MaxRouteLandblockSpan landblocks away from the start. Outdoor tiles load in the background, so a
         /// route through landblocks whose tiles are not loaded yet ends at the edge of the loaded ones.
         /// </summary>
         /// <param name="reachesTarget">True if the route leads all the way to its target: the end position, or the
@@ -191,7 +191,7 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The filter a route search runs with: every poly, but outdoors only within MAX_ROUTE_LANDBLOCK_SPAN
+        /// The filter a route search runs with: every poly, but outdoors only within MaxRouteLandblockSpan
         /// landblocks of the start.
         /// </summary>
         private static IDtQueryFilter GetPathFilter(MeshLease lease, Position start)
@@ -200,7 +200,7 @@ namespace ACE.Server.Pathfinding
                 return RouteFilter;
 
             var (x, y) = GetLandblockCoords(start.Cell);
-            return new TileRectFilter(RouteFilter, x - MAX_ROUTE_LANDBLOCK_SPAN, y - MAX_ROUTE_LANDBLOCK_SPAN, x + MAX_ROUTE_LANDBLOCK_SPAN, y + MAX_ROUTE_LANDBLOCK_SPAN);
+            return new TileRectFilter(RouteFilter, x - MaxRouteLandblockSpan, y - MaxRouteLandblockSpan, x + MaxRouteLandblockSpan, y + MaxRouteLandblockSpan);
         }
 
         /// <summary>
@@ -220,11 +220,11 @@ namespace ACE.Server.Pathfinding
                 return null; // the target is not on the mesh (outdoors: possibly its tile is not loaded yet)
 
             // the buffers only live for this call (the waypoints are copied out), so they are rented
-            var polys = ArrayPool<long>.Shared.Rent(MAX_POLYS);
-            var path = ArrayPool<DtStraightPath>.Shared.Rent(MAX_POLYS);
+            var polys = ArrayPool<long>.Shared.Rent(MaxPolys);
+            var path = ArrayPool<DtStraightPath>.Shared.Rent(MaxPolys);
             try
             {
-                var pathStatus = query.FindPath(startRef, endRef, startPt, endPt, pathFilter, polys, out int polyCount, MAX_POLYS);
+                var pathStatus = query.FindPath(startRef, endRef, startPt, endPt, pathFilter, polys, out int polyCount, MaxPolys);
                 if (pathStatus.Failed() || polyCount == 0)
                     return null;
 
@@ -237,7 +237,7 @@ namespace ACE.Server.Pathfinding
                 if (!reachesEnd && query.ClosestPointOnPoly(lastPolyRef, endPt, out var clampedEnd, out _).Succeeded())
                     pathEnd = clampedEnd;
 
-                var straightStatus = query.FindStraightPath(startPt, pathEnd, polys, polyCount, path, out int straightPathCount, MAX_POLYS, 0);
+                var straightStatus = query.FindStraightPath(startPt, pathEnd, polys, polyCount, path, out int straightPathCount, MaxPolys, 0);
                 if (straightStatus.Failed() || straightPathCount == 0)
                     return null;
 
@@ -303,12 +303,12 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// The most doorways FindRoute paths to when picking one.
         /// </summary>
-        private const int MAX_DOOR_CANDIDATES = 3;
+        private const int MaxDoorCandidates = 3;
 
         /// <summary>
         /// Doorways closer together than this count as one (e.g. the portals of a double door).
         /// </summary>
-        private const float SAME_DOOR_DISTANCE = 1.0f;
+        private const float SameDoorDistance = 1.0f;
 
         /// <summary>
         /// For a route between the outdoors and an interior group (or between two interior groups through the outdoors),
@@ -376,18 +376,18 @@ namespace ACE.Server.Pathfinding
                 });
             }
 
-            var candidates = new List<(Position target, float remaining)>(MAX_DOOR_CANDIDATES);
-            var chosen = new List<Vector3>(MAX_DOOR_CANDIDATES);
+            var candidates = new List<(Position target, float remaining)>(MaxDoorCandidates);
+            var chosen = new List<Vector3>(MaxDoorCandidates);
 
             foreach (var door in doors.OrderBy(d => Vector3.Distance(startAt, d.at) + d.remaining))
             {
-                if (chosen.Any(c => Vector3.Distance(c, door.at) < SAME_DOOR_DISTANCE))
+                if (chosen.Any(c => Vector3.Distance(c, door.at) < SameDoorDistance))
                     continue;
 
                 candidates.Add((door.target, door.remaining));
                 chosen.Add(door.at);
 
-                if (candidates.Count == MAX_DOOR_CANDIDATES)
+                if (candidates.Count == MaxDoorCandidates)
                     break;
             }
 
@@ -397,18 +397,18 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// The most doorway crossings a multi-leg route follows: leaving a building, crossing outside, entering another.
         /// </summary>
-        private const int MAX_ROUTE_LEGS = 4;
+        private const int MaxRouteLegs = 4;
 
         /// <summary>
         /// A leg must end this close to where it was headed at a doorway (see GetDoorApproach) for the route to continue
         /// on the other side.
         /// </summary>
-        private const float DOOR_REACH_DISTANCE = 2.0f;
+        private const float DoorReachDistance = 2.0f;
 
         /// <summary>
         /// How far onto the outdoor mesh a doorway's outdoor side is placed (see GetDoorOutsidePoint).
         /// </summary>
-        private const float DOOR_OUTSIDE_MARGIN = 0.3f;
+        private const float DoorOutsideMargin = 0.3f;
 
         /// <summary>
         /// Where a route meets a doorway on the outdoor mesh, in landblock coordinates. The outdoor mesh keeps an agent
@@ -418,7 +418,7 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static Vector3 GetDoorOutsidePoint(CellGroupDoor door, AgentSize agentSize)
         {
-            return door.Position + door.Normal * (GetAgentRadius(agentSize) + DOOR_OUTSIDE_MARGIN);
+            return door.Position + door.Normal * (GetAgentRadius(agentSize) + DoorOutsideMargin);
         }
 
         /// <summary>
@@ -452,7 +452,7 @@ namespace ACE.Server.Pathfinding
             var endGroup = GetGroupKey(end);
             var current = start;
 
-            for (var i = 0; i < MAX_ROUTE_LEGS; i++)
+            for (var i = 0; i < MaxRouteLegs; i++)
             {
                 var leg = FindRoute(current, end, agentSize, out var legReachesTarget);
                 if (leg == null || leg.Count == 0)
@@ -498,7 +498,7 @@ namespace ACE.Server.Pathfinding
             // the doorway the leg headed for, from the side the leg ran on
             var legEndAt = ToGlobal(legEnd);
             var door = doors.OrderBy(d => Vector3.DistanceSquared(GetDoorApproach(d, doorGroup.LandblockId, group.IsOutdoor, agentSize), legEndAt)).First();
-            if (Vector3.Distance(GetDoorApproach(door, doorGroup.LandblockId, group.IsOutdoor, agentSize), legEndAt) > DOOR_REACH_DISTANCE)
+            if (Vector3.Distance(GetDoorApproach(door, doorGroup.LandblockId, group.IsOutdoor, agentSize), legEndAt) > DoorReachDistance)
                 return null; // the leg did not make it to the doorway
 
             return group.IsOutdoor
@@ -507,8 +507,8 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Like GetRouteDistance, but follows the route through doorways between mesh groups (see FindRouteLegs).
-        /// Returns true if the route reaches the end; distance and legs are set either way.
+        /// The length of the route to the end (see GetRouteLength), following it through doorways between mesh groups
+        /// (see FindRouteLegs). Returns true if the route reaches the end; distance and legs are set either way.
         /// </summary>
         public static bool GetRouteLegsDistance(Position start, Position end, AgentSize agentSize, out float distance, out int legCount, out float endGap)
         {
@@ -585,7 +585,7 @@ namespace ACE.Server.Pathfinding
         {
             reached = from;
 
-            Span<long> visited = stackalloc long[MAX_SURFACE_MOVE_POLYS];
+            Span<long> visited = stackalloc long[MaxSurfaceMovePolys];
             var status = query.MoveAlongSurface(from.PolyRef, ToRcVec3f(from.Pos), ToRcVec3f(target), filter, out var resultPos, visited, out int visitedCount, visited.Length);
             if (status.Failed() || visitedCount == 0)
                 return false;
@@ -600,7 +600,7 @@ namespace ACE.Server.Pathfinding
         private static bool HasLineOfSight(DtNavMeshQuery query, IDtQueryFilter filter, Waypoint from, Waypoint to)
         {
             // only the hit fraction is used, the visited polys don't need to fit
-            Span<long> hitPath = stackalloc long[MAX_SURFACE_MOVE_POLYS];
+            Span<long> hitPath = stackalloc long[MaxSurfaceMovePolys];
             var status = query.Raycast(from.PolyRef, ToRcVec3f(from.Pos), ToRcVec3f(to.Pos), filter, out float t, out _, hitPath, out _, hitPath.Length);
 
             // t is float.MaxValue when the ray reaches the end; allow a little slack for end points on a boundary.
@@ -610,7 +610,7 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// String pulling puts every turn exactly on the mesh boundary, at the corner the path bends around. Creatures
         /// overshoot turns, so they scrape that corner and get stuck. Pushes each turn waypoint away from its corner,
-        /// along the bisector of the turn, by up to CORNER_CLEARANCE (or half the open space in narrow corridors).
+        /// along the bisector of the turn, by up to CornerClearance (or half the open space in narrow corridors).
         /// </summary>
         private static void OffsetCorners(DtNavMeshQuery query, IDtQueryFilter filter, List<Waypoint> waypoints)
         {
@@ -636,10 +636,10 @@ namespace ACE.Server.Pathfinding
                 dir = Vector3.Normalize(dir);
 
                 // Measure the open space so a narrow corridor doesn't push the waypoint onto the opposite wall.
-                if (!MoveAlongSurface(query, filter, current, current.Pos + dir * (CORNER_CLEARANCE * 2f), out var probe))
+                if (!MoveAlongSurface(query, filter, current, current.Pos + dir * (CornerClearance * 2f), out var probe))
                     continue;
 
-                var push = Math.Min(CORNER_CLEARANCE, Flatten(probe.Pos - current.Pos).Length() * 0.5f);
+                var push = Math.Min(CornerClearance, Flatten(probe.Pos - current.Pos).Length() * 0.5f);
                 if (push < 0.05f)
                     continue;
 
@@ -652,22 +652,6 @@ namespace ACE.Server.Pathfinding
 
                 waypoints[i] = moved;
             }
-        }
-
-        public static bool GetRouteDistance(Position start, Position end, AgentSize agentSize, out float distance)
-        {
-            distance = 0f;
-
-            // a route into another mesh group only leads to the doorway, see GetRouteLegsDistance for those
-            if (GetGroupKey(start) != GetGroupKey(end))
-                return false;
-
-            var route = FindRoute(start, end, agentSize, out var reachesTarget);
-            if (route == null || route.Count == 0 || !reachesTarget)
-                return false;
-
-            distance = GetRouteLength(start, route);
-            return true;
         }
     }
 }

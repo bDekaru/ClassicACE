@@ -22,7 +22,7 @@ namespace ACE.Server.Pathfinding
         /// Outdoor tile components with a vertex this close to the tile edge are not islands: they may continue into
         /// the neighboring tile. Tiles are built with a border, so the walkable area reaches the edge exactly.
         /// </summary>
-        private const float TILE_EDGE_TOLERANCE = 0.25f;
+        private const float TileEdgeTolerance = 0.25f;
 
         /// <summary>
         /// How far around a doorway to look for the mesh poly that anchors its component (doorways are not on the
@@ -198,7 +198,7 @@ namespace ACE.Server.Pathfinding
                         {
                             var x = data.verts[poly.verts[v] * 3];
                             var z = data.verts[poly.verts[v] * 3 + 2];
-                            if (x <= bmin.X + TILE_EDGE_TOLERANCE || z <= bmin.Z + TILE_EDGE_TOLERANCE || x >= bmax.X - TILE_EDGE_TOLERANCE || z >= bmax.Z - TILE_EDGE_TOLERANCE)
+                            if (x <= bmin.X + TileEdgeTolerance || z <= bmin.Z + TileEdgeTolerance || x >= bmax.X - TileEdgeTolerance || z >= bmax.Z - TileEdgeTolerance)
                             {
                                 kept[component[i]] = true;
                                 break;

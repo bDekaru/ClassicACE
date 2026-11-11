@@ -23,22 +23,13 @@ namespace ACE.Server.Pathfinding.Geometry
         private readonly RcTriMesh[] _meshes;
 
         /// <summary>
-        /// Geometry for a set of interior (dungeon) cells, for the mesh of one agent size: with a door apron (see
-        /// DoorApron) sized for that agent outside each of the given doorways, marked as a door area.
+        /// Geometry for a set of interior (dungeon) cells, per agent size: with a door apron (see DoorApron) sized for
+        /// that agent outside each of the given doorways, marked as a door area. The cells and their static objects are
+        /// loaded once, and only the door aprons differ per size. Null if the cells have no geometry.
         /// </summary>
-        public static CellGeometryProvider LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, AgentSize agentSize)
+        public static Dictionary<AgentSize, CellGeometryProvider> LoadGeometry(List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentSize> agentSizes)
         {
-            var providers = LoadGeometry(geometry, neighbors, doors, new[] { agentSize });
-            return providers?[agentSize];
-        }
-
-        /// <summary>
-        /// Like the other overload, for several agent sizes at once: the cells and their static objects are loaded
-        /// once, and only the door aprons differ per size. Null if the cells have no geometry.
-        /// </summary>
-        public static Dictionary<AgentSize, CellGeometryProvider> LoadGeometry(LandblockGeometry geometry, List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentSize> agentSizes)
-        {
-            var exporter = new LandblockGeometryExporter(geometry, neighbors);
+            var exporter = new LandblockGeometryExporter(neighbors);
             exporter.LoadLandblockInfo();
 
             // only cells with geometry of their own get a mesh; the aprons alone are not walkable space
@@ -72,7 +63,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public static CellGeometryProvider LoadSurfaceGeometry(uint landblockId, IEnumerable<SurfaceSource> sources)
         {
-            var exporter = new LandblockGeometryExporter(new LandblockGeometry(landblockId), new List<CellGeometry>());
+            var exporter = new LandblockGeometryExporter(new List<CellGeometry>());
             exporter.LoadSurface(landblockId, sources);
 
             return FromExporter(exporter);

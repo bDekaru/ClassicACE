@@ -1,7 +1,6 @@
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -90,12 +89,9 @@ namespace ACE.Server.Pathfinding.Geometry
     /// </summary>
     public class LandblockGeometry
     {
-        private bool _didLoadTerrain = false;
         private readonly object _groupLock = new object();
         private List<CellGroup> _cellGroups;
         private LandblockInfo _landblockInfo;
-        private CellLandblock _cellLandblock;
-        private ConcurrentDictionary<uint, CellGeometry> _terrainCells = new ConcurrentDictionary<uint, CellGeometry>();
 
         /// <summary>
         /// The id of this landblock, in format 0xFFFF0000
@@ -115,38 +111,6 @@ namespace ACE.Server.Pathfinding.Geometry
                 }
 
                 return _landblockInfo;
-            }
-        }
-
-        /// <summary>
-        /// CellLandblock from the dat files
-        /// </summary>
-        public CellLandblock CellLandblock
-        {
-            get
-            {
-                if (_cellLandblock is null)
-                {
-                    _cellLandblock = DatManager.CellDat.ReadFromDat<CellLandblock>(Id + 0xFFFF);
-                }
-
-                return _cellLandblock;
-            }
-        }
-
-        /// <summary>
-        /// Terrain cells in this landblock, if any. The dictionary key is the landblock + landcell id in the form of 0xAAAABBBB
-        /// where AAAA is the landblock id, and BBBB is the landcell id.
-        /// </summary>
-        public ConcurrentDictionary<uint, CellGeometry> Terrain
-        {
-            get
-            {
-                if (!_didLoadTerrain)
-                {
-                    LoadTerrain();
-                }
-                return _terrainCells;
             }
         }
 
@@ -185,42 +149,6 @@ namespace ACE.Server.Pathfinding.Geometry
             {
                 Id = id & 0xFFFF0000;
             }
-        }
-
-        #region public api
-        /// <summary>
-        /// Check if this landblock contains any interior cells (buildings, caves or dungeons).
-        /// </summary>
-        public bool HasDungeons()
-        {
-            return LandblockInfo?.NumCells > 0;
-        }
-
-        /// <summary>
-        /// Check if this landblock contains walkable terrain data. Landblocks containing terrain may
-        /// also contain dungeons / indoor cells.
-        /// </summary>
-        /// <returns>True if this landblock has walkable terrain</returns>
-        public bool HasTerrain()
-        {
-            return CellLandblock?.Height?.Where(h => h != 0).Any() == true;
-        }
-
-        /// <summary>
-        /// Check if this landblock has any buildings with portals to indoor cells. Caves that are entered
-        /// directly from a hole in the landscape are considered indoors, the same as buildings.
-        /// </summary>
-        /// <returns>True if this landblock contains indoor cells</returns>
-        public bool HasIndoors()
-        {
-            // todo: i'm assuming all buildings have indoor cells..
-            return LandblockInfo?.Buildings?.Count() > 0;
-        }
-        #endregion // public api
-
-        private void LoadTerrain()
-        {
-            return;
         }
 
         /// <summary>
@@ -313,14 +241,12 @@ namespace ACE.Server.Pathfinding.Geometry
                     AddDoors(group, cellId, envCell);
             }
 
-            // cell geometry type only matters for terrain, but keep the indoor/dungeon distinction for clarity
             foreach (var group in groups)
             {
                 MergeAdjacentDoors(group.Doors);
 
-                var type = group.ConnectsToOutside ? CellType.Indoors : CellType.Dungeon;
                 foreach (var cellId in group.CellIds.OrderBy(c => c))
-                    group.Cells.Add(CellGeometry.FromCache(cellId, type));
+                    group.Cells.Add(new CellGeometry(cellId, envCells[cellId - Id - minCell]));
             }
 
             return groups;

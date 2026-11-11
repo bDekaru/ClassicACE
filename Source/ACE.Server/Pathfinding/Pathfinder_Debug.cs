@@ -26,9 +26,9 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// How far around a leg's waypoints (or a failed route's start and end) the mesh is included in a dump.
         /// </summary>
-        private const float DUMP_MESH_MARGIN = 8.0f;
+        private const float DumpMeshMargin = 8.0f;
 
-        private const int DUMP_FORMAT_VERSION = 1;
+        private const int DumpFormatVersion = 1;
 
         /// <summary>
         /// Finds a route like FindRouteLegs and writes it to a JSON file in DebugDumpDirectory, with the navmesh polys
@@ -51,7 +51,7 @@ namespace ACE.Server.Pathfinding
                 using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
                 {
                     writer.WriteStartObject();
-                    writer.WriteNumber("version", DUMP_FORMAT_VERSION);
+                    writer.WriteNumber("version", DumpFormatVersion);
                     writer.WriteString("created", DateTime.Now.ToString("o", CultureInfo.InvariantCulture));
                     writer.WriteString("label", label ?? "");
                     writer.WriteString("agentSize", agentSize.ToString());
@@ -137,7 +137,7 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Writes the polys and drops of a group's mesh within DUMP_MESH_MARGIN of the given world points, or null if
+        /// Writes the polys and drops of a group's mesh within DumpMeshMargin of the given world points, or null if
         /// the mesh is not loaded.
         /// </summary>
         private static void WriteDumpMesh(Utf8JsonWriter writer, Position reference, MeshGroupKey group, AgentSize agentSize, List<Vector3> points)
@@ -149,8 +149,8 @@ namespace ACE.Server.Pathfinding
                 return;
             }
 
-            var min = new Vector3(points.Min(p => p.X), points.Min(p => p.Y), 0f) - new Vector3(DUMP_MESH_MARGIN, DUMP_MESH_MARGIN, 0f);
-            var max = new Vector3(points.Max(p => p.X), points.Max(p => p.Y), 0f) + new Vector3(DUMP_MESH_MARGIN, DUMP_MESH_MARGIN, 0f);
+            var min = new Vector3(points.Min(p => p.X), points.Min(p => p.Y), 0f) - new Vector3(DumpMeshMargin, DumpMeshMargin, 0f);
+            var max = new Vector3(points.Max(p => p.X), points.Max(p => p.Y), 0f) + new Vector3(DumpMeshMargin, DumpMeshMargin, 0f);
 
             // interior meshes are landblock-local, the outdoor mesh is in world coordinates
             var offset = group.IsOutdoor ? Vector3.Zero : GeometryHelpers.GetLandblockOrigin(group.LandblockId);

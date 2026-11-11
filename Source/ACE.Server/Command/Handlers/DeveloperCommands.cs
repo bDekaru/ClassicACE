@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -4376,7 +4377,7 @@ namespace ACE.Server.Command.Handlers
         /// Per player (guid), the id of their current @pathto walk. Starting another walk or @pathto stop changes it,
         /// and the steps of an older walk then end.
         /// </summary>
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<uint, int> PathToWalks = new System.Collections.Concurrent.ConcurrentDictionary<uint, int>();
+        private static readonly ConcurrentDictionary<uint, int> PathToWalks = new ConcurrentDictionary<uint, int>();
         private static int lastPathToWalkId;
 
         /// <summary>

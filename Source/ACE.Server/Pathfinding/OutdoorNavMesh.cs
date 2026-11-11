@@ -19,12 +19,12 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Enough for every landblock of the world (256 x 256).
         /// </summary>
-        private const int MAX_TILES = 1 << 16;
+        private const int MaxTiles = 1 << 16;
 
         /// <summary>
         /// The most polys a single tile may hold.
         /// </summary>
-        private const int MAX_POLYS_PER_TILE = 1 << 20;
+        private const int MaxPolysPerTile = 1 << 20;
 
         public AgentSize AgentSize { get; }
 
@@ -46,8 +46,8 @@ namespace ACE.Server.Pathfinding
                 orig = RcVec3f.Zero,
                 tileWidth = tileSize,
                 tileHeight = tileSize,
-                maxTiles = MAX_TILES,
-                maxPolys = MAX_POLYS_PER_TILE
+                maxTiles = MaxTiles,
+                maxPolys = MaxPolysPerTile
             };
 
             Mesh = new DtNavMesh();

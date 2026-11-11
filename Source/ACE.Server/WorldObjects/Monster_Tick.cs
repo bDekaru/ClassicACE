@@ -320,7 +320,8 @@ namespace ACE.Server.WorldObjects
                 {
                     if (DebugMove)
                         Console.WriteLine($"{Name} ({Guid}) Target Out of Range!");
-                }                else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
+                }
+                else if (!IsRouting && !IsWandering && !IsEmoting && !IsSwitchingWeapons && !IsAttacking)
                 {
                     FailedSightCount++;
                     if (FailedSightCount >= FailedSightThreshold && HasPendingMovement)

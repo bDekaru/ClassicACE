@@ -35,14 +35,14 @@ namespace ACE.Server.Pathfinding
         /// Part of the interior mesh cache file names. Build setting changes are picked up automatically; bump this
         /// when the exported geometry changes, so cached meshes built from the old geometry are not loaded.
         /// </summary>
-        private const int MESH_GEOMETRY_VERSION = 5; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons built per agent size, 4: cell statics shaped as the server's physics objects, spheres at their centers, 5: cells only grouped through two-way portals, rim doors for portals not in a wall
+        private const int MeshGeometryVersion = 5; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons built per agent size, 4: cell statics shaped as the server's physics objects, spheres at their centers, 5: cells only grouped through two-way portals, rim doors for portals not in a wall
 
         /// <summary>
-        /// Like MESH_GEOMETRY_VERSION, for the outdoor tiles. 2: tiles in world coordinates with a border from the
+        /// Like MeshGeometryVersion, for the outdoor tiles. 2: tiles in world coordinates with a border from the
         /// neighboring landblocks. 3: the objects of every landblock come from the dat, loaded or not. 4: spheres at
         /// their centers.
         /// </summary>
-        private const int OUTDOOR_MESH_GEOMETRY_VERSION = 4;
+        private const int OutdoorMeshGeometryVersion = 4;
 
         /// <summary>
         /// After an outdoor tile build fails, no new attempt is made for this long (unless a rebuild is requested).
@@ -62,15 +62,15 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static readonly ConditionalWeakTable<DtNavMesh, ConcurrentQueue<DtNavMeshQuery>> QueryPools = new ConditionalWeakTable<DtNavMesh, ConcurrentQueue<DtNavMeshQuery>>();
 
-        private const int MAX_POOLED_QUERIES_PER_MESH = 16;
+        private const int MaxPooledQueriesPerMesh = 16;
 
         /// <summary>
         /// Smallest walkable region kept, and the size below which regions are merged into their neighbors, in m².
         /// In world units so they don't change with the cell size.
         /// </summary>
-        private const float MIN_REGION_AREA = 0.64f;
+        private const float RegionMinArea = 0.64f;
 
-        private const float MERGE_REGION_AREA = 4.0f;
+        private const float RegionMergeArea = 4.0f;
 
         public static string InteriorMeshDirectory => Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Pathfinding", "Meshes", "Interiors");
 
@@ -188,7 +188,7 @@ namespace ACE.Server.Pathfinding
                     return;
                 disposed = true;
 
-                if (pool.Count < MAX_POOLED_QUERIES_PER_MESH)
+                if (pool.Count < MaxPooledQueriesPerMesh)
                     pool.Enqueue(Query);
 
                 outdoorMesh?.ExitRead();
@@ -207,7 +207,7 @@ namespace ACE.Server.Pathfinding
             }
 
             foreach (var agentSize in AgentSizes)
-                OutdoorMeshes[agentSize] = new OutdoorNavMesh(agentSize, Position.BlockLength, VERTS_PER_POLY);
+                OutdoorMeshes[agentSize] = new OutdoorNavMesh(agentSize, Position.BlockLength, MaxVertsPerPoly);
         }
 
         /// <summary>
@@ -265,26 +265,21 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Requests the outdoor tiles of the landblocks between two positions (inclusive), as far as a route from a
-        /// searches (MAX_ROUTE_LANDBLOCK_SPAN).
+        /// searches (MaxRouteLandblockSpan).
         /// </summary>
         private static void RequestOutdoorTilesBetween(Position a, Position b)
         {
             var (ax, ay) = GetLandblockCoords(a.Cell);
             var (bx, by) = GetLandblockCoords(b.Cell);
 
-            bx = Math.Clamp(bx, ax - MAX_ROUTE_LANDBLOCK_SPAN, ax + MAX_ROUTE_LANDBLOCK_SPAN);
-            by = Math.Clamp(by, ay - MAX_ROUTE_LANDBLOCK_SPAN, ay + MAX_ROUTE_LANDBLOCK_SPAN);
+            bx = Math.Clamp(bx, ax - MaxRouteLandblockSpan, ax + MaxRouteLandblockSpan);
+            by = Math.Clamp(by, ay - MaxRouteLandblockSpan, ay + MaxRouteLandblockSpan);
 
             for (var x = Math.Max(0, Math.Min(ax, bx)); x <= Math.Min(0xFF, Math.Max(ax, bx)); x++)
             {
                 for (var y = Math.Max(0, Math.Min(ay, by)); y <= Math.Min(0xFF, Math.Max(ay, by)); y++)
                     TryLoadOutdoorTile(GetLandblockId(x, y));
             }
-        }
-
-        public static void TryUnloadMesh(Position pos)
-        {
-            TryUnloadMesh(pos.Cell);
         }
 
         public static void TryUnloadMesh(Landblock landblock)
@@ -350,15 +345,15 @@ namespace ACE.Server.Pathfinding
                 var s = GetMeshSettings(key.outdoor, key.agentSize);
 
                 // Outdoor tiles have their own version (appended below). They keep the interior version they were
-                // keyed with before it went past 1, so bumping MESH_GEOMETRY_VERSION doesn't invalidate them.
-                var geometryVersion = key.outdoor ? 1 : MESH_GEOMETRY_VERSION;
+                // keyed with before it went past 1, so bumping MeshGeometryVersion doesn't invalidate them.
+                var geometryVersion = key.outdoor ? 1 : MeshGeometryVersion;
 
                 // partitioning is keyed by its number, as when the settings were the DotRecast toolset's
                 var text = FormattableString.Invariant(
-                    $"{geometryVersion}|{VERTS_PER_POLY}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.MinRegionArea}|{s.MergedRegionArea}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|drops|{DropLinkFinder.Version}|{DropLinkFinder.MaxDropHeight}");
+                    $"{geometryVersion}|{MaxVertsPerPoly}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.MinRegionArea}|{s.MergedRegionArea}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|drops|{DropLinkFinder.Version}|{DropLinkFinder.MaxDropHeight}");
 
                 if (key.outdoor)
-                    text += FormattableString.Invariant($"|tiled|{OUTDOOR_MESH_GEOMETRY_VERSION}|{Position.BlockLength}|{LandblockGeometryExporter.SurfaceMargin}");
+                    text += FormattableString.Invariant($"|tiled|{OutdoorMeshGeometryVersion}|{Position.BlockLength}|{LandblockGeometryExporter.SurfaceMargin}");
 
                 return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)), 0, 4);
             });
@@ -380,7 +375,7 @@ namespace ACE.Server.Pathfinding
                 if (bytes.Length == 0)
                     throw new InvalidDataException("empty file");
 
-                meshData = new DtMeshDataReader().Read(new RcByteBuffer(bytes), VERTS_PER_POLY, true);
+                meshData = new DtMeshDataReader().Read(new RcByteBuffer(bytes), MaxVertsPerPoly, true);
                 if (meshData?.header == null)
                     throw new InvalidDataException("no mesh data");
 
@@ -418,7 +413,7 @@ namespace ACE.Server.Pathfinding
         private static DtNavMesh CreateSingleTileMesh(DtMeshData meshData)
         {
             var mesh = new DtNavMesh();
-            var status = mesh.Init(meshData, VERTS_PER_POLY, 0);
+            var status = mesh.Init(meshData, MaxVertsPerPoly, 0);
             return status.Failed() ? null : mesh;
         }
 
@@ -601,7 +596,7 @@ namespace ACE.Server.Pathfinding
                     // until a rebuild is requested.
                     try
                     {
-                        geoms ??= CellGeometryProvider.LoadGeometry(new LandblockGeometry(landblockId), cellGroup.Cells, cellGroup.Doors, toBuild.Select(b => b.agentSize));
+                        geoms ??= CellGeometryProvider.LoadGeometry(cellGroup.Cells, cellGroup.Doors, toBuild.Select(b => b.agentSize));
                         // sealed rooms and orphan cells often have nothing walkable; that is expected, so only debug logging
                         if (geoms is null)
                         {
@@ -849,7 +844,7 @@ namespace ACE.Server.Pathfinding
                 DetailSampleMaxError = 1.0f,
                 EdgeMaxError = 1f,
                 EdgeMaxLen = 12.0f,
-                VertsPerPoly = VERTS_PER_POLY,
+                VertsPerPoly = MaxVertsPerPoly,
                 Partitioning = RcPartition.WATERSHED,
                 FilterLowHangingObstacles = true,
                 FilterLedgeSpans = true,
@@ -868,8 +863,8 @@ namespace ACE.Server.Pathfinding
                 settings.EdgeMaxLen = 24.0f;
             }
 
-            settings.MinRegionArea = MIN_REGION_AREA;
-            settings.MergedRegionArea = MERGE_REGION_AREA;
+            settings.MinRegionArea = RegionMinArea;
+            settings.MergedRegionArea = RegionMergeArea;
 
             return settings;
         }
