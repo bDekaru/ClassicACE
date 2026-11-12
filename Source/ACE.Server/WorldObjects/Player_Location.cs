@@ -919,14 +919,17 @@ namespace ACE.Server.WorldObjects
                 var height = PhysicsObj.GetHeight();
                 if (!destination.IsValidIndoorCell(height))
                 {
-                    if (Pathfinder.PathfindingEnabled)
-                    {
-                        destination = Pathfinder.GetClosestPointOnMesh(destination, AgentSize.Small);
+                    if (!Pathfinder.PathfindingEnabled)
+                        return false;
 
-                        if (destination == null || !destination.IsValidIndoorCell(height))
-                            return false;
-                    }
-                    else
+                    var onMesh = Pathfinder.GetClosestPointOnMesh(destination, AgentSize.Small);
+                    if (onMesh == null)
+                        return false;
+
+                    destination.LandblockId = onMesh.LandblockId;
+                    destination.Pos = onMesh.Pos + new Vector3(0f, 0f, 0.005f * (ObjScale ?? 1.0f));
+
+                    if (!destination.IsValidIndoorCell(height))
                         return false;
                 }
             }
