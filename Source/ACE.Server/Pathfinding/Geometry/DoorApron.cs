@@ -27,7 +27,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// How far the apron reaches past either side of the opening, along the wall. The opening itself limits the
         /// width of the passage; this keeps the ledge filter (a cell along the apron's open sides) from making the
-        /// apron narrower than the opening. More than the largest interior cell size (see Pathfinder.GetCellSize).
+        /// apron narrower than the opening. More than the largest interior cell size (0.125 m for Large, see AgentProfile).
         /// </summary>
         public const float SideMargin = 0.3f;
 

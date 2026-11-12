@@ -332,7 +332,8 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         /// <param name="useSpheres">How distanceToObject is measured. True: from the edge of the body, so the move arrives
         /// up to distanceToObject + the body's own radius from the position. False: from the centre of the body.</param>
-        public void MoveTo(Position position, float distanceToObject = 2.0f, float speed = 1.0f, bool useFinalHeading = true, bool clientOnly = false, bool useSpheres = true)
+        /// <param name="walk">Walk the whole way rather than run: without CanRun the move never holds the run key.</param>
+        public void MoveTo(Position position, float distanceToObject = 2.0f, float speed = 1.0f, bool useFinalHeading = true, bool clientOnly = false, bool useSpheres = true, bool walk = false)
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).MoveTo({position.ToLOCString()}, {distanceToObject}, {speed}, {clientOnly})");
@@ -342,6 +343,9 @@ namespace ACE.Server.WorldObjects
             // the server's MovementParameters below copy these flags, so client and server agree on arrival
             if (!useSpheres)
                 motion.MoveToParameters.MovementParameters &= ~MovementParams.UseSpheres;
+
+            if (walk)
+                motion.MoveToParameters.MovementParameters &= ~MovementParams.CanRun;
 
             EnqueueBroadcastMotion(motion);
 

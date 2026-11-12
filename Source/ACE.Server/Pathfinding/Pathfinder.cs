@@ -33,6 +33,45 @@ namespace ACE.Server.Pathfinding
     }
 
     /// <summary>
+    /// Where the mesh a position is on stands in loading (see Pathfinder.GetMeshLoadStatus): its interior group mesh,
+    /// or the outdoor tile of its landblock, for one agent size.
+    /// </summary>
+    public enum MeshLoadStatus
+    {
+        /// <summary>
+        /// A cell in no mesh group: there is no mesh for it.
+        /// </summary>
+        NotCovered,
+
+        /// <summary>
+        /// Not loaded: never requested (see Pathfinder.TryLoadMesh), or unloaded with its landblock or for a rebuild.
+        /// </summary>
+        NotLoaded,
+
+        /// <summary>
+        /// Loading or being built in the background. Queries on it return nothing yet.
+        /// </summary>
+        Loading,
+
+        /// <summary>
+        /// Loaded, and ready to query.
+        /// </summary>
+        Loaded,
+
+        /// <summary>
+        /// The load ended without a mesh: nothing walkable for the agent size, or no geometry. It stays so until the
+        /// landblock unloads or the mesh is rebuilt.
+        /// </summary>
+        Empty,
+
+        /// <summary>
+        /// The load failed with an error. An interior mesh stays failed until the landblock unloads or the mesh is
+        /// rebuilt; an outdoor tile is loaded again when it is requested after a delay.
+        /// </summary>
+        Failed,
+    }
+
+    /// <summary>
     /// The outdoors of the world is one tiled mesh (see OutdoorNavMesh) with a tile per landblock, so routes cross
     /// landblock edges. Each group of interior cells connected through cell portals (buildings, caves, dungeons) has
     /// its own mesh. Interior groups never share a mesh, so spaces that overlap without being connected (e.g. the
@@ -117,22 +156,28 @@ namespace ACE.Server.Pathfinding
 
         public static float GetAgentHeight(AgentSize agentSize) => GetProfile(agentSize).Height;
 
-        public static float GetAgentMaxClimb(AgentSize agentSize) => GetProfile(agentSize).MaxClimb;
-
         /// <summary>
         /// The smallest mesh a creature of this collision radius and height fits. A creature too wide or too tall
         /// for every mesh routes on Large, the closest fit.
         /// </summary>
         public static AgentSize GetAgentSize(float radius, float height)
         {
-            foreach (var agentSize in new[] { AgentSize.Small, AgentSize.Medium })
-            {
-                if (radius <= GetAgentRadius(agentSize) + AgentSizeTolerance && height <= GetAgentHeight(agentSize) + AgentSizeTolerance)
-                {
-                    return agentSize;
-                }
-            }
+            if (FitsAgentSize(radius, height, AgentSize.Small))
+                return AgentSize.Small;
+
+            if (FitsAgentSize(radius, height, AgentSize.Medium))
+                return AgentSize.Medium;
+
             return AgentSize.Large;
+        }
+
+        /// <summary>
+        /// True if a creature of this collision radius and height fits the mesh of an agent size (within
+        /// AgentSizeTolerance).
+        /// </summary>
+        private static bool FitsAgentSize(float radius, float height, AgentSize agentSize)
+        {
+            return radius <= GetAgentRadius(agentSize) + AgentSizeTolerance && height <= GetAgentHeight(agentSize) + AgentSizeTolerance;
         }
 
         /// <summary>
@@ -300,8 +345,6 @@ namespace ACE.Server.Pathfinding
             public override int GetHashCode() => HashCode.Combine(LandblockId, Index);
             public static bool operator ==(MeshGroupKey a, MeshGroupKey b) => a.Equals(b);
             public static bool operator !=(MeshGroupKey a, MeshGroupKey b) => !a.Equals(b);
-
-            public override string ToString() => IsOutdoor ? "outdoors" : IsNone ? "none" : $"0x{LandblockId:X8} group {Index}";
         }
 
         public static bool PathfindingEnabled { get => PropertyManager.GetBool("pathfinding").Item; }
@@ -333,9 +376,7 @@ namespace ACE.Server.Pathfinding
                 return;
 
             foreach (var entry in route)
-            {
                 CreateMarker(entry);
-            }
         }
 
         /// <summary>
@@ -531,8 +572,6 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Get a random point on the navmesh: anywhere on an interior mesh, within the landblock's reach outdoors.
         /// </summary>
-        /// <param name="start"></param>
-        /// <returns></returns>
         public static Position GetRandomPointOnMesh(Position start, AgentSize agentSize)
         {
             var group = GetGroupKey(start);

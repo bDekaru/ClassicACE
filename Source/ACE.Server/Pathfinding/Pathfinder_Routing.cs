@@ -34,13 +34,13 @@ namespace ACE.Server.Pathfinding
         private const int MaxRouteLandblockSpan = 2;
 
         /// <summary>
-        /// A drop down a ledge (see DropLinkFinder) costs this many times its length, so a creature only jumps down
+        /// A ledge drop (see LedgeDropFinder) costs this many times its length, so a creature only takes one
         /// when walking around is clearly longer: it can't come back up the same way.
         /// </summary>
-        private const float DropCostFactor = 3.0f;
+        private const float LedgeDropCostFactor = 5.0f;
 
         /// <summary>
-        /// Every poly, for route searches: like AllPolysFilter, with drops at DropCostFactor.
+        /// Every poly, for route searches: like AllPolysFilter, with ledge drops at LedgeDropCostFactor.
         /// </summary>
         private static readonly DtQueryDefaultFilter RouteFilter = CreateRouteFilter();
 
@@ -48,7 +48,7 @@ namespace ACE.Server.Pathfinding
         {
             var areaCosts = new float[DtDetour.DT_MAX_AREAS];
             Array.Fill(areaCosts, 1.0f);
-            areaCosts[NavArea.Drop] = DropCostFactor;
+            areaCosts[NavArea.LedgeDrop] = LedgeDropCostFactor;
             return new DtQueryDefaultFilter(0xFFFF, 0, areaCosts);
         }
 
@@ -180,7 +180,7 @@ namespace ACE.Server.Pathfinding
             var previous = start;
             foreach (var waypoint in waypoints)
             {
-                previous = new RoutePosition(CreatePosition(previous, group, ToRcVec3f(waypoint.Pos)), waypoint.IsDropStart);
+                previous = new RoutePosition(CreatePosition(previous, group, ToRcVec3f(waypoint.Pos)), waypoint.IsLedgeDropStart);
                 positionList.Add(previous);
             }
 
@@ -245,14 +245,14 @@ namespace ACE.Server.Pathfinding
                 for (int i = 0; i < straightPathCount; i++)
                 {
                     var entry = path[i];
-                    var isDropStart = (entry.flags & DtStraightPathFlags.DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
+                    var isLedgeDropStart = (entry.flags & DtStraightPathFlags.DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
 
                     // the end vertex of a straight path carries no poly ref, fall back to the last poly of the corridor
-                    waypoints.Add(new Waypoint(ToVector3(entry.pos), entry.refs != 0 ? entry.refs : lastPolyRef, isDropStart));
+                    waypoints.Add(new Waypoint(ToVector3(entry.pos), entry.refs != 0 ? entry.refs : lastPolyRef, isLedgeDropStart));
 
-                    // The landing of a drop must be a waypoint of its own, so the drop is followed as found. String
+                    // The landing of a ledge drop must be a waypoint of its own, so the ledge drop is followed as found. String
                     // pulling can leave it out when the path goes on straight from it.
-                    if (isDropStart && TryGetDropLanding(query, polys, polyCount, entry.refs, out var landing) &&
+                    if (isLedgeDropStart && TryGetLedgeDropLanding(query, polys, polyCount, entry.refs, out var landing) &&
                         (i + 1 >= straightPathCount || Vector3.DistanceSquared(ToVector3(path[i + 1].pos), landing.Pos) > 0.01f))
                         waypoints.Add(landing);
                 }
@@ -268,19 +268,19 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The landing of a drop (an off-mesh connection) on a path corridor, on the poly after it.
+        /// The landing of a ledge drop (an off-mesh connection) on a path corridor, on the poly after it.
         /// </summary>
-        private static bool TryGetDropLanding(DtNavMeshQuery query, long[] polys, int polyCount, long dropRef, out Waypoint landing)
+        private static bool TryGetLedgeDropLanding(DtNavMeshQuery query, long[] polys, int polyCount, long ledgeDropRef, out Waypoint landing)
         {
             landing = default;
 
-            var index = Array.IndexOf(polys, dropRef, 0, polyCount);
+            var index = Array.IndexOf(polys, ledgeDropRef, 0, polyCount);
             if (index <= 0 || index + 1 >= polyCount)
                 return false;
 
             var start = RcVec3f.Zero;
             var end = RcVec3f.Zero;
-            var status = query.GetAttachedNavMesh().GetOffMeshConnectionPolyEndPoints(polys[index - 1], dropRef, ref start, ref end);
+            var status = query.GetAttachedNavMesh().GetOffMeshConnectionPolyEndPoints(polys[index - 1], ledgeDropRef, ref start, ref end);
             if (status.Failed())
                 return false;
 
@@ -543,20 +543,20 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// A route point in Recast space (Y up) and the poly it lies on. At the start of a drop down a ledge, the poly
-        /// is the drop's off-mesh connection, and the next waypoint is its landing.
+        /// A route point in Recast space (Y up) and the poly it lies on. At the start of a ledge drop, the poly
+        /// is the ledge drop's off-mesh connection, and the next waypoint is its landing.
         /// </summary>
         private readonly struct Waypoint
         {
             public readonly Vector3 Pos;
             public readonly long PolyRef;
-            public readonly bool IsDropStart;
+            public readonly bool IsLedgeDropStart;
 
-            public Waypoint(Vector3 pos, long polyRef, bool isDropStart = false)
+            public Waypoint(Vector3 pos, long polyRef, bool isLedgeDropStart = false)
             {
                 Pos = pos;
                 PolyRef = polyRef;
-                IsDropStart = isDropStart;
+                IsLedgeDropStart = isLedgeDropStart;
             }
         }
 
@@ -566,8 +566,8 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static Waypoint SnapToFloor(DtNavMeshQuery query, Waypoint waypoint)
         {
-            // a drop starts on its connection, which was placed on the floor when the mesh was built
-            if (waypoint.PolyRef == 0 || waypoint.IsDropStart)
+            // a ledge drop starts on its connection, which was placed on the floor when the mesh was built
+            if (waypoint.PolyRef == 0 || waypoint.IsLedgeDropStart)
                 return waypoint;
 
             var status = query.ClosestPointOnPoly(waypoint.PolyRef, ToRcVec3f(waypoint.Pos), out var closest, out _);
@@ -620,8 +620,8 @@ namespace ACE.Server.Pathfinding
                 if (current.PolyRef == 0)
                     continue;
 
-                // the ends of a drop stay where the drop was found: it was only checked from there
-                if (current.IsDropStart || waypoints[i - 1].IsDropStart)
+                // the ends of a ledge drop stay where it was found: it was only checked from there
+                if (current.IsLedgeDropStart || waypoints[i - 1].IsLedgeDropStart)
                     continue;
 
                 var toPrev = Flatten(waypoints[i - 1].Pos - current.Pos);

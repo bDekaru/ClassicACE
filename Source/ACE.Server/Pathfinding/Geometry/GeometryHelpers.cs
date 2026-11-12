@@ -41,6 +41,19 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
+        /// The middle of a cell (the average of its structure's vertices) in the coordinates the cell's frame places it
+        /// in, e.g. to tell which side of a portal is outside the cell.
+        /// </summary>
+        public static Vector3 GetCellCenter(CellStruct cellStruct, Frame frame)
+        {
+            var sum = Vector3.Zero;
+            foreach (var vertex in cellStruct.VertexArray.Vertices.Values)
+                sum += vertex.Origin;
+
+            return frame.LocalToGlobal(sum / System.Math.Max(1, cellStruct.VertexArray.Vertices.Count));
+        }
+
+        /// <summary>
         /// The unit normal of a planar polygon by Newell's method, robust for any vertex count and for concave polygons.
         /// Zero for a polygon without area.
         /// </summary>

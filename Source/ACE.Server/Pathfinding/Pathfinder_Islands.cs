@@ -64,18 +64,18 @@ namespace ACE.Server.Pathfinding
 
             var polyCount = data.header.polyCount;
 
-            // the component of each poly (-1 for a drop), the area of each component without its door aprons and
-            // whether it has any door apron polys, and the drops (one-way off-mesh connections) between components as
-            // (drop, from, to) poly indices
+            // the component of each poly (-1 for a ledge drop), the area of each component without its door aprons and
+            // whether it has any door apron polys, and the ledge drops (one-way off-mesh connections) between components as
+            // (ledge drop, from, to) poly indices
             var component = new int[polyCount];
             var componentArea = new List<float>();
             var componentHasDoor = new List<bool>();
-            var drops = new List<(int dropPoly, int from, int to)>();
+            var ledgeDrops = new List<(int ledgeDropPoly, int from, int to)>();
 
             FindComponents();
-            FindDrops();
+            FindLedgeDrops();
 
-            // all connected: everything is kept, and only a drop that isn't attached to the floor on both ends leads nowhere
+            // all connected: everything is kept, and only a ledge drop that isn't attached to the floor on both ends leads nowhere
             var keep = componentArea.Count <= 1 ? Enumerable.Repeat(true, componentArea.Count).ToArray() : GetKeptComponents();
             FlagIslands(keep);
 
@@ -87,7 +87,7 @@ namespace ACE.Server.Pathfinding
 
                 for (var i = 0; i < polyCount; i++)
                 {
-                    // drops are not part of any component, see FindDrops
+                    // ledge drops are not part of any component, see FindLedgeDrops
                     if (component[i] != -1 || data.polys[i].GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
                         continue;
 
@@ -122,8 +122,8 @@ namespace ACE.Server.Pathfinding
                 }
             }
 
-            // A drop links to the poly at its start (edge 0) and the one it lands on (edge 1).
-            void FindDrops()
+            // A ledge drop links to the poly at its start (edge 0) and the one it lands on (edge 1).
+            void FindLedgeDrops()
             {
                 for (var i = 0; i < polyCount; i++)
                 {
@@ -144,7 +144,7 @@ namespace ACE.Server.Pathfinding
                             to = endPoly.index;
                     }
 
-                    drops.Add((i, from, to));
+                    ledgeDrops.Add((i, from, to));
                 }
             }
 
@@ -207,12 +207,12 @@ namespace ACE.Server.Pathfinding
                     }
                 }
 
-                // What a kept component drops down onto can be reached too (a pit, the floor below a balcony). Drops
-                // only go down, so only the way down: a component kept this way can still be left only by its own drops.
+                // What a kept component drops down onto can be reached too (a pit, the floor below a balcony). Ledge drops
+                // only go down, so only the way down: a component kept this way can still be left only by its own ledge drops.
                 for (var changed = true; changed;)
                 {
                     changed = false;
-                    foreach (var (_, from, to) in drops)
+                    foreach (var (_, from, to) in ledgeDrops)
                     {
                         if (from < 0 || to < 0)
                             continue;
@@ -232,18 +232,18 @@ namespace ACE.Server.Pathfinding
 
             void FlagIslands(bool[] kept)
             {
-                // a drop is usable if its start is
-                foreach (var (dropPoly, from, to) in drops)
+                // a ledge drop is usable if its start is
+                foreach (var (ledgeDropPoly, from, to) in ledgeDrops)
                 {
                     if (from < 0 || to < 0 || !kept[component[from]])
-                        data.polys[dropPoly].flags |= NavPolyFlags.Island;
+                        data.polys[ledgeDropPoly].flags |= NavPolyFlags.Island;
                 }
 
                 var islandPolys = 0;
                 for (var i = 0; i < polyCount; i++)
                 {
                     if (component[i] < 0)
-                        continue; // a drop, flagged above
+                        continue; // a ledge drop, flagged above
 
                     if (kept[component[i]])
                         continue;
@@ -295,6 +295,8 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// The doorways of a cell group an agent of the given size can get through (see FindPassableDoors). Loads the
         /// group's mesh if it isn't yet. While the mesh is still loading that isn't known, and all doorways are returned.
+        /// An empty or failed mesh (see InteriorMesh.Status) also returns all doorways: a route from outside then leads
+        /// to the doorway and ends there, so a creature too big for the group still heads for it.
         /// </summary>
         private static List<CellGroupDoor> GetDoors(MeshGroupKey key, CellGroup cellGroup, AgentSize agentSize)
         {

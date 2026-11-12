@@ -4290,23 +4290,65 @@ namespace ACE.Server.Command.Handlers
             PlayerManager.BroadcastToAuditChannel(session.Player, $"{session.Player.Name} has teleported {creature.Name} to them.");
         }
 
-        [CommandHandler("TestPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "")]
-        public static void HandleTestPathfinding(Session session, params string[] parameters)
+        [CommandHandler("showpathtome", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld,
+            "Shows the pathfinder route of your selected creature to you, with markers along it. The creature doesn't move.",
+            "Select a creature first.")]
+        public static void HandleShowPathToMe(Session session, params string[] parameters)
         {
-            CommandHandlerHelper.WriteOutputInfo(session, "Testing Pathfinding...");
+            ShowPathToMe(session, true, out _);
+        }
 
-            var player = session.Player;
-            var creature = CommandHandlerHelper.GetQueryTarget(session) as Creature;
+        [CommandHandler("pathtome", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld,
+            "Describes the pathfinder route of your selected creature to you (as @showpathtome does, without the markers), then sends the creature along a route to where you stand.",
+            "[walk]\nSelect a creature first. It runs, or walks with 'walk'. It ignores targets until the route ends, then heads home.")]
+        public static void HandlePathToMe(Session session, params string[] parameters)
+        {
+            var walk = false;
+            if (parameters.Length > 0)
+            {
+                if (parameters.Length > 1 || !parameters[0].Equals("walk", StringComparison.OrdinalIgnoreCase))
+                {
+                    CommandHandlerHelper.WriteOutputInfo(session, "Usage: @pathtome [walk]");
+                    return;
+                }
+                walk = true;
+            }
 
-            if (player == null|| creature == null)
+            if (!ShowPathToMe(session, false, out var creature))
                 return;
 
-            //creature.TryWandering(180, 180, 10);
-            //creature.TryEmoting();
+            if (creature.TryStartTestRoute(session.Player.Location, walk))
+                CommandHandlerHelper.WriteOutputInfo(session, $"{creature.Name} is on its way, {(walk ? "walking" : "running")}. It ignores targets until the route ends, then heads home.");
+            else
+                CommandHandlerHelper.WriteOutputInfo(session, $"{creature.Name} could not start the route: pathfinding is off, it found no route, or it is busy (e.g. mid-animation). Try again.\n{DescribeMeshLoadStatus(creature, session.Player)}");
+        }
 
-            //var destination = Pathfinder.GetRandomPointOnMesh(player.Location);
-            //var destination = new Position(0x019E014D, 39.844067f, -33.932358f, 6.005000f, 0.109867f, 0.000000f, 0.000000f, 0.993946f);
-            
+        /// <summary>
+        /// The load status of the creature's mesh (see Creature.GetPathfindingAgentSize) where the creature and the player
+        /// stand, the two ends of its route to the player, e.g. to tell a mesh still loading from one that isn't there.
+        /// </summary>
+        private static string DescribeMeshLoadStatus(Creature creature, Player player)
+        {
+            var agentSize = creature.GetPathfindingAgentSize();
+            return $"{agentSize} mesh at {creature.Name}: {Pathfinder.GetMeshLoadStatus(creature.Location, agentSize)}, at you: {Pathfinder.GetMeshLoadStatus(player.Location, agentSize)}";
+        }
+
+        /// <summary>
+        /// Writes the pathfinder route of the selected creature to the player, on the creature's mesh, and with drawRoute
+        /// marks it with markers (see @showpathtome). Returns false, having said why, without a creature selected
+        /// or without a route.
+        /// </summary>
+        private static bool ShowPathToMe(Session session, bool drawRoute, out Creature creature)
+        {
+            var player = session.Player;
+            creature = CommandHandlerHelper.GetQueryTarget(session) as Creature;
+
+            if (creature == null || creature is Player)
+            {
+                CommandHandlerHelper.WriteOutputInfo(session, "Select a creature first.");
+                return false;
+            }
+
             // the mesh the creature routes on, by its size, the same choice its own routing makes
             var agentSize = creature.GetPathfindingAgentSize();
             var collisionRadius = creature.PhysicsObj?.GetWallCollisionRadius() ?? 0f;
@@ -4319,8 +4361,8 @@ namespace ACE.Server.Command.Handlers
             var legs = Pathfinder.FindRouteLegs(creature.Location, player.Location, agentSize);
             if (legs == null)
             {
-                CommandHandlerHelper.WriteOutputInfo(session, "Null route.");
-                return;
+                CommandHandlerHelper.WriteOutputInfo(session, $"No route found.\n{DescribeMeshLoadStatus(creature, player)}");
+                return false;
             }
 
             var route = legs.SelectMany(l => l).ToList();
@@ -4341,10 +4383,12 @@ namespace ACE.Server.Command.Handlers
             var endGap = route[route.Count - 1].DistanceTo(player.Location);
             CommandHandlerHelper.WriteOutputInfo(session, endGap <= 1
                 ? $"Route reaches you: {route.Count} waypoints over {legs.Count} leg(s)."
-                : $"Partial route: ends {endGap:0.00}m short. If it crosses the outdoors, the outdoor mesh may still be loading; try again.");
+                : $"Partial route: ends {endGap:0.00}m short. If it crosses the outdoors, the outdoor mesh may still be loading; try again.\n{DescribeMeshLoadStatus(creature, player)}");
 
-            Pathfinder.DrawRoute(route);
-            creature.TryRoute(route);
+            if (drawRoute)
+                Pathfinder.DrawRoute(route);
+
+            return true;
         }
 
         /// <summary>
@@ -4679,61 +4723,6 @@ namespace ACE.Server.Command.Handlers
             }
 
             EndPathToWalk(walk, $"The route ended {gap:0.0}m from the destination.");
-        }
-
-        [CommandHandler("dumproute", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld,
-            "Writes a pathfinder route and the navmesh around it to a JSON file, for debugging.",
-            "[location]\n" +
-            "Without a location: the route of your selected creature to you, on that creature's mesh.\n" +
-            "With a location: your route there, on the Small mesh (map coordinates, or a cell and position as shown by @loc).\n" +
-            "Example: @dumproute 42.1N 33.6E")]
-        public static void HandleDumpRoute(Session session, params string[] parameters)
-        {
-            var player = session.Player;
-
-            Position start;
-            Position end;
-            AgentSize agentSize;
-            string label;
-
-            if (parameters.Length > 0)
-            {
-                if (!TryParsePathToDestination(parameters, out var destination, out var error))
-                {
-                    CommandHandlerHelper.WriteOutputInfo(session, $"{error}\nUsage: @dumproute [location]");
-                    return;
-                }
-
-                start = player.Location;
-                end = destination;
-                agentSize = AgentSize.Small;
-                label = $"{player.Name} to {destination.ToLOCString()}";
-            }
-            else
-            {
-                if (CommandHandlerHelper.GetQueryTarget(session) is not Creature creature || creature == player)
-                {
-                    CommandHandlerHelper.WriteOutputInfo(session, "Select a creature, or give a location.\nUsage: @dumproute [location]");
-                    return;
-                }
-
-                start = creature.Location;
-                end = player.Location;
-                agentSize = creature.GetPathfindingAgentSize();
-                label = $"{creature.Name} (0x{creature.Guid.Full:X8}) to {player.Name}";
-            }
-
-            var path = Pathfinder.DumpRoute(start, end, agentSize, label, out var legs, out var reachesEnd);
-            if (path == null)
-            {
-                CommandHandlerHelper.WriteOutputInfo(session, "Could not write the dump; see the server log.");
-                return;
-            }
-
-            var result = legs == null
-                ? "no route found"
-                : $"{legs.Sum(l => l.Count)} waypoints over {legs.Count} leg(s), {(reachesEnd ? "reaches the end" : "partial")}";
-            CommandHandlerHelper.WriteOutputInfo(session, $"{agentSize} mesh, {result}. Written to {path}");
         }
 
         [CommandHandler("RebuildPathfinding", AccessLevel.Developer, CommandHandlerFlag.RequiresWorld, "Rebuilds the pathfinding meshes where you stand: the meshes of the building, cave or dungeon area you are in, or the outdoor meshes of your landblock when you are outside")]

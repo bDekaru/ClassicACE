@@ -12,75 +12,84 @@ namespace ACE.Server.Pathfinding.Geometry
     /// The geometry a navmesh is built from (see NavMeshBuilder), as Recast takes it: one triangle mesh in Recast space
     /// (Y up), and the convex volumes that mark the door aprons.
     /// </summary>
-    public class CellGeometryProvider : IRcInputGeomProvider
+    public class NavMeshGeometry : IRcInputGeomProvider
     {
-        public readonly float[] vertices;
-        public readonly int[] faces;
+        /// <summary>
+        /// The vertices, x, y, z in turn, in Recast space.
+        /// </summary>
+        public float[] Vertices { get; }
+
+        /// <summary>
+        /// The triangles, three vertex indices each.
+        /// </summary>
+        public int[] Faces { get; }
+
         private readonly RcVec3f bmin;
         private readonly RcVec3f bmax;
         private readonly List<RcConvexVolume> volumes = new List<RcConvexVolume>();
-        private readonly RcTriMesh _mesh;
-        private readonly RcTriMesh[] _meshes;
+        private readonly RcTriMesh mesh;
+        private readonly RcTriMesh[] meshes;
 
         /// <summary>
         /// Geometry for a set of interior (dungeon) cells, per agent size: with a door apron (see DoorApron) sized for
         /// that agent outside each of the given doorways, marked as a door area. The cells and their static objects are
         /// loaded once, and only the door aprons differ per size. Null if the cells have no geometry.
         /// </summary>
-        public static Dictionary<AgentSize, CellGeometryProvider> LoadGeometry(List<CellGeometry> neighbors, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentSize> agentSizes)
+        public static Dictionary<AgentSize, NavMeshGeometry> LoadGeometry(List<CellGeometry> cells, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentSize> agentSizes)
         {
-            var exporter = new LandblockGeometryExporter(neighbors);
-            exporter.LoadLandblockInfo();
+            var collector = new MeshGeometryCollector(cells);
+            collector.LoadCells();
 
             // only cells with geometry of their own get a mesh; the aprons alone are not walkable space
-            if (exporter.Vertices.Count == 0)
+            if (collector.Vertices.Count == 0)
                 return null;
 
             var wallDoors = doors?.Where(d => d.IsInWall).ToList() ?? new List<CellGroupDoor>();
-            var cells = exporter.GetMark();
-            var providers = new Dictionary<AgentSize, CellGeometryProvider>();
+            var cellsEnd = collector.GetMark();
+            var geometries = new Dictionary<AgentSize, NavMeshGeometry>();
 
             foreach (var agentSize in agentSizes)
             {
-                exporter.AddDoorAprons(wallDoors, agentSize);
+                collector.AddDoorAprons(wallDoors, agentSize);
 
-                var provider = FromExporter(exporter);
+                var geometry = FromCollector(collector);
                 foreach (var door in wallDoors)
-                    provider.AddConvexVolume(DoorApron.GetDoorVolume(door, agentSize));
-                providers[agentSize] = provider;
+                    geometry.AddConvexVolume(DoorApron.GetDoorVolume(door, agentSize));
+                geometries[agentSize] = geometry;
 
-                exporter.Truncate(cells);
+                collector.Truncate(cellsEnd);
             }
 
-            return providers;
+            return geometries;
         }
 
         /// <summary>
         /// Geometry for a landblock's outdoor tile, in world coordinates: terrain, building shells, static objects and
-        /// scenery of the landblock and of the border strip of its neighbors (see LandblockGeometryExporter.LoadSurface).
+        /// scenery of the landblock and of the border strip of its neighbors (see MeshGeometryCollector.LoadSurface).
         /// Interior cells are only used to cut the terrain out of building interiors; their geometry goes into their own
         /// group meshes.
         /// </summary>
-        public static CellGeometryProvider LoadSurfaceGeometry(uint landblockId, IEnumerable<SurfaceSource> sources)
+        public static NavMeshGeometry LoadSurfaceGeometry(uint landblockId, IEnumerable<SurfaceSource> sources)
         {
-            var exporter = new LandblockGeometryExporter(new List<CellGeometry>());
-            exporter.LoadSurface(landblockId, sources);
+            var collector = new MeshGeometryCollector(new List<CellGeometry>());
+            collector.LoadSurface(landblockId, sources);
 
-            return FromExporter(exporter);
+            return FromCollector(collector);
         }
 
-        private static CellGeometryProvider FromExporter(LandblockGeometryExporter exporter)
+        private static NavMeshGeometry FromCollector(MeshGeometryCollector collector)
         {
-            if (exporter.Vertices.Count == 0) return null;
+            if (collector.Vertices.Count == 0)
+                return null;
 
-            exporter.GetMeshArrays(out var vertices, out var faces);
-            return new CellGeometryProvider(vertices, faces);
+            collector.GetMeshArrays(out var vertices, out var faces);
+            return new NavMeshGeometry(vertices, faces);
         }
 
-        public CellGeometryProvider(float[] vertices, int[] faces)
+        public NavMeshGeometry(float[] vertices, int[] faces)
         {
-            this.vertices = vertices;
-            this.faces = faces;
+            Vertices = vertices;
+            Faces = faces;
 
             bmin = vertices.ToVec3();
             bmax = vertices.ToVec3();
@@ -90,18 +99,18 @@ namespace ACE.Server.Pathfinding.Geometry
                 bmax = RcVec3f.Max(bmax, vertices.ToVec3(i * 3));
             }
 
-            _mesh = new RcTriMesh(vertices, faces);
-            _meshes = new[] { _mesh };
+            mesh = new RcTriMesh(vertices, faces);
+            meshes = new[] { mesh };
         }
 
         public RcTriMesh GetMesh()
         {
-            return _mesh;
+            return mesh;
         }
 
         public IEnumerable<RcTriMesh> Meshes()
         {
-            return _meshes;
+            return meshes;
         }
 
         public RcVec3f GetMeshBoundsMin()
@@ -127,7 +136,7 @@ namespace ACE.Server.Pathfinding.Geometry
             volumes.Add(convexVolume);
         }
 
-        // Off-mesh connections are part of IRcInputGeomProvider, but none come from the geometry: the drops are found
+        // Off-mesh connections are part of IRcInputGeomProvider, but none come from the geometry: the ledge drops are found
         // on the built mesh and handed to Detour directly (see NavMeshBuilder).
 
         public List<RcOffMeshConnection> GetOffMeshConnections()

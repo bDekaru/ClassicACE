@@ -183,6 +183,13 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            // a test route (see TryStartTestRoute) runs undisturbed: no targets, no heading home
+            if (IsTestRouting)
+            {
+                UpdateRouteToDestination();
+                return;
+            }
+
             CheckMissHome();    // tickrate?
 
             if (IsMoveToHomePending)

@@ -258,17 +258,17 @@ namespace ACE.Server.Entity
         }
 
         /// <summary>
-        /// Spawns the first exploration markers once the pathfinding meshes of their spots are loaded. Until then it
-        /// is tried again by the refresh, every ExplorationMarkerInitializationRetryDelay seconds. With pathfinding
-        /// disabled it doesn't wait: the markers spawn right away, placed without the pathfinder.
+        /// Spawns the first exploration markers once none of the pathfinding meshes of their spots is loading anymore. Until then it is tried again by the refresh, every ExplorationMarkerInitializationRetryDelay
+        /// seconds. A spot whose meshes didn't load (see AreExplorationMarkerMeshesLoaded) gets its markers placed
+        /// without the pathfinder. With pathfinding disabled it doesn't wait: the markers spawn right away, placed
+        /// without the pathfinder.
         /// </summary>
         private void FinishExplorationMarkersInitialization()
         {
             if (ExplorationMarkersInitialized || ExplorationMarkerCount == 0)
                 return;
 
-            // markers are placed on the Medium mesh and spaced along routes on the Small one
-            if (Pathfinder.PathfindingEnabled && PositionsForExplorationMarkers.Any(p => Pathfinder.IsMeshLoading(p, AgentSize.Small) || Pathfinder.IsMeshLoading(p, AgentSize.Medium)))
+            if (Pathfinder.PathfindingEnabled && PositionsForExplorationMarkers.Any(IsExplorationMarkerPathfindingMeshLoading))
             {
                 NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerInitializationRetryDelay);
                 return;
@@ -280,6 +280,18 @@ namespace ACE.Server.Entity
                 SpawnExplorationMarker();
 
             NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
+        }
+
+        private static bool IsExplorationMarkerPathfindingMeshLoading(Position position)
+        {
+            return Pathfinder.GetMeshLoadStatus(position, AgentSize.Small) == MeshLoadStatus.Loading
+                || Pathfinder.GetMeshLoadStatus(position, AgentSize.Medium) == MeshLoadStatus.Loading;
+        }
+
+        private static bool AreExplorationMarkerPathfindingMeshesLoaded(Position position)
+        {
+            return Pathfinder.GetMeshLoadStatus(position, AgentSize.Small) == MeshLoadStatus.Loaded
+                && Pathfinder.GetMeshLoadStatus(position, AgentSize.Medium) == MeshLoadStatus.Loaded;
         }
 
         public void RefreshExplorationMarkers(bool forceRefresh = false)
@@ -310,9 +322,9 @@ namespace ACE.Server.Entity
                             continue;
 
                         float distance;
-                        if (Pathfinder.PathfindingEnabled && player.Location.Indoors)
+                        if (Pathfinder.PathfindingEnabled)
                         {
-                            if(!Pathfinder.GetRouteLegsDistance(player.Location, marker.Location, AgentSize.Small, out distance, out _, out _))
+                            if (!Pathfinder.GetRouteLegsDistance(player.Location, marker.Location, AgentSize.Small, out distance, out _, out _))
                                 distance = player.Location.DistanceTo(marker.Location);
                         }
                         else
@@ -355,11 +367,15 @@ namespace ACE.Server.Entity
                 if (ExplorationMarkerCurrentIndex >= PositionsForExplorationMarkers.Count)
                     ExplorationMarkerCurrentIndex = 0;
 
+                // with the pathfinder only where its meshes are loaded; otherwise placed as without pathfinding
+                var usePathfinder = Pathfinder.PathfindingEnabled && AreExplorationMarkerPathfindingMeshesLoaded(entryPos);
+
                 var cellFromPathfinder = false;
-                if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
+                if (usePathfinder)
                 {
+                    // outdoors the spot can be across the landblock's edge, where the marker would belong to the neighbor
                     var randomPos = Pathfinder.GetRandomPointWithinCircle(entryPos, 15, AgentSize.Medium);
-                    if (randomPos != null)
+                    if (randomPos != null && randomPos.Landblock == entryPos.Landblock)
                     {
                         entryPos = randomPos;
                         cellFromPathfinder = true;
@@ -376,9 +392,9 @@ namespace ACE.Server.Entity
                     var minDistance = markerOrPortal.WeenieType == WeenieType.Portal ? 10 : 50;
 
                     float distance;
-                    if (Pathfinder.PathfindingEnabled && entryPos.Indoors)
+                    if (usePathfinder)
                     {
-                        if(!Pathfinder.GetRouteLegsDistance(entryPos, markerOrPortal.Location, AgentSize.Small, out distance, out _, out _))
+                        if (!Pathfinder.GetRouteLegsDistance(entryPos, markerOrPortal.Location, AgentSize.Small, out distance, out _, out _))
                             distance = entryPos.DistanceTo(markerOrPortal.Location);
                     }
                     else

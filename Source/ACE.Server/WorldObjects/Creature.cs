@@ -307,6 +307,48 @@ namespace ACE.Server.WorldObjects
             new List<uint>{ 50242 }
         };
 
+        /// <summary>
+        /// A spot for something this creature leaves behind. If scatter: a random spot within 40m on the pathfinder's
+        /// mesh of the given size, so the caller only scatters indoors with pathfinding. Otherwise, or if the pathfinder
+        /// has no spot, fallbackDistance in front of the creature (behind it if negative), turned around if
+        /// fallbackRotate180.
+        /// </summary>
+        private Position GetDeploySpot(bool scatter, AgentSize agentSize, float fallbackDistance, bool fallbackRotate180 = false)
+        {
+            if (scatter)
+            {
+                var randomPos = Pathfinder.GetRandomPointWithinCircle(Location, 40, agentSize);
+                if (randomPos != null)
+                    return randomPos;
+            }
+
+            var location = Location.InFrontOf(fallbackDistance, fallbackRotate180);
+            location.LandblockId = new LandblockId(location.GetCell());
+            return location;
+        }
+
+        /// <summary>
+        /// Where to place a chest or corpse this creature leaves behind. If scatter: at a
+        /// random spot on the mesh of the given size (see GetDeploySpot), then against the nearest wall within 20m from
+        /// there, facing it, with the cell the pathfinder found for it; or with a random facing if there is no wall.
+        /// Otherwise just behind the creature, or in front of it if it can't move, facing it.
+        /// </summary>
+        private Position GetDeployLocation(bool scatter, AgentSize agentSize)
+        {
+            var radius = PhysicsObj.GetRadius() + 0.5f;
+            var location = GetDeploySpot(scatter, agentSize, AiIncapableOfAnyMotion ? radius : -radius, true);
+
+            if (!scatter)
+                return location;
+
+            var wallSpot = Pathfinder.GetNearestWallPosition(location, 20, AgentSize.Small, out _, true);
+            if (wallSpot != null)
+                return wallSpot;
+
+            location.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
+            return location;
+        }
+
         public bool DeployChest()
         {
             DeployedObjects.RemoveAll(x => x.TryGetWorldObject() == null);
@@ -334,30 +376,11 @@ namespace ACE.Server.WorldObjects
             if (chest == null)
                 return false;
 
-            var radius = PhysicsObj.GetRadius() + 0.5f;
-            var chestLocation = new Position(Location);
-            if (UsesPathfinding && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
-            {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
-                if (randomPos != null)
-                    chestLocation = randomPos;
-                else
-                    chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
-
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentSize.Small, out _, true);
-                if (randomPos != null)
-                    chestLocation = randomPos;
-                else
-                    chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
-            }
-            else
-                chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
-
-            if(isCorpse)
+            var chestLocation = GetDeployLocation(UsesPathfinding && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f), AgentSize.Medium);
+            if (isCorpse)
                 chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
 
             chest.Location = chestLocation;
-            chest.Location.LandblockId = new LandblockId(chest.Location.GetCell());
 
             chest.Generator = this;
             chest.Tier = tier;
@@ -461,30 +484,11 @@ namespace ACE.Server.WorldObjects
             if (specialChest == null)
                 return false;
 
-            var radius = PhysicsObj.GetRadius() + 0.5f;
-            var chestLocation = new Position(Location);
-            if (UsesPathfinding && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f))
-            {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
-                if (randomPos != null)
-                    chestLocation = randomPos;
-                else
-                    chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
-
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentSize.Small, out _, true);
-                if (randomPos != null)
-                    chestLocation = randomPos;
-                else
-                    chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
-            }
-            else
-                chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
-
+            var chestLocation = GetDeployLocation(UsesPathfinding && Location.Indoors && (!isCorpse || ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f), AgentSize.Medium);
             if (isCorpse)
                 chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
 
             specialChest.Location = chestLocation;
-            specialChest.Location.LandblockId = new LandblockId(specialChest.Location.GetCell());
 
             specialChest.Generator = this;
             specialChest.Tier = tier;
@@ -525,27 +529,7 @@ namespace ACE.Server.WorldObjects
             if (hiddenChest == null)
                 return false;
 
-            var radius = PhysicsObj.GetRadius() + 0.5f;
-            var chestLocation = new Position(Location);
-            if (UsesPathfinding && Location.Indoors)
-            {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(chestLocation, 40, AgentSize.Medium);
-                if (randomPos != null)
-                    chestLocation = randomPos;
-                else
-                    chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
-
-                randomPos = Pathfinder.GetNearestWallPosition(chestLocation, 20, AgentSize.Small, out _, true);
-                if (randomPos != null)
-                    chestLocation = randomPos;
-                else
-                    chestLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
-            }
-            else
-                chestLocation = chestLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
-
-            hiddenChest.Location = chestLocation;
-            hiddenChest.Location.LandblockId = new LandblockId(hiddenChest.Location.GetCell());
+            hiddenChest.Location = GetDeployLocation(UsesPathfinding && Location.Indoors, AgentSize.Medium);
 
             hiddenChest.Generator = this;
             hiddenChest.Tier = tier;
@@ -590,27 +574,10 @@ namespace ACE.Server.WorldObjects
             if (hiddenCorpse == null)
                 return false;
 
-            var radius = PhysicsObj.GetRadius() + 0.5f;
-            var corpseLocation = new Position(Location);
-            if (UsesPathfinding && Location.Indoors && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f)
-            {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(corpseLocation, 40, AgentSize.Medium);
-                if (randomPos != null)
-                    corpseLocation = randomPos;
-                else
-                    corpseLocation = corpseLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
-
-                randomPos = Pathfinder.GetNearestWallPosition(corpseLocation, 20, AgentSize.Small, out _, true);
-                if (randomPos != null)
-                    corpseLocation = randomPos;
-            }
-            else
-                corpseLocation = corpseLocation.InFrontOf(AiIncapableOfAnyMotion ? radius : -radius, true);
-
+            var corpseLocation = GetDeployLocation(UsesPathfinding && Location.Indoors && ThreadSafeRandom.Next(0.0f, 1.0f) < 0.5f, AgentSize.Medium);
             corpseLocation.SetRotation((float)ThreadSafeRandom.Next(0f, 360f));
 
             hiddenCorpse.Location = corpseLocation;
-            hiddenCorpse.Location.LandblockId = new LandblockId(hiddenCorpse.Location.GetCell());
 
             hiddenCorpse.Generator = this;
             hiddenCorpse.Tier = tier;
@@ -647,34 +614,17 @@ namespace ACE.Server.WorldObjects
             var trapObject = WorldObjectFactory.CreateNewWorldObject(50143);
             var trapTrigger = WorldObjectFactory.CreateNewWorldObject(2131);
 
-            var triggerLocation = new Position(Location);
-            if (UsesPathfinding && Location.Indoors)
-            {
-                var randomPos = Pathfinder.GetRandomPointWithinCircle(triggerLocation, 40, AgentSize.Small);
-                if (randomPos != null)
-                    triggerLocation = randomPos;
-                else
-                    triggerLocation = triggerLocation.InFrontOf(2);
-            }
-            else
-                triggerLocation = triggerLocation.InFrontOf(2);
-
-            var trapLocation = new Position(triggerLocation);
-            if (UsesPathfinding && Location.Indoors)
-            {
-                var randomPos = Pathfinder.GetNearestWallPosition(trapLocation, 20, AgentSize.Small, out _);
-                if (randomPos != null)
-                    trapLocation = randomPos;
-                else
-                    trapLocation = trapLocation.InFrontOf(8);
-            }
-            else
-                trapLocation = trapLocation.InFrontOf(8);
+            // the trigger on the floor, the trap on the nearest wall from it (or further ahead), facing the trigger
+            var scatter = UsesPathfinding && Location.Indoors;
+            var triggerLocation = GetDeploySpot(scatter, AgentSize.Small, 2);
+            var wallSpot = scatter ? Pathfinder.GetNearestWallPosition(triggerLocation, 20, AgentSize.Small, out _) : null;
+            var trapLocation = wallSpot ?? triggerLocation.InFrontOf(8);
             trapLocation.Rotate(GetDirection(trapLocation.ToGlobal(), triggerLocation.ToGlobal()));
 
             trapObject.Location = trapLocation;
             trapObject.Location.PositionZ += 2.5f;
-            trapObject.Location.LandblockId = new LandblockId(trapObject.Location.GetCell());
+            if (wallSpot == null)
+                trapObject.Location.LandblockId = new LandblockId(trapObject.Location.GetCell());
             trapObject.Generator = this;
             var tier = RollTier();
             trapObject.Tier = tier;
@@ -684,7 +634,6 @@ namespace ACE.Server.WorldObjects
             if (trapObject.EnterWorld())
             {
                 trapTrigger.Location = triggerLocation;
-                trapTrigger.Location.LandblockId = new LandblockId(trapTrigger.Location.GetCell());
                 trapTrigger.ActivationTarget = trapObject.Guid.Full;
                 trapTrigger.Generator = this;
                 trapTrigger.ResistAwareness = (int)(Tier * 65);

@@ -65,27 +65,27 @@ namespace ACE.Server.Pathfinding.Geometry
         }
     }
 
-    class LandblockGeometryExporter
+    class MeshGeometryCollector
     {
         public List<Vector3> Vertices { get; } = new List<Vector3>();
         public List<List<int>> Polygons { get; } = new List<List<int>>();
 
-        public List<CellGeometry> Neighbors { get; }
+        public List<CellGeometry> Cells { get; }
 
-        public LandblockGeometryExporter(List<CellGeometry> neighbors)
+        public MeshGeometryCollector(List<CellGeometry> cells)
         {
-            Neighbors = neighbors;
+            Cells = cells;
         }
 
-        public void LoadLandblockInfo()
+        public void LoadCells()
         {
             var cellsById = new Dictionary<uint, CellGeometry>();
-            foreach (var cell in Neighbors)
+            foreach (var cell in Cells)
                 cellsById[cell.CellId] = cell;
 
-            foreach (var cell in Neighbors)
+            foreach (var cell in Cells)
             {
-                LoadEnvironment(cell.EnvCell.EnvironmentId, new List<Frame> { cell.EnvCell.Position }, cell.EnvCell.CellStructure);
+                LoadEnvironment(cell.EnvCell.EnvironmentId, cell.EnvCell.Position, cell.EnvCell.CellStructure);
 
                 if (cell.EnvCell.StaticObjects == null)
                     continue;
@@ -102,7 +102,7 @@ namespace ACE.Server.Pathfinding.Geometry
                     try
                     {
                         foreach (var polygon in GetCollisionPolygons(obj, Vector3.Zero, false))
-                            AddPolygon(polygon, NoFrames);
+                            AddPolygon(polygon);
                         AddCellStatic(_capture, cell, cellsById);
                     }
                     finally
@@ -190,9 +190,7 @@ namespace ACE.Server.Pathfinding.Geometry
                         output.Add(current);
                     }
                     else if (dp >= 0f)
-                    {
                         output.Add(Vector3.Lerp(previous, current, dp / (dp - dc)));
-                    }
                 }
                 return output;
             }
@@ -315,8 +313,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 return true;
 
             var frame = cell.EnvCell.Position;
-            var cellCenter = cellStruct.VertexArray.Vertices.Values.Aggregate(Vector3.Zero, (a, v) => a + v.Origin) / Math.Max(1, cellStruct.VertexArray.Vertices.Count);
-            cellCenter = frame.LocalToGlobal(cellCenter);
+            var cellCenter = GeometryHelpers.GetCellCenter(cellStruct, frame);
 
             foreach (var portal in cell.EnvCell.CellPortals.Where(p => p.OtherCellId == 0xFFFF))
             {
@@ -324,18 +321,19 @@ namespace ACE.Server.Pathfinding.Geometry
                     return true;
 
                 var points = polygon.VertexIds.Select(v => frame.LocalToGlobal(cellStruct.VertexArray.Vertices[(ushort)v].Origin)).ToList();
-                var normal = Vector3.Cross(points[1] - points[0], points[2] - points[0]);
-                if (normal.LengthSquared() < 1e-12f)
-                    continue;
-                normal = Vector3.Normalize(normal);
-                if (Vector3.Dot(normal, cellCenter - points[0]) > 0f)
+                var center = points.Aggregate(Vector3.Zero, (a, b) => a + b) / points.Count;
+
+                var normal = GeometryHelpers.GetPolygonNormal(points);
+                if (normal == Vector3.Zero)
+                    continue; // no area
+                if (Vector3.Dot(normal, cellCenter - center) > 0f)
                     normal = -normal; // point out of the cell
 
                 // any corner of the bounds past the portal's plane, on the outside
                 for (var corner = 0; corner < 8; corner++)
                 {
                     var c = new Vector3((corner & 1) == 0 ? min.X : max.X, (corner & 2) == 0 ? min.Y : max.Y, (corner & 4) == 0 ? min.Z : max.Z);
-                    if (Vector3.Dot(c - points[0], normal) > 0f)
+                    if (Vector3.Dot(c - center, normal) > 0f)
                         return true;
                 }
             }
@@ -345,7 +343,10 @@ namespace ACE.Server.Pathfinding.Geometry
 
         #endregion
 
-        private void LoadEnvironment(uint cellFileIndex, List<Frame> frames, int envCellIndex = -1)
+        /// <summary>
+        /// Adds the physics polygons of one cell structure of an environment, posed by the frame.
+        /// </summary>
+        private void LoadEnvironment(uint cellFileIndex, Frame frame, int cellStructure)
         {
             var environment = DatManager.PortalDat.ReadFromDat<Environment>(cellFileIndex);
 
@@ -354,25 +355,9 @@ namespace ACE.Server.Pathfinding.Geometry
             if (CellGeometry.ShouldIgnoreEnvironment(environment.Id))
                 return;
 
-            if (envCellIndex >= 0)
-            {
-                //var polys = DrawPhysics ? environment.Cells[(uint)envCellIndex].PhysicsPolygons : environment.Cells[(uint)envCellIndex].Polygons;
-                var polys = environment.Cells[(uint)envCellIndex].PhysicsPolygons;
-                foreach (var poly in polys.Values)
-                {
-                    AddPolygon(poly.VertexIds.Select(v => environment.Cells[(uint)envCellIndex].VertexArray.Vertices[(ushort)v].Origin).ToList(), frames);
-                }
-            }
-            else
-            {
-                foreach (var envCell in environment.Cells.Values)
-                {
-                    foreach (var poly in envCell.PhysicsPolygons.Values)
-                    {
-                        AddPolygon(poly.VertexIds.Select(v => envCell.VertexArray.Vertices[(ushort)v].Origin).ToList(), frames);
-                    }
-                }
-            }
+            var cellStruct = environment.Cells[(uint)cellStructure];
+            foreach (var poly in cellStruct.PhysicsPolygons.Values)
+                AddPolygon(poly.VertexIds.Select(v => cellStruct.VertexArray.Vertices[(ushort)v].Origin).ToList(), frame);
         }
 
         /// <summary>
@@ -383,7 +368,7 @@ namespace ACE.Server.Pathfinding.Geometry
             foreach (var door in doors)
             {
                 if (door.IsInWall)
-                    AddPolygon(DoorApron.GetFloor(door, agentSize), NoFrames);
+                    AddPolygon(DoorApron.GetFloor(door, agentSize));
             }
         }
 
@@ -408,23 +393,25 @@ namespace ACE.Server.Pathfinding.Geometry
             Polygons.RemoveRange(mark.polygons, Polygons.Count - mark.polygons);
         }
 
-        public List<Vector3> AddPolygon(List<Vector3> vertices, List<Frame> frames)
+        /// <summary>
+        /// Adds a polygon, posed by the frame if there is one, with its winding reversed. While a static object's
+        /// polygons are being collected (see _capture) it goes there instead of into the mesh arrays.
+        /// </summary>
+        private void AddPolygon(List<Vector3> vertices, Frame frame = null)
         {
-            var retvertices = new List<Vector3>(vertices.Count);
+            var points = new List<Vector3>(vertices.Count);
             for (var i = 0; i < vertices.Count; i++)
             {
-                var vertice = vertices[vertices.Count - 1 - i];
-                foreach (var frame in frames)
-                    vertice = frame.LocalToGlobal(vertice);
-                retvertices.Add(vertice);
+                var vertex = vertices[vertices.Count - 1 - i];
+                if (frame != null)
+                    vertex = frame.LocalToGlobal(vertex);
+                points.Add(vertex);
             }
 
             if (_capture != null)
-                _capture.Add(retvertices);
+                _capture.Add(points);
             else
-                AddTransformedPolygon(retvertices);
-
-            return retvertices;
+                AddTransformedPolygon(points);
         }
 
         /// <summary>
@@ -436,26 +423,20 @@ namespace ACE.Server.Pathfinding.Geometry
             foreach (var point in points)
             {
                 // Recast space: y up
-                var vertice = new Vector3(point.X, point.Z, point.Y);
+                var vertex = new Vector3(point.X, point.Z, point.Y);
 
-                if (_vertexLookup.TryGetValue(vertice, out var index))
+                if (!_vertexLookup.TryGetValue(vertex, out var index))
                 {
-                    // obj face indexes start at 1
-                    poly.Add(index + 1);
+                    index = Vertices.Count;
+                    Vertices.Add(vertex);
+                    _vertexLookup.Add(vertex, index);
                 }
-                else
-                {
-                    Vertices.Add(vertice);
-                    _vertexLookup.Add(vertice, Vertices.Count - 1);
-                    poly.Add(Vertices.Count);
-                }
+                poly.Add(index);
             }
             Polygons.Add(poly);
         }
 
         private readonly Dictionary<Vector3, int> _vertexLookup = new Dictionary<Vector3, int>();
-
-        private static readonly List<Frame> NoFrames = new List<Frame>();
 
         /// <summary>
         /// Returns the geometry as recast-ready arrays (Y up), with polygons fan-triangulated.
@@ -473,12 +454,11 @@ namespace ACE.Server.Pathfinding.Geometry
             var tris = new List<int>(Polygons.Count * 3);
             foreach (var poly in Polygons)
             {
-                // polygon indexes are 1-based (obj style)
                 for (var i = 2; i < poly.Count; i++)
                 {
-                    tris.Add(poly[0] - 1);
-                    tris.Add(poly[i - 1] - 1);
-                    tris.Add(poly[i] - 1);
+                    tris.Add(poly[0]);
+                    tris.Add(poly[i - 1]);
+                    tris.Add(poly[i]);
                 }
             }
             faces = tris.ToArray();
@@ -513,7 +493,7 @@ namespace ACE.Server.Pathfinding.Geometry
         private const float MaxObjectReach = 64.0f;
 
         /// <summary>
-        /// The bounds of a cell footprint's floors, in world coordinates.
+        /// The 2D bounds of a cell footprint's floors, in world coordinates.
         /// </summary>
         private class FootprintBounds
         {
@@ -523,8 +503,6 @@ namespace ACE.Server.Pathfinding.Geometry
             public float MaxX { get; set; }
             public float MinY { get; set; }
             public float MaxY { get; set; }
-            public float MinZ { get; set; }
-            public float MaxZ { get; set; }
 
             public bool ContainsPoint2D(Vector3 loc)
             {
@@ -542,22 +520,13 @@ namespace ACE.Server.Pathfinding.Geometry
                     MinX = pv.X;
                 if (!hasData || pv.Y < MinY)
                     MinY = pv.Y;
-                if (!hasData || pv.Z < MinZ)
-                    MinZ = pv.Z;
 
                 if (!hasData || pv.X > MaxX)
                     MaxX = pv.X;
                 if (!hasData || pv.Y > MaxY)
                     MaxY = pv.Y;
-                if (!hasData || pv.Z > MaxZ)
-                    MaxZ = pv.Z;
 
                 hasData = true;
-            }
-
-            public override string ToString()
-            {
-                return $"MinX:{MinX}, MinY:{MinY}, MinZ:{MinZ}, MaxX:{MaxX}, MaxY:{MaxY}, MaxZ:{MaxZ}";
             }
         }
 
@@ -623,7 +592,7 @@ namespace ACE.Server.Pathfinding.Geometry
         {
             var (min, max) = GeometryHelpers.GetBounds(points);
             if (IntersectsClip(min.X, min.Y, max.X, max.Y))
-                AddPolygon(points, NoFrames);
+                AddPolygon(points);
         }
 
         /// <summary>
@@ -652,10 +621,19 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
+        /// An object whose collision is only spheres, none larger than this radius, is left out of the navmesh
+        /// geometry: clutter such as bottles and books. One that small can't block a passage in the physics: on the
+        /// floor a creature steps over it, and anywhere else its spheres slide past. But the mesh keeps a whole agent
+        /// radius from it across the agent's height, which can cut a narrow way like a stair (e.g. landblock 0xCE95).
+        /// All such objects in the dat are a single sphere.
+        /// </summary>
+        private const float SmallObstacleSphereRadius = 0.2f;
+
+        /// <summary>
         /// The collision shape of a physics object as polygons, following the same rules the physics engine uses
         /// (PhysicsObj.FindObjCollisions): part BSP polygons when the object has a physics BSP, otherwise cylinder
         /// spheres, otherwise spheres. Posed and scaled as the object is, in the coordinates of its frame plus offset.
-        /// Nothing for an ethereal object.
+        /// Nothing for an ethereal object, nor for one of only small spheres (see SmallObstacleSphereRadius).
         /// </summary>
         /// <param name="usePolygons">Use the part BSP polygons whatever the object's state, as for buildings</param>
         private static IEnumerable<List<Vector3>> GetCollisionPolygons(ACE.Server.Physics.PhysicsObj obj, Vector3 offset, bool usePolygons)
@@ -694,7 +672,7 @@ namespace ACE.Server.Pathfinding.Geometry
             {
                 foreach (var cylSphere in cylSpheres)
                 {
-                    foreach (var poly in GetCylSpherePolygons(cylSphere.LowPoint * objScale, cylSphere.Height * objScale, cylSphere.Radius * objScale))
+                    foreach (var poly in ShapeTriangles.CylSphere(cylSphere.LowPoint * objScale, cylSphere.Height * objScale, cylSphere.Radius * objScale))
                         yield return poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList();
                 }
                 yield break;
@@ -703,9 +681,12 @@ namespace ACE.Server.Pathfinding.Geometry
             var spheres = obj.PartArray.GetSphere();
             if (spheres != null && spheres.Count > 0)
             {
+                if (spheres.All(s => s.Radius * objScale <= SmallObstacleSphereRadius))
+                    yield break;
+
                 foreach (var sphere in spheres)
                 {
-                    foreach (var poly in GetSpherePolygons(sphere.Center * objScale, sphere.Radius * objScale))
+                    foreach (var poly in ShapeTriangles.Sphere(sphere.Center * objScale, sphere.Radius * objScale))
                         yield return poly.Select(p => objFrame.LocalToGlobal(p) + offset).ToList();
                 }
             }
@@ -858,13 +839,13 @@ namespace ACE.Server.Pathfinding.Geometry
                         // counter-clockwise from above (upward facing), matching dat floor polygons
                         if (swToNeCut)
                         {
-                            AddPolygon(new List<Vector3>() { p00, p10, p11 }, NoFrames);
-                            AddPolygon(new List<Vector3>() { p00, p11, p01 }, NoFrames);
+                            AddPolygon(new List<Vector3>() { p00, p10, p11 });
+                            AddPolygon(new List<Vector3>() { p00, p11, p01 });
                         }
                         else
                         {
-                            AddPolygon(new List<Vector3>() { p00, p10, p01 }, NoFrames);
-                            AddPolygon(new List<Vector3>() { p11, p01, p10 }, NoFrames);
+                            AddPolygon(new List<Vector3>() { p00, p10, p01 });
+                            AddPolygon(new List<Vector3>() { p11, p01, p10 });
                         }
                         continue;
                     }
@@ -898,8 +879,8 @@ namespace ACE.Server.Pathfinding.Geometry
                             var b = points[i + 1, j];
                             var c = points[i + 1, j + 1];
                             var d = points[i, j + 1];
-                            AddPolygon(new List<Vector3>() { a, b, c }, NoFrames);
-                            AddPolygon(new List<Vector3>() { a, c, d }, NoFrames);
+                            AddPolygon(new List<Vector3>() { a, b, c });
+                            AddPolygon(new List<Vector3>() { a, c, d });
                         }
                     }
                 }
@@ -907,287 +888,5 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         #endregion
-
-        public static List<List<Vector3>> GetCylSpherePolygons(Vector3 origin, float height, float radius)
-        {
-            var num_sides = 12;
-            var axis = new Vector3(0, 0, height);
-            var results = new List<List<Vector3>>();
-            // Get two vectors perpendicular to the axis.
-            Vector3 v1;
-            if (axis.Z < -0.01 || axis.Z > 0.01)
-                v1 = new Vector3(axis.Z, axis.Z, -axis.X - axis.Y);
-            else
-                v1 = new Vector3(-axis.Y - axis.Z, axis.X, axis.X);
-            Vector3 v2 = Vector3.Cross(v1, axis);
-
-            // Make the vectors have length radius.
-            v1 *= radius / v1.Length();
-            v2 *= radius / v2.Length();
-
-            var Positions = new List<Vector3>();
-
-            // Make the top end cap.
-            // Make the end point.
-            int pt0 = Positions.Count; // Index of end_point.
-            Positions.Add(origin);
-
-            // Make the top points.
-            double theta = 0;
-            double dtheta = 2 * Math.PI / num_sides;
-            for (int i = 0; i < num_sides; i++)
-            {
-                Positions.Add(origin +
-                    (float)Math.Cos(theta) * v1 +
-                    (float)Math.Sin(theta) * v2);
-                theta += dtheta;
-            }
-
-            // Make the top triangles.
-            int pt1 = Positions.Count - 1; // Index of last point.
-            int pt2 = pt0 + 1;                  // Index of first point.
-            for (int i = 0; i < num_sides; i++)
-            {
-                results.Add(new List<Vector3>() { Positions[pt0], Positions[pt1], Positions[pt2] });
-                pt1 = pt2++;
-            }
-
-            // Make the bottom end cap.
-            // Make the end point.
-            pt0 = Positions.Count; // Index of end_point2.
-            Vector3 end_point2 = origin + axis;
-            Positions.Add(end_point2);
-
-            // Make the bottom points. 
-            theta = 0;
-            for (int i = 0; i < num_sides; i++)
-            {
-                Positions.Add(end_point2 +
-                    (float)Math.Cos(theta) * v1 +
-                    (float)Math.Sin(theta) * v2);
-                theta += dtheta;
-            }
-
-            // Make the bottom triangles.
-            theta = 0;
-            pt1 = Positions.Count - 1; // Index of last point.
-            pt2 = pt0 + 1;                  // Index of first point.
-            var p0 = Positions[num_sides + 1];
-
-            for (int i = 0; i < num_sides; i++)
-            {
-                results.Add(new List<Vector3>() { p0, Positions[pt2], Positions[pt1] });
-                pt1 = pt2++;
-            }
-
-            // Make the sides.
-            // Add the points to the mesh.
-            int first_side_point = Positions.Count;
-            theta = 0;
-            for (int i = 0; i < num_sides; i++)
-            {
-                Vector3 p1 = origin +
-                    (float)Math.Cos(theta) * v1 +
-                    (float)Math.Sin(theta) * v2;
-                Positions.Add(p1);
-                Vector3 p2 = p1 + axis;
-                Positions.Add(p2);
-                theta += dtheta;
-            }
-
-            // Make the side triangles.
-            pt1 = Positions.Count - 2;
-            pt2 = pt1 + 1;
-            int pt3 = first_side_point;
-            int pt4 = pt3 + 1;
-            for (int i = 0; i < num_sides; i++)
-            {
-                results.Add(new List<Vector3>() { Positions[pt1], Positions[pt2], Positions[pt4] });
-                results.Add(new List<Vector3>() { Positions[pt1], Positions[pt4], Positions[pt3] });
-
-                pt1 = pt3;
-                pt3 += 2;
-                pt2 = pt4;
-                pt4 += 2;
-            }
-
-            return results;
-        }
-
-        /// <summary>
-        /// The triangles of a sphere at the given center.
-        /// </summary>
-        public static List<List<Vector3>> GetSpherePolygons(Vector3 origin, float radius)
-        {
-            var results = new List<List<Vector3>>(UnitSphereTriangles.Count);
-            foreach (var triangle in UnitSphereTriangles)
-                results.Add(new List<Vector3>() { triangle[0] * radius + origin, triangle[1] * radius + origin, triangle[2] * radius + origin });
-
-            return results;
-        }
-
-        /// <summary>
-        /// A sphere of radius 1 around the origin: an icosahedron subdivided once, its vertices pushed out onto the
-        /// sphere. Built once, GetSpherePolygons scales and places it.
-        /// </summary>
-        private static readonly List<Vector3[]> UnitSphereTriangles = CreateUnitSphereTriangles();
-
-        private static List<Vector3[]> CreateUnitSphereTriangles()
-        {
-            var vectors = new List<Vector3>();
-            var indices = new List<int>();
-
-            Icosahedron(vectors, indices);
-            Subdivide(vectors, indices, true);
-
-            // reversed, the winding the sphere polygons have always had
-            var triangles = new List<Vector3[]>(indices.Count / 3);
-            for (var i = 0; i + 2 < indices.Count; i += 3)
-                triangles.Add(new[] { Vector3.Normalize(vectors[indices[i + 2]]), Vector3.Normalize(vectors[indices[i + 1]]), Vector3.Normalize(vectors[indices[i]]) });
-
-            return triangles;
-        }
-
-        private static int GetMidpointIndex(Dictionary<string, int> midpointIndices, List<Vector3> vertices, int i0, int i1)
-        {
-
-            var edgeKey = string.Format("{0}_{1}", Math.Min(i0, i1), Math.Max(i0, i1));
-
-            var midpointIndex = -1;
-
-            if (!midpointIndices.TryGetValue(edgeKey, out midpointIndex))
-            {
-                var v0 = vertices[i0];
-                var v1 = vertices[i1];
-
-                var midpoint = (v0 + v1) / 2f;
-
-                if (vertices.Contains(midpoint))
-                    midpointIndex = vertices.IndexOf(midpoint);
-                else
-                {
-                    midpointIndex = vertices.Count;
-                    vertices.Add(midpoint);
-                    midpointIndices.Add(edgeKey, midpointIndex);
-                }
-            }
-
-
-            return midpointIndex;
-
-        }
-
-        /// <remarks>
-        ///      i0
-        ///     /  \
-        ///    m02-m01
-        ///   /  \ /  \
-        /// i2---m12---i1
-        /// </remarks>
-        /// <param name="vectors"></param>
-        /// <param name="indices"></param>
-        public static void Subdivide(List<Vector3> vectors, List<int> indices, bool removeSourceTriangles)
-        {
-            var midpointIndices = new Dictionary<string, int>();
-
-            var newIndices = new List<int>(indices.Count * 4);
-
-            if (!removeSourceTriangles)
-                newIndices.AddRange(indices);
-
-            for (var i = 0; i < indices.Count - 2; i += 3)
-            {
-                var i0 = indices[i];
-                var i1 = indices[i + 1];
-                var i2 = indices[i + 2];
-
-                var m01 = GetMidpointIndex(midpointIndices, vectors, i0, i1);
-                var m12 = GetMidpointIndex(midpointIndices, vectors, i1, i2);
-                var m02 = GetMidpointIndex(midpointIndices, vectors, i2, i0);
-
-                newIndices.AddRange(
-                    new[]
-                    {
-                    i0,m01,m02
-                    ,
-                    i1,m12,m01
-                    ,
-                    i2,m02,m12
-                    ,
-                    m02,m01,m12
-                    }
-                    );
-
-            }
-
-            indices.Clear();
-            indices.AddRange(newIndices);
-        }
-
-        /// <summary>
-        /// create a regular icosahedron (20-sided polyhedron)
-        /// </summary>
-        /// <param name="primitiveType"></param>
-        /// <param name="size"></param>
-        /// <param name="vertices"></param>
-        /// <param name="indices"></param>
-        /// <remarks>
-        /// You can create this programmatically instead of using the given vertex 
-        /// and index list, but it's kind of a pain and rather pointless beyond a 
-        /// learning exercise.
-        /// </remarks>
-
-        /// note: icosahedron definition may have come from the OpenGL red book. I don't recall where I found it. 
-        public static void Icosahedron(List<Vector3> vertices, List<int> indices, float scale = 1f)
-        {
-
-            indices.AddRange(
-                new int[]
-                {
-                0,4,1,
-                0,9,4,
-                9,5,4,
-                4,5,8,
-                4,8,1,
-                8,10,1,
-                8,3,10,
-                5,3,8,
-                5,2,3,
-                2,7,3,
-                7,10,3,
-                7,6,10,
-                7,11,6,
-                11,0,6,
-                0,1,6,
-                6,1,10,
-                9,0,11,
-                9,11,2,
-                9,2,5,
-                7,2,11
-                }
-                .Select(i => i + vertices.Count)
-            );
-
-            var X = 0.525731112119133606f;
-            var Z = 0.850650808352039932f;
-
-            vertices.AddRange(
-                new[]
-                {
-                new Vector3(-X, 0f, Z),
-                new Vector3(X, 0f, Z),
-                new Vector3(-X, 0f, -Z),
-                new Vector3(X, 0f, -Z),
-                new Vector3(0f, Z, X),
-                new Vector3(0f, Z, -X),
-                new Vector3(0f, -Z, X),
-                new Vector3(0f, -Z, -X),
-                new Vector3(Z, X, 0f),
-                new Vector3(-Z, X, 0f),
-                new Vector3(Z, -X, 0f),
-                new Vector3(-Z, -X, 0f)
-                }
-            );
-        }
     }
 }

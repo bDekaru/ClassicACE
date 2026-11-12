@@ -84,8 +84,8 @@ namespace ACE.Server.Pathfinding.Geometry
     }
 
     /// <summary>
-    /// Contains all geometry data for a landblock. Use different methods to generate different data types,
-    /// like for mapping, nav, etc.
+    /// A landblock's dat data for the pathfinder: its LandblockInfo and its interior cells, split into groups that are
+    /// connected through cell portals.
     /// </summary>
     public class LandblockGeometry
     {
@@ -106,9 +106,7 @@ namespace ACE.Server.Pathfinding.Geometry
             get
             {
                 if (_landblockInfo is null)
-                {
                     _landblockInfo = DatManager.CellDat.ReadFromDat<LandblockInfo>(Id + 0xFFFE);
-                }
 
                 return _landblockInfo;
             }
@@ -138,17 +136,10 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// Create a new landblock geometry object
         /// </summary>
-        /// <param name="id">The id of the landblock. Should be in format 0xFFFF0000. If less than 0xFFFF, it will be shifted 16bits to the left</param>
+        /// <param name="id">The id of the landblock, or of any of its cells; only the landblock part (0xFFFF0000) is kept.</param>
         public LandblockGeometry(uint id)
         {
-            if (id <= 0xFFFF)
-            {
-                Id = id << 16;
-            }
-            else
-            {
-                Id = id & 0xFFFF0000;
-            }
+            Id = id & 0xFFFF0000;
         }
 
         /// <summary>
@@ -259,7 +250,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 return;
 
             // the middle of the cell, to tell which side of a portal is outside
-            var cellCenter = cellStruct.VertexArray.Vertices.Values.Aggregate(Vector3.Zero, (a, v) => a + envCell.Position.LocalToGlobal(v.Origin)) / Math.Max(1, cellStruct.VertexArray.Vertices.Count);
+            var cellCenter = GeometryHelpers.GetCellCenter(cellStruct, envCell.Position);
 
             foreach (var portal in envCell.CellPortals.Where(p => p.OtherCellId == 0xFFFF))
             {

@@ -8,12 +8,16 @@ using DotRecast.Recast.Geom;
 namespace ACE.Server.Pathfinding.Geometry
 {
 
-    public class NavMeshBuilder
+    /// <summary>
+    /// Builds navmeshes with Recast and Detour: one single-tile mesh per interior cell group, one tile per landblock
+    /// outdoors, each with its ledge drops (see LedgeDropFinder).
+    /// </summary>
+    public static class NavMeshBuilder
     {
         /// <summary>
         /// Builds a single-tile navmesh (an interior cell group) over all of the geometry.
         /// </summary>
-        public DtMeshData Build(CellGeometryProvider geom, MeshBuildSettings settings)
+        public static DtMeshData Build(NavMeshGeometry geom, MeshBuildSettings settings)
         {
             var bcfg = new RcBuilderConfig(CreateConfig(settings), geom.GetMeshBoundsMin(), geom.GetMeshBoundsMax());
             var rcResult = new RcBuilder().Build(geom, bcfg, false);
@@ -29,7 +33,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// radius plus 3 cells); the border is rasterized and then trimmed, so the walkable area at the tile edge is
         /// correct and its edge polys line up with the neighboring tiles', which lets Detour link them.
         /// </summary>
-        public DtMeshData BuildTile(CellGeometryProvider geom, MeshBuildSettings settings, int tileX, int tileZ, float tileSize)
+        public static DtMeshData BuildTile(NavMeshGeometry geom, MeshBuildSettings settings, int tileX, int tileZ, float tileSize)
         {
             var tileCells = (int)MathF.Round(tileSize / settings.CellSize);
             var borderSize = RcConfig.CalcBorder(settings.AgentRadius, settings.CellSize);
@@ -136,8 +140,8 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Creates the mesh data, with the drops down its ledges (see DropLinkFinder) as one-way off-mesh connections:
-        /// the ledges are found on the mesh without them, then the mesh data is created again with them. The drops
+        /// Creates the mesh data, with its ledge drops (see LedgeDropFinder) as one-way off-mesh connections:
+        /// the ledges are found on the mesh without them, then the mesh data is created again with them. The ledge drops
         /// get their area and flags from their connections.
         /// </summary>
         private static DtMeshData CreateMeshData(DtNavMeshCreateParams option, IRcInputGeomProvider geom, MeshBuildSettings settings)
@@ -146,11 +150,11 @@ namespace ACE.Server.Pathfinding.Geometry
             if (meshData == null)
                 return null;
 
-            var drops = DropLinkFinder.Find(meshData, geom, settings.VertsPerPoly, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
-            if (drops.Count == 0)
+            var ledgeDrops = LedgeDropFinder.Find(meshData, geom, settings.VertsPerPoly, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
+            if (ledgeDrops.Count == 0)
                 return meshData;
 
-            SetOffMeshConnections(option, drops);
+            SetOffMeshConnections(option, ledgeDrops);
 
             return DtNavMeshBuilder.CreateNavMeshData(option) ?? meshData;
         }

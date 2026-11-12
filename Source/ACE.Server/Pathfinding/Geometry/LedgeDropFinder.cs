@@ -2,33 +2,38 @@ using DotRecast.Core;
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
 using DotRecast.Recast.Geom;
+using ACE.Server.Physics;
+using ACE.Server.Physics.Animation;
 using System;
 using System.Collections.Generic;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
     /// <summary>
-    /// Finds the ledges an agent can drop down from, as one-way off-mesh connections from the edge of the upper floor
+    /// Finds the ledge drops of a mesh: the ledges an agent can drop down from, as one-way off-mesh connections from the edge of the upper floor
     /// to the floor below. Recast splits floors at any step taller than the agent's max climb, so without these a
     /// creature on a balcony walks around to the stairs, or can't reach the floor below at all.
     ///
-    /// A drop runs from a point just inside a boundary edge of the mesh, straight out over the edge, to the floor a
-    /// little past where the agent comes down. The mesh is eroded by the agent radius on both floors, so for a sheer
-    /// ledge the lower floor's mesh starts about two radii out from the upper floor's edge. A drop is only kept if the
-    /// geometry agrees: nothing in the way at body height between the edge and the landing (walls, railings), and the
-    /// first surface below the landing is that floor (not a slope, crate or ledge in between).
+    /// A ledge drop runs from a point just inside a boundary edge of the mesh, straight out over the edge, to the floor
+    /// where the agent comes down. Creatures walk off a ledge drop (see Creature.ContinueRoute), so every one leaves it
+    /// at walking speed and falls the same arc: it has no control in the air (see FallDistance). The mesh is eroded by
+    /// the agent radius on both floors, so for a sheer ledge the agent leaves the ground about a radius past the upper
+    /// floor's mesh, and the lower floor's mesh starts about two radii out. A ledge drop is only kept if the geometry
+    /// agrees: nothing in the way of the agent's body along its walk to the edge and its fall (walls, railings,
+    /// ceilings), and the first surface below where it comes down is the landing's floor (not a slope, crate or ledge
+    /// in between).
     /// </summary>
-    public static class DropLinkFinder
+    public static class LedgeDropFinder
     {
         /// <summary>
-        /// Bump when the drops found from the same mesh change, so cached meshes are rebuilt.
+        /// Bump when the ledge drops found from the same mesh change, so cached meshes are rebuilt.
         /// </summary>
-        public const int Version = 1;
+        public const int Version = 5; // 2: clearance tested up the whole body and along the path, 3: clearance from the agent's climb up, 4: landing tested from there down, 5: tested along a walking agent's fall
 
         /// <summary>
-        /// The highest drop a creature takes, from floor to floor.
+        /// The highest ledge drop a creature takes, from floor to floor.
         /// </summary>
-        public const float MaxDropHeight = 6.0f;
+        public const float MaxLedgeDropHeight = 6.0f;
 
         /// <summary>
         /// The spacing of the points tested along each boundary edge.
@@ -36,7 +41,7 @@ namespace ACE.Server.Pathfinding.Geometry
         private const float SampleSpacing = 0.75f;
 
         /// <summary>
-        /// Drops whose starts are closer together than this (and at about the same height) count as one.
+        /// Ledge drops whose starts are closer together than this (and at about the same height) count as one.
         /// </summary>
         private const float LinkSpacing = 2.0f;
 
@@ -57,42 +62,55 @@ namespace ACE.Server.Pathfinding.Geometry
         private const float SurfaceTolerance = 0.5f;
 
         /// <summary>
-        /// How far inside the boundary edge a drop starts, so the start is on its poly.
+        /// How far inside the boundary edge a ledge drop starts, so the start is on its poly.
         /// </summary>
         private const float StartInset = 0.05f;
 
         /// <summary>
-        /// The height above the upper floor of the lowest clearance test: a lip lower than this is stepped over.
+        /// How far below the agent's height the highest clearance test is, so a surface the agent just fits under
+        /// doesn't count as in the way.
         /// </summary>
-        private const float LowClearanceHeight = 0.5f;
+        private const float ClearanceTopMargin = 0.2f;
+
+        /// <summary>
+        /// The spacing of the horizontal clearance tests up the agent's body.
+        /// </summary>
+        private const float ClearanceHeightSpacing = 0.4f;
+
+        /// <summary>
+        /// The spacing of the vertical clearance tests along a ledge drop's path.
+        /// </summary>
+        private const float ClearancePathSpacing = 0.25f;
 
         private const int MaxLandingCandidates = 32;
 
         /// <summary>
-        /// Finds the drops of a single tile mesh, built from geom (in the same coordinates).
+        /// Finds the ledge drops of a single tile mesh, built from geom (in the same coordinates).
         /// </summary>
         public static List<RcOffMeshConnection> Find(DtMeshData data, IRcInputGeomProvider geom, int maxVertsPerPoly, float agentRadius, float agentHeight, float agentMaxClimb)
         {
-            var drops = new List<RcOffMeshConnection>();
+            var ledgeDrops = new List<RcOffMeshConnection>();
 
             if (data?.header == null || data.header.polyCount == 0)
-                return drops;
+                return ledgeDrops;
 
             var mesh = new DtNavMesh();
             if (mesh.Init(data, maxVertsPerPoly, 0).Failed())
-                return drops;
+                return ledgeDrops;
 
             var tile = mesh.GetTile(0);
             if (tile?.data == null)
-                return drops;
+                return ledgeDrops;
 
             var query = new DtNavMeshQuery(mesh);
             var filter = new DtQueryDefaultFilter();
             var baseRef = mesh.GetPolyRefBase(tile);
 
-            var minDrop = agentMaxClimb;
+            var minLedgeDrop = agentMaxClimb;
             var landingDistance = agentRadius * 2f + LandingOvershoot;
-            var highClearanceHeight = Math.Max(LowClearanceHeight, Math.Min(agentHeight - 0.2f, 1.6f));
+            // a lip lower than the agent's climb is stepped over on the way off the ledge; a higher one stops it
+            var clearanceBottom = agentMaxClimb;
+            var clearanceTop = Math.Max(clearanceBottom, agentHeight - ClearanceTopMargin);
             var landingCandidates = new long[MaxLandingCandidates];
             var starts = new List<RcVec3f>();
 
@@ -144,43 +162,57 @@ namespace ACE.Server.Pathfinding.Geometry
                         if (IsNearAccepted(starts, start))
                             continue;
 
-                        var probe = new RcVec3f(start.X + normal.X * landingDistance, start.Y, start.Z + normal.Z * landingDistance);
-
-                        if (!TryFindLanding(query, filter, landingCandidates, polyRef, start, probe, minDrop, out var landing))
+                        // the floor below, just past the lower floor's eroded edge
+                        if (!TryFindLanding(query, filter, landingCandidates, polyRef, start, Along(start, normal, landingDistance), minLedgeDrop, out var landing))
                             continue;
 
-                        // nothing in the way at body height between the edge and over the landing
-                        if (SegmentHitsGeometry(geom, Offset(start, LowClearanceHeight), Offset(probe, LowClearanceHeight)) ||
-                            SegmentHitsGeometry(geom, Offset(start, highClearanceHeight), Offset(probe, highClearanceHeight)))
+                        // Where a walking agent comes down: it leaves the ground at the ledge's edge, about a radius past
+                        // the mesh's, and falls FallDistance further out, but no nearer the ledge's face than its radius.
+                        var dropHeight = start.Y - landing.Y;
+                        var touchdownDistance = Math.Max(agentRadius + FallDistance(dropHeight), agentRadius * 2f);
+
+                        // Further out than the floor found above: the landing is there, and must be the same floor.
+                        if (touchdownDistance > landingDistance)
+                        {
+                            if (!TryFindLanding(query, filter, landingCandidates, polyRef, start, Along(start, normal, touchdownDistance), minLedgeDrop, out var farLanding) ||
+                                Math.Abs(farLanding.Y - landing.Y) > SurfaceTolerance)
+                                continue;
+
+                            landing = farLanding;
+                        }
+
+                        if (!HasFallClearance(geom, start, normal, agentRadius, touchdownDistance, landing.Y, clearanceBottom, clearanceTop))
                             continue;
 
                         // the agent comes down on the landing floor, at its center and at either side of its body
+                        var touchdown = Along(start, normal, touchdownDistance);
                         var side = new RcVec3f(-normal.Z * agentRadius * 0.6f, 0f, normal.X * agentRadius * 0.6f);
-                        if (!FallsOnto(geom, probe, start.Y, landing.Y) ||
-                            !FallsOnto(geom, new RcVec3f(probe.X + side.X, probe.Y, probe.Z + side.Z), start.Y, landing.Y) ||
-                            !FallsOnto(geom, new RcVec3f(probe.X - side.X, probe.Y, probe.Z - side.Z), start.Y, landing.Y))
+                        var fallFrom = landing.Y + clearanceBottom;
+                        if (!FallsOnto(geom, touchdown, fallFrom, landing.Y) ||
+                            !FallsOnto(geom, new RcVec3f(touchdown.X + side.X, touchdown.Y, touchdown.Z + side.Z), fallFrom, landing.Y) ||
+                            !FallsOnto(geom, new RcVec3f(touchdown.X - side.X, touchdown.Y, touchdown.Z - side.Z), fallFrom, landing.Y))
                             continue;
 
                         starts.Add(start);
-                        drops.Add(new RcOffMeshConnection(start, landing, agentRadius * 0.5f, false,
-                            NavArea.Drop, NavPolyFlags.Drop));
+                        ledgeDrops.Add(new RcOffMeshConnection(start, landing, agentRadius * 0.5f, false,
+                            NavArea.LedgeDrop, NavPolyFlags.LedgeDrop));
                     }
                 }
             }
 
-            return drops;
+            return ledgeDrops;
         }
 
         /// <summary>
         /// Finds the floor the agent lands on below the probe point: the highest poly under it (within
-        /// LandingSearchRadius) that is between minDrop and MaxDropHeight below the start.
+        /// LandingSearchRadius) that is between minLedgeDrop and MaxDropHeight below the start.
         /// </summary>
-        private static bool TryFindLanding(DtNavMeshQuery query, IDtQueryFilter filter, long[] candidates, long startRef, RcVec3f start, RcVec3f probe, float minDrop, out RcVec3f landing)
+        private static bool TryFindLanding(DtNavMeshQuery query, IDtQueryFilter filter, long[] candidates, long startRef, RcVec3f start, RcVec3f probe, float minLedgeDrop, out RcVec3f landing)
         {
             landing = default;
 
-            var halfHeight = (MaxDropHeight - minDrop) * 0.5f;
-            var center = new RcVec3f(probe.X, start.Y - minDrop - halfHeight, probe.Z);
+            var halfHeight = (MaxLedgeDropHeight - minLedgeDrop) * 0.5f;
+            var center = new RcVec3f(probe.X, start.Y - minLedgeDrop - halfHeight, probe.Z);
             var halfExtents = new RcVec3f(LandingSearchRadius, halfHeight, LandingSearchRadius);
 
             if (query.QueryPolygons(center, halfExtents, filter, candidates, out var count, candidates.Length).Failed())
@@ -200,8 +232,8 @@ namespace ACE.Server.Pathfinding.Geometry
                 if (dx * dx + dz * dz > LandingSearchRadius * LandingSearchRadius)
                     continue;
 
-                var drop = start.Y - point.Y;
-                if (drop < minDrop || drop > MaxDropHeight)
+                var dropHeight = start.Y - point.Y;
+                if (dropHeight < minLedgeDrop || dropHeight > MaxLedgeDropHeight)
                     continue;
 
                 // the first floor below is the one landed on
@@ -216,12 +248,40 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// True if something falling straight down from above the upper floor at this point first hits a surface at
-        /// the landing height.
+        /// How far out (horizontally) an agent that walks off a ledge comes down, from where it leaves the ground: it
+        /// keeps the walking speed it had (MotionInterp.LeaveGround), with no control in the air and no drag, so it
+        /// falls a plain arc under gravity.
         /// </summary>
-        private static bool FallsOnto(IRcInputGeomProvider geom, RcVec3f at, float upperY, float landingY)
+        private static float FallDistance(float dropHeight)
         {
-            var from = new RcVec3f(at.X, upperY + LowClearanceHeight, at.Z);
+            return MotionInterp.WalkAnimSpeed * MathF.Sqrt(2f * dropHeight / -PhysicsGlobals.Gravity);
+        }
+
+        /// <summary>
+        /// The height of a walking agent's feet when it is horizontally this far out from the ledge drop's start: at the
+        /// start's height until it leaves the ground at edgeDistance, then falling (see FallDistance), down to the
+        /// landing's.
+        /// </summary>
+        private static float FallHeight(float startY, float landingY, float edgeDistance, float distance)
+        {
+            if (distance <= edgeDistance)
+                return startY;
+
+            var time = (distance - edgeDistance) / MotionInterp.WalkAnimSpeed;
+            return Math.Max(landingY, startY + 0.5f * PhysicsGlobals.Gravity * time * time);
+        }
+
+        private static RcVec3f Along(RcVec3f start, RcVec3f normal, float distance) =>
+            new RcVec3f(start.X + normal.X * distance, start.Y, start.Z + normal.Z * distance);
+
+        /// <summary>
+        /// True if something falling straight down from fromY at this point first hits a surface at the landing height.
+        /// fromY is where the fall clearance test (see HasFallClearance) ends at the touchdown, the agent's climb above
+        /// the landing: anything higher is in the agent's way, and anything lower is what it comes down on.
+        /// </summary>
+        private static bool FallsOnto(IRcInputGeomProvider geom, RcVec3f at, float fromY, float landingY)
+        {
+            var from = new RcVec3f(at.X, fromY, at.Z);
             var to = new RcVec3f(at.X, landingY - SurfaceTolerance * 2f, at.Z);
 
             if (!RaycastGeometry(geom, from, to, out var t))
@@ -229,6 +289,46 @@ namespace ACE.Server.Pathfinding.Geometry
 
             var hitY = from.Y + (to.Y - from.Y) * t;
             return Math.Abs(hitY - landingY) <= SurfaceTolerance;
+        }
+
+        /// <summary>
+        /// True if nothing is in the way of the agent's body as it walks from the ledge drop's start to the edge
+        /// (edgeDistance out) and falls to the touchdown (touchdownDistance out), from bottom (its climb: a lower lip is
+        /// stepped over) up to top above its feet (see FallHeight). Between points along the way, tests at heights up the
+        /// body catch walls and railings across the path; at each point, a vertical test catches a ceiling or overhang
+        /// above it. Tests at fixed heights alone miss a ceiling edge that lies between two of them (e.g. landblock
+        /// 0xCE95, where a ledge drop off the side of a stair ran under the ground floor's ceiling).
+        /// </summary>
+        private static bool HasFallClearance(IRcInputGeomProvider geom, RcVec3f start, RcVec3f normal, float edgeDistance, float touchdownDistance, float landingY, float bottom, float top)
+        {
+            var samples = Math.Max(1, (int)MathF.Ceiling(touchdownDistance / ClearancePathSpacing));
+            var previous = start;
+
+            for (var i = 0; i <= samples; i++)
+            {
+                var distance = touchdownDistance * i / samples;
+                var at = Along(start, normal, distance);
+                at.Y = FallHeight(start.Y, landingY, edgeDistance, distance);
+
+                if (SegmentHitsGeometry(geom, Offset(at, bottom), Offset(at, top)))
+                    return false;
+
+                if (i > 0)
+                {
+                    for (var height = bottom; height < top; height += ClearanceHeightSpacing)
+                    {
+                        if (SegmentHitsGeometry(geom, Offset(previous, height), Offset(at, height)))
+                            return false;
+                    }
+
+                    if (SegmentHitsGeometry(geom, Offset(previous, top), Offset(at, top)))
+                        return false;
+                }
+
+                previous = at;
+            }
+
+            return true;
         }
 
         private static bool SegmentHitsGeometry(IRcInputGeomProvider geom, RcVec3f from, RcVec3f to)

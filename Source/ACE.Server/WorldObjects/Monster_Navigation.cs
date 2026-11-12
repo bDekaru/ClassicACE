@@ -536,24 +536,7 @@ namespace ACE.Server.WorldObjects
 
             if (IsRouting)
             {
-                // A move cancelled from outside (e.g. UpdateMoveSpeed when a spell changes the move speed) completes
-                // with ObjectGone, which leaves no step pending, and nothing else resumes a route home: head for the
-                // waypoint it was interrupted on again.
-                if (!PendingEndRoute && !PendingRetryRoute && !PendingContinueRoute && !HasPendingMovement && MoveReady())
-                {
-                    if (DebugMove)
-                        Console.WriteLine($"{Name} ({Guid}).UpdateMoveToHome() - resuming the interrupted route home");
-
-                    RewindToRouteTarget();
-                    PendingContinueRoute = true;
-                }
-
-                if (PendingEndRoute)
-                    EndRoute(false);
-                else if (PendingRetryRoute)
-                    RetryRoute();
-                else if (PendingContinueRoute)
-                    ContinueRoute();
+                UpdateRouteToDestination();
 
                 // the route is over: done, or given up after failing to move
                 if (!IsRouting && IsMovingToHome)
@@ -564,6 +547,32 @@ namespace ACE.Server.WorldObjects
 
             if (PendingEndMoveToHome)
                 EndMoveToHome();
+        }
+
+        /// <summary>
+        /// Runs the next step of a route to a fixed position (see TryStartRouteTo), from the monster tick: one route
+        /// home, or a test route (see TryStartTestRoute).
+        /// </summary>
+        private void UpdateRouteToDestination()
+        {
+            // A move cancelled from outside (e.g. UpdateMoveSpeed when a spell changes the move speed) completes with
+            // ObjectGone, which leaves no step pending, and nothing else resumes a route to a position: head for the
+            // waypoint it was interrupted on again.
+            if (!PendingEndRoute && !PendingRetryRoute && !PendingContinueRoute && !HasPendingMovement && MoveReady())
+            {
+                if (DebugMove)
+                    Console.WriteLine($"{Name} ({Guid}).UpdateRouteToDestination() - resuming the interrupted route");
+
+                RewindToRouteTarget();
+                PendingContinueRoute = true;
+            }
+
+            if (PendingEndRoute)
+                EndRoute(false);
+            else if (PendingRetryRoute)
+                RetryRoute();
+            else if (PendingContinueRoute)
+                ContinueRoute();
         }
 
         /// <summary>
@@ -927,11 +936,6 @@ namespace ACE.Server.WorldObjects
         private bool IsRouteSteppingOut = false;
 
         /// <summary>
-        /// True when CurrentRoute was planned to the attack target (not handed in by a debug command), so it may be re-planned.
-        /// </summary>
-        private bool RouteIsPlanned = false;
-
-        /// <summary>
         /// Where the attack target was when the current route was planned.
         /// </summary>
         private Position RoutePlannedTargetLocation;
@@ -939,7 +943,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// A route is re-planned once the target has moved this far from where it was planned to...
         /// </summary>
-        private const float RouteReplanTargetMovedDistance = 3.0f;
+        private const float RouteReplanTargetMovedDistance = 10.0f;
 
         /// <summary>
         /// ...but no more often than this, in seconds.
@@ -965,27 +969,32 @@ namespace ACE.Server.WorldObjects
         private int PartialRouteReplanCount = 0;
 
         /// <summary>
-        /// True while heading from the start of a drop down a ledge to its landing (see RoutePosition.IsDropStart).
+        /// True while heading from the start of a ledge drop to its landing (see RoutePosition.IsLedgeDropStart).
         /// </summary>
-        private bool IsRouteDropping = false;
+        private bool IsLedgeDropping = false;
 
         /// <summary>
-        /// True if EdgeSlide was cleared for the current drop, to be set again once it is over.
+        /// How many times in a row the current route's ledge drop has failed (see ContinueRoute). Kept apart from
+        /// FailedMovementCount, which the successful move back to the ledge drop's start resets each time.
         /// </summary>
-        private bool RouteDropRestoreEdgeSlide = false;
+        private int FailedLedgeDropCount = 0;
+
+        /// <summary>
+        /// True if EdgeSlide was cleared for the current ledge drop, to be set again once it is over.
+        /// </summary>
+        private bool LedgeDropRestoreEdgeSlide = false;
 
         /// <summary>
         /// True if this creature routes with the pathfinder where it stands: indoors and on the landscape alike.
         /// </summary>
         public bool CanRouteHere => UsesPathfinding && Location != null;
 
-        public void TryRoute(List<Position> route = null)
+        public void TryRoute()
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).TryRoute()");
 
-            // an explicitly provided route (debug commands) may also be on the surface
-            if (!UsesPathfinding || (route == null && !CanRouteHere) || AttackTarget == null || IsRouting)
+            if (!CanRouteHere || AttackTarget == null || IsRouting)
                 return;
 
             IsRouteStartPending = true;
@@ -993,7 +1002,7 @@ namespace ACE.Server.WorldObjects
             RouteAttackTarget = AttackTarget;
             RouteDestination = null;
             RoutePositionTarget = null;
-            CurrentRoute = route;
+            CurrentRoute = null;
             CurrentRouteIndex = 0;
             LastRouteStartAttemptWasNullRoute = false;
         }
@@ -1016,6 +1025,65 @@ namespace ACE.Server.WorldObjects
             StartRoute();
 
             return IsRouting;
+        }
+
+        /// <summary>
+        /// True while this creature follows a test route (see TryStartTestRoute). Cleared when the route ends.
+        /// </summary>
+        public bool IsTestRouting { get; private set; }
+
+        /// <summary>
+        /// True while the current route is walked rather than run (a test route, see TryStartTestRoute). Cleared when
+        /// the route ends.
+        /// </summary>
+        private bool IsRouteWalking = false;
+
+        /// <summary>
+        /// Sends this creature along a route to a fixed position, to test the pathfinder (see @pathtome), running, or
+        /// walking with walk. Whatever it was doing gives way, including its attack target and a move home, and it
+        /// wakes if it was asleep. Until the route ends it only follows the route: it doesn't look for targets or head
+        /// home. Afterwards it carries on as an awake creature without a target, which heads home. Returns false if it
+        /// couldn't start: pathfinding off, no route, or busy (e.g. mid-animation).
+        /// </summary>
+        public bool TryStartTestRoute(Position destination, bool walk = false)
+        {
+            if (!CanRouteHere || destination == null)
+                return false;
+
+            IsEmotePending = false;
+            IsWanderingPending = false;
+            IsRouteStartPending = false;
+
+            if (IsEmoting)
+                EndEmoting();
+
+            if (IsWandering)
+                EndWandering();
+
+            // without heading home, which EndGrantPassage does for a creature woken just to grant passage
+            AwakeJustToGrantPassage = false;
+            if (IsGrantingPassage || IsGrantPassagePending)
+                EndGrantPassage();
+
+            if (IsRouting)
+                EndRoute();
+
+            // without going to sleep, which EndMoveToHome would do
+            IsMoveToHomePending = false;
+            IsMovingToHome = false;
+            PendingEndMoveToHome = false;
+
+            AttackTarget = null;
+
+            if (!IsAwake)
+            {
+                MonsterState = State.Awake;
+                IsAwake = true;
+            }
+
+            IsTestRouting = TryStartRouteTo(destination);
+            IsRouteWalking = IsTestRouting && walk;
+            return IsTestRouting;
         }
 
         /// <summary>
@@ -1091,14 +1159,14 @@ namespace ACE.Server.WorldObjects
         private bool ShouldReplanRoute()
         {
             // a fixed destination doesn't move
-            if (RouteDestination != null || !RouteIsPlanned || AttackTarget == null || AttackTarget != RouteAttackTarget || RoutePlannedTargetLocation == null)
+            if (RouteDestination != null || AttackTarget == null || AttackTarget != RouteAttackTarget || RoutePlannedTargetLocation == null)
                 return false;
 
             if (Time.GetUnixTime() - LastRouteTime < RouteReplanMinInterval)
                 return false;
 
-            // finish the drop first: a new route planned from the ledge may lead another way
-            if (IsRouteDropping)
+            // finish the ledge drop first: a new route planned from the ledge may lead another way
+            if (IsLedgeDropping)
                 return false;
 
             if (!CanPlanRouteThisTick)
@@ -1147,16 +1215,11 @@ namespace ACE.Server.WorldObjects
 
             var toDestination = RouteDestination != null;
 
-            RouteIsPlanned = CurrentRoute == null;
             RoutePlannedTargetLocation = toDestination ? null : new Position(AttackTarget.Location);
 
             PartialRouteReplanCount = 0;
-            RouteReachesTarget = !RouteIsPlanned; // a provided route is followed as is
-            if (RouteIsPlanned)
-            {
-                CurrentRoute = PlanRoute(out var reachesTarget);
-                RouteReachesTarget = reachesTarget;
-            }
+            CurrentRoute = PlanRoute(out var reachesTarget);
+            RouteReachesTarget = reachesTarget;
 
             if (CurrentRoute == null || CurrentRoute.Count == 0)
             {
@@ -1190,22 +1253,34 @@ namespace ACE.Server.WorldObjects
             if (DebugMove && !retry)
                 Console.WriteLine($"{Name} ({Guid}).ContinueRoute()");
 
-            if(retry)
+            if (retry)
                 PendingRetryRoute = false;
             else
                 PendingContinueRoute = false;
 
-            // landed, or the drop failed
-            var wasDropping = IsRouteDropping;
-            EndRouteDrop();
+            // landed, or the ledge drop failed
+            var wasLedgeDropping = IsLedgeDropping;
+            EndLedgeDrop();
 
-            // A failed drop (e.g. stuck on the lip) is tried again from its start, rather than heading for the waypoint
-            // after the landing along the edge. FailedRoutingThreshold still ends the route if it keeps failing.
-            if (retry && wasDropping && CurrentRouteIndex >= 2 && RoutePosition.IsDrop(CurrentRoute?[CurrentRouteIndex - 2]))
+            // A failed ledge drop (e.g. stuck on the lip) is tried again from its start, rather than heading for the waypoint
+            // after the landing along the edge. Reaching the start again resets FailedMovementCount, so the ledge drop's own
+            // failures are counted, and FailedRoutingThreshold of them in a row end the route.
+            if (retry && wasLedgeDropping && CurrentRouteIndex >= 2 && RoutePosition.IsLedgeDrop(CurrentRoute?[CurrentRouteIndex - 2]))
             {
+                if (++FailedLedgeDropCount >= FailedRoutingThreshold)
+                {
+                    if (DebugMove)
+                        Console.WriteLine($"{Name} ({Guid}).ContinueRoute() - the ledge drop failed {FailedLedgeDropCount} times, giving up the route");
+
+                    EndRoute();
+                    return;
+                }
+
                 CurrentRouteIndex -= 2;
                 retry = false;
             }
+            else if (wasLedgeDropping && !retry)
+                FailedLedgeDropCount = 0; // landed
 
             var toDestination = RouteDestination != null;
 
@@ -1232,16 +1307,16 @@ namespace ACE.Server.WorldObjects
                     return;
                 }
 
-                // At the start of a drop, the next waypoint is where it lands: head straight for it, off the ledge.
-                var atDropStart = CurrentRouteIndex > 0 && RoutePosition.IsDrop(CurrentRoute[CurrentRouteIndex - 1]);
+                // At the start of a ledge drop, the next waypoint is where it lands: head straight for it, off the ledge.
+                var atLedgeDropStart = CurrentRouteIndex > 0 && RoutePosition.IsLedgeDrop(CurrentRoute[CurrentRouteIndex - 1]);
 
-                if (!atDropStart)
+                if (!atLedgeDropStart)
                 {
                     for (var skipIndex = CurrentRouteIndex; skipIndex < CurrentRoute.Count; skipIndex++)
                     {
-                        // Skip insignificant distance steps, but not the start of a drop: it must be reached, as the
-                        // drop was only checked from there.
-                        if (Location.DistanceTo(CurrentRoute[skipIndex]) > 2.0f || RoutePosition.IsDrop(CurrentRoute[skipIndex]))
+                        // Skip insignificant distance steps, but not the start of a ledge drop: it must be reached, as the
+                        // ledge drop was only checked from there.
+                        if (Location.DistanceTo(CurrentRoute[skipIndex]) > 2.0f || RoutePosition.IsLedgeDrop(CurrentRoute[skipIndex]))
                         {
                             CurrentRouteIndex = skipIndex;
                             break;
@@ -1252,8 +1327,8 @@ namespace ACE.Server.WorldObjects
                 RoutePositionTarget = CurrentRoute[CurrentRouteIndex];
                 CurrentRouteIndex++;
 
-                if (atDropStart)
-                    BeginRouteDrop();
+                if (atLedgeDropStart)
+                    BeginLedgeDrop();
             }
             else
             {
@@ -1262,7 +1337,7 @@ namespace ACE.Server.WorldObjects
                 var nearbyWallPos = Pathfinder.GetNearestWallPosition(Location, 1.0f, agentSize, out _, false);
                 if (nearbyWallPos != null)
                 {
-                    // A mesh edge can also be a drop or one side of a narrow corridor, so stepping out from it can
+                    // A mesh edge can also be a ledge or one side of a narrow corridor, so stepping out from it can
                     // leave the mesh: bring the point back onto it.
                     var wallAvoidingPos = Pathfinder.GetClosestPointOnMesh(nearbyWallPos.InFrontOf(1.2f), agentSize);
                     if (wallAvoidingPos != null)
@@ -1275,7 +1350,7 @@ namespace ACE.Server.WorldObjects
                         RewindToRouteTarget();
                         IsRouteSteppingOut = true;
 
-                        MoveTo(wallAvoidingPos, RouteWaypointRadius, 1.0f, false, useSpheres: false);
+                        MoveTo(wallAvoidingPos, RouteWaypointRadius, 1.0f, false, useSpheres: false, walk: IsRouteWalking);
                         return;
                     }
                 }
@@ -1285,8 +1360,9 @@ namespace ACE.Server.WorldObjects
                 CancelMoveTo(WeenieError.ObjectGone);
             FailedSightCount = 0;
 
-            // measured from the centre: a waypoint counts as reached where it is, not a body radius early
-            MoveTo(RoutePositionTarget, RouteWaypointRadius, 1.0f, false, useSpheres: false);
+            // Measured from the centre: a waypoint counts as reached where it is, not a body radius early. A ledge drop
+            // is walked off, so the creature comes down where LedgeDropFinder tested: running, it would land further out.
+            MoveTo(RoutePositionTarget, RouteWaypointRadius, 1.0f, false, useSpheres: false, walk: IsRouteWalking || IsLedgeDropping);
         }
 
         /// <summary>
@@ -1298,7 +1374,7 @@ namespace ACE.Server.WorldObjects
         {
             var toDestination = RouteDestination != null;
 
-            if (!RouteIsPlanned || RouteReachesTarget || (!toDestination && AttackTarget == null) || PartialRouteReplanCount >= MaxPartialRouteReplans)
+            if (RouteReachesTarget || (!toDestination && AttackTarget == null) || PartialRouteReplanCount >= MaxPartialRouteReplans)
                 return false;
 
             PartialRouteReplanCount++;
@@ -1326,36 +1402,36 @@ namespace ACE.Server.WorldObjects
         }
 
         /// <summary>
-        /// Lets this creature walk off the ledge at the start of a drop: EdgeSlide would keep it on the edge.
-        /// MoveTo waits while it falls and goes on when it lands.
+        /// Lets this creature walk off the ledge at the start of a ledge drop: EdgeSlide would keep it on the edge.
+        /// MoveTo waits while it falls and goes on when it lands. The move to the landing walks (see ContinueRoute).
         /// </summary>
-        private void BeginRouteDrop()
+        private void BeginLedgeDrop()
         {
             if (DebugMove)
-                Console.WriteLine($"{Name} ({Guid}).BeginRouteDrop()");
+                Console.WriteLine($"{Name} ({Guid}).BeginLedgeDrop()");
 
-            IsRouteDropping = true;
+            IsLedgeDropping = true;
 
             if (PhysicsObj != null && PhysicsObj.State.HasFlag(PhysicsState.EdgeSlide))
             {
                 PhysicsObj.State &= ~PhysicsState.EdgeSlide;
-                RouteDropRestoreEdgeSlide = true;
+                LedgeDropRestoreEdgeSlide = true;
             }
         }
 
-        private void EndRouteDrop()
+        private void EndLedgeDrop()
         {
-            if (!IsRouteDropping)
+            if (!IsLedgeDropping)
                 return;
 
             if (DebugMove)
-                Console.WriteLine($"{Name} ({Guid}).EndRouteDrop()");
+                Console.WriteLine($"{Name} ({Guid}).EndLedgeDrop()");
 
-            if (RouteDropRestoreEdgeSlide && PhysicsObj != null)
+            if (LedgeDropRestoreEdgeSlide && PhysicsObj != null)
                 PhysicsObj.State |= PhysicsState.EdgeSlide;
 
-            IsRouteDropping = false;
-            RouteDropRestoreEdgeSlide = false;
+            IsLedgeDropping = false;
+            LedgeDropRestoreEdgeSlide = false;
         }
 
         /// <summary>
@@ -1392,17 +1468,19 @@ namespace ACE.Server.WorldObjects
             if (HasPendingMovement)
                 CancelMoveTo(WeenieError.ObjectGone);
 
-            EndRouteDrop();
+            EndLedgeDrop();
 
             IsRouteStartPending = false;
             IsRouting = false;
+            IsTestRouting = false;
+            IsRouteWalking = false;
+            FailedLedgeDropCount = 0;
             RoutePositionTarget = null;
             RouteAttackTarget = null;
             RouteDestination = null;
             CurrentRoute = null;
             CurrentRouteIndex = 0;
             LastRouteStartAttemptWasNullRoute = false;
-            RouteIsPlanned = false;
             RoutePlannedTargetLocation = null;
             RouteReachesTarget = false;
             PartialRouteReplanCount = 0;

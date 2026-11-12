@@ -35,14 +35,14 @@ namespace ACE.Server.Pathfinding
         /// Part of the interior mesh cache file names. Build setting changes are picked up automatically; bump this
         /// when the exported geometry changes, so cached meshes built from the old geometry are not loaded.
         /// </summary>
-        private const int MeshGeometryVersion = 5; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons built per agent size, 4: cell statics shaped as the server's physics objects, spheres at their centers, 5: cells only grouped through two-way portals, rim doors for portals not in a wall
+        private const int MeshGeometryVersion = 6; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons built per agent size, 4: cell statics shaped as the server's physics objects, spheres at their centers, 5: cells only grouped through two-way portals, rim doors for portals not in a wall, 6: no small sphere obstacles
 
         /// <summary>
         /// Like MeshGeometryVersion, for the outdoor tiles. 2: tiles in world coordinates with a border from the
         /// neighboring landblocks. 3: the objects of every landblock come from the dat, loaded or not. 4: spheres at
-        /// their centers.
+        /// their centers. 5: no small sphere obstacles.
         /// </summary>
-        private const int OutdoorMeshGeometryVersion = 4;
+        private const int OutdoorMeshGeometryVersion = 5;
 
         /// <summary>
         /// After an outdoor tile build fails, no new attempt is made for this long (unless a rebuild is requested).
@@ -77,7 +77,8 @@ namespace ACE.Server.Pathfinding
         public static string OutdoorMeshDirectory => Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Pathfinding", "Meshes", "Outdoors");
 
         /// <summary>
-        /// The interior group meshes, by mesh id (see GetMeshId). A placeholder while a mesh is loading.
+        /// The interior group meshes, by mesh id (see GetMeshId): a placeholder while a mesh is loading, or an empty or
+        /// failed entry for a load that ended without one (see InteriorMesh).
         /// </summary>
         private static readonly ConcurrentDictionary<uint, InteriorMesh> Meshes = new ConcurrentDictionary<uint, InteriorMesh>();
 
@@ -89,7 +90,7 @@ namespace ACE.Server.Pathfinding
         /// mesh that was unloaded or rebuilt while it was loading has another placeholder or none, and the stale result
         /// is dropped. ConcurrentDictionary.TryUpdate compares by reference here, as Equals isn't overridden.
         /// A load that ends without a mesh (nothing walkable for the size, or a failed build) replaces its placeholder
-        /// with a missing mesh the same way, which stays until the landblock unloads or the mesh is rebuilt.
+        /// the same way, with an empty or failed one, which stays until the landblock unloads or the mesh is rebuilt.
         /// </summary>
         private sealed class InteriorMesh
         {
@@ -97,31 +98,34 @@ namespace ACE.Server.Pathfinding
             public readonly List<CellGroupDoor> PassableDoors;
 
             /// <summary>
-            /// True for a load that ended without a mesh, false for a placeholder still loading.
+            /// Loaded with a mesh, Loading for a placeholder, or Empty or Failed for a load that ended without one.
             /// </summary>
-            public readonly bool IsMissing;
+            public readonly MeshLoadStatus Status;
 
             /// <summary>
-            /// No mesh to query: still loading, or missing.
+            /// No mesh to query: still loading, empty or failed.
             /// </summary>
             public bool IsPlaceholder => Mesh == null;
 
-            public bool IsLoading => Mesh == null && !IsMissing;
+            public bool IsLoading => Status == MeshLoadStatus.Loading;
 
             public InteriorMesh(DtNavMesh mesh, List<CellGroupDoor> passableDoors)
             {
                 Mesh = mesh;
                 PassableDoors = passableDoors;
+                Status = MeshLoadStatus.Loaded;
             }
 
-            private InteriorMesh(bool isMissing)
+            private InteriorMesh(MeshLoadStatus status)
             {
-                IsMissing = isMissing;
+                Status = status;
             }
 
-            public static InteriorMesh CreatePlaceholder() => new InteriorMesh(false);
+            public static InteriorMesh CreatePlaceholder() => new InteriorMesh(MeshLoadStatus.Loading);
 
-            public static InteriorMesh CreateMissing() => new InteriorMesh(true);
+            public static InteriorMesh CreateEmpty() => new InteriorMesh(MeshLoadStatus.Empty);
+
+            public static InteriorMesh CreateFailed() => new InteriorMesh(MeshLoadStatus.Failed);
         }
 
         /// <summary>
@@ -133,6 +137,12 @@ namespace ACE.Server.Pathfinding
         /// Landblocks (0xAAAA0000) whose outdoor tiles are loaded, or loading.
         /// </summary>
         private static readonly ConcurrentDictionary<uint, byte> OutdoorTilesRequested = new ConcurrentDictionary<uint, byte>();
+
+        /// <summary>
+        /// Requested landblocks (0xAAAA0000) whose outdoor tile build has finished: a tile of an agent size that is
+        /// not in the mesh then was built without one (see GetMeshLoadStatus).
+        /// </summary>
+        private static readonly ConcurrentDictionary<uint, byte> OutdoorTilesBuilt = new ConcurrentDictionary<uint, byte>();
 
         /// <summary>
         /// Per landblock, bumped when it unloads. A tile build that finishes after its landblock unloaded is discarded.
@@ -195,33 +205,51 @@ namespace ACE.Server.Pathfinding
             }
         }
 
+        // No file system work here: a static constructor that throws leaves the whole type unusable, PathfindingEnabled
+        // included. The mesh folders are created when a mesh is saved (see SaveMeshData).
         static Pathfinder()
         {
-            if (!Directory.Exists(InteriorMeshDirectory))
-            {
-                Directory.CreateDirectory(InteriorMeshDirectory);
-            }
-            if (!Directory.Exists(OutdoorMeshDirectory))
-            {
-                Directory.CreateDirectory(OutdoorMeshDirectory);
-            }
-
             foreach (var agentSize in AgentSizes)
                 OutdoorMeshes[agentSize] = new OutdoorNavMesh(agentSize, Position.BlockLength, MaxVertsPerPoly);
         }
 
         /// <summary>
-        /// True if the mesh of a position's interior cell group isn't there yet: still loading or being built, so
-        /// queries on it return nothing for now. False once loaded, and for a mesh that couldn't be built (see
-        /// InteriorMesh.IsMissing). False outdoors and for a cell in no group.
+        /// Where the mesh a position is on stands in loading, for an agent size: its interior group mesh, or the
+        /// outdoor tile of its landblock (see MeshLoadStatus). Asking loads nothing: a mesh that is NotLoaded stays so
+        /// until it is requested (see TryLoadMesh).
         /// </summary>
-        public static bool IsMeshLoading(Position pos, AgentSize agentSize)
+        public static MeshLoadStatus GetMeshLoadStatus(Position pos, AgentSize agentSize)
         {
             var group = GetGroupKey(pos);
-            if (group.IsOutdoor || group.IsNone)
-                return false;
+            if (group.IsNone)
+                return MeshLoadStatus.NotCovered;
 
-            return !Meshes.TryGetValue(GetMeshId(group.LandblockId, group.Index, agentSize), out var interiorMesh) || interiorMesh.IsLoading;
+            if (group.IsOutdoor)
+                return GetOutdoorTileStatus(pos.Cell & 0xFFFF0000, agentSize);
+
+            if (!Meshes.TryGetValue(GetMeshId(group.LandblockId, group.Index, agentSize), out var interiorMesh))
+                return MeshLoadStatus.NotLoaded;
+
+            return interiorMesh.Status;
+        }
+
+        /// <summary>
+        /// Where a landblock's outdoor tile of an agent size stands in loading (see TryLoadOutdoorTile). A requested
+        /// tile is loading until the landblock's build finishes, and empty if that build added none for the size.
+        /// A failed build is retried when the tile is requested after OutdoorBuildRetryDelay.
+        /// </summary>
+        private static MeshLoadStatus GetOutdoorTileStatus(uint landblockId, AgentSize agentSize)
+        {
+            if (OutdoorMeshes[agentSize].HasTile(landblockId))
+                return MeshLoadStatus.Loaded;
+
+            if (OutdoorTilesRequested.ContainsKey(landblockId))
+                return OutdoorTilesBuilt.ContainsKey(landblockId) ? MeshLoadStatus.Empty : MeshLoadStatus.Loading;
+
+            if (OutdoorBuildFailures.ContainsKey(landblockId))
+                return MeshLoadStatus.Failed;
+
+            return MeshLoadStatus.NotLoaded;
         }
 
         /// <summary>
@@ -264,8 +292,8 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Requests the outdoor tiles of the landblocks between two positions (inclusive), as far as a route from a
-        /// searches (MaxRouteLandblockSpan).
+        /// Requests the outdoor tiles of the landblocks between two positions (inclusive), as far as a route search
+        /// reaches (MaxRouteLandblockSpan).
         /// </summary>
         private static void RequestOutdoorTilesBetween(Position a, Position b)
         {
@@ -305,6 +333,7 @@ namespace ACE.Server.Pathfinding
             }
 
             OutdoorTilesRequested.TryRemove(landblockId, out _);
+            OutdoorTilesBuilt.TryRemove(landblockId, out _);
             Groups.TryRemove(landblockId, out _);
             OutdoorBuildFailures.TryRemove(landblockId, out _);
         }
@@ -350,10 +379,10 @@ namespace ACE.Server.Pathfinding
 
                 // partitioning is keyed by its number, as when the settings were the DotRecast toolset's
                 var text = FormattableString.Invariant(
-                    $"{geometryVersion}|{MaxVertsPerPoly}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.MinRegionArea}|{s.MergedRegionArea}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|drops|{DropLinkFinder.Version}|{DropLinkFinder.MaxDropHeight}");
+                    $"{geometryVersion}|{MaxVertsPerPoly}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.MinRegionArea}|{s.MergedRegionArea}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|ledgedrops|{LedgeDropFinder.Version}|{LedgeDropFinder.MaxLedgeDropHeight}");
 
                 if (key.outdoor)
-                    text += FormattableString.Invariant($"|tiled|{OutdoorMeshGeometryVersion}|{Position.BlockLength}|{LandblockGeometryExporter.SurfaceMargin}");
+                    text += FormattableString.Invariant($"|tiled|{OutdoorMeshGeometryVersion}|{Position.BlockLength}|{MeshGeometryCollector.SurfaceMargin}");
 
                 return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)), 0, 4);
             });
@@ -439,6 +468,9 @@ namespace ACE.Server.Pathfinding
             var tempPath = $"{meshPath}.{Guid.NewGuid():N}.tmp";
             try
             {
+                // nothing if it exists; recreated if it was deleted while the server runs
+                Directory.CreateDirectory(Path.GetDirectoryName(meshPath));
+
                 using (var stream = File.Create(tempPath))
                 using (var writer = new BinaryWriter(stream))
                 {
@@ -462,21 +494,20 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        private static DtNavMesh BuildAndSaveMesh(CellGeometryProvider geom, MeshBuildSettings settings, uint meshId, string meshPath)
+        private static DtNavMesh BuildAndSaveMesh(NavMeshGeometry geom, MeshBuildSettings settings, uint meshId, string meshPath)
         {
-            var builder = new NavMeshBuilder();
-            var res = builder.Build(geom, settings);
-            if (res is null)
+            var data = NavMeshBuilder.Build(geom, settings);
+            if (data is null)
                 return null;
 
-            var mesh = CreateSingleTileMesh(res);
+            var mesh = CreateSingleTileMesh(data);
             if (mesh == null)
             {
                 log.Warn($"Pathfinder: could not initialize the built mesh 0x{meshId:X8}");
                 return null;
             }
 
-            SaveMeshData(res, meshId, meshPath);
+            SaveMeshData(data, meshId, meshPath);
             return mesh;
         }
 
@@ -585,24 +616,24 @@ namespace ACE.Server.Pathfinding
             void BuildInteriorMeshes(List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)> toBuild) => RunMeshBuild(() =>
             {
                 // the cells are loaded once; each size gets its own door aprons (see DoorApron)
-                Dictionary<AgentSize, CellGeometryProvider> geoms = null;
+                Dictionary<AgentSize, NavMeshGeometry> geoms = null;
 
                 foreach (var (agentSize, meshId, meshPath, placeholder) in toBuild)
                 {
                     if (!IsCurrent(meshId, placeholder))
                         continue;
 
-                    // On failure the mesh is marked missing, so no retry is made: the same cells would fail the same way
+                    // A mesh that comes out empty or fails is marked so, and no retry is made: the same cells would fail the same way
                     // until a rebuild is requested.
                     try
                     {
-                        geoms ??= CellGeometryProvider.LoadGeometry(cellGroup.Cells, cellGroup.Doors, toBuild.Select(b => b.agentSize));
+                        geoms ??= NavMeshGeometry.LoadGeometry(cellGroup.Cells, cellGroup.Doors, toBuild.Select(b => b.agentSize));
                         // sealed rooms and orphan cells often have nothing walkable; that is expected, so only debug logging
                         if (geoms is null)
                         {
                             log.Debug($"Pathfinder: no geometry for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
                             foreach (var entry in toBuild)
-                                MarkMissing(entry.meshId, entry.placeholder);
+                                MarkEmpty(entry.meshId, entry.placeholder);
                             return;
                         }
 
@@ -611,7 +642,7 @@ namespace ACE.Server.Pathfinding
                         if (mesh is null)
                         {
                             log.Debug($"Pathfinder: could not build the {agentSize} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
-                            MarkMissing(meshId, placeholder);
+                            MarkEmpty(meshId, placeholder);
                             continue;
                         }
 
@@ -622,18 +653,20 @@ namespace ACE.Server.Pathfinding
                             continue;
                         }
 
-                        log.Debug($"Pathfinder: built {agentSize} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location} in {stopwatch.ElapsedMilliseconds}ms ({mesh.GetTile(0)?.data?.header?.offMeshConCount ?? 0} drops)");
+                        log.Debug($"Pathfinder: built {agentSize} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location} in {stopwatch.ElapsedMilliseconds}ms ({mesh.GetTile(0)?.data?.header?.offMeshConCount ?? 0} ledge drops)");
                     }
                     catch (Exception e)
                     {
                         log.Warn($"Pathfinder: failed to build the {agentSize} mesh for cell group {group} at {location}: {e}");
-                        MarkMissing(meshId, placeholder);
+                        MarkFailed(meshId, placeholder);
                     }
                 }
             });
 
             // only while the load's own placeholder is there: a mesh unloaded or rebuilt meanwhile is left alone
-            void MarkMissing(uint meshId, InteriorMesh placeholder) => Meshes.TryUpdate(meshId, InteriorMesh.CreateMissing(), placeholder);
+            void MarkEmpty(uint meshId, InteriorMesh placeholder) => Meshes.TryUpdate(meshId, InteriorMesh.CreateEmpty(), placeholder);
+
+            void MarkFailed(uint meshId, InteriorMesh placeholder) => Meshes.TryUpdate(meshId, InteriorMesh.CreateFailed(), placeholder);
         }
 
         /// <summary>
@@ -653,6 +686,7 @@ namespace ACE.Server.Pathfinding
             if (force)
             {
                 OutdoorBuildFailures.TryRemove(landblockId, out _);
+                OutdoorTilesBuilt.TryRemove(landblockId, out _);
                 OutdoorTilesRequested[landblockId] = 0;
             }
             else
@@ -679,7 +713,7 @@ namespace ACE.Server.Pathfinding
 
             var (tileX, tileY) = GetLandblockCoords(landblockId);
 
-            CellGeometryProvider geom = null;
+            NavMeshGeometry geom = null;
             var geometryLoaded = false;
 
             foreach (var agentSize in AgentSizes)
@@ -703,7 +737,7 @@ namespace ACE.Server.Pathfinding
                         if (!geometryLoaded)
                         {
                             geometryLoaded = true;
-                            geom = CellGeometryProvider.LoadSurfaceGeometry(landblockId, GetSurfaceSources(landblockId));
+                            geom = NavMeshGeometry.LoadSurfaceGeometry(landblockId, GetSurfaceSources(landblockId));
                         }
 
                         if (geom is null)
@@ -714,7 +748,7 @@ namespace ACE.Server.Pathfinding
                         }
 
                         var stopwatch = Stopwatch.StartNew();
-                        data = new NavMeshBuilder().BuildTile(geom, GetMeshSettings(true, agentSize), tileX, tileY, Position.BlockLength);
+                        data = NavMeshBuilder.BuildTile(geom, GetMeshSettings(true, agentSize), tileX, tileY, Position.BlockLength);
                         if (data == null)
                         {
                             // the same geometry would build the same way, so the request stays and no retry is made
@@ -724,7 +758,7 @@ namespace ACE.Server.Pathfinding
 
                         SaveMeshData(data, meshId, meshPath);
 
-                        log.Info($"Pathfinder: built {agentSize} outdoor tile for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.vertices.Length / 3} vertices, {geom.faces.Length / 3} triangles, {data.header.offMeshConCount} drops)");
+                        log.Info($"Pathfinder: built {agentSize} outdoor tile for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.Vertices.Length / 3} vertices, {geom.Faces.Length / 3} triangles, {data.header.offMeshConCount} ledge drops)");
                     }
 
                     // islands are flagged on the tile alone, before anything can query it
@@ -752,6 +786,13 @@ namespace ACE.Server.Pathfinding
                     FailOutdoorBuild(landblockId);
                     return;
                 }
+            }
+
+            // a size whose tile is still not in the mesh now was built without one (see GetOutdoorTileStatus)
+            lock (OutdoorTileSync)
+            {
+                if (IsCurrent())
+                    OutdoorTilesBuilt[landblockId] = 0;
             }
         }
 
@@ -819,6 +860,7 @@ namespace ACE.Server.Pathfinding
         private static void FailOutdoorBuild(uint landblockId)
         {
             OutdoorBuildFailures[landblockId] = DateTime.UtcNow;
+            OutdoorTilesBuilt.TryRemove(landblockId, out _);
             OutdoorTilesRequested.TryRemove(landblockId, out _);
         }
 
@@ -829,7 +871,7 @@ namespace ACE.Server.Pathfinding
             var cellSize = outdoor ? profile.OutdoorCellSize : profile.InteriorCellSize;
             var radiusCells = outdoor ? profile.OutdoorRadiusCells : profile.InteriorRadiusCells;
 
-            var settings = new MeshBuildSettings()
+            var settings = new MeshBuildSettings
             {
                 AgentHeight = profile.Height,
                 AgentMaxClimb = profile.MaxClimb,
@@ -843,8 +885,13 @@ namespace ACE.Server.Pathfinding
                 DetailSampleDist = 6.0f,
                 DetailSampleMaxError = 1.0f,
                 EdgeMaxError = 1f,
-                EdgeMaxLen = 12.0f,
+
+                // longer edges outdoors keep the poly count down over a whole landblock
+                EdgeMaxLen = outdoor ? 24.0f : 12.0f,
+
                 VertsPerPoly = MaxVertsPerPoly,
+                MinRegionArea = RegionMinArea,
+                MergedRegionArea = RegionMergeArea,
                 Partitioning = RcPartition.WATERSHED,
                 FilterLowHangingObstacles = true,
                 FilterLedgeSpans = true,
@@ -853,18 +900,7 @@ namespace ACE.Server.Pathfinding
 
             // Recast's own conversion (RcConfig.WalkableRadius)
             if ((int)MathF.Ceiling(settings.AgentRadius / settings.CellSize) != radiusCells)
-            {
                 log.Error($"Pathfinder: the {type} {(outdoor ? "outdoor" : "interior")} agent radius {settings.AgentRadius} is not {radiusCells} cells of {settings.CellSize}m");
-            }
-
-            if (outdoor)
-            {
-                // longer edges keep the poly count down over a whole landblock
-                settings.EdgeMaxLen = 24.0f;
-            }
-
-            settings.MinRegionArea = RegionMinArea;
-            settings.MergedRegionArea = RegionMergeArea;
 
             return settings;
         }

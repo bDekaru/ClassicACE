@@ -20,9 +20,9 @@ namespace ACE.Server.Pathfinding
         public const int Door = 3;
 
         /// <summary>
-        /// A drop down a ledge (see DropLinkFinder), an off-mesh connection.
+        /// A ledge drop (see LedgeDropFinder): a one-way off-mesh connection down a ledge.
         /// </summary>
-        public const int Drop = 5;
+        public const int LedgeDrop = 5;
 
         /// <summary>
         /// The area Recast gives every walkable span (RcRecast.RC_WALKABLE_AREA). The mesh build turns it into Ground.
@@ -41,7 +41,7 @@ namespace ACE.Server.Pathfinding
     }
 
     /// <summary>
-    /// The flags of navmesh polys, which query filters include or exclude. Walk, Door and Drop are saved in the cached
+    /// The flags of navmesh polys, which query filters include or exclude. Walk, Door and LedgeDrop are saved in the cached
     /// mesh files; Island is set when a mesh is loaded.
     /// </summary>
     public static class NavPolyFlags
@@ -57,9 +57,9 @@ namespace ACE.Server.Pathfinding
         public const int Door = 0x04;
 
         /// <summary>
-        /// A drop down a ledge.
+        /// A ledge drop (LedgeDrop area).
         /// </summary>
-        public const int Drop = 0x08;
+        public const int LedgeDrop = 0x08;
 
         /// <summary>
         /// Islands: parts of a mesh that cannot be walked to from its main area or its doorways, like the top of a
