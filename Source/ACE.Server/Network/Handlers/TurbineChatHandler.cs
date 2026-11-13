@@ -357,9 +357,11 @@ namespace ACE.Server.Network.Handlers
             }
         }
 
+        private static readonly System.Net.Http.HttpClient WebhookClient = new System.Net.Http.HttpClient();
+
         public static async Task SendWebhookedChat(string sender, string message, string webhookUrl = null, string channelName = "")
         {
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 try
                 {
@@ -388,11 +390,8 @@ namespace ACE.Server.Network.Handlers
                     dict["content"] = $"{channelName}{sender}\"{message}\"";
 
                     var payload = Newtonsoft.Json.JsonConvert.SerializeObject(dict);
-                    using (var wc = new System.Net.WebClient())
-                    {
-                        wc.Headers.Add("Content-Type", "application/json");
-                        wc.UploadString(webhook, payload);
-                    }
+                    using var content = new System.Net.Http.StringContent(payload, Encoding.UTF8, "application/json");
+                    using var response = await WebhookClient.PostAsync(webhook, content);
                 }
                 catch (Exception)
                 {

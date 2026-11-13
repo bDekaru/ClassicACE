@@ -1186,11 +1186,9 @@ namespace ACE.Server.WorldObjects
                 return;
 
             double interval;
-            bool performFireSaleSetup = false;
             bool isFireSale = EventManager.FireSaleTownName != "" && EventManager.FireSaleTownName == GetProperty(PropertyString.TownName);
             if (isFireSale && !IsSetupForFireSale)
             {
-                performFireSaleSetup = true;
                 IsSetupForFireSale = true;
                 interval = 0;
             }

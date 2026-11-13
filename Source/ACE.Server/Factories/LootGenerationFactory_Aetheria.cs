@@ -5,7 +5,6 @@ using ACE.Database.Models.World;
 using ACE.Server.Factories.Tables;
 using ACE.Server.Factories.Tables.Wcids;
 using ACE.Server.WorldObjects;
-using System.Collections.Generic;
 
 namespace ACE.Server.Factories
 {

@@ -35,6 +35,8 @@ namespace ACE.Server.Network
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        private static readonly System.Net.Http.HttpClient HttpClient = new System.Net.Http.HttpClient();
+
         public static string ApiKey { get; set; } = PropertyManager.GetString("proxycheck_api_key").Item;
 
         public static async Task<ISPInfo> CheckVPN(string ip)
@@ -45,53 +47,45 @@ namespace ACE.Server.Network
                 return null;
             }
 
-            var url = $"https://proxycheck.io/v2/{ip}?vpn=1&asn=1&key={ApiKey}";
+            var url = $"https://proxycheck.io/v2/{ip}?vpn=1&asn=1";
             if (!string.IsNullOrWhiteSpace(ApiKey))
                 url += "&key=" + ApiKey;
-            var req = WebRequest.Create(url);
-            var task = req.GetResponseAsync();
+            var task = HttpClient.GetStringAsync(url);
             if (!(await Task.WhenAny(task, Task.Delay(3000)) == task))
             {
                 log.Warn($"VPNDetection.CheckVPN task timed out for ip = {ip}");
                 return null; //timed out
             }
-            var resp = task.Result;
-            using (var stream = resp.GetResponseStream())
+            var data = task.Result;
+            var options = new JsonSerializerOptions
             {
-                using (var sr = new StreamReader(stream))
-                {
-                    var data = sr.ReadToEnd();
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                    };
+                PropertyNameCaseInsensitive = true,
+            };
 
-                    var d1 = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(data);
-                    var d = d1[ip];
-                    var ispinfo = new ISPInfo()
-                    {
-                        ASN = d["asn"],
-                        Provider = d["provider"],
-                        City = d["city"],
-                        Continent = d["continent"],
-                        Country = d["country"],
-                        IsoCode = d["isocode"],
-                        Latitude = d["latitude"],
-                        Longitude = d["longitude"],
-                        Proxy = d["proxy"],
-                        Region = d["region"],
-                        RegionCode = d["regioncode"],
-                        Type = d["type"]
-                    };
+            var d1 = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(data);
+            var d = d1[ip];
+            var ispinfo = new ISPInfo()
+            {
+                ASN = d["asn"],
+                Provider = d["provider"],
+                City = d["city"],
+                Continent = d["continent"],
+                Country = d["country"],
+                IsoCode = d["isocode"],
+                Latitude = d["latitude"],
+                Longitude = d["longitude"],
+                Proxy = d["proxy"],
+                Region = d["region"],
+                RegionCode = d["regioncode"],
+                Type = d["type"]
+            };
 
-                    if(!string.IsNullOrEmpty(ispinfo.Proxy) && ispinfo.Proxy.ToLower().Equals("yes"))
-                    {
-                        log.Debug($"VPN detected for ip = {ip} with ISPInfo = {ispinfo.ToString()}");
-                    }
-                    //Console.WriteLine($"VPNDetection.CheckVPN returning ISPInfo = {ispinfo.ToString()}");
-                    return ispinfo;
-                }
+            if(!string.IsNullOrEmpty(ispinfo.Proxy) && ispinfo.Proxy.ToLower().Equals("yes"))
+            {
+                log.Debug($"VPN detected for ip = {ip} with ISPInfo = {ispinfo.ToString()}");
             }
+            //Console.WriteLine($"VPNDetection.CheckVPN returning ISPInfo = {ispinfo.ToString()}");
+            return ispinfo;
         }
     }
 }
