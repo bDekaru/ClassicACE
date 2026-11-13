@@ -289,7 +289,7 @@ namespace ACE.Server.WorldObjects
                 KillerId = topDamager.Guid.Full;
 
             // broadcast death animation
-            var deathAnim = new Motion(MotionStance.NonCombat, MotionCommand.Dead);
+            var deathAnim = Motion.CreateDeathMotion();
             EnqueueBroadcastMotion(deathAnim);
 
             // create network messages for player death

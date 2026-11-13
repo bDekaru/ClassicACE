@@ -24,10 +24,24 @@ namespace ACE.Server.WorldObjects
         public bool IsAwake = false;
 
         /// <summary>
+        /// The number of monster ticks a creature that has just been woken up still waits before it acts (see Monster_Tick)
+        /// </summary>
+        private int WakeUpDelayTicks;
+
+        /// <summary>
+        /// The most monster ticks a creature waits between being woken up and acting, so that creatures woken together do not all act at once
+        /// </summary>
+        private const int MaxWakeUpDelayTicks = 10;
+
+        /// <summary>
         /// Transitions a monster from idle to awake state
         /// </summary>
         public void WakeUp(bool alertNearby = true)
         {
+            // only a creature that was really asleep waits; waking one that is already awake must not make it wait again
+            if (!IsAwake)
+                WakeUpDelayTicks = ThreadSafeRandom.Next(0, MaxWakeUpDelayTicks);
+
             MonsterState = State.Awake;
             IsAwake = true;
             //DoAttackStance();

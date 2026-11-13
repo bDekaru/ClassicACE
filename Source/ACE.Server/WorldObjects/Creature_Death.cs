@@ -121,7 +121,7 @@ namespace ACE.Server.WorldObjects
             PhysicsObj.StopCompletely(true);
 
             // broadcast death animation
-            var motionDeath = new Motion(MotionStance.NonCombat, MotionCommand.Dead);
+            var motionDeath = Motion.CreateDeathMotion();
             var deathAnimLength = ExecuteMotion(motionDeath);
 
             EmoteManager.OnDeath(lastDamager);

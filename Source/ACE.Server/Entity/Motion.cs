@@ -51,6 +51,19 @@ namespace ACE.Server.Entity
         }
 
         /// <summary>
+        /// The death motion, marked as an animation break for the CustomDM client which no longer drops an object's animations
+        /// on MotionCommand.Dead by itself, so the server says so with MotionFlags.AnimationBreak.
+        /// </summary>
+        public static Motion CreateDeathMotion()
+        {
+            var motion = new Motion(MotionStance.NonCombat, MotionCommand.Dead);
+
+            if(Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                motion.MotionFlags |= MotionFlags.AnimationBreak;
+            return motion;
+        }
+
+        /// <summary>
         /// Constructs a new MoveToObject / TurnToObject motion
         /// </summary>
         public Motion(WorldObject wo, WorldObject target, MovementType type)

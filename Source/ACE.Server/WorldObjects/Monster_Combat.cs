@@ -215,12 +215,23 @@ namespace ACE.Server.WorldObjects
                 return MaxMeleeRange;   // distance_to_target?
         }
 
-        public bool MoveReady()
+        /// <summary>
+        /// Returns TRUE if the creature can start its next move: it is past NextMoveTime (which holds it for the length of an attack, a cast or
+        /// a stance change), has no move pending, and is not animating
+        /// </summary>
+        /// <param name="canInterruptAnimations">The move cuts the creature's running animations short with the CustomDM ruleset, so that
+        /// animating no longer holds it up: the move carries MotionFlags.AnimationBreak, which the CustomDM clients (version c119 and later,
+        /// the only ones that can log on) answer by dropping the creature's queued animations. NextMoveTime still holds it: attack, cast and
+        /// stance animations are never cut short</param>
+        public bool MoveReady(bool canInterruptAnimations = false)
         {
             if (Timers.RunningTime < NextMoveTime)
                 return false;
 
-            return !PhysicsObj.IsAnimating && !HasPendingMovement;
+            if (HasPendingMovement)
+                return false;
+
+            return !PhysicsObj.IsAnimating || (canInterruptAnimations && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM);
         }
 
         /// <summary>

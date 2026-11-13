@@ -264,7 +264,8 @@ namespace ACE.Server.WorldObjects
         /// This is called by the monster AI system for ranged attacks
         /// It sets CurrentMotionState here
         /// </summary>
-        public void TurnTo(WorldObject target, float speed = 1.0f, bool clientOnly = false)
+        /// <param name="interruptAnimations">CustomDM only: cut the creature's running animations short rather than let them finish first (see MoveTo).</param>
+        public void TurnTo(WorldObject target, float speed = 1.0f, bool clientOnly = false, bool interruptAnimations = false)
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).TurnTo({target.Name}, {speed}, {clientOnly})");
@@ -274,12 +275,19 @@ namespace ACE.Server.WorldObjects
 
             var motion = GetTurnToMotion(target, speed);
 
+            if (interruptAnimations)
+                motion.MotionFlags |= MotionFlags.AnimationBreak;
+
             EnqueueBroadcastMotion(motion);
 
             if (clientOnly)
                 return;
 
             CurrentMotionState = motion;
+
+            // the server's own copy of the animation break the clients were just sent
+            if (interruptAnimations)
+                PhysicsObj.RemoveLinkAnimations();
 
             OnMovementStarted(true);
 
@@ -294,12 +302,16 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Used by the monster AI system to start turning / running towards a target
         /// </summary>
-        public virtual void MoveTo(WorldObject target, float distanceToObject = 2.0f, float speed = 1.0f, bool clientOnly = false)
+        /// <param name="interruptAnimations">CustomDM only: cut the creature's running animations short rather than let them finish first (see MoveTo to a Position).</param>
+        public virtual void MoveTo(WorldObject target, float distanceToObject = 2.0f, float speed = 1.0f, bool clientOnly = false, bool interruptAnimations = false)
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).MoveTo({target.Name}, {distanceToObject}, {speed}, {clientOnly})");
 
             var motion = GetMoveToMotion(target, distanceToObject);
+
+            if (interruptAnimations)
+                motion.MotionFlags |= MotionFlags.AnimationBreak;
 
             EnqueueBroadcastMotion(motion);
 
@@ -316,6 +328,10 @@ namespace ACE.Server.WorldObjects
                 MonsterMovementLock.ExitWriteLock();
             }
             CurrentMotionState = motion;
+
+            // the server's own copy of the animation break the clients were just sent
+            if (interruptAnimations)
+                PhysicsObj.RemoveLinkAnimations();
 
             OnMovementStarted();
 
@@ -333,7 +349,10 @@ namespace ACE.Server.WorldObjects
         /// <param name="useSpheres">How distanceToObject is measured. True: from the edge of the body, so the move arrives
         /// up to distanceToObject + the body's own radius from the position. False: from the centre of the body.</param>
         /// <param name="walk">Walk the whole way rather than run: without CanRun the move never holds the run key.</param>
-        public void MoveTo(Position position, float distanceToObject = 2.0f, float speed = 1.0f, bool useFinalHeading = true, bool clientOnly = false, bool useSpheres = true, bool walk = false)
+        /// <param name="interruptAnimations">CustomDM only: cut the creature's running animations short rather than let them finish first. The
+        /// move is sent with MotionFlags.AnimationBreak, which the CustomDM clients (version c119 and later) answer by dropping the creature's
+        /// queued link animations before applying the move, and the server drops its own copy of them too.</param>
+        public void MoveTo(Position position, float distanceToObject = 2.0f, float speed = 1.0f, bool useFinalHeading = true, bool clientOnly = false, bool useSpheres = true, bool walk = false, bool interruptAnimations = false)
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).MoveTo({position.ToLOCString()}, {distanceToObject}, {speed}, {clientOnly})");
@@ -346,6 +365,9 @@ namespace ACE.Server.WorldObjects
 
             if (walk)
                 motion.MoveToParameters.MovementParameters &= ~MovementParams.CanRun;
+
+            if (interruptAnimations)
+                motion.MotionFlags |= MotionFlags.AnimationBreak;
 
             EnqueueBroadcastMotion(motion);
 
@@ -362,6 +384,10 @@ namespace ACE.Server.WorldObjects
                 MonsterMovementLock.ExitWriteLock();
             }
             CurrentMotionState = motion;
+
+            // the server's own copy of the animation break the clients were just sent
+            if (interruptAnimations)
+                PhysicsObj.RemoveLinkAnimations();
 
             // start executing MoveTo iterator on server
             if (!PhysicsObj.IsMovingOrAnimating)

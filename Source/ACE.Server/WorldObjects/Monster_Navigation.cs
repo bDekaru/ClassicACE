@@ -78,7 +78,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public void StartMovement()
         {
-            if (!MoveReady())
+            if (!MoveReady(true))
                 return;
 
             if (DebugMove)
@@ -91,9 +91,9 @@ namespace ACE.Server.WorldObjects
             var targetDist = GetDistanceToTarget();
             var turnTo = (IsRanged && targetDist <= MaxRange) || (CurrentAttackType == CombatType.Magic && targetDist <= GetSpellMaxRange()) || AiImmobile;
             if (turnTo)
-                TurnTo(AttackTarget);
+                TurnTo(AttackTarget, interruptAnimations: Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM);
             else
-                MoveTo(AttackTarget, MaxMeleeRange - 0.05f);
+                MoveTo(AttackTarget, MaxMeleeRange - 0.05f, interruptAnimations: Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM);
 
             //moveBit = false;
         }
@@ -128,7 +128,6 @@ namespace ACE.Server.WorldObjects
             }
 
             //PhysicsObj.CachedVelocity = Vector3.Zero;
-            NextMoveTime = Timers.RunningTime + ThreadSafeRandom.Next(0, 0.5f);
         }
 
         public override void OnMotionDone(uint motionID, bool success)
@@ -457,7 +456,7 @@ namespace ACE.Server.WorldObjects
 
         public void MoveToHome()
         {
-            if (!MoveReady())
+            if (!MoveReady(true))
                 return;
 
             // Planning the route home takes route planning time like any other plan (see CanPlanRouteThisTick): without
@@ -507,7 +506,7 @@ namespace ACE.Server.WorldObjects
             // cancelling the previous move reports it completed, which must not end the move home
             PendingEndMoveToHome = false;
 
-            MoveTo(GetPosition(PositionType.Home), 0.6f, useSpheres: false);
+            MoveTo(GetPosition(PositionType.Home), 0.6f, useSpheres: false, interruptAnimations: Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM);
         }
 
         /// <summary>
@@ -547,7 +546,7 @@ namespace ACE.Server.WorldObjects
             // A move cancelled from outside (e.g. UpdateMoveSpeed when a spell changes the move speed, or the chase range
             // check) completes with ObjectGone, which leaves no step pending: head for the waypoint it was interrupted on
             // again. ContinueRoute ends the route if its target is gone or changed.
-            if (!PendingEndRoute && !PendingRetryRoute && !PendingContinueRoute && !HasPendingMovement && MoveReady())
+            if (!PendingEndRoute && !PendingRetryRoute && !PendingContinueRoute && !HasPendingMovement && MoveReady(true))
             {
                 if (DebugMove)
                     Console.WriteLine($"{Name} ({Guid}).UpdateRoute() - resuming the interrupted route");
@@ -627,7 +626,7 @@ namespace ACE.Server.WorldObjects
 
         private void EndMoveToHome(bool forced = true)
         {
-            if (!forced && !MoveReady())
+            if (!forced && !MoveReady(true))
                 return;
 
             if (DebugMove)
@@ -810,7 +809,7 @@ namespace ACE.Server.WorldObjects
 
         private void Wander()
         {
-            if (!MoveReady())
+            if (!MoveReady(true))
                 return;
 
             if (DebugMove)
@@ -833,12 +832,12 @@ namespace ACE.Server.WorldObjects
             IsWanderingPending = false;
             IsWandering = true;
 
-            MoveTo(WanderTarget, 2.0f, 1.0f, false, useSpheres: false);
+            MoveTo(WanderTarget, 2.0f, 1.0f, false, useSpheres: false, interruptAnimations: true);
         }
 
         private void EndWandering(bool forced = true)
         {
-            if (!forced && !MoveReady())
+            if (!forced && !MoveReady(true))
                 return;
 
             if (DebugMove)
@@ -917,7 +916,7 @@ namespace ACE.Server.WorldObjects
 
         private void EndEmoting(bool forced = true)
         {
-            if (!forced && !MoveReady())
+            if (!forced && !MoveReady(true))
                 return;
 
             if (DebugMove)
@@ -1241,7 +1240,7 @@ namespace ACE.Server.WorldObjects
 
         private void StartRoute()
         {
-            if (!MoveReady())
+            if (!MoveReady(true))
                 return;
 
             if (DebugMove)
@@ -1284,7 +1283,7 @@ namespace ACE.Server.WorldObjects
 
         private void ContinueRoute(bool retry = false)
         {
-            if (!MoveReady())
+            if (!MoveReady(true))
                 return;
 
             if (DebugMove && !retry)
@@ -1372,7 +1371,7 @@ namespace ACE.Server.WorldObjects
                         RewindToRouteTarget();
                         IsRouteSteppingOut = true;
 
-                        MoveTo(wallAvoidingPos, RouteWaypointRadius, 1.0f, false, useSpheres: false, walk: IsRouteWalking);
+                        MoveTo(wallAvoidingPos, RouteWaypointRadius, 1.0f, false, useSpheres: false, walk: IsRouteWalking, interruptAnimations: true);
                         return;
                     }
                 }
@@ -1383,7 +1382,7 @@ namespace ACE.Server.WorldObjects
 
             // Measured from the centre: a waypoint counts as reached where it is, not a body radius early. A ledge drop
             // is walked off, so the creature comes down where LedgeDropFinder tested: running, it would land further out.
-            MoveTo(RoutePositionTarget, RouteWaypointRadius, 1.0f, false, useSpheres: false, walk: IsRouteWalking || IsLedgeDropping);
+            MoveTo(RoutePositionTarget, RouteWaypointRadius, 1.0f, false, useSpheres: false, walk: IsRouteWalking || IsLedgeDropping, interruptAnimations: true);
         }
 
         /// <summary>
@@ -1480,7 +1479,7 @@ namespace ACE.Server.WorldObjects
 
         private void EndRoute(bool forced = true)
         {
-            if (!forced && !MoveReady())
+            if (!forced && !MoveReady(true))
                 return;
 
             if (DebugMove)
@@ -1587,7 +1586,7 @@ namespace ACE.Server.WorldObjects
 
         private void GrantPassage()
         {
-            if (!MoveReady())
+            if (!MoveReady(true))
                 return;
 
             if (DebugMove)
@@ -1610,12 +1609,12 @@ namespace ACE.Server.WorldObjects
             IsGrantPassagePending = false;
             IsGrantingPassage = true;
 
-            MoveTo(GrantPassageTarget, 2.0f, 1.0f, false, useSpheres: false);
+            MoveTo(GrantPassageTarget, 2.0f, 1.0f, false, useSpheres: false, interruptAnimations: true);
         }
 
         private void EndGrantPassage(bool forced = true)
         {
-            if (!forced && !MoveReady())
+            if (!forced && !MoveReady(true))
                 return;
 
             if (DebugMove)

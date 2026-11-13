@@ -241,11 +241,11 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Broadcasts passive pet movement to clients
         /// </summary>
-        public override void MoveTo(WorldObject target, float distanceToObject = 2.0f, float speed = 1.0f, bool clientOnly = false)
+        public override void MoveTo(WorldObject target, float distanceToObject = 2.0f, float speed = 1.0f, bool clientOnly = false, bool interruptAnimations = false)
         {
             if (!IsPassivePet)
             {
-                base.MoveTo(target, distanceToObject, speed, clientOnly);
+                base.MoveTo(target, distanceToObject, speed, clientOnly, interruptAnimations);
                 return;
             }
 

@@ -914,7 +914,7 @@ namespace ACE.Server.WorldObjects
                 door.OnCollideObject(this);
             else if (target is Hotspot hotspot)
                 hotspot.OnCollideObject(this);
-            else if (target is Creature creature && creature.IsMonster)
+            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && target is Creature creature && creature.IsMonster)
                 TryRequestPassage(creature);
         }
 

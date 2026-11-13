@@ -131,6 +131,13 @@ namespace ACE.Server.WorldObjects
             else
                 return;
 
+            // a creature that has just been woken up waits a random number of ticks before it acts, this prevents creatures from acting in synch.
+            if (WakeUpDelayTicks > 0)
+            {
+                WakeUpDelayTicks--;
+                return;
+            }
+
             var combatPet = this as CombatPet;
 
             var creatureTarget = AttackTarget as Creature;
@@ -301,9 +308,10 @@ namespace ACE.Server.WorldObjects
                         IsWanderingPending = false;
                         IsRouteStartPending = false;
 
-                        // Figure out a way to cancel motions so they will actually stop mid-play client-side. MotionCommand.Dead does it but I haven't been able to figure out why.
-                        //if (IsEmoting)
-                        //    PendingEndEmoting = true;
+                        // An emote in progress is cut short rather than played out: ending it here lets the chase that follows start at once,
+                        // and that move carries MotionFlags.AnimationBreak, which makes the clients drop the emote mid-play. This is only supported by the CustomDM client.
+                        if (IsEmoting)
+                            PendingEndEmoting = true;
 
                         if (IsWandering)
                             PendingEndWandering = true;

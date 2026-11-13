@@ -123,7 +123,7 @@ namespace ACE.Server.WorldObjects
         {
             ObjectDescriptionFlags |= ObjectDescriptionFlag.Corpse;
 
-            CurrentMotionState = new Motion(MotionStance.NonCombat, MotionCommand.Dead);
+            CurrentMotionState = Motion.CreateDeathMotion();
 
             ContainerCapacity = 10;
             ItemCapacity = 120;
