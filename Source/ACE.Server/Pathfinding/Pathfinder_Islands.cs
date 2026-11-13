@@ -2,7 +2,6 @@
 // This code is based on Trevis' pathfinding proof of concept at https://gitlab.com/trevis/ace.mods.pathfinding/-/tree/master
 //
 
-using ACE.Entity;
 using ACE.Server.Pathfinding.Geometry;
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
@@ -30,6 +29,8 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static readonly RcVec3f DoorSeedHalfExtents = new RcVec3f(2.0f, 2.0f, 2.0f);
 
+        private static readonly RcVec3f[] NoSeeds = Array.Empty<RcVec3f>();
+
         /// <summary>
         /// The door polys of reachable door aprons.
         /// </summary>
@@ -54,7 +55,8 @@ namespace ACE.Server.Pathfinding
         /// without the door aprons, and a component that is only a door apron is never kept.
         /// Must run before the tile is published, since it changes poly flags.
         /// </summary>
-        /// <param name="seeds">Points known to be reachable, on the mesh (Recast space)</param>
+        /// <param name="seeds">Points known to be reachable, on the mesh (Recast space). Interior meshes have none: their
+        /// doorways have door aprons, which keep their component by themselves when it can be reached.</param>
         private static void MarkIslands(DtNavMesh mesh, IEnumerable<RcVec3f> seeds, bool outdoor)
         {
             var tile = mesh.GetMaxTiles() > 0 ? mesh.GetTile(0) : null;
@@ -259,24 +261,16 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The doorways of a cell group an agent can get through on the group's mesh (built for that agent's size), from
-        /// the door aprons it has left (see DoorApron). Islands must be marked first. Doorways that are not in a wall
-        /// have no apron and are kept.
+        /// the door aprons it has left (see DoorApron). Islands must be marked first.
         /// </summary>
         private static List<CellGroupDoor> FindPassableDoors(DtNavMesh mesh, CellGroup cellGroup, AgentSize agentSize)
         {
             var passable = new List<CellGroupDoor>(cellGroup.Doors.Count);
-            var aprons = cellGroup.Doors.Where(d => d.IsInWall).ToList();
             var halfExtents = GetDoorPolyHalfExtents(agentSize);
 
             using var lease = new MeshLease(mesh);
             foreach (var door in cellGroup.Doors)
             {
-                if (!door.IsInWall)
-                {
-                    passable.Add(door);
-                    continue;
-                }
-
                 var center = DoorApron.GetCenter(door, agentSize);
                 var status = lease.Query.FindNearestPoly(ToMeshPoint(0, center, false), halfExtents, PassableDoorFilter, out var doorRef, out var doorPt, out _);
                 if (status.Failed() || doorRef == 0)
@@ -284,7 +278,7 @@ namespace ACE.Server.Pathfinding
 
                 // the door poly found could belong to the apron of a doorway next to this one
                 var found = FromMeshPoint(doorPt);
-                var owner = aprons.OrderBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentSize), found)).First();
+                var owner = cellGroup.Doors.OrderBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentSize), found)).First();
                 if (owner.CellId == door.CellId && owner.Position == door.Position)
                     passable.Add(door);
             }

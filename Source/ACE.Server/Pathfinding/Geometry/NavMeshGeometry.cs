@@ -1,10 +1,10 @@
-using DotRecast.Core;
 using DotRecast.Core.Numerics;
 using DotRecast.Recast;
 using DotRecast.Recast.Geom;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using EnvCell = ACE.DatLoader.FileTypes.EnvCell;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
@@ -35,7 +35,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// that agent outside each of the given doorways, marked as a door area. The cells and their static objects are
         /// loaded once, and only the door aprons differ per size. Null if the cells have no geometry.
         /// </summary>
-        public static Dictionary<AgentSize, NavMeshGeometry> LoadGeometry(List<CellGeometry> cells, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentSize> agentSizes)
+        public static Dictionary<AgentSize, NavMeshGeometry> LoadGeometry(List<EnvCell> cells, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentSize> agentSizes)
         {
             var collector = new MeshGeometryCollector(cells);
             collector.LoadCells();
@@ -44,16 +44,16 @@ namespace ACE.Server.Pathfinding.Geometry
             if (collector.Vertices.Count == 0)
                 return null;
 
-            var wallDoors = doors?.Where(d => d.IsInWall).ToList() ?? new List<CellGroupDoor>();
+            var doorList = doors?.ToList() ?? new List<CellGroupDoor>();
             var cellsEnd = collector.GetMark();
             var geometries = new Dictionary<AgentSize, NavMeshGeometry>();
 
             foreach (var agentSize in agentSizes)
             {
-                collector.AddDoorAprons(wallDoors, agentSize);
+                collector.AddDoorAprons(doorList, agentSize);
 
                 var geometry = FromCollector(collector);
-                foreach (var door in wallDoors)
+                foreach (var door in doorList)
                     geometry.AddConvexVolume(DoorApron.GetDoorVolume(door, agentSize));
                 geometries[agentSize] = geometry;
 
@@ -71,7 +71,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public static NavMeshGeometry LoadSurfaceGeometry(uint landblockId, IEnumerable<SurfaceSource> sources)
         {
-            var collector = new MeshGeometryCollector(new List<CellGeometry>());
+            var collector = new MeshGeometryCollector(new List<EnvCell>());
             collector.LoadSurface(landblockId, sources);
 
             return FromCollector(collector);

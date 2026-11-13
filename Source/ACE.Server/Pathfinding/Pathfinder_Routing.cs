@@ -89,24 +89,16 @@ namespace ACE.Server.Pathfinding
         /// Find a route to the end position.
         /// Positions in different mesh groups have no direct route. If one of them is outdoors and the other in a
         /// building or cave, the route leads to the doorway between them; once there the caller can continue outside
-        /// (or route again inside). Otherwise there is no route.
+        /// (or route again inside). Otherwise there is no route. Outdoor routes cross landblock edges, searching up to
+        /// MaxRouteLandblockSpan landblocks away from the start. Outdoor tiles load in the background, so a route
+        /// through landblocks whose tiles are not loaded yet ends at the edge of the loaded ones.
         /// </summary>
         /// <param name="end">The ending position</param>
-        /// <returns>A list of positions</returns>
-        public static List<Position> FindRoute(Position start, Position end, AgentSize agentSize, bool drawRoute = false)
-        {
-            return FindRoute(start, end, agentSize, out _, drawRoute);
-        }
-
-        /// <summary>
-        /// Find a route to the end position (see the other overload). Outdoor routes cross landblock edges, searching
-        /// up to MaxRouteLandblockSpan landblocks away from the start. Outdoor tiles load in the background, so a
-        /// route through landblocks whose tiles are not loaded yet ends at the edge of the loaded ones.
-        /// </summary>
         /// <param name="reachesTarget">True if the route leads all the way to its target: the end position, or the
         /// doorway towards it when the end is in another mesh group. False for a partial route, which leads as close to
         /// the target as the mesh allows.</param>
-        public static List<Position> FindRoute(Position start, Position end, AgentSize agentSize, out bool reachesTarget, bool drawRoute = false)
+        /// <returns>A list of positions</returns>
+        public static List<Position> FindRoute(Position start, Position end, AgentSize agentSize, out bool reachesTarget)
         {
             reachesTarget = false;
 
@@ -170,6 +162,8 @@ namespace ACE.Server.Pathfinding
                 return null;
             reachesTarget = best != null;
 
+            // clusters of corner waypoints become one with room around it; the corners left are pushed off their walls
+            MergeCornerClusters(query, AllPolysFilter, waypoints);
             OffsetCorners(query, AllPolysFilter, waypoints);
 
             for (int i = 0; i < waypoints.Count; i++)
@@ -183,9 +177,6 @@ namespace ACE.Server.Pathfinding
                 previous = new RoutePosition(CreatePosition(previous, group, ToRcVec3f(waypoint.Pos)), waypoint.IsLedgeDropStart);
                 positionList.Add(previous);
             }
-
-            if (drawRoute)
-                DrawRoute(positionList);
 
             return positionList;
         }
@@ -436,14 +427,7 @@ namespace ACE.Server.Pathfinding
         /// Returns the legs in order (the last one may be partial), or null if not even the first leg was found.
         /// Outdoor tiles load in the background, so a leg through the outdoors can be missing or partial the first time.
         /// </summary>
-        public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize)
-        {
-            return FindRouteLegs(start, end, agentSize, out _);
-        }
-
-        /// <summary>
-        /// Like the other overload; reachesEnd is true if the legs lead all the way to the end position.
-        /// </summary>
+        /// <param name="reachesEnd">True if the legs lead all the way to the end position</param>
         public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd)
         {
             reachesEnd = false;
@@ -457,6 +441,12 @@ namespace ACE.Server.Pathfinding
                 var leg = FindRoute(current, end, agentSize, out var legReachesTarget);
                 if (leg == null || leg.Count == 0)
                     break;
+
+                // A route's first waypoint is where it starts, the mesh point nearest the start position. The route's
+                // follower is already there, so it is left out of the first leg. Later legs start on the other side of a
+                // doorway, and that point is one of the two that take the follower through it.
+                if (i == 0 && leg.Count > 1)
+                    leg.RemoveAt(0);
 
                 legs.Add(leg);
 
@@ -610,7 +600,8 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// String pulling puts every turn exactly on the mesh boundary, at the corner the path bends around. Creatures
         /// overshoot turns, so they scrape that corner and get stuck. Pushes each turn waypoint away from its corner,
-        /// along the bisector of the turn, by up to CornerClearance (or half the open space in narrow corridors).
+        /// along the open side of the bisector of the turn, by up to CornerClearance (or half the open space in narrow
+        /// corridors).
         /// </summary>
         private static void OffsetCorners(DtNavMeshQuery query, IDtQueryFilter filter, List<Waypoint> waypoints)
         {
@@ -624,13 +615,18 @@ namespace ACE.Server.Pathfinding
                 if (current.IsLedgeDropStart || waypoints[i - 1].IsLedgeDropStart)
                     continue;
 
+                // already clear of every wall (e.g. the waypoint that replaced a corner cluster)
+                if (HasRoom(query, filter, current))
+                    continue;
+
                 var toPrev = Flatten(waypoints[i - 1].Pos - current.Pos);
                 var toNext = Flatten(waypoints[i + 1].Pos - current.Pos);
                 if (toPrev.LengthSquared() < 0.0001f || toNext.LengthSquared() < 0.0001f)
                     continue;
 
-                // The bisector of both legs points into the open side of the turn, away from the corner.
-                var dir = Vector3.Normalize(toPrev) + Vector3.Normalize(toNext);
+                // The path wraps the corner, so the bisector of both legs points into the corner (the wedge between the
+                // legs); the open side of the turn, away from it, is the other way.
+                var dir = -(Vector3.Normalize(toPrev) + Vector3.Normalize(toNext));
                 if (dir.LengthSquared() < 0.0001f)
                     continue; // no turn
                 dir = Vector3.Normalize(dir);
@@ -652,6 +648,151 @@ namespace ACE.Server.Pathfinding
 
                 waypoints[i] = moved;
             }
+        }
+
+        /// <summary>
+        /// Waypoints less than this far apart, in a row, are the bends of one corner (a chamfered or stepped corner of
+        /// the mesh boundary makes the path bend two or three times within a metre or two).
+        /// </summary>
+        private const float CornerClusterDistance = 2.0f;
+
+        /// <summary>
+        /// How far from a corner cluster, towards the open side of its turn, the single waypoint that replaces it is looked
+        /// for: from CornerMergeStep to CornerMergeMaxOffset, in steps of CornerMergeStep. A point nearer than that to a
+        /// 90 degree corner has less than CornerClearance of room.
+        /// </summary>
+        private const float CornerMergeMaxOffset = 1.6f;
+
+        private const float CornerMergeStep = 0.2f;
+
+        /// <summary>
+        /// How far (horizontally) a candidate waypoint may be from the mesh and still count as on it.
+        /// </summary>
+        private const float OnMeshTolerance = 0.05f;
+
+        /// <summary>
+        /// Replaces each cluster of corner waypoints (see CornerClusterDistance) with a single waypoint, placed on the
+        /// open side of the turn so that both straight legs to and from it stay on the mesh and it has CornerClearance of
+        /// room around it. Creatures stop and start a move at every waypoint, so fewer of them at a corner is smoother; the
+        /// route gets a little longer (under 1% on average). A cluster no such waypoint exists for is left as it is. The
+        /// first and last waypoint, the ends of a ledge drop and the waypoints after a ledge drop's start are never merged.
+        /// </summary>
+        private static void MergeCornerClusters(DtNavMeshQuery query, IDtQueryFilter filter, List<Waypoint> waypoints)
+        {
+            if (waypoints.Count < 4)
+                return;
+
+            var result = new List<Waypoint>(waypoints.Count) { waypoints[0] };
+
+            var first = 1;
+            while (first < waypoints.Count - 1)
+            {
+                var last = first;
+                if (IsMergeable(waypoints, first))
+                    while (last + 1 < waypoints.Count - 1 && IsMergeable(waypoints, last + 1) &&
+                           Vector3.Distance(waypoints[last].Pos, waypoints[last + 1].Pos) < CornerClusterDistance)
+                        last++;
+
+                if (last > first && TryMergeCluster(query, filter, result[result.Count - 1], waypoints, first, last, out var single))
+                    result.Add(single);
+                else
+                    for (var i = first; i <= last; i++)
+                        result.Add(waypoints[i]);
+
+                first = last + 1;
+            }
+
+            result.Add(waypoints[waypoints.Count - 1]);
+
+            waypoints.Clear();
+            waypoints.AddRange(result);
+        }
+
+        /// <summary>
+        /// True if a waypoint can belong to a corner cluster: it is on a poly, and is neither a ledge drop's start nor
+        /// the landing after one.
+        /// </summary>
+        private static bool IsMergeable(List<Waypoint> waypoints, int index)
+        {
+            return waypoints[index].PolyRef != 0 && !waypoints[index].IsLedgeDropStart && !waypoints[index - 1].IsLedgeDropStart;
+        }
+
+        private static bool TryMergeCluster(DtNavMeshQuery query, IDtQueryFilter filter, Waypoint previous, List<Waypoint> waypoints, int first, int last, out Waypoint merged)
+        {
+            merged = default;
+
+            var next = waypoints[last + 1];
+
+            var count = last - first + 1;
+            var centroid = Vector3.Zero;
+            for (var i = first; i <= last; i++)
+                centroid += waypoints[i].Pos;
+            centroid /= count;
+
+            // the open side of the turn: away from the bisector of the legs, which points into the corner
+            var toPrevious = Flatten(previous.Pos - centroid);
+            var toNext = Flatten(next.Pos - centroid);
+            if (toPrevious.LengthSquared() < 0.0001f || toNext.LengthSquared() < 0.0001f)
+                return false;
+
+            var open = -(Vector3.Normalize(toPrevious) + Vector3.Normalize(toNext));
+            var hasOpen = open.LengthSquared() >= 0.0001f;
+            if (hasOpen)
+                open = Vector3.Normalize(open);
+
+            // the cluster's own waypoints and its centroid, and points out from them on the open side
+            var bases = new List<Vector3>(count + 1) { centroid };
+            for (var i = first; i <= last; i++)
+                bases.Add(waypoints[i].Pos);
+
+            var candidates = new List<(Vector3 pos, float length)>();
+            foreach (var origin in bases)
+            {
+                candidates.Add((origin, Vector3.Distance(previous.Pos, origin) + Vector3.Distance(origin, next.Pos)));
+                if (!hasOpen)
+                    continue;
+
+                for (var offset = CornerMergeStep; offset <= CornerMergeMaxOffset + 0.001f; offset += CornerMergeStep)
+                {
+                    var pos = origin + open * offset;
+                    candidates.Add((pos, Vector3.Distance(previous.Pos, pos) + Vector3.Distance(pos, next.Pos)));
+                }
+            }
+
+            // the shortest route through a valid candidate wins, so the cheap arithmetic goes first and the queries stop at the first valid one
+            candidates.Sort((a, b) => a.length.CompareTo(b.length));
+
+            foreach (var (pos, _) in candidates)
+            {
+                if (!TryFindNearestPoly(query, filter, ToRcVec3f(pos), out var polyRef, out var point))
+                    continue;
+
+                var found = ToVector3(point);
+                if (Flatten(found - pos).LengthSquared() > OnMeshTolerance * OnMeshTolerance)
+                    continue; // not on the mesh
+
+                var candidate = new Waypoint(found, polyRef);
+                if (!HasRoom(query, filter, candidate))
+                    continue;
+
+                if (!HasLineOfSight(query, filter, previous, candidate) || !HasLineOfSight(query, filter, candidate, next))
+                    continue;
+
+                merged = candidate;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// True if no mesh edge (a wall, or a drop) is closer to the waypoint than CornerClearance.
+        /// </summary>
+        private static bool HasRoom(DtNavMeshQuery query, IDtQueryFilter filter, Waypoint waypoint)
+        {
+            // the distance found is the search radius when there is no edge within it
+            var status = query.FindDistanceToWall(waypoint.PolyRef, ToRcVec3f(waypoint.Pos), CornerClearance, filter, out var distance, out _, out _);
+            return status.Succeeded() && distance >= CornerClearance - 0.001f;
         }
     }
 }

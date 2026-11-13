@@ -224,7 +224,7 @@ namespace ACE.Server.Pathfinding
         {
             public readonly Dictionary<int, CellGroup> ByIndex = new Dictionary<int, CellGroup>();
             public readonly Dictionary<uint, int> CellToGroup = new Dictionary<uint, int>();
-            private readonly Dictionary<uint, CellGeometry> cellsById = new Dictionary<uint, CellGeometry>();
+            private readonly Dictionary<uint, ACE.DatLoader.FileTypes.EnvCell> cellsById = new Dictionary<uint, ACE.DatLoader.FileTypes.EnvCell>();
             private readonly ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell> physicsCells = new ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell>();
 
             /// <summary>
@@ -238,7 +238,7 @@ namespace ACE.Server.Pathfinding
 
             public LandblockGroups(uint landblockId)
             {
-                foreach (var group in new LandblockGeometry(landblockId).CellGroups)
+                foreach (var group in CellGroupLoader.LoadCellGroups(landblockId))
                 {
                     if (group.Index > MaxGroup)
                     {
@@ -250,7 +250,7 @@ namespace ACE.Server.Pathfinding
                     foreach (var cellId in group.CellIds)
                         CellToGroup[cellId] = group.Index;
                     foreach (var cell in group.Cells)
-                        cellsById[cell.CellId] = cell;
+                        cellsById[cell.Id] = cell;
                 }
             }
 
@@ -273,10 +273,10 @@ namespace ACE.Server.Pathfinding
 
                 if (!group.CellIds.Contains(referenceCell))
                 {
-                    foreach (var cell in group.Cells.OrderBy(c => Vector3.DistanceSquared(c.EnvCell.Position.Origin, point)))
+                    foreach (var cell in group.Cells.OrderBy(c => Vector3.DistanceSquared(c.Position.Origin, point)))
                     {
-                        if (GetPhysicsCell(cell.CellId)?.point_in_cell(point) == true)
-                            return cell.CellId;
+                        if (GetPhysicsCell(cell.Id)?.point_in_cell(point) == true)
+                            return cell.Id;
                     }
                     return 0;
                 }
@@ -298,7 +298,7 @@ namespace ACE.Server.Pathfinding
                     if (GetPhysicsCell(cellId)?.point_in_cell(point) == true)
                         return cellId;
 
-                    foreach (var portal in cellsById[cellId].EnvCell.CellPortals)
+                    foreach (var portal in cellsById[cellId].CellPortals)
                     {
                         var otherCellId = landblockId | portal.OtherCellId;
                         if (group.CellIds.Contains(otherCellId) && seen.Add(otherCellId))
@@ -309,8 +309,8 @@ namespace ACE.Server.Pathfinding
                 // cells the portals didn't lead to, should a group ever hold any
                 foreach (var cell in group.Cells)
                 {
-                    if (!seen.Contains(cell.CellId) && GetPhysicsCell(cell.CellId)?.point_in_cell(point) == true)
-                        return cell.CellId;
+                    if (!seen.Contains(cell.Id) && GetPhysicsCell(cell.Id)?.point_in_cell(point) == true)
+                        return cell.Id;
                 }
                 return 0;
             }
@@ -349,15 +349,12 @@ namespace ACE.Server.Pathfinding
 
         public static bool PathfindingEnabled { get => PropertyManager.GetBool("pathfinding").Item; }
 
-        public static WorldObject CreateMarker(Position position, string customName = "")
+        public static WorldObject CreateMarker(Position position)
         {
             var marker = WorldObjectFactory.CreateNewWorldObject((uint)Factories.Enum.WeenieClassName.pathfinderHelper);
 
             if (marker == null)
                 return null;
-
-            if (customName != "")
-                marker.Name = customName;
 
             marker.Location = new Position(position);
             if (!marker.Location.Indoors)
@@ -569,27 +566,6 @@ namespace ACE.Server.Pathfinding
             public int NextInt32() => ACE.Common.ThreadSafeRandom.Next(0, int.MaxValue - 1);
         }
 
-        /// <summary>
-        /// Get a random point on the navmesh: anywhere on an interior mesh, within the landblock's reach outdoors.
-        /// </summary>
-        public static Position GetRandomPointOnMesh(Position start, AgentSize agentSize)
-        {
-            var group = GetGroupKey(start);
-            if (group.IsOutdoor)
-                return GetRandomPointWithinCircle(start, Position.BlockLength / 2f, agentSize);
-
-            using var lease = AcquireMesh(start, group, agentSize);
-            if (lease == null)
-                return null;
-
-            // never on an island, which nothing could walk to
-            var status = lease.Query.FindRandomPoint(ReachableFilter, ThreadSafeRcRand.Instance, out long randomRef, out var randomPt);
-            if (status.Failed() || randomRef == 0)
-                return null;
-
-            return CreatePosition(start, group, randomPt);
-        }
-
         public static Position GetRandomPointWithinCircle(Position location, float radius, AgentSize agentSize)
         {
             var group = GetGroupKey(location);
@@ -629,11 +605,8 @@ namespace ACE.Server.Pathfinding
         /// The nearest point on a wall within radius of a position, on the mesh of the given agent size, facing away
         /// from the wall (or towards it with faceWall). Null if there is no wall in range or the mesh isn't loaded.
         /// </summary>
-        /// <param name="distance">How far the wall is from the position, or float.MaxValue if none was found</param>
-        public static Position GetNearestWallPosition(Position location, float radius, AgentSize agentSize, out float distance, bool faceWall = false)
+        public static Position GetNearestWallPosition(Position location, float radius, AgentSize agentSize, bool faceWall = false)
         {
-            distance = float.MaxValue;
-
             var group = GetGroupKey(location);
             using var lease = AcquireMesh(location, group, agentSize);
             if (lease == null)
@@ -651,8 +624,6 @@ namespace ACE.Server.Pathfinding
             // no wall closer than the radius leaves the distance at the radius
             if (wallDistance >= radius)
                 return null;
-
-            distance = wallDistance;
 
             var position = CreatePosition(location, group, wallPt);
 

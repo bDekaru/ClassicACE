@@ -261,8 +261,7 @@ namespace ACE.Server.WorldObjects
             if (IsAttacking)
                 return;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsAttacking = true;
 
@@ -317,8 +316,7 @@ namespace ACE.Server.WorldObjects
 
             PendingEndAttack = false;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsAttacking = false;
 

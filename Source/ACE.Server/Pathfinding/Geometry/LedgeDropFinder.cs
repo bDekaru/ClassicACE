@@ -10,9 +10,10 @@ using System.Collections.Generic;
 namespace ACE.Server.Pathfinding.Geometry
 {
     /// <summary>
-    /// Finds the ledge drops of a mesh: the ledges an agent can drop down from, as one-way off-mesh connections from the edge of the upper floor
-    /// to the floor below. Recast splits floors at any step taller than the agent's max climb, so without these a
-    /// creature on a balcony walks around to the stairs, or can't reach the floor below at all.
+    /// Finds the ledge drops of a mesh: the ledges an agent can drop down from, as one-way off-mesh connections from
+    /// the edge of the upper floor to the floor below. Recast splits floors at any step taller than the agent's max
+    /// climb, so without these a creature on a balcony walks around to the stairs, or can't reach the floor below at
+    /// all.
     ///
     /// A ledge drop runs from a point just inside a boundary edge of the mesh, straight out over the edge, to the floor
     /// where the agent comes down. Creatures walk off a ledge drop (see Creature.ContinueRoute), so every one leaves it
@@ -205,7 +206,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
         /// <summary>
         /// Finds the floor the agent lands on below the probe point: the highest poly under it (within
-        /// LandingSearchRadius) that is between minLedgeDrop and MaxDropHeight below the start.
+        /// LandingSearchRadius) that is between minLedgeDrop and MaxLedgeDropHeight below the start.
         /// </summary>
         private static bool TryFindLanding(DtNavMeshQuery query, IDtQueryFilter filter, long[] candidates, long startRef, RcVec3f start, RcVec3f probe, float minLedgeDrop, out RcVec3f landing)
         {

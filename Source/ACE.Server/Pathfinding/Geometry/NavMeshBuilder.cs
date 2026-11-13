@@ -7,7 +7,6 @@ using DotRecast.Recast.Geom;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
-
     /// <summary>
     /// Builds navmeshes with Recast and Detour: one single-tile mesh per interior cell group, one tile per landblock
     /// outdoors, each with its ledge drops (see LedgeDropFinder).

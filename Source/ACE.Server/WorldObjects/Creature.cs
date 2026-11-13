@@ -15,7 +15,6 @@ using ACE.Server.WorldObjects.Entity;
 using log4net;
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Threading;
 using Position = ACE.Entity.Position;
 
@@ -341,7 +340,7 @@ namespace ACE.Server.WorldObjects
             if (!scatter)
                 return location;
 
-            var wallSpot = Pathfinder.GetNearestWallPosition(location, 20, AgentSize.Small, out _, true);
+            var wallSpot = Pathfinder.GetNearestWallPosition(location, 20, AgentSize.Small, true);
             if (wallSpot != null)
                 return wallSpot;
 
@@ -617,7 +616,7 @@ namespace ACE.Server.WorldObjects
             // the trigger on the floor, the trap on the nearest wall from it (or further ahead), facing the trigger
             var scatter = UsesPathfinding && Location.Indoors;
             var triggerLocation = GetDeploySpot(scatter, AgentSize.Small, 2);
-            var wallSpot = scatter ? Pathfinder.GetNearestWallPosition(triggerLocation, 20, AgentSize.Small, out _) : null;
+            var wallSpot = scatter ? Pathfinder.GetNearestWallPosition(triggerLocation, 20, AgentSize.Small) : null;
             var trapLocation = wallSpot ?? triggerLocation.InFrontOf(8);
             trapLocation.Rotate(GetDirection(trapLocation.ToGlobal(), triggerLocation.ToGlobal()));
 

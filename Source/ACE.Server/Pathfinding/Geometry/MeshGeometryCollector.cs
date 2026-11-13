@@ -3,33 +3,12 @@ using ACE.DatLoader.FileTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using Environment = ACE.DatLoader.FileTypes.Environment;
 using Frame = ACE.DatLoader.Entity.Frame;
 using Vector3 = System.Numerics.Vector3;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
-    /// <summary>
-    /// The parts of a physics landblock the outdoor mesh is built from, with its object lists copied. For the
-    /// pathfinder this is a detached landblock (Physics.Common.Landblock.CreateDetached) that nothing else uses.
-    /// </summary>
-    public class SurfaceSnapshot
-    {
-        public ACE.Server.Physics.Common.Landblock Landblock { get; }
-        public List<ACE.Server.Physics.PhysicsObj> Buildings { get; }
-        public List<ACE.Server.Physics.PhysicsObj> StaticObjects { get; }
-        public List<ACE.Server.Physics.PhysicsObj> Scenery { get; }
-
-        public SurfaceSnapshot(ACE.Server.Physics.Common.Landblock landblock)
-        {
-            Landblock = landblock;
-            Buildings = landblock.Buildings?.Cast<ACE.Server.Physics.PhysicsObj>().ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
-            StaticObjects = landblock.StaticObjects?.ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
-            Scenery = landblock.Scenery?.ToList() ?? new List<ACE.Server.Physics.PhysicsObj>();
-        }
-    }
-
     /// <summary>
     /// One landblock's contribution to an outdoor tile: the tile's own landblock, or a neighbor whose edge strip
     /// forms the tile's border.
@@ -42,55 +21,55 @@ namespace ACE.Server.Pathfinding.Geometry
         public uint LandblockId { get; }
 
         /// <summary>
-        /// The terrain.
+        /// The terrain, buildings, static objects and scenery. A detached landblock (see
+        /// Physics.Common.Landblock.CreateDetached) that nothing else uses.
         /// </summary>
-        public ACE.Server.Physics.Common.LandblockStruct Terrain { get; }
-
-        /// <summary>
-        /// The buildings, static objects and scenery. Null for terrain only.
-        /// </summary>
-        public SurfaceSnapshot Objects { get; }
+        public ACE.Server.Physics.Common.Landblock Landblock { get; }
 
         /// <summary>
         /// The interior cells of its buildings and caves, used to cut the terrain out of their interiors.
         /// </summary>
-        public List<CellGeometry> InteriorCells { get; }
+        public List<EnvCell> InteriorCells { get; }
 
-        public SurfaceSource(uint landblockId, ACE.Server.Physics.Common.LandblockStruct terrain, SurfaceSnapshot objects, List<CellGeometry> interiorCells)
+        public SurfaceSource(uint landblockId, ACE.Server.Physics.Common.Landblock landblock, List<EnvCell> interiorCells)
         {
             LandblockId = landblockId & 0xFFFF0000;
-            Terrain = terrain;
-            Objects = objects;
-            InteriorCells = interiorCells ?? new List<CellGeometry>();
+            Landblock = landblock;
+            InteriorCells = interiorCells ?? new List<EnvCell>();
         }
     }
 
-    class MeshGeometryCollector
+    /// <summary>
+    /// Collects the polygons a navmesh is built from, as indexed vertices in Recast space (y up): the cells and static
+    /// objects of an interior cell group (see LoadCells), or the outdoors around a landblock (see LoadSurface), plus
+    /// door aprons.
+    /// </summary>
+    internal sealed class MeshGeometryCollector
     {
         public List<Vector3> Vertices { get; } = new List<Vector3>();
         public List<List<int>> Polygons { get; } = new List<List<int>>();
 
-        public List<CellGeometry> Cells { get; }
+        public List<EnvCell> Cells { get; }
 
-        public MeshGeometryCollector(List<CellGeometry> cells)
+        public MeshGeometryCollector(List<EnvCell> cells)
         {
             Cells = cells;
         }
 
         public void LoadCells()
         {
-            var cellsById = new Dictionary<uint, CellGeometry>();
+            var cellsById = new Dictionary<uint, EnvCell>();
             foreach (var cell in Cells)
-                cellsById[cell.CellId] = cell;
+                cellsById[cell.Id] = cell;
 
             foreach (var cell in Cells)
             {
-                LoadEnvironment(cell.EnvCell.EnvironmentId, cell.EnvCell.Position, cell.EnvCell.CellStructure);
+                LoadEnvironment(cell.EnvironmentId, cell.Position, cell.CellStructure);
 
-                if (cell.EnvCell.StaticObjects == null)
+                if (cell.StaticObjects == null)
                     continue;
 
-                foreach (var staticObject in cell.EnvCell.StaticObjects)
+                foreach (var staticObject in cell.StaticObjects)
                 {
                     // the physics object the server creates for the static (EnvCell.init_static_objects), so its shape
                     // is posed, scaled and chosen exactly as the server's
@@ -98,17 +77,8 @@ namespace ACE.Server.Pathfinding.Geometry
                     obj.set_initial_frame(new ACE.Server.Physics.Animation.AFrame(staticObject.Frame));
 
                     // collect the static's polygons, then keep only what the server can collide with
-                    _capture = new List<List<Vector3>>();
-                    try
-                    {
-                        foreach (var polygon in GetCollisionPolygons(obj, Vector3.Zero, false))
-                            AddPolygon(polygon);
-                        AddCellStatic(_capture, cell, cellsById);
-                    }
-                    finally
-                    {
-                        _capture = null;
-                    }
+                    var polygons = GetCollisionPolygons(obj, Vector3.Zero, false).Select(p => ToMeshPolygon(p)).ToList();
+                    AddCellStatic(polygons, cell, cellsById);
                 }
             }
         }
@@ -116,16 +86,11 @@ namespace ACE.Server.Pathfinding.Geometry
         #region Cell statics
 
         /// <summary>
-        /// While set, AddPolygon collects transformed polygons here instead of adding them to the mesh.
-        /// </summary>
-        private List<List<Vector3>> _capture;
-
-        /// <summary>
         /// Clip boxes are grown by this much, so geometry on a cell's boundary (a shelf against a wall) stays whole.
         /// </summary>
         private const float CellClipMargin = 0.05f;
 
-        private readonly Dictionary<uint, CellClipBox> _cellClipBoxes = new Dictionary<uint, CellClipBox>();
+        private readonly Dictionary<uint, CellClipBox> cellClipBoxes = new Dictionary<uint, CellClipBox>();
 
         /// <summary>
         /// A cell's volume, approximated by the bounding box of its structure in the cell's own frame: an oriented box
@@ -196,20 +161,20 @@ namespace ACE.Server.Pathfinding.Geometry
             }
         }
 
-        private CellClipBox GetCellClipBox(CellGeometry cell)
+        private CellClipBox GetCellClipBox(EnvCell cell)
         {
-            if (_cellClipBoxes.TryGetValue(cell.CellId, out var box))
+            if (cellClipBoxes.TryGetValue(cell.Id, out var box))
                 return box;
 
             box = null;
-            var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvCell.EnvironmentId);
-            if (environment?.Cells != null && environment.Cells.TryGetValue(cell.EnvCell.CellStructure, out var cellStruct) && cellStruct.VertexArray.Vertices.Count > 0)
+            var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvironmentId);
+            if (environment?.Cells != null && environment.Cells.TryGetValue(cell.CellStructure, out var cellStruct) && cellStruct.VertexArray.Vertices.Count > 0)
             {
                 var (min, max) = GeometryHelpers.GetBounds(cellStruct.VertexArray.Vertices.Values.Select(v => v.Origin));
                 min -= new Vector3(CellClipMargin);
                 max += new Vector3(CellClipMargin);
 
-                var frame = cell.EnvCell.Position;
+                var frame = cell.Position;
                 box = new CellClipBox
                 {
                     Origin = frame.Origin,
@@ -229,7 +194,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 }
             }
 
-            _cellClipBoxes[cell.CellId] = box;
+            cellClipBoxes[cell.Id] = box;
             return box;
         }
 
@@ -240,7 +205,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// outside). Geometry outside them can't block anything, like the lower half of a collision box that hangs
         /// through a floor. A static that reaches outside is kept whole.
         /// </summary>
-        private void AddCellStatic(List<List<Vector3>> polygons, CellGeometry cell, Dictionary<uint, CellGeometry> cellsById)
+        private void AddCellStatic(List<List<Vector3>> polygons, EnvCell cell, Dictionary<uint, EnvCell> cellsById)
         {
             if (polygons.Count == 0)
                 return;
@@ -249,9 +214,9 @@ namespace ACE.Server.Pathfinding.Geometry
 
             var boxes = new List<CellClipBox>();
             var visited = new HashSet<uint>();
-            var queue = new Queue<CellGeometry>();
+            var queue = new Queue<EnvCell>();
             queue.Enqueue(cell);
-            visited.Add(cell.CellId);
+            visited.Add(cell.Id);
 
             while (queue.Count > 0)
             {
@@ -264,15 +229,15 @@ namespace ACE.Server.Pathfinding.Geometry
                 }
                 boxes.Add(box);
 
-                if (current.EnvCell.CellPortals == null)
+                if (current.CellPortals == null)
                     continue;
 
-                foreach (var portal in current.EnvCell.CellPortals)
+                foreach (var portal in current.CellPortals)
                 {
                     if (portal.OtherCellId == 0xFFFF)
                         continue;
 
-                    var otherId = (current.CellId & 0xFFFF0000) | portal.OtherCellId;
+                    var otherId = (current.Id & 0xFFFF0000) | portal.OtherCellId;
                     if (!visited.Add(otherId) || !cellsById.TryGetValue(otherId, out var other))
                         continue;
 
@@ -303,19 +268,19 @@ namespace ACE.Server.Pathfinding.Geometry
         /// True if bounds (in landblock coordinates) reach past one of a cell's portals to the outside, where the
         /// server would register a static in the outdoor cells too.
         /// </summary>
-        private bool ReachesOutside(CellGeometry cell, Vector3 min, Vector3 max)
+        private bool ReachesOutside(EnvCell cell, Vector3 min, Vector3 max)
         {
-            if (cell.EnvCell.CellPortals == null || !cell.EnvCell.CellPortals.Any(p => p.OtherCellId == 0xFFFF))
+            if (cell.CellPortals == null || !cell.CellPortals.Any(p => p.OtherCellId == 0xFFFF))
                 return false;
 
-            var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvCell.EnvironmentId);
-            if (environment?.Cells == null || !environment.Cells.TryGetValue(cell.EnvCell.CellStructure, out var cellStruct))
+            var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvironmentId);
+            if (environment?.Cells == null || !environment.Cells.TryGetValue(cell.CellStructure, out var cellStruct))
                 return true;
 
-            var frame = cell.EnvCell.Position;
+            var frame = cell.Position;
             var cellCenter = GeometryHelpers.GetCellCenter(cellStruct, frame);
 
-            foreach (var portal in cell.EnvCell.CellPortals.Where(p => p.OtherCellId == 0xFFFF))
+            foreach (var portal in cell.CellPortals.Where(p => p.OtherCellId == 0xFFFF))
             {
                 if (!cellStruct.Polygons.TryGetValue(portal.PolygonId, out var polygon) || polygon.VertexIds.Count < 3)
                     return true;
@@ -343,6 +308,19 @@ namespace ACE.Server.Pathfinding.Geometry
 
         #endregion
 
+        private static bool ShouldIgnoreEnvironment(uint environmentId)
+        {
+            switch (environmentId)
+            {
+                // roof tiles with "walkable" ceilings. the normal of the top ceiling poly is facing up
+                case 0x0D0000CA:
+                case 0x0D00016D:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>
         /// Adds the physics polygons of one cell structure of an environment, posed by the frame.
         /// </summary>
@@ -352,7 +330,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
             // weird vaulted ceiling environments we dont need... they have outwards facing polys on the roof
             // so we end up generating unneeded navmesh polys "outside" the dungeon if these are left in
-            if (CellGeometry.ShouldIgnoreEnvironment(environment.Id))
+            if (ShouldIgnoreEnvironment(environment.Id))
                 return;
 
             var cellStruct = environment.Cells[(uint)cellStructure];
@@ -366,10 +344,7 @@ namespace ACE.Server.Pathfinding.Geometry
         public void AddDoorAprons(IEnumerable<CellGroupDoor> doors, AgentSize agentSize)
         {
             foreach (var door in doors)
-            {
-                if (door.IsInWall)
-                    AddPolygon(DoorApron.GetFloor(door, agentSize));
-            }
+                AddPolygon(DoorApron.GetFloor(door, agentSize));
         }
 
         /// <summary>
@@ -387,17 +362,16 @@ namespace ACE.Server.Pathfinding.Geometry
         public void Truncate((int vertices, int polygons) mark)
         {
             for (var i = mark.vertices; i < Vertices.Count; i++)
-                _vertexLookup.Remove(Vertices[i]);
+                vertexLookup.Remove(Vertices[i]);
 
             Vertices.RemoveRange(mark.vertices, Vertices.Count - mark.vertices);
             Polygons.RemoveRange(mark.polygons, Polygons.Count - mark.polygons);
         }
 
         /// <summary>
-        /// Adds a polygon, posed by the frame if there is one, with its winding reversed. While a static object's
-        /// polygons are being collected (see _capture) it goes there instead of into the mesh arrays.
+        /// A polygon as the mesh has it: posed by the frame if there is one, with its winding reversed.
         /// </summary>
-        private void AddPolygon(List<Vector3> vertices, Frame frame = null)
+        private static List<Vector3> ToMeshPolygon(List<Vector3> vertices, Frame frame = null)
         {
             var points = new List<Vector3>(vertices.Count);
             for (var i = 0; i < vertices.Count; i++)
@@ -407,15 +381,19 @@ namespace ACE.Server.Pathfinding.Geometry
                     vertex = frame.LocalToGlobal(vertex);
                 points.Add(vertex);
             }
-
-            if (_capture != null)
-                _capture.Add(points);
-            else
-                AddTransformedPolygon(points);
+            return points;
         }
 
         /// <summary>
-        /// Adds a polygon already in landblock coordinates (in the winding AddPolygon produces) to the mesh arrays.
+        /// Adds a polygon, posed by the frame if there is one, with its winding reversed (see ToMeshPolygon).
+        /// </summary>
+        private void AddPolygon(List<Vector3> vertices, Frame frame = null)
+        {
+            AddTransformedPolygon(ToMeshPolygon(vertices, frame));
+        }
+
+        /// <summary>
+        /// Adds a polygon already in landblock coordinates (in the winding ToMeshPolygon produces) to the mesh arrays.
         /// </summary>
         private void AddTransformedPolygon(List<Vector3> points)
         {
@@ -425,18 +403,18 @@ namespace ACE.Server.Pathfinding.Geometry
                 // Recast space: y up
                 var vertex = new Vector3(point.X, point.Z, point.Y);
 
-                if (!_vertexLookup.TryGetValue(vertex, out var index))
+                if (!vertexLookup.TryGetValue(vertex, out var index))
                 {
                     index = Vertices.Count;
                     Vertices.Add(vertex);
-                    _vertexLookup.Add(vertex, index);
+                    vertexLookup.Add(vertex, index);
                 }
                 poly.Add(index);
             }
             Polygons.Add(poly);
         }
 
-        private readonly Dictionary<Vector3, int> _vertexLookup = new Dictionary<Vector3, int>();
+        private readonly Dictionary<Vector3, int> vertexLookup = new Dictionary<Vector3, int>();
 
         /// <summary>
         /// Returns the geometry as recast-ready arrays (Y up), with polygons fan-triangulated.
@@ -473,7 +451,8 @@ namespace ACE.Server.Pathfinding.Geometry
 
         /// <summary>
         /// Terrain this far below an interior floor (or anywhere above it, up to the cell's ceiling) is removed.
-        /// Matches the agent height: anything lower than this cannot produce a walkable span under the floor anyway.
+        /// A little under the smallest agent height (2.4 m for Small): terrain closer under a floor than this leaves too
+        /// little headroom to walk on anyway.
         /// </summary>
         private const float TerrainCutBelowFloor = 2.0f;
         private const float TerrainCutAboveCeiling = 0.5f;
@@ -541,7 +520,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// The world rect (x, y) the surface geometry is clipped to: the tile's landblock plus SurfaceMargin.
         /// </summary>
-        private float _clipMinX, _clipMinY, _clipMaxX, _clipMaxY;
+        private float clipMinX, clipMinY, clipMaxX, clipMaxY;
 
         /// <summary>
         /// Exports the outdoors around one landblock, for its outdoor tile: terrain, building exterior shells, static
@@ -554,35 +533,33 @@ namespace ACE.Server.Pathfinding.Geometry
         {
             var origin = GeometryHelpers.GetLandblockOrigin(landblockId);
 
-            _clipMinX = origin.X - SurfaceMargin;
-            _clipMinY = origin.Y - SurfaceMargin;
-            _clipMaxX = origin.X + ACE.Entity.Position.BlockLength + SurfaceMargin;
-            _clipMaxY = origin.Y + ACE.Entity.Position.BlockLength + SurfaceMargin;
+            clipMinX = origin.X - SurfaceMargin;
+            clipMinY = origin.Y - SurfaceMargin;
+            clipMaxX = origin.X + ACE.Entity.Position.BlockLength + SurfaceMargin;
+            clipMaxY = origin.Y + ACE.Entity.Position.BlockLength + SurfaceMargin;
 
             foreach (var source in sources)
             {
                 var isOwn = source.LandblockId == (landblockId & 0xFFFF0000);
 
-                if (source.Objects != null)
-                {
-                    foreach (var building in source.Objects.Buildings)
-                        AddPhysicsObj(building, source.LandblockId, true, isOwn);
+                var landblock = source.Landblock;
 
-                    foreach (var obj in source.Objects.StaticObjects)
-                        AddPhysicsObj(obj, source.LandblockId, false, isOwn);
+                foreach (var building in landblock.Buildings ?? Enumerable.Empty<ACE.Server.Physics.PhysicsObj>())
+                    AddPhysicsObj(building, source.LandblockId, true, isOwn);
 
-                    foreach (var obj in source.Objects.Scenery)
-                        AddPhysicsObj(obj, source.LandblockId, false, isOwn);
-                }
+                foreach (var obj in landblock.StaticObjects ?? Enumerable.Empty<ACE.Server.Physics.PhysicsObj>())
+                    AddPhysicsObj(obj, source.LandblockId, false, isOwn);
 
-                if (source.Terrain != null)
-                    LoadTerrain(source.LandblockId, source.Terrain, BuildFootprints(source.LandblockId, source.InteriorCells));
+                foreach (var obj in landblock.Scenery ?? Enumerable.Empty<ACE.Server.Physics.PhysicsObj>())
+                    AddPhysicsObj(obj, source.LandblockId, false, isOwn);
+
+                LoadTerrain(source.LandblockId, landblock, BuildFootprints(source.LandblockId, source.InteriorCells));
             }
         }
 
         private bool IntersectsClip(float minX, float minY, float maxX, float maxY)
         {
-            return maxX >= _clipMinX && minX <= _clipMaxX && maxY >= _clipMinY && minY <= _clipMaxY;
+            return maxX >= clipMinX && minX <= clipMaxX && maxY >= clipMinY && minY <= clipMaxY;
         }
 
         /// <summary>
@@ -696,7 +673,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// Collects the floor polygons and height range of a landblock's interior cells near the clip rect, in world
         /// coordinates. Used to cut the terrain out of building interiors.
         /// </summary>
-        private List<CellFootprint> BuildFootprints(uint landblockId, List<CellGeometry> cells)
+        private List<CellFootprint> BuildFootprints(uint landblockId, List<EnvCell> cells)
         {
             var footprints = new List<CellFootprint>();
             var floorZ = ACE.Server.Physics.PhysicsGlobals.FloorZ;
@@ -704,12 +681,11 @@ namespace ACE.Server.Pathfinding.Geometry
 
             foreach (var cell in cells)
             {
-                var envCell = cell.EnvCell;
-                if (envCell == null)
+                if (cell == null)
                     continue;
 
-                var environment = DatManager.PortalDat.ReadFromDat<Environment>(envCell.EnvironmentId);
-                if (environment == null || !environment.Cells.TryGetValue(envCell.CellStructure, out var cellStruct))
+                var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvironmentId);
+                if (environment == null || !environment.Cells.TryGetValue(cell.CellStructure, out var cellStruct))
                     continue;
 
                 var footprint = new CellFootprint();
@@ -719,7 +695,7 @@ namespace ACE.Server.Pathfinding.Geometry
                     if (poly.VertexIds.Count < 3)
                         continue;
 
-                    var points = poly.VertexIds.Select(v => envCell.Position.LocalToGlobal(cellStruct.VertexArray.Vertices[(ushort)v].Origin) + origin).ToArray();
+                    var points = poly.VertexIds.Select(v => cell.Position.LocalToGlobal(cellStruct.VertexArray.Vertices[(ushort)v].Origin) + origin).ToArray();
 
                     foreach (var p in points)
                         footprint.MaxZ = Math.Max(footprint.MaxZ, p.Z);
@@ -734,7 +710,7 @@ namespace ACE.Server.Pathfinding.Geometry
                         footprint.Bounds.Add(p);
                 }
 
-                if (footprint.Floors.Count > 0 && footprint.Bounds.IntersectsRect(_clipMinX, _clipMinY, _clipMaxX, _clipMaxY))
+                if (footprint.Floors.Count > 0 && footprint.Bounds.IntersectsRect(clipMinX, clipMinY, clipMaxX, clipMaxY))
                     footprints.Add(footprint);
             }
 

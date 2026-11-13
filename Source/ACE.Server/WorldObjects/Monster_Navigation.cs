@@ -3,7 +3,6 @@ using ACE.Entity;
 using ACE.Entity.Enum;
 using ACE.Entity.Enum.Properties;
 using ACE.Server.Entity;
-using ACE.Server.Entity.Actions;
 using ACE.Server.Managers;
 using ACE.Server.Pathfinding;
 using ACE.Server.Physics.Animation;
@@ -451,21 +450,7 @@ namespace ACE.Server.WorldObjects
             if (IsMovingToHome)
                 return;
 
-            IsEmotePending = false;
-            IsWanderingPending = false;
-            IsRouteStartPending = false;
-
-            if (IsEmoting)
-                EndEmoting();
-
-            if (IsWandering)
-                EndWandering();
-
-            if (IsRouting)
-                EndRoute();
-
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            StopCurrentActivity(false);
 
             IsMoveToHomePending = true;
         }
@@ -475,14 +460,18 @@ namespace ACE.Server.WorldObjects
             if (!MoveReady())
                 return;
 
+            // Planning the route home takes route planning time like any other plan (see CanPlanRouteThisTick): without
+            // any left this tick the move home stays pending, and the monster tick tries it again on the next one.
+            if (UsesPathfinding && !CanPlanRouteThisTick)
+                return;
+
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).MoveToHome()");
 
             if (IsMovingToHome)
                 return;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsMoveToHomePending = false;
             IsMovingToHome = true;
@@ -513,8 +502,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private void MoveToHomeDirectly()
         {
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             // cancelling the previous move reports it completed, which must not end the move home
             PendingEndMoveToHome = false;
@@ -536,7 +524,7 @@ namespace ACE.Server.WorldObjects
 
             if (IsRouting)
             {
-                UpdateRouteToDestination();
+                UpdateRoute();
 
                 // the route is over: done, or given up after failing to move
                 if (!IsRouting && IsMovingToHome)
@@ -550,18 +538,19 @@ namespace ACE.Server.WorldObjects
         }
 
         /// <summary>
-        /// Runs the next step of a route to a fixed position (see TryStartRouteTo), from the monster tick: one route
-        /// home, or a test route (see TryStartTestRoute).
+        /// Runs the next step of the current route, from the monster tick: a route chasing the attack target, a route
+        /// home, or a test route (see TryStartTestRoute). It ends, retries or continues as the last move left it, or is
+        /// planned again if the target moved away (see ShouldReplanRoute).
         /// </summary>
-        private void UpdateRouteToDestination()
+        private void UpdateRoute()
         {
-            // A move cancelled from outside (e.g. UpdateMoveSpeed when a spell changes the move speed) completes with
-            // ObjectGone, which leaves no step pending, and nothing else resumes a route to a position: head for the
-            // waypoint it was interrupted on again.
+            // A move cancelled from outside (e.g. UpdateMoveSpeed when a spell changes the move speed, or the chase range
+            // check) completes with ObjectGone, which leaves no step pending: head for the waypoint it was interrupted on
+            // again. ContinueRoute ends the route if its target is gone or changed.
             if (!PendingEndRoute && !PendingRetryRoute && !PendingContinueRoute && !HasPendingMovement && MoveReady())
             {
                 if (DebugMove)
-                    Console.WriteLine($"{Name} ({Guid}).UpdateRouteToDestination() - resuming the interrupted route");
+                    Console.WriteLine($"{Name} ({Guid}).UpdateRoute() - resuming the interrupted route");
 
                 RewindToRouteTarget();
                 PendingContinueRoute = true;
@@ -573,6 +562,8 @@ namespace ACE.Server.WorldObjects
                 RetryRoute();
             else if (PendingContinueRoute)
                 ContinueRoute();
+            else if (ShouldReplanRoute())
+                ReplanRoute(); // the target moved away from where the route leads
         }
 
         /// <summary>
@@ -625,8 +616,7 @@ namespace ACE.Server.WorldObjects
             if (IsRouting && RouteDestination != null)
                 EndRoute();
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             PendingEndMoveToHome = false;
             FailedMovementCount = 0;
@@ -648,8 +638,7 @@ namespace ACE.Server.WorldObjects
             if (IsRouting && RouteDestination != null)
                 EndRoute();
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsMoveToHomePending = false;
             IsMovingToHome = false;
@@ -674,6 +663,41 @@ namespace ACE.Server.WorldObjects
             PhysicsObj.MovementManager.MoveToManager.CancelMoveTo(error);
 
             EnqueueBroadcastMotion(new Motion(CurrentMotionState.Stance, MotionCommand.Ready), null, true);
+        }
+
+        /// <summary>
+        /// Stops the movement this creature is on its way through, if any. Unlike CancelMoveTo, it does nothing (and
+        /// broadcasts no Ready motion) when no movement is pending.
+        /// </summary>
+        private void CancelPendingMovement()
+        {
+            if (HasPendingMovement)
+                CancelMoveTo(WeenieError.ObjectGone);
+        }
+
+        /// <summary>
+        /// Drops what this creature is doing or about to do (emoting, wandering, routing, optionally attacking) and
+        /// stops its movement, for a change that takes over its behavior, such as a stun or heading home.
+        /// </summary>
+        private void StopCurrentActivity(bool includingAttack)
+        {
+            IsEmotePending = false;
+            IsWanderingPending = false;
+            IsRouteStartPending = false;
+
+            if (IsEmoting)
+                EndEmoting();
+
+            if (IsWandering)
+                EndWandering();
+
+            if (IsRouting)
+                EndRoute();
+
+            if (includingAttack && IsAttacking)
+                EndAttack();
+
+            CancelPendingMovement();
         }
 
         public void ForceHome()
@@ -801,8 +825,7 @@ namespace ACE.Server.WorldObjects
             if (IsWandering)
                 return;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
             FailedMovementCount = 0;
             FailedSightCount = 0;
 
@@ -823,8 +846,7 @@ namespace ACE.Server.WorldObjects
 
             PendingEndWandering = false;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsWanderingPending = false;
             IsWandering = false;
@@ -880,8 +902,7 @@ namespace ACE.Server.WorldObjects
             if (IsEmoting)
                 return;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             LastEmoteTime = Time.GetUnixTime();
             IsEmotePending = false;
@@ -987,14 +1008,27 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// True if this creature routes with the pathfinder where it stands: indoors and on the landscape alike.
         /// </summary>
-        public bool CanRouteHere => UsesPathfinding && Location != null;
+        public bool CanRoute => UsesPathfinding && Location != null;
+
+        /// <summary>
+        /// Routes to the attack target if it can't be reached in a straight line: a melee attacker that can't touch it,
+        /// or a missile attacker that has no line to it or is out of range.
+        /// </summary>
+        private void TryRouteToTargetOutOfReach()
+        {
+            if (!CanRoute || AttackTarget == null)
+                return;
+
+            if ((!IsRanged && !IsMeleeVisible(AttackTarget, true)) || (IsRanged && (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())))
+                TryRoute();
+        }
 
         public void TryRoute()
         {
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).TryRoute()");
 
-            if (!CanRouteHere || AttackTarget == null || IsRouting)
+            if (!CanRoute || AttackTarget == null || IsRouting)
                 return;
 
             IsRouteStartPending = true;
@@ -1013,7 +1047,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private bool TryStartRouteTo(Position destination)
         {
-            if (!CanRouteHere || destination == null || IsRouting)
+            if (!CanRoute || destination == null || IsRouting)
                 return false;
 
             RouteAttackTarget = null;
@@ -1047,7 +1081,7 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         public bool TryStartTestRoute(Position destination, bool walk = false)
         {
-            if (!CanRouteHere || destination == null)
+            if (!CanRoute || destination == null)
                 return false;
 
             IsEmotePending = false;
@@ -1191,10 +1225,18 @@ namespace ACE.Server.WorldObjects
             if (route == null || route.Count == 0)
                 return;
 
+            AdoptRoute(route, reachesTarget);
+        }
+
+        /// <summary>
+        /// Follows a newly planned route from its first waypoint, which this creature heads for on its next tick.
+        /// </summary>
+        private void AdoptRoute(List<Position> route, bool reachesTarget)
+        {
             RouteReachesTarget = reachesTarget;
             CurrentRoute = route;
             CurrentRouteIndex = 0;
-            PendingContinueRoute = true; // head for the new route's first waypoint on the next tick
+            PendingContinueRoute = true;
         }
 
         private void StartRoute()
@@ -1218,10 +1260,8 @@ namespace ACE.Server.WorldObjects
             RoutePlannedTargetLocation = toDestination ? null : new Position(AttackTarget.Location);
 
             PartialRouteReplanCount = 0;
-            CurrentRoute = PlanRoute(out var reachesTarget);
-            RouteReachesTarget = reachesTarget;
-
-            if (CurrentRoute == null || CurrentRoute.Count == 0)
+            var route = PlanRoute(out var reachesTarget);
+            if (route == null || route.Count == 0)
             {
                 EndRoute();
 
@@ -1230,19 +1270,16 @@ namespace ACE.Server.WorldObjects
                     LastRouteStartAttemptWasNullRoute = true;
                 return;
             }
-            else
-                LastRouteStartAttemptWasNullRoute = false;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            LastRouteStartAttemptWasNullRoute = false;
+
+            CancelPendingMovement();
             FailedMovementCount = 0;
             FailedSightCount = 0;
 
             RouteAttackTarget = toDestination ? null : AttackTarget;
             RoutePositionTarget = null;
-            CurrentRouteIndex = 0;
-
-            PendingContinueRoute = true;
+            AdoptRoute(route, reachesTarget);
         }
 
         private void ContinueRoute(bool retry = false)
@@ -1310,20 +1347,6 @@ namespace ACE.Server.WorldObjects
                 // At the start of a ledge drop, the next waypoint is where it lands: head straight for it, off the ledge.
                 var atLedgeDropStart = CurrentRouteIndex > 0 && RoutePosition.IsLedgeDrop(CurrentRoute[CurrentRouteIndex - 1]);
 
-                if (!atLedgeDropStart)
-                {
-                    for (var skipIndex = CurrentRouteIndex; skipIndex < CurrentRoute.Count; skipIndex++)
-                    {
-                        // Skip insignificant distance steps, but not the start of a ledge drop: it must be reached, as the
-                        // ledge drop was only checked from there.
-                        if (Location.DistanceTo(CurrentRoute[skipIndex]) > 2.0f || RoutePosition.IsLedgeDrop(CurrentRoute[skipIndex]))
-                        {
-                            CurrentRouteIndex = skipIndex;
-                            break;
-                        }
-                    }
-                }
-
                 RoutePositionTarget = CurrentRoute[CurrentRouteIndex];
                 CurrentRouteIndex++;
 
@@ -1334,7 +1357,7 @@ namespace ACE.Server.WorldObjects
             {
                 // attempt to step away from the nearest wall, hopefully that will get us past the point we got stuck.
                 var agentSize = GetPathfindingAgentSize();
-                var nearbyWallPos = Pathfinder.GetNearestWallPosition(Location, 1.0f, agentSize, out _, false);
+                var nearbyWallPos = Pathfinder.GetNearestWallPosition(Location, 1.0f, agentSize);
                 if (nearbyWallPos != null)
                 {
                     // A mesh edge can also be a ledge or one side of a narrow corridor, so stepping out from it can
@@ -1342,8 +1365,7 @@ namespace ACE.Server.WorldObjects
                     var wallAvoidingPos = Pathfinder.GetClosestPointOnMesh(nearbyWallPos.InFrontOf(1.2f), agentSize);
                     if (wallAvoidingPos != null)
                     {
-                        if (HasPendingMovement)
-                            CancelMoveTo(WeenieError.ObjectGone);
+                        CancelPendingMovement();
                         FailedSightCount = 0;
 
                         // after the step, the route heads for the waypoint that failed again
@@ -1356,8 +1378,7 @@ namespace ACE.Server.WorldObjects
                 }
             }
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
             FailedSightCount = 0;
 
             // Measured from the centre: a waypoint counts as reached where it is, not a body radius early. A ledge drop
@@ -1368,7 +1389,9 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// At the end of a planned route that fell short of the target, plans again from here: the route may have
         /// ended at the edge of what was loaded (outdoor tiles load in the background). Returns false if there is
-        /// nothing more to follow: no new route, or one that gets no further than here.
+        /// nothing more to follow: no new route, or one that gets no further than here. Without route planning time
+        /// left this tick (see CanPlanRouteThisTick) it returns true and tries again on the next tick, which doesn't
+        /// count as an attempt.
         /// </summary>
         private bool TryContinuePartialRoute()
         {
@@ -1376,6 +1399,12 @@ namespace ACE.Server.WorldObjects
 
             if (RouteReachesTarget || (!toDestination && AttackTarget == null) || PartialRouteReplanCount >= MaxPartialRouteReplans)
                 return false;
+
+            if (!CanPlanRouteThisTick)
+            {
+                PendingContinueRoute = true; // the same step again on the creature's next tick
+                return true;
+            }
 
             PartialRouteReplanCount++;
 
@@ -1394,10 +1423,7 @@ namespace ACE.Server.WorldObjects
             if (!reachesTarget && Location.DistanceTo(route[route.Count - 1]) <= 2.0f)
                 return false;
 
-            RouteReachesTarget = reachesTarget;
-            CurrentRoute = route;
-            CurrentRouteIndex = 0;
-            PendingContinueRoute = true; // head for the new route's first waypoint on the next tick
+            AdoptRoute(route, reachesTarget);
             return true;
         }
 
@@ -1465,8 +1491,7 @@ namespace ACE.Server.WorldObjects
             PendingRetryRoute = false;
             IsRouteSteppingOut = false;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             EndLedgeDrop();
 
@@ -1577,8 +1602,7 @@ namespace ACE.Server.WorldObjects
             if (IsGrantingPassage)
                 return;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
             FailedMovementCount = 0;
             FailedSightCount = 0;
 
@@ -1599,8 +1623,7 @@ namespace ACE.Server.WorldObjects
 
             PendingEndGrantPassage = false;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsGrantPassagePending = false;
             IsGrantingPassage = false;

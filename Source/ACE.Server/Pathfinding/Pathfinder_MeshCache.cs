@@ -23,6 +23,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using EnvCell = ACE.DatLoader.FileTypes.EnvCell;
 
 namespace ACE.Server.Pathfinding
 {
@@ -35,7 +36,7 @@ namespace ACE.Server.Pathfinding
         /// Part of the interior mesh cache file names. Build setting changes are picked up automatically; bump this
         /// when the exported geometry changes, so cached meshes built from the old geometry are not loaded.
         /// </summary>
-        private const int MeshGeometryVersion = 6; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons built per agent size, 4: cell statics shaped as the server's physics objects, spheres at their centers, 5: cells only grouped through two-way portals, rim doors for portals not in a wall, 6: no small sphere obstacles
+        private const int MeshGeometryVersion = 6; // 2: door aprons, 3: cell statics clipped to the cells they collide in, aprons built per agent size, 4: cell statics shaped as the server's physics objects, spheres at their centers, 5: cells only grouped through two-way portals, opening edge doors for portals not in a wall, 6: no small sphere obstacles
 
         /// <summary>
         /// Like MeshGeometryVersion, for the outdoor tiles. 2: tiles in world coordinates with a border from the
@@ -107,8 +108,6 @@ namespace ACE.Server.Pathfinding
             /// </summary>
             public bool IsPlaceholder => Mesh == null;
 
-            public bool IsLoading => Status == MeshLoadStatus.Loading;
-
             public InteriorMesh(DtNavMesh mesh, List<CellGroupDoor> passableDoors)
             {
                 Mesh = mesh;
@@ -129,9 +128,26 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The outdoors of the world, per agent size.
+        /// The outdoors of the world, per agent size. A mesh is created when it is first used (it takes some memory
+        /// and time, which a server with pathfinding off never needs to spend).
         /// </summary>
-        private static readonly Dictionary<AgentSize, OutdoorNavMesh> OutdoorMeshes = new Dictionary<AgentSize, OutdoorNavMesh>();
+        private static readonly Dictionary<AgentSize, Lazy<OutdoorNavMesh>> OutdoorMeshes = CreateOutdoorMeshes();
+
+        private static Dictionary<AgentSize, Lazy<OutdoorNavMesh>> CreateOutdoorMeshes()
+        {
+            var meshes = new Dictionary<AgentSize, Lazy<OutdoorNavMesh>>();
+            foreach (var agentSize in Enum.GetValues<AgentSize>())
+            {
+                var size = agentSize;
+                meshes[size] = new Lazy<OutdoorNavMesh>(() => new OutdoorNavMesh(size, Position.BlockLength, MaxVertsPerPoly));
+            }
+            return meshes;
+        }
+
+        private static OutdoorNavMesh GetOutdoorMesh(AgentSize agentSize)
+        {
+            return OutdoorMeshes[agentSize].Value;
+        }
 
         /// <summary>
         /// Landblocks (0xAAAA0000) whose outdoor tiles are loaded, or loading.
@@ -165,15 +181,13 @@ namespace ACE.Server.Pathfinding
             private bool disposed;
 
             public readonly DtNavMeshQuery Query;
-            public readonly MeshGroupKey Group;
 
             public bool IsOutdoor => outdoorMesh != null;
 
-            public MeshLease(DtNavMesh mesh, MeshGroupKey group, OutdoorNavMesh outdoorMesh)
+            public MeshLease(DtNavMesh mesh, OutdoorNavMesh outdoorMesh)
             {
                 pool = QueryPools.GetValue(mesh, _ => new ConcurrentQueue<DtNavMeshQuery>());
                 Query = pool.TryDequeue(out var query) ? query : new DtNavMeshQuery(mesh);
-                Group = group;
                 this.outdoorMesh = outdoorMesh;
 
                 // last, so a failure above leaves no lock behind
@@ -181,9 +195,9 @@ namespace ACE.Server.Pathfinding
             }
 
             /// <summary>
-            /// A mesh on its own, e.g. one being prepared before it is published: no group, no lock.
+            /// A mesh on its own, e.g. one being prepared before it is published: no lock.
             /// </summary>
-            public MeshLease(DtNavMesh mesh) : this(mesh, MeshGroupKey.None, null)
+            public MeshLease(DtNavMesh mesh) : this(mesh, null)
             {
             }
 
@@ -203,14 +217,6 @@ namespace ACE.Server.Pathfinding
 
                 outdoorMesh?.ExitRead();
             }
-        }
-
-        // No file system work here: a static constructor that throws leaves the whole type unusable, PathfindingEnabled
-        // included. The mesh folders are created when a mesh is saved (see SaveMeshData).
-        static Pathfinder()
-        {
-            foreach (var agentSize in AgentSizes)
-                OutdoorMeshes[agentSize] = new OutdoorNavMesh(agentSize, Position.BlockLength, MaxVertsPerPoly);
         }
 
         /// <summary>
@@ -240,7 +246,7 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static MeshLoadStatus GetOutdoorTileStatus(uint landblockId, AgentSize agentSize)
         {
-            if (OutdoorMeshes[agentSize].HasTile(landblockId))
+            if (GetOutdoorMesh(agentSize).HasTile(landblockId))
                 return MeshLoadStatus.Loaded;
 
             if (OutdoorTilesRequested.ContainsKey(landblockId))
@@ -270,7 +276,7 @@ namespace ACE.Server.Pathfinding
                 return null;
             }
 
-            return interiorMesh.IsPlaceholder ? null : new MeshLease(interiorMesh.Mesh, group, null);
+            return interiorMesh.IsPlaceholder ? null : new MeshLease(interiorMesh.Mesh, null);
         }
 
         /// <summary>
@@ -280,9 +286,9 @@ namespace ACE.Server.Pathfinding
         private static MeshLease AcquireOutdoorMesh(uint cell, AgentSize agentSize)
         {
             var landblockId = cell & 0xFFFF0000;
-            var outdoorMesh = OutdoorMeshes[agentSize];
+            var outdoorMesh = GetOutdoorMesh(agentSize);
 
-            var lease = new MeshLease(outdoorMesh.Mesh, MeshGroupKey.Outdoors, outdoorMesh);
+            var lease = new MeshLease(outdoorMesh.Mesh, outdoorMesh);
             if (outdoorMesh.HasTile(landblockId))
                 return lease;
 
@@ -329,7 +335,10 @@ namespace ACE.Server.Pathfinding
                 OutdoorTileGenerations.AddOrUpdate(landblockId, 1, (_, generation) => generation + 1);
 
                 foreach (var outdoorMesh in OutdoorMeshes.Values)
-                    outdoorMesh.RemoveTile(landblockId);
+                {
+                    if (outdoorMesh.IsValueCreated)
+                        outdoorMesh.Value.RemoveTile(landblockId);
+                }
             }
 
             OutdoorTilesRequested.TryRemove(landblockId, out _);
@@ -554,22 +563,24 @@ namespace ACE.Server.Pathfinding
             if (!LandblockManager.IsLoaded(new LandblockId(landblockId | 0xFFFF)))
                 return;
 
-            var location = $"landblock 0x{landblockId:X8}";
-
             if (rebuildMesh)
                 UnloadMesh(landblockId, group);
+
+            // Most calls come for a group that is already requested (every creature entering a dungeon asks).
+            if (AgentSizes.All(agentSize => Meshes.ContainsKey(GetMeshId(landblockId, group, agentSize))))
+                return;
 
             if (!GetGroups(landblockId).ByIndex.TryGetValue(group, out var cellGroup))
                 return;
 
-            // Doorways in a wall have a door apron, which keeps their component by itself when it can be reached (see
-            // MarkIslands). Seeding with them would also keep an apron that can't be reached, so only the others seed.
-            var seeds = cellGroup.Doors.Where(d => !d.IsInWall).Select(d => ToMeshPoint(landblockId, d.Position, false)).ToList();
             var toLoad = new List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)>();
 
             foreach (var agentSize in AgentSizes)
             {
                 var meshId = GetMeshId(landblockId, group, agentSize);
+                if (Meshes.ContainsKey(meshId))
+                    continue;
+
                 var placeholder = InteriorMesh.CreatePlaceholder();
                 if (Meshes.TryAdd(meshId, placeholder))
                     toLoad.Add((agentSize, meshId, GetMeshPath(InteriorMeshDirectory, meshId, false, agentSize), placeholder));
@@ -577,6 +588,8 @@ namespace ACE.Server.Pathfinding
 
             if (toLoad.Count == 0)
                 return;
+
+            var location = $"landblock 0x{landblockId:X8}";
 
             // a mesh unloaded or rebuilt since its load was queued no longer has this load's placeholder
             bool IsCurrent(uint meshId, InteriorMesh placeholder) => Meshes.TryGetValue(meshId, out var current) && current == placeholder;
@@ -596,7 +609,7 @@ namespace ACE.Server.Pathfinding
                     {
                         if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
                         {
-                            MarkIslands(cachedMesh, seeds, false);
+                            MarkIslands(cachedMesh, NoSeeds, false);
                             Meshes.TryUpdate(meshId, new InteriorMesh(cachedMesh, FindPassableDoors(cachedMesh, cellGroup, agentSize)), placeholder);
                             continue;
                         }
@@ -646,7 +659,7 @@ namespace ACE.Server.Pathfinding
                             continue;
                         }
 
-                        MarkIslands(mesh, seeds, false);
+                        MarkIslands(mesh, NoSeeds, false);
                         if (!Meshes.TryUpdate(meshId, new InteriorMesh(mesh, FindPassableDoors(mesh, cellGroup, agentSize)), placeholder))
                         {
                             log.Debug($"Pathfinder: dropped the {agentSize} nav mesh built for cell group {group} at {location}: it was unloaded or rebuilt meanwhile");
@@ -670,7 +683,7 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Loads (or builds) the outdoor tiles of a loaded landblock in the background, for both agent sizes. Until it
+        /// Loads (or builds) the outdoor tiles of a loaded landblock in the background, for every agent size. Until it
         /// is done, the tile is missing from the outdoor mesh: routes from it find no mesh, routes through it end at its
         /// edge. Tiles are only added for loaded landblocks, and removed when they unload. Their geometry comes from
         /// the dat alone, so it doesn't depend on which landblocks are loaded.
@@ -698,7 +711,13 @@ namespace ACE.Server.Pathfinding
                     return; // loaded or loading
             }
 
-            var generation = OutdoorTileGenerations.GetOrAdd(landblockId, 0);
+            // A forced rebuild starts a new generation, as an unload does, so a load of the landblock still running (which
+            // may hold a stale cached tile) is discarded when it finishes instead of replacing the rebuilt tile.
+            int generation;
+            lock (OutdoorTileSync)
+                generation = force
+                    ? OutdoorTileGenerations.AddOrUpdate(landblockId, 1, (_, current) => current + 1)
+                    : OutdoorTileGenerations.GetOrAdd(landblockId, 0);
 
             RunMeshBuild(() => BuildOutdoorTile(landblockId, generation, force));
         }
@@ -776,7 +795,7 @@ namespace ACE.Server.Pathfinding
                         if (!IsCurrent())
                             return;
 
-                        if (!OutdoorMeshes[agentSize].SetTile(landblockId, data))
+                        if (!GetOutdoorMesh(agentSize).SetTile(landblockId, data))
                             log.Warn($"Pathfinder: could not add the {agentSize} outdoor tile for 0x{landblockId:X8}");
                     }
                 }
@@ -820,7 +839,7 @@ namespace ACE.Server.Pathfinding
                     if (landblock == null)
                         continue; // past the edge of the world
 
-                    sources.Add(new SurfaceSource(sourceId, landblock, new SurfaceSnapshot(landblock), GetSurfaceInteriorCells(sourceId)));
+                    sources.Add(new SurfaceSource(sourceId, landblock, GetSurfaceInteriorCells(sourceId)));
                 }
             }
 
@@ -831,12 +850,10 @@ namespace ACE.Server.Pathfinding
         /// The interior cells of a landblock's buildings and caves, read from the dat without caching the landblock's
         /// groups (the neighbors may not be loaded).
         /// </summary>
-        private static List<CellGeometry> GetSurfaceInteriorCells(uint landblockId)
+        private static List<EnvCell> GetSurfaceInteriorCells(uint landblockId)
         {
-            if (Groups.TryGetValue(landblockId & 0xFFFF0000, out var groups))
-                return groups.ByIndex.Values.Where(g => g.ConnectsToOutside).SelectMany(g => g.Cells).ToList();
-
-            return new LandblockGeometry(landblockId).SurfaceConnectedCells;
+            IEnumerable<CellGroup> groups = Groups.TryGetValue(landblockId & 0xFFFF0000, out var cached) ? cached.ByIndex.Values : CellGroupLoader.LoadCellGroups(landblockId);
+            return groups.Where(g => g.ConnectsToOutside).SelectMany(g => g.Cells).ToList();
         }
 
         /// <summary>
@@ -864,10 +881,10 @@ namespace ACE.Server.Pathfinding
             OutdoorTilesRequested.TryRemove(landblockId, out _);
         }
 
-        private static MeshBuildSettings GetMeshSettings(bool outdoor, AgentSize type)
+        private static MeshBuildSettings GetMeshSettings(bool outdoor, AgentSize agentSize)
         {
             // the cell size and the radius in whole cells (see AgentProfile)
-            var profile = GetProfile(type);
+            var profile = GetProfile(agentSize);
             var cellSize = outdoor ? profile.OutdoorCellSize : profile.InteriorCellSize;
             var radiusCells = outdoor ? profile.OutdoorRadiusCells : profile.InteriorRadiusCells;
 
@@ -900,7 +917,7 @@ namespace ACE.Server.Pathfinding
 
             // Recast's own conversion (RcConfig.WalkableRadius)
             if ((int)MathF.Ceiling(settings.AgentRadius / settings.CellSize) != radiusCells)
-                log.Error($"Pathfinder: the {type} {(outdoor ? "outdoor" : "interior")} agent radius {settings.AgentRadius} is not {radiusCells} cells of {settings.CellSize}m");
+                log.Error($"Pathfinder: the {agentSize} {(outdoor ? "outdoor" : "interior")} agent radius {settings.AgentRadius} is not {radiusCells} cells of {settings.CellSize}m");
 
             return settings;
         }

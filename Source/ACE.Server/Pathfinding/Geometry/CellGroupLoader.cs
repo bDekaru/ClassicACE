@@ -8,8 +8,8 @@ using System.Numerics;
 namespace ACE.Server.Pathfinding.Geometry
 {
     /// <summary>
-    /// A doorway from an interior cell group to the outdoors: a cell portal that leads outside, or one edge of the rim
-    /// of a portal that is not in a wall (see LandblockGeometry.AddRimDoors).
+    /// A doorway from an interior cell group to the outdoors: a cell portal that leads outside, or one edge of
+    /// a portal that is not in a wall (an opening in a floor or ceiling, see CellGroupLoader.AddOpeningEdgeDoors).
     /// </summary>
     public readonly struct CellGroupDoor
     {
@@ -34,15 +34,10 @@ namespace ACE.Server.Pathfinding.Geometry
         public readonly float Width;
 
         /// <summary>
-        /// The horizontal direction out of the cell through the portal (unit length), or zero for a portal that is not
-        /// in a wall (a hole in a floor or ceiling)
+        /// The horizontal direction out of the cell through the portal (unit length): a door apron is placed in front
+        /// of it (see DoorApron). A portal in a floor or ceiling has no such direction and is split into one door per edge (see AddOpeningEdgeDoors).
         /// </summary>
         public readonly Vector3 Normal;
-
-        /// <summary>
-        /// True if the portal is in a wall, so a door apron can be placed in front of it (see DoorApron)
-        /// </summary>
-        public bool IsInWall => Normal != Vector3.Zero;
 
         public CellGroupDoor(uint cellId, Vector3 position, float top, float width, Vector3 normal)
         {
@@ -66,7 +61,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public int Index { get; }
 
-        public List<CellGeometry> Cells { get; } = new List<CellGeometry>();
+        public List<EnvCell> Cells { get; } = new List<EnvCell>();
 
         public HashSet<uint> CellIds { get; } = new HashSet<uint>();
 
@@ -84,79 +79,30 @@ namespace ACE.Server.Pathfinding.Geometry
     }
 
     /// <summary>
-    /// A landblock's dat data for the pathfinder: its LandblockInfo and its interior cells, split into groups that are
-    /// connected through cell portals.
+    /// Reads a landblock's interior cells from the dat files for the pathfinder, split into groups that are connected
+    /// through cell portals.
     /// </summary>
-    public class LandblockGeometry
+    public static class CellGroupLoader
     {
-        private readonly object _groupLock = new object();
-        private List<CellGroup> _cellGroups;
-        private LandblockInfo _landblockInfo;
-
         /// <summary>
-        /// The id of this landblock, in format 0xFFFF0000
-        /// </summary>
-        public uint Id { get; }
-
-        /// <summary>
-        /// LandblockInfo from the dat files
-        /// </summary>
-        public LandblockInfo LandblockInfo
-        {
-            get
-            {
-                if (_landblockInfo is null)
-                    _landblockInfo = DatManager.CellDat.ReadFromDat<LandblockInfo>(Id + 0xFFFE);
-
-                return _landblockInfo;
-            }
-        }
-
-        /// <summary>
-        /// The interior cells of this landblock, split into groups that are connected through cell portals.
-        /// </summary>
-        public IReadOnlyList<CellGroup> CellGroups
-        {
-            get
-            {
-                lock (_groupLock)
-                {
-                    if (_cellGroups == null)
-                        _cellGroups = LoadCellGroups();
-                    return _cellGroups;
-                }
-            }
-        }
-
-        /// <summary>
-        /// All interior cells that connect to the landscape (buildings, caves), across all groups.
-        /// </summary>
-        public List<CellGeometry> SurfaceConnectedCells => CellGroups.Where(g => g.ConnectsToOutside).SelectMany(g => g.Cells).ToList();
-
-        /// <summary>
-        /// Create a new landblock geometry object
+        /// Splits the interior cells of a landblock into connected components of the cell portal graph.
         /// </summary>
         /// <param name="id">The id of the landblock, or of any of its cells; only the landblock part (0xFFFF0000) is kept.</param>
-        public LandblockGeometry(uint id)
+        public static List<CellGroup> LoadCellGroups(uint id)
         {
-            Id = id & 0xFFFF0000;
-        }
+            id &= 0xFFFF0000;
 
-        /// <summary>
-        /// Splits the interior cells into connected components of the cell portal graph.
-        /// </summary>
-        private List<CellGroup> LoadCellGroups()
-        {
             var groups = new List<CellGroup>();
 
-            var numCells = LandblockInfo?.NumCells ?? 0;
+            var landblockInfo = DatManager.CellDat.ReadFromDat<LandblockInfo>(id + 0xFFFE);
+            var numCells = landblockInfo?.NumCells ?? 0;
             if (numCells == 0)
                 return groups;
 
             const uint minCell = 0x0100u;
             var envCells = new EnvCell[numCells];
             for (var i = 0; i < numCells; i++)
-                envCells[i] = DatManager.CellDat.ReadFromDat<EnvCell>(Id + minCell + (uint)i);
+                envCells[i] = DatManager.CellDat.ReadFromDat<EnvCell>(id + minCell + (uint)i);
 
             // Union-find over portal links. Only links both cells list count: the physics engine only moves an object
             // into a cell through a portal of the cell it is in, so a cell no other cell portals into can never be
@@ -195,9 +141,9 @@ namespace ACE.Server.Pathfinding.Geometry
 
             // cells a building portal leads into
             var buildingEntries = new HashSet<uint>();
-            if (LandblockInfo.Buildings != null)
+            if (landblockInfo.Buildings != null)
             {
-                foreach (var building in LandblockInfo.Buildings)
+                foreach (var building in landblockInfo.Buildings)
                 {
                     foreach (var portal in building.Portals)
                         buildingEntries.Add(portal.OtherCellId);
@@ -220,7 +166,7 @@ namespace ACE.Server.Pathfinding.Geometry
                     groups.Add(group);
                 }
 
-                var cellId = Id + minCell + (uint)i;
+                var cellId = id + minCell + (uint)i;
                 var leadsOutside = envCell.CellPortals?.Any(p => p.OtherCellId == 0xFFFF) == true;
 
                 if (leadsOutside || buildingEntries.Contains(minCell + (uint)i))
@@ -237,7 +183,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 MergeAdjacentDoors(group.Doors);
 
                 foreach (var cellId in group.CellIds.OrderBy(c => c))
-                    group.Cells.Add(new CellGeometry(cellId, envCells[cellId - Id - minCell]));
+                    group.Cells.Add(envCells[cellId - id - minCell]);
             }
 
             return groups;
@@ -266,7 +212,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
                 if (normal == Vector3.Zero)
                 {
-                    AddRimDoors(group, cellId, points, center);
+                    AddOpeningEdgeDoors(group, cellId, points, center);
                     continue;
                 }
 
@@ -279,18 +225,18 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Rim edges shorter than this horizontally get no doorway.
+        /// Opening edges shorter than this horizontally get no doorway.
         /// </summary>
-        private const float MinRimEdgeLength = 0.3f;
+        private const float MinOpeningEdgeLength = 0.3f;
 
         /// <summary>
-        /// A portal that is not in a wall (a hole in a floor or ceiling, like the mouth of a pit entrance) is crossed
-        /// over its rim, not through its middle, which is in the air. Each edge of the rim becomes a doorway of its own,
+        /// A portal that is not in a wall (an opening in a floor or ceiling, like the mouth of a pit entrance) is crossed
+        /// over its edge, not through its middle, which is in the air. Each edge of the opening becomes a doorway of its own,
         /// facing away from the hole, so it gets a door apron like a doorway in a wall: Recast then decides which edges
-        /// can be walked over (the rim of a pit whose sides lead down into it) and which can't (a skylight, far above
+        /// can be walked over (the edge of a pit whose sides lead down into it) and which can't (a skylight, far above
         /// the floor), and the outdoor side of a usable edge is on the ground next to the hole.
         /// </summary>
-        private static void AddRimDoors(CellGroup group, uint cellId, List<Vector3> points, Vector3 center)
+        private static void AddOpeningEdgeDoors(CellGroup group, uint cellId, List<Vector3> points, Vector3 center)
         {
             for (int i = 0, j = points.Count - 1; i < points.Count; j = i++)
             {
@@ -299,7 +245,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
                 var edge = new Vector3(b.X - a.X, b.Y - a.Y, 0f);
                 var length = edge.Length();
-                if (length < MinRimEdgeLength)
+                if (length < MinOpeningEdgeLength)
                     continue;
 
                 var middle = (a + b) * 0.5f;
@@ -351,7 +297,7 @@ namespace ACE.Server.Pathfinding.Geometry
         {
             door = default;
 
-            if (!a.IsInWall || !b.IsInWall || Vector3.Dot(a.Normal, b.Normal) < 0.99f)
+            if (Vector3.Dot(a.Normal, b.Normal) < 0.99f)
                 return false;
 
             if (MathF.Abs(Vector3.Dot(a.Position - b.Position, a.Normal)) > SameWallDistance)

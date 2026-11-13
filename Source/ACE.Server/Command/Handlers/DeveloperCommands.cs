@@ -4358,7 +4358,7 @@ namespace ACE.Server.Command.Handlers
             CommandHandlerHelper.WriteOutputInfo(session, $"Mesh used: {agentSize} (collision radius {collisionRadius:0.00}m / height {collisionHeight:0.00}m, mesh agent radius {meshRadius:0.00}m / height {meshHeight:0.00}m)");
 
             // chain routes through doorways, so a creature in a building can be sent outside or into another building
-            var legs = Pathfinder.FindRouteLegs(creature.Location, player.Location, agentSize);
+            var legs = Pathfinder.FindRouteLegs(creature.Location, player.Location, agentSize, out var reachesEnd);
             if (legs == null)
             {
                 CommandHandlerHelper.WriteOutputInfo(session, $"No route found.\n{DescribeMeshLoadStatus(creature, player)}");
@@ -4380,10 +4380,9 @@ namespace ACE.Server.Command.Handlers
                 legStart = leg[leg.Count - 1];
             }
 
-            var endGap = route[route.Count - 1].DistanceTo(player.Location);
-            CommandHandlerHelper.WriteOutputInfo(session, endGap <= 1
+            CommandHandlerHelper.WriteOutputInfo(session, reachesEnd
                 ? $"Route reaches you: {route.Count} waypoints over {legs.Count} leg(s)."
-                : $"Partial route: ends {endGap:0.00}m short. If it crosses the outdoors, the outdoor mesh may still be loading; try again.\n{DescribeMeshLoadStatus(creature, player)}");
+                : $"Partial route: ends {route[route.Count - 1].DistanceTo(player.Location):0.00}m short. If it crosses the outdoors, the outdoor mesh may still be loading; try again.\n{DescribeMeshLoadStatus(creature, player)}");
 
             if (drawRoute)
                 Pathfinder.DrawRoute(route);
@@ -4598,7 +4597,7 @@ namespace ACE.Server.Command.Handlers
 
             var player = walk.Player;
 
-            // players fit the narrow mesh, as creatures of their size do
+            // players fit the Small mesh, as creatures of their size do
             var legs = Pathfinder.FindRouteLegs(player.Location, walk.Destination, AgentSize.Small, out var reachesDestination);
             var waypoints = legs?.SelectMany(leg => leg).ToList();
 

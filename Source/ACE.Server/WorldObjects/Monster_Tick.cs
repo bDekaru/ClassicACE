@@ -1,9 +1,7 @@
 using ACE.Common;
 using ACE.Entity;
 using ACE.Entity.Enum;
-using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
-using ACE.Server.Pathfinding;
 using System;
 
 namespace ACE.Server.WorldObjects
@@ -186,7 +184,7 @@ namespace ACE.Server.WorldObjects
             // a test route (see TryStartTestRoute) runs undisturbed: no targets, no heading home
             if (IsTestRouting)
             {
-                UpdateRouteToDestination();
+                UpdateRoute();
                 return;
             }
 
@@ -230,8 +228,7 @@ namespace ACE.Server.WorldObjects
             var distanceToTarget = GetDistanceToTarget();
             if (MonsterState == State.Awake && distanceToTarget >= MaxChaseRange)
             {
-                if (HasPendingMovement)
-                    CancelMoveTo(WeenieError.ObjectGone);
+                CancelPendingMovement();
                 FindNextTarget();
                 return;
             }
@@ -319,8 +316,7 @@ namespace ACE.Server.WorldObjects
                         if (DebugMove)
                             Console.WriteLine($"{Name} ({Guid}) Target in Range!");
 
-                        if (HasPendingMovement)
-                            CancelMoveTo(WeenieError.ObjectGone);
+                        CancelPendingMovement();
                     }
                 }
                 else if (!isMelee && isInSight && !inRange)
@@ -336,8 +332,7 @@ namespace ACE.Server.WorldObjects
                         if (DebugMove)
                             Console.WriteLine($"{Name} ({Guid}) Target Lost!");
 
-                        if (HasPendingMovement)
-                            CancelMoveTo(WeenieError.ObjectGone);
+                        CancelPendingMovement();
                     }
                 }
 
@@ -400,14 +395,7 @@ namespace ACE.Server.WorldObjects
                 }
                 if (IsRouting)
                 {
-                    if (PendingEndRoute)
-                        EndRoute(false);
-                    else if (PendingRetryRoute)
-                        RetryRoute();
-                    else if (PendingContinueRoute)
-                        ContinueRoute();
-                    else if (ShouldReplanRoute())
-                        ReplanRoute(); // the target moved away from where the route leads
+                    UpdateRoute();
 
                     if (IsRouting)
                         return;
@@ -483,13 +471,13 @@ namespace ACE.Server.WorldObjects
 
                                             if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                             {
-                                                if (CanRouteHere && !LastRouteStartAttemptWasNullRoute)
+                                                if (CanRoute && !LastRouteStartAttemptWasNullRoute)
                                                     TryWandering(160, 200, 5);
                                                 else
                                                     TryWandering(100, 260, 7);
                                             }
 
-                                            if (CanRouteHere)
+                                            if (CanRoute)
                                                 TryRoute();
                                         }
                                     }
@@ -534,24 +522,7 @@ namespace ACE.Server.WorldObjects
 
         public void StunFor(double seconds)
         {
-            IsEmotePending = false;
-            IsWanderingPending = false;
-            IsRouteStartPending = false;
-
-            if (IsEmoting)
-                EndEmoting();
-
-            if (IsWandering)
-                EndWandering();
-
-            if (IsRouting)
-                EndRoute();
-
-            if (IsAttacking)
-                EndAttack();
-
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            StopCurrentActivity(true);
 
             StunnedUntilTimestamp = Time.GetFutureUnixTime(seconds);
             NextStunEffectTimestamp = 0;
@@ -564,24 +535,7 @@ namespace ACE.Server.WorldObjects
         public bool SnareCooldown { get; set; }
         public void Ensnare()
         {
-            IsEmotePending = false;
-            IsWanderingPending = false;
-            IsRouteStartPending = false;
-
-            if (IsEmoting)
-                EndEmoting();
-
-            if (IsWandering)
-                EndWandering();
-
-            if (IsRouting)
-                EndRoute();
-
-            if (IsAttacking)
-                EndAttack();
-
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            StopCurrentActivity(true);
 
             IsSnared = true;
             NextSnareEffectTimestamp = 0;
@@ -591,24 +545,7 @@ namespace ACE.Server.WorldObjects
         {
             if (IsSnared)
             {
-                IsEmotePending = false;
-                IsWanderingPending = false;
-                IsRouteStartPending = false;
-
-                if (IsEmoting)
-                    EndEmoting();
-
-                if (IsWandering)
-                    EndWandering();
-
-                if (IsRouting)
-                    EndRoute();
-
-                if (IsAttacking)
-                    EndAttack();
-
-                if (HasPendingMovement)
-                    CancelMoveTo(WeenieError.ObjectGone);
+                StopCurrentActivity(true);
 
                 IsSnared = false;
             }
@@ -622,24 +559,7 @@ namespace ACE.Server.WorldObjects
 
         public void Mesmerize()
         {
-            IsEmotePending = false;
-            IsWanderingPending = false;
-            IsRouteStartPending = false;
-
-            if (IsEmoting)
-                EndEmoting();
-
-            if (IsWandering)
-                EndWandering();
-
-            if (IsRouting)
-                EndRoute();
-
-            if (IsAttacking)
-                EndAttack();
-
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            StopCurrentActivity(true);
 
             IsMesmerized = true;
             NextMesmerizeEffectTimestamp = 0;

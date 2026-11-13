@@ -215,7 +215,7 @@ namespace ACE.Server.WorldObjects
                                 TryWandering(-45, 45, 4);
                             break;
                         case 2:
-                            if (CanRouteHere && !LastRouteStartAttemptWasNullRoute)
+                            if (CanRoute && !LastRouteStartAttemptWasNullRoute)
                             {
                                 if (LastWanderTime + MaxWanderFrequency < currentUnixTime && WanderChance > ThreadSafeRandom.Next(0.0f, 1.0f))
                                     TryWandering(160, 200, 5);
@@ -268,8 +268,7 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).EndSwitchWeapons()");
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsSwitchWeaponsPending = false;
             IsSwitchingWeapons = false;
@@ -311,8 +310,7 @@ namespace ACE.Server.WorldObjects
             if (IsSwitchingWeapons)
                 return;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsSwitchWeaponsPending = false;
             IsSwitchingWeapons = true;
@@ -409,11 +407,7 @@ namespace ACE.Server.WorldObjects
                 });
                 innerChain.EnqueueChain();
 
-                if (CanRouteHere && AttackTarget != null)
-                {
-                    if (!IsMeleeVisible(AttackTarget, true))
-                        TryRoute();
-                }
+                TryRouteToTargetOutOfReach();
 
                 EndSwitchWeapons();
             });
@@ -431,8 +425,7 @@ namespace ACE.Server.WorldObjects
             if (IsSwitchingWeapons)
                 return;
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
 
             IsSwitchWeaponsPending = false;
             IsSwitchingWeapons = true;
@@ -523,11 +516,7 @@ namespace ACE.Server.WorldObjects
                 });
                 innerChain.EnqueueChain();
 
-                if (CanRouteHere && AttackTarget != null)
-                {
-                    if (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())
-                        TryRoute();
-                }
+                TryRouteToTargetOutOfReach();
 
                 EndSwitchWeapons();
             });

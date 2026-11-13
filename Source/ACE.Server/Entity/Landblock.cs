@@ -259,7 +259,7 @@ namespace ACE.Server.Entity
 
         /// <summary>
         /// Spawns the first exploration markers once none of the pathfinding meshes of their spots is loading anymore. Until then it is tried again by the refresh, every ExplorationMarkerInitializationRetryDelay
-        /// seconds. A spot whose meshes didn't load (see AreExplorationMarkerMeshesLoaded) gets its markers placed
+        /// seconds. A spot whose meshes didn't load (see AreExplorationMarkerPathfindingMeshesLoaded) gets its markers placed
         /// without the pathfinder. With pathfinding disabled it doesn't wait: the markers spawn right away, placed
         /// without the pathfinder.
         /// </summary>
@@ -280,6 +280,20 @@ namespace ACE.Server.Entity
                 SpawnExplorationMarker();
 
             NextExplorationMarkerRefresh = Time.GetFutureUnixTime(ExplorationMarkerRefreshInterval);
+        }
+
+        /// <summary>
+        /// The distance between two positions for the exploration marker checks, which compare it with a limit: the route
+        /// length with the pathfinder, the straight line without it or where there is no route. A route is never shorter
+        /// than the straight line, so no route is planned for positions already further apart than the limit.
+        /// </summary>
+        private static float GetExplorationMarkerDistance(Position a, Position b, float limit, bool usePathfinder)
+        {
+            var straight = a.DistanceTo(b);
+            if (!usePathfinder || straight >= limit)
+                return straight;
+
+            return Pathfinder.GetRouteLegsDistance(a, b, AgentSize.Small, out var distance, out _, out _) ? distance : straight;
         }
 
         private static bool IsExplorationMarkerPathfindingMeshLoading(Position position)
@@ -321,14 +335,7 @@ namespace ACE.Server.Entity
                         if (player.IsOvertlyPlussed)
                             continue;
 
-                        float distance;
-                        if (Pathfinder.PathfindingEnabled)
-                        {
-                            if (!Pathfinder.GetRouteLegsDistance(player.Location, marker.Location, AgentSize.Small, out distance, out _, out _))
-                                distance = player.Location.DistanceTo(marker.Location);
-                        }
-                        else
-                            distance = player.Location.DistanceTo(marker.Location);
+                        var distance = GetExplorationMarkerDistance(player.Location, marker.Location, 50, Pathfinder.PathfindingEnabled);
 
                         if (distance < 50)
                         {
@@ -391,14 +398,7 @@ namespace ACE.Server.Entity
                     var markerOrPortal = obj.Value;
                     var minDistance = markerOrPortal.WeenieType == WeenieType.Portal ? 10 : 50;
 
-                    float distance;
-                    if (usePathfinder)
-                    {
-                        if (!Pathfinder.GetRouteLegsDistance(entryPos, markerOrPortal.Location, AgentSize.Small, out distance, out _, out _))
-                            distance = entryPos.DistanceTo(markerOrPortal.Location);
-                    }
-                    else
-                        distance = entryPos.DistanceTo(markerOrPortal.Location);
+                    var distance = GetExplorationMarkerDistance(entryPos, markerOrPortal.Location, minDistance, usePathfinder);
 
                     if (distance < minDistance)
                     {

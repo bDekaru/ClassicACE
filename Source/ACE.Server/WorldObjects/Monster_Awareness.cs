@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 
 using ACE.Common;
 using ACE.Common.Extensions;
@@ -39,11 +38,7 @@ namespace ACE.Server.WorldObjects
             if (alertNearby)
                 AlertFriendly();
 
-            if (CanRouteHere && AttackTarget != null)
-            {
-                if ((!IsRanged && !IsMeleeVisible(AttackTarget, true)) || (IsRanged && (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())))
-                    TryRoute();
-            }
+            TryRouteToTargetOutOfReach();
         }
 
         /// <summary>
@@ -72,8 +67,7 @@ namespace ACE.Server.WorldObjects
             if (IsMovingToHome)
                 EndMoveToHome();
 
-            if (HasPendingMovement)
-                CancelMoveTo(WeenieError.ObjectGone);
+            CancelPendingMovement();
             OnMovementStopped();
 
             ClearRetaliateTargets();
@@ -370,11 +364,7 @@ namespace ACE.Server.WorldObjects
                 {
                     EmoteManager.OnNewEnemy(AttackTarget);
 
-                    if (CanRouteHere)
-                    {
-                        if ((!IsRanged && !IsMeleeVisible(AttackTarget, true)) || (IsRanged && (!IsDirectVisible(AttackTarget, true) || GetDistanceToTarget() > GetMaxMissileRange())))
-                            TryRoute();
-                    }
+                    TryRouteToTargetOutOfReach();
                 }
 
                 return AttackTarget != null;

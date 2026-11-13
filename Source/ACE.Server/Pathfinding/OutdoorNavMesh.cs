@@ -26,8 +26,6 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private const int MaxPolysPerTile = 1 << 20;
 
-        public AgentSize AgentSize { get; }
-
         public DtNavMesh Mesh { get; }
 
         private readonly ReaderWriterLockSlim meshLock = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
@@ -39,8 +37,6 @@ namespace ACE.Server.Pathfinding
 
         public OutdoorNavMesh(AgentSize agentSize, float tileSize, int maxVertsPerPoly)
         {
-            AgentSize = agentSize;
-
             var navMeshParams = new DtNavMeshParams
             {
                 orig = RcVec3f.Zero,
