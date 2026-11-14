@@ -29,6 +29,14 @@ namespace ACE.Server.Pathfinding.Geometry
             // them, at 45 degrees, as they always have. A cylinder of no height has none.
             var across = Math.Abs(height) > 0.01 ? new Vector3(height, height, 0f) : new Vector3(-height, 0f, 0f);
             var side = Vector3.Cross(across, axis);
+
+            // a cylinder of no height has no direction to take them from, and normalizing a zero vector would turn the shape to NaN
+            if (across.LengthSquared() == 0f || side.LengthSquared() == 0f)
+            {
+                across = Vector3.UnitX;
+                side = Vector3.UnitY;
+            }
+
             across *= radius / across.Length();
             side *= radius / side.Length();
 

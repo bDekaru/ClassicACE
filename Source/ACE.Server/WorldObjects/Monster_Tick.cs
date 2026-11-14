@@ -252,6 +252,13 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
+            if (IsSwitchingWeapons && ACE.Server.Entity.Timers.RunningTime > SwitchWeaponsStartTime + MaxSwitchWeaponsTime)
+            {
+                // a creature that is switching weapons does nothing else until EndSwitchWeapons runs: this is a failsafe for it never running
+                log.Warn($"[Monster_Tick] 0x{Guid.Full:X8} {Name}: Fixed stuck IsSwitchingWeapons.");
+                EndSwitchWeapons();
+            }
+
             if (IsSwitchWeaponsPending)
                 SwitchWeapons();
             if (IsSwitchingWeapons || IsSwitchWeaponsPending)

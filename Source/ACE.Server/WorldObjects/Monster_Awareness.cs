@@ -82,6 +82,8 @@ namespace ACE.Server.WorldObjects
 
             EndAttack();
 
+            IsSwitchWeaponsPending = false;
+
             CancelPendingMovement();
             OnMovementStopped();
 

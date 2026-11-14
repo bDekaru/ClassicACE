@@ -432,41 +432,52 @@ namespace ACE.Server.Pathfinding
         {
             reachesEnd = false;
 
-            var legs = new List<List<Position>>();
-            var endGroup = GetGroupKey(end);
-            var current = start;
-
-            for (var i = 0; i < MaxRouteLegs; i++)
+            try
             {
-                var leg = FindRoute(current, end, agentSize, out var legReachesTarget);
-                if (leg == null || leg.Count == 0)
-                    break;
+                var legs = new List<List<Position>>();
+                var endGroup = GetGroupKey(end);
+                var current = start;
 
-                // A route's first waypoint is where it starts, the mesh point nearest the start position. The route's
-                // follower is already there, so it is left out of the first leg. Later legs start on the other side of a
-                // doorway, and that point is one of the two that take the follower through it.
-                if (i == 0 && leg.Count > 1)
-                    leg.RemoveAt(0);
-
-                legs.Add(leg);
-
-                var group = GetGroupKey(current);
-                if (group == endGroup)
+                for (var i = 0; i < MaxRouteLegs; i++)
                 {
-                    // the final leg, complete or as close as this mesh gets
-                    reachesEnd = legReachesTarget;
-                    break;
+                    var leg = FindRoute(current, end, agentSize, out var legReachesTarget);
+                    if (leg == null || leg.Count == 0)
+                        break;
+
+                    // A route's first waypoint is where it starts, the mesh point nearest the start position. The route's
+                    // follower is already there, so it is left out of the first leg. Later legs start on the other side of a
+                    // doorway, and that point is one of the two that take the follower through it.
+                    if (i == 0 && leg.Count > 1)
+                        leg.RemoveAt(0);
+
+                    legs.Add(leg);
+
+                    var group = GetGroupKey(current);
+                    if (group == endGroup)
+                    {
+                        // the final leg, complete or as close as this mesh gets
+                        reachesEnd = legReachesTarget;
+                        break;
+                    }
+
+                    if (!legReachesTarget)
+                        break; // the doorway is out of reach on this mesh
+
+                    current = GetOtherSideOfDoorway(group, leg[leg.Count - 1], endGroup, agentSize);
+                    if (current == null)
+                        break;
                 }
 
-                if (!legReachesTarget)
-                    break; // the doorway is out of reach on this mesh
-
-                current = GetOtherSideOfDoorway(group, leg[leg.Count - 1], endGroup, agentSize);
-                if (current == null)
-                    break;
+                return legs.Count > 0 ? legs : null;
             }
+            catch (Exception e)
+            {
+                // creatures call this from their ticks: a failed search is no route, rather than an exception that ends the server
+                log.Error($"Pathfinder: failed to find a route from {start.ToLOCString()} to {end.ToLOCString()}: {e}");
 
-            return legs.Count > 0 ? legs : null;
+                reachesEnd = false;
+                return null;
+            }
         }
 
         /// <summary>

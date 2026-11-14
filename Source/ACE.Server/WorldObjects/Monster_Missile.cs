@@ -86,29 +86,38 @@ namespace ACE.Server.WorldObjects
             // launch projectile
             actionChain.AddAction(this, () =>
             {
-                if (AttackTarget == null || IsDead || targetCreature.IsDead)
+                try
                 {
+                    if (AttackTarget == null || IsDead || targetCreature.IsDead)
+                    {
+                        EndAttack();
+                        return;
+                    }
+
+                    // handle self-procs
+                    TryProcEquippedItems(this, this, true, weapon);
+
+                    var sound = GetLaunchMissileSound(weapon);
+                    EnqueueBroadcast(new GameMessageSound(Guid, sound, 1.0f));
+
+                    var staminaCost = GetAttackStamina(GetPowerRange());
+                    UpdateVitalDelta(Stamina, -staminaCost);
+
+                    if (AttackTarget != null)
+                    {
+                        var projectile = LaunchProjectile(launcher, ammo, AttackTarget, origin, orientation, velocity);
+                        UpdateAmmoAfterLaunch(ammo);
+                    }
+
+                    UsedRangedAttacks = true;
+                    MissileCombatMeleeRangeMode = false; // reset melee range mode.
+                }
+                catch (Exception e)
+                {
+                    log.Error($"[Monster_Missile] 0x{Guid.Full:X8} {Name}: failed to launch a missile: {e}");
+
                     EndAttack();
-                    return;
                 }
-
-                // handle self-procs
-                TryProcEquippedItems(this, this, true, weapon);
-
-                var sound = GetLaunchMissileSound(weapon);
-                EnqueueBroadcast(new GameMessageSound(Guid, sound, 1.0f));
-
-                var staminaCost = GetAttackStamina(GetPowerRange());
-                UpdateVitalDelta(Stamina, -staminaCost);
-
-                if (AttackTarget != null)
-                {
-                    var projectile = LaunchProjectile(launcher, ammo, AttackTarget, origin, orientation, velocity);
-                    UpdateAmmoAfterLaunch(ammo);
-                }
-
-                UsedRangedAttacks = true;
-                MissileCombatMeleeRangeMode = false; // reset melee range mode.
             });
 
             // will ammo be depleted?
@@ -239,6 +248,13 @@ namespace ACE.Server.WorldObjects
 
         public bool MissileCombatMeleeRangeMode = false;
 
+        private double SwitchWeaponsStartTime;
+
+        /// <summary>
+        /// How long, in seconds, a weapon switch is given to end before it is ended by force (see IsSwitchingWeapons)
+        /// </summary>
+        private const double MaxSwitchWeaponsTime = 15.0;
+
         public void TrySwitchToMeleeAttack()
         {
             if (DebugMove)
@@ -314,6 +330,7 @@ namespace ACE.Server.WorldObjects
 
             IsSwitchWeaponsPending = false;
             IsSwitchingWeapons = true;
+            SwitchWeaponsStartTime = Timers.RunningTime;
 
             if (IsDead || !HasMeleeWeapon)
             {
@@ -440,6 +457,7 @@ namespace ACE.Server.WorldObjects
 
             IsSwitchWeaponsPending = false;
             IsSwitchingWeapons = true;
+            SwitchWeaponsStartTime = Timers.RunningTime;
 
             if (IsDead || !HasRangedWeapon)
             {

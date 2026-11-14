@@ -76,6 +76,7 @@ namespace ACE.Server.WorldObjects
             if (nearbyMonsters.Count == 0)
             {
                 //Console.WriteLine($"{Name}.FindNextTarget(): empty");
+                AttackTarget = null;
                 return false;
             }
 
@@ -85,6 +86,7 @@ namespace ACE.Server.WorldObjects
             if (nearest[0].Distance > VisualAwarenessRangeSq)
             {
                 //Console.WriteLine($"{Name}.FindNextTarget(): next object out-of-range (dist: {Math.Round(Math.Sqrt(nearest[0].Distance))})");
+                AttackTarget = null;
                 return false;
             }
 

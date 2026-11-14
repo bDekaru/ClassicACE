@@ -236,6 +236,13 @@ namespace ACE.Server.Pathfinding
             [ThreadStatic]
             private static Queue<uint> searchQueue;
 
+            /// <summary>
+            /// A landblock without interior cell groups.
+            /// </summary>
+            public LandblockGroups()
+            {
+            }
+
             public LandblockGroups(uint landblockId)
             {
                 foreach (var group in CellGroupLoader.LoadCellGroups(landblockId))
@@ -386,7 +393,17 @@ namespace ACE.Server.Pathfinding
             if (Groups.TryGetValue(landblockId, out var groups))
                 return groups;
 
-            groups = new LandblockGroups(landblockId);
+            try
+            {
+                groups = new LandblockGroups(landblockId);
+            }
+            catch (Exception e)
+            {
+                // a landblock whose cells can't be read has no interior meshes, rather than an exception for every creature asking about it
+                log.Error($"Pathfinder: failed to load the cell groups of landblock 0x{landblockId:X8}, it gets no interior meshes: {e}");
+                groups = new LandblockGroups();
+            }
+
             return LandblockManager.IsLoaded(new LandblockId(landblockId | 0xFFFF)) ? Groups.GetOrAdd(landblockId, groups) : groups;
         }
 
@@ -568,37 +585,53 @@ namespace ACE.Server.Pathfinding
 
         public static Position GetRandomPointWithinCircle(Position location, float radius, AgentSize agentSize)
         {
-            var group = GetGroupKey(location);
-            using var lease = AcquireMesh(location, group, agentSize);
-            if (lease == null)
+            try
+            {
+                var group = GetGroupKey(location);
+                using var lease = AcquireMesh(location, group, agentSize);
+                if (lease == null)
+                    return null;
+
+                var query = lease.Query;
+
+                if (!TryFindNearestReachablePoly(query, lease.ToMesh(location), out var startRef, out var startPt, out var startOnIsland))
+                    return null;
+
+                // the search spreads out from the start poly, so on an island it has to be allowed to stay on it
+                var filter = startOnIsland ? AllPolysFilter : ReachableFilter;
+                var status = query.FindRandomPointWithinCircle(startRef, startPt, radius, filter, ThreadSafeRcRand.Instance, out long randomRef, out var randomPt);
+                if (status.Failed() || randomRef == 0)
+                    return null;
+
+                return CreatePosition(location, group, randomPt);
+            }
+            catch (Exception e)
+            {
+                log.Error($"Pathfinder: failed to find a random point near {location.ToLOCString()}: {e}");
                 return null;
-
-            var query = lease.Query;
-
-            if (!TryFindNearestReachablePoly(query, lease.ToMesh(location), out var startRef, out var startPt, out var startOnIsland))
-                return null;
-
-            // the search spreads out from the start poly, so on an island it has to be allowed to stay on it
-            var filter = startOnIsland ? AllPolysFilter : ReachableFilter;
-            var status = query.FindRandomPointWithinCircle(startRef, startPt, radius, filter, ThreadSafeRcRand.Instance, out long randomRef, out var randomPt);
-            if (status.Failed() || randomRef == 0)
-                return null;
-
-            return CreatePosition(location, group, randomPt);
+            }
         }
 
         public static Position GetClosestPointOnMesh(Position location, AgentSize agentSize)
         {
-            var group = GetGroupKey(location);
-            using var lease = AcquireMesh(location, group, agentSize);
-            if (lease == null)
-                return null;
+            try
+            {
+                var group = GetGroupKey(location);
+                using var lease = AcquireMesh(location, group, agentSize);
+                if (lease == null)
+                    return null;
 
-            // prefers the main area over an island, e.g. the floor beside a table rather than its top
-            if (!TryFindNearestReachablePoly(lease.Query, lease.ToMesh(location), out _, out var startPt, out _))
-                return null;
+                // prefers the main area over an island, e.g. the floor beside a table rather than its top
+                if (!TryFindNearestReachablePoly(lease.Query, lease.ToMesh(location), out _, out var startPt, out _))
+                    return null;
 
-            return CreatePosition(location, group, startPt);
+                return CreatePosition(location, group, startPt);
+            }
+            catch (Exception e)
+            {
+                log.Error($"Pathfinder: failed to find the closest point on the mesh to {location.ToLOCString()}: {e}");
+                return null;
+            }
         }
 
         /// <summary>
@@ -607,31 +640,39 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         public static Position GetNearestWallPosition(Position location, float radius, AgentSize agentSize, bool faceWall = false)
         {
-            var group = GetGroupKey(location);
-            using var lease = AcquireMesh(location, group, agentSize);
-            if (lease == null)
+            try
+            {
+                var group = GetGroupKey(location);
+                using var lease = AcquireMesh(location, group, agentSize);
+                if (lease == null)
+                    return null;
+
+                var query = lease.Query;
+
+                if (!TryFindNearestReachablePoly(query, lease.ToMesh(location), out var startRef, out var startPt, out _))
+                    return null;
+
+                var status = query.FindDistanceToWall(startRef, startPt, radius, AllPolysFilter, out var wallDistance, out var wallPt, out var wallNormal);
+                if (status.Failed())
+                    return null;
+
+                // no wall closer than the radius leaves the distance at the radius
+                if (wallDistance >= radius)
+                    return null;
+
+                var position = CreatePosition(location, group, wallPt);
+
+                // the normal points away from the wall
+                var normal = FromMeshPoint(wallNormal);
+                position.Rotate(faceWall ? -normal : normal);
+
+                return position;
+            }
+            catch (Exception e)
+            {
+                log.Error($"Pathfinder: failed to find the nearest wall to {location.ToLOCString()}: {e}");
                 return null;
-
-            var query = lease.Query;
-
-            if (!TryFindNearestReachablePoly(query, lease.ToMesh(location), out var startRef, out var startPt, out _))
-                return null;
-
-            var status = query.FindDistanceToWall(startRef, startPt, radius, AllPolysFilter, out var wallDistance, out var wallPt, out var wallNormal);
-            if (status.Failed())
-                return null;
-
-            // no wall closer than the radius leaves the distance at the radius
-            if (wallDistance >= radius)
-                return null;
-
-            var position = CreatePosition(location, group, wallPt);
-
-            // the normal points away from the wall
-            var normal = FromMeshPoint(wallNormal);
-            position.Rotate(faceWall ? -normal : normal);
-
-            return position;
+            }
         }
     }
 }

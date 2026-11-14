@@ -214,7 +214,10 @@ namespace ACE.Server.WorldObjects
             var dist = GetCylinderDistance(P_PetOwner);
 
             if (dist > MaxDistance)
+            {
                 Destroy();
+                return;
+            }
 
             if (!IsMoving && dist > MinDistance)
                 StartFollow();
@@ -288,9 +291,6 @@ namespace ACE.Server.WorldObjects
                 base.OnMoveComplete(status);
                 return;
             }
-
-            if (status != WeenieError.None)
-                return;
 
             OnMovementStopped();
         }
