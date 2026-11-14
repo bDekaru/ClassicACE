@@ -297,6 +297,7 @@ namespace ACE.Server.WorldObjects
 
                 // get position before
                 var prevPos = PhysicsObj.Position.Frame.Origin;
+                var prevRotation = PhysicsObj.Position.Frame.Orientation;
                 var cellBefore = PhysicsObj.CurCell != null ? PhysicsObj.CurCell.ID : 0;
 
                 //Console.WriteLine($"{Name} - ticking physics");
@@ -335,6 +336,10 @@ namespace ACE.Server.WorldObjects
                     //if (landblockUpdate)
                     //WorldManager.UpdateLandblock.Add(this);
                 }
+
+                // the position goes out right after the step that changed it, so the clients get it as fresh as it can be
+                if (this is Creature movedCreature && movedCreature.BroadcastsPositionAfterPhysics && (isMoved || PhysicsObj.Position.Frame.Orientation != prevRotation))
+                    movedCreature.UpdatePosition();
 
                 /*if (PhysicsObj.IsGrounded)
                     SendUpdatePosition();*/

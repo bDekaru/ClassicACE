@@ -222,10 +222,7 @@ namespace ACE.Server.Physics.Animation
             DistanceToObject = mvp.DistanceToObject;
             MinDistance = mvp.MinDistance;
             DesiredHeading = mvp.DesiredHeading;
-            if(motion.MovementType == MovementType.MoveToObject || motion.MovementType == MovementType.MoveToPosition)
-                Speed = motion.RunRate * mvp.Speed;
-            else
-                Speed = mvp.Speed;
+            Speed = mvp.Speed;
             FailDistance = mvp.FailDistance;
             WalkRunThreshold = mvp.WalkRunThreshold;
         }

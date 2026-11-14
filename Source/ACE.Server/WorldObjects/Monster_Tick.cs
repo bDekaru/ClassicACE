@@ -12,6 +12,18 @@ namespace ACE.Server.WorldObjects
 
         public double NextMonsterTickTime;
 
+        /// <summary>
+        /// How long an awake creature goes without a position broadcast before Monster_Tick sends one anyway, in seconds
+        /// </summary>
+        private const double PositionKeepAliveInterval = 5.0;
+
+        /// <summary>
+        /// True while the physics step broadcasts this creature's position when it moves or turns. A position broadcast from Monster_Tick would
+        /// be up to a whole physics step old (the two run on unrelated timers), and a client chases each position it receives, so the creature
+        /// would be pulled back by however old it was. Creatures that tick elsewhere (pets, game pieces) and sticky creatures send none here.
+        /// </summary>
+        public bool BroadcastsPositionAfterPhysics => IsAwake && !IsDead && !IsChessPiece && !IsPassivePet && !PhysicsObj.IsSticky;
+
         public double NextFailureCountersDecayTime;
 
         private bool firstUpdate = true;
@@ -131,7 +143,9 @@ namespace ACE.Server.WorldObjects
                 if (PhysicsObj?.MovementManager?.MoveToManager?.FailProgressCount >= 5)
                     CancelMoveTo(WeenieError.ActionCancelled);
 
-                UpdatePosition(!PhysicsObj.IsSticky);
+                // the physics step sends the position when it changes (see BroadcastsPositionAfterPhysics): this only syncs the location, and
+                // sends one now and then, so a creature that stands still is still refreshed on the clients
+                UpdatePosition(!PhysicsObj.IsSticky && (DateTime.UtcNow - LastUpdatePosition).TotalSeconds >= PositionKeepAliveInterval);
             }
             else
                 return;
