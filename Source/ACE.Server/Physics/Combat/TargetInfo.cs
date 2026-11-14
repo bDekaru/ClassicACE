@@ -27,9 +27,15 @@ namespace ACE.Server.Physics.Combat
         public TargetStatus Status;
         public double LastUpdateTime;
 
-        public TargetInfo() { }
+        public TargetInfo()
+        {
+            // for retail client parity: its target info holds its positions by value, so it always has them, even before any report has arrived
+            // (the timeout in TargetManager.HandleTargetting copies it then)
+            TargetPosition = new Position();
+            InterpolatedPosition = new Position();
+        }
 
-        public TargetInfo(uint contextID, uint objectID, float radius, double quantum)
+        public TargetInfo(uint contextID, uint objectID, float radius, double quantum) : this()
         {
             ContextID = contextID;
             ObjectID = objectID;

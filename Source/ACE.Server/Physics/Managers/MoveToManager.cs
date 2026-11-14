@@ -189,6 +189,19 @@ namespace ACE.Server.Physics.Animation
 
             PhysicsObj.StopCompletely(false);
 
+            // The retail client measures the first distance of a move with the flags still stored from the move before it: it only
+            // saves the new parameters after building the move's nodes, at the end of this method. So when the move before it
+            // measured from the edge of the body (UseSpheres, as a chase does, and as a fresh manager defaults to) and this one
+            // measures from the centre, the first distance comes out short by the body's radius. A destination within about that
+            // radius plus the arrival distance (roughly a metre for a creature) then counts as already reached, and the move
+            // completes at once without moving, skipping close route waypoints.
+            // The CustomDM client is modified to save the new parameters first, so that distance is measured with the new move's
+            // own flags and the move walks to the destination, and CustomDM does the same here to agree with it. The other
+            // rulesets keep the retail order, to reach the same decisions as their unmodified clients.
+            var newParamsFirst = ACE.Common.ConfigManager.Config.Server.WorldRuleset == ACE.Common.Ruleset.CustomDM;
+            if (newParamsFirst)
+                SetMovementParams(movementParams);
+
             CurrentTargetPosition = new Position(position);
             SoughtObjectRadius = 0.0f;
 
@@ -211,7 +224,7 @@ namespace ACE.Server.Physics.Animation
                 AddMoveToPositionNode();
             }
 
-            if (MovementParams.UseFinalHeading)
+            if (movementParams.UseFinalHeading) // There used to be a typo here, checking MovementParams instead of movementParams
                 AddTurnToHeadingNode(movementParams.DesiredHeading);
 
             SoughtPosition = new Position(position);
@@ -219,12 +232,18 @@ namespace ACE.Server.Physics.Animation
 
             MovementType = MovementType.MoveToPosition;
 
-            MovementParams = new MovementParameters(movementParams);
-            //var flags = (MovementParamFlags)0xFFFFFF7F;     // unset Sticky?
-            //MovementParams.Flags = MovementParams.Flags & flags;
-            MovementParams.Sticky = false;
+            if (!newParamsFirst)
+                SetMovementParams(movementParams);
 
             BeginNextNode();
+        }
+
+        private void SetMovementParams(MovementParameters movementParams)
+        {
+            MovementParams = new MovementParameters(movementParams);
+
+            // there is nothing to stick to at a position
+            MovementParams.Sticky = false;
         }
 
         public void TurnToObject(uint objectID, uint topLevelID, MovementParameters movementParams)
@@ -440,13 +459,7 @@ namespace ACE.Server.Physics.Animation
                     }
                 }
                 else
-                {
-                    // custom: sync for server ticrate
-                    if (AuxCommand != 0)
-                        PhysicsObj.set_heading(heading, true);
-
                     stop_aux_command(movementParams);
-                }
             }
             else
                 stop_aux_command(movementParams);
@@ -760,7 +773,8 @@ namespace ACE.Server.Physics.Animation
 
             var pendingAction = PendingActions.First();
 
-            if (TopLevelObjectID != 0 || MovementType != MovementType.Invalid || Initialized)
+            // a move toward an object waits for the object's first position report
+            if (TopLevelObjectID == 0 || MovementType == MovementType.Invalid || Initialized)
             {
                 switch (pendingAction.Type)
                 {
@@ -772,6 +786,43 @@ namespace ACE.Server.Physics.Animation
                         break;
                 }
             }
+        }
+
+        /// <summary>
+        /// How close, in metres, a move may be to its arrival distance, beyond what a coarse step covers, before steps get fine.
+        /// </summary>
+        private const float FineStepDistanceMargin = 0.5f;
+
+        /// <summary>
+        /// The longest step the physics of a creature may take right now (see PhysicsObj.update_object). This differs from the client:
+        /// the client steps about every 1/30 s, while the server steps creatures in chunks of up to PhysicsGlobals.MaxQuantum. A decision
+        /// made once per step (arriving at a destination, ending a corrective turn) is therefore coarser on the server: a fast creature
+        /// can run past a waypoint, and a turn can end well beyond its dead-band. While a decision is near this asks for the client's
+        /// step size; otherwise the coarse step stays.
+        /// </summary>
+        public float GetMaxQuantum()
+        {
+            if (PhysicsObj == null || PendingActions.Count == 0)
+                return PhysicsGlobals.MaxQuantum;
+
+            var pendingAction = PendingActions[0];
+
+            if (pendingAction.Type == MovementType.TurnToHeading || AuxCommand != 0)
+                return PhysicsGlobals.MinQuantum;
+
+            if (pendingAction.Type != MovementType.MoveToPosition)
+                return PhysicsGlobals.MaxQuantum;
+
+            var minterp = PhysicsObj.get_minterp();
+            var speed = Math.Max(PhysicsObj.get_velocity().Length(), minterp != null ? minterp.get_state_velocity().Length() : 0.0f);
+
+            var distance = GetCurrentDistance();
+            var remaining = MovingAway ? MovementParams.MinDistance - distance : distance - MovementParams.DistanceToObject;
+
+            if (remaining <= speed * PhysicsGlobals.MaxQuantum + FineStepDistanceMargin)
+                return PhysicsGlobals.MinQuantum;
+
+            return PhysicsGlobals.MaxQuantum;
         }
 
         public WeenieError _DoMotion(uint motion, MovementParameters movementParams)

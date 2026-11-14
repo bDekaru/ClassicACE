@@ -4229,11 +4229,15 @@ namespace ACE.Server.Physics
                 return false;
             }
 
-            while (deltaTime > PhysicsGlobals.MaxQuantum)
+            var maxQuantum = GetMaxQuantum();
+
+            while (deltaTime > maxQuantum)
             {
-                PhysicsTimer_CurrentTime += PhysicsGlobals.MaxQuantum;
-                UpdateObjectInternal(PhysicsGlobals.MaxQuantum);
-                deltaTime -= PhysicsGlobals.MaxQuantum;
+                PhysicsTimer_CurrentTime += maxQuantum;
+                UpdateObjectInternal(maxQuantum);
+                deltaTime -= maxQuantum;
+
+                maxQuantum = GetMaxQuantum();
             }
 
             if (deltaTime > PhysicsGlobals.MinQuantum)
@@ -4244,6 +4248,18 @@ namespace ACE.Server.Physics
 
             UpdateTime = PhysicsTimer_CurrentTime;
             return true;
+        }
+
+        /// <summary>
+        /// The longest step update_object takes right now. Players are already stepped as finely as the client (only creatures are
+        /// throttled, see WorldObject.UpdateObjectPhysics), so only creatures are asked.
+        /// </summary>
+        private float GetMaxQuantum()
+        {
+            if (IsPlayer || MovementManager?.MoveToManager == null)
+                return PhysicsGlobals.MaxQuantum;
+
+            return MovementManager.MoveToManager.GetMaxQuantum();
         }
 
         public bool update_animation()

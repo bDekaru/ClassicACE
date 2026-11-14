@@ -59,16 +59,10 @@ namespace ACE.Server.Physics.Combat
 
             if (PhysicsTimer.CurrentTime - LastUpdateTime < 0.5f) return;
 
-            if (TargetInfo != null && TargetInfo.TargetPosition == null)
-            {
-                //Console.WriteLine("TargetManager.HandleTargetting - null position");
-                return;
-            }
-
             if (TargetInfo != null && TargetInfo.Status == TargetStatus.Undefined && TargetInfo.LastUpdateTime + 10.0f < PhysicsTimer.CurrentTime)
             {
                 TargetInfo.Status = TargetStatus.TimedOut;
-                PhysicsObj.HandleUpdateTarget(new TargetInfo(TargetInfo));  // ref?
+                PhysicsObj.HandleUpdateTarget(new TargetInfo(TargetInfo));
             }
 
             if (VoyeurTable != null)
