@@ -188,15 +188,26 @@ namespace ACE.Server.WorldObjects
             actionChain.AddDelaySeconds(preCastTime);
             actionChain.AddAction(this, () =>
             {
-                if (AttackTarget == null || IsDead || targetCreature.IsDead)
+                try
                 {
-                    EndAttack();
-                    return;
+                    if (AttackTarget == null || IsDead || targetCreature.IsDead)
+                    {
+                        EndAttack();
+                        return;
+                    }
+
+                    CastSpell(spell);
+
+                    PostCastMotion();
                 }
+                catch (Exception e)
+                {
+                    // a creature without animations only ends its attack through the fallback action queued after this one, which
+                    // would never run, so the attack would never end
+                    log.Error($"[Monster_Magic] 0x{Guid.Full:X8} {Name}: failed to cast {spell.Name}: {e}");
 
-                CastSpell(spell);
-
-                PostCastMotion();
+                    EndAttack();
+                }
             });
 
             var postCastTime = GetPostCastTime(spell);

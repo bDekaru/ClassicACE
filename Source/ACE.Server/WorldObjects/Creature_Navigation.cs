@@ -289,15 +289,23 @@ namespace ACE.Server.WorldObjects
             if (interruptAnimations)
                 PhysicsObj.RemoveLinkAnimations();
 
-            OnMovementStarted(true);
-
             // prevent initial snap forward
             if (!PhysicsObj.IsMovingOrAnimating)
                 PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
 
             var mvp = new MovementParameters(motion);
             PhysicsObj.TurnToObject(target.PhysicsObj, mvp);
+
+            if (IsPhysicsMoveActive)
+                OnMovementStarted(true);
         }
+
+        /// <summary>
+        /// True while the physics move manager has a move registered. A move can be over before the call that started it returns
+        /// (e.g. already at the destination), and one that replaces another cancels it through OnMoveComplete, so OnMovementStarted
+        /// is called after starting a move, and only if this is true: otherwise IsMoving would be left set with no move to end it.
+        /// </summary>
+        private bool IsPhysicsMoveActive => PhysicsObj.MovementManager?.MoveToManager?.is_moving_to() == true;
 
         /// <summary>
         /// Used by the monster AI system to start turning / running towards a target
@@ -333,14 +341,15 @@ namespace ACE.Server.WorldObjects
             if (interruptAnimations)
                 PhysicsObj.RemoveLinkAnimations();
 
-            OnMovementStarted();
-
             // prevent initial snap forward
             if (!PhysicsObj.IsMovingOrAnimating)
                 PhysicsObj.UpdateTime = Physics.Common.PhysicsTimer.CurrentTime;
 
             var mvp = new MovementParameters(motion);
             PhysicsObj.MoveToObject(target.PhysicsObj, mvp);
+
+            if (IsPhysicsMoveActive)
+                OnMovementStarted();
         }
 
         /// <summary>
@@ -396,7 +405,8 @@ namespace ACE.Server.WorldObjects
             var mvp = new MovementParameters(motion);
             PhysicsObj.MoveToPosition(new Physics.Common.Position(position), mvp);
 
-            OnMovementStarted();
+            if (IsPhysicsMoveActive)
+                OnMovementStarted();
         }
 
         private Motion GetMoveToMotion(WorldObject target, float distanceToObject = 0.6f, float speed = 1.0f)

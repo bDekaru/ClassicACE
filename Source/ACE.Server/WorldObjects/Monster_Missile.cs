@@ -340,33 +340,7 @@ namespace ACE.Server.WorldObjects
 
             actionChain.AddAction(this, () =>
             {
-                if (IsDead)
-                {
-                    EndSwitchWeapons();
-                    return;
-                }
-
-                if (weapon != null)
-                {
-                    TryUnwieldObjectWithBroadcasting(weapon.Guid, out _, out _);
-                    if (!TryAddToInventory(weapon, 0, false, false))
-                        weapon.Destroy();
-                }
-
-                if (ammo != null)
-                {
-                    TryUnwieldObjectWithBroadcasting(ammo.Guid, out _, out _);
-                    if (!TryAddToInventory(weapon, 0, false, false))
-                        weapon.Destroy();
-                }
-
-                EquipInventoryItems(true, true, false, false);
-
-                var innerChain = new ActionChain();
-
-                EnqueueMotion_Force(innerChain, MotionStance.NonCombat, MotionCommand.Ready, (MotionCommand)CurrentMotionState.Stance);
-
-                innerChain.AddAction(this, () =>
+                try
                 {
                     if (IsDead)
                     {
@@ -374,42 +348,79 @@ namespace ACE.Server.WorldObjects
                         return;
                     }
 
-                    //DoAttackStance();
+                    if (weapon != null)
+                    {
+                        TryUnwieldObjectWithBroadcasting(weapon.Guid, out _, out _);
+                        if (!TryAddToInventory(weapon, 0, false, false))
+                            weapon.Destroy();
+                    }
 
-                    // inlined DoAttackStance() / slightly modified -- do not rely on SetCombatMode() for stance swapping time in 1 action,
-                    // as it doesn't support that anymore
+                    if (ammo != null)
+                    {
+                        TryUnwieldObjectWithBroadcasting(ammo.Guid, out _, out _);
+                        if (!TryAddToInventory(ammo, 0, false, false))
+                            ammo.Destroy();
+                    }
 
-                    var newStanceTime = SetCombatMode(CombatMode.Melee);
+                    EquipInventoryItems(true, true, false, false);
 
-                    NextMoveTime = NextAttackTime = Timers.RunningTime + newStanceTime;
+                    var innerChain = new ActionChain();
 
-                    PrevAttackTime = NextMoveTime - (AiUseMagicDelay ?? 3.0f);
+                    EnqueueMotion_Force(innerChain, MotionStance.NonCombat, MotionCommand.Ready, (MotionCommand)CurrentMotionState.Stance);
 
-                    PhysicsObj.StartTimer();
+                    innerChain.AddAction(this, () =>
+                    {
+                        if (IsDead)
+                        {
+                            EndSwitchWeapons();
+                            return;
+                        }
 
-                    // end inline
+                        //DoAttackStance();
 
-                    LastWeaponSwitchTime = Time.GetUnixTime();
+                        // inlined DoAttackStance() / slightly modified -- do not rely on SetCombatMode() for stance swapping time in 1 action,
+                        // as it doesn't support that anymore
 
-                    // this is an unfortunate hack to fix the following scenario:
+                        var newStanceTime = SetCombatMode(CombatMode.Melee);
 
-                    // since this function can be called at any point in time now,
-                    // including when LaunchMissile -> EnqueueMotion is in the middle of an action queue,
-                    // CurrentMotionState.Stance can get reset to the previous combat stance if that happens
+                        NextMoveTime = NextAttackTime = Timers.RunningTime + newStanceTime;
 
-                    var newStance = CurrentMotionState.Stance;
+                        PrevAttackTime = NextMoveTime - (AiUseMagicDelay ?? 3.0f);
 
-                    var swapChain = new ActionChain();
-                    swapChain.AddDelaySeconds(2.0f);
-                    swapChain.AddAction(this, () => CurrentMotionState.Stance = newStance);
-                    swapChain.EnqueueChain();
+                        PhysicsObj.StartTimer();
 
-                });
-                innerChain.EnqueueChain();
+                        // end inline
 
-                TryRouteToTargetOutOfReach();
+                        LastWeaponSwitchTime = Time.GetUnixTime();
 
-                EndSwitchWeapons();
+                        // this is an unfortunate hack to fix the following scenario:
+
+                        // since this function can be called at any point in time now,
+                        // including when LaunchMissile -> EnqueueMotion is in the middle of an action queue,
+                        // CurrentMotionState.Stance can get reset to the previous combat stance if that happens
+
+                        var newStance = CurrentMotionState.Stance;
+
+                        var swapChain = new ActionChain();
+                        swapChain.AddDelaySeconds(2.0f);
+                        swapChain.AddAction(this, () => CurrentMotionState.Stance = newStance);
+                        swapChain.EnqueueChain();
+
+                    });
+                    innerChain.EnqueueChain();
+
+                    TryRouteToTargetOutOfReach();
+
+                    EndSwitchWeapons();
+                }
+                catch (Exception e)
+                {
+                    // Monster_Tick does nothing for a creature that is switching weapons until EndSwitchWeapons runs, so an exception here
+                    // would leave it unable to ever act again
+                    log.Error($"[Monster_Missile] 0x{Guid.Full:X8} {Name}: failed to switch to melee: {e}");
+
+                    EndSwitchWeapons();
+                }
             });
             actionChain.EnqueueChain();
         }
@@ -449,33 +460,7 @@ namespace ACE.Server.WorldObjects
 
             actionChain.AddAction(this, () =>
             {
-                if (IsDead)
-                {
-                    EndSwitchWeapons();
-                    return;
-                }
-
-                if (weapon != null)
-                {
-                    TryUnwieldObjectWithBroadcasting(weapon.Guid, out _, out _);
-                    if (!TryAddToInventory(weapon, 0, false, false))
-                        weapon.Destroy();
-                }
-
-                if (shield != null)
-                {
-                    TryUnwieldObjectWithBroadcasting(shield.Guid, out _, out _);
-                    if (!TryAddToInventory(shield, 0, false, false))
-                        shield.Destroy();
-                }
-
-                EquipInventoryItems(true, false, true, false);
-
-                var innerChain = new ActionChain();
-
-                EnqueueMotion_Force(innerChain, MotionStance.NonCombat, MotionCommand.Ready, (MotionCommand)CurrentMotionState.Stance);
-
-                innerChain.AddAction(this, () =>
+                try
                 {
                     if (IsDead)
                     {
@@ -483,42 +468,79 @@ namespace ACE.Server.WorldObjects
                         return;
                     }
 
-                    //DoAttackStance();
+                    if (weapon != null)
+                    {
+                        TryUnwieldObjectWithBroadcasting(weapon.Guid, out _, out _);
+                        if (!TryAddToInventory(weapon, 0, false, false))
+                            weapon.Destroy();
+                    }
 
-                    // inlined DoAttackStance() / slightly modified -- do not rely on SetCombatMode() for stance swapping time in 1 action,
-                    // as it doesn't support that anymore
+                    if (shield != null)
+                    {
+                        TryUnwieldObjectWithBroadcasting(shield.Guid, out _, out _);
+                        if (!TryAddToInventory(shield, 0, false, false))
+                            shield.Destroy();
+                    }
 
-                    var newStanceTime = SetCombatMode(CombatMode.Missile);
+                    EquipInventoryItems(true, false, true, false);
 
-                    NextMoveTime = NextAttackTime = Timers.RunningTime + newStanceTime;
+                    var innerChain = new ActionChain();
 
-                    PrevAttackTime = NextMoveTime - (AiUseMagicDelay ?? 3.0f);
+                    EnqueueMotion_Force(innerChain, MotionStance.NonCombat, MotionCommand.Ready, (MotionCommand)CurrentMotionState.Stance);
 
-                    PhysicsObj.StartTimer();
+                    innerChain.AddAction(this, () =>
+                    {
+                        if (IsDead)
+                        {
+                            EndSwitchWeapons();
+                            return;
+                        }
 
-                    // end inline
+                        //DoAttackStance();
 
-                    LastWeaponSwitchTime = Time.GetUnixTime();
+                        // inlined DoAttackStance() / slightly modified -- do not rely on SetCombatMode() for stance swapping time in 1 action,
+                        // as it doesn't support that anymore
 
-                    // this is an unfortunate hack to fix the following scenario:
+                        var newStanceTime = SetCombatMode(CombatMode.Missile);
 
-                    // since this function can be called at any point in time now,
-                    // including when LaunchMissile -> EnqueueMotion is in the middle of an action queue,
-                    // CurrentMotionState.Stance can get reset to the previous combat stance if that happens
+                        NextMoveTime = NextAttackTime = Timers.RunningTime + newStanceTime;
 
-                    var newStance = CurrentMotionState.Stance;
+                        PrevAttackTime = NextMoveTime - (AiUseMagicDelay ?? 3.0f);
 
-                    var swapChain = new ActionChain();
-                    swapChain.AddDelaySeconds(2.0f);
-                    swapChain.AddAction(this, () => CurrentMotionState.Stance = newStance);
-                    swapChain.EnqueueChain();
+                        PhysicsObj.StartTimer();
 
-                });
-                innerChain.EnqueueChain();
+                        // end inline
 
-                TryRouteToTargetOutOfReach();
+                        LastWeaponSwitchTime = Time.GetUnixTime();
 
-                EndSwitchWeapons();
+                        // this is an unfortunate hack to fix the following scenario:
+
+                        // since this function can be called at any point in time now,
+                        // including when LaunchMissile -> EnqueueMotion is in the middle of an action queue,
+                        // CurrentMotionState.Stance can get reset to the previous combat stance if that happens
+
+                        var newStance = CurrentMotionState.Stance;
+
+                        var swapChain = new ActionChain();
+                        swapChain.AddDelaySeconds(2.0f);
+                        swapChain.AddAction(this, () => CurrentMotionState.Stance = newStance);
+                        swapChain.EnqueueChain();
+
+                    });
+                    innerChain.EnqueueChain();
+
+                    TryRouteToTargetOutOfReach();
+
+                    EndSwitchWeapons();
+                }
+                catch (Exception e)
+                {
+                    // Monster_Tick does nothing for a creature that is switching weapons until EndSwitchWeapons runs, so an exception here
+                    // would leave it unable to ever act again
+                    log.Error($"[Monster_Missile] 0x{Guid.Full:X8} {Name}: failed to switch to missile: {e}");
+
+                    EndSwitchWeapons();
+                }
             });
             actionChain.EnqueueChain();
         }

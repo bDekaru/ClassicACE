@@ -22,6 +22,11 @@ namespace ACE.Server.WorldObjects
         private Position PreviousTickPosition = new Position();
 
         /// <summary>
+        /// How long after the time an attack was due to end, in seconds, it is still given to end before it is ended by force (see IsAttacking)
+        /// </summary>
+        private const double StuckAttackGraceTime = 5.0;
+
+        /// <summary>
         /// Primary dispatch for monster think
         /// </summary>
         public void Monster_Tick(double currentUnixTime)
@@ -156,6 +161,13 @@ namespace ACE.Server.WorldObjects
                     EndAttack(false);
                     if (PendingEndAttack)
                         return;
+                }
+                else if (!HasPendingAnimations && ACE.Server.Entity.Timers.RunningTime > NextMoveTime + StuckAttackGraceTime)
+                {
+                    // NextMoveTime is when the attack was due to end, so OnMotionDone (or the end of the missile attack's own chain) should have ended it
+                    // by now. This is a failsafe that lets the creature attack again.
+                    log.Warn($"[Monster_Tick] 0x{Guid.Full:X8} {Name}: Fixed stuck IsAttacking.");
+                    EndAttack();
                 }
             }
 

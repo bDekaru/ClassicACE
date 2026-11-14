@@ -72,14 +72,15 @@ namespace ACE.Server.WorldObjects
             MonsterState = State.Idle;
             AwakeJustToGrantPassage = false;
 
-            if (IsEmoting)
-                EndEmoting();
-            if (IsWandering)
-                EndWandering();
-            if (IsRouting)
-                EndRoute();
+            StopCurrentActivity(false);
+
+            if (IsGrantingPassage || IsGrantPassagePending)
+                EndGrantPassage();
+
             if (IsMovingToHome)
                 EndMoveToHome();
+
+            EndAttack();
 
             CancelPendingMovement();
             OnMovementStopped();
