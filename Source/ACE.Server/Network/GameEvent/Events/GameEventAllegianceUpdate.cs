@@ -70,7 +70,7 @@ namespace ACE.Server.Network.GameEvent.Events
                     Writer.Write((byte)(Gender)player.Gender); //gender
                     Writer.Write((byte)(HeritageGroup)player.Heritage); //hg
                     Writer.Write((ushort)player.AllegianceRank); //rank
-                    Writer.Write((ushort)player.Level); //level
+                    Writer.Write((uint)player.Level); //level
                     Writer.Write((ushort)player.GetCurrentLoyalty()); //loyalty
                     Writer.Write((ushort)player.GetCurrentLeadership()); //leadership
                     Writer.Write((uint)0); //timeOnline
