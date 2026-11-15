@@ -15,7 +15,7 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// How long an awake creature goes without a position broadcast before Monster_Tick sends one anyway, in seconds
         /// </summary>
-        private const double PositionKeepAliveInterval = 5.0;
+        private const double PositionKeepAliveInterval = 1.0;
 
         /// <summary>
         /// True while the physics step broadcasts this creature's position when it moves or turns. A position broadcast from Monster_Tick would

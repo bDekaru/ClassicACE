@@ -479,6 +479,17 @@ namespace ACE.Server.Physics.Animation
                     PendingActions.RemoveAt(0);
                     _StopMotion(CurrentCommand, movementParams);
 
+                    // Stopping the run only queues the transition back to Ready behind the run's own queued motion, and that transition
+                    // keeps playing, and moving the creature along its heading, for about a second (3 to 6 m for a fast creature) with
+                    // nothing steering it. A move that arrives against a target position that is already out of date ends early, so the
+                    // creature coasts past a target that has turned. Dropping the queued transitions ends the movement at arrival.
+                    // Limited to CustomDM: the retail client runs the same arrival code without this step, so the CustomDM client is
+                    // patched with the same fix and server and client then end the movement at the same moment. The patched client also
+                    // blends the pose change that the cut causes, over a few frames. Only a move to an object (a chase) is cut. A walk to a
+                    // position (pathfinding) keeps its blended stop on purpose.
+                    if (MovementType == MovementType.MoveToObject && !PhysicsObj.IsPlayer && ACE.Common.ConfigManager.Config.Server.WorldRuleset == ACE.Common.Ruleset.CustomDM)
+                        PhysicsObj.RemoveLinkAnimations();
+
                     CurrentCommand = 0;
                     stop_aux_command(movementParams);
 
