@@ -369,21 +369,12 @@ namespace ACE.Server.WorldObjects
 
         private static readonly ConcurrentDictionary<AttackFrameParams, bool> missingAttackFrames = new ConcurrentDictionary<AttackFrameParams, bool>();
 
-        //private bool moveBit;
-
-
         MotionCommand CurrentAttackMotionCommand;
         /// <summary>
         /// Perform the melee attack swing animation
         /// </summary>
         public void DoSwingMotion(WorldObject target, MotionCommand motionCommand, out float animLength, out List<(float time, AttackHook attackHook)> attackFrames)
         {
-            //if (!moveBit)
-            //{
-            //    SendUpdatePosition(true);
-            //    moveBit = true;
-            //}
-
             //Console.WriteLine($"{maneuver.Style} - {maneuver.Motion} - {maneuver.AttackHeight}");
 
             var baseSpeed = GetAnimSpeed();

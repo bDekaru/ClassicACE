@@ -1754,6 +1754,30 @@ namespace ACE.Server.Physics
                         else if (transit != null && transit.SpherePath.CurCell == null)
                             log.Warn($"{Name} ({ID:X8}).UpdateObjectInternal({quantum}) - avoided CurCell=null from {Position} to {newPos}");
 
+                        // CustomDM: a creature that stops sliding against something must not keep the slide.
+                        //
+                        // When a step collides with something (a chaser running into its target), SetPositionInternal stores the normal of that
+                        // collision and sets TransientStateFlags.Sliding. Every later step starts from that stored normal (get_object_info hands it
+                        // to the new Transition) and AdjustOffset removes the part of the requested offset that points into it. A move-to ends its
+                        // turn with an exact heading snap onto the target, so a creature chasing straight at a target that walks straight away asks
+                        // for an offset exactly along the stored normal: nothing is left, FindTransitionalPosition returns false at step 0 and the
+                        // transition is null. SetPositionInternal is the only place the sliding state is updated and a failed step never reaches
+                        // it, so the stale normal stays: the creature cannot move however far the target has gone, its line-of-sight sweep fails
+                        // the same way and it eventually gives up the chase ("Target Lost!", then idle emotes and wandering).
+                        //
+                        // Clearing the state on a failed step makes the next step start fresh: if the obstacle is still there the step collides
+                        // again and re-arms the slide, if it has moved away the creature moves on. Players are left alone: the client
+                        // moves a player and gets stuck or not by its own copy of the step, whatever the server's copy of the player does.
+                        //
+                        // The client's own copy of the creature gets stuck the same way: it runs this same logic (get_object_info, AdjustOffset,
+                        // FindTransitionalPosition and SetPositionInternal behave identically), so after bumping its target it keeps the sliding
+                        // state, stands in place playing its run or attack animation for seconds while the server's copy of the creature has
+                        // already moved on after its target, and is only moved again when the interpolation manager gives up on the queued
+                        // positions and blips it to the server's. The CustomDM client is patched to clear the state in the same place (the failure branch of
+                        // CPhysicsObj::UpdateObjectInternal), so the two sides agree.
+                        if (!IsPlayer && ACE.Common.ConfigManager.Config.Server.WorldRuleset == ACE.Common.Ruleset.CustomDM)
+                            TransientState &= ~TransientStateFlags.Sliding;
+
                         newPos.Frame.Origin = Position.Frame.Origin;
                         set_initial_frame(newPos.Frame);
                         CachedVelocity = Vector3.Zero;

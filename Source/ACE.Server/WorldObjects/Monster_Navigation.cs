@@ -94,8 +94,6 @@ namespace ACE.Server.WorldObjects
                 TurnTo(AttackTarget, interruptAnimations: Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM);
             else
                 MoveTo(AttackTarget, MaxMeleeRange - 0.05f, interruptAnimations: Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM);
-
-            //moveBit = false;
         }
 
         protected void OnMovementStarted(bool isTurn = false)
