@@ -21,6 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Data\*.tsv" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ACE.Entity\ACE.Entity.csproj" />
   </ItemGroup>
 
