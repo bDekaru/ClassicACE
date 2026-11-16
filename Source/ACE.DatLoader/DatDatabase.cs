@@ -15,6 +15,10 @@ namespace ACE.DatLoader
 
         private const uint DAT_HEADER_OFFSET = 0x140;
 
+        private const uint RETAIL_DAT_HEADER_OFFSET = 0x12C;
+
+        private const uint DAT_MAGIC = 0x5442;
+
         public string FilePath { get; }
 
         public int Iteration { get { return GetTotalIterations(); } }
@@ -40,11 +44,31 @@ namespace ACE.DatLoader
 
             stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
 
-            stream.Seek(DAT_HEADER_OFFSET, SeekOrigin.Begin);
             using (var reader = new BinaryReader(stream, System.Text.Encoding.Default, true))
-                Header.Unpack(reader);
+            {
+                stream.Seek(DAT_HEADER_OFFSET, SeekOrigin.Begin);
+                var todMagic = stream.Length >= DAT_HEADER_OFFSET + sizeof(uint) ? reader.ReadUInt32() : 0;
 
-            RootDirectory = new DatDirectory(Header.BTree, Header.BlockSize);
+                var retailMagic = 0u;
+                if (todMagic != DAT_MAGIC && stream.Length >= RETAIL_DAT_HEADER_OFFSET + sizeof(uint))
+                {
+                    stream.Seek(RETAIL_DAT_HEADER_OFFSET, SeekOrigin.Begin);
+                    retailMagic = reader.ReadUInt32();
+                }
+
+                if (retailMagic == DAT_MAGIC)
+                {
+                    stream.Seek(RETAIL_DAT_HEADER_OFFSET, SeekOrigin.Begin);
+                    Header.UnpackRetail(reader);
+                }
+                else
+                {
+                    stream.Seek(DAT_HEADER_OFFSET, SeekOrigin.Begin);
+                    Header.Unpack(reader);
+                }
+            }
+
+            RootDirectory = new DatDirectory(Header.BTree, Header.BlockSize, Header.IsRetail);
             RootDirectory.Read(stream);
 
             if (!keepOpen)
@@ -152,6 +176,9 @@ namespace ACE.DatLoader
         /// <returns>The iteration from the dat file, or 0 if there was an error</returns>
         private int GetTotalIterations()
         {
+            if (Header.IsRetail)
+                return (int)Header.Iteration;
+
             var iteration = ReadFromDat<Iteration>(FileTypes.Iteration.FILE_ID);
             if (iteration.TotalIterations > 0)
             {

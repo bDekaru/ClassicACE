@@ -29,6 +29,28 @@ namespace ACE.DatLoader
         public byte[] VersionMajor { get; private set; } = new byte[16];
         public uint VersionMinor { get; private set; }
 
+        /// <summary>
+        /// The pre-ToD (retail release era) header has no data set, subset or version fields. The iteration is stored here instead of in an iteration file.
+        /// </summary>
+        public uint Iteration { get; private set; }
+
+        public bool IsRetail { get; private set; }
+
+        public void UnpackRetail(BinaryReader reader)
+        {
+            IsRetail = true;
+
+            FileType    = reader.ReadUInt32();
+            BlockSize   = reader.ReadUInt32();
+            FileSize    = reader.ReadUInt32();
+            Iteration   = reader.ReadUInt32();
+
+            FreeHead    = reader.ReadUInt32();
+            FreeTail    = reader.ReadUInt32();
+            FreeCount   = reader.ReadUInt32();
+            BTree       = reader.ReadUInt32();
+        }
+
         public void Unpack(BinaryReader reader)
         {
             FileType    = reader.ReadUInt32();

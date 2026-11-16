@@ -9,7 +9,8 @@ namespace ACE.DatLoader
     {
         internal const uint ObjectSize = (sizeof(uint) * 6);
 
-        
+        internal const uint RetailObjectSize = (sizeof(uint) * 3);
+
         //public uint BitFlags { get; private set; }
 
         public uint ObjectId { get; private set; }
@@ -30,6 +31,16 @@ namespace ACE.DatLoader
             FileSize    = reader.ReadUInt32();
             Date        = reader.ReadUInt32();
             Iteration   = reader.ReadUInt32();
+        }
+
+        /// <summary>
+        /// Pre-ToD entries hold only the id, first block and size; there is no per-file date or iteration.
+        /// </summary>
+        public void UnpackRetail(BinaryReader reader)
+        {
+            ObjectId    = reader.ReadUInt32();
+            FileOffset  = reader.ReadUInt32();
+            FileSize    = reader.ReadUInt32();
         }
 
 

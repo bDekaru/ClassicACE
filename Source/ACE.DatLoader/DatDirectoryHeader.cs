@@ -6,9 +6,18 @@ namespace ACE.DatLoader
     {
         internal const uint ObjectSize = ((sizeof(uint) * 0x3E) + sizeof(uint) + (DatFile.ObjectSize * 0x3D));
 
+        internal const uint RetailObjectSize = ((sizeof(uint) * 0x3E) + sizeof(uint) + (DatFile.RetailObjectSize * 0x3D));
+
+        private readonly bool retail;
+
         public uint[] Branches { get; } = new uint[0x3E];
         public uint EntryCount { get; private set; }
         public DatFile[] Entries { get; private set; }
+
+        public DatDirectoryHeader(bool retail = false)
+        {
+            this.retail = retail;
+        }
 
         public void Unpack(BinaryReader reader)
         {
@@ -22,7 +31,11 @@ namespace ACE.DatLoader
             for (int i = 0; i < EntryCount; i++)
             {
                 Entries[i] = new DatFile();
-                Entries[i].Unpack(reader);
+
+                if (retail)
+                    Entries[i].UnpackRetail(reader);
+                else
+                    Entries[i].Unpack(reader);
             }
         }
     }
