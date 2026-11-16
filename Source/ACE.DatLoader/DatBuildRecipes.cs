@@ -28,8 +28,12 @@ namespace ACE.DatLoader
         /// <summary>Building models to replace as a whole with the pre-ToD versions, e.g. "01002EF1,01002EF2": each brings its group (see <see cref="DatBuildingGroups"/>). Imported after the surfaces.</summary>
         public string Buildings { get; }
 
-        public DatPreToDImport(string preToDDat, string surfaceMap, string ids, string surfaces, string preToDCellDat = null, string buildings = null)
+        /// <summary>The step date the imported records carry.</summary>
+        public string Date { get; }
+
+        public DatPreToDImport(string date, string preToDDat, string surfaceMap, string ids, string surfaces, string preToDCellDat = null, string buildings = null)
         {
+            Date = date;
             PreToDDat = preToDDat;
             SurfaceMap = surfaceMap;
             Ids = ids;
@@ -57,8 +61,24 @@ namespace ACE.DatLoader
         }
     }
 
+    /// <summary>One overlay folder (relative to the Custom Files root, written with '/') and the date the records it writes carry. The date is chosen by hand when the step is added and never changed afterwards.</summary>
+    public class DatBuildStep
+    {
+        public string Folder { get; }
+        public string Date { get; }
+        public uint Time { get; }
+
+        public DatBuildStep(string folder, string date)
+        {
+            Folder = folder;
+            Date = date;
+            Time = DatStepDate.Parse(date);
+        }
+    }
+
     /// <summary>
     /// One dat build: a base dat, optionally records imported from a pre-ToD dat, and the ordered list of overlay folders (relative to the Custom Files root) laid over it.
+    /// Every step carries a date, in non-decreasing order; the dat's release table turns the dates into entry iterations.
     /// </summary>
     public class DatBuildRecipe
     {
@@ -76,8 +96,14 @@ namespace ACE.DatLoader
         /// <summary>File name of the base dat in the source dats folder.</summary>
         public string BaseDat { get; }
 
+        /// <summary>The overlay steps in application order.</summary>
+        public DatBuildStep[] Steps { get; }
+
         /// <summary>Folders in application order, relative to the Custom Files root, written with '/'.</summary>
-        public string[] Folders { get; }
+        public string[] Folders => Steps.Select(s => s.Folder).ToArray();
+
+        /// <summary>The releases of the dat this recipe builds.</summary>
+        public DatReleaseSet Releases { get; }
 
         public Func<uint, bool> AcceptId { get; }
 
@@ -90,23 +116,54 @@ namespace ACE.DatLoader
         /// <summary>Recipe name as typed on the command line, e.g. portal-customdm.</summary>
         public string Key => Name.Replace(' ', '-').ToLowerInvariant();
 
-        public DatBuildRecipe(string name, string ruleset, string baseDat, Func<uint, bool> acceptId, params string[] folders)
+        public DatBuildRecipe(string name, string ruleset, string baseDat, Func<uint, bool> acceptId, DatReleaseSet releases, params DatBuildStep[] steps)
         {
             Name = name;
             Ruleset = ruleset;
             BaseDat = baseDat;
             AcceptId = acceptId;
-            Folders = folders;
+            Releases = releases;
+            Steps = steps;
+        }
+
+        /// <summary>The date of the last step.</summary>
+        public uint LastStepTime => Steps.Length > 0 ? Steps[Steps.Length - 1].Time : DatStepDate.Parse(PreToDImport.Date);
+
+        /// <summary>Checks the step dates: none before the release table's start date, and never earlier than the step before.</summary>
+        /// <exception cref="InvalidDataException">A date breaks the order.</exception>
+        public void ValidateDates()
+        {
+            var previous = Releases.StartTime;
+
+            if (PreToDImport != null)
+            {
+                var importTime = DatStepDate.Parse(PreToDImport.Date);
+
+                if (importTime < previous)
+                    throw new InvalidDataException($"{Name}: the import step is dated {PreToDImport.Date}, before {Releases.StartDate}.");
+
+                previous = importTime;
+            }
+
+            foreach (var step in Steps)
+            {
+                if (step.Time < previous)
+                    throw new InvalidDataException($"{Name}: step '{step.Folder}' is dated {step.Date}, earlier than the step before it (steps run in date order, none before {Releases.StartDate}).");
+
+                previous = step.Time;
+            }
         }
 
         public string[] ResolveFolders(string customFilesRoot)
         {
-            return Folders.Select(f => Path.Combine(customFilesRoot, f.Replace('/', Path.DirectorySeparatorChar))).ToArray();
+            return Steps.Select(s => Path.Combine(customFilesRoot, s.Folder.Replace('/', Path.DirectorySeparatorChar))).ToArray();
         }
 
         public DatOverlayReport Apply(DatWriter writer, string customFilesRoot, IEnumerable<KeyValuePair<uint, byte[]>> generated = null)
         {
-            return DatOverlay.Apply(writer, ResolveFolders(customFilesRoot), AcceptId, generated);
+            var folders = ResolveFolders(customFilesRoot);
+
+            return DatOverlay.Apply(writer, Steps.Select((s, i) => (folders[i], s.Time)), AcceptId, generated, PreToDImport != null ? DatStepDate.Parse(PreToDImport.Date) : 0);
         }
     }
 
@@ -136,42 +193,50 @@ namespace ACE.DatLoader
         // Every portal recipe imports the same set, so the rulesets get identical converted records and the cell conversion can use either portal.
         private static DatPreToDImport RemovedContent()
         {
-            return new DatPreToDImport(PreToDPortalDat, PreToDSurfaceMap, RemovedContentIds, UnmappedSurfaces, PreToDCellDat, ReplacedBuildings);
+            return new DatPreToDImport(InitialVersionDate, PreToDPortalDat, PreToDSurfaceMap, RemovedContentIds, UnmappedSurfaces, PreToDCellDat, ReplacedBuildings);
         }
 
-        public static readonly DatBuildRecipe LanguageCustomDM = new DatBuildRecipe("Language CustomDM", "CustomDM", LanguageBaseDat, DatOverlay.IsLanguageId,
-            "Language/CustomDM");
+        // Every step is dated by hand when it is added and the date is never changed afterwards (see DatReleases). All steps below make up the initial version.
+        public const string InitialVersionDate = "2026-11-16";
 
-        public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId,
-            "Language/Infiltration");
+        private static DatBuildStep Initial(string folder)
+        {
+            return new DatBuildStep(folder, InitialVersionDate);
+        }
 
-        public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId,
-            "Portal/CustomDM",
-            "Portal/Shared/Ground Textures",
-            "Portal/Shared/Miscellaneous Textures",
-            "Portal/Shared/Trees",
-            "Portal/Shared/Frozen Fields",
-            "Portal/Shared/Police Box",
-            "Portal/Shared/Old Models/Drudge",
-            "Portal/Shared/Old Models/Mattekar",
-            "Portal/Shared/Old Models/Ursuin",
-            "Portal/Shared/Old Models/Carenzi",
-            "Portal/Shared/Old Models/Siraluun",
-            "Portal/Shared/Old Models/Reedshark",
-            "Portal/Shared/Old Models/Lugian - Leather",
-            "Portal/Shared/Old Models/Mite",
-            "Portal/Shared/Old Models/Mite - Alternate Palettes",
-            "Portal/Shared/Old Models/Tusker",
-            "Portal/Shared/Old Models/Banderling",
-            "Portal/Shared/Old Models/Lugian - Metal",
-            "Portal/Shared/Old Models/Mosswart",
-            "Portal/Shared/Old Models/Olthoi")
+        public static readonly DatBuildRecipe LanguageCustomDM = new DatBuildRecipe("Language CustomDM", "CustomDM", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.CustomDMLanguage,
+            Initial("Language/CustomDM"));
+
+        public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage,
+            Initial("Language/Infiltration"));
+
+        public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
+            Initial("Portal/CustomDM"),
+            Initial("Portal/Shared/Ground Textures"),
+            Initial("Portal/Shared/Miscellaneous Textures"),
+            Initial("Portal/Shared/Trees"),
+            Initial("Portal/Shared/Frozen Fields"),
+            Initial("Portal/Shared/Police Box"),
+            Initial("Portal/Shared/Old Models/Drudge"),
+            Initial("Portal/Shared/Old Models/Mattekar"),
+            Initial("Portal/Shared/Old Models/Ursuin"),
+            Initial("Portal/Shared/Old Models/Carenzi"),
+            Initial("Portal/Shared/Old Models/Siraluun"),
+            Initial("Portal/Shared/Old Models/Reedshark"),
+            Initial("Portal/Shared/Old Models/Lugian - Leather"),
+            Initial("Portal/Shared/Old Models/Mite"),
+            Initial("Portal/Shared/Old Models/Mite - Alternate Palettes"),
+            Initial("Portal/Shared/Old Models/Tusker"),
+            Initial("Portal/Shared/Old Models/Banderling"),
+            Initial("Portal/Shared/Old Models/Lugian - Metal"),
+            Initial("Portal/Shared/Old Models/Mosswart"),
+            Initial("Portal/Shared/Old Models/Olthoi"))
             .WithPreToDImport(RemovedContent());
 
-        public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId,
-            "Portal/Infiltration",
-            "Portal/Shared/Ground Textures",
-            "Portal/Shared/Trees")
+        public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
+            Initial("Portal/Infiltration"),
+            Initial("Portal/Shared/Ground Textures"),
+            Initial("Portal/Shared/Trees"))
             .WithPreToDImport(RemovedContent());
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
@@ -179,9 +244,9 @@ namespace ACE.DatLoader
         public const string PreToDCellDat = "cell - 2005-02-XX (202752kb) (Admin) (Iteration 1593 - Complete).dat";
         public const string ToDCellDat = "client_cell_1 - ToD.dat";
 
-        public static readonly DatCellBuildRecipe CellCustomDM = new DatCellBuildRecipe("Cell CustomDM", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM, PreToDSurfaceMap, DatMapRecipes.CustomDM);
+        public static readonly DatCellBuildRecipe CellCustomDM = new DatCellBuildRecipe("Cell CustomDM", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM, PreToDSurfaceMap, DatReleases.CustomDMCell, InitialVersionDate, DatMapRecipes.CustomDM);
 
-        public static readonly DatCellBuildRecipe CellInfiltration = new DatCellBuildRecipe("Cell Infiltration", "Infiltration", PreToDCellDat, ToDCellDat, PortalInfiltration, PreToDSurfaceMap);
+        public static readonly DatCellBuildRecipe CellInfiltration = new DatCellBuildRecipe("Cell Infiltration", "Infiltration", PreToDCellDat, ToDCellDat, PortalInfiltration, PreToDSurfaceMap, DatReleases.InfiltrationCell, InitialVersionDate);
 
         /// <summary>Cell recipes need their ruleset's portal dat built first.</summary>
         public static readonly DatCellBuildRecipe[] AllCells = { CellCustomDM, CellInfiltration };

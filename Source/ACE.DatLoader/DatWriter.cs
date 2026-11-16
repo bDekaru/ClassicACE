@@ -52,11 +52,15 @@ namespace ACE.DatLoader
         /// <summary>Version for a record added without one. The EoR dats hold records of version 2 and 3 only (version 1 is just the iteration list), and 2 is the more common.</summary>
         public const ushort NewRecordVersion = 2;
 
-        /// <summary>Date stamp (2005-03-01 00:00 UTC) that builds give new records, so that building the same recipe twice writes the same bytes.</summary>
-        public const uint ReproducibleRecordDate = 1109635200;
+        /// <summary>The record that holds the dat's set of iteration numbers (see <see cref="SaveIterationRecord"/>).</summary>
+        public const uint IterationRecordId = 0xFFFF0001;
 
-        /// <summary>Unix time stored in a new record saved without a date. 0 uses the current time.</summary>
-        public uint NewRecordDate { get; set; }
+        /// <summary>Unix time stored in every record saved without a date, new or replaced (a build sets it to the date of the step it is running, so building the same recipe twice writes the same bytes).
+        /// 0 keeps the stored date on a replacement and uses the current time for a new record.</summary>
+        public uint RecordDate { get; set; }
+
+        /// <summary>Gives the entry iteration of a record saved with a date (its own or <see cref="RecordDate"/>) when the caller passes none; a result of 0 leaves the iteration as it would be without it.</summary>
+        public Func<uint, uint> IterationForDate { get; set; }
 
         private const uint RoomReserve = 0x33;
         private const uint ExpandBytes = 0x100000;
@@ -826,7 +830,7 @@ namespace ACE.DatLoader
         /// </summary>
         /// <param name="version">The entry's version (its flags word is version &lt;&lt; 16), which the client uses to choose how the payload is unpacked. Null keeps the stored version on a replacement and uses <see cref="NewRecordVersion"/> for a new record.</param>
         /// <param name="iteration">The entry's iteration. 0 keeps the stored iteration on a replacement (a new record gets 0); a non-zero value older than the stored one refuses the write.</param>
-        /// <param name="date">Unix time stored in the entry. 0 keeps the stored date on a replacement and uses <see cref="NewRecordDate"/> (the current time when that is 0) for a new record.</param>
+        /// <param name="date">Unix time stored in the entry. 0 uses <see cref="RecordDate"/>; when that is 0 too, a replacement keeps the stored date and a new record gets the current time.</param>
         public DatSaveOutcome Save(uint id, byte[] payload, uint iteration = 0, ushort? version = null, uint date = 0)
         {
             if (id == 0)
@@ -843,7 +847,13 @@ namespace ACE.DatLoader
             var found = Find(id, out var nodeOffset, out var index, out var old);
 
             if (date == 0)
-                date = found ? old.Date : NewRecordDate != 0 ? NewRecordDate : (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                date = RecordDate;
+
+            if (date != 0 && iteration == 0 && IterationForDate != null)
+                iteration = IterationForDate(date);
+
+            if (date == 0)
+                date = found ? old.Date : (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
             var entry = new Entry
             {
@@ -873,6 +883,20 @@ namespace ACE.DatLoader
             SaveFileInfo();
             ClearTransaction();
             return outcome;
+        }
+
+        /// <summary>
+        /// Writes the iteration record the retail dats carry: the dat holds iterations 1 to <paramref name="total"/> as one run (total, minus total, first number 1), version 1, entry iteration 1.
+        /// </summary>
+        public void SaveIterationRecord(uint total, uint date = 0)
+        {
+            var payload = new byte[12];
+
+            BitConverter.GetBytes(total).CopyTo(payload, 0);
+            BitConverter.GetBytes(-(int)total).CopyTo(payload, 4);
+            BitConverter.GetBytes(1).CopyTo(payload, 8);
+
+            Save(IterationRecordId, payload, 1, 1, date);
         }
     }
 }

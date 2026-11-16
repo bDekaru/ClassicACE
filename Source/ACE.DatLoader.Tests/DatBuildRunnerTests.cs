@@ -60,7 +60,31 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void Build_Language_ReplacedRecordsKeepVersionIterationAndDate()
+        public void Build_Language_WritesTheReleaseIterationRecordAndReportsTheHash()
+        {
+            foreach (var recipe in new[] { DatBuildRecipes.LanguageCustomDM, DatBuildRecipes.LanguageInfiltration })
+            {
+                RequireInputs(recipe);
+
+                var outRoot = TempFolder();
+
+                try
+                {
+                    var result = DatBuildRunner.Build(recipe, SourceDats, Path.Combine(SourceDats, "Custom Files"), outRoot);
+
+                    Assert.AreEqual(recipe.Releases.CurrentNumber, result.ReleaseNumber);
+                    Assert.AreEqual((int)recipe.Releases.CurrentNumber, new DatDatabase(result.OutputPath).Iteration);
+                    Assert.AreEqual(DatReleaseHash.Compute(result.OutputPath), result.ReleaseHash);
+                }
+                finally
+                {
+                    Directory.Delete(outRoot, true);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void Build_Language_ReplacedRecordsKeepTheVersionAndGetTheStepDateAndRelease()
         {
             foreach (var recipe in new[] { DatBuildRecipes.LanguageCustomDM, DatBuildRecipes.LanguageInfiltration })
             {
@@ -81,11 +105,11 @@ namespace ACE.DatLoader.Tests
 
                         foreach (var id in new uint[] { 0x21000046, 0x23000002 })
                         {
-                            Assert.IsTrue(original.TryGetEntryInfo(id, out var v0, out var i0, out var d0));
+                            Assert.IsTrue(original.TryGetEntryInfo(id, out var v0, out _, out _));
                             Assert.IsTrue(built.TryGetEntryInfo(id, out var v1, out var i1, out var d1));
                             Assert.AreEqual(v0, v1, $"{recipe.Name} {id:X8} version");
-                            Assert.AreEqual(i0, i1, $"{recipe.Name} {id:X8} iteration");
-                            Assert.AreEqual(d0, d1, $"{recipe.Name} {id:X8} date");
+                            Assert.AreEqual(recipe.Releases.CurrentNumber, i1, $"{recipe.Name} {id:X8} iteration");
+                            Assert.AreEqual(DatStepDate.Parse(DatBuildRecipes.InitialVersionDate), d1, $"{recipe.Name} {id:X8} date");
                             Assert.AreNotEqual((ushort)0, v1);
                             compared++;
                         }

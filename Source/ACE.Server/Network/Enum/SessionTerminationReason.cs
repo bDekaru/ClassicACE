@@ -36,7 +36,9 @@ namespace ACE.Server.Network.Enum
         BiotaSaveFailed,
         DATsPatchingDisabled,
         DATsNewerThanServer,
-        MovementEnforcementFailure
+        MovementEnforcementFailure,
+        DATsNotPatchable,
+        DATsOtherRuleset
     }
     public static class SessionTerminationReasonHelper
     {
@@ -70,7 +72,9 @@ namespace ACE.Server.Network.Enum
             "Biota Save Failed",
             "Client has older DATs than server and patching is disabled",
             "Client has newer DATs than server and cannot be downgraded",
-            "Forced logoff by the player movement enforcement system"
+            "Forced logoff by the player movement enforcement system",
+            "Client DATs are too old to be patched by this server",
+            "Client DATs belong to another ruleset"
         };
         public static string GetDescription(this SessionTerminationReason reason)
         {

@@ -25,14 +25,20 @@ namespace ACE.DatLoader
         /// <summary>File name of the embedded pre-ToD to ToD surface map.</summary>
         public string SurfaceMap { get; }
 
-        /// <summary>Edits applied to the converted records before they are written; null writes the converted dat as it is.</summary>
+        /// <summary>Edits applied to the converted records before they are written; null writes the converted dat as it is. The edits start their own steps with <see cref="DatMapEditor.Step"/>.</summary>
         public Action<DatMapEditor, DatMapSources> MapOperations { get; }
+
+        /// <summary>The releases of the cell dat this recipe builds.</summary>
+        public DatReleaseSet Releases { get; }
+
+        /// <summary>The step date of the conversion itself ("yyyy-MM-dd"): the date of every record the map edits do not change.</summary>
+        public string ConversionDate { get; }
 
         public string OutputFileName => "client_cell_1.dat";
 
         public string Key => Name.Replace(' ', '-').ToLowerInvariant();
 
-        public DatCellBuildRecipe(string name, string ruleset, string retailCellDat, string toDCellDat, DatBuildRecipe portal, string surfaceMap, Action<DatMapEditor, DatMapSources> mapOperations = null)
+        public DatCellBuildRecipe(string name, string ruleset, string retailCellDat, string toDCellDat, DatBuildRecipe portal, string surfaceMap, DatReleaseSet releases, string conversionDate, Action<DatMapEditor, DatMapSources> mapOperations = null)
         {
             Name = name;
             Ruleset = ruleset;
@@ -40,6 +46,8 @@ namespace ACE.DatLoader
             ToDCellDat = toDCellDat;
             Portal = portal;
             SurfaceMap = surfaceMap;
+            Releases = releases;
+            ConversionDate = conversionDate;
             MapOperations = mapOperations;
         }
 
@@ -55,6 +63,8 @@ namespace ACE.DatLoader
         public string OutputPath { get; set; }
         public long OutputBytes { get; set; }
         public DatAudit Audit { get; set; }
+        public uint ReleaseNumber { get; set; }
+        public string ReleaseHash { get; set; }
         public DatCellConversionReport Conversion { get; set; }
 
         /// <summary>The conversion reports of the donor dats that map edits converted.</summary>
@@ -78,6 +88,7 @@ namespace ACE.DatLoader
         public string ToText()
         {
             return $"{Recipe.Name}: {OutputPath} ({OutputBytes:N0} bytes)\n"
+                + $"  release {ReleaseNumber}, hash {ReleaseHash}\n"
                 + $"  from {Recipe.RetailCellDat}, portal {Recipe.Portal.OutputFileName} ({Recipe.Ruleset}), template {Recipe.ToDCellDat}\n"
                 + $"  result: {Audit.Records} records, {Audit.FreeBlocks} free blocks, {Audit.OrphanedBlocks} orphaned blocks, audit ok\n"
                 + Conversion.ToText()
@@ -131,18 +142,25 @@ namespace ACE.DatLoader
             {
                 var result = new DatCellBuildResult { Recipe = recipe, OutputPath = output };
 
+                var conversionTime = DatStepDate.Parse(recipe.ConversionDate);
+
                 if (recipe.MapOperations == null)
                 {
-                    result.Conversion = DatCellConverter.Convert(retail, template, temp, surfaceMap, portal);
+                    result.Conversion = DatCellConverter.Convert(retail, template, temp, surfaceMap, portal, conversionTime, recipe.Releases.IterationForDate);
 
                     using (var writer = new DatWriter(temp))
+                    {
+                        writer.SaveIterationRecord(recipe.Releases.CurrentNumber, conversionTime);
                         result.Audit = writer.Audit();
+                    }
                 }
                 else
                 {
                     result.Conversion = new DatCellConversionReport();
                     var store = new DatCellStore(DatCellConverter.ConvertToStore(retail, surfaceMap, result.Conversion, portal));
                     var sources = new DatMapSources(sourceDats, surfaceMap);
+
+                    store.RequireDate = true;
 
                     var editor = new DatMapEditor(store);
                     recipe.MapOperations(editor, sources);
@@ -154,11 +172,12 @@ namespace ACE.DatLoader
 
                     DatWriter.CreateEmpty(temp, template);
 
-                    using (var writer = new DatWriter(temp) { NewRecordDate = DatWriter.ReproducibleRecordDate })
+                    using (var writer = new DatWriter(temp) { RecordDate = conversionTime, IterationForDate = recipe.Releases.IterationForDate })
                     {
                         foreach (var record in store.Records)
-                            writer.Save(record.Key, record.Value);
+                            writer.Save(record.Key, record.Value, date: store.DateOf(record.Key));
 
+                        writer.SaveIterationRecord(recipe.Releases.CurrentNumber, Math.Max(conversionTime, store.CurrentDate));
                         result.Audit = writer.Audit();
                     }
                 }
@@ -169,6 +188,9 @@ namespace ACE.DatLoader
                     File.Delete(output);
 
                 File.Move(temp, output);
+
+                result.ReleaseNumber = recipe.Releases.CurrentNumber;
+                result.ReleaseHash = DatReleaseHash.Compute(output);
 
                 return result;
             }

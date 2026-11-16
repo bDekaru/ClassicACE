@@ -95,6 +95,9 @@ namespace ACE.DatLoader
             var tod = sources.Get(DatMapSource.ToD);
             var eor = sources.Get(DatMapSource.EoR);
 
+            // Every edit below is part of the initial version. Edits added later start their own step with a new date.
+            map.Step(DatBuildRecipes.InitialVersionDate);
+
             // Arwic
             map.ReplaceLandblocks(new uint[] { 0xC6A90013, 0xC6A90008, 0xC6A80038, 0xC6AA0011, 0xC5AA0039, 0xC5A80028 }, release);
             map.ReplaceLandblock(0xC5A90037, arwic);

@@ -19,17 +19,12 @@ namespace ACE.DatLoader
         private static int ITERATION_HIRES = 497;
         private static int ITERATION_LANGUAGE = 994;
 
+        // The iteration numbers of the Infiltration and CustomDM dats are the latest releases in DatReleases.
         public static string INFILTRATION_CLIENT_VERSION_STRING = "i104";
-        private static int INFILTRATION_ITERATION_CELL = 10001;
-        private static int INFILTRATION_ITERATION_PORTAL = 10006;
         private static int INFILTRATION_ITERATION_HIRES = 497;
-        private static int INFILTRATION_ITERATION_LANGUAGE = 10002;
 
         public static string CUSTOMDM_CLIENT_VERSION_STRING = "c119";
-        private static int CUSTOMDM_ITERATION_CELL = 20011;
-        private static int CUSTOMDM_ITERATION_PORTAL = 20044;
         private static int CUSTOMDM_ITERATION_HIRES = 497;
-        private static int CUSTOMDM_ITERATION_LANGUAGE = 20011;
         public static CellDatDatabase CellDat { get; private set; }
 
         public static PortalDatDatabase PortalDat { get; private set; }
@@ -53,16 +48,16 @@ namespace ACE.DatLoader
                     languageExpectedIteration = ITERATION_LANGUAGE;
                     break;
                 case Common.Ruleset.Infiltration:
-                    cellExpectedIteration = INFILTRATION_ITERATION_CELL;
-                    portalExpectedIteration = INFILTRATION_ITERATION_PORTAL;
+                    cellExpectedIteration = (int)DatReleases.InfiltrationCell.CurrentNumber;
+                    portalExpectedIteration = (int)DatReleases.InfiltrationPortal.CurrentNumber;
                     highResExpectedIteration = INFILTRATION_ITERATION_HIRES;
-                    languageExpectedIteration = INFILTRATION_ITERATION_LANGUAGE;
+                    languageExpectedIteration = (int)DatReleases.InfiltrationLanguage.CurrentNumber;
                     break;
                 case Common.Ruleset.CustomDM:
-                    cellExpectedIteration = CUSTOMDM_ITERATION_CELL;
-                    portalExpectedIteration = CUSTOMDM_ITERATION_PORTAL;
+                    cellExpectedIteration = (int)DatReleases.CustomDMCell.CurrentNumber;
+                    portalExpectedIteration = (int)DatReleases.CustomDMPortal.CurrentNumber;
                     highResExpectedIteration = CUSTOMDM_ITERATION_HIRES;
-                    languageExpectedIteration = CUSTOMDM_ITERATION_LANGUAGE;
+                    languageExpectedIteration = (int)DatReleases.CustomDMLanguage.CurrentNumber;
                     break;
             }
 

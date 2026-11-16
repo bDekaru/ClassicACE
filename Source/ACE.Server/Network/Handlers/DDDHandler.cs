@@ -23,6 +23,37 @@ namespace ACE.Server.Network.Handlers
 
         public static bool Debug = false;
 
+        /// <summary>
+        /// Whether the client's dats belong to this server's lineage and can be patched to it. Rulesets without a release table (EoR) are not checked.
+        /// </summary>
+        private static DatClientStatus CheckDatLineage(int portalCount, int cellCount, int languageCount)
+        {
+            var ruleset = ConfigManager.Config.Server.WorldRuleset.ToString();
+            var result = DatClientStatus.UpToDate;
+
+            void Check(string dat, int clientCount, int serverTotal)
+            {
+                var set = DatReleases.Find(ruleset, dat);
+
+                if (set == null || serverTotal <= 0)
+                    return;
+
+                var status = set.Classify((uint)Math.Max(clientCount, 0), (uint)serverTotal);
+
+                if (status == DatClientStatus.OtherRuleset || (status == DatClientStatus.TooOld && result != DatClientStatus.OtherRuleset))
+                    result = status;
+            }
+
+            Check(DatReleases.Portal, portalCount, DatManager.PortalDat.Iteration);
+
+            if (cellCount != 0 && DatManager.CellDat != null)
+                Check(DatReleases.Cell, cellCount, DatManager.CellDat.Iteration);
+
+            Check(DatReleases.Language, languageCount, DatManager.LanguageDat.Iteration);
+
+            return result;
+        }
+
         [GameMessage(GameMessageOpcode.DDD_InterrogationResponse, SessionState.AuthConnected)]
         public static void DDD_InterrogationResponse(ClientMessage message, Session session)
         {
@@ -153,7 +184,19 @@ namespace ACE.Server.Network.Handlers
             if (clientIsMissingIterations && !enableDATpatching) logMsg += ", but DAT patching is disabled";
             log.Info(logMsg);
 
-            if (clientHasExtraIterations)
+            var lineage = CheckDatLineage(clientPortalDatIntSet.Iterations, clientCellDatIntSet.Iterations, clientLanguageDatIntSet.Iterations);
+
+            if (lineage == DatClientStatus.OtherRuleset)
+            {
+                var msg = PropertyManager.GetString("dat_other_ruleset_warning_msg").Item;
+                session.Terminate(SessionTerminationReason.DATsOtherRuleset, new GameMessageBootAccount($" because {msg.TrimEnd('.')}"));
+            }
+            else if (lineage == DatClientStatus.TooOld)
+            {
+                var msg = PropertyManager.GetString("dat_unpatchable_warning_msg").Item;
+                session.Terminate(SessionTerminationReason.DATsNotPatchable, new GameMessageBootAccount($" because {msg.TrimEnd('.')}"));
+            }
+            else if (clientHasExtraIterations)
             {
                 var msg = PropertyManager.GetString("dat_newer_warning_msg").Item;
                 session.Terminate(SessionTerminationReason.DATsNewerThanServer, new GameMessageBootAccount($" because {msg[..^1]}"));

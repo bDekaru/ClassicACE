@@ -17,11 +17,16 @@ namespace ACE.DatLoader
         /// <summary>The records imported from the pre-ToD dat, when the recipe has an import step.</summary>
         public DatPortalImporter Import { get; set; }
 
+        /// <summary>The release the dat was built as (its iteration) and the <see cref="DatReleaseHash"/> of the built dat, for the release table.</summary>
+        public uint ReleaseNumber { get; set; }
+        public string ReleaseHash { get; set; }
+
         public string ToText(int maxListed = int.MaxValue)
         {
             var sb = new StringBuilder();
 
             sb.AppendLine($"{Recipe.Name}: {OutputPath} ({OutputBytes:N0} bytes)");
+            sb.AppendLine($"  release {ReleaseNumber}, hash {ReleaseHash}");
             sb.AppendLine($"  base {Recipe.BaseDat}: {AuditBefore.Records} records, audit ok");
 
             if (Import != null)
@@ -57,6 +62,8 @@ namespace ACE.DatLoader
         /// <exception cref="InvalidDataException">An audit of the base or built dat failed.</exception>
         public static DatBuildResult Build(DatBuildRecipe recipe, string sourceDats, string customFilesRoot, string outputRoot, bool force = false)
         {
+            recipe.ValidateDates();
+
             var baseDat = Path.Combine(sourceDats, recipe.BaseDat);
 
             if (!File.Exists(baseDat))
@@ -97,10 +104,11 @@ namespace ACE.DatLoader
                     result.Import = importer;
                 }
 
-                using (var writer = new DatWriter(temp) { NewRecordDate = DatWriter.ReproducibleRecordDate })
+                using (var writer = new DatWriter(temp) { IterationForDate = recipe.Releases.IterationForDate })
                 {
                     result.AuditBefore = writer.Audit();
                     result.Overlay = recipe.Apply(writer, customFilesRoot, importer?.Records);
+                    writer.SaveIterationRecord(recipe.Releases.CurrentNumber, recipe.LastStepTime);
                     result.AuditAfter = writer.Audit();
                 }
 
@@ -110,6 +118,9 @@ namespace ACE.DatLoader
                     File.Delete(output);
 
                 File.Move(temp, output);
+
+                result.ReleaseNumber = recipe.Releases.CurrentNumber;
+                result.ReleaseHash = DatReleaseHash.Compute(output);
 
                 return result;
             }

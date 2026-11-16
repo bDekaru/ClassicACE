@@ -33,9 +33,28 @@ namespace ACE.DatLoader
 
         public bool Contains(uint id) => _records.ContainsKey(id);
 
+        private readonly Dictionary<uint, uint> _dates = new Dictionary<uint, uint>();
+
+        /// <summary>The step date that records set from now on carry. 0 (the default) gives them no date of their own.</summary>
+        public uint CurrentDate { get; set; }
+
+        /// <summary>When set, changing a record before a step was started (see <see cref="DatMapEditor.Step"/>) throws, so an edit cannot be added without a date.</summary>
+        public bool RequireDate { get; set; }
+
+        /// <summary>The date of the step that last set the record, or 0 when no step has.</summary>
+        public uint DateOf(uint id) => _dates.TryGetValue(id, out var date) ? date : 0;
+
         public void Set(uint id, byte[] data)
         {
+            var changed = !_records.TryGetValue(id, out var old) || !old.SequenceEqual(data);
+
+            if (changed && RequireDate && CurrentDate == 0)
+                throw new InvalidOperationException($"Record {id:X8} was edited before a step was started: call map.Step(\"yyyy-MM-dd\") first.");
+
             _records[id] = data;
+
+            if (changed && CurrentDate != 0)
+                _dates[id] = CurrentDate;
 
             if (IsCell(id))
                 IndexCell(id);
@@ -44,6 +63,7 @@ namespace ACE.DatLoader
         public void Remove(uint id)
         {
             _records.Remove(id);
+            _dates.Remove(id);
 
             if (IsCell(id) && _cellsByLandblock.TryGetValue(LandblockOf(id), out var cells))
                 cells.Remove(id);
@@ -86,6 +106,20 @@ namespace ACE.DatLoader
         }
 
         public DatCellStore Store => _store;
+
+        /// <summary>
+        /// Starts a step: every record the edits after this call change carries <paramref name="date"/> ("yyyy-MM-dd", see <see cref="DatStepDate"/>). The date is chosen by hand when the edits are added and never changed afterwards.
+        /// </summary>
+        /// <exception cref="ArgumentException">The date is earlier than the previous step's.</exception>
+        public void Step(string date)
+        {
+            var time = DatStepDate.Parse(date);
+
+            if (time < _store.CurrentDate)
+                throw new ArgumentException($"Step {date} is earlier than the step before it; map steps run in date order.");
+
+            _store.CurrentDate = time;
+        }
 
         /// <summary>Things the edits resolved on their own that a reader of the build report should know about.</summary>
         public List<string> Notes { get; } = new List<string>();

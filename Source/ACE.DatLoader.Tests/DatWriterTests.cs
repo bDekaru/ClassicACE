@@ -68,25 +68,83 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void NewRecord_GetsTheWriterDate_AndAReplacementKeepsItsOwn()
+        public void WithoutARecordDate_AReplacementKeepsItsDateAndIteration()
         {
             var path = CopyOfLanguageDat();
 
             try
             {
                 var existing = ReadAll(path).Keys.First();
-                var before = new DatDatabase(path).AllFiles[existing].Date;
+                var before = new DatDatabase(path).AllFiles[existing];
 
-                using (var writer = new DatWriter(path) { NewRecordDate = DatWriter.ReproducibleRecordDate })
+                using (var writer = new DatWriter(path))
                 {
-                    writer.Save(0x7F000001, new byte[] { 1, 2, 3, 4 });
                     writer.Save(existing, new byte[] { 5, 6, 7, 8 });
                     writer.Audit();
                 }
 
+                var after = new DatDatabase(path).AllFiles[existing];
+                Assert.AreEqual(before.Date, after.Date);
+                Assert.AreEqual(before.Iteration, after.Iteration);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [TestMethod]
+        public void RecordDate_AppliesToNewAndReplacedRecords_AndGivesTheIteration()
+        {
+            var path = CopyOfLanguageDat();
+
+            try
+            {
+                var date = DatStepDate.Parse("2026-11-16");
+                var other = DatStepDate.Parse("2000-01-01");
+                var existing = ReadAll(path).Keys.First();
+
+                using (var writer = new DatWriter(path) { RecordDate = date, IterationForDate = d => d == date ? 20045u : 0u })
+                {
+                    writer.Save(0x7F000001, new byte[] { 1, 2, 3, 4 });
+                    writer.Save(existing, new byte[] { 5, 6, 7, 8 });
+                    writer.Save(0x7F000002, new byte[] { 9, 9, 9, 9 }, date: other);
+                    writer.Audit();
+                }
+
                 var after = new DatDatabase(path);
-                Assert.AreEqual(DatWriter.ReproducibleRecordDate, after.AllFiles[0x7F000001].Date);
-                Assert.AreEqual(before, after.AllFiles[existing].Date);
+                Assert.AreEqual(date, after.AllFiles[0x7F000001].Date);
+                Assert.AreEqual(20045u, after.AllFiles[0x7F000001].Iteration);
+                Assert.AreEqual(date, after.AllFiles[existing].Date);
+                Assert.AreEqual(20045u, after.AllFiles[existing].Iteration);
+                Assert.AreEqual(other, after.AllFiles[0x7F000002].Date);
+                Assert.AreEqual(0u, after.AllFiles[0x7F000002].Iteration);
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [TestMethod]
+        public void IterationRecord_HoldsOneRunFromOneToTheTotal()
+        {
+            var path = CopyOfLanguageDat();
+
+            try
+            {
+                using (var writer = new DatWriter(path))
+                {
+                    writer.SaveIterationRecord(20012, DatStepDate.Parse("2026-11-16"));
+                    writer.Audit();
+                }
+
+                var db = new DatDatabase(path);
+                Assert.AreEqual(20012, db.Iteration);
+
+                var entry = db.AllFiles[DatWriter.IterationRecordId];
+                Assert.AreEqual(1u, entry.Iteration);
+                CollectionAssert.AreEqual(new byte[] { 0x2C, 0x4E, 0, 0, 0xD4, 0xB1, 0xFF, 0xFF, 1, 0, 0, 0 }, db.GetReaderForFile(DatWriter.IterationRecordId).Buffer);
             }
             finally
             {

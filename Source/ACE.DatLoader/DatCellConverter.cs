@@ -312,7 +312,9 @@ namespace ACE.DatLoader
         /// <param name="portalDat">The portal dat the cell dat will be used with. When given, each cell's portal polygon ids are checked against its cell structure there.
         /// Cell structures were reshaped between the builds (environments 0574, 0575, 02FB, 05BF), and a cell whose portal polygon is not a portal of its structure crashes the client;
         /// the portal build replaces those buildings with their pre-ToD versions, so a cell that still does not fit is only reported.</param>
-        public static DatCellConversionReport Convert(string retailCellDat, string templateToDDat, string outputPath, IReadOnlyDictionary<ushort, ushort> surfaceMap, string portalDat = null)
+        /// <param name="recordDate">The date every record carries (Unix time); 0 uses the current time.</param>
+        /// <param name="iterationForDate">Gives each record's entry iteration from its date; null leaves them 0.</param>
+        public static DatCellConversionReport Convert(string retailCellDat, string templateToDDat, string outputPath, IReadOnlyDictionary<ushort, ushort> surfaceMap, string portalDat = null, uint recordDate = 0, Func<uint, uint> iterationForDate = null)
         {
             var report = new DatCellConversionReport();
 
@@ -320,7 +322,7 @@ namespace ACE.DatLoader
 
             try
             {
-                using (var writer = new DatWriter(outputPath) { NewRecordDate = DatWriter.ReproducibleRecordDate })
+                using (var writer = new DatWriter(outputPath) { RecordDate = recordDate, IterationForDate = iterationForDate })
                 {
                     ConvertRecords(retailCellDat, surfaceMap, portalDat, report, (id, data) => writer.Save(id, data));
                     writer.Audit();
