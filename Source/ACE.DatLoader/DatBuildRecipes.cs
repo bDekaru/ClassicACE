@@ -104,6 +104,9 @@ namespace ACE.DatLoader
 
         public string Name { get; }
 
+        /// <summary>True for a language dat recipe; its tables step writes the title strings instead of the portal tables.</summary>
+        public bool IsLanguage => BaseDat == DatBuildRecipes.LanguageBaseDat;
+
         /// <summary>File name of the base dat in the source dats folder.</summary>
         public string BaseDat { get; }
 
@@ -226,7 +229,8 @@ namespace ACE.DatLoader
         }
 
         public static readonly DatBuildRecipe LanguageCustomDM = new DatBuildRecipe("Language CustomDM", "CustomDM", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.CustomDMLanguage,
-            Initial("Language/CustomDM"));
+            Initial("Language/CustomDM"))
+            .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage,
             Initial("Language/Infiltration"));

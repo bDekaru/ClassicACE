@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 using ACE.DatLoader.Entity;
@@ -18,12 +19,65 @@ namespace ACE.DatLoader.FileTypes
         /// </summary>
         public Dictionary<uint, SpellSet> SpellSet { get; } = new Dictionary<uint, SpellSet>();
 
+        /// <summary>The spell hash table's bucket count as stored in the record.</summary>
+        public ushort SpellBucketSize { get; set; } = 2048;
+
+        /// <summary>The set hash table's bucket count as stored in the record.</summary>
+        public ushort SetBucketSize { get; set; } = 256;
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
 
+            var start = reader.BaseStream.Position;
+            reader.ReadUInt16();
+            SpellBucketSize = reader.ReadUInt16();
+            reader.BaseStream.Position = start;
+
             Spells.UnpackPackedHashTable(reader);
+
+            start = reader.BaseStream.Position;
+            reader.ReadUInt16();
+            SetBucketSize = reader.ReadUInt16();
+            reader.BaseStream.Position = start;
+
             SpellSet.UnpackPackedHashTable(reader);
+        }
+
+        /// <summary>Writes the record in the order of <see cref="Spells"/> and <see cref="SpellSet"/>.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(FILE_ID);
+
+                writer.Write((ushort)Spells.Count);
+                writer.Write(SpellBucketSize);
+
+                foreach (var spell in Spells)
+                {
+                    writer.Write(spell.Key);
+                    spell.Value.Pack(writer);
+                }
+
+                writer.Write((ushort)SpellSet.Count);
+                writer.Write(SetBucketSize);
+
+                foreach (var set in SpellSet)
+                {
+                    writer.Write(set.Key);
+                    set.Value.Pack(writer);
+                }
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        public Dictionary<uint, string> GetNames()
+        {
+            return Spells.ToDictionary(r => r.Key, r => r.Value.Name);
         }
 
         /// <summary>

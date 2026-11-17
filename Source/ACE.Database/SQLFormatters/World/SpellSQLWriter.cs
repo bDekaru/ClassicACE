@@ -10,11 +10,23 @@ namespace ACE.Database.SQLFormatters.World
     public class SpellSQLWriter : SQLWriter
     {
         /// <summary>
-        /// Default is formed from: input.Id.ToString("00000") + " " + input.Name
+        /// The spell's name comes from the dat (the spell table has no name column); it is empty when <see cref="SQLWriter.SpellNames"/> is not set.
+        /// </summary>
+        private string GetName(Spell input)
+        {
+            string name = null;
+
+            SpellNames?.TryGetValue(input.Id, out name);
+
+            return name ?? "";
+        }
+
+        /// <summary>
+        /// Default is formed from: input.Id.ToString("00000") + " " + the spell's name from the dat
         /// </summary>
         public string GetDefaultFileName(Spell input)
         {
-            string fileName = input.Id.ToString("00000") + " " + input.Name;
+            string fileName = (input.Id.ToString("00000") + " " + GetName(input)).TrimEnd();
             fileName = IllegalInFileName.Replace(fileName, "_");
             fileName += ".sql";
 
@@ -28,9 +40,11 @@ namespace ACE.Database.SQLFormatters.World
 
         public void CreateSQLINSERTStatement(Spell input, StreamWriter writer)
         {
-            var spellLineHdr = "INSERT INTO `spell` (`id`, `name`";
+            var name = GetName(input);
 
-            var spellLine = $"VALUES ({input.Id}, {GetSQLString(input.Name)}";
+            var spellLineHdr = "INSERT INTO `spell` (`id`";
+
+            var spellLine = $"VALUES ({input.Id}" + (name.Length > 0 ? $" /* {name} */" : "");
 
             if (input.StatModType.HasValue)
             {
@@ -330,7 +344,7 @@ namespace ACE.Database.SQLFormatters.World
             if (input.Index.HasValue)
             {
                 spellLineHdr += ", `index`";
-                spellLine += $", {input.Index} /* {(input.Name.Contains("Tie") ? ("PortalLinkType." + (PortalLinkType)input.Index).ToString() : ("PortalRecallType." + (PortalRecallType)input.Index).ToString())} */";
+                spellLine += $", {input.Index} /* {(name.Contains("Tie") ? ("PortalLinkType." + (PortalLinkType)input.Index).ToString() : ("PortalRecallType." + (PortalRecallType)input.Index).ToString())} */";
             }
 
             if (input.Link.HasValue)

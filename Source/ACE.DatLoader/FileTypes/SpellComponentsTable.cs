@@ -24,14 +24,39 @@ namespace ACE.DatLoader.FileTypes
 
         public Dictionary<uint, SpellComponentBase> SpellComponents { get; } = new Dictionary<uint, SpellComponentBase>();
 
+        /// <summary>The hash table's bucket count as stored in the record; the client rebuilds the table from it.</summary>
+        public ushort BucketSize { get; set; } = 32;
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
 
             uint numComps = reader.ReadUInt16(); // Should be 163 or 0xA3
+            BucketSize = reader.ReadUInt16();
             reader.AlignBoundary();
 
             SpellComponents.Unpack(reader, numComps);
+        }
+
+        /// <summary>Writes the record in the order of <see cref="SpellComponents"/>.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(FILE_ID);
+                writer.Write((ushort)SpellComponents.Count);
+                writer.Write(BucketSize);
+
+                foreach (var component in SpellComponents)
+                {
+                    writer.Write(component.Key);
+                    component.Value.Pack(writer);
+                }
+
+                writer.Flush();
+                return stream.ToArray();
+            }
         }
 
         public static string GetSpellWords(SpellComponentsTable comps, List<uint> formula)

@@ -14,8 +14,8 @@ namespace ACE.DatBuilder
 
         private const string Usage =
 @"ACE.DatBuilder build <recipe|all> [--source <folder>] [--custom <folder>] [--out <folder>] [--force] [--config <Config.js>] [--world-db <name>]
-ACE.DatBuilder apply-tables <portal recipe> --config <Config.js> [--world-db <name>] [--dat <built portal dat> | --out <folder> | --source <folder>]
-ACE.DatBuilder export-tables --dat <portal dat> --out <sql file>
+ACE.DatBuilder apply-tables <portal or language recipe> --config <Config.js> [--world-db <name>] [--dat <built portal dat> | --out <folder> | --source <folder>]
+ACE.DatBuilder export-tables --dat <portal dat> [--language <language dat>] --out <sql file>
 ACE.DatBuilder list
 ACE.DatBuilder audit <dat>
 ACE.DatBuilder compare-cell <first cell dat> <second cell dat> [landblocks to list]
@@ -28,11 +28,11 @@ ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --template <ToD cell dat> 
   --custom  folder with the custom files (default: <source>/Custom Files)
   --out     output root; each recipe writes to <out>/<ruleset>/<name>.dat (default: <source>/../Build)
   --force   replace an existing output dat
-  --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP and skill tables) of a recipe that has them; without it the records from the custom files are kept
+  --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP, skill, vital, character generation and spell tables) of a recipe that has them; without it the records from the custom files are kept
   --world-db  the world database to read instead of the one named in the Config.js
 
-  apply-tables rewrites only the XP and skill records of an already built portal dat from the database (the quick loop after editing the dat_* tables).
-  export-tables writes the SQL that fills the dat_* tables with the values of a portal dat's XP and skill records (the tables themselves come from the world base script).
+  apply-tables rewrites only the XP, skill, vital, character generation, spell and title records of an already built portal or language dat from the database (the quick loop after editing the dat_* tables).
+  export-tables writes the SQL that fills the dat_* tables with the values of a portal dat's XP, skill, vital, character generation and spell records (with --language, also the character titles of the portal's title enum mapper and the language dat's title strings) (the tables themselves come from the world base script).
 
 The source folder is only read. Each build is made in a temporary file and moved into place after both audits pass.";
 
@@ -418,13 +418,14 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int ExportTables(string[] args)
         {
-            string datPath = null, outPath = null;
+            string datPath = null, outPath = null, languagePath = null;
 
             for (var i = 1; i < args.Length; i++)
             {
                 switch (args[i])
                 {
                     case "--dat": datPath = Value(args, ref i); break;
+                    case "--language": languagePath = Value(args, ref i); break;
                     case "--out": outPath = Value(args, ref i); break;
                     default: throw new ArgumentException($"Unexpected argument: {args[i]}");
                 }
@@ -444,10 +445,57 @@ The source folder is only read. Each build is made in a temporary file and moved
             var xp = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.XpTable>(DatTableStep.XpRecordId));
             var skills = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.SkillTable>(DatTableStep.SkillRecordId));
 
-            File.WriteAllText(Path.GetFullPath(outPath), DatTables.InsertScript(xp, skills));
+            var script = DatTables.InsertScript(xp, skills);
 
             Console.WriteLine($"{outPath}: {xp.Attribute.Count} attribute ranks, {xp.Vital.Count} vital ranks, {xp.TrainedSkill.Count} trained skill ranks, {xp.SpecializedSkill.Count} specialized skill ranks, {xp.Levels.Count} levels, {skills.Count} skills");
             Console.WriteLine($"  xp hash {DatTables.Hash(xp)}, skill hash {DatTables.Hash(skills)}");
+
+            if (dat.AllFiles.ContainsKey(DatTableStep.VitalRecordId))
+            {
+                var vitals = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.SecondaryAttributeTable>(DatTableStep.VitalRecordId));
+
+                script += DatTables.VitalInsertScript(vitals);
+
+                Console.WriteLine($"  {vitals.Count} vital formulas, vital hash {DatTables.Hash(vitals)}");
+            }
+
+            if (dat.AllFiles.ContainsKey(DatTableStep.SpellRecordId))
+            {
+                var spellTable = dat.ReadFromDat<ACE.DatLoader.FileTypes.SpellTable>(DatTableStep.SpellRecordId);
+                var spells = DatTables.ToRows(spellTable);
+                var setSpells = DatTables.ToSetRows(spellTable);
+
+                script += DatTables.SpellInsertScript(spells, setSpells);
+
+                Console.WriteLine($"  {spells.Count} spells, {spellTable.SpellSet.Count} equipment sets with {setSpells.Count} tier spells, spell hash {DatTables.Hash(spells, setSpells)}");
+            }
+
+            if (dat.AllFiles.ContainsKey(DatTableStep.ChargenRecordId))
+            {
+                var chargen = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.CharGen>(DatTableStep.ChargenRecordId));
+
+                script += DatTables.ChargenInsertScript(chargen);
+
+                Console.WriteLine($"  {chargen.Overrides.Count} heritage skill costs, {chargen.Templates.Count} templates with {chargen.TemplateSkills.Count} skills, credits {chargen.Chargen.AttributeCredits}/{chargen.Chargen.SkillCredits}, chargen hash {DatTables.Hash(chargen)}");
+            }
+
+            if (languagePath != null)
+            {
+                if (!File.Exists(languagePath))
+                    throw new ArgumentException($"Language dat not found: {languagePath}");
+
+                if (!dat.AllFiles.ContainsKey(DatTableStep.TitleMapperRecordId))
+                    throw new ArgumentException($"{datPath} has no title enum mapper record.");
+
+                var language = new DatDatabase(languagePath, true);
+                var titles = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.EnumMapper>(DatTableStep.TitleMapperRecordId), language.ReadFromDat<ACE.DatLoader.FileTypes.StringTable>(DatTableStep.TitleStringRecordId));
+
+                script += DatTables.TitleInsertScript(titles);
+
+                Console.WriteLine($"  {titles.Count} character titles, title hash {DatTables.Hash(titles)}");
+            }
+
+            File.WriteAllText(Path.GetFullPath(outPath), script);
             return Ok;
         }
 

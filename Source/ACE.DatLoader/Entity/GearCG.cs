@@ -14,5 +14,12 @@ namespace ACE.DatLoader.Entity
             ClothingTable   = reader.ReadUInt32();
             WeenieDefault   = reader.ReadUInt32();
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Name);
+            writer.Write(ClothingTable);
+            writer.Write(WeenieDefault);
+        }
     }
 }

@@ -45,6 +45,17 @@ namespace ACE.DatLoader.Entity
             Orientation = new Quaternion(qx, qy, qz, qw);
         }
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Origin.X);
+            writer.Write(Origin.Y);
+            writer.Write(Origin.Z);
+            writer.Write(Orientation.W);
+            writer.Write(Orientation.X);
+            writer.Write(Orientation.Y);
+            writer.Write(Orientation.Z);
+        }
+
         public override string ToString()
         {
             return Origin + " " + Orientation;

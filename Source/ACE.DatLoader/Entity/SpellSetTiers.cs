@@ -14,5 +14,13 @@ namespace ACE.DatLoader.FileTypes
         {
             Spells.Unpack(reader);
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Spells.Count);
+
+            foreach (var spell in Spells)
+                writer.Write(spell);
+        }
     }
 }

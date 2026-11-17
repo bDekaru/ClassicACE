@@ -330,7 +330,7 @@ namespace ACE.Server.Factories
                         spellFreeRide = DatabaseManager.World.GetCachedSpell(3815); // Free Ride to Holtburg
                         break;
                 }
-                if (spellFreeRide != null && spellFreeRide.Name != "")
+                if (spellFreeRide != null && spellFreeRide.PositionObjCellId.HasValue)
                     instantiation = new Position(spellFreeRide.PositionObjCellId.Value, spellFreeRide.PositionOriginX.Value, spellFreeRide.PositionOriginY.Value, spellFreeRide.PositionOriginZ.Value, spellFreeRide.PositionAnglesX.Value, spellFreeRide.PositionAnglesY.Value, spellFreeRide.PositionAnglesZ.Value, spellFreeRide.PositionAnglesW.Value);
 
                 player.SetProperty(PropertyBool.RecallsDisabled, true);
@@ -378,7 +378,7 @@ namespace ACE.Server.Factories
                         if (!PropertyManager.GetBool("allow_custom_gameplay_modes").Item)
                             return CreateResult.CustomGameplayModesDisabled;
                         player.Location = new Position(0x77060038, 163.226196f, 174.996063f, 0.005000f,0.000000f, 0.000000f, 0.980516f, -0.196438f); // Gameplay mode selection island
-                        player.AddTitle((uint)CharacterTitle.DeadMeat, true, true, true); // This title was replaced with the "In Limbo" title.
+                        player.AddTitle((uint)CharacterTitle.InLimbo, true, true, true);
                         player.SetProperty(PropertyBool.RecallsDisabled, true);
                         player.GameplayMode = GameplayModes.Limbo;
                         break;

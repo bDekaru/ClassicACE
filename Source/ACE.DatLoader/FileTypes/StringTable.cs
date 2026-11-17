@@ -10,9 +10,9 @@ namespace ACE.DatLoader.FileTypes
     {
         public static uint CharacterTitle_FileID = 0x2300000E;
 
-        public uint Language { get; private set; } // This should always be 1 for English
+        public uint Language { get; set; } // This should always be 1 for English
 
-        public byte Unknown { get; private set; }
+        public byte Unknown { get; set; }
 
         public List<StringTableData> StringTableData { get; } = new List<StringTableData>();
 
@@ -25,6 +25,25 @@ namespace ACE.DatLoader.FileTypes
             Unknown = reader.ReadByte();
 
             StringTableData.UnpackSmartArray(reader);
+        }
+
+        /// <summary>Writes the record with the entries in the order of <see cref="StringTableData"/>.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write(Language);
+                writer.Write(Unknown);
+                writer.WriteCompressedUInt32((uint)StringTableData.Count);
+
+                foreach (var entry in StringTableData)
+                    entry.Pack(writer);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
         }
     }
 }

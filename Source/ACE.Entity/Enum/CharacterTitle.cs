@@ -896,6 +896,10 @@ namespace ACE.Entity.Enum
         Illuminated,
         Transcended,
         CosmicConscious,
-        LastManStanding
+        LastManStanding,
+        // CustomDM
+        InLimbo,
+        SoloSelfFound,
+        Hardcore
     }
 }

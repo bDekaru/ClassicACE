@@ -13,8 +13,6 @@ public partial class Spell
     /// </summary>
     public uint Id { get; set; }
 
-    public string Name { get; set; }
-
     public uint? StatModType { get; set; }
 
     public uint? StatModKey { get; set; }
@@ -142,4 +140,6 @@ public partial class Spell
     public double? DotDuration { get; set; }
 
     public DateTime LastModified { get; set; }
+
+    public virtual DatSpell IdNavigation { get; set; }
 }

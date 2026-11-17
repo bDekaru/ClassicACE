@@ -174,5 +174,34 @@ namespace ACE.DatLoader.Entity
             FootwearList.UnpackSmartArray(reader);
             ClothingColorsList.UnpackSmartArray(reader);
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Name);
+            writer.Write(Scale);
+            writer.Write(SetupID);
+            writer.Write(SoundTable);
+            writer.Write(IconImage);
+            writer.Write(BasePalette);
+            writer.Write(SkinPalSet);
+            writer.Write(PhysicsTable);
+            writer.Write(MotionTable);
+            writer.Write(CombatTable);
+
+            BaseObjDesc.Pack(writer);
+
+            writer.WriteSmartArray(HairColorList);
+            writer.WriteSmartArray(HairStyleList, (item, w) => item.Pack(w));
+            writer.WriteSmartArray(EyeColorList);
+            writer.WriteSmartArray(EyeStripList, (item, w) => item.Pack(w));
+            writer.WriteSmartArray(NoseStripList, (item, w) => item.Pack(w));
+            writer.WriteSmartArray(MouthStripList, (item, w) => item.Pack(w));
+
+            writer.WriteSmartArray(HeadgearList, (item, w) => item.Pack(w));
+            writer.WriteSmartArray(ShirtList, (item, w) => item.Pack(w));
+            writer.WriteSmartArray(PantsList, (item, w) => item.Pack(w));
+            writer.WriteSmartArray(FootwearList, (item, w) => item.Pack(w));
+            writer.WriteSmartArray(ClothingColorsList);
+        }
     }
 }

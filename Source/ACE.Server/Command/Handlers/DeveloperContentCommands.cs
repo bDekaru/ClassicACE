@@ -926,7 +926,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     WeenieSQLWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
                     WeenieSQLWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
                     WeenieSQLWriter.WeenieTypes = DatabaseManager.World.GetAllWeenieTypes();
-                    WeenieSQLWriter.SpellNames = DatabaseManager.World.GetAllSpellNames();
+                    WeenieSQLWriter.SpellNames = DatManager.PortalDat.SpellTable.GetNames();
                     WeenieSQLWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
                     WeenieSQLWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
                 }
@@ -3572,11 +3572,11 @@ namespace ACE.Server.Command.Handlers.Processors
         [CommandHandler("export-sql-spells", AccessLevel.Developer, CommandHandlerFlag.None, 0, "Exports all spells from database to SQL files", "")]
         public static void HandleExportSqlSpells(Session session, params string[] parameters)
         {
-            var spells = DatabaseManager.World.GetAllSpellNames();
+            var spellIds = DatabaseManager.World.GetAllSpellIds();
 
-            foreach (var entry in spells)
+            foreach (var spellId in spellIds)
             {
-                ExportSQLSpell(session, entry.Key.ToString());
+                ExportSQLSpell(session, spellId.ToString());
                 Thread.Sleep(5); // Avoid overwhelming the SQL server.
             }
         }
@@ -3764,7 +3764,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 WeenieSQLWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
                 WeenieSQLWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
                 WeenieSQLWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
-                WeenieSQLWriter.SpellNames = DatabaseManager.World.GetAllSpellNames();
+                WeenieSQLWriter.SpellNames = DatManager.PortalDat.SpellTable.GetNames();
                 WeenieSQLWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
                 WeenieSQLWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
                 WeenieSQLWriter.PacketOpCodes = PacketOpCodeNames.Values;
@@ -4116,6 +4116,8 @@ namespace ACE.Server.Command.Handlers.Processors
 
             if (SpellSQLWriter == null)
                 SpellSQLWriter = new SpellSQLWriter();
+
+            SpellSQLWriter.SpellNames = DatManager.PortalDat.SpellTable.GetNames();
 
             var sql_filename = SpellSQLWriter.GetDefaultFileName(spell);
 
@@ -5321,7 +5323,7 @@ namespace ACE.Server.Command.Handlers.Processors
                     WeenieSQLWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
                     WeenieSQLWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
                     WeenieSQLWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
-                    WeenieSQLWriter.SpellNames = DatabaseManager.World.GetAllSpellNames();
+                    WeenieSQLWriter.SpellNames = DatManager.PortalDat.SpellTable.GetNames();
                     WeenieSQLWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
                     WeenieSQLWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
                     WeenieSQLWriter.PacketOpCodes = PacketOpCodeNames.Values;
@@ -7216,7 +7218,7 @@ namespace ACE.Server.Command.Handlers.Processors
         //            WeenieSQLWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
         //            WeenieSQLWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
         //            WeenieSQLWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
-        //            WeenieSQLWriter.SpellNames = DatabaseManager.World.GetAllSpellNames();
+        //            WeenieSQLWriter.SpellNames = DatManager.PortalDat.SpellTable.GetNames();
         //            WeenieSQLWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
         //            WeenieSQLWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
         //            WeenieSQLWriter.PacketOpCodes = PacketOpCodeNames.Values;
@@ -8615,7 +8617,7 @@ namespace ACE.Server.Command.Handlers.Processors
                 WeenieSQLWriter.WeenieNames = DatabaseManager.World.GetAllWeenieNames();
                 WeenieSQLWriter.WeenieClassNames = DatabaseManager.World.GetAllWeenieClassNames();
                 WeenieSQLWriter.WeenieLevels = DatabaseManager.World.GetAllWeenieLevels();
-                WeenieSQLWriter.SpellNames = DatabaseManager.World.GetAllSpellNames();
+                WeenieSQLWriter.SpellNames = DatManager.PortalDat.SpellTable.GetNames();
                 WeenieSQLWriter.TreasureDeath = DatabaseManager.World.GetAllTreasureDeath();
                 WeenieSQLWriter.TreasureWielded = DatabaseManager.World.GetAllTreasureWielded();
                 WeenieSQLWriter.PacketOpCodes = PacketOpCodeNames.Values;

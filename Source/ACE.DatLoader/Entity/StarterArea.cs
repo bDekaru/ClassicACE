@@ -5,7 +5,7 @@ namespace ACE.DatLoader.Entity
 {
     public class StarterArea : IUnpackable
     {
-        public string Name { get; private set; }
+        public string Name { get; set; }
         public List<Position> Locations { get; } = new List<Position>();
 
         public void Unpack(BinaryReader reader)
@@ -13,6 +13,12 @@ namespace ACE.DatLoader.Entity
             Name = reader.ReadString();
 
             Locations.UnpackSmartArray(reader);
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Name);
+            writer.WriteSmartArray(Locations, (location, w) => location.Pack(w));
         }
     }
 }

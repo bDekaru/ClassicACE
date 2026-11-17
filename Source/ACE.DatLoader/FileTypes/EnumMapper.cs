@@ -7,9 +7,9 @@ namespace ACE.DatLoader.FileTypes
     [DatFileType(DatFileType.EnumMapper)]
     public class EnumMapper : FileType
     {
-        public uint BaseEnumMap { get; private set; }   // m_base_emp_did
-        public NumberingType NumberingType { get; private set; }
-        public Dictionary<uint, string> IdToStringMap { get; private set; } = new Dictionary<uint, string>();    // m_id_to_string_map
+        public uint BaseEnumMap { get; set; }   // m_base_emp_did
+        public NumberingType NumberingType { get; set; }
+        public Dictionary<uint, string> IdToStringMap { get; set; } = new Dictionary<uint, string>();    // m_id_to_string_map
 
         public override void Unpack(BinaryReader reader)
         {
@@ -21,6 +21,31 @@ namespace ACE.DatLoader.FileTypes
             uint num_enums = reader.ReadCompressedUInt32();
             for (var i = 0; i < num_enums; i++)
                 IdToStringMap.Add(reader.ReadUInt32(), reader.ReadPString(1));
+        }
+
+        /// <summary>Writes the record with the entries in the order of <see cref="IdToStringMap"/>.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write(BaseEnumMap);
+                writer.Write((byte)NumberingType);
+                writer.WriteCompressedUInt32((uint)IdToStringMap.Count);
+
+                foreach (var entry in IdToStringMap)
+                {
+                    writer.Write(entry.Key);
+
+                    var bytes = System.Text.Encoding.Default.GetBytes(entry.Value ?? "");
+                    writer.Write((byte)bytes.Length);
+                    writer.Write(bytes);
+                }
+
+                writer.Flush();
+                return stream.ToArray();
+            }
         }
     }
 }

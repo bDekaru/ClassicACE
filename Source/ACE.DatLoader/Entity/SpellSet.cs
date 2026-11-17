@@ -16,8 +16,16 @@ namespace ACE.DatLoader.Entity
 
         public SortedDictionary<uint, SpellSetTiers> SpellSetTiersNoGaps = new SortedDictionary<uint, SpellSetTiers>();
 
+        /// <summary>The tier hash table's bucket count as stored in the record; the client rebuilds the table from it.</summary>
+        public ushort BucketSize { get; set; } = 8;
+
         public void Unpack(BinaryReader reader)
         {
+            var start = reader.BaseStream.Position;
+            reader.ReadUInt16();
+            BucketSize = reader.ReadUInt16();
+            reader.BaseStream.Position = start;
+
             SpellSetTiers.UnpackPackedHashTable(reader);
 
             HighestTier = SpellSetTiers.Keys.LastOrDefault();
@@ -31,6 +39,19 @@ namespace ACE.DatLoader.Entity
 
                 if (lastSpellSetTier != null)
                     SpellSetTiersNoGaps.Add(i, lastSpellSetTier);
+            }
+        }
+
+        /// <summary>Writes the tiers in key order; <see cref="SpellSetTiersNoGaps"/> and <see cref="HighestTier"/> are derived on reading and not stored.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((ushort)SpellSetTiers.Count);
+            writer.Write(BucketSize);
+
+            foreach (var tier in SpellSetTiers)
+            {
+                writer.Write(tier.Key);
+                tier.Value.Pack(writer);
             }
         }
     }

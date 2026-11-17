@@ -15,5 +15,12 @@ namespace ACE.DatLoader.Entity
             OldTexture  = reader.ReadAsDataIDOfKnownType(0x05000000);
             NewTexture  = reader.ReadAsDataIDOfKnownType(0x05000000);
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(PartIndex);
+            writer.WriteAsDataIDOfKnownType(0x05000000, OldTexture);
+            writer.WriteAsDataIDOfKnownType(0x05000000, NewTexture);
+        }
     }
 }

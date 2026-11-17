@@ -104,7 +104,7 @@ namespace ACE.DatLoader
                 using (var writer = new DatWriter(temp) { IterationForDate = recipe.Releases.IterationForDate })
                 {
                     writer.Audit();
-                    result.Tables = DatTableStep.Apply(writer, tables, recipe.TablesTime);
+                    result.Tables = recipe.IsLanguage ? DatTableStep.ApplyLanguage(writer, tables, recipe.TablesTime) : DatTableStep.Apply(writer, tables, recipe.TablesTime);
                     result.Changed = result.Tables.Written.Count > 0;
 
                     if (result.Changed)
@@ -184,7 +184,7 @@ namespace ACE.DatLoader
                     result.Overlay = recipe.Apply(writer, customFilesRoot, importer?.Records);
 
                     if (recipe.TablesDate != null && tables != null)
-                        result.Tables = DatTableStep.Apply(writer, tables, recipe.TablesTime);
+                        result.Tables = recipe.IsLanguage ? DatTableStep.ApplyLanguage(writer, tables, recipe.TablesTime) : DatTableStep.Apply(writer, tables, recipe.TablesTime);
 
                     writer.SaveIterationRecord(recipe.Releases.CurrentNumber, recipe.LastStepTime);
                     result.AuditAfter = writer.Audit();

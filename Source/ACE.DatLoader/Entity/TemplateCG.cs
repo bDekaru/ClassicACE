@@ -5,15 +5,15 @@ namespace ACE.DatLoader.Entity
 {
     public class TemplateCG : IUnpackable
     {
-        public string Name { get; private set; }
-        public uint IconImage { get; private set; }
-        public uint Title { get; private set; }
-        public uint Strength { get; private set; }
-        public uint Endurance { get; private set; }
-        public uint Coordination { get; private set; }
-        public uint Quickness { get; private set; }
-        public uint Focus { get; private set; }
-        public uint Self { get; private set; }
+        public string Name { get; set; }
+        public uint IconImage { get; set; }
+        public uint Title { get; set; }
+        public uint Strength { get; set; }
+        public uint Endurance { get; set; }
+        public uint Coordination { get; set; }
+        public uint Quickness { get; set; }
+        public uint Focus { get; set; }
+        public uint Self { get; set; }
         public List<uint> NormalSkillsList { get; } = new List<uint>();
         public List<uint> PrimarySkillsList { get; } = new List<uint>();
 
@@ -32,6 +32,22 @@ namespace ACE.DatLoader.Entity
 
             NormalSkillsList.UnpackSmartArray(reader);
             PrimarySkillsList.UnpackSmartArray(reader);
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Name);
+            writer.Write(IconImage);
+            writer.Write(Title);
+            writer.Write(Strength);
+            writer.Write(Endurance);
+            writer.Write(Coordination);
+            writer.Write(Quickness);
+            writer.Write(Focus);
+            writer.Write(Self);
+
+            writer.WriteSmartArray(NormalSkillsList);
+            writer.WriteSmartArray(PrimarySkillsList);
         }
     }
 }

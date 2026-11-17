@@ -17,5 +17,11 @@ namespace ACE.DatLoader.Entity
 
             Frame.Unpack(reader);
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(ObjCellID);
+            Frame.Pack(writer);
+        }
     }
 }

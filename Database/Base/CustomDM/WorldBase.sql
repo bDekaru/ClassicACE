@@ -47,6 +47,97 @@ CREATE TABLE `cook_book` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `dat_character_title`
+--
+
+DROP TABLE IF EXISTS `dat_character_title`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_character_title` (
+  `id` int unsigned NOT NULL COMMENT 'Title id as sent to the client (the CharacterTitle enum value)',
+  `name` varchar(255) NOT NULL COMMENT 'Name in the title enum mapper, e.g. ID_CharacterTitle_Adventurer',
+  `text` text NOT NULL COMMENT 'Display text',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Character titles of the portal and language dats';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_chargen`
+--
+
+DROP TABLE IF EXISTS `dat_chargen`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_chargen` (
+  `id` int unsigned NOT NULL COMMENT 'Always 1: one row for the whole record',
+  `attribute_Credits` int unsigned NOT NULL COMMENT 'Attribute credits of every heritage group',
+  `skill_Credits` int unsigned NOT NULL COMMENT 'Skill credits of every heritage group',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat character generation credits';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_chargen_heritage_skill_override`
+--
+
+DROP TABLE IF EXISTS `dat_chargen_heritage_skill_override`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_chargen_heritage_skill_override` (
+  `heritage_Group` int unsigned NOT NULL COMMENT 'HeritageGroup',
+  `skill_Id` int unsigned NOT NULL COMMENT 'Skill',
+  `trained_Cost` int NOT NULL COMMENT 'Credits to train the skill, instead of dat_skill.trained_Cost',
+  `specialized_Cost` int NOT NULL COMMENT 'Credits to specialize the skill, trained cost included (as in dat_skill)',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`heritage_Group`,`skill_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat character generation skill costs of a heritage group';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_chargen_template`
+--
+
+DROP TABLE IF EXISTS `dat_chargen_template`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_chargen_template` (
+  `heritage_Group` int unsigned NOT NULL COMMENT 'HeritageGroup',
+  `id` int unsigned NOT NULL COMMENT 'Template index of the heritage group: 0, 1, 2, ... without gaps',
+  `name` varchar(255) NOT NULL,
+  `icon_Id` int unsigned NOT NULL,
+  `title` int unsigned NOT NULL COMMENT 'CharacterTitle',
+  `strength` int unsigned NOT NULL,
+  `endurance` int unsigned NOT NULL,
+  `coordination` int unsigned NOT NULL,
+  `quickness` int unsigned NOT NULL,
+  `focus` int unsigned NOT NULL,
+  `self` int unsigned NOT NULL,
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`heritage_Group`,`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat character generation templates';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_chargen_template_skill`
+--
+
+DROP TABLE IF EXISTS `dat_chargen_template_skill`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_chargen_template_skill` (
+  `heritage_Group` int unsigned NOT NULL COMMENT 'HeritageGroup',
+  `template_Id` int unsigned NOT NULL COMMENT 'dat_chargen_template.id',
+  `skill_Id` int unsigned NOT NULL COMMENT 'Skill',
+  `advancement_Class` int unsigned NOT NULL COMMENT 'SkillAdvancementClass: 2 Trained or 3 Specialized',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`heritage_Group`,`template_Id`,`skill_Id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat character generation template skills';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `dat_skill`
 --
 
@@ -75,6 +166,92 @@ CREATE TABLE `dat_skill` (
   `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat skill table';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_spell`
+--
+
+DROP TABLE IF EXISTS `dat_spell`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_spell` (
+  `id` int unsigned NOT NULL COMMENT 'Unique Id of this Spell',
+  `name` text NOT NULL,
+  `description` text NOT NULL,
+  `school` int unsigned NOT NULL COMMENT 'MagicSchool',
+  `icon_Id` int unsigned NOT NULL,
+  `category` int unsigned NOT NULL COMMENT 'SpellCategory: spells of one category do not stack',
+  `bitfield` int unsigned NOT NULL COMMENT 'SpellFlags',
+  `base_Mana` int unsigned NOT NULL,
+  `base_Range_Constant` float NOT NULL,
+  `base_Range_Mod` float NOT NULL,
+  `power` int unsigned NOT NULL COMMENT 'Tells the strongest spell of a category',
+  `spell_Economy_Mod` float NOT NULL,
+  `formula_Version` int unsigned NOT NULL COMMENT 'How the taper slots of the formula are randomized per account',
+  `component_Loss` float NOT NULL COMMENT 'Burn rate of the components',
+  `meta_Spell_Type` int unsigned NOT NULL COMMENT 'SpellType: which group of the spell table columns the server reads',
+  `meta_Spell_Id` int unsigned NOT NULL,
+  `duration` double DEFAULT NULL COMMENT 'Enchantment and FellowEnchantment only',
+  `degrade_Modifier` float DEFAULT NULL COMMENT 'Enchantment and FellowEnchantment only',
+  `degrade_Limit` float DEFAULT NULL COMMENT 'Enchantment and FellowEnchantment only',
+  `portal_Lifetime` double DEFAULT NULL COMMENT 'PortalSummon only',
+  `component_1` int unsigned DEFAULT NULL COMMENT 'Formula: id of a component of the dat spell component table, empty slots are NULL and only the last slots may be empty',
+  `component_2` int unsigned DEFAULT NULL,
+  `component_3` int unsigned DEFAULT NULL,
+  `component_4` int unsigned DEFAULT NULL,
+  `component_5` int unsigned DEFAULT NULL,
+  `component_6` int unsigned DEFAULT NULL,
+  `component_7` int unsigned DEFAULT NULL,
+  `component_8` int unsigned DEFAULT NULL,
+  `caster_Effect` int unsigned NOT NULL COMMENT 'PlayScript',
+  `target_Effect` int unsigned NOT NULL COMMENT 'PlayScript',
+  `fizzle_Effect` int unsigned NOT NULL COMMENT 'PlayScript',
+  `recovery_Interval` double NOT NULL,
+  `recovery_Amount` float NOT NULL,
+  `display_Order` int unsigned NOT NULL COMMENT 'Sort order in the client spell list',
+  `non_Component_Target_Type` int unsigned NOT NULL COMMENT 'ItemType',
+  `mana_Mod` int unsigned NOT NULL COMMENT 'Additional mana cost per target',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat spell table';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_spell_set_spell`
+--
+
+DROP TABLE IF EXISTS `dat_spell_set_spell`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_spell_set_spell` (
+  `set_Id` int unsigned NOT NULL COMMENT 'EquipmentSet',
+  `tier` int unsigned NOT NULL COMMENT 'Piece count (or sum of item levels) at which the spells start to be active',
+  `position` int unsigned NOT NULL COMMENT 'Order of the spell within the tier, from 0',
+  `spell_Id` int unsigned NOT NULL COMMENT 'Id of a dat_spell row',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`set_Id`,`tier`,`position`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat spell table: the spells of each equipment set tier';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_vital`
+--
+
+DROP TABLE IF EXISTS `dat_vital`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_vital` (
+  `id` int unsigned NOT NULL COMMENT 'PropertyAttribute2nd: MaxHealth, MaxStamina or MaxMana',
+  `formula_W` int unsigned NOT NULL COMMENT 'Vital formula: (attr1 * x + attr2 * y) / z + w',
+  `formula_X` int unsigned NOT NULL,
+  `formula_Y` int unsigned NOT NULL,
+  `formula_Z` int unsigned NOT NULL,
+  `formula_Attr1` int unsigned NOT NULL COMMENT 'PropertyAttribute',
+  `formula_Attr2` int unsigned NOT NULL COMMENT 'PropertyAttribute',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat vital table';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -664,7 +841,6 @@ DROP TABLE IF EXISTS `spell`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `spell` (
   `id` int unsigned NOT NULL COMMENT 'Unique Id of this Spell',
-  `name` text NOT NULL,
   `stat_Mod_Type` int unsigned DEFAULT NULL,
   `stat_Mod_Key` int unsigned DEFAULT NULL,
   `stat_Mod_Val` float DEFAULT NULL,
@@ -729,7 +905,8 @@ CREATE TABLE `spell` (
   `number_Variance` float DEFAULT NULL,
   `dot_Duration` double DEFAULT NULL,
   `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  CONSTRAINT `dat_spell_effect` FOREIGN KEY (`id`) REFERENCES `dat_spell` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Spell Table Extended Data';
 /*!40101 SET character_set_client = @saved_cs_client */;
 

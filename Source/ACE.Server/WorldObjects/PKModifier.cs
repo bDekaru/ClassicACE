@@ -128,7 +128,7 @@ namespace ACE.Server.WorldObjects
                 case 10: // Hardcore NPK
                     player.RevertToBrandNewCharacterEquipment(true, true);
                     player.RemoveAllTitles();
-                    player.AddTitle((uint)CharacterTitle.GimpyMageofMight, true, true, true); // This title was replaced with the "Hardcore" title.
+                    player.AddTitle((uint)CharacterTitle.Hardcore, true, true, true);
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
                     player.PkLevel = PKLevel.NPK;
                     player.GameplayMode = GameplayModes.HardcoreNPK;
@@ -139,7 +139,7 @@ namespace ACE.Server.WorldObjects
                 case 11: // Hardcore PK
                     player.RevertToBrandNewCharacterEquipment(true, true);
                     player.RemoveAllTitles();
-                    player.AddTitle((uint)CharacterTitle.GimpyMageofMight, true, true, true); // This title was replaced with the "Hardcore" title.
+                    player.AddTitle((uint)CharacterTitle.Hardcore, true, true, true);
                     player.PlayerKillerStatus = PlayerKillerStatus.PKLite;
                     player.PkLevel = PKLevel.NPK;
                     player.GameplayMode = GameplayModes.HardcorePK;
@@ -153,7 +153,7 @@ namespace ACE.Server.WorldObjects
                 case 12: // Solo Self Found
                     player.RevertToBrandNewCharacterEquipment(true, true);
                     player.RemoveAllTitles();
-                    player.AddTitle((uint)CharacterTitle.GimpGoddess, true, true, true); // This title was replaced with the "Solo Self-Found" title.
+                    player.AddTitle((uint)CharacterTitle.SoloSelfFound, true, true, true);
                     player.PlayerKillerStatus = PlayerKillerStatus.NPK;
                     player.PkLevel = PKLevel.NPK;
                     player.GameplayMode = GameplayModes.SoloSelfFound;

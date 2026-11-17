@@ -20,5 +20,14 @@ namespace ACE.DatLoader.Entity
 
             NumColors *= 8;
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.WriteAsDataIDOfKnownType(0x04000000, SubID);
+            writer.Write((byte)(Offset / 8));
+
+            var colors = NumColors / 8;
+            writer.Write((byte)(colors == 256 ? 0 : colors));
+        }
     }
 }

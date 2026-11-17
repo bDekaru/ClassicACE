@@ -13,17 +13,46 @@ namespace ACE.DatLoader.FileTypes
         public List<StarterArea> StarterAreas { get; } = new List<StarterArea>();
         public Dictionary<uint, HeritageGroupCG> HeritageGroups { get; } = new Dictionary<uint, HeritageGroupCG>();
 
+        /// <summary>The byte in front of the heritage groups, kept so a rewritten record equals the original.</summary>
+        public byte HeritageGroupsMarker { get; private set; } = 1;
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
-            reader.BaseStream.Position += 4;
+            reader.BaseStream.Position += 4; // second copy of the file id
 
             StarterAreas.UnpackSmartArray(reader);
 
             // HERITAGE GROUPS -- 11 standard player races and 2 Olthoi.
-            reader.BaseStream.Position++; // Not sure what this byte 0x01 is indicating, but we'll skip it because we can.
+            HeritageGroupsMarker = reader.ReadByte();
 
             HeritageGroups.UnpackSmartArray(reader);
+        }
+
+        /// <summary>Writes the record in the order of <see cref="StarterAreas"/> and <see cref="HeritageGroups"/>.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(FILE_ID);
+                writer.Write(FILE_ID);
+
+                writer.WriteSmartArray(StarterAreas, (item, w) => item.Pack(w));
+
+                writer.Write(HeritageGroupsMarker);
+
+                writer.WriteCompressedUInt32((uint)HeritageGroups.Count);
+
+                foreach (var heritageGroup in HeritageGroups)
+                {
+                    writer.Write(heritageGroup.Key);
+                    heritageGroup.Value.Pack(writer);
+                }
+
+                writer.Flush();
+                return stream.ToArray();
+            }
         }
     }
 }

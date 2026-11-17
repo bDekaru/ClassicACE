@@ -17,5 +17,13 @@ namespace ACE.DatLoader.Entity
 
             ObjDesc.Unpack(reader);
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(IconImage);
+            writer.Write((byte)(Bald ? 1 : 0));
+            writer.Write(AlternateSetup);
+            ObjDesc.Pack(writer);
+        }
     }
 }

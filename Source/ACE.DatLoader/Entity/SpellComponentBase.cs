@@ -4,14 +4,14 @@ namespace ACE.DatLoader.Entity
 {
     public class SpellComponentBase : IUnpackable
     {
-        public string Name { get; private set; }
-        public uint Category { get; private set; }
-        public uint Icon { get; private set; }
-        public uint Type { get; private set; }
-        public uint Gesture { get; private set; }
-        public float Time { get; private set; }
-        public string Text { get; private set; }
-        public float CDM { get; private set; } // Unsure what this is
+        public string Name { get; set; }
+        public uint Category { get; set; }
+        public uint Icon { get; set; }
+        public uint Type { get; set; }
+        public uint Gesture { get; set; }
+        public float Time { get; set; }
+        public string Text { get; set; }
+        public float CDM { get; set; } // Component destruction modifier: multiplies the chance that the component burns when a spell is cast
 
         public void Unpack(BinaryReader reader)
         {
@@ -25,6 +25,20 @@ namespace ACE.DatLoader.Entity
             Text        = reader.ReadObfuscatedString();
             reader.AlignBoundary();
             CDM         = reader.ReadSingle();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.WriteObfuscatedString(Name);
+            writer.AlignBoundary();
+            writer.Write(Category);
+            writer.Write(Icon);
+            writer.Write(Type);
+            writer.Write(Gesture);
+            writer.Write(Time);
+            writer.WriteObfuscatedString(Text);
+            writer.AlignBoundary();
+            writer.Write(CDM);
         }
     }
 }

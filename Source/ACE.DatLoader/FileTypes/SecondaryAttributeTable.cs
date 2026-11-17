@@ -10,9 +10,9 @@ namespace ACE.DatLoader.FileTypes
     {
         internal const uint FILE_ID = 0x0E000003;
 
-        public Attribute2ndBase MaxHealth { get; private set; } = new Attribute2ndBase();
-        public Attribute2ndBase MaxStamina { get; private set; } = new Attribute2ndBase();
-        public Attribute2ndBase MaxMana { get; private set; } = new Attribute2ndBase();
+        public Attribute2ndBase MaxHealth { get; set; } = new Attribute2ndBase();
+        public Attribute2ndBase MaxStamina { get; set; } = new Attribute2ndBase();
+        public Attribute2ndBase MaxMana { get; set; } = new Attribute2ndBase();
 
         public override void Unpack(BinaryReader reader)
         {
@@ -20,6 +20,21 @@ namespace ACE.DatLoader.FileTypes
             MaxHealth.Unpack(reader);
             MaxStamina.Unpack(reader);
             MaxMana.Unpack(reader);
+        }
+
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(FILE_ID);
+                MaxHealth.Pack(writer);
+                MaxStamina.Pack(writer);
+                MaxMana.Pack(writer);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
         }
     }
 }

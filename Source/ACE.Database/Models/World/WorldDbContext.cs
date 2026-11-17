@@ -18,7 +18,23 @@ public partial class WorldDbContext : DbContext
 
     public virtual DbSet<CookBook> CookBook { get; set; }
 
+    public virtual DbSet<DatCharacterTitle> DatCharacterTitle { get; set; }
+
+    public virtual DbSet<DatChargen> DatChargen { get; set; }
+
+    public virtual DbSet<DatChargenHeritageSkillOverride> DatChargenHeritageSkillOverride { get; set; }
+
+    public virtual DbSet<DatChargenTemplate> DatChargenTemplate { get; set; }
+
+    public virtual DbSet<DatChargenTemplateSkill> DatChargenTemplateSkill { get; set; }
+
     public virtual DbSet<DatSkill> DatSkill { get; set; }
+
+    public virtual DbSet<DatSpell> DatSpell { get; set; }
+
+    public virtual DbSet<DatSpellSetSpell> DatSpellSetSpell { get; set; }
+
+    public virtual DbSet<DatVital> DatVital { get; set; }
 
     public virtual DbSet<DatXpAttribute> DatXpAttribute { get; set; }
 
@@ -283,6 +299,135 @@ public partial class WorldDbContext : DbContext
             entity.Property(e => e.MicroRegion)
                 .HasColumnName("micro_Region");
         });
+        modelBuilder.Entity<DatCharacterTitle>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("dat_character_title", tb => tb.HasComment("Character titles of the portal and language dats"));
+
+            entity.HasIndex(e => e.Name, "name_UNIQUE").IsUnique();
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasComment("Title id as sent to the client (the CharacterTitle enum value)")
+                .HasColumnName("id");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasComment("Name in the title enum mapper, e.g. ID_CharacterTitle_Adventurer")
+                .HasColumnName("name");
+            entity.Property(e => e.Text)
+                .IsRequired()
+                .HasComment("Display text")
+                .HasColumnName("text");
+        });
+        modelBuilder.Entity<DatChargen>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("dat_chargen", tb => tb.HasComment("Portal dat character generation credits"));
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasComment("Always 1: one row for the whole record")
+                .HasColumnName("id");
+            entity.Property(e => e.AttributeCredits)
+                .HasComment("Attribute credits of every heritage group")
+                .HasColumnName("attribute_Credits");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.SkillCredits)
+                .HasComment("Skill credits of every heritage group")
+                .HasColumnName("skill_Credits");
+        });
+        modelBuilder.Entity<DatChargenHeritageSkillOverride>(entity =>
+        {
+            entity.HasKey(e => new { e.HeritageGroup, e.SkillId }).HasName("PRIMARY");
+
+            entity.ToTable("dat_chargen_heritage_skill_override", tb => tb.HasComment("Portal dat character generation skill costs of a heritage group"));
+
+            entity.Property(e => e.HeritageGroup)
+                .HasComment("HeritageGroup")
+                .HasColumnName("heritage_Group");
+            entity.Property(e => e.SkillId)
+                .HasComment("Skill")
+                .HasColumnName("skill_Id");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.SpecializedCost)
+                .HasComment("Credits to specialize the skill, trained cost included (as in dat_skill)")
+                .HasColumnName("specialized_Cost");
+            entity.Property(e => e.TrainedCost)
+                .HasComment("Credits to train the skill, instead of dat_skill.trained_Cost")
+                .HasColumnName("trained_Cost");
+        });
+        modelBuilder.Entity<DatChargenTemplate>(entity =>
+        {
+            entity.HasKey(e => new { e.HeritageGroup, e.Id }).HasName("PRIMARY");
+
+            entity.ToTable("dat_chargen_template", tb => tb.HasComment("Portal dat character generation templates"));
+
+            entity.Property(e => e.HeritageGroup)
+                .HasComment("HeritageGroup")
+                .HasColumnName("heritage_Group");
+            entity.Property(e => e.Id)
+                .HasComment("Template index of the heritage group: 0, 1, 2, ... without gaps")
+                .HasColumnName("id");
+            entity.Property(e => e.Coordination).HasColumnName("coordination");
+            entity.Property(e => e.Endurance).HasColumnName("endurance");
+            entity.Property(e => e.Focus).HasColumnName("focus");
+            entity.Property(e => e.IconId).HasColumnName("icon_Id");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(255)
+                .HasColumnName("name");
+            entity.Property(e => e.Quickness).HasColumnName("quickness");
+            entity.Property(e => e.Self).HasColumnName("self");
+            entity.Property(e => e.Strength).HasColumnName("strength");
+            entity.Property(e => e.Title)
+                .HasComment("CharacterTitle")
+                .HasColumnName("title");
+        });
+        modelBuilder.Entity<DatChargenTemplateSkill>(entity =>
+        {
+            entity.HasKey(e => new { e.HeritageGroup, e.TemplateId, e.SkillId }).HasName("PRIMARY");
+
+            entity.ToTable("dat_chargen_template_skill", tb => tb.HasComment("Portal dat character generation template skills"));
+
+            entity.Property(e => e.HeritageGroup)
+                .HasComment("HeritageGroup")
+                .HasColumnName("heritage_Group");
+            entity.Property(e => e.TemplateId)
+                .HasComment("dat_chargen_template.id")
+                .HasColumnName("template_Id");
+            entity.Property(e => e.SkillId)
+                .HasComment("Skill")
+                .HasColumnName("skill_Id");
+            entity.Property(e => e.AdvancementClass)
+                .HasComment("SkillAdvancementClass: 2 Trained or 3 Specialized")
+                .HasColumnName("advancement_Class");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+        });
         modelBuilder.Entity<DatSkill>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
@@ -331,6 +476,151 @@ public partial class WorldDbContext : DbContext
                 .HasComment("Skill credits to train")
                 .HasColumnName("trained_Cost");
             entity.Property(e => e.UpperBound).HasColumnName("upper_Bound");
+        });
+        modelBuilder.Entity<DatSpell>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("dat_spell", tb => tb.HasComment("Portal dat spell table"));
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasComment("Unique Id of this Spell")
+                .HasColumnName("id");
+            entity.Property(e => e.BaseMana).HasColumnName("base_Mana");
+            entity.Property(e => e.BaseRangeConstant).HasColumnName("base_Range_Constant");
+            entity.Property(e => e.BaseRangeMod).HasColumnName("base_Range_Mod");
+            entity.Property(e => e.Bitfield)
+                .HasComment("SpellFlags")
+                .HasColumnName("bitfield");
+            entity.Property(e => e.CasterEffect)
+                .HasComment("PlayScript")
+                .HasColumnName("caster_Effect");
+            entity.Property(e => e.Category)
+                .HasComment("SpellCategory: spells of one category do not stack")
+                .HasColumnName("category");
+            entity.Property(e => e.Component1)
+                .HasComment("Formula: id of a component of the dat spell component table, empty slots are NULL and only the last slots may be empty")
+                .HasColumnName("component_1");
+            entity.Property(e => e.Component2).HasColumnName("component_2");
+            entity.Property(e => e.Component3).HasColumnName("component_3");
+            entity.Property(e => e.Component4).HasColumnName("component_4");
+            entity.Property(e => e.Component5).HasColumnName("component_5");
+            entity.Property(e => e.Component6).HasColumnName("component_6");
+            entity.Property(e => e.Component7).HasColumnName("component_7");
+            entity.Property(e => e.Component8).HasColumnName("component_8");
+            entity.Property(e => e.ComponentLoss)
+                .HasComment("Burn rate of the components")
+                .HasColumnName("component_Loss");
+            entity.Property(e => e.DegradeLimit)
+                .HasComment("Enchantment and FellowEnchantment only")
+                .HasColumnName("degrade_Limit");
+            entity.Property(e => e.DegradeModifier)
+                .HasComment("Enchantment and FellowEnchantment only")
+                .HasColumnName("degrade_Modifier");
+            entity.Property(e => e.Description)
+                .IsRequired()
+                .HasColumnType("text")
+                .HasColumnName("description");
+            entity.Property(e => e.DisplayOrder)
+                .HasComment("Sort order in the client spell list")
+                .HasColumnName("display_Order");
+            entity.Property(e => e.Duration)
+                .HasComment("Enchantment and FellowEnchantment only")
+                .HasColumnName("duration");
+            entity.Property(e => e.FizzleEffect)
+                .HasComment("PlayScript")
+                .HasColumnName("fizzle_Effect");
+            entity.Property(e => e.FormulaVersion)
+                .HasComment("How the taper slots of the formula are randomized per account")
+                .HasColumnName("formula_Version");
+            entity.Property(e => e.IconId).HasColumnName("icon_Id");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.ManaMod)
+                .HasComment("Additional mana cost per target")
+                .HasColumnName("mana_Mod");
+            entity.Property(e => e.MetaSpellId).HasColumnName("meta_Spell_Id");
+            entity.Property(e => e.MetaSpellType)
+                .HasComment("SpellType: which group of the spell table columns the server reads")
+                .HasColumnName("meta_Spell_Type");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasColumnType("text")
+                .HasColumnName("name");
+            entity.Property(e => e.NonComponentTargetType)
+                .HasComment("ItemType")
+                .HasColumnName("non_Component_Target_Type");
+            entity.Property(e => e.PortalLifetime)
+                .HasComment("PortalSummon only")
+                .HasColumnName("portal_Lifetime");
+            entity.Property(e => e.Power)
+                .HasComment("Tells the strongest spell of a category")
+                .HasColumnName("power");
+            entity.Property(e => e.RecoveryAmount).HasColumnName("recovery_Amount");
+            entity.Property(e => e.RecoveryInterval).HasColumnName("recovery_Interval");
+            entity.Property(e => e.School)
+                .HasComment("MagicSchool")
+                .HasColumnName("school");
+            entity.Property(e => e.SpellEconomyMod).HasColumnName("spell_Economy_Mod");
+            entity.Property(e => e.TargetEffect)
+                .HasComment("PlayScript")
+                .HasColumnName("target_Effect");
+        });
+        modelBuilder.Entity<DatSpellSetSpell>(entity =>
+        {
+            entity.HasKey(e => new { e.SetId, e.Tier, e.Position }).HasName("PRIMARY");
+
+            entity.ToTable("dat_spell_set_spell", tb => tb.HasComment("Portal dat spell table: the spells of each equipment set tier"));
+
+            entity.Property(e => e.SetId)
+                .HasComment("EquipmentSet")
+                .HasColumnName("set_Id");
+            entity.Property(e => e.Tier)
+                .HasComment("Piece count (or sum of item levels) at which the spells start to be active")
+                .HasColumnName("tier");
+            entity.Property(e => e.Position)
+                .HasComment("Order of the spell within the tier, from 0")
+                .HasColumnName("position");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.SpellId)
+                .HasComment("Id of a dat_spell row")
+                .HasColumnName("spell_Id");
+        });
+        modelBuilder.Entity<DatVital>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("dat_vital", tb => tb.HasComment("Portal dat vital table"));
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasComment("PropertyAttribute2nd: MaxHealth, MaxStamina or MaxMana")
+                .HasColumnName("id");
+            entity.Property(e => e.FormulaAttr1)
+                .HasComment("PropertyAttribute")
+                .HasColumnName("formula_Attr1");
+            entity.Property(e => e.FormulaAttr2)
+                .HasComment("PropertyAttribute")
+                .HasColumnName("formula_Attr2");
+            entity.Property(e => e.FormulaW)
+                .HasComment("Vital formula: (attr1 * x + attr2 * y) / z + w")
+                .HasColumnName("formula_W");
+            entity.Property(e => e.FormulaX).HasColumnName("formula_X");
+            entity.Property(e => e.FormulaY).HasColumnName("formula_Y");
+            entity.Property(e => e.FormulaZ).HasColumnName("formula_Z");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
         });
         modelBuilder.Entity<DatXpAttribute>(entity =>
         {
@@ -1098,10 +1388,6 @@ public partial class WorldDbContext : DbContext
             entity.Property(e => e.MaxBoostAllowed).HasColumnName("max_Boost_Allowed");
             entity.Property(e => e.MaxPower).HasColumnName("max_Power");
             entity.Property(e => e.MinPower).HasColumnName("min_Power");
-            entity.Property(e => e.Name)
-                .IsRequired()
-                .HasColumnType("text")
-                .HasColumnName("name");
             entity.Property(e => e.NonTracking).HasColumnName("non_Tracking");
             entity.Property(e => e.NumProjectiles).HasColumnName("num_Projectiles");
             entity.Property(e => e.NumProjectilesVariance).HasColumnName("num_Projectiles_Variance");
@@ -1136,6 +1422,10 @@ public partial class WorldDbContext : DbContext
             entity.Property(e => e.Variance).HasColumnName("variance");
             entity.Property(e => e.VerticalAngle).HasColumnName("vertical_Angle");
             entity.Property(e => e.Wcid).HasColumnName("wcid");
+
+            entity.HasOne(d => d.IdNavigation).WithOne(p => p.Spell)
+                .HasForeignKey<Spell>(d => d.Id)
+                .HasConstraintName("dat_spell_effect");
         });
 
         modelBuilder.Entity<TreasureDeath>(entity =>

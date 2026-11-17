@@ -18,5 +18,11 @@ namespace ACE.DatLoader.Entity
             PartIndex = (byte)(partIndex & 255);
             PartID    = reader.ReadAsDataIDOfKnownType(0x01000000);
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(PartIndex);
+            writer.WriteAsDataIDOfKnownType(0x01000000, PartID);
+        }
     }
 }

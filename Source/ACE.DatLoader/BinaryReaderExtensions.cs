@@ -92,6 +92,8 @@ namespace ACE.DatLoader
                 // flip the bytes in the string to undo the obfuscation: i.e. 0xAB => 0xBA
                 thestring[i] = (byte)((thestring[i] >> 4) | (thestring[i] << 4));
 
+            System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
             return System.Text.Encoding.GetEncoding(1252).GetString(thestring);
         }
 

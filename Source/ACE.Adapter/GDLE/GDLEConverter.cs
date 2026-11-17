@@ -267,8 +267,6 @@ namespace ACE.Adapter.GDLE
 
                 result.Id = id;
 
-                result.Name = input.Name;
-
                 if (input.MetaSpell.Spell.StatMod != null)
                 {
                     result.StatModType = input.MetaSpell.Spell.StatMod.Type;

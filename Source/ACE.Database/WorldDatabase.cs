@@ -651,19 +651,20 @@ namespace ACE.Database
         // Spell
         // =====================================
 
-        public Dictionary<uint, string> GetAllSpellNames(WorldDbContext context)
+        public List<uint> GetAllSpellIds(WorldDbContext context)
         {
             return context.Spell
-                .ToDictionary(r => r.Id, r => r.Name);
+                .Select(r => r.Id)
+                .ToList();
         }
 
-        public Dictionary<uint, string> GetAllSpellNames()
+        public List<uint> GetAllSpellIds()
         {
             using (var context = new WorldDbContext())
             {
                 context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
 
-                return GetAllSpellNames(context);
+                return GetAllSpellIds(context);
             }
         }
 

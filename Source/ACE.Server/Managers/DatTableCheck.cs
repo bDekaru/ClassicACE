@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 using log4net;
@@ -6,6 +7,7 @@ using log4net;
 using ACE.Database;
 using ACE.Database.Models.World;
 using ACE.DatLoader;
+using ACE.DatLoader.FileTypes;
 
 namespace ACE.Server.Managers
 {
@@ -37,10 +39,54 @@ namespace ACE.Server.Managers
                 var xpMatches = DatTables.Hash(rows.Xp) == DatTables.Hash(DatTables.ToRows(portal.XpTable));
                 var skillsMatch = DatTables.Hash(rows.Skills) == DatTables.Hash(DatTables.ToRows(portal.SkillTable));
 
-                if (xpMatches && skillsMatch)
-                    log.Info("[DATTABLES] The portal dat's XP and skill tables match the world database.");
+                var spellsMatch = rows.Spells == null || DatTables.Hash(rows.Spells, rows.SetSpells) == DatTables.Hash(DatTables.ToRows(portal.SpellTable), DatTables.ToSetRows(portal.SpellTable));
+
+                var vitalsMatch = rows.Vitals == null || DatTables.Hash(rows.Vitals) == DatTables.Hash(DatTables.ToRows(portal.SecondaryAttributeTable));
+
+                var titlesMatch = rows.Titles == null || DatTables.Hash(rows.Titles) == DatTables.Hash(DatTables.ToRows(portal.ReadFromDat<EnumMapper>(DatTables.TitleMapperId), DatLoader.DatManager.LanguageDat.CharacterTitles));
+
+                var chargenMatch = rows.Chargen == null || (DatTables.Hash(rows.Chargen) == DatTables.Hash(DatTables.ToRows(portal.CharGen)) && DatTables.CreditsApplied(portal.CharGen, rows.Chargen.Chargen));
+
+                var different = new List<string>();
+
+                if (!xpMatches)
+                    different.Add("XP table");
+
+                if (!skillsMatch)
+                    different.Add("skill table");
+
+                if (!spellsMatch)
+                    different.Add("spell table");
+
+                if (!vitalsMatch)
+                    different.Add("vital table");
+
+                if (!titlesMatch)
+                    different.Add("title tables");
+
+                if (!chargenMatch)
+                    different.Add("character generation tables");
+
+                if (different.Count == 0)
+                {
+                    var matched = new List<string> { "XP", "skill" };
+
+                    if (rows.Vitals != null)
+                        matched.Add("vital");
+
+                    if (rows.Spells != null)
+                        matched.Add("spell");
+
+                    if (rows.Titles != null)
+                        matched.Add("title");
+
+                    if (rows.Chargen != null)
+                        matched.Add("character generation");
+
+                    log.Info($"[DATTABLES] The portal dat's {string.Join(", ", matched)} tables match the world database.");
+                }
                 else
-                    log.Warn($"[DATTABLES] The portal dat is out of date with the world database dat_* tables (different: {(xpMatches ? "" : "XP table")}{(!xpMatches && !skillsMatch ? ", " : "")}{(skillsMatch ? "" : "skill table")}). The server uses the dat's values; rebuild the dat (ACE.DatBuilder) and restart to apply the database values.");
+                    log.Warn($"[DATTABLES] The portal dat is out of date with the world database dat_* tables (different: {string.Join(", ", different)}). The server uses the dat's values; rebuild the dat (ACE.DatBuilder) and restart to apply the database values.");
             }
             catch (InvalidDataException ex)
             {
