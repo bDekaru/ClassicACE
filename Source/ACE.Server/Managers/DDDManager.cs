@@ -302,9 +302,6 @@ namespace ACE.Server.Managers
             var rangeEnd = 0;
             foreach (var ints in clientIterations.Ints)
             {
-                if (Math.Abs(ints) == totalIterations)
-                    return new();
-
                 if (ints < 0)
                 {
                     rangeEnd = ints;
