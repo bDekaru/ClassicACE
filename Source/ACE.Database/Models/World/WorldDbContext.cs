@@ -18,6 +18,18 @@ public partial class WorldDbContext : DbContext
 
     public virtual DbSet<CookBook> CookBook { get; set; }
 
+    public virtual DbSet<DatSkill> DatSkill { get; set; }
+
+    public virtual DbSet<DatXpAttribute> DatXpAttribute { get; set; }
+
+    public virtual DbSet<DatXpLevel> DatXpLevel { get; set; }
+
+    public virtual DbSet<DatXpSpecializedSkill> DatXpSpecializedSkill { get; set; }
+
+    public virtual DbSet<DatXpTrainedSkill> DatXpTrainedSkill { get; set; }
+
+    public virtual DbSet<DatXpVital> DatXpVital { get; set; }
+
     public virtual DbSet<Encounter> Encounter { get; set; }
 
     public virtual DbSet<Event> Event { get; set; }
@@ -270,6 +282,153 @@ public partial class WorldDbContext : DbContext
 
             entity.Property(e => e.MicroRegion)
                 .HasColumnName("micro_Region");
+        });
+        modelBuilder.Entity<DatSkill>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("dat_skill", tb => tb.HasComment("Portal dat skill table"));
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedNever()
+                .HasComment("Unique Id of this Skill")
+                .HasColumnName("id");
+            entity.Property(e => e.Category)
+                .HasComment("1 = combat, 2 = other, 3 = magic")
+                .HasColumnName("category");
+            entity.Property(e => e.ChargenUse).HasColumnName("chargen_Use");
+            entity.Property(e => e.Description)
+                .IsRequired()
+                .HasColumnType("text")
+                .HasColumnName("description");
+            entity.Property(e => e.FormulaAttr1).HasColumnName("formula_Attr1");
+            entity.Property(e => e.FormulaAttr2).HasColumnName("formula_Attr2");
+            entity.Property(e => e.FormulaW)
+                .HasComment("Skill formula: (attr1 * x + attr2 * y) / z + w")
+                .HasColumnName("formula_W");
+            entity.Property(e => e.FormulaX).HasColumnName("formula_X");
+            entity.Property(e => e.FormulaY).HasColumnName("formula_Y");
+            entity.Property(e => e.FormulaZ).HasColumnName("formula_Z");
+            entity.Property(e => e.IconId).HasColumnName("icon_Id");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.LearnMod).HasColumnName("learn_Mod");
+            entity.Property(e => e.LowerBound).HasColumnName("lower_Bound");
+            entity.Property(e => e.MinLevel)
+                .HasComment("1 = usable untrained, 2 = trained or specialized needed")
+                .HasColumnName("min_Level");
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasColumnType("text")
+                .HasColumnName("name");
+            entity.Property(e => e.SpecializedCost)
+                .HasComment("Total skill credits to specialize, including the trained cost")
+                .HasColumnName("specialized_Cost");
+            entity.Property(e => e.TrainedCost)
+                .HasComment("Skill credits to train")
+                .HasColumnName("trained_Cost");
+            entity.Property(e => e.UpperBound).HasColumnName("upper_Bound");
+        });
+        modelBuilder.Entity<DatXpAttribute>(entity =>
+        {
+            entity.HasKey(e => e.Rank).HasName("PRIMARY");
+
+            entity.ToTable("dat_xp_attribute", tb => tb.HasComment("Portal dat XP table: attribute ranks"));
+
+            entity.Property(e => e.Rank)
+                .ValueGeneratedNever()
+                .HasComment("Rank: the number of times the attribute has been raised; rank 0 is not raised")
+                .HasColumnName("rank");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.TotalXp)
+                .HasComment("Total XP spent on an attribute to reach this rank (the cost of the next point is the difference to the previous rank)")
+                .HasColumnName("total_Xp");
+        });
+        modelBuilder.Entity<DatXpLevel>(entity =>
+        {
+            entity.HasKey(e => e.Level).HasName("PRIMARY");
+
+            entity.ToTable("dat_xp_level", tb => tb.HasComment("Portal dat XP table: character levels"));
+
+            entity.Property(e => e.Level)
+                .ValueGeneratedNever()
+                .HasComment("Character level")
+                .HasColumnName("level");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.SkillCredits)
+                .HasComment("Skill credits granted at this level")
+                .HasColumnName("skill_Credits");
+            entity.Property(e => e.TotalXp)
+                .HasComment("Total XP needed to reach this level")
+                .HasColumnName("total_Xp");
+        });
+        modelBuilder.Entity<DatXpSpecializedSkill>(entity =>
+        {
+            entity.HasKey(e => e.Rank).HasName("PRIMARY");
+
+            entity.ToTable("dat_xp_specialized_skill", tb => tb.HasComment("Portal dat XP table: specialized skill ranks"));
+
+            entity.Property(e => e.Rank)
+                .ValueGeneratedNever()
+                .HasComment("Rank: the number of times the specialized skill has been raised; rank 0 is not raised")
+                .HasColumnName("rank");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.TotalXp)
+                .HasComment("Total XP spent on a specialized skill to reach this rank")
+                .HasColumnName("total_Xp");
+        });
+        modelBuilder.Entity<DatXpTrainedSkill>(entity =>
+        {
+            entity.HasKey(e => e.Rank).HasName("PRIMARY");
+
+            entity.ToTable("dat_xp_trained_skill", tb => tb.HasComment("Portal dat XP table: trained skill ranks"));
+
+            entity.Property(e => e.Rank)
+                .ValueGeneratedNever()
+                .HasComment("Rank: the number of times the trained skill has been raised; rank 0 is not raised")
+                .HasColumnName("rank");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.TotalXp)
+                .HasComment("Total XP spent on a trained skill to reach this rank")
+                .HasColumnName("total_Xp");
+        });
+        modelBuilder.Entity<DatXpVital>(entity =>
+        {
+            entity.HasKey(e => e.Rank).HasName("PRIMARY");
+
+            entity.ToTable("dat_xp_vital", tb => tb.HasComment("Portal dat XP table: vital ranks"));
+
+            entity.Property(e => e.Rank)
+                .ValueGeneratedNever()
+                .HasComment("Rank: the number of times the vital has been raised; rank 0 is not raised")
+                .HasColumnName("rank");
+            entity.Property(e => e.LastModified)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("last_Modified");
+            entity.Property(e => e.TotalXp)
+                .HasComment("Total XP spent on a vital to reach this rank")
+                .HasColumnName("total_Xp");
         });
         modelBuilder.Entity<Encounter>(entity =>
         {

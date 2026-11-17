@@ -47,6 +47,113 @@ CREATE TABLE `cook_book` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `dat_skill`
+--
+
+DROP TABLE IF EXISTS `dat_skill`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_skill` (
+  `id` int unsigned NOT NULL COMMENT 'Unique Id of this Skill',
+  `name` text NOT NULL,
+  `description` text NOT NULL,
+  `icon_Id` int unsigned NOT NULL,
+  `trained_Cost` int NOT NULL COMMENT 'Skill credits to train',
+  `specialized_Cost` int NOT NULL COMMENT 'Total skill credits to specialize, including the trained cost',
+  `category` int unsigned NOT NULL COMMENT '1 = combat, 2 = other, 3 = magic',
+  `chargen_Use` int unsigned NOT NULL,
+  `min_Level` int unsigned NOT NULL COMMENT '1 = usable untrained, 2 = trained or specialized needed',
+  `formula_W` int unsigned NOT NULL COMMENT 'Skill formula: (attr1 * x + attr2 * y) / z + w',
+  `formula_X` int unsigned NOT NULL,
+  `formula_Y` int unsigned NOT NULL,
+  `formula_Z` int unsigned NOT NULL,
+  `formula_Attr1` int unsigned NOT NULL,
+  `formula_Attr2` int unsigned NOT NULL,
+  `upper_Bound` double NOT NULL,
+  `lower_Bound` double NOT NULL,
+  `learn_Mod` double NOT NULL,
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat skill table';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_xp_attribute`
+--
+
+DROP TABLE IF EXISTS `dat_xp_attribute`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_xp_attribute` (
+  `rank` int unsigned NOT NULL COMMENT 'Rank: the number of times the attribute has been raised; rank 0 is not raised',
+  `total_Xp` int unsigned NOT NULL COMMENT 'Total XP spent on an attribute to reach this rank (the cost of the next point is the difference to the previous rank)',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rank`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat XP table: attribute ranks';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_xp_level`
+--
+
+DROP TABLE IF EXISTS `dat_xp_level`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_xp_level` (
+  `level` int unsigned NOT NULL COMMENT 'Character level',
+  `total_Xp` bigint unsigned NOT NULL COMMENT 'Total XP needed to reach this level',
+  `skill_Credits` int unsigned NOT NULL COMMENT 'Skill credits granted at this level',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`level`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat XP table: character levels';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_xp_specialized_skill`
+--
+
+DROP TABLE IF EXISTS `dat_xp_specialized_skill`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_xp_specialized_skill` (
+  `rank` int unsigned NOT NULL COMMENT 'Rank: the number of times the specialized skill has been raised; rank 0 is not raised',
+  `total_Xp` int unsigned NOT NULL COMMENT 'Total XP spent on a specialized skill to reach this rank',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rank`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat XP table: specialized skill ranks';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_xp_trained_skill`
+--
+
+DROP TABLE IF EXISTS `dat_xp_trained_skill`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_xp_trained_skill` (
+  `rank` int unsigned NOT NULL COMMENT 'Rank: the number of times the trained skill has been raised; rank 0 is not raised',
+  `total_Xp` int unsigned NOT NULL COMMENT 'Total XP spent on a trained skill to reach this rank',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rank`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat XP table: trained skill ranks';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `dat_xp_vital`
+--
+
+DROP TABLE IF EXISTS `dat_xp_vital`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dat_xp_vital` (
+  `rank` int unsigned NOT NULL COMMENT 'Rank: the number of times the vital has been raised; rank 0 is not raised',
+  `total_Xp` int unsigned NOT NULL COMMENT 'Total XP spent on a vital to reach this rank',
+  `last_Modified` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rank`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Portal dat XP table: vital ranks';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `exploration_sites`
 --
 

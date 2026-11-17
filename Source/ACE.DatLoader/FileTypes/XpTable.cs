@@ -56,5 +56,45 @@ namespace ACE.DatLoader.FileTypes
             for (int i = 0; i <= levelCount; i++)
                 CharacterLevelSkillCreditList.Add(reader.ReadUInt32());
         }
+
+        /// <exception cref="InvalidDataException">The level and credit lists differ in length.</exception>
+        public byte[] Pack()
+        {
+            if (CharacterLevelXPList.Count != CharacterLevelSkillCreditList.Count)
+                throw new InvalidDataException($"XpTable: {CharacterLevelXPList.Count} level XP entries but {CharacterLevelSkillCreditList.Count} skill credit entries.");
+
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(FILE_ID);
+
+                writer.Write(AttributeXpList.Count - 1);
+                writer.Write(VitalXpList.Count - 1);
+                writer.Write(TrainedSkillXpList.Count - 1);
+                writer.Write(SpecializedSkillXpList.Count - 1);
+                writer.Write((uint)(CharacterLevelXPList.Count - 1));
+
+                foreach (var xp in AttributeXpList)
+                    writer.Write(xp);
+
+                foreach (var xp in VitalXpList)
+                    writer.Write(xp);
+
+                foreach (var xp in TrainedSkillXpList)
+                    writer.Write(xp);
+
+                foreach (var xp in SpecializedSkillXpList)
+                    writer.Write(xp);
+
+                foreach (var xp in CharacterLevelXPList)
+                    writer.Write(xp);
+
+                foreach (var credits in CharacterLevelSkillCreditList)
+                    writer.Write(credits);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
     }
 }

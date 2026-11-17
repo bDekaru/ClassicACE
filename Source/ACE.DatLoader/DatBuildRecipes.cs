@@ -91,6 +91,17 @@ namespace ACE.DatLoader
             return this;
         }
 
+        /// <summary>Set for portal recipes whose XP and skill tables come from the ruleset's dat_* database tables: the date the records written from them carry, after the folder steps.</summary>
+        public string TablesDate { get; private set; }
+
+        public uint TablesTime => DatStepDate.Parse(TablesDate);
+
+        public DatBuildRecipe WithTables(string date)
+        {
+            TablesDate = date;
+            return this;
+        }
+
         public string Name { get; }
 
         /// <summary>File name of the base dat in the source dats folder.</summary>
@@ -127,7 +138,14 @@ namespace ACE.DatLoader
         }
 
         /// <summary>The date of the last step.</summary>
-        public uint LastStepTime => Steps.Length > 0 ? Steps[Steps.Length - 1].Time : DatStepDate.Parse(PreToDImport.Date);
+        public uint LastStepTime
+        {
+            get
+            {
+                var last = Steps.Length > 0 ? Steps[Steps.Length - 1].Time : DatStepDate.Parse(PreToDImport.Date);
+                return TablesDate != null ? Math.Max(last, TablesTime) : last;
+            }
+        }
 
         /// <summary>Checks the step dates: none before the release table's start date, and never earlier than the step before.</summary>
         /// <exception cref="InvalidDataException">A date breaks the order.</exception>
@@ -152,6 +170,9 @@ namespace ACE.DatLoader
 
                 previous = step.Time;
             }
+
+            if (TablesDate != null && TablesTime < previous)
+                throw new InvalidDataException($"{Name}: the dat tables step is dated {TablesDate}, earlier than the step before it (steps run in date order, none before {Releases.StartDate}).");
         }
 
         public string[] ResolveFolders(string customFilesRoot)
@@ -231,7 +252,8 @@ namespace ACE.DatLoader
             Initial("Portal/Shared/Old Models/Lugian - Metal"),
             Initial("Portal/Shared/Old Models/Mosswart"),
             Initial("Portal/Shared/Old Models/Olthoi"))
-            .WithPreToDImport(RemovedContent());
+            .WithPreToDImport(RemovedContent())
+            .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
             Initial("Portal/Infiltration"),

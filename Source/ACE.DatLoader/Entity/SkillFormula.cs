@@ -23,6 +23,17 @@ namespace ACE.DatLoader.Entity
             Attr2 = reader.ReadUInt32();
         }
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(W);
+            writer.Write(X);
+            writer.Write(Y);
+            writer.Write(Z);
+
+            writer.Write(Attr1);
+            writer.Write(Attr2);
+        }
+
         public SkillFormula() { }
 
         public SkillFormula(PropertyAttribute attr1, PropertyAttribute attr2, uint divisor)

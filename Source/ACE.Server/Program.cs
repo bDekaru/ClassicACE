@@ -270,6 +270,8 @@ namespace ACE.Server
             log.Info("Starting DatabaseManager...");
             DatabaseManager.Start();
 
+            DatTableCheck.Run();
+
             log.Info("Starting PropertyManager...");
             PropertyManager.Initialize();
 

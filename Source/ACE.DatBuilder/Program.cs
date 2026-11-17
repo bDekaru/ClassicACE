@@ -13,7 +13,9 @@ namespace ACE.DatBuilder
         private const int AuditFailure = 2;
 
         private const string Usage =
-@"ACE.DatBuilder build <recipe|all> [--source <folder>] [--custom <folder>] [--out <folder>] [--force]
+@"ACE.DatBuilder build <recipe|all> [--source <folder>] [--custom <folder>] [--out <folder>] [--force] [--config <Config.js>] [--world-db <name>]
+ACE.DatBuilder apply-tables <portal recipe> --config <Config.js> [--world-db <name>] [--dat <built portal dat> | --out <folder> | --source <folder>]
+ACE.DatBuilder export-tables --dat <portal dat> --out <sql file>
 ACE.DatBuilder list
 ACE.DatBuilder audit <dat>
 ACE.DatBuilder compare-cell <first cell dat> <second cell dat> [landblocks to list]
@@ -26,6 +28,11 @@ ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --template <ToD cell dat> 
   --custom  folder with the custom files (default: <source>/Custom Files)
   --out     output root; each recipe writes to <out>/<ruleset>/<name>.dat (default: <source>/../Build)
   --force   replace an existing output dat
+  --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP and skill tables) of a recipe that has them; without it the records from the custom files are kept
+  --world-db  the world database to read instead of the one named in the Config.js
+
+  apply-tables rewrites only the XP and skill records of an already built portal dat from the database (the quick loop after editing the dat_* tables).
+  export-tables writes the SQL that fills the dat_* tables with the values of a portal dat's XP and skill records (the tables themselves come from the world base script).
 
 The source folder is only read. Each build is made in a temporary file and moved into place after both audits pass.";
 
@@ -63,6 +70,12 @@ The source folder is only read. Each build is made in a temporary file and moved
 
                     case "build":
                         return Build(args);
+
+                    case "apply-tables":
+                        return ApplyTables(args);
+
+                    case "export-tables":
+                        return ExportTables(args);
 
                     default:
                         Console.WriteLine(Usage);
@@ -257,7 +270,7 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int Build(string[] args)
         {
-            string selector = null, source = null, custom = null, outRoot = null;
+            string selector = null, source = null, custom = null, outRoot = null, config = null, worldDb = null;
             var force = false;
 
             for (var i = 1; i < args.Length; i++)
@@ -268,6 +281,8 @@ The source folder is only read. Each build is made in a temporary file and moved
                     case "--custom": custom = Value(args, ref i); break;
                     case "--out": outRoot = Value(args, ref i); break;
                     case "--force": force = true; break;
+                    case "--config": config = Value(args, ref i); break;
+                    case "--world-db": worldDb = Value(args, ref i); break;
                     default:
                         if (args[i].StartsWith("--") || selector != null)
                             throw new ArgumentException($"Unexpected argument: {args[i]}");
@@ -303,11 +318,16 @@ The source folder is only read. Each build is made in a temporary file and moved
 
             Directory.CreateDirectory(outRoot);
 
+            var tables = config != null ? new WorldDatTableSource(config, worldDb) : null;
+
             foreach (var recipe in recipes)
             {
                 Console.WriteLine($"Building {recipe.Name} ...");
 
-                var result = DatBuildRunner.Build(recipe, source, custom, outRoot, force);
+                var result = DatBuildRunner.Build(recipe, source, custom, outRoot, force, recipe.TablesDate != null ? tables : null);
+
+                if (recipe.TablesDate != null && tables != null)
+                    Console.WriteLine($"  dat tables read from {tables.Description}");
 
                 Console.Write(result.ToText(10));
                 File.WriteAllText(Path.Combine(outRoot, recipe.Ruleset, Path.ChangeExtension(recipe.OutputFileName, null) + ".report.txt"), result.ToText());
@@ -334,6 +354,100 @@ The source folder is only read. Each build is made in a temporary file and moved
                 File.WriteAllText(Path.Combine(outRoot, recipe.Ruleset, Path.ChangeExtension(recipe.OutputFileName, null) + ".report.txt"), result.ToText());
             }
 
+            return Ok;
+        }
+
+        private static int ApplyTables(string[] args)
+        {
+            string selector = null, source = null, outRoot = null, datPath = null, config = null, worldDb = null;
+
+            for (var i = 1; i < args.Length; i++)
+            {
+                switch (args[i])
+                {
+                    case "--source": source = Value(args, ref i); break;
+                    case "--out": outRoot = Value(args, ref i); break;
+                    case "--dat": datPath = Value(args, ref i); break;
+                    case "--config": config = Value(args, ref i); break;
+                    case "--world-db": worldDb = Value(args, ref i); break;
+                    default:
+                        if (args[i].StartsWith("--") || selector != null)
+                            throw new ArgumentException($"Unexpected argument: {args[i]}");
+                        selector = args[i];
+                        break;
+                }
+            }
+
+            if (selector == null)
+                throw new ArgumentException("apply-tables needs a portal recipe name (see: list).");
+
+            if (config == null)
+                throw new ArgumentException("apply-tables needs --config <Config.js>.");
+
+            var recipe = DatBuildRecipes.All.FirstOrDefault(r => r.Key.Equals(selector, StringComparison.OrdinalIgnoreCase));
+
+            if (recipe == null)
+                throw new ArgumentException($"Unknown recipe '{selector}' (see: list).");
+
+            if (recipe.TablesDate == null)
+                throw new ArgumentException($"{recipe.Name} has no dat tables step.");
+
+            if (datPath == null)
+            {
+                source = source ?? Environment.GetEnvironmentVariable("ACE_DAT_SOURCE") ?? Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS");
+
+                if (outRoot == null && string.IsNullOrEmpty(source))
+                    throw new ArgumentException("No dat to change: pass --dat, --out or --source, or set ACE_DAT_SOURCE.");
+
+                outRoot = Path.GetFullPath(outRoot ?? Path.Combine(source, "..", "Build"));
+                datPath = Path.Combine(outRoot, recipe.Ruleset, recipe.OutputFileName);
+            }
+
+            var tables = new WorldDatTableSource(config, worldDb);
+            var result = DatBuildRunner.ApplyTables(recipe, Path.GetFullPath(datPath), tables);
+
+            Console.WriteLine($"{recipe.Name}: {result.DatPath}");
+            Console.WriteLine($"  dat tables read from {tables.Description}");
+            Console.WriteLine(result.Tables.ToText());
+
+            if (!result.Tables.Skipped)
+                Console.WriteLine($"  {(result.Changed ? "dat changed" : "dat already matches the database")}, audit ok ({result.AuditAfter.Records} records), release {result.ReleaseNumber}, hash {result.ReleaseHash}");
+
+            return Ok;
+        }
+
+        private static int ExportTables(string[] args)
+        {
+            string datPath = null, outPath = null;
+
+            for (var i = 1; i < args.Length; i++)
+            {
+                switch (args[i])
+                {
+                    case "--dat": datPath = Value(args, ref i); break;
+                    case "--out": outPath = Value(args, ref i); break;
+                    default: throw new ArgumentException($"Unexpected argument: {args[i]}");
+                }
+            }
+
+            if (datPath == null || outPath == null)
+                throw new ArgumentException("export-tables needs --dat and --out.");
+
+            if (!File.Exists(datPath))
+                throw new ArgumentException($"Dat not found: {datPath}");
+
+            var dat = new DatDatabase(datPath, true);
+
+            if (!dat.AllFiles.ContainsKey(DatTableStep.XpRecordId) || !dat.AllFiles.ContainsKey(DatTableStep.SkillRecordId))
+                throw new ArgumentException($"{datPath} has no XP or skill table record.");
+
+            var xp = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.XpTable>(DatTableStep.XpRecordId));
+            var skills = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.SkillTable>(DatTableStep.SkillRecordId));
+
+            File.WriteAllText(Path.GetFullPath(outPath), DatTables.InsertScript(xp, skills));
+
+            Console.WriteLine($"{outPath}: {xp.Attribute.Count} attribute ranks, {xp.Vital.Count} vital ranks, {xp.TrainedSkill.Count} trained skill ranks, {xp.SpecializedSkill.Count} specialized skill ranks, {xp.Levels.Count} levels, {skills.Count} skills");
+            Console.WriteLine($"  xp hash {DatTables.Hash(xp)}, skill hash {DatTables.Hash(skills)}");
             return Ok;
         }
 
