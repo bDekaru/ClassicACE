@@ -10,7 +10,7 @@ namespace ACE.DatLoader.Tests
     [TestClass]
     public class DatCellConverterTests
     {
-        private static readonly string SourceDats = Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS") ?? @"D:\Programming\Asheron's Call\ACEmulator\Dats\Source";
+        private static readonly string SourceDats = TestSourceDats.Folder;
 
         private const string PreToDCell = "cell - 2005-02-XX - Iteration 1593 - 100% - Admin.dat";
         private const string ToDCell = "cell - 2005-06-02 - Iteration 4 - 100% - Throne of Destiny.dat";

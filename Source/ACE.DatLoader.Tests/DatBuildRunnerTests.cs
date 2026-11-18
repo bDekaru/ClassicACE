@@ -8,7 +8,7 @@ namespace ACE.DatLoader.Tests
     [TestClass]
     public class DatBuildRunnerTests
     {
-        private static readonly string SourceDats = Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS") ?? @"D:\Programming\Asheron's Call\ACEmulator\Dats\Source";
+        private static readonly string SourceDats = TestSourceDats.Folder;
 
         private static string TempFolder()
         {

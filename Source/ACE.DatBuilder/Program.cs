@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 using ACE.DatLoader;
+using ACE.DatLoader.FileTypes;
 
 namespace ACE.DatBuilder
 {
@@ -24,7 +27,7 @@ ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --template <ToD cell dat> 
 
   A cell recipe needs its ruleset's portal built first (in the same --out); 'all' builds the portals before the cells.
 
-  --source  folder with the original dats (default: environment variable ACE_DAT_SOURCE, then ACE_TEST_SOURCE_DATS)
+  --source  folder with the original dats (default: the dat_source_folder setting of the --config server)
   --custom  folder with the custom files (default: <source>/Custom Files)
   --out     output root; each recipe writes to <out>/<ruleset>/<name>.dat (default: <source>/../Build)
   --force   replace an existing output dat
@@ -48,34 +51,14 @@ The source folder is only read. Each build is made in a temporary file and moved
 
                 switch (args[0].ToLowerInvariant())
                 {
-                    case "list":
-                        foreach (var recipe in DatBuildRecipes.All)
-                            Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Folders.Length} folder(s) -> {recipe.Ruleset}/{recipe.OutputFileName}");
-
-                        foreach (var recipe in DatBuildRecipes.AllCells)
-                            Console.WriteLine($"{recipe.Key,-24} {recipe.RetailCellDat} converted against {recipe.Portal.Key} -> {recipe.Ruleset}/{recipe.OutputFileName}");
-                        return Ok;
-
-                    case "audit":
-                        return Audit(args);
-
-                    case "compare-cell":
-                        return CompareCell(args);
-
-                    case "convert-cell":
-                        return ConvertCell(args);
-
-                    case "convert-portal":
-                        return ConvertPortal(args);
-
-                    case "build":
-                        return Build(args);
-
-                    case "apply-tables":
-                        return ApplyTables(args);
-
-                    case "export-tables":
-                        return ExportTables(args);
+                    case "list": return List();
+                    case "audit": return Audit(args);
+                    case "compare-cell": return CompareCell(args);
+                    case "convert-cell": return ConvertCell(args);
+                    case "convert-portal": return ConvertPortal(args);
+                    case "build": return Build(args);
+                    case "apply-tables": return ApplyTables(args);
+                    case "export-tables": return ExportTables(args);
 
                     default:
                         Console.WriteLine(Usage);
@@ -94,13 +77,23 @@ The source folder is only read. Each build is made in a temporary file and moved
             }
         }
 
+        private static int List()
+        {
+            foreach (var recipe in DatBuildRecipes.All)
+                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Folders.Length} folder(s) -> {recipe.Ruleset}/{recipe.OutputFileName}");
+
+            foreach (var recipe in DatBuildRecipes.AllCells)
+                Console.WriteLine($"{recipe.Key,-24} {recipe.RetailCellDat} converted against {recipe.Portal.Key} -> {recipe.Ruleset}/{recipe.OutputFileName}");
+
+            return Ok;
+        }
+
         private static int Audit(string[] args)
         {
             if (args.Length != 2)
                 throw new ArgumentException("audit takes one dat path.");
 
-            if (!File.Exists(args[1]))
-                throw new ArgumentException($"Dat not found: {args[1]}");
+            RequireFile(args[1], "Dat");
 
             using (var writer = new DatWriter(args[1]))
             {
@@ -121,67 +114,79 @@ The source folder is only read. Each build is made in a temporary file and moved
             }
         }
 
+        private sealed class KindCounts
+        {
+            public int Identical;
+            public int Different;
+            public int OnlyInFirst;
+            public int OnlyInSecond;
+        }
+
         private static int CompareCell(string[] args)
         {
             if (args.Length < 3 || args.Length > 4)
                 throw new ArgumentException("compare-cell takes two dat paths and an optional number of differing landblocks to list.");
 
-            foreach (var path in args.Skip(1).Take(2))
-                if (!File.Exists(path))
-                    throw new ArgumentException($"Dat not found: {path}");
+            RequireFile(args[1], "Dat");
+            RequireFile(args[2], "Dat");
 
-            var listCount = args.Length == 4 ? int.Parse(args[3]) : 20;
-            var a = new DatDatabase(args[1], true);
-            var b = new DatDatabase(args[2], true);
-            var ids = a.AllFiles.Keys.Union(b.AllFiles.Keys).OrderBy(k => k).ToList();
-            var differing = new System.Collections.Generic.Dictionary<uint, System.Collections.Generic.List<string>>();
-            var counts = new System.Collections.Generic.SortedDictionary<string, int[]>();
+            var listCount = 20;
 
-            foreach (var id in ids)
+            if (args.Length == 4 && !int.TryParse(args[3], out listCount))
+                throw new ArgumentException($"Not a number of landblocks: {args[3]}");
+
+            var first = new DatDatabase(args[1], true);
+            var second = new DatDatabase(args[2], true);
+            var changesByLandblock = new Dictionary<uint, List<string>>();
+            var countsByKind = new SortedDictionary<string, KindCounts>();
+
+            foreach (var id in first.AllFiles.Keys.Union(second.AllFiles.Keys).OrderBy(k => k))
             {
                 var kind = RecordKind(id);
 
-                if (!counts.TryGetValue(kind, out var count))
-                    counts[kind] = count = new int[4];
+                if (!countsByKind.TryGetValue(kind, out var counts))
+                    countsByKind[kind] = counts = new KindCounts();
 
-                var inA = a.AllFiles.ContainsKey(id);
-                var inB = b.AllFiles.ContainsKey(id);
-                string change = null;
+                var inFirst = first.AllFiles.ContainsKey(id);
+                var inSecond = second.AllFiles.ContainsKey(id);
+                string change;
 
-                if (inA && inB)
+                if (inFirst && inSecond)
                 {
-                    if (a.GetReaderForFile(id).Buffer.SequenceEqual(b.GetReaderForFile(id).Buffer))
+                    if (first.GetReaderForFile(id).Buffer.SequenceEqual(second.GetReaderForFile(id).Buffer))
                     {
-                        count[0]++;
+                        counts.Identical++;
                         continue;
                     }
 
-                    count[1]++;
+                    counts.Different++;
                     change = "differs";
                 }
-                else if (inA)
+                else if (inFirst)
                 {
-                    count[2]++;
+                    counts.OnlyInFirst++;
                     change = "only in first";
                 }
                 else
                 {
-                    count[3]++;
+                    counts.OnlyInSecond++;
                     change = "only in second";
                 }
 
-                if (!differing.TryGetValue(id & 0xFFFF0000, out var list))
-                    differing[id & 0xFFFF0000] = list = new System.Collections.Generic.List<string>();
+                var landblock = id & 0xFFFF0000;
 
-                list.Add($"{id:X8} {change}");
+                if (!changesByLandblock.TryGetValue(landblock, out var changes))
+                    changesByLandblock[landblock] = changes = new List<string>();
+
+                changes.Add($"{id:X8} {change}");
             }
 
-            foreach (var entry in counts)
-                Console.WriteLine($"{entry.Key,-15} identical {entry.Value[0]}, different {entry.Value[1]}, only in first {entry.Value[2]}, only in second {entry.Value[3]}");
+            foreach (var entry in countsByKind)
+                Console.WriteLine($"{entry.Key,-15} identical {entry.Value.Identical}, different {entry.Value.Different}, only in first {entry.Value.OnlyInFirst}, only in second {entry.Value.OnlyInSecond}");
 
-            Console.WriteLine($"{differing.Count} landblock(s) with at least one difference");
+            Console.WriteLine($"{changesByLandblock.Count} landblock(s) with at least one difference");
 
-            foreach (var entry in differing.Take(listCount))
+            foreach (var entry in changesByLandblock.Take(listCount))
                 Console.WriteLine($"  {entry.Key >> 16:X4}: {entry.Value.Count} record(s), e.g. {string.Join("; ", entry.Value.Take(3))}");
 
             return Ok;
@@ -189,68 +194,51 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int ConvertCell(string[] args)
         {
-            string from = null, template = null, outPath = null, portal = null;
-            var maps = new System.Collections.Generic.List<string>();
+            var line = CommandLine.Parse(args, new[] { "--from", "--template", "--map", "--out", "--portal" });
 
-            for (var i = 1; i < args.Length; i++)
-            {
-                switch (args[i])
-                {
-                    case "--from": from = Value(args, ref i); break;
-                    case "--template": template = Value(args, ref i); break;
-                    case "--map": maps.Add(Value(args, ref i)); break;
-                    case "--out": outPath = Value(args, ref i); break;
-                    case "--portal": portal = Value(args, ref i); break;
-                    default: throw new ArgumentException($"Unexpected argument: {args[i]}");
-                }
-            }
+            var from = line.Value("--from");
+            var template = line.Value("--template");
+            var maps = line.Values("--map");
+            var outPath = line.Value("--out");
+            var portal = line.Value("--portal");
 
             if (from == null || template == null || maps.Count == 0 || outPath == null)
                 throw new ArgumentException("convert-cell needs --from, --template, at least one --map and --out.");
 
             foreach (var input in maps.Concat(new[] { from, template, portal }).Where(f => f != null))
-                if (!File.Exists(input))
-                    throw new ArgumentException($"File not found: {input}");
+                RequireFile(input, "File");
 
             outPath = Path.GetFullPath(outPath);
             Directory.CreateDirectory(Path.GetDirectoryName(outPath));
 
-            var surfaceMap = new System.Collections.Generic.Dictionary<ushort, ushort>();
-            foreach (var map in maps)
-                foreach (var entry in DatCellConverter.LoadSurfaceMap(map))
-                    surfaceMap[entry.Key] = entry.Value;
+            var surfaceMap = new Dictionary<ushort, ushort>();
 
-            var report = DatCellConverter.Convert(from, template, outPath, surfaceMap, portal);
+            foreach (var entry in maps.SelectMany(DatCellConverter.LoadSurfaceMap))
+                surfaceMap[entry.Key] = entry.Value;
 
-            Console.Write(report.ToText());
-            File.WriteAllText(Path.ChangeExtension(outPath, ".report.txt"), report.ToText());
+            var report = DatCellConverter.Convert(from, template, outPath, surfaceMap, portal).ToText();
+
+            Console.Write(report);
+            File.WriteAllText(Path.ChangeExtension(outPath, ".report.txt"), report);
             return Ok;
         }
 
         private static int ConvertPortal(string[] args)
         {
-            string from = null, target = null, map = null, outFolder = null, ids = null, surfaces = null;
+            var line = CommandLine.Parse(args, new[] { "--from", "--target", "--map", "--out", "--ids", "--surfaces" });
 
-            for (var i = 1; i < args.Length; i++)
-            {
-                switch (args[i])
-                {
-                    case "--from": from = Value(args, ref i); break;
-                    case "--target": target = Value(args, ref i); break;
-                    case "--map": map = Value(args, ref i); break;
-                    case "--out": outFolder = Value(args, ref i); break;
-                    case "--ids": ids = Value(args, ref i); break;
-                    case "--surfaces": surfaces = Value(args, ref i); break;
-                    default: throw new ArgumentException($"Unexpected argument: {args[i]}");
-                }
-            }
+            var from = line.Value("--from");
+            var target = line.Value("--target");
+            var map = line.Value("--map");
+            var outFolder = line.Value("--out");
+            var ids = line.Value("--ids");
+            var surfaces = line.Value("--surfaces");
 
             if (from == null || target == null || map == null || outFolder == null || (ids == null && surfaces == null))
                 throw new ArgumentException("convert-portal needs --from, --target, --map, --out and --ids and/or --surfaces.");
 
             foreach (var input in new[] { from, target, map })
-                if (!File.Exists(input))
-                    throw new ArgumentException($"File not found: {input}");
+                RequireFile(input, "File");
 
             var importer = new DatPortalImporter(new DatDatabase(from, true), new DatDatabase(target, true), DatCellConverter.LoadSurfaceMap(map));
 
@@ -263,84 +251,69 @@ The source folder is only read. Each build is made in a temporary file and moved
                 File.WriteAllBytes(Path.Combine(outFolder, $"{record.Key:X8} - converted from pre-ToD.bin"), record.Value);
 
             File.WriteAllText(Path.Combine(outFolder, "report.txt"), importer.ToText());
-            File.WriteAllLines(Path.Combine(outFolder, "surface_map_additions.tsv"), importer.ImportedSurfaces.Select(s => $"{s.Key:X4}\t{s.Value:X4}\timported"));
+            WriteSurfaceMapAdditions(Path.Combine(outFolder, "surface_map_additions.tsv"), importer);
             Console.Write(importer.ToText());
             return Ok;
         }
 
         private static int Build(string[] args)
         {
-            string selector = null, source = null, custom = null, outRoot = null, config = null, worldDb = null;
-            var force = false;
+            var line = CommandLine.Parse(args, new[] { "--source", "--custom", "--out", "--config", "--world-db" }, new[] { "--force" }, allowPositional: true);
 
-            for (var i = 1; i < args.Length; i++)
-            {
-                switch (args[i])
-                {
-                    case "--source": source = Value(args, ref i); break;
-                    case "--custom": custom = Value(args, ref i); break;
-                    case "--out": outRoot = Value(args, ref i); break;
-                    case "--force": force = true; break;
-                    case "--config": config = Value(args, ref i); break;
-                    case "--world-db": worldDb = Value(args, ref i); break;
-                    default:
-                        if (args[i].StartsWith("--") || selector != null)
-                            throw new ArgumentException($"Unexpected argument: {args[i]}");
-                        selector = args[i];
-                        break;
-                }
-            }
+            var selector = line.Positional;
+            var config = line.Value("--config");
+            var force = line.Flag("--force");
 
             if (selector == null)
                 throw new ArgumentException("build needs a recipe name or 'all' (see: list).");
 
-            source = source ?? Environment.GetEnvironmentVariable("ACE_DAT_SOURCE") ?? Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS");
+            if (line.Value("--world-db") != null && config == null)
+                throw new ArgumentException("--world-db needs --config <Config.js>.");
+
+            var source = ResolveSource(line.Value("--source"), config);
 
             if (string.IsNullOrEmpty(source))
-                throw new ArgumentException("No source folder: pass --source or set ACE_DAT_SOURCE.");
+                throw new ArgumentException("No source folder: pass --source, or give --config for a server with the dat_source_folder setting.");
 
             source = Path.GetFullPath(source);
-            custom = Path.GetFullPath(custom ?? Path.Combine(source, "Custom Files"));
-            outRoot = Path.GetFullPath(outRoot ?? Path.Combine(source, "..", "Build"));
+
+            var custom = Path.GetFullPath(line.Value("--custom") ?? Path.Combine(source, "Custom Files"));
+            var outRoot = Path.GetFullPath(line.Value("--out") ?? Path.Combine(source, "..", "Build"));
 
             var all = selector.Equals("all", StringComparison.OrdinalIgnoreCase);
+            var recipes = DatBuildRecipes.All.Where(r => all || KeyMatches(r.Key, selector)).ToList();
+            var cellRecipes = DatBuildRecipes.AllCells.Where(r => all || KeyMatches(r.Key, selector)).ToList();
 
-            var recipes = all
-                ? DatBuildRecipes.All
-                : DatBuildRecipes.All.Where(r => r.Key.Equals(selector, StringComparison.OrdinalIgnoreCase)).ToArray();
-
-            var cellRecipes = all
-                ? DatBuildRecipes.AllCells
-                : DatBuildRecipes.AllCells.Where(r => r.Key.Equals(selector, StringComparison.OrdinalIgnoreCase)).ToArray();
-
-            if (recipes.Length == 0 && cellRecipes.Length == 0)
+            if (recipes.Count == 0 && cellRecipes.Count == 0)
                 throw new ArgumentException($"Unknown recipe '{selector}' (see: list).");
 
             Directory.CreateDirectory(outRoot);
 
-            var tables = config != null ? new WorldDatTableSource(config, worldDb) : null;
+            var tables = config != null ? new WorldDatTableSource(config, line.Value("--world-db")) : null;
 
             foreach (var recipe in recipes)
             {
                 Console.WriteLine($"Building {recipe.Name} ...");
 
-                var result = DatBuildRunner.Build(recipe, source, custom, outRoot, force, recipe.TablesDate != null ? tables : null);
+                var readsTables = recipe.TablesDate != null && tables != null;
+                var result = DatBuildRunner.Build(recipe, source, custom, outRoot, force, readsTables ? tables : null);
 
-                if (recipe.TablesDate != null && tables != null)
+                if (readsTables)
                     Console.WriteLine($"  dat tables read from {tables.Description}");
 
                 Console.Write(result.ToText(10));
-                File.WriteAllText(Path.Combine(outRoot, recipe.Ruleset, Path.ChangeExtension(recipe.OutputFileName, null) + ".report.txt"), result.ToText());
+
+                var stem = ReportStem(outRoot, recipe.Ruleset, recipe.OutputFileName);
+
+                File.WriteAllText(stem + ".report.txt", result.ToText());
 
                 if (result.Import != null)
                 {
-                    var stem = Path.Combine(outRoot, recipe.Ruleset, Path.ChangeExtension(recipe.OutputFileName, null));
-
-                    File.WriteAllLines(stem + ".surface_map_additions.tsv", result.Import.ImportedSurfaces.Select(s => $"{s.Key:X4}\t{s.Value:X4}\timported"));
+                    WriteSurfaceMapAdditions(stem + ".surface_map_additions.tsv", result.Import);
                     File.WriteAllText(stem + ".import.txt", result.Import.ToText());
                 }
 
-                if (recipe.Name.StartsWith("Language"))
+                if (recipe.IsLanguage)
                     Console.WriteLine("  note: a language dat written this way is the same structure Melt writes, which crashes the client (cause not yet found).");
             }
 
@@ -351,7 +324,7 @@ The source folder is only read. Each build is made in a temporary file and moved
                 var result = DatCellBuildRunner.Build(recipe, source, outRoot, force);
 
                 Console.Write(result.ToText());
-                File.WriteAllText(Path.Combine(outRoot, recipe.Ruleset, Path.ChangeExtension(recipe.OutputFileName, null) + ".report.txt"), result.ToText());
+                File.WriteAllText(ReportStem(outRoot, recipe.Ruleset, recipe.OutputFileName) + ".report.txt", result.ToText());
             }
 
             return Ok;
@@ -359,24 +332,11 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int ApplyTables(string[] args)
         {
-            string selector = null, source = null, outRoot = null, datPath = null, config = null, worldDb = null;
+            var line = CommandLine.Parse(args, new[] { "--source", "--out", "--dat", "--config", "--world-db" }, allowPositional: true);
 
-            for (var i = 1; i < args.Length; i++)
-            {
-                switch (args[i])
-                {
-                    case "--source": source = Value(args, ref i); break;
-                    case "--out": outRoot = Value(args, ref i); break;
-                    case "--dat": datPath = Value(args, ref i); break;
-                    case "--config": config = Value(args, ref i); break;
-                    case "--world-db": worldDb = Value(args, ref i); break;
-                    default:
-                        if (args[i].StartsWith("--") || selector != null)
-                            throw new ArgumentException($"Unexpected argument: {args[i]}");
-                        selector = args[i];
-                        break;
-                }
-            }
+            var selector = line.Positional;
+            var config = line.Value("--config");
+            var datPath = line.Value("--dat");
 
             if (selector == null)
                 throw new ArgumentException("apply-tables needs a portal recipe name (see: list).");
@@ -384,7 +344,7 @@ The source folder is only read. Each build is made in a temporary file and moved
             if (config == null)
                 throw new ArgumentException("apply-tables needs --config <Config.js>.");
 
-            var recipe = DatBuildRecipes.All.FirstOrDefault(r => r.Key.Equals(selector, StringComparison.OrdinalIgnoreCase));
+            var recipe = DatBuildRecipes.All.FirstOrDefault(r => KeyMatches(r.Key, selector));
 
             if (recipe == null)
                 throw new ArgumentException($"Unknown recipe '{selector}' (see: list).");
@@ -394,16 +354,17 @@ The source folder is only read. Each build is made in a temporary file and moved
 
             if (datPath == null)
             {
-                source = source ?? Environment.GetEnvironmentVariable("ACE_DAT_SOURCE") ?? Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS");
+                var outRoot = line.Value("--out");
+                var source = ResolveSource(line.Value("--source"), config);
 
                 if (outRoot == null && string.IsNullOrEmpty(source))
-                    throw new ArgumentException("No dat to change: pass --dat, --out or --source, or set ACE_DAT_SOURCE.");
+                    throw new ArgumentException("No dat to change: pass --dat, --out, --source, or give --config for a server with the dat_source_folder setting.");
 
                 outRoot = Path.GetFullPath(outRoot ?? Path.Combine(source, "..", "Build"));
                 datPath = Path.Combine(outRoot, recipe.Ruleset, recipe.OutputFileName);
             }
 
-            var tables = new WorldDatTableSource(config, worldDb);
+            var tables = new WorldDatTableSource(config, line.Value("--world-db"));
             var result = DatBuildRunner.ApplyTables(recipe, Path.GetFullPath(datPath), tables);
 
             Console.WriteLine($"{recipe.Name}: {result.DatPath}");
@@ -418,93 +379,110 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int ExportTables(string[] args)
         {
-            string datPath = null, outPath = null, languagePath = null;
+            var line = CommandLine.Parse(args, new[] { "--dat", "--language", "--out" });
 
-            for (var i = 1; i < args.Length; i++)
-            {
-                switch (args[i])
-                {
-                    case "--dat": datPath = Value(args, ref i); break;
-                    case "--language": languagePath = Value(args, ref i); break;
-                    case "--out": outPath = Value(args, ref i); break;
-                    default: throw new ArgumentException($"Unexpected argument: {args[i]}");
-                }
-            }
+            var datPath = line.Value("--dat");
+            var outPath = line.Value("--out");
+            var languagePath = line.Value("--language");
 
             if (datPath == null || outPath == null)
                 throw new ArgumentException("export-tables needs --dat and --out.");
 
-            if (!File.Exists(datPath))
-                throw new ArgumentException($"Dat not found: {datPath}");
+            RequireFile(datPath, "Dat");
 
             var dat = new DatDatabase(datPath, true);
 
             if (!dat.AllFiles.ContainsKey(DatTableStep.XpRecordId) || !dat.AllFiles.ContainsKey(DatTableStep.SkillRecordId))
                 throw new ArgumentException($"{datPath} has no XP or skill table record.");
 
-            var xp = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.XpTable>(DatTableStep.XpRecordId));
-            var skills = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.SkillTable>(DatTableStep.SkillRecordId));
+            var xp = DatTables.ToRows(dat.ReadFromDat<XpTable>(DatTableStep.XpRecordId));
+            var skills = DatTables.ToRows(dat.ReadFromDat<SkillTable>(DatTableStep.SkillRecordId));
 
-            var script = DatTables.InsertScript(xp, skills);
+            var script = new StringBuilder(DatTables.InsertScript(xp, skills));
 
             Console.WriteLine($"{outPath}: {xp.Attribute.Count} attribute ranks, {xp.Vital.Count} vital ranks, {xp.TrainedSkill.Count} trained skill ranks, {xp.SpecializedSkill.Count} specialized skill ranks, {xp.Levels.Count} levels, {skills.Count} skills");
             Console.WriteLine($"  xp hash {DatTables.Hash(xp)}, skill hash {DatTables.Hash(skills)}");
 
             if (dat.AllFiles.ContainsKey(DatTableStep.VitalRecordId))
             {
-                var vitals = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.SecondaryAttributeTable>(DatTableStep.VitalRecordId));
+                var vitals = DatTables.ToRows(dat.ReadFromDat<SecondaryAttributeTable>(DatTableStep.VitalRecordId));
 
-                script += DatTables.VitalInsertScript(vitals);
+                script.Append(DatTables.VitalInsertScript(vitals));
 
                 Console.WriteLine($"  {vitals.Count} vital formulas, vital hash {DatTables.Hash(vitals)}");
             }
 
             if (dat.AllFiles.ContainsKey(DatTableStep.SpellRecordId))
             {
-                var spellTable = dat.ReadFromDat<ACE.DatLoader.FileTypes.SpellTable>(DatTableStep.SpellRecordId);
+                var spellTable = dat.ReadFromDat<SpellTable>(DatTableStep.SpellRecordId);
                 var spells = DatTables.ToRows(spellTable);
                 var setSpells = DatTables.ToSetRows(spellTable);
 
-                script += DatTables.SpellInsertScript(spells, setSpells);
+                script.Append(DatTables.SpellInsertScript(spells, setSpells));
 
                 Console.WriteLine($"  {spells.Count} spells, {spellTable.SpellSet.Count} equipment sets with {setSpells.Count} tier spells, spell hash {DatTables.Hash(spells, setSpells)}");
             }
 
             if (dat.AllFiles.ContainsKey(DatTableStep.ChargenRecordId))
             {
-                var chargen = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.CharGen>(DatTableStep.ChargenRecordId));
+                var chargen = DatTables.ToRows(dat.ReadFromDat<CharGen>(DatTableStep.ChargenRecordId));
 
-                script += DatTables.ChargenInsertScript(chargen);
+                script.Append(DatTables.ChargenInsertScript(chargen));
 
                 Console.WriteLine($"  {chargen.Overrides.Count} heritage skill costs, {chargen.Templates.Count} templates with {chargen.TemplateSkills.Count} skills, credits {chargen.Chargen.AttributeCredits}/{chargen.Chargen.SkillCredits}, chargen hash {DatTables.Hash(chargen)}");
             }
 
             if (languagePath != null)
             {
-                if (!File.Exists(languagePath))
-                    throw new ArgumentException($"Language dat not found: {languagePath}");
+                RequireFile(languagePath, "Language dat");
 
                 if (!dat.AllFiles.ContainsKey(DatTableStep.TitleMapperRecordId))
                     throw new ArgumentException($"{datPath} has no title enum mapper record.");
 
                 var language = new DatDatabase(languagePath, true);
-                var titles = DatTables.ToRows(dat.ReadFromDat<ACE.DatLoader.FileTypes.EnumMapper>(DatTableStep.TitleMapperRecordId), language.ReadFromDat<ACE.DatLoader.FileTypes.StringTable>(DatTableStep.TitleStringRecordId));
 
-                script += DatTables.TitleInsertScript(titles);
+                if (!language.AllFiles.ContainsKey(DatTableStep.TitleStringRecordId))
+                    throw new ArgumentException($"{languagePath} has no title string table record.");
+
+                var titles = DatTables.ToRows(dat.ReadFromDat<EnumMapper>(DatTableStep.TitleMapperRecordId), language.ReadFromDat<StringTable>(DatTableStep.TitleStringRecordId));
+
+                script.Append(DatTables.TitleInsertScript(titles));
 
                 Console.WriteLine($"  {titles.Count} character titles, title hash {DatTables.Hash(titles)}");
             }
 
-            File.WriteAllText(Path.GetFullPath(outPath), script);
+            File.WriteAllText(Path.GetFullPath(outPath), script.ToString());
             return Ok;
         }
 
-        private static string Value(string[] args, ref int i)
+        /// <summary>The source folder: the --source value, else the dat_source_folder setting of the --config server, else null.</summary>
+        private static string ResolveSource(string source, string config)
         {
-            if (i + 1 >= args.Length)
-                throw new ArgumentException($"{args[i]} needs a value.");
+            if (!string.IsNullOrEmpty(source) || config == null)
+                return source;
 
-            return args[++i];
+            source = DatSourceSetting.Read(config);
+
+            if (source != null)
+                Console.WriteLine($"Source folder read from the {DatSourceSetting.Key} setting: {source}");
+
+            return source;
+        }
+
+        private static bool KeyMatches(string key, string selector) => key.Equals(selector, StringComparison.OrdinalIgnoreCase);
+
+        private static void RequireFile(string path, string what)
+        {
+            if (!File.Exists(path))
+                throw new ArgumentException($"{what} not found: {path}");
+        }
+
+        /// <summary>The path of a recipe's output dat without its extension, the start of the names of its report files.</summary>
+        private static string ReportStem(string outRoot, string ruleset, string outputFileName) => Path.Combine(outRoot, ruleset, Path.ChangeExtension(outputFileName, null));
+
+        private static void WriteSurfaceMapAdditions(string path, DatPortalImporter importer)
+        {
+            File.WriteAllLines(path, importer.ImportedSurfaces.Select(s => $"{s.Key:X4}\t{s.Value:X4}\timported"));
         }
     }
 }

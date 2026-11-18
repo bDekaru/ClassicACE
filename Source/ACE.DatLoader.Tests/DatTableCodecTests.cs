@@ -23,7 +23,7 @@ namespace ACE.DatLoader.Tests
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
         }
 
-        private static readonly string SourceDats = System.Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS") ?? @"D:\Programming\Asheron's Call\ACEmulator\Dats\Source";
+        private static readonly string SourceDats = TestSourceDats.Folder;
 
         private const uint XpTableId = 0x0E000018;
         private const uint SkillTableId = 0x0E000004;
@@ -103,10 +103,7 @@ namespace ACE.DatLoader.Tests
         {
             var bytes = File.ReadAllBytes(CustomFile("Portal", "Infiltration", "0E000018 - XpTable.bin"));
 
-            // The file holds 149 skill credit values behind the 127 its header counts; neither the reader nor the client uses them.
-            const int unusedTail = 149 * 4;
-
-            AssertSameBytes(bytes.Take(bytes.Length - unusedTail).ToArray(), UnpackXp(bytes).Pack());
+            AssertSameBytes(bytes, UnpackXp(bytes).Pack());
         }
 
         [TestMethod]

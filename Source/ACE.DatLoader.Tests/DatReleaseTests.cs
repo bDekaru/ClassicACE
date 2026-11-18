@@ -9,7 +9,7 @@ namespace ACE.DatLoader.Tests
     [TestClass]
     public class DatReleaseTests
     {
-        private static readonly string SourceDats = Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS") ?? @"D:\Programming\Asheron's Call\ACEmulator\Dats\Source";
+        private static readonly string SourceDats = TestSourceDats.Folder;
 
         private const string GuardVariable = "ACE_TEST_RELEASE_GUARD";
 

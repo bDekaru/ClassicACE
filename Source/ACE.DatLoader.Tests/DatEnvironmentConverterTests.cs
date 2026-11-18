@@ -9,7 +9,7 @@ namespace ACE.DatLoader.Tests
     [TestClass]
     public class DatEnvironmentConverterTests
     {
-        private static readonly string SourceDats = Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS") ?? @"D:\Programming\Asheron's Call\ACEmulator\Dats\Source";
+        private static readonly string SourceDats = TestSourceDats.Folder;
 
         private const string EoRPortal = "portal - 2017-01-29 - Iteration 2072 - EoR.dat";
         private const string PreToDPortalVariable = "ACE_TEST_PRETOD_PORTAL";

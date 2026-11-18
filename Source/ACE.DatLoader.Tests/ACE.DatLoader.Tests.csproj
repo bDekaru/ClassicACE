@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ACE.DatLoader\ACE.DatLoader.csproj" />
+    <ProjectReference Include="..\ACE.DatBuilder\ACE.DatBuilder.csproj" />
   </ItemGroup>
 
     <ItemGroup>
