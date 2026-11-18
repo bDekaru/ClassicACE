@@ -42,5 +42,29 @@ namespace ACE.DatLoader.Entity
 
             WeenieObj   = reader.ReadUInt32();
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(ObjId);
+
+            BaseLoc.Pack(writer);
+
+            writer.Write(Freq);
+            writer.Write(DisplaceX);
+            writer.Write(DisplaceY);
+            writer.Write(MinScale);
+            writer.Write(MaxScale);
+            writer.Write(MaxRotation);
+            writer.Write(MinSlope);
+            writer.Write(MaxSlope);
+            writer.Write(Align);
+            writer.Write(Orient);
+            writer.Write(WeenieObj);
+        }
+
+        public void Remap(System.Func<uint, uint> map)
+        {
+            ObjId = map(ObjId);
+        }
     }
 }

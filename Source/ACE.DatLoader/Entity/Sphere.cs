@@ -14,6 +14,14 @@ namespace ACE.DatLoader.Entity
             Radius = reader.ReadSingle();
         }
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Origin.X);
+            writer.Write(Origin.Y);
+            writer.Write(Origin.Z);
+            writer.Write(Radius);
+        }
+
         public static Sphere CreateDummySphere()
         {
             var sphere = new Sphere();

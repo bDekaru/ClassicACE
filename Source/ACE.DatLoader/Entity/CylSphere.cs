@@ -19,5 +19,14 @@ namespace ACE.DatLoader.Entity
             Radius = reader.ReadSingle();
             Height = reader.ReadSingle();
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Origin.X);
+            writer.Write(Origin.Y);
+            writer.Write(Origin.Z);
+            writer.Write(Radius);
+            writer.Write(Height);
+        }
     }
 }

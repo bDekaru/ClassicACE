@@ -38,5 +38,40 @@ namespace ACE.DatLoader.FileTypes
             Luminosity      = reader.ReadSingle();
             Diffuse         = reader.ReadSingle();
         }
+
+        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads (the portal record carries no id prefix).</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write((uint)Type);
+
+                if (Type.HasFlag(SurfaceType.Base1Image) || Type.HasFlag(SurfaceType.Base1ClipMap))
+                {
+                    writer.Write(OrigTextureId);
+                    writer.Write(OrigPaletteId);
+                }
+                else
+                    writer.Write(ColorValue);
+
+                writer.Write(Translucency);
+                writer.Write(Luminosity);
+                writer.Write(Diffuse);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        /// <summary>Replaces the referenced texture and palette ids (when set) by mapTexture(id) and mapPalette(id).</summary>
+        public void Remap(System.Func<uint, uint> mapTexture, System.Func<uint, uint> mapPalette)
+        {
+            if (OrigTextureId != 0)
+                OrigTextureId = mapTexture(OrigTextureId);
+
+            if (OrigPaletteId != 0)
+                OrigPaletteId = mapPalette(OrigPaletteId);
+        }
     }
 }

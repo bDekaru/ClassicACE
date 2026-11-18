@@ -1,0 +1,177 @@
+{
+  "StartAreaNames": {
+    "3": "Hardcore"
+  },
+  "SkillCredits": 50,
+  "HeritageAttributeCredits": {
+    "Olthoi": 330
+  },
+  "Templates": [
+    {
+      "Name": "Bow Hunter",
+      "Heritages": [
+        "Aluvian",
+        "Gharu\u0027ndim",
+        "Sho",
+        "Viamontian",
+        "Umbraen",
+        "Gear",
+        "Tumerok",
+        "Lugian",
+        "Empyrean",
+        "Penumbraen",
+        "Undead"
+      ],
+      "Primary": [
+        "Bow",
+        "MeleeDefense"
+      ],
+      "Normal": [
+        "MissileDefense",
+        "ArcaneLore",
+        "Healing",
+        "AssessCreature",
+        "Armor"
+      ]
+    },
+    {
+      "Name": "Swashbuckler",
+      "Heritages": [
+        "Aluvian",
+        "Gharu\u0027ndim",
+        "Sho",
+        "Viamontian",
+        "Umbraen",
+        "Gear",
+        "Tumerok",
+        "Lugian",
+        "Empyrean",
+        "Penumbraen",
+        "Undead"
+      ],
+      "Primary": [
+        "Sword",
+        "ArcaneLore"
+      ],
+      "Normal": [
+        "MeleeDefense",
+        "MissileDefense",
+        "MagicDefense",
+        "Healing",
+        "Armor"
+      ],
+      "Endurance": 50,
+      "Quickness": 60,
+      "Focus": 10,
+      "Self": 10
+    },
+    {
+      "Name": "Life Caster",
+      "Heritages": [
+        "Aluvian",
+        "Gharu\u0027ndim",
+        "Sho",
+        "Viamontian",
+        "Umbraen",
+        "Gear",
+        "Tumerok",
+        "Lugian",
+        "Empyrean",
+        "Penumbraen",
+        "Undead"
+      ],
+      "Primary": [
+        "ArcaneLore",
+        "ManaConversion",
+        "AssessCreature",
+        "LifeMagic"
+      ],
+      "Normal": [
+        "MagicDefense",
+        "WarMagic",
+        "Appraise"
+      ]
+    },
+    {
+      "Name": "War Mage",
+      "Heritages": [
+        "Aluvian",
+        "Gharu\u0027ndim",
+        "Sho",
+        "Viamontian",
+        "Umbraen",
+        "Gear",
+        "Tumerok",
+        "Lugian",
+        "Empyrean",
+        "Penumbraen",
+        "Undead"
+      ],
+      "Primary": [
+        "ArcaneLore",
+        "ManaConversion",
+        "WarMagic"
+      ],
+      "Normal": [
+        "MagicDefense",
+        "Healing",
+        "AssessCreature",
+        "Shield"
+      ]
+    },
+    {
+      "Name": "Wayfarer",
+      "Heritages": [
+        "Aluvian",
+        "Gharu\u0027ndim",
+        "Sho",
+        "Viamontian",
+        "Umbraen",
+        "Gear",
+        "Tumerok",
+        "Lugian",
+        "Empyrean",
+        "Penumbraen",
+        "Undead"
+      ],
+      "Primary": [
+        "Dagger",
+        "MeleeDefense",
+        "ArcaneLore"
+      ],
+      "Normal": [
+        "MissileDefense",
+        "Healing",
+        "Awareness",
+        "AssessCreature",
+        "Sneaking"
+      ]
+    },
+    {
+      "Name": "Soldier",
+      "Heritages": [
+        "Aluvian",
+        "Gharu\u0027ndim",
+        "Sho",
+        "Viamontian",
+        "Umbraen",
+        "Gear",
+        "Tumerok",
+        "Lugian",
+        "Empyrean",
+        "Penumbraen",
+        "Undead"
+      ],
+      "Primary": [
+        "Axe",
+        "ArcaneLore",
+        "Healing",
+        "Shield",
+        "Armor"
+      ],
+      "Normal": [],
+      "Endurance": 100,
+      "Coordination": 60
+    }
+  ]
+}

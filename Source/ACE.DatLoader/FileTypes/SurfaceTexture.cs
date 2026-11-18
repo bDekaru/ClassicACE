@@ -23,5 +23,38 @@ namespace ACE.DatLoader.FileTypes
             UnknownByte = reader.ReadByte();
             Textures.Unpack(reader);
         }
+
+        /// <summary>A surface texture with one texture (0x06) in the form the pre-ToD conversion writes it.</summary>
+        public static SurfaceTexture Create(uint id, uint texture)
+        {
+            var result = new SurfaceTexture { Id = id, UnknownByte = 2 };
+            result.Textures.Add(texture);
+            return result;
+        }
+
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write(Unknown);
+                writer.Write(UnknownByte);
+                writer.Write(Textures.Count);
+
+                foreach (var texture in Textures)
+                    writer.Write(texture);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        /// <summary>Replaces every referenced texture id by map(id).</summary>
+        public void Remap(Func<uint, uint> map)
+        {
+            for (var i = 0; i < Textures.Count; i++)
+                Textures[i] = map(Textures[i]);
+        }
     }
 }

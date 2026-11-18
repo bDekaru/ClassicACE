@@ -56,11 +56,15 @@ namespace ACE.DatLoader.FileTypes
         public const int ToDHeaderValue = 6;
 
         /// <summary>
-        /// Reads a pre-ToD (2005) image record of 24-bit pixels: id, width, height and the pixels in blue, green, red order. The result is a ToD R8G8B8 image (pixels in red, green, blue order).
+        /// Reads a pre-ToD (2005) image record of 24-bit pixels: id, width, height and the pixels in red, green, blue order. The result is a ToD image of the given format, whose pixels are stored blue, green, red (with an opaque alpha byte after them for A8R8G8B8).
         /// </summary>
         /// <exception cref="InvalidDataException">The record is not of that layout.</exception>
-        public static Texture UnpackPreToD(byte[] record)
+        /// <exception cref="NotSupportedException">The format is neither R8G8B8 nor A8R8G8B8.</exception>
+        public static Texture UnpackPreToD(byte[] record, SurfacePixelFormat format = SurfacePixelFormat.PFID_R8G8B8, uint? id = null)
         {
+            if (format != SurfacePixelFormat.PFID_R8G8B8 && format != SurfacePixelFormat.PFID_A8R8G8B8)
+                throw new NotSupportedException($"Pre-ToD image records are converted to R8G8B8 or A8R8G8B8, not {format}.");
+
             if (record.Length < 12)
                 throw new InvalidDataException("Pre-ToD image record is shorter than its header.");
 
@@ -70,24 +74,44 @@ namespace ACE.DatLoader.FileTypes
             if (width <= 0 || height <= 0 || record.Length != 12 + (long)width * height * 3)
                 throw new InvalidDataException($"Pre-ToD image record of {record.Length} bytes is not a {width}x{height} image of 24-bit pixels.");
 
-            var pixels = new byte[width * height * 3];
+            var step = format == SurfacePixelFormat.PFID_A8R8G8B8 ? 4 : 3;
+            var pixels = new byte[width * height * step];
 
-            for (var i = 0; i < pixels.Length; i += 3)
+            for (var i = 0; i < width * height; i++)
             {
-                pixels[i] = record[12 + i + 2];
-                pixels[i + 1] = record[12 + i + 1];
-                pixels[i + 2] = record[12 + i];
+                pixels[i * step] = record[12 + i * 3 + 2];
+                pixels[i * step + 1] = record[12 + i * 3 + 1];
+                pixels[i * step + 2] = record[12 + i * 3];
+
+                if (step == 4)
+                    pixels[i * step + 3] = 0xFF;
             }
 
             return new Texture
             {
-                Id = BitConverter.ToUInt32(record, 0),
+                Id = id ?? BitConverter.ToUInt32(record, 0),
                 Unknown = ToDHeaderValue,
                 Width = width,
                 Height = height,
-                Format = SurfacePixelFormat.PFID_R8G8B8,
+                Format = format,
                 Length = pixels.Length,
                 SourceData = pixels
+            };
+        }
+
+        /// <summary>A new image record with the header value 0 (the value of the palette and plain pixel images the custom files carry).</summary>
+        public static Texture Create(uint id, int width, int height, SurfacePixelFormat format, byte[] pixels, uint? defaultPaletteId = null)
+        {
+            return new Texture
+            {
+                Id = id,
+                Unknown = 0,
+                Width = width,
+                Height = height,
+                Format = format,
+                Length = pixels.Length,
+                SourceData = pixels,
+                DefaultPaletteId = defaultPaletteId
             };
         }
 

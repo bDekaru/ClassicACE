@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using ACE.DatLoader.FileTypes;
+using ACE.Entity.Enum;
 
 namespace ACE.DatLoader
 {
@@ -208,52 +210,10 @@ namespace ACE.DatLoader
                 return known;
 
             var texture = PreRecord(preTextureId);
-            var format = BitConverter.ToUInt32(texture, 4);
-
-            var width = BitConverter.ToInt32(texture, 8);
-            var height = BitConverter.ToInt32(texture, 12);
-            var pixels = width * height;
-
-            var image = new MemoryStream();
             var imageId = _nextImage++;
-            string detail;
+            var imageRecord = ConvertImage(texture, imageId, PreRecord, out var width, out var height, out var detail);
 
-            if (format == PreIndexedFormat)
-            {
-                var paletteId = BitConverter.ToUInt32(texture, 16 + pixels);
-                var palette = PreRecord(paletteId);
-                var colors = BitConverter.ToInt32(palette, 4);
-
-                WriteImageHeader(image, imageId, ImageHeaderValue, width, height, PixelFormatA8R8G8B8, pixels * 4);
-
-                for (var i = 0; i < pixels; i++)
-                {
-                    var index = texture[16 + i];
-
-                    if (index >= colors)
-                        throw new InvalidDataException($"Texture {preTextureId:X8}: palette index {index} outside palette {paletteId:X8}");
-
-                    image.Write(palette, 8 + 4 * index, 4);
-                }
-
-                detail = $"palette {paletteId:X8}";
-            }
-            else if (DirectFormats.TryGetValue(format, out var direct))
-            {
-                var length = pixels * direct.BytesPerPixel;
-
-                if (16 + length > texture.Length)
-                    throw new InvalidDataException($"Texture {preTextureId:X8}: format {format} image of {width}x{height} is longer than its record");
-
-                WriteImageHeader(image, imageId, direct.HeaderValue, width, height, direct.ToDFormat, length);
-                image.Write(texture, 16, length);
-
-                detail = $"format {format}";
-            }
-            else
-                throw new NotSupportedException($"Texture {preTextureId:X8}: pre-ToD image format {format} is not converted");
-
-            Records[imageId] = image.ToArray();
+            Records[imageId] = imageRecord;
 
             var surfaceTextureId = _target.AllFiles.ContainsKey(preTextureId) ? _nextSurfaceTexture++ : preTextureId;
 
@@ -269,6 +229,113 @@ namespace ACE.DatLoader
             Log.Add($"{preTextureId:X8} texture ({width}x{height}, {detail}) imported as image {imageId:X8} and surface texture {surfaceTextureId:X8}");
 
             return surfaceTextureId;
+        }
+
+        /// <summary>Converts a pre-ToD image record (0x05) into the ToD image record (0x06) with the given id; an indexed image reads its palette through <paramref name="readRecord"/>.</summary>
+        /// <exception cref="InvalidDataException">The record is shorter than its header says or a palette index is outside its palette.</exception>
+        /// <exception cref="NotSupportedException">The pre-ToD image format has no conversion.</exception>
+        public static byte[] ConvertImage(byte[] texture, uint imageId, Func<uint, byte[]> readRecord, out int width, out int height, out string detail)
+        {
+            var preId = BitConverter.ToUInt32(texture, 0);
+            var format = BitConverter.ToUInt32(texture, 4);
+
+            width = BitConverter.ToInt32(texture, 8);
+            height = BitConverter.ToInt32(texture, 12);
+            var pixels = width * height;
+
+            var image = new MemoryStream();
+
+            if (format == PreIndexedFormat)
+            {
+                var paletteId = BitConverter.ToUInt32(texture, 16 + pixels);
+                var palette = readRecord(paletteId);
+                var colors = BitConverter.ToInt32(palette, 4);
+
+                WriteImageHeader(image, imageId, ImageHeaderValue, width, height, PixelFormatA8R8G8B8, pixels * 4);
+
+                for (var i = 0; i < pixels; i++)
+                {
+                    var index = texture[16 + i];
+
+                    if (index >= colors)
+                        throw new InvalidDataException($"Texture {preId:X8}: palette index {index} outside palette {paletteId:X8}");
+
+                    image.Write(palette, 8 + 4 * index, 4);
+                }
+
+                detail = $"palette {paletteId:X8}";
+            }
+            else if (DirectFormats.TryGetValue(format, out var direct))
+            {
+                var length = pixels * direct.BytesPerPixel;
+
+                if (16 + length > texture.Length)
+                    throw new InvalidDataException($"Texture {preId:X8}: format {format} image of {width}x{height} is longer than its record");
+
+                WriteImageHeader(image, imageId, direct.HeaderValue, width, height, direct.ToDFormat, length);
+                image.Write(texture, 16, length);
+
+                detail = $"format {format}";
+            }
+            else
+                throw new NotSupportedException($"Texture {preId:X8}: pre-ToD image format {format} is not converted");
+
+            return image.ToArray();
+        }
+
+        /// <summary>
+        /// The number of palette entries one pre-ToD palette entry becomes in <see cref="ConvertImageKeepingFormat"/> and <see cref="Palette.Repeated"/>:
+        /// the image keeps its palette and its colors, as a 16-bit index into a palette in which every color is repeated this many times.
+        /// </summary>
+        public const int PaletteRepeat = 8;
+
+        /// <summary>
+        /// Converts a pre-ToD image record (0x05) into a ToD image record (0x06) that keeps the pixel format of the pre-ToD image: an indexed image becomes a PFID_INDEX16 image of the same palette
+        /// (every index multiplied by <see cref="PaletteRepeat"/>, to be read against <see cref="Palette.Repeated"/> of that palette, whose id <paramref name="paletteId"/> gives for the pre-ToD palette id; the same id when null), the plain pixel formats keep their pixels. The header value is 0.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The record is shorter than its header says.</exception>
+        /// <exception cref="NotSupportedException">The pre-ToD image format has no conversion.</exception>
+        public static byte[] ConvertImageKeepingFormat(byte[] texture, uint imageId, Func<uint, uint> paletteId = null)
+        {
+            var preId = BitConverter.ToUInt32(texture, 0);
+            var format = BitConverter.ToUInt32(texture, 4);
+            var width = BitConverter.ToInt32(texture, 8);
+            var height = BitConverter.ToInt32(texture, 12);
+            var pixels = width * height;
+
+            Texture image;
+
+            if (format == PreIndexedFormat)
+            {
+                if (20 + pixels > texture.Length)
+                    throw new InvalidDataException($"Texture {preId:X8}: indexed image of {width}x{height} is longer than its record");
+
+                var indices = new byte[pixels * 2];
+
+                for (var i = 0; i < pixels; i++)
+                {
+                    var index = texture[16 + i] * PaletteRepeat;
+                    indices[2 * i] = (byte)index;
+                    indices[2 * i + 1] = (byte)(index >> 8);
+                }
+
+                image = Texture.Create(imageId, width, height, SurfacePixelFormat.PFID_INDEX16, indices, paletteId != null ? paletteId(BitConverter.ToUInt32(texture, 16 + pixels)) : BitConverter.ToUInt32(texture, 16 + pixels));
+            }
+            else if (DirectFormats.TryGetValue(format, out var direct))
+            {
+                var length = pixels * direct.BytesPerPixel;
+
+                if (16 + length > texture.Length)
+                    throw new InvalidDataException($"Texture {preId:X8}: format {format} image of {width}x{height} is longer than its record");
+
+                var plain = new byte[length];
+                Array.Copy(texture, 16, plain, 0, length);
+                image = Texture.Create(imageId, width, height, (SurfacePixelFormat)direct.ToDFormat, plain);
+            }
+            else
+                throw new NotSupportedException($"Texture {preId:X8}: pre-ToD image format {format} is not converted");
+
+            return image.Pack();
         }
 
         private static void WriteImageHeader(Stream image, uint id, uint headerValue, int width, int height, uint pixelFormat, int length)

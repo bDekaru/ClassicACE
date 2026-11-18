@@ -47,7 +47,7 @@ namespace ACE.DatLoader.Tests
                 Assert.IsTrue(File.Exists(result.OutputPath));
                 Assert.IsFalse(File.Exists(result.OutputPath + ".building"));
                 Assert.AreEqual(result.AuditBefore.Records + result.Overlay.Added, result.AuditAfter.Records);
-                Assert.IsTrue(result.Overlay.Written > 0);
+                Assert.IsTrue(result.Overlay.Written > 0 || result.RecordLog.Count > 0);
 
                 using (var writer = new DatWriter(result.OutputPath))
                     writer.Audit();

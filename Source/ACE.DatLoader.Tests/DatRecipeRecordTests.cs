@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACE.DatBuilder;
 using ACE.DatLoader.Entity;
 using ACE.DatLoader.FileTypes;
+using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Tests
 {
@@ -51,6 +52,80 @@ namespace ACE.DatLoader.Tests
             }
 
             return table;
+        }
+
+        [TestMethod]
+        public void IndexedImage_KeepsItsPalette_WithIndicesTimesPaletteRepeat()
+        {
+            var record = new List<byte>();
+            record.AddRange(BitConverter.GetBytes(0x05001666u));
+            record.AddRange(BitConverter.GetBytes(2u));
+            record.AddRange(BitConverter.GetBytes(2));
+            record.AddRange(BitConverter.GetBytes(2));
+            record.AddRange(new byte[] { 0x0A, 0x08, 0xFF, 0x00 });
+            record.AddRange(BitConverter.GetBytes(0x04000DBAu));
+
+            var image = DatRecordContext.Unpack<Texture>(DatPortalImporter.ConvertImageKeepingFormat(record.ToArray(), 0x06009666, id => id + 0x3000));
+
+            Assert.AreEqual(SurfacePixelFormat.PFID_INDEX16, image.Format);
+            Assert.AreEqual(0, image.Unknown);
+            Assert.AreEqual(2, image.Width);
+            Assert.AreEqual(0x04003DBAu, image.DefaultPaletteId);
+            CollectionAssert.AreEqual(new byte[] { 0x50, 0, 0x40, 0, 0xF8, 7, 0, 0 }, image.SourceData);
+        }
+
+        [TestMethod]
+        public void PlainPixelImage_KeepsItsPixels()
+        {
+            var record = new List<byte>();
+            record.AddRange(BitConverter.GetBytes(0x05000136u));
+            record.AddRange(BitConverter.GetBytes(7u));
+            record.AddRange(BitConverter.GetBytes(2));
+            record.AddRange(BitConverter.GetBytes(1));
+            record.AddRange(new byte[] { 1, 2, 3, 4 });
+
+            var image = DatRecordContext.Unpack<Texture>(DatPortalImporter.ConvertImageKeepingFormat(record.ToArray(), 0x06000136));
+
+            Assert.AreEqual(SurfacePixelFormat.PFID_R5G6B5, image.Format);
+            Assert.IsNull(image.DefaultPaletteId);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3, 4 }, image.SourceData);
+        }
+
+        [TestMethod]
+        public void Palette_Repeated_RepeatsEveryColor_AndPackRoundTrips()
+        {
+            var palette = new Palette();
+            palette.Colors.AddRange(new uint[] { 0xFF112233, 0xFF445566 });
+
+            var repeated = palette.Repeated(0x04003DBA, 3);
+            var unpacked = DatRecordContext.Unpack<Palette>(repeated.Pack());
+
+            Assert.AreEqual(0x04003DBAu, unpacked.Id);
+            CollectionAssert.AreEqual(new uint[] { 0xFF112233, 0xFF112233, 0xFF112233, 0xFF445566, 0xFF445566, 0xFF445566 }, unpacked.Colors);
+        }
+
+        [TestMethod]
+        public void IndexedImage_And_Palette_ReproduceTheCustomFiles()
+        {
+            var customFiles = Path.Combine(TestSourceDats.Folder, "Custom Files", "Portal", "CustomDM", "Missing Files");
+            var imagePath = Path.Combine(customFiles, "06-Texture", "06009666.bin");
+
+            if (!File.Exists(imagePath))
+                Assert.Inconclusive($"Custom file not found: {imagePath}");
+
+            var custom = File.ReadAllBytes(imagePath);
+            var customImage = DatRecordContext.Unpack<Texture>(custom);
+
+            var image = DatPortalImporter.ConvertImageKeepingFormat(ReadRecord(DatBuildRecipes.PreToDPortalDat, 0x05001666), 0x06009666, id => customImage.DefaultPaletteId.Value);
+            CollectionAssert.AreEqual(custom, image);
+
+            var palette = DatRecordContext.Unpack<Palette>(ReadRecord(DatBuildRecipes.PreToDPortalDat, customImage.DefaultPaletteId.Value));
+            var palettePath = Directory.EnumerateFiles(Path.Combine(TestSourceDats.Folder, "Custom Files", "Portal"), customImage.DefaultPaletteId.Value.ToString("X8") + ".bin", SearchOption.AllDirectories).FirstOrDefault();
+
+            if (palettePath == null)
+                Assert.Inconclusive("Custom palette not found.");
+
+            CollectionAssert.AreEqual(File.ReadAllBytes(palettePath),palette.Repeated(palette.Id, DatPortalImporter.PaletteRepeat).Pack());
         }
 
         [TestMethod]
@@ -185,13 +260,83 @@ namespace ACE.DatLoader.Tests
             }
         }
 
+        private static void AssertEveryRecordRoundTrips<T>(uint type, Func<T, byte[]> pack, Func<T, bool> skip = null) where T : FileType, new()
+        {
+            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PortalBaseDat);
+
+            if (!File.Exists(path))
+                Assert.Inconclusive($"Source dat not found: {path}");
+
+            var database = new DatDatabase(path);
+            var ids = database.AllFiles.Keys.Where(id => (id >> 24) == type).ToList();
+            var checkedCount = 0;
+
+            Assert.IsTrue(ids.Count > 0);
+
+            foreach (var id in ids)
+            {
+                var record = database.GetReaderForFile(id).Buffer;
+                var value = DatRecordContext.Unpack<T>(record);
+
+                if (skip != null && skip(value))
+                    continue;
+
+                CollectionAssert.AreEqual(record, pack(value), $"Record {id:X8} does not round-trip.");
+                checkedCount++;
+            }
+
+            Assert.IsTrue(checkedCount > ids.Count / 2, $"Only {checkedCount} of {ids.Count} records were checked.");
+        }
+
+        [TestMethod]
+        public void SetupPack_RoundTripsTheEndOfRetailSetupsWithoutHooks()
+        {
+            AssertEveryRecordRoundTrips<SetupModel>(0x02, setup => setup.Pack(), setup => setup.PlacementFrames.Values.Any(placement => placement.AnimFrame.Hooks.Count > 0));
+        }
+
+        [TestMethod]
+        public void SurfacePack_RoundTripsEveryEndOfRetailSurface()
+        {
+            AssertEveryRecordRoundTrips<Surface>(0x08, surface => surface.Pack());
+        }
+
+        [TestMethod]
+        public void SurfaceTexturePack_RoundTripsEveryEndOfRetailSurfaceTexture()
+        {
+            AssertEveryRecordRoundTrips<SurfaceTexture>(0x05, surfaceTexture => surfaceTexture.Pack());
+        }
+
+        [TestMethod]
+        public void ScenePack_RoundTripsEveryEndOfRetailScene()
+        {
+            AssertEveryRecordRoundTrips<Scene>(0x12, scene => scene.Pack());
+        }
+
+        [TestMethod]
+        public void Remap_ChangesOnlyTheReferencedIds()
+        {
+            var setup = new SetupModel();
+            setup.Parts.Add(0x01000002);
+            setup.Parts.Add(0x01000003);
+            setup.Remap(id => id + 0x5000);
+
+            CollectionAssert.AreEqual(new uint[] { 0x01005002, 0x01005003 }, setup.Parts);
+            Assert.AreEqual(0u, setup.DefaultMotionTable);
+
+            var surfaceTexture = new SurfaceTexture();
+            surfaceTexture.Textures.Add(0x06000002);
+            surfaceTexture.Remap(id => id + 0x8000);
+
+            Assert.AreEqual(0x06008002u, surfaceTexture.Textures[0]);
+        }
+
         [TestMethod]
         public void LayoutEdits_ChangeOnlyTheNamedMediaItem()
         {
             var master = ReadMasterProperty();
             var record = ReadRecord(DatBuildRecipes.LanguageBaseDat, ChargenHeritageUiId);
             var original = DatLayoutEdits.Unpack(record, master);
-            var edit = DatRecipeData.Load<List<DatLayoutMediaEdit>>(LanguageRecords.InfiltrationChargenHeritageUiFile)[0];
+            var edit = DatRecipeData.Load<List<DatLayoutMediaEdit>>(LanguageRecords.ChargenHeritageUiFile)[0];
 
             var changed = DatLayoutEdits.Unpack(record, master);
             DatLayoutEdits.Apply(changed, new List<DatLayoutMediaEdit> { edit });
@@ -214,10 +359,75 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
+        public void ChargenEdits_DiffOfAChangedRecord_AppliesBackToTheSameBytes()
+        {
+            var record = ReadRecord(DatBuildRecipes.PortalBaseDat, InfiltrationRecords.ChargenId);
+            var changed = DatRecordContext.Unpack<CharGen>(record);
+            DatRecipeData.Load<DatChargenEdits>(CustomDMRecords.ChargenEditsFile).Apply(changed);
+
+            var edits = DatChargenEdits.Diff(DatRecordContext.Unpack<CharGen>(record), changed);
+            var again = DatRecordContext.Unpack<CharGen>(record);
+            edits.Apply(again);
+
+            Assert.IsTrue(again.Pack().SequenceEqual(changed.Pack()));
+            Assert.IsFalse(again.Pack().SequenceEqual(record));
+        }
+
+        [TestMethod]
+        public void GroundTextures_ConvertTheOriginalImagesAtTheirOwnSize()
+        {
+            var textures = DatRecipeData.Load<List<GroundTextureRecords.GroundTexture>>(GroundTextureRecords.TexturesFile);
+
+            Assert.AreEqual(38, textures.Count);
+
+            foreach (var texture in textures.Take(3))
+            {
+                var source = Convert.ToUInt32(texture.Source, 16);
+                var image = DatPortalImporter.ConvertImage(ReadRecord(DatBuildRecipes.PreToDPortalDat, source), Convert.ToUInt32(texture.Image, 16), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id), out var width, out var height, out _);
+
+                Assert.IsTrue(width <= 128 && height <= 128);
+                Assert.AreEqual(Convert.ToUInt32(texture.Image, 16), BitConverter.ToUInt32(image, 0));
+                Assert.AreEqual(24 + width * height * (image[16] == 28 ? 1 : 3), image.Length);
+
+                var terrain = GroundTextureRecords.ToTerrainFormat(image, 2);
+
+                Assert.AreEqual(image[16] == 28 ? 244u : 21u, BitConverter.ToUInt32(terrain, 16));
+                Assert.AreEqual(24 + width * height * (image[16] == 28 ? 1 : 4), terrain.Length);
+            }
+        }
+
+        [TestMethod]
+        public void ConvertIcon_MakesAnA8R8G8B8Record_WithBlueGreenRedAlphaBytes()
+        {
+            var source = new List<byte>();
+            source.AddRange(BitConverter.GetBytes(0x06001F99u));
+            source.AddRange(BitConverter.GetBytes(2));
+            source.AddRange(BitConverter.GetBytes(1));
+            source.AddRange(new byte[] { 1, 2, 3, 10, 20, 30 });
+
+            var icon = DatRecordContext.Unpack<Texture>(IconRecords.ConvertIcon(source.ToArray(), 0x06001F99));
+
+            Assert.AreEqual(0x06001F99u, icon.Id);
+            Assert.AreEqual(2, icon.Width);
+            Assert.AreEqual(1, icon.Height);
+            Assert.AreEqual(SurfacePixelFormat.PFID_A8R8G8B8, icon.Format);
+            Assert.AreEqual(Texture.ToDHeaderValue, icon.Unknown);
+            CollectionAssert.AreEqual(new byte[] { 3, 2, 1, 255, 30, 20, 10, 255 }, icon.SourceData);
+            Assert.AreEqual(1, DatRecipeData.Load<List<IconRecords.Icon>>(IconRecords.IconsFile).Count);
+        }
+
+        [TestMethod]
+        public void RecipeDataFiles_OfCustomDM_AreEmbedded()
+        {
+            Assert.AreEqual(33, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMChargenTextFile).Count);
+            Assert.IsNotNull(DatRecipeData.Load<DatChargenEdits>(CustomDMRecords.ChargenEditsFile).Templates);
+        }
+
+        [TestMethod]
         public void RecipeDataFiles_AreEmbeddedAndHoldTheMeasuredEditCounts()
         {
             Assert.AreEqual(33, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.InfiltrationChargenTextFile).Count);
-            Assert.AreEqual(10, DatRecipeData.Load<List<DatLayoutMediaEdit>>(LanguageRecords.InfiltrationChargenHeritageUiFile).Count);
+            Assert.AreEqual(10, DatRecipeData.Load<List<DatLayoutMediaEdit>>(LanguageRecords.ChargenHeritageUiFile).Count);
             Assert.AreEqual(840, DatRecipeData.Load<List<Dictionary<string, System.Text.Json.JsonElement>>>(InfiltrationRecords.SpellEditsFile).Count);
             Assert.IsNotNull(DatRecipeData.Load<DatChargenEdits>(InfiltrationRecords.ChargenEditsFile));
         }

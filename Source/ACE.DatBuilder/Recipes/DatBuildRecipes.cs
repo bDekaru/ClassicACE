@@ -266,6 +266,7 @@ namespace ACE.DatBuilder
 
         public static readonly DatBuildRecipe LanguageCustomDM = new DatBuildRecipe("Language CustomDM", "CustomDM", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.CustomDMLanguage,
             Initial("Language/CustomDM"))
+            .WithRecordSteps(LanguageRecords.CustomDM(InitialVersionDate))
             .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage,
@@ -294,6 +295,7 @@ namespace ACE.DatBuilder
             Initial("Portal/Shared/Old Models/Mosswart"),
             Initial("Portal/Shared/Old Models/Olthoi"))
             .WithPreToDImport(RemovedContent())
+            .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
@@ -301,7 +303,7 @@ namespace ACE.DatBuilder
             Initial("Portal/Shared/Ground Textures"),
             Initial("Portal/Shared/Trees"))
             .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate));
+            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).ToArray());
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
 

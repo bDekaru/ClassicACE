@@ -18,6 +18,9 @@ namespace ACE.DatBuilder
         /// <summary>The skill credits every heritage group gets.</summary>
         public uint? SkillCredits { get; set; }
 
+        /// <summary>The attribute credits of the heritage groups of those names.</summary>
+        public Dictionary<string, uint> HeritageAttributeCredits { get; set; }
+
         /// <summary>Replaces a heritage group's own skill costs, by heritage name.</summary>
         public Dictionary<string, List<ChargenHeritageSkill>> HeritageSkills { get; set; }
 
@@ -52,6 +55,82 @@ namespace ACE.DatBuilder
             public uint? Self { get; set; }
         }
 
+        /// <summary>
+        /// The edits that turn <paramref name="source"/> into <paramref name="target"/> (both with the same start areas, heritage groups and templates). Heritage groups that get the same template edit share one entry.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The skill credits are not the same in all target heritage groups, or a heritage group has two templates of one name.</exception>
+        public static DatChargenEdits Diff(CharGen source, CharGen target)
+        {
+            var edits = new DatChargenEdits();
+
+            for (var i = 0; i < target.StarterAreas.Count; i++)
+                if (source.StarterAreas[i].Name != target.StarterAreas[i].Name)
+                    (edits.StartAreaNames ??= new Dictionary<int, string>())[i] = target.StarterAreas[i].Name;
+
+            var credits = target.HeritageGroups.Values.Select(h => h.SkillCredits).Distinct().ToList();
+
+            if (credits.Count > 1)
+                throw new InvalidDataException("Chargen diff: the target heritage groups have different skill credits.");
+
+            if (credits.Count == 1 && source.HeritageGroups.Values.Any(h => h.SkillCredits != credits[0]))
+                edits.SkillCredits = credits[0];
+
+            var templateEdits = new List<(ChargenTemplateEdit Edit, string Heritage)>();
+
+            foreach (var key in target.HeritageGroups.Keys)
+            {
+                var from = source.HeritageGroups[key];
+                var to = target.HeritageGroups[key];
+
+                if (from.AttributeCredits != to.AttributeCredits)
+                    (edits.HeritageAttributeCredits ??= new Dictionary<string, uint>())[to.Name] = to.AttributeCredits;
+
+                if (!from.Skills.Select(s => (s.SkillNum, s.NormalCost, s.PrimaryCost)).SequenceEqual(to.Skills.Select(s => (s.SkillNum, s.NormalCost, s.PrimaryCost))))
+                    (edits.HeritageSkills ??= new Dictionary<string, List<ChargenHeritageSkill>>())[to.Name] = to.Skills.Select(s => new ChargenHeritageSkill { Skill = (Skill)s.SkillNum, Normal = s.NormalCost, Primary = s.PrimaryCost }).ToList();
+
+                if (to.Templates.Select(t => t.Name).Distinct().Count() != to.Templates.Count)
+                    throw new InvalidDataException($"Chargen diff: heritage group {to.Name} has two templates of one name.");
+
+                foreach (var template in to.Templates)
+                {
+                    var old = from.Templates.Single(t => t.Name == template.Name);
+                    var edit = new ChargenTemplateEdit { Name = template.Name };
+
+                    if (!old.PrimarySkillsList.SequenceEqual(template.PrimarySkillsList))
+                        edit.Primary = template.PrimarySkillsList.Select(s => (Skill)s).ToList();
+
+                    if (!old.NormalSkillsList.SequenceEqual(template.NormalSkillsList))
+                        edit.Normal = template.NormalSkillsList.Select(s => (Skill)s).ToList();
+
+                    edit.Strength = template.Strength != old.Strength ? template.Strength : (uint?)null;
+                    edit.Endurance = template.Endurance != old.Endurance ? template.Endurance : (uint?)null;
+                    edit.Coordination = template.Coordination != old.Coordination ? template.Coordination : (uint?)null;
+                    edit.Quickness = template.Quickness != old.Quickness ? template.Quickness : (uint?)null;
+                    edit.Focus = template.Focus != old.Focus ? template.Focus : (uint?)null;
+                    edit.Self = template.Self != old.Self ? template.Self : (uint?)null;
+
+                    if (edit.Primary != null || edit.Normal != null || edit.Strength != null || edit.Endurance != null || edit.Coordination != null || edit.Quickness != null || edit.Focus != null || edit.Self != null)
+                        templateEdits.Add((edit, to.Name));
+                }
+            }
+
+            var allHeritages = target.HeritageGroups.Values.Select(h => h.Name).ToList();
+            var groups = templateEdits.GroupBy(e => System.Text.Json.JsonSerializer.Serialize(e.Edit));
+
+            foreach (var group in groups)
+            {
+                var edit = group.First().Edit;
+                var heritages = group.Select(e => e.Heritage).ToList();
+
+                if (heritages.Count != allHeritages.Count || !heritages.OrderBy(h => h).SequenceEqual(allHeritages.OrderBy(h => h)))
+                    edit.Heritages = heritages;
+
+                (edits.Templates ??= new List<ChargenTemplateEdit>()).Add(edit);
+            }
+
+            return edits;
+        }
+
         /// <exception cref="InvalidDataException">An edit names a start area, heritage group or template the record does not have.</exception>
         public void Apply(CharGen chargen)
         {
@@ -67,6 +146,10 @@ namespace ACE.DatBuilder
             foreach (var heritage in chargen.HeritageGroups.Values)
                 if (SkillCredits != null)
                     heritage.SkillCredits = SkillCredits.Value;
+
+            if (HeritageAttributeCredits != null)
+                foreach (var entry in HeritageAttributeCredits)
+                    (chargen.HeritageGroups.Values.FirstOrDefault(h => h.Name == entry.Key) ?? throw new InvalidDataException($"Chargen edit: there is no heritage group {entry.Key}.")).AttributeCredits = entry.Value;
 
             if (HeritageSkills != null)
                 foreach (var entry in HeritageSkills)

@@ -27,15 +27,10 @@ namespace ACE.DatBuilder
         {
             return new[]
             {
-                new DatRecordStep("In-game map from the 2005 dat", date, c => c.Write(MapId, Texture.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, MapId)).Pack(), "in-game map")),
+                MapFromPreToD(date),
                 new DatRecordStep("XP table from the 2005 dat", date, c => c.Write(XpTableId, XpTable.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, XpTableId)).Pack(), "XP table")),
                 new DatRecordStep("Skill table from the 2005 dat", date, SkillTableFromPreToD),
-                new DatRecordStep("Character generation from the EoR record", date, c =>
-                {
-                    var chargen = c.ReadTarget<CharGen>(ChargenId);
-                    DatRecipeData.Load<DatChargenEdits>(ChargenEditsFile).Apply(chargen);
-                    c.Write(ChargenId, chargen.Pack(), "character generation");
-                }),
+                ChargenFromEoR(date, ChargenEditsFile),
                 new DatRecordStep("Spell table from the EoR record", date, c =>
                 {
                     var spells = c.ReadTarget<SpellTable>(SpellTableId);
@@ -43,6 +38,22 @@ namespace ACE.DatBuilder
                     c.Write(SpellTableId, spells.Pack(), "spell table");
                 })
             };
+        }
+
+        /// <summary>The in-game map of the pre-ToD look; the same record in the CustomDM and Infiltration rulesets.</summary>
+        public static DatRecordStep MapFromPreToD(string date)
+        {
+            return new DatRecordStep("In-game map from the 2005 dat", date, c => c.Write(MapId, Texture.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, MapId)).Pack(), "in-game map"));
+        }
+
+        public static DatRecordStep ChargenFromEoR(string date, string editsFile)
+        {
+            return new DatRecordStep("Character generation from the EoR record", date, c =>
+            {
+                var chargen = c.ReadTarget<CharGen>(ChargenId);
+                DatRecipeData.Load<DatChargenEdits>(editsFile).Apply(chargen);
+                c.Write(ChargenId, chargen.Pack(), "character generation");
+            });
         }
 
         private static void SkillTableFromPreToD(DatRecordContext context)
