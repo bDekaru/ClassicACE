@@ -52,6 +52,73 @@ namespace ACE.DatLoader.FileTypes
             }
         }
 
+        /// <summary>The value ToD records store in the field after the id (<see cref="Unknown"/>) for these images.</summary>
+        public const int ToDHeaderValue = 6;
+
+        /// <summary>
+        /// Reads a pre-ToD (2005) image record of 24-bit pixels: id, width, height and the pixels in blue, green, red order. The result is a ToD R8G8B8 image (pixels in red, green, blue order).
+        /// </summary>
+        /// <exception cref="InvalidDataException">The record is not of that layout.</exception>
+        public static Texture UnpackPreToD(byte[] record)
+        {
+            if (record.Length < 12)
+                throw new InvalidDataException("Pre-ToD image record is shorter than its header.");
+
+            var width = BitConverter.ToInt32(record, 4);
+            var height = BitConverter.ToInt32(record, 8);
+
+            if (width <= 0 || height <= 0 || record.Length != 12 + (long)width * height * 3)
+                throw new InvalidDataException($"Pre-ToD image record of {record.Length} bytes is not a {width}x{height} image of 24-bit pixels.");
+
+            var pixels = new byte[width * height * 3];
+
+            for (var i = 0; i < pixels.Length; i += 3)
+            {
+                pixels[i] = record[12 + i + 2];
+                pixels[i + 1] = record[12 + i + 1];
+                pixels[i + 2] = record[12 + i];
+            }
+
+            return new Texture
+            {
+                Id = BitConverter.ToUInt32(record, 0),
+                Unknown = ToDHeaderValue,
+                Width = width,
+                Height = height,
+                Format = SurfacePixelFormat.PFID_R8G8B8,
+                Length = pixels.Length,
+                SourceData = pixels
+            };
+        }
+
+        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
+        /// <exception cref="InvalidDataException">The pixel format needs a palette id and none is set.</exception>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write(Unknown);
+                writer.Write(Width);
+                writer.Write(Height);
+                writer.Write((uint)Format);
+                writer.Write(SourceData.Length);
+                writer.Write(SourceData);
+
+                if (Format == SurfacePixelFormat.PFID_INDEX16 || Format == SurfacePixelFormat.PFID_P8)
+                {
+                    if (DefaultPaletteId == null)
+                        throw new InvalidDataException($"Texture {Id:X8}: format {Format} needs a default palette id.");
+
+                    writer.Write(DefaultPaletteId.Value);
+                }
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
         /// <summary>
         /// Exports RenderSurface to a image file
         /// </summary>

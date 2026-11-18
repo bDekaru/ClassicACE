@@ -4,6 +4,8 @@ using System.Linq;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
+using ACE.DatBuilder;
+
 namespace ACE.DatLoader.Tests
 {
     [TestClass]

@@ -3,7 +3,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace ACE.DatLoader
+using ACE.DatLoader;
+using ACE.DatLoader.FileTypes;
+
+namespace ACE.DatBuilder
 {
     public class DatBuildResult
     {
@@ -13,6 +16,9 @@ namespace ACE.DatLoader
         public DatAudit AuditBefore { get; set; }
         public DatAudit AuditAfter { get; set; }
         public DatOverlayReport Overlay { get; set; }
+
+        /// <summary>What the record steps wrote, one line per record.</summary>
+        public System.Collections.Generic.List<string> RecordLog { get; } = new System.Collections.Generic.List<string>();
 
         /// <summary>The records imported from the pre-ToD dat, when the recipe has an import step.</summary>
         public DatPortalImporter Import { get; set; }
@@ -34,6 +40,9 @@ namespace ACE.DatLoader
 
             if (Import != null)
                 sb.AppendLine($"  pre-ToD import from {Recipe.PreToDImport.PreToDDat}: {Import.Records.Count} records, {Import.ImportedSurfaces.Count()} imported surfaces");
+
+            foreach (var line in RecordLog)
+                sb.AppendLine(line);
 
             sb.AppendLine($"  overlay: added {Overlay.Added}, replaced {Overlay.Replaced}, identical duplicates {Overlay.IdenticalDuplicates}, differing duplicates {Overlay.DifferingDuplicates.Count}, name mismatches {Overlay.NameMismatches.Count}, refused {Overlay.Refused}, skipped {Overlay.Skipped.Count}");
             if (Tables != null)
@@ -181,6 +190,15 @@ namespace ACE.DatLoader
                 using (var writer = new DatWriter(temp) { IterationForDate = recipe.Releases.IterationForDate })
                 {
                     result.AuditBefore = writer.Audit();
+
+                    foreach (var step in recipe.RecordSteps)
+                    {
+                        var context = new DatRecordContext(writer, sourceDats, step);
+                        step.Run(context);
+                        result.RecordLog.Add($"  record step '{step.Name}' ({step.Date})");
+                        result.RecordLog.AddRange(context.Log.Select(l => "    " + l));
+                    }
+
                     result.Overlay = recipe.Apply(writer, customFilesRoot, importer?.Records);
 
                     if (recipe.TablesDate != null && tables != null)

@@ -57,6 +57,49 @@ namespace ACE.DatLoader.FileTypes
                 CharacterLevelSkillCreditList.Add(reader.ReadUInt32());
         }
 
+        /// <summary>
+        /// Reads the record as the pre-ToD (2005) client stored it: the same layout as ToD, except that the XP needed for each level is 32 bits wide.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The record does not end where its counts say.</exception>
+        public static XpTable UnpackPreToD(byte[] record)
+        {
+            var table = new XpTable();
+
+            using (var reader = new BinaryReader(new MemoryStream(record)))
+            {
+                table.Id = reader.ReadUInt32();
+
+                int attributeCount = reader.ReadInt32();
+                int vitalCount = reader.ReadInt32();
+                int trainedSkillCount = reader.ReadInt32();
+                int specializedSkillCount = reader.ReadInt32();
+                uint levelCount = reader.ReadUInt32();
+
+                for (int i = 0; i <= attributeCount; i++)
+                    table.AttributeXpList.Add(reader.ReadUInt32());
+
+                for (int i = 0; i <= vitalCount; i++)
+                    table.VitalXpList.Add(reader.ReadUInt32());
+
+                for (int i = 0; i <= trainedSkillCount; i++)
+                    table.TrainedSkillXpList.Add(reader.ReadUInt32());
+
+                for (int i = 0; i <= specializedSkillCount; i++)
+                    table.SpecializedSkillXpList.Add(reader.ReadUInt32());
+
+                for (int i = 0; i <= levelCount; i++)
+                    table.CharacterLevelXPList.Add(reader.ReadUInt32());
+
+                for (int i = 0; i <= levelCount; i++)
+                    table.CharacterLevelSkillCreditList.Add(reader.ReadUInt32());
+
+                if (reader.BaseStream.Position != record.Length)
+                    throw new InvalidDataException($"Pre-ToD XP table: {record.Length - reader.BaseStream.Position} bytes follow the credit list.");
+            }
+
+            return table;
+        }
+
         /// <exception cref="InvalidDataException">The level and credit lists differ in length.</exception>
         public byte[] Pack()
         {

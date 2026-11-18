@@ -1,0 +1,26 @@
+{
+  "startAreaNames": { "3": "Random" },
+  "skillCredits": 50,
+  "heritageSkills": {
+    "Aluvian": [
+      { "skill": "Dagger", "normal": 0, "primary": 4 },
+      { "skill": "AssessPerson", "normal": 0, "primary": 2 }
+    ],
+    "Gharu'ndim": [
+      { "skill": "Staff", "normal": 0, "primary": 4 },
+      { "skill": "ItemTinkering", "normal": 0, "primary": 2 }
+    ],
+    "Sho": [
+      { "skill": "UnarmedCombat", "normal": 0, "primary": 6 }
+    ]
+  },
+  "templates": [
+    { "name": "Bow Hunter", "primary": [ "ArcaneLore", "Bow", "MeleeDefense" ], "normal": [ "ItemEnchantment" ] },
+    { "name": "Life Caster", "primary": [ "LifeMagic" ], "normal": [ "CreatureEnchantment", "ManaConversion", "WarMagic" ] },
+    { "name": "War Mage", "primary": [ "WarMagic", "ManaConversion" ], "normal": [ "ArcaneLore", "Healing" ] },
+    { "name": "Wayfarer", "heritages": [ "Aluvian" ], "primary": [ "ArcaneLore", "Dagger", "Lockpick" ], "normal": [ "Crossbow", "Healing", "ItemEnchantment", "MeleeDefense" ] },
+    { "name": "Wayfarer", "exceptHeritages": [ "Aluvian" ], "primary": [ "ArcaneLore", "Dagger" ], "normal": [ "Crossbow", "Healing", "ItemEnchantment", "Lockpick", "MeleeDefense" ] },
+    { "name": "Soldier", "primary": [ "ArcaneLore", "Axe", "MeleeDefense" ], "normal": [ "Crossbow", "Healing" ] },
+    { "name": "Swashbuckler", "primary": [ "ArcaneLore", "MeleeDefense", "Sword" ], "normal": [ "ItemEnchantment" ] }
+  ]
+}

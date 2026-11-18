@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace ACE.DatLoader
+using ACE.DatLoader;
+using ACE.DatLoader.FileTypes;
+
+namespace ACE.DatBuilder
 {
     /// <summary>
     /// One cell dat build: a pre-ToD (retail layout) cell dat converted to ToD layout against the portal dat the same ruleset's portal recipe built.

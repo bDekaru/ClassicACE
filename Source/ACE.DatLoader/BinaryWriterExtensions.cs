@@ -62,6 +62,17 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
+        /// Writes a string behind a one-byte length (the counterpart of ReadPString with a length size of 1).
+        /// </summary>
+        public static void WritePString1(this BinaryWriter writer, string value)
+        {
+            var bytes = System.Text.Encoding.Default.GetBytes(value ?? "");
+
+            writer.Write((byte)bytes.Length);
+            writer.Write(bytes);
+        }
+
+        /// <summary>
         /// Writes a string behind a UInt16 length with the nibbles of every byte swapped (the counterpart of the reader's ReadObfuscatedString).
         /// </summary>
         public static void WriteObfuscatedString(this BinaryWriter writer, string value)

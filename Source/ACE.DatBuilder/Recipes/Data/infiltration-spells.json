@@ -1,0 +1,5196 @@
+[
+  {
+    "id": 27,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 15-30 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 28,
+    "desc": "Shoots a bolt of frost at the target. The bolt does 15-30 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 35,
+    "name": "Blood Drinker I",
+    "bitfield": 6,
+    "formula": [
+      1,
+      7,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 49,
+    "name": "Swift Killer I",
+    "bitfield": 6,
+    "formula": [
+      1,
+      7,
+      36,
+      45,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 57,
+    "desc": "Shoots a bolt of force at the target. The bolt does 8-15 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 58,
+    "desc": "Shoots a stream of acid at the target. The stream does 15-30 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 59,
+    "desc": "Shoots a stream of acid at the target. The stream does 25-50 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 60,
+    "desc": "Shoots a stream of acid at the target. The stream does 40-80 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 61,
+    "desc": "Shoots a stream of acid at the target. The stream does 50-100 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 62,
+    "desc": "Shoots a stream of acid at the target. The stream does 65-130 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 63,
+    "desc": "Shoots a stream of acid at the target. The stream does 80-160 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 64,
+    "desc": "Shoots a shock wave at the target. The wave does 15-30 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 65,
+    "desc": "Shoots a shock wave at the target. The wave does 25-50 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 66,
+    "desc": "Shoots a shock wave at the target. The wave does 40-80 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 67,
+    "desc": "Shoots a shock wave at the target. The wave does 50-100 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 68,
+    "desc": "Shoots a shock wave at the target. The wave does 65-130 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 69,
+    "desc": "Shoots a shock wave at the target. The wave does 80-160 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 70,
+    "desc": "Shoots a bolt of frost at the target. The bolt does 25-50 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 71,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 40-80 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 72,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 50-100 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 73,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 65-130 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 74,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 80-160 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 75,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 15-30 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 76,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 25-50 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 77,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 40-80 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 78,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 50-100 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 79,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 65-130 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 80,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 80-160 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 81,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 25-50 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 82,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 40-80 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 83,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 50-100 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 84,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 65-130 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 85,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 80-160 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 86,
+    "desc": "Shoots a bolt of force at the target. The bolt does 15-30 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 87,
+    "desc": "Shoots a bolt of force at the target. The bolt does 25-50 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 88,
+    "desc": "Shoots a bolt of force at the target. The bolt does 40-80 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 89,
+    "desc": "Shoots a bolt of force at the target. The bolt does 50-100 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 90,
+    "desc": "Shoots a bolt of force at the target. The bolt does 65-130 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 91,
+    "desc": "Shoots a bolt of force at the target. The bolt does 80-160 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 92,
+    "desc": "Shoots a magical blade at the target. The bolt does 15-30 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 93,
+    "desc": "Shoots a magical blade at the target. The bolt does 25-50 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 94,
+    "desc": "Shoots a magical blade at the target. The bolt does 40-80 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 95,
+    "desc": "Shoots a magical blade at the target. The bolt does 50-100 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 96,
+    "desc": "Shoots a magical blade at the target. The bolt does 65-130 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 97,
+    "desc": "Shoots a magical blade at the target. The bolt does 80-160 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 99,
+    "desc": "Shoots three streams of acid outward from the caster. Each stream does 10-20 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 100,
+    "desc": "Shoots three streams of acid outward from the caster. Each stream does 16-32 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 101,
+    "desc": "Shoots three streams of acid outward from the caster. Each stream does 25-50 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 102,
+    "desc": "Shoots three streams of acid outward from the caster. Each stream does 33-66 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 103,
+    "desc": "Shoots three shock waves outward from the caster. Each wave does 10-20 points of damage to the first thing it hits."
+  },
+  {
+    "id": 104,
+    "desc": "Shoots three shock waves outward from the caster. Each wave does 16-32 points of damage to the first thing it hits."
+  },
+  {
+    "id": 105,
+    "desc": "Shoots three shock waves outward from the caster. Each wave does 25-50 points of damage to the first thing it hits."
+  },
+  {
+    "id": 106,
+    "desc": "Shoots three shock waves outward from the caster. Each wave does 33-66 points of damage to the first thing it hits."
+  },
+  {
+    "id": 107,
+    "desc": "Shoots three bolts of frost outward from the caster. Each bolt does 10-20 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 108,
+    "desc": "Shoots three bolts of frost outward from the caster. Each bolt does 16-32 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 109,
+    "desc": "Shoots three bolts of frost outward from the caster. Each bolt does 25-50 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 110,
+    "desc": "Shoots three bolts of frost outward from the caster. Each bolt does 33-66 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 111,
+    "desc": "Shoots three bolts of lightning outward from the caster. Each bolt does 10-20 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 112,
+    "desc": "Shoots three bolts of lightning outward from the caster. Each bolt does 16-32 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 113,
+    "desc": "Shoots three bolts of lightning outward from the caster. Each bolt does 25-50 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 114,
+    "desc": "Shoots three bolts of lightning outward from the caster. Each bolt does 33-66 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 115,
+    "desc": "Shoots three bolts of flame outward from the caster. Each bolt does 10-20 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 116,
+    "desc": "Shoots three bolts of flame outward from the caster. Each bolt does 16-32 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 117,
+    "desc": "Shoots three bolts of flame outward from the caster. Each bolt does 25-50 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 118,
+    "desc": "Shoots three bolts of flame outward from the caster. Each bolt does 33-66 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 119,
+    "desc": "Shoots three force bolts outward from the caster. Each bolt does 10-20 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 120,
+    "desc": "Shoots three force bolts outward from the caster. Each bolt does 16-32 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 121,
+    "desc": "Shoots three force bolts outward from the caster. Each bolt does 25-50 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 122,
+    "desc": "Shoots three force bolts outward from the caster. Each bolt does 33-66 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 124,
+    "desc": "Shoots three whirling blades outward from the caster. Each blade does 16-32 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 125,
+    "desc": "Shoots three whirling blades outward from the caster. Each blade does 25-50 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 126,
+    "desc": "Shoots three whirling blades outward from the caster. Each blade does 33-66 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 127,
+    "desc": "Shoots three streams of acid toward the target. Each stream does 10-20 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 128,
+    "desc": "Shoots three streams of acid toward the target. Each stream does 16-32 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 129,
+    "desc": "Shoots three streams of acid toward the target. Each stream does 25-50 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 130,
+    "desc": "Shoots three streams of acid toward the target. Each stream does 33-66 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 131,
+    "desc": "Shoots three shock waves toward the target. Each wave does 10-20 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 132,
+    "desc": "Shoots three shock waves toward the target. Each wave does 16-32 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 133,
+    "desc": "Shoots three shock waves toward the target. Each wave does 25-50 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 134,
+    "desc": "Shoots three shock waves toward the target. Each wave does 33-66 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 135,
+    "desc": "Shoots three bolts of frost toward the target. Each bolt does 10-20 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 136,
+    "desc": "Shoots three bolts of frost toward the target. Each bolt does 16-32 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 137,
+    "desc": "Shoots three bolts of frost toward the target. Each bolt does 25-50 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 138,
+    "desc": "Shoots three bolts of frost toward the target. Each bolt does 33-66 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 139,
+    "desc": "Shoots three bolts of lightning toward the target. Each bolt does 10-20 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 140,
+    "desc": "Shoots three bolts of lightning toward the target. Each bolt does 16-32 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 141,
+    "desc": "Shoots three bolts of lightning toward the target. Each bolt does 25-50 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 142,
+    "desc": "Shoots three bolts of lightning toward the target. Each bolt does 33-66 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 143,
+    "desc": "Shoots three bolts of flame toward the target. Each bolt does 10-20 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 144,
+    "desc": "Shoots three bolts of flame toward the target. Each bolt does 16-32 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 145,
+    "desc": "Shoots three bolts of flame toward the target. Each bolt does 25-50 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 146,
+    "desc": "Shoots three bolts of flame toward the target. Each bolt does 33-66 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 147,
+    "desc": "Shoots three bolts of force toward the target. Each bolt does 10-20 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 148,
+    "desc": "Shoots three bolts of force toward the target. Each bolt does 16-32 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 149,
+    "desc": "Shoots three bolts of force toward the target. Each bolt does 25-50 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 150,
+    "desc": "Shoots three bolts of force toward the target. Each bolt does 33-66 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 151,
+    "desc": "Shoots three whirling blades toward the target. Each blade does 10-20 points of Slashing damage to the first thing it hits."
+  },
+  {
+    "id": 152,
+    "desc": "Shoots three whirling blades toward the target. Each blade does 16-32 points of Slashing damage to the first thing it hits."
+  },
+  {
+    "id": 153,
+    "desc": "Shoots three whirling blades toward the target. Each blade does 25-50 points of Slashing damage to the first thing it hits."
+  },
+  {
+    "id": 154,
+    "desc": "Shoots three whirling blades toward the target. Each blade does 33-66 points of Slashing damage to the first thing it hits."
+  },
+  {
+    "id": 292,
+    "name": "Axe Mastery Other I",
+    "desc": "Increases the target\u0027s Axe skill by 10 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 293,
+    "name": "Axe Mastery Other II",
+    "desc": "Increases the target\u0027s Axe skill by 15 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 294,
+    "name": "Axe Mastery Other III",
+    "desc": "Increases the target\u0027s Axe skill by 20 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 295,
+    "name": "Axe Mastery Other IV",
+    "desc": "Increases the target\u0027s Axe skill by 25 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 296,
+    "name": "Axe Mastery Other V",
+    "desc": "Increases the target\u0027s Axe skill by 30 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 297,
+    "name": "Axe Mastery Other VI",
+    "desc": "Increases the target\u0027s Axe skill by 35 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 298,
+    "name": "Axe Mastery Self I",
+    "desc": "Increases the caster\u0027s Axe skill by 10 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 299,
+    "name": "Axe Mastery Self II",
+    "desc": "Increases the caster\u0027s Axe skill by 15 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 300,
+    "name": "Axe Mastery Self III",
+    "desc": "Increases the caster\u0027s Axe skill by 20 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 301,
+    "name": "Axe Mastery Self IV",
+    "desc": "Increases the caster\u0027s Axe skill by 25 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 302,
+    "name": "Axe Mastery Self V",
+    "desc": "Increases the caster\u0027s Axe skill by 30 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 303,
+    "name": "Axe Mastery Self VI",
+    "desc": "Increases the caster\u0027s Axe skill by 35 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 304,
+    "name": "Axe Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Axe skill by 10 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 305,
+    "name": "Axe Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Axe skill by 15 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 306,
+    "name": "Axe Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Axe skill by 20 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 307,
+    "name": "Axe Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Axe skill by 25 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 308,
+    "name": "Axe Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Axe skill by 30 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 309,
+    "name": "Axe Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Axe skill by 35 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 310,
+    "name": "Axe Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Axe skill by 10 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 311,
+    "name": "Axe Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Axe skill by 15 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 312,
+    "name": "Axe Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Axe skill by 20 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 313,
+    "name": "Axe Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Axe skill by 25 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 314,
+    "name": "Axe Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Axe skill by 30 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 315,
+    "name": "Axe Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Axe skill by 35 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 316,
+    "name": "Dagger Mastery Other I",
+    "desc": "Increases the target\u0027s Dagger skill by 10 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 317,
+    "name": "Dagger Mastery Other II",
+    "desc": "Increases the target\u0027s Dagger skill by 15 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 318,
+    "name": "Dagger Mastery Other III",
+    "desc": "Increases the target\u0027s Dagger skill by 20 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 319,
+    "name": "Dagger Mastery Other IV",
+    "desc": "Increases the target\u0027s Dagger skill by 25 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 320,
+    "name": "Dagger Mastery Other V",
+    "desc": "Increases the target\u0027s Dagger skill by 30 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 321,
+    "name": "Dagger Mastery Other VI",
+    "desc": "Increases the target\u0027s Dagger skill by 35 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 322,
+    "name": "Dagger Mastery Self I",
+    "desc": "Increases the caster\u0027s Dagger skill by 10 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 323,
+    "name": "Dagger Mastery Self II",
+    "desc": "Increases the caster\u0027s Dagger skill by 15 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 324,
+    "name": "Dagger Mastery Self III",
+    "desc": "Increases the caster\u0027s Dagger skill by 20 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 325,
+    "name": "Dagger Mastery Self IV",
+    "desc": "Increases the caster\u0027s Dagger skill by 25 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 326,
+    "name": "Dagger Mastery Self V",
+    "desc": "Increases the caster\u0027s Dagger skill by 30 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 327,
+    "name": "Dagger Mastery Self VI",
+    "desc": "Increases the caster\u0027s Dagger skill by 35 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 328,
+    "name": "Dagger Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Dagger skill by 10 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 329,
+    "name": "Dagger Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Dagger skill by 15 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 330,
+    "name": "Dagger Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Dagger skill by 20 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 331,
+    "name": "Dagger Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Dagger skill by 25 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 332,
+    "name": "Dagger Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Dagger skill by 30 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 333,
+    "name": "Dagger Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Dagger skill by 35 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 334,
+    "name": "Dagger Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Dagger skill by 10 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 335,
+    "name": "Dagger Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Dagger skill by 15 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 336,
+    "name": "Dagger Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Dagger skill by 20 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 337,
+    "name": "Dagger Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Dagger skill by 25 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 338,
+    "name": "Dagger Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Dagger skill by 30 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 339,
+    "name": "Dagger Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Dagger skill by 35 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 340,
+    "name": "Mace Mastery Other I",
+    "desc": "Increases the target\u0027s Mace skill by 10 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 341,
+    "name": "Mace Mastery Other II",
+    "desc": "Increases the target\u0027s Mace skill by 15 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 342,
+    "name": "Mace Mastery Other III",
+    "desc": "Increases the target\u0027s Mace skill by 20 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 343,
+    "name": "Mace Mastery Other IV",
+    "desc": "Increases the target\u0027s Mace skill by 25 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 344,
+    "name": "Mace Mastery Other V",
+    "desc": "Increases the target\u0027s Mace skill by 30 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 345,
+    "name": "Mace Mastery Other VI",
+    "desc": "Increases the target\u0027s Mace skill by 35 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 346,
+    "name": "Mace Mastery Self I",
+    "desc": "Increases the caster\u0027s Mace skill by 10 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 347,
+    "name": "Mace Mastery Self II",
+    "desc": "Increases the caster\u0027s Mace skill by 15 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 348,
+    "name": "Mace Mastery Self III",
+    "desc": "Increases the caster\u0027s Mace skill by 20 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 349,
+    "name": "Mace Mastery Self IV",
+    "desc": "Increases the caster\u0027s Mace skill by 25 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 350,
+    "name": "Mace Mastery Self V",
+    "desc": "Increases the caster\u0027s Mace skill by 30 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 351,
+    "name": "Mace Mastery Self VI",
+    "desc": "Increases the caster\u0027s Mace skill by 35 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 352,
+    "name": "Mace Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Mace skill by 10 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 353,
+    "name": "Mace Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Mace skill by 15 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 354,
+    "name": "Mace Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Mace skill by 20 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 355,
+    "name": "Mace Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Mace skill by 25 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 356,
+    "name": "Mace Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Mace skill by 30 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 357,
+    "name": "Mace Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Mace skill by 35 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 358,
+    "name": "Mace Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Mace skill by 10 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 359,
+    "name": "Mace Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Mace skill by 15 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 360,
+    "name": "Mace Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Mace skill by 20 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 361,
+    "name": "Mace Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Mace skill by 25 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 362,
+    "name": "Mace Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Mace skill by 30 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 363,
+    "name": "Mace Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Mace skill by 35 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 364,
+    "name": "Spear Mastery Other I",
+    "desc": "Increases the target\u0027s Spear skill by 10 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 365,
+    "name": "Spear Mastery Other II",
+    "desc": "Increases the target\u0027s Spear skill by 15 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 366,
+    "name": "Spear Mastery Other III",
+    "desc": "Increases the target\u0027s Spear skill by 20 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 367,
+    "name": "Spear Mastery Other IV",
+    "desc": "Increases the target\u0027s Spear skill by 25 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 368,
+    "name": "Spear Mastery Other V",
+    "desc": "Increases the target\u0027s Spear skill by 30 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 369,
+    "name": "Spear Mastery Other VI",
+    "desc": "Increases the target\u0027s Spear skill by 35 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 370,
+    "name": "Spear Mastery Self I",
+    "desc": "Increases the caster\u0027s Spear skill by 10 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 371,
+    "name": "Spear Mastery Self II",
+    "desc": "Increases the caster\u0027s Spear skill by 15 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 372,
+    "name": "Spear Mastery Self III",
+    "desc": "Increases the caster\u0027s Spear skill by 20 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 373,
+    "name": "Spear Mastery Self IV",
+    "desc": "Increases the caster\u0027s Spear skill by 25 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 374,
+    "name": "Spear Mastery Self V",
+    "desc": "Increases the caster\u0027s Spear skill by 30 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 375,
+    "name": "Spear Mastery Self VI",
+    "desc": "Increases the caster\u0027s Spear skill by 35 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 376,
+    "name": "Spear Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Spear skill by 10 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 377,
+    "name": "Spear Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Spear skill by 15 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 378,
+    "name": "Spear Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Spear skill by 20 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 379,
+    "name": "Spear Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Spear skill by 25 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 380,
+    "name": "Spear Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Spear skill by 30 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 381,
+    "name": "Spear Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Spear skill by 35 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 382,
+    "name": "Spear Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Spear skill by 10 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 383,
+    "name": "Spear Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Spear skill by 15 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 384,
+    "name": "Spear Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Spear skill by 20 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 385,
+    "name": "Spear Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Spear skill by 25 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 386,
+    "name": "Spear Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Spear skill by 30 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 387,
+    "name": "Spear Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Spear skill by 35 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 388,
+    "name": "Staff Mastery Other I",
+    "desc": "Increases the target\u0027s Staff skill by 10 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 389,
+    "name": "Staff Mastery Other II",
+    "desc": "Increases the target\u0027s Staff skill by 15 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 390,
+    "name": "Staff Mastery Other III",
+    "desc": "Increases the target\u0027s Staff skill by 20 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 391,
+    "name": "Staff Mastery Other IV",
+    "desc": "Increases the target\u0027s Staff skill by 25 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 392,
+    "name": "Staff Mastery Other V",
+    "desc": "Increases the target\u0027s Staff skill by 30 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 393,
+    "name": "Staff Mastery Other VI",
+    "desc": "Increases the target\u0027s Staff skill by 35 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 394,
+    "name": "Staff Mastery Self I",
+    "desc": "Increases the caster\u0027s Staff skill by 10 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 395,
+    "name": "Staff Mastery Self II",
+    "desc": "Increases the caster\u0027s Staff skill by 15 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 396,
+    "name": "Staff Mastery Self III",
+    "desc": "Increases the caster\u0027s Staff skill by 20 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 397,
+    "name": "Staff Mastery Self IV",
+    "desc": "Increases the caster\u0027s Staff skill by 25 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 398,
+    "name": "Staff Mastery Self V",
+    "desc": "Increases the caster\u0027s Staff skill by 30 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 399,
+    "name": "Staff Mastery Self VI",
+    "desc": "Increases the caster\u0027s Staff skill by 35 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 400,
+    "name": "Staff Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Staff skill by 10 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 401,
+    "name": "Staff Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Staff skill by 15 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 402,
+    "name": "Staff Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Staff skill by 20 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 403,
+    "name": "Staff Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Staff skill by 25 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 404,
+    "name": "Staff Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Staff skill by 30 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 405,
+    "name": "Staff Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Staff skill by 35 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 406,
+    "name": "Staff Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Staff skill by 10 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 407,
+    "name": "Staff Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Staff skill by 15 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 408,
+    "name": "Staff Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Staff skill by 20 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 409,
+    "name": "Staff Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Staff skill by 25 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 410,
+    "name": "Staff Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Staff skill by 30 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 411,
+    "name": "Staff Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Staff skill by 35 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 412,
+    "name": "Sword Mastery Other I",
+    "desc": "Increases the target\u0027s Sword skill by 10 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 413,
+    "name": "Sword Mastery Other II",
+    "desc": "Increases the target\u0027s Sword skill by 15 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 414,
+    "name": "Sword Mastery Other III",
+    "desc": "Increases the target\u0027s Sword skill by 20 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 415,
+    "name": "Sword Mastery Other IV",
+    "desc": "Increases the target\u0027s Sword skill by 25 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 416,
+    "name": "Sword Mastery Other V",
+    "desc": "Increases the target\u0027s Sword skill by 30 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 417,
+    "name": "Sword Mastery Other VI",
+    "desc": "Increases the target\u0027s Sword skill by 35 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 418,
+    "name": "Sword Mastery Self I",
+    "desc": "Increases the caster\u0027s Sword skill by 10 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 419,
+    "name": "Sword Mastery Self II",
+    "desc": "Increases the caster\u0027s Sword skill by 15 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 420,
+    "name": "Sword Mastery Self III",
+    "desc": "Increases the caster\u0027s Sword skill by 20 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 421,
+    "name": "Sword Mastery Self IV",
+    "desc": "Increases the caster\u0027s Sword skill by 25 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 422,
+    "name": "Sword Mastery Self V",
+    "desc": "Increases the caster\u0027s Sword skill by 30 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 423,
+    "name": "Sword Mastery Self VI",
+    "desc": "Increases the caster\u0027s Sword skill by 35 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 424,
+    "name": "Sword Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Sword skill by 10 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 425,
+    "name": "Sword Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Sword skill by 15 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 426,
+    "name": "Sword Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Sword skill by 20 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 427,
+    "name": "Sword Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Sword skill by 25 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 428,
+    "name": "Sword Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Sword skill by 30 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 429,
+    "name": "Sword Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Sword skill by 35 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 430,
+    "name": "Sword Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Sword skill by 10 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 431,
+    "name": "Sword Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Sword skill by 15 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 432,
+    "name": "Sword Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Sword skill by 20 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 433,
+    "name": "Sword Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Sword skill by 25 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 435,
+    "name": "Sword Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Sword skill by 30 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 436,
+    "name": "Sword Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Sword skill by 35 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 437,
+    "name": "Unarmed Combat Mastery Other I",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 10 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 438,
+    "name": "Unarmed Combat Mastery Other II",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 15 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 439,
+    "name": "Unarmed Combat Mastery Other III",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 20 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 440,
+    "name": "Unarmed Combat Mastery Other IV",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 25 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 441,
+    "name": "Unarmed Combat Mastery Other V",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 30 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 442,
+    "name": "Unarmed Combat Mastery Other VI",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 35 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 443,
+    "name": "Unarmed Combat Mastery Self I",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 10 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 444,
+    "name": "Unarmed Combat Mastery Self II",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 15 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 445,
+    "name": "Unarmed Combat Mastery Self III",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 20 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 446,
+    "name": "Unarmed Combat Mastery Self IV",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 25 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 447,
+    "name": "Unarmed Combat Mastery Self V",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 30 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 448,
+    "name": "Unarmed Combat Mastery Self VI",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 35 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 449,
+    "name": "Unarmed Combat Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Unarmed Combat skill by 10 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 450,
+    "name": "Unarmed Combat Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Unarmed Combat skill by 15 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 451,
+    "name": "Unarmed Combat Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Unarmed Combat skill by 20 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 452,
+    "name": "Unarmed Combat Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Unarmed Combat skill by 25 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 453,
+    "name": "Unarmed Combat Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Unarmed Combat skill by 30 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 454,
+    "name": "Unarmed Combat Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Unarmed Combat skill by 35 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 455,
+    "name": "Unarmed Combat Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Unarmed Combat skill by 10 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 456,
+    "name": "Unarmed Combat Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Unarmed Combat skill by 15 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 457,
+    "name": "Unarmed Combat Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Unarmed Combat skill by 20 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 458,
+    "name": "Unarmed Combat Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Unarmed Combat skill by 25 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 459,
+    "name": "Unarmed Combat Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Unarmed Combat skill by 30 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 460,
+    "name": "Unarmed Combat Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Unarmed Combat skill by 35 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 461,
+    "name": "Bow Mastery Other I",
+    "desc": "Increases the target\u0027s Bow skill by 10 points."
+  },
+  {
+    "id": 462,
+    "name": "Bow Mastery Other II",
+    "desc": "Increases the target\u0027s Bow skill by 15 points."
+  },
+  {
+    "id": 463,
+    "name": "Bow Mastery Other III",
+    "desc": "Increases the target\u0027s Bow skill by 20 points."
+  },
+  {
+    "id": 464,
+    "name": "Bow Mastery Other IV",
+    "desc": "Increases the target\u0027s Bow skill by 25 points."
+  },
+  {
+    "id": 465,
+    "name": "Bow Mastery Other V",
+    "desc": "Increases the target\u0027s Bow skill by 30 points."
+  },
+  {
+    "id": 466,
+    "name": "Bow Mastery Other VI",
+    "desc": "Increases the target\u0027s Bow skill by 35 points."
+  },
+  {
+    "id": 467,
+    "name": "Bow Mastery Self I",
+    "desc": "Increases the caster\u0027s Bow skill by 10 points."
+  },
+  {
+    "id": 468,
+    "name": "Bow Mastery Self II",
+    "desc": "Increases the caster\u0027s Bow skill by 15 points."
+  },
+  {
+    "id": 469,
+    "name": "Bow Mastery Self III",
+    "desc": "Increases the caster\u0027s Bow skill by 20 points."
+  },
+  {
+    "id": 470,
+    "name": "Bow Mastery Self IV",
+    "desc": "Increases the caster\u0027s Bow skill by 25 points."
+  },
+  {
+    "id": 471,
+    "name": "Bow Mastery Self V",
+    "desc": "Increases the caster\u0027s Bow skill by 30 points."
+  },
+  {
+    "id": 472,
+    "name": "Bow Mastery Self VI",
+    "desc": "Increases the caster\u0027s Bow skill by 35 points."
+  },
+  {
+    "id": 473,
+    "name": "Bow Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Bow skill by 10 points."
+  },
+  {
+    "id": 474,
+    "name": "Bow Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Bow skill by 15 points."
+  },
+  {
+    "id": 475,
+    "name": "Bow Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Bow skill by 20 points."
+  },
+  {
+    "id": 476,
+    "name": "Bow Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Bow skill by 25 points."
+  },
+  {
+    "id": 477,
+    "name": "Bow Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Bow skill by 30 points."
+  },
+  {
+    "id": 478,
+    "name": "Bow Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Bow skill by 35 points."
+  },
+  {
+    "id": 479,
+    "name": "Bow Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Bow skill by 10 points."
+  },
+  {
+    "id": 480,
+    "name": "Bow Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Bow skill by 15 points."
+  },
+  {
+    "id": 481,
+    "name": "Bow Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Bow skill by 20 points."
+  },
+  {
+    "id": 482,
+    "name": "Bow Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Bow skill by 25 points."
+  },
+  {
+    "id": 483,
+    "name": "Bow Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Bow skill by 30 points."
+  },
+  {
+    "id": 484,
+    "name": "Bow Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Bow skill by 35 points."
+  },
+  {
+    "id": 485,
+    "name": "Crossbow Mastery Other I",
+    "desc": "Increases the target\u0027s Crossbow skill by 10 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 486,
+    "name": "Crossbow Mastery Other II",
+    "desc": "Increases the target\u0027s Crossbow skill by 15 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 487,
+    "name": "Crossbow Mastery Other III",
+    "desc": "Increases the target\u0027s Crossbow skill by 20 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 488,
+    "name": "Crossbow Mastery Other IV",
+    "desc": "Increases the target\u0027s Crossbow skill by 25 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 489,
+    "name": "Crossbow Mastery Other V",
+    "desc": "Increases the target\u0027s Crossbow skill by 30 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 490,
+    "name": "Crossbow Mastery Other VI",
+    "desc": "Increases the target\u0027s Crossbow skill by 35 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 491,
+    "name": "Crossbow Mastery Self I",
+    "desc": "Increases the caster\u0027s Crossbow skill by 10 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 492,
+    "name": "Crossbow Mastery Self II",
+    "desc": "Increases the caster\u0027s Crossbow skill by 15 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 493,
+    "name": "Crossbow Mastery Self III",
+    "desc": "Increases the caster\u0027s Crossbow skill by 20 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 494,
+    "name": "Crossbow Mastery Self IV",
+    "desc": "Increases the caster\u0027s Crossbow skill by 25 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 495,
+    "name": "Crossbow Mastery Self V",
+    "desc": "Increases the caster\u0027s Crossbow skill by 30 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 496,
+    "name": "Crossbow Mastery Self VI",
+    "desc": "Increases the caster\u0027s Crossbow skill by 35 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 497,
+    "name": "Crossbow Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Crossbow skill by 10 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 498,
+    "name": "Crossbow Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Crossbow skill by 15 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 499,
+    "name": "Crossbow Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Crossbow skill by 20 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 500,
+    "name": "Crossbow Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Crossbow skill by 25 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 501,
+    "name": "Crossbow Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Crossbow skill by 30 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 502,
+    "name": "Crossbow Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Crossbow skill by 35 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 503,
+    "name": "Crossbow Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Crossbow skill by 10 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 504,
+    "name": "Crossbow Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Crossbow skill by 15 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 505,
+    "name": "Crossbow Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Crossbow skill by 20 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 506,
+    "name": "Crossbow Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Crossbow skill by 25 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 507,
+    "name": "Crossbow Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Crossbow skill by 30 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 508,
+    "name": "Crossbow Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Crossbow skill by 35 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 533,
+    "name": "Thrown Weapons Mastery Other I",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 10 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 534,
+    "name": "Thrown Weapons Mastery Other II",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 15 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 535,
+    "name": "Thrown Weapons Mastery Other III",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 20 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 536,
+    "name": "Thrown Weapons Mastery Other IV",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 25 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 537,
+    "name": "Thrown Weapons Mastery Other V",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 30 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 538,
+    "name": "Thrown Weapons Mastery Other VI",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 35 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 539,
+    "name": "Thrown Weapons Mastery Self I",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 10 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 540,
+    "name": "Thrown Weapons Mastery Self II",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 15 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 541,
+    "name": "Thrown Weapons Mastery Self III",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 20 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 542,
+    "name": "Thrown Weapons Mastery Self IV",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 25 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 543,
+    "name": "Thrown Weapons Mastery Self V",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 30 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 544,
+    "name": "Thrown Weapons Mastery Self VI",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 35 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 545,
+    "name": "Thrown Weapons Ineptitude Other I",
+    "desc": "Decreases the target\u0027s Thrown Weapons skill by 10 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 546,
+    "name": "Thrown Weapons Ineptitude Other II",
+    "desc": "Decreases the target\u0027s Thrown Weapons skill by 15 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 547,
+    "name": "Thrown Weapons Ineptitude Other III",
+    "desc": "Decreases the target\u0027s Thrown Weapons skill by 20 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 548,
+    "name": "Thrown Weapons Ineptitude Other IV",
+    "desc": "Decreases the target\u0027s Thrown Weapons skill by 25 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 549,
+    "name": "Thrown Weapons Ineptitude Other V",
+    "desc": "Decreases the target\u0027s Thrown Weapons skill by 30 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 550,
+    "name": "Thrown Weapons Ineptitude Other VI",
+    "desc": "Decreases the target\u0027s Thrown Weapons skill by 35 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 551,
+    "name": "Thrown Weapons Ineptitude Self I",
+    "desc": "Decreases the caster\u0027s Thrown Weapons skill by 10 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 552,
+    "name": "Thrown Weapons Ineptitude Self II",
+    "desc": "Decreases the caster\u0027s Thrown Weapons skill by 15 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 553,
+    "name": "Thrown Weapons Ineptitude Self III",
+    "desc": "Decreases the caster\u0027s Thrown Weapons skill by 20 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 554,
+    "name": "Thrown Weapons Ineptitude Self IV",
+    "desc": "Decreases the caster\u0027s Thrown Weapons skill by 25 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 555,
+    "name": "Thrown Weapons Ineptitude Self V",
+    "desc": "Decreases the caster\u0027s Thrown Weapons skill by 30 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 556,
+    "name": "Thrown Weapons Ineptitude Self VI",
+    "desc": "Decreases the caster\u0027s Thrown Weapons skill by 35 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 1173,
+    "desc": "Drains 10-18 points of the target\u0027s Health."
+  },
+  {
+    "id": 1174,
+    "desc": "Drains 16-30 points of the target\u0027s Health."
+  },
+  {
+    "id": 1175,
+    "desc": "Drains 23-45 points of the target\u0027s Health."
+  },
+  {
+    "id": 1176,
+    "desc": "Drains 31-60 points of the target\u0027s Health."
+  },
+  {
+    "id": 1196,
+    "desc": "Drains 10-18 points of the target\u0027s Stamina."
+  },
+  {
+    "id": 1197,
+    "desc": "Drains 16-30 points of the target\u0027s Stamina."
+  },
+  {
+    "id": 1198,
+    "desc": "Drains 23-45 points of the target\u0027s Stamina."
+  },
+  {
+    "id": 1199,
+    "desc": "Drains 31-60 points of the target\u0027s Stamina."
+  },
+  {
+    "id": 1200,
+    "desc": "Drains 38-75 points of the target\u0027s Stamina."
+  },
+  {
+    "id": 1221,
+    "desc": "Drains 10-18 points of the target\u0027s Mana."
+  },
+  {
+    "id": 1222,
+    "desc": "Drains 16-30 points of the target\u0027s Mana."
+  },
+  {
+    "id": 1223,
+    "desc": "Drains 23-45 points of the target\u0027s Mana."
+  },
+  {
+    "id": 1224,
+    "desc": "Drains 31-60 points of the target\u0027s Mana."
+  },
+  {
+    "id": 1475,
+    "name": "Hermetic Link I",
+    "bitfield": 6,
+    "formula": [
+      1,
+      8,
+      36,
+      39,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 1476,
+    "name": "Hermetic Link II",
+    "bitfield": 6,
+    "formula": [
+      2,
+      69,
+      8,
+      36,
+      39,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 1477,
+    "name": "Hermetic Link III",
+    "bitfield": 6,
+    "formula": [
+      3,
+      70,
+      8,
+      71,
+      36,
+      39,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 1478,
+    "name": "Hermetic Link IV",
+    "bitfield": 6,
+    "formula": [
+      4,
+      71,
+      8,
+      72,
+      36,
+      39,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 1479,
+    "name": "Hermetic Link V",
+    "bitfield": 6,
+    "formula": [
+      5,
+      72,
+      8,
+      73,
+      36,
+      39,
+      66,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 1480,
+    "name": "Hermetic Link VI",
+    "bitfield": 6,
+    "formula": [
+      6,
+      73,
+      8,
+      74,
+      36,
+      39,
+      68,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 1587,
+    "name": "Heart Seeker I",
+    "bitfield": 6,
+    "formula": [
+      1,
+      7,
+      36,
+      48,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1588,
+    "name": "Heart Seeker II",
+    "bitfield": 6,
+    "formula": [
+      2,
+      64,
+      7,
+      36,
+      48,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1589,
+    "name": "Heart Seeker III",
+    "bitfield": 6,
+    "formula": [
+      3,
+      65,
+      7,
+      64,
+      36,
+      48,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1590,
+    "name": "Heart Seeker IV",
+    "bitfield": 6,
+    "formula": [
+      4,
+      66,
+      7,
+      65,
+      36,
+      48,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1591,
+    "name": "Heart Seeker V",
+    "bitfield": 6,
+    "formula": [
+      5,
+      67,
+      7,
+      66,
+      36,
+      48,
+      63,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1592,
+    "name": "Heart Seeker VI",
+    "bitfield": 6,
+    "formula": [
+      6,
+      68,
+      7,
+      67,
+      36,
+      48,
+      64,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1599,
+    "name": "Defender I",
+    "bitfield": 6,
+    "formula": [
+      1,
+      7,
+      36,
+      46,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 1601,
+    "name": "Defender II",
+    "bitfield": 6,
+    "formula": [
+      2,
+      74,
+      7,
+      36,
+      46,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 1602,
+    "name": "Defender III",
+    "bitfield": 6,
+    "formula": [
+      3,
+      63,
+      7,
+      72,
+      36,
+      46,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 1603,
+    "name": "Defender IV",
+    "bitfield": 6,
+    "formula": [
+      4,
+      64,
+      7,
+      73,
+      36,
+      46,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 1604,
+    "name": "Defender V",
+    "bitfield": 6,
+    "formula": [
+      5,
+      65,
+      7,
+      74,
+      36,
+      46,
+      73,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 1605,
+    "name": "Defender VI",
+    "bitfield": 6,
+    "formula": [
+      6,
+      66,
+      7,
+      63,
+      36,
+      46,
+      74,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 1612,
+    "name": "Blood Drinker II",
+    "bitfield": 6,
+    "formula": [
+      2,
+      71,
+      7,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1613,
+    "name": "Blood Drinker III",
+    "bitfield": 6,
+    "formula": [
+      3,
+      72,
+      7,
+      66,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1614,
+    "name": "Blood Drinker IV",
+    "bitfield": 6,
+    "formula": [
+      4,
+      63,
+      7,
+      68,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1615,
+    "name": "Blood Drinker V",
+    "bitfield": 6,
+    "formula": [
+      5,
+      64,
+      7,
+      69,
+      36,
+      43,
+      71,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1616,
+    "name": "Blood Drinker VI",
+    "bitfield": 6,
+    "formula": [
+      6,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1623,
+    "name": "Swift Killer II",
+    "bitfield": 6,
+    "formula": [
+      2,
+      73,
+      7,
+      36,
+      45,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1624,
+    "name": "Swift Killer III",
+    "bitfield": 6,
+    "formula": [
+      3,
+      74,
+      7,
+      70,
+      36,
+      45,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1625,
+    "name": "Swift Killer IV",
+    "bitfield": 6,
+    "formula": [
+      4,
+      63,
+      7,
+      71,
+      36,
+      45,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1626,
+    "name": "Swift Killer V",
+    "bitfield": 6,
+    "formula": [
+      5,
+      64,
+      7,
+      72,
+      36,
+      45,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1627,
+    "name": "Swift Killer VI",
+    "bitfield": 6,
+    "formula": [
+      6,
+      65,
+      7,
+      73,
+      36,
+      45,
+      73,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1783,
+    "desc": "Shoots eight waves of acid outward from the caster. Each wave does 40-80 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 1784,
+    "desc": "Shoots eight blades outward from the caster. Each blade does 40-80 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 1785,
+    "desc": "Shoots eight waves of flame outward from the caster. Each wave does 40-80 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 1786,
+    "desc": "Shoots eight waves of force outward from the caster. Each wave does 40-80 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 1787,
+    "desc": "Shoots eight waves of frost outward from the caster. Each wave does 40-80 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 1788,
+    "desc": "Shoots eight waves of lightning outward from the caster. Each wave does 40-80 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 1789,
+    "desc": "Shoots eight shock waves outward from the caster. Each wave does 40-80 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 1790,
+    "desc": "Sends a stream of acid streaking towards the target. The stream does 15-30 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 1791,
+    "desc": "Sends a stream of acid streaking towards the target. The stream does 16-32 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 1792,
+    "desc": "Sends a stream of acid streaking towards the target. The stream does 18-36 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 1793,
+    "desc": "Sends a stream of acid streaking towards the target. The stream does 20-40 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 1794,
+    "desc": "Sends a stream of acid streaking towards the target. The stream does 22-44 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 1795,
+    "desc": "Sends a stream of acid streaking towards the target. The stream does 26-52 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 1796,
+    "desc": "Sends a bolt of flame streaking towards the target.  The bolt does 15-30 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 1797,
+    "desc": "Sends a bolt of flame streaking towards the target.  The bolt does 16-32 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 1798,
+    "desc": "Sends a bolt of flame streaking towards the target.  The bolt does 18-36 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 1799,
+    "desc": "Sends a bolt of flame streaking towards the target.  The bolt does 20-40 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 1800,
+    "desc": "Sends a bolt of flame streaking towards the target.  The bolt does 22-44 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 1801,
+    "desc": "Sends a bolt of flame streaking towards the target.  The bolt does 26-52 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 1802,
+    "desc": "Sends a bolt of force streaking towards the target. The bolt does 15-30 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 1803,
+    "desc": "Sends a bolt of force streaking towards the target. The bolt does 16-32 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 1804,
+    "desc": "Sends a bolt of force streaking towards the target. The bolt does 18-36 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 1805,
+    "desc": "Sends a bolt of force streaking towards the target. The bolt does 20-40 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 1806,
+    "desc": "Sends a bolt of force streaking towards the target. The bolt does 22-44 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 1807,
+    "desc": "Sends a bolt of force streaking towards the target. The bolt does 26-52 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 1808,
+    "desc": "Sends a bolt of frost streaking towards the target. The bolt does 15-30 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 1809,
+    "desc": "Sends a bolt of frost streaking towards the target. The bolt does 16-32 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 1810,
+    "desc": "Sends a bolt of cold streaking towards the target. The bolt does 18-36 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 1811,
+    "desc": "Sends a bolt of cold streaking towards the target. The bolt does 20-40 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 1812,
+    "desc": "Sends a bolt of cold streaking towards the target. The bolt does 22-44 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 1813,
+    "desc": "Sends a bolt of cold streaking towards the target. The bolt does 26-52 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 1814,
+    "desc": "Sends a bolt of lighting streaking towards the target. The bolt does 15-30 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 1815,
+    "desc": "Sends a bolt of lighting streaking towards the target. The bolt does 16-32 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 1816,
+    "desc": "Sends a bolt of lighting streaking towards the target. The bolt does 18-36 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 1817,
+    "desc": "Sends a bolt of lighting streaking towards the target. The bolt does 20-40 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 1818,
+    "desc": "Sends a bolt of lighting streaking towards the target. The bolt does 22-44 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 1819,
+    "desc": "Sends a bolt of lighting streaking towards the target. The bolt does 26-52 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 1820,
+    "desc": "Sends a shock wave streaking towards the target. The wave does 15-30 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 1821,
+    "desc": "Sends a shock wave streaking towards the target. The wave does 16-32 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 1822,
+    "desc": "Sends a shock wave streaking towards the target. The wave does 18-36 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 1823,
+    "desc": "Sends a shock wave streaking towards the target. The wave does 20-40 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 1824,
+    "desc": "Sends a shock wave streaking towards the target. The wave does 22-44 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 1825,
+    "desc": "Sends a shock wave streaking towards the target. The wave does 26-52 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 1826,
+    "desc": "Sends a magical blade streaking towards the target. The bolt does 15-30 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 1827,
+    "desc": "Sends a magical blade streaking towards the target. The bolt does 16-32 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 1828,
+    "desc": "Sends a magical blade streaking towards the target. The bolt does 18-36 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 1829,
+    "desc": "Sends a magical blade streaking towards the target. The bolt does 20-40 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 1830,
+    "desc": "Sends a magical blade streaking towards the target. The bolt does 22-44 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 1831,
+    "desc": "Sends a magical blade streaking towards the target. The bolt does 26-52 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 1839,
+    "desc": "Sends a wall of five balls of acid, two high, slowly towards the target. Each ball does 30-60 points of acid damage to the first thing it hits. The wall is created 2 meters in front of the caster. "
+  },
+  {
+    "id": 1840,
+    "desc": "Sends a wall of five whirling blades, two high, slowly towards the target. Each blade does 30-60 points of slashing damage to the first thing it hits. The wall is created 2 meters in front of the caster. "
+  },
+  {
+    "id": 1841,
+    "desc": "Sends a wall of five balls of fire, two high, slowly towards the target. Each ball does 30-60 points of fire damage to the first thing it hits. The wall is created 2 meters in front of the caster. "
+  },
+  {
+    "id": 1842,
+    "desc": "Sends a wall of five bolts of force, two high, slowly towards the target. Each bolt does 30-60 points of piercing damage to the first thing it hits. The wall is created 2 meters in front of the caster. "
+  },
+  {
+    "id": 1843,
+    "desc": "Sends a wall of five balls of frost, two high, slowly towards the target. Each ball does 30-60 points of cold damage to the first thing it hits. The wall is created 2 meters in front of the caster. "
+  },
+  {
+    "id": 1844,
+    "desc": "Sends a wall of five bolts of lightning, two high, slowly towards the target. Each ball does 30-60 points of electric damage to the first thing it hits. The wall is created 2 meters in front of the caster. "
+  },
+  {
+    "id": 1845,
+    "desc": "Sends a wall of five shockwaves, two high, slowly towards the target. Each wave does 30-60 points of bludgeoning damage to the first thing it hits. The wall is created 2 meters in front of the caster. "
+  },
+  {
+    "id": 1994,
+    "name": "Wound Twister",
+    "formula": [
+      6,
+      7,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1995,
+    "name": "Alacrity",
+    "formula": [
+      2,
+      7,
+      36,
+      45,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 1996,
+    "name": "Soul Hunter",
+    "formula": [
+      4,
+      7,
+      36,
+      48,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 2062,
+    "desc": "Drains 50-100 points of the target\u0027s Stamina."
+  },
+  {
+    "id": 2070,
+    "desc": "Drains 40-75 points of the target\u0027s Health."
+  },
+  {
+    "id": 2078,
+    "desc": "Drains 40-75 points of the target\u0027s Mana."
+  },
+  {
+    "id": 2096,
+    "name": "Infected Caress",
+    "bitfield": 134,
+    "formula": [
+      112,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 2101,
+    "name": "Cragstone\u0027s Will",
+    "bitfield": 134,
+    "formula": [
+      112,
+      66,
+      7,
+      63,
+      36,
+      46,
+      74,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 2106,
+    "name": "Elysa\u0027s Sight",
+    "bitfield": 134,
+    "formula": [
+      112,
+      68,
+      7,
+      67,
+      36,
+      48,
+      64,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 2116,
+    "name": "Atlan\u0027s Alacrity",
+    "bitfield": 134,
+    "formula": [
+      112,
+      65,
+      7,
+      73,
+      36,
+      45,
+      73,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 2117,
+    "name": "Mystic\u0027s Blessing",
+    "bitfield": 134,
+    "formula": [
+      112,
+      73,
+      8,
+      74,
+      36,
+      39,
+      68,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 2120,
+    "desc": "Shoots five streams of acid outward from the caster. Each stream does 40-80 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2121,
+    "desc": "Sends a stream of acid streaking towards the target. The stream does 30-60 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2122,
+    "desc": "Shoots a stream of acid at the target. The stream does 110-180 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2123,
+    "desc": "Shoots five streams of acid toward the target. Each stream does 40-80 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2124,
+    "desc": "Shoots five whirling blades outward from the caster. Each blade does 40-80 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2125,
+    "desc": "Shoots five whirling blades toward the target. Each blade does 40-80 points of Slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2126,
+    "desc": "Shoots five shock waves toward the target. Each wave does 40-80 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2127,
+    "desc": "Shoots five bolts of flame outward from the caster. Each bolt does 40-80 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2128,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 110-180 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2129,
+    "desc": "Sends a bolt of flame streaking towards the target.  The bolt does 30-60 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2130,
+    "desc": "Shoots five bolts of flame toward the target. Each bolt does 40-80 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2131,
+    "desc": "Shoots five force bolts outward from the caster. Each bolt does 40-80 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2132,
+    "desc": "Shoots a bolt of force at the target. The bolt does 110-180 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2133,
+    "desc": "Sends a bolt of force streaking towards the target. The bolt does 30-60 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2134,
+    "desc": "Shoots five bolts of force toward the target. Each bolt does 40-80 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2135,
+    "desc": "Shoots five bolts of frost outward from the caster. Each bolt does 40-80 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2136,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 110-180 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2137,
+    "desc": "Sends a bolt of cold streaking towards the target. The bolt does 30-60 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2138,
+    "desc": "Shoots five bolts of frost toward the target. Each bolt does 40-80 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2139,
+    "desc": "Shoots five bolts of lightning outward from the caster. Each bolt does 40-80 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 2140,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 110-180 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2141,
+    "desc": "Sends a bolt of lighting streaking towards the target. The bolt does 30-60 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2142,
+    "desc": "Shoots five bolts of lightning toward the target. Each bolt does 40-80 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 2143,
+    "desc": "Shoots five shock waves outward from the caster. Each wave does 40-80 points of damage to the first thing it hits."
+  },
+  {
+    "id": 2144,
+    "desc": "Shoots a shock wave at the target. The wave does 110-180 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2145,
+    "desc": "Sends a shock wave streaking towards the target. The wave does 30-60 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2146,
+    "desc": "Shoots a magical blade at the target. The bolt does 110-180 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2147,
+    "desc": "Sends a magical blade streaking towards the target. The bolt does 30-60 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2200,
+    "name": "S\u0027retpirk\u0027s Delight",
+    "desc": "Decreases the target\u0027s Axe skill by 40 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 2201,
+    "name": "Axe Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Axe skill by 40 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 2202,
+    "name": "Reenigne\u0027s Boon",
+    "desc": "Increases the target\u0027s Axe skill by 40 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 2203,
+    "name": "Reenigne\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Axe skill by 40 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 2204,
+    "name": "Chronic Twitch",
+    "desc": "Decreases the target\u0027s Bow skill by 40 points."
+  },
+  {
+    "id": 2205,
+    "name": "Bow Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Bow skill by 40 points."
+  },
+  {
+    "id": 2206,
+    "name": "Strathelar\u0027s Boon",
+    "desc": "Increases the target\u0027s Bow skill by 40 points."
+  },
+  {
+    "id": 2207,
+    "name": "Strathelar\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Bow skill by 40 points."
+  },
+  {
+    "id": 2216,
+    "name": "Itchy Finger",
+    "desc": "Decreases the target\u0027s Crossbow skill by 40 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 2217,
+    "name": "Crossbow Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Crossbow skill by 40 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 2218,
+    "name": "Barnar\u0027s Boon",
+    "desc": "Increases the target\u0027s Crossbow skill by 40 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 2219,
+    "name": "Barnar\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Crossbow skill by 40 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 2220,
+    "name": "Picking of the Teeth",
+    "desc": "Decreases the target\u0027s Dagger skill by 40 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 2221,
+    "name": "Dagger Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Dagger skill by 40 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 2222,
+    "name": "Gertarh\u0027s Boon",
+    "desc": "Increases the target\u0027s Dagger skill by 40 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 2223,
+    "name": "Gertarh\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Dagger skill by 40 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 2272,
+    "name": "Top Heavy Swing",
+    "desc": "Decreases the target\u0027s Mace skill by 40 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 2273,
+    "name": "Mace Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Mace skill by 40 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 2274,
+    "name": "Mi-Krauli\u0027s Boon",
+    "desc": "Increases the target\u0027s Mace skill by 40 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 2275,
+    "name": "Mi-Krauli\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Mace skill by 40 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 2296,
+    "name": "Headbreaker",
+    "desc": "Decreases the target\u0027s Spear skill by 40 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 2297,
+    "name": "Spear Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Spear skill by 40 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 2298,
+    "name": "Tibri\u0027s Boon",
+    "desc": "Increases the target\u0027s Spear skill by 40 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 2299,
+    "name": "Tibri\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Spear skill by 40 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 2302,
+    "name": "The Shaft",
+    "desc": "Decreases the target\u0027s Staff skill by 40 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 2303,
+    "name": "Staff Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Staff skill by 40 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 2304,
+    "name": "Anadil\u0027s Boon",
+    "desc": "Increases the target\u0027s Staff skill by 40 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 2305,
+    "name": "Anadil\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Staff skill by 40 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 2306,
+    "name": "Metallophobia",
+    "desc": "Decreases the target\u0027s Sword skill by 40 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 2307,
+    "name": "Sword Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Sword skill by 40 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 2308,
+    "name": "MacNiall\u0027s Boon",
+    "desc": "Increases the target\u0027s Sword skill by 40 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 2309,
+    "name": "MacNiall\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Sword skill by 40 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 2310,
+    "name": "The Wrong Spell",
+    "desc": "Decreases the target\u0027s Thrown Weapons skill by 40 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 2311,
+    "name": "Thrown Weapons Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Thrown Weapons skill by 40 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 2312,
+    "name": "Asmolum\u0027s Boon",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 40 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 2313,
+    "name": "Asmolum\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 40 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 2314,
+    "name": "Hamfistedness",
+    "desc": "Decreases the target\u0027s Unarmed Combat skill by 40 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 2315,
+    "name": "Hamud\u0027s Boon",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 40 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 2316,
+    "name": "Hamud\u0027s Blessing",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 40 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 2317,
+    "name": "Unarmed Combat Ineptitude Self VII",
+    "desc": "Decreases the caster\u0027s Unarmed Combat skill by 40 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 2383,
+    "desc": "Shoots a dark flame at the target.  The flame does 46-90 points of righteous fire damage to the first thing it hits."
+  },
+  {
+    "id": 2411,
+    "formula": [
+      6,
+      43,
+      43,
+      43,
+      43,
+      43,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 2437,
+    "desc": "Improves a weapon\u0027s speed by 75%.",
+    "category": "WeaponTimeRaising"
+  },
+  {
+    "id": 2438,
+    "desc": "Improves a weapon\u0027s speed by 25%.",
+    "category": "WeaponTimeRaising"
+  },
+  {
+    "id": 2439,
+    "desc": "Improves a weapon\u0027s speed by 50%.",
+    "category": "WeaponTimeRaising"
+  },
+  {
+    "id": 2440,
+    "desc": "Increases the target\u0027s Melee Defense skill by 12 points."
+  },
+  {
+    "id": 2441,
+    "desc": "Increases the target\u0027s Melee Defense skill by 4 points."
+  },
+  {
+    "id": 2442,
+    "desc": "Increases the target\u0027s Melee Defense skill by 8 points."
+  },
+  {
+    "id": 2443,
+    "desc": "Increases the target\u0027s Strength by 12 points."
+  },
+  {
+    "id": 2444,
+    "desc": "Increases the target\u0027s Strength by 4 points."
+  },
+  {
+    "id": 2445,
+    "desc": "Increases the target\u0027s Strength by 8 points."
+  },
+  {
+    "id": 2449,
+    "desc": "Increases the target\u0027s Coordination by 12 points."
+  },
+  {
+    "id": 2450,
+    "desc": "Increases the target\u0027s Coordination by 4 points."
+  },
+  {
+    "id": 2451,
+    "desc": "Increases the target\u0027s Coordination by 8 points."
+  },
+  {
+    "id": 2452,
+    "desc": "Increases a weapon\u0027s damage value by 6 points."
+  },
+  {
+    "id": 2454,
+    "desc": "Increases a weapon\u0027s damage value by 4 points."
+  },
+  {
+    "id": 2455,
+    "desc": "Increases the target\u0027s Axe skill by 12 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 2456,
+    "desc": "Increases the target\u0027s Axe skill by 4 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 2457,
+    "desc": "Increases the target\u0027s Axe skill by 8 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 2458,
+    "desc": "Increases the target\u0027s Dagger skill by 12 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 2459,
+    "desc": "Increases the target\u0027s Dagger skill by 4 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 2460,
+    "desc": "Increases the target\u0027s Dagger skill by 8 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 2461,
+    "desc": "Increases the target\u0027s Mace skill by 12 points.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising",
+    "baseMana": 20,
+    "componentLoss": 0.05
+  },
+  {
+    "id": 2462,
+    "desc": "Increases the target\u0027s Mace skill by 4 points.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising",
+    "baseMana": 20,
+    "componentLoss": 0.05
+  },
+  {
+    "id": 2463,
+    "desc": "Increases the target\u0027s Mace skill by 8 points.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising",
+    "baseMana": 20,
+    "componentLoss": 0.05
+  },
+  {
+    "id": 2464,
+    "desc": "Increases the target\u0027s Spear skill by 12 points.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising",
+    "baseMana": 40,
+    "componentLoss": 0.15
+  },
+  {
+    "id": 2465,
+    "desc": "Increases the target\u0027s Spear skill by 4 points.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising",
+    "baseMana": 40,
+    "componentLoss": 0.15
+  },
+  {
+    "id": 2466,
+    "desc": "Increases the target\u0027s Spear skill by 8 points.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising",
+    "baseMana": 40,
+    "componentLoss": 0.15
+  },
+  {
+    "id": 2467,
+    "desc": "Increases the target\u0027s Staff skill by 12 points.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising",
+    "baseMana": 30,
+    "componentLoss": 0.1
+  },
+  {
+    "id": 2468,
+    "desc": "Increases the target\u0027s Staff skill by 4 points.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising",
+    "baseMana": 30,
+    "componentLoss": 0.1
+  },
+  {
+    "id": 2469,
+    "desc": "Increases the target\u0027s Staff skill by 8 points.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising",
+    "baseMana": 30,
+    "componentLoss": 0.1
+  },
+  {
+    "id": 2470,
+    "desc": "Increases the target\u0027s Endurance by 12 points."
+  },
+  {
+    "id": 2471,
+    "desc": "Increases the target\u0027s Endurance by 4 points."
+  },
+  {
+    "id": 2472,
+    "desc": "Increases the target\u0027s Endurance by 8 points."
+  },
+  {
+    "id": 2473,
+    "desc": "Increases the target\u0027s Quickness by 12 points."
+  },
+  {
+    "id": 2474,
+    "desc": "Increases the target\u0027s Quickness by 4 points."
+  },
+  {
+    "id": 2475,
+    "desc": "Increases the target\u0027s Quickness by 8 points."
+  },
+  {
+    "id": 2504,
+    "name": "Major Axe Aptitude",
+    "desc": "Increases the target\u0027s Axe skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668265
+  },
+  {
+    "id": 2505,
+    "name": "Major Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 15 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 2508,
+    "name": "Major Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising"
+  },
+  {
+    "id": 2509,
+    "name": "Major Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668269
+  },
+  {
+    "id": 2522,
+    "name": "Major Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising"
+  },
+  {
+    "id": 2528,
+    "name": "Major Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising"
+  },
+  {
+    "id": 2530,
+    "name": "Major Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising"
+  },
+  {
+    "id": 2531,
+    "name": "Major Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668302
+  },
+  {
+    "id": 2532,
+    "name": "Major Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising"
+  },
+  {
+    "id": 2533,
+    "name": "Major Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising"
+  },
+  {
+    "id": 2539,
+    "name": "Minor Axe Aptitude",
+    "desc": "Increases the target\u0027s Axe skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668265
+  },
+  {
+    "id": 2540,
+    "name": "Minor Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 5 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 2543,
+    "name": "Minor Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising"
+  },
+  {
+    "id": 2544,
+    "name": "Minor Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668269
+  },
+  {
+    "id": 2557,
+    "name": "Minor Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising"
+  },
+  {
+    "id": 2563,
+    "name": "Minor Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising"
+  },
+  {
+    "id": 2565,
+    "name": "Minor Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising"
+  },
+  {
+    "id": 2566,
+    "name": "Minor Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668302
+  },
+  {
+    "id": 2567,
+    "name": "Minor Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising"
+  },
+  {
+    "id": 2568,
+    "name": "Minor Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 5 points. Additional spells can be layered over this.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising"
+  },
+  {
+    "id": 2675,
+    "name": "Feeble Axe Aptitude",
+    "desc": "Increases the target\u0027s Axe skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668265
+  },
+  {
+    "id": 2676,
+    "name": "Feeble Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 3 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 2677,
+    "name": "Feeble Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising"
+  },
+  {
+    "id": 2678,
+    "name": "Feeble Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668269
+  },
+  {
+    "id": 2679,
+    "name": "Feeble Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising"
+  },
+  {
+    "id": 2681,
+    "name": "Feeble Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising"
+  },
+  {
+    "id": 2682,
+    "name": "Feeble Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising"
+  },
+  {
+    "id": 2683,
+    "name": "Feeble Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668302
+  },
+  {
+    "id": 2684,
+    "name": "Feeble Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising"
+  },
+  {
+    "id": 2685,
+    "name": "Feeble Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 3 points. Additional spells can be layered over this.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising"
+  },
+  {
+    "id": 2686,
+    "name": "Moderate Axe Aptitude",
+    "desc": "Increases the target\u0027s Axe skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668265
+  },
+  {
+    "id": 2687,
+    "name": "Moderate Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 10 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 2688,
+    "name": "Moderate Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising"
+  },
+  {
+    "id": 2689,
+    "name": "Moderate Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668269
+  },
+  {
+    "id": 2690,
+    "name": "Moderate Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising"
+  },
+  {
+    "id": 2692,
+    "name": "Moderate Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising"
+  },
+  {
+    "id": 2693,
+    "name": "Moderate Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising"
+  },
+  {
+    "id": 2694,
+    "name": "Moderate Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668302
+  },
+  {
+    "id": 2695,
+    "name": "Moderate Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising"
+  },
+  {
+    "id": 2696,
+    "name": "Moderate Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 10 points. Additional spells can be layered over this.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising"
+  },
+  {
+    "id": 2711,
+    "desc": "Shoots a stream of acid at the target. The stream does 15-30 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2712,
+    "desc": "Shoots a stream of acid at the target. The stream does 25-50 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2713,
+    "desc": "Shoots a stream of acid at the target. The stream does 40-80 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2714,
+    "desc": "Shoots a stream of acid at the target. The stream does 50-100 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2715,
+    "desc": "Shoots a stream of acid at the target. The stream does 65-130 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2716,
+    "desc": "Shoots a stream of acid at the target. The stream does 80-160 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2717,
+    "desc": "Shoots a stream of acid at the target. The stream does 110-180 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 2718,
+    "desc": "Shoots a bolt of force at the target. The bolt does 15-30 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2719,
+    "desc": "Shoots a bolt of force at the target. The bolt does 25-50 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2720,
+    "desc": "Shoots a bolt of force at the target. The bolt does 40-80 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2721,
+    "desc": "Shoots a bolt of force at the target. The bolt does 50-100 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2722,
+    "desc": "Shoots a bolt of force at the target. The bolt does 65-130 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2723,
+    "desc": "Shoots a bolt of force at the target. The bolt does 80-160 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2724,
+    "desc": "Shoots a bolt of force at the target. The bolt does 110-180 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 2725,
+    "desc": "Shoots a bolt of frost at the target. The bolt does 15-30 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2726,
+    "desc": "Shoots a bolt of frost at the target. The bolt does 25-50 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2727,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 40-80 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2728,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 50-100 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2729,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 65-130 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2730,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 80-160 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2731,
+    "desc": "Shoots a bolt of cold at the target. The bolt does 110-180 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 2732,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 15-30 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2733,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 25-50 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2734,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 40-80 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2735,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 50-100 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2736,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 65-130 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2737,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 80-160 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2738,
+    "desc": "Shoots a bolt of lighting at the target. The bolt does 110-180 points of electrical damage to the first thing it hits."
+  },
+  {
+    "id": 2739,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 15-30 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2740,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 25-50 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2741,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 40-80 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2742,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 50-100 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2743,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 65-130 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2744,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 80-160 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2745,
+    "desc": "Shoots a bolt of flame at the target.  The bolt does 110-180 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 2746,
+    "desc": "Shoots a shock wave at the target. The wave does 15-30 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2747,
+    "desc": "Shoots a shock wave at the target. The wave does 25-50 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2748,
+    "desc": "Shoots a shock wave at the target. The wave does 40-80 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2749,
+    "desc": "Shoots a shock wave at the target. The wave does 50-100 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2750,
+    "desc": "Shoots a shock wave at the target. The wave does 65-130 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2751,
+    "desc": "Shoots a shock wave at the target. The wave does 80-160 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2752,
+    "desc": "Shoots a shock wave at the target. The wave does 110-180 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 2753,
+    "desc": "Shoots a magical blade at the target. The bolt does 15-30 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2754,
+    "desc": "Shoots a magical blade at the target. The bolt does 25-50 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2755,
+    "desc": "Shoots a magical blade at the target. The bolt does 40-80 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2756,
+    "desc": "Shoots a magical blade at the target. The bolt does 50-100 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2757,
+    "desc": "Shoots a magical blade at the target. The bolt does 65-130 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2758,
+    "desc": "Shoots a magical blade at the target. The bolt does 80-160 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2759,
+    "desc": "Shoots a magical blade at the target. The bolt does 110-180 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 2949,
+    "formula": [
+      6,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 2963,
+    "name": "Cunning of the Hunter",
+    "formula": [
+      2,
+      16,
+      36,
+      48,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 2964,
+    "name": "Mark of the Hunter",
+    "formula": [
+      2,
+      16,
+      36,
+      46,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 2965,
+    "name": "Murderous Intent",
+    "formula": [
+      112,
+      73,
+      8,
+      74,
+      36,
+      39,
+      68,
+      57
+    ],
+    "nonComponentTargetType": 3013615
+  },
+  {
+    "id": 2966,
+    "name": "Murderous Thirst",
+    "formula": [
+      2,
+      16,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 2967,
+    "name": "Speed of the Hunter",
+    "formula": [
+      2,
+      16,
+      36,
+      45,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 3011,
+    "desc": "Increases the target\u0027s Crossbow Skill by 8 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 3012,
+    "desc": "Increases the target\u0027s Bow Skill by 8 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 3016,
+    "desc": "Increases the target\u0027s Thrown Weapons Skill by 8 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 3217,
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 8 points.",
+    "icon": 100668267,
+    "category": "ExtraThrownWeaponsSkillRaising"
+  },
+  {
+    "id": 3218,
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 12 points.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising"
+  },
+  {
+    "id": 3219,
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 4 points.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising"
+  },
+  {
+    "id": 3220,
+    "desc": "Increases the target\u0027s Bow skill by 8 points."
+  },
+  {
+    "id": 3221,
+    "desc": "Increases the target\u0027s Bow skill by 12 points."
+  },
+  {
+    "id": 3222,
+    "desc": "Increases the target\u0027s Bow skill by 4 points."
+  },
+  {
+    "id": 3223,
+    "desc": "Increases the target\u0027s Mana Conversion skill by 8 points."
+  },
+  {
+    "id": 3224,
+    "desc": "Increases the target\u0027s Mana Conversion skill by 12 points."
+  },
+  {
+    "id": 3225,
+    "desc": "Increases the target\u0027s Mana Conversion skill by 4 points."
+  },
+  {
+    "id": 3226,
+    "desc": "Increases the target\u0027s Sword skill by 8 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 3227,
+    "desc": "Increases the target\u0027s Sword skill by 12 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 3228,
+    "desc": "Increases the target\u0027s Sword skill by 4 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 3229,
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 8 points.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising",
+    "baseMana": 30,
+    "componentLoss": 0.1
+  },
+  {
+    "id": 3230,
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 12 points.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising",
+    "baseMana": 30,
+    "componentLoss": 0.1
+  },
+  {
+    "id": 3231,
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 4 points.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising",
+    "baseMana": 30,
+    "componentLoss": 0.1
+  },
+  {
+    "id": 3232,
+    "desc": "Increases the target\u0027s Crossbow skill by 8 points.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising"
+  },
+  {
+    "id": 3233,
+    "desc": "Increases the target\u0027s CrossBow skill by 12 points.",
+    "icon": 100668267
+  },
+  {
+    "id": 3234,
+    "desc": "Increases the target\u0027s Crossbow skill by 4 points.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising"
+  },
+  {
+    "id": 3253,
+    "name": "Spirit Drinker I",
+    "bitfield": 6,
+    "formula": [
+      1,
+      7,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 3254,
+    "name": "Spirit Drinker II",
+    "bitfield": 6,
+    "formula": [
+      2,
+      71,
+      7,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 3255,
+    "name": "Spirit Drinker III",
+    "bitfield": 6,
+    "formula": [
+      3,
+      72,
+      7,
+      66,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 3256,
+    "name": "Spirit Drinker IV",
+    "bitfield": 6,
+    "formula": [
+      4,
+      63,
+      7,
+      68,
+      36,
+      43,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 3257,
+    "name": "Spirit Drinker V",
+    "bitfield": 6,
+    "formula": [
+      5,
+      64,
+      7,
+      69,
+      36,
+      43,
+      71,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 3258,
+    "name": "Spirit Drinker VI",
+    "bitfield": 6,
+    "formula": [
+      6,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 3259,
+    "name": "Infected Spirit Caress",
+    "bitfield": 134,
+    "formula": [
+      112,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 3636,
+    "name": "Axeman\u0027s Boon",
+    "desc": "Increases the target\u0027s Axe skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668265
+  },
+  {
+    "id": 3637,
+    "name": "Bowman\u0027s Boon",
+    "desc": "Increases the target\u0027s Bow skill by 2 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 3638,
+    "name": "Chucker\u0027s Boon",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising2"
+  },
+  {
+    "id": 3639,
+    "name": "Crossbowman\u0027s Boon",
+    "desc": "Increases the target\u0027s Crossbow skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising2"
+  },
+  {
+    "id": 3642,
+    "name": "Knifer\u0027s Boon",
+    "desc": "Increases the target\u0027s Dagger skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668269
+  },
+  {
+    "id": 3644,
+    "name": "Macer\u0027s Boon",
+    "desc": "Increases the target\u0027s Mace skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising2"
+  },
+  {
+    "id": 3645,
+    "name": "Pugilist\u0027s Boon",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising2"
+  },
+  {
+    "id": 3646,
+    "name": "Spearman\u0027s Boon",
+    "desc": "Increases the target\u0027s Spear skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising2"
+  },
+  {
+    "id": 3647,
+    "name": "Staffer\u0027s Boon",
+    "desc": "Increases the target\u0027s Staff skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising2"
+  },
+  {
+    "id": 3648,
+    "name": "Swordsman\u0027s Boon",
+    "desc": "Increases the target\u0027s Sword skill by 2 points. Additional spells can be layered over this.",
+    "icon": 100668302
+  },
+  {
+    "id": 3653,
+    "desc": "Shoots three streams of acid toward the target. Each stream does 11-20 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 3655,
+    "desc": "Shoots three streams of acid toward the target. Each stream does 8-15 points of acid damage to the first thing it hits."
+  },
+  {
+    "id": 3656,
+    "desc": "Shoots three whirling blades outward from the caster. Each blade does 10-20 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 3657,
+    "desc": "Shoots three whirling blades outward from the caster. Each blade does 16-32 points of slashing damage to the first thing it hits."
+  },
+  {
+    "id": 3658,
+    "desc": "Shoots three whirling blades toward the target. Each blade does 5-10 points of Slashing damage to the first thing it hits."
+  },
+  {
+    "id": 3659,
+    "desc": "Shoots three whirling blades toward the target. Each blade does 8-20 points of Slashing damage to the first thing it hits."
+  },
+  {
+    "id": 3660,
+    "desc": "Shoots three shock waves toward the target. Each wave does 4-8 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 3661,
+    "desc": "Shoots three shock waves toward the target. Each wave does 8-15 points of bludgeoning damage to the first thing it hits."
+  },
+  {
+    "id": 3662,
+    "desc": "Shoots three bolts of flame toward the target: one dead ahead,"
+  },
+  {
+    "id": 3663,
+    "desc": "Shoots three bolts of flame toward the target. Each bolt does 10-20 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 3664,
+    "desc": "Shoots three bolts of flame toward the target. Each bolt does 16-32 points of fire damage to the first thing it hits."
+  },
+  {
+    "id": 3665,
+    "desc": "Shoots three force bolts outward from the caster. Each bolt does 10-20 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 3666,
+    "desc": "Shoots three force bolts outward from the caster. Each bolt does 16-32 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 3667,
+    "desc": "Shoots three bolts of force toward the target. Each bolt does 10-20 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 3668,
+    "desc": "Shoots three bolts of force toward the target. Each bolt does 16-32 points of piercing damage to the first thing it hits."
+  },
+  {
+    "id": 3669,
+    "desc": "Shoots three bolts of frost outward from the caster. Each bolt does 10-20 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 3670,
+    "desc": "Shoots three bolts of frost outward from the caster. Each bolt does 16-32 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 3671,
+    "desc": "Shoots three bolts of frost toward the target. Each bolt does 10-20 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 3672,
+    "desc": "Shoots three bolts of frost toward the target. Each bolt does 16-32 points of cold damage to the first thing it hits."
+  },
+  {
+    "id": 3673,
+    "desc": "Shoots three bolts of lightning outward from the caster. Each bolt does 10-20 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 3674,
+    "desc": "Shoots three bolts of lightning outward from the caster. Each bolt does 16-32 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 3675,
+    "desc": "Shoots three bolts of lightning toward the target. Each bolt does 10-20 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 3676,
+    "desc": "Shoots three bolts of lightning toward the target. Each bolt does 16-32 points of electric damage to the first thing it hits."
+  },
+  {
+    "id": 3677,
+    "desc": "Shoots three shock waves outward from the caster. Each wave does 10-20 points of damage to the first thing it hits."
+  },
+  {
+    "id": 3678,
+    "desc": "Shoots three shock waves outward from the caster. Each wave does 16-32 points of damage to the first thing it hits."
+  },
+  {
+    "id": 3685,
+    "name": "Prodigal Axe Mastery",
+    "desc": "Increases the caster\u0027s Axe skill by 250 points."
+  },
+  {
+    "id": 3691,
+    "name": "Prodigal Bow Mastery",
+    "desc": "Increases the caster\u0027s Bow skill by 250 points."
+  },
+  {
+    "id": 3696,
+    "name": "Prodigal Crossbow Mastery",
+    "desc": "Increases the caster\u0027s Crossbow skill by 250 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaisingRare"
+  },
+  {
+    "id": 3697,
+    "name": "Prodigal Dagger Mastery",
+    "desc": "Increases the caster\u0027s Dagger skill by 250 points."
+  },
+  {
+    "id": 3721,
+    "name": "Prodigal Mace Mastery",
+    "desc": "Increases the caster\u0027s Mace skill by 250 points.",
+    "icon": 100668287,
+    "category": "MaceRaisingRare"
+  },
+  {
+    "id": 3734,
+    "name": "Prodigal Spear Mastery",
+    "desc": "Increases the caster\u0027s Spear skill by 250 points.",
+    "icon": 100668297,
+    "category": "SpearRaisingRare"
+  },
+  {
+    "id": 3737,
+    "name": "Prodigal Staff Mastery",
+    "desc": "Increases the caster\u0027s Staff skill by 250 points.",
+    "icon": 100668298,
+    "category": "StaffRaisingRare"
+  },
+  {
+    "id": 3740,
+    "name": "Prodigal Sword Mastery",
+    "desc": "Increases the caster\u0027s Sword skill by 250 points."
+  },
+  {
+    "id": 3741,
+    "name": "Prodigal Thrown Weapon Mastery",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 250 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaisingRare"
+  },
+  {
+    "id": 3742,
+    "name": "Prodigal Unarmed Combat Mastery",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 250 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaisingRare"
+  },
+  {
+    "id": 3803,
+    "desc": "Increases the target\u0027s Bow skill by 3 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 4131,
+    "name": "Spectral Axe Mastery",
+    "desc": "Increases the caster\u0027s Axe skill by 150 points for 9 minutes."
+  },
+  {
+    "id": 4133,
+    "name": "Spectral Bow Mastery",
+    "desc": "Increases the caster\u0027s Bow skill by 150 points for 9 minutes"
+  },
+  {
+    "id": 4134,
+    "name": "Spectral Crossbow Mastery",
+    "desc": "Increases the caster\u0027s Crossbow skill by 150 points for 9 minutes.",
+    "icon": 100668267,
+    "category": "CrossbowRaisingRare"
+  },
+  {
+    "id": 4135,
+    "name": "Spectral Dagger Mastery",
+    "desc": "Increases the caster\u0027s Dagger skill by 150 points for 9 minutes."
+  },
+  {
+    "id": 4136,
+    "name": "Spectral Mace Mastery",
+    "desc": "Increases the caster\u0027s Mace skill by 150 points for 9 minutes.",
+    "icon": 100668287,
+    "category": "MaceRaisingRare"
+  },
+  {
+    "id": 4137,
+    "name": "Spectral Spear Mastery",
+    "desc": "Increases the caster\u0027s Spear skill by 150 points for 9 minutes.",
+    "icon": 100668297,
+    "category": "SpearRaisingRare"
+  },
+  {
+    "id": 4138,
+    "name": "Spectral Staff Mastery",
+    "desc": "Increases the caster\u0027s Staff skill by 150 points for 9 minutes.",
+    "icon": 100668298,
+    "category": "StaffRaisingRare"
+  },
+  {
+    "id": 4139,
+    "name": "Spectral Sword Mastery",
+    "desc": "Increases the caster\u0027s Sword skill by 150 points for 9 minutes."
+  },
+  {
+    "id": 4140,
+    "name": "Spectral Thrown Weapon Mastery",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 150 points for 9 minutes.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaisingRare"
+  },
+  {
+    "id": 4141,
+    "name": "Spectral Unarmed Combat Mastery",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 150 points for 9 minutes.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaisingRare"
+  },
+  {
+    "id": 4395,
+    "name": "Incantation of Blood Drinker",
+    "bitfield": 134,
+    "formula": [
+      193,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 4400,
+    "name": "Incantation of Defender",
+    "desc": "Increases the Melee Defense skill modifier of a weapon or magic caster by 17%.",
+    "bitfield": 134,
+    "formula": [
+      193,
+      66,
+      7,
+      63,
+      36,
+      46,
+      74,
+      57
+    ],
+    "nonComponentTargetType": 33025
+  },
+  {
+    "id": 4405,
+    "name": "Incantation of Heart Seeker",
+    "bitfield": 134,
+    "formula": [
+      193,
+      68,
+      7,
+      67,
+      36,
+      48,
+      64,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 4414,
+    "name": "Incantation of Spirit Drinker",
+    "bitfield": 134,
+    "formula": [
+      193,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 4417,
+    "name": "Incantation of Swift Killer",
+    "bitfield": 134,
+    "formula": [
+      193,
+      65,
+      7,
+      73,
+      36,
+      45,
+      73,
+      57
+    ],
+    "nonComponentTargetType": 257
+  },
+  {
+    "id": 4418,
+    "name": "Incantation of Hermetic Link",
+    "bitfield": 134,
+    "formula": [
+      193,
+      73,
+      8,
+      74,
+      36,
+      39,
+      68,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 4515,
+    "name": "Incantation of Axe Ineptitude Other",
+    "desc": "Decreases the target\u0027s Axe skill by 45 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 4516,
+    "name": "Incantation of Axe Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Axe skill by 45 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 4517,
+    "name": "Incantation of Axe Mastery Other",
+    "desc": "Increases the target\u0027s Axe skill by 45 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 4518,
+    "name": "Incantation of Axe Mastery Self",
+    "desc": "Increases the caster\u0027s Axe skill by 45 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 4519,
+    "name": "Incantation of Bow Ineptitude Other",
+    "desc": "Decreases the target\u0027s Bow skill by 45 points."
+  },
+  {
+    "id": 4520,
+    "name": "Incantation of Bow Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Bow skill by 45 points."
+  },
+  {
+    "id": 4521,
+    "name": "Incantation of Bow Mastery Other",
+    "desc": "Increases the target\u0027s Bow skill by 45 points."
+  },
+  {
+    "id": 4522,
+    "name": "Incantation of Bow Mastery Self",
+    "desc": "Increases the caster\u0027s Bow skill by 45 points."
+  },
+  {
+    "id": 4531,
+    "name": "Incantation of Crossbow Ineptitude Other",
+    "desc": "Decreases the target\u0027s Crossbow skill by 45 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 4532,
+    "name": "Incantation of Crossbow Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Crossbow skill by 45 points.",
+    "icon": 100668267,
+    "category": "CrossbowLowering"
+  },
+  {
+    "id": 4533,
+    "name": "Incantation of Crossbow Mastery Other",
+    "desc": "Increases the target\u0027s Crossbow skill by 45 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 4534,
+    "name": "Incantation of Crossbow Mastery Self",
+    "desc": "Increases the caster\u0027s Crossbow skill by 45 points.",
+    "icon": 100668267,
+    "category": "CrossbowRaising"
+  },
+  {
+    "id": 4535,
+    "name": "Incantation of Dagger Ineptitude Other",
+    "desc": "Decreases the target\u0027s Dagger skill by 45 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 4536,
+    "name": "Incantation of Dagger Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Dagger skill by 45 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 4537,
+    "name": "Incantation of Dagger Mastery Other",
+    "desc": "Increases the target\u0027s Dagger skill by 45 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 4538,
+    "name": "Incantation of Dagger Mastery Self",
+    "desc": "Increases the caster\u0027s Dagger skill by 45 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 4587,
+    "name": "Incantation of Mace Ineptitude Other",
+    "desc": "Decreases the target\u0027s Mace skill by 45 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 4588,
+    "name": "Incantation of Mace Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Mace skill by 45 points.",
+    "icon": 100668287,
+    "category": "MaceLowering"
+  },
+  {
+    "id": 4589,
+    "name": "Incantation of Mace Mastery Other",
+    "desc": "Increases the target\u0027s Mace skill by 45 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 4590,
+    "name": "Incantation of Mace Mastery Self",
+    "desc": "Increases the caster\u0027s Mace skill by 45 points.",
+    "icon": 100668287,
+    "category": "MaceRaising"
+  },
+  {
+    "id": 4611,
+    "name": "Incantation of Spear Ineptitude Other",
+    "desc": "Decreases the target\u0027s Spear skill by 45 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 4612,
+    "name": "Incantation of Spear Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Spear skill by 45 points.",
+    "icon": 100668297,
+    "category": "SpearLowering"
+  },
+  {
+    "id": 4613,
+    "name": "Incantation of Spear Mastery Other",
+    "desc": "Increases the target\u0027s Spear skill by 45 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 4614,
+    "name": "Incantation of Spear Mastery Self",
+    "desc": "Increases the caster\u0027s Spear skill by 45 points.",
+    "icon": 100668297,
+    "category": "SpearRaising"
+  },
+  {
+    "id": 4617,
+    "name": "Incantation of Staff Ineptitude Other",
+    "desc": "Decreases the target\u0027s Staff skill by 45 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 4618,
+    "name": "Incantation of Staff Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Staff skill by 45 points.",
+    "icon": 100668298,
+    "category": "StaffLowering"
+  },
+  {
+    "id": 4619,
+    "name": "Incantation of Staff Mastery Other",
+    "desc": "Increases the target\u0027s Staff skill by 45 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 4620,
+    "name": "Incantation of Staff Mastery Self",
+    "desc": "Increases the caster\u0027s Staff skill by 45 points.",
+    "icon": 100668298,
+    "category": "StaffRaising"
+  },
+  {
+    "id": 4621,
+    "name": "Incantation of Sword Ineptitude Other",
+    "desc": "Decreases the target\u0027s Sword skill by 45 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 4622,
+    "name": "Incantation of Sword Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Sword skill by 45 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 4623,
+    "name": "Incantation of Sword Mastery Other",
+    "desc": "Increases the target\u0027s Sword skill by 45 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 4624,
+    "name": "Incantation of Sword Mastery Self",
+    "desc": "Increases the caster\u0027s Sword skill by 45 points.",
+    "icon": 100668302
+  },
+  {
+    "id": 4625,
+    "name": "Incantation of Thrown Weapons Ineptitude Other",
+    "desc": "Decreases the target\u0027s Thrown Weapons skill by 45 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 4626,
+    "name": "Incantation of Thrown Weapons Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Thrown Weapons skill by 45 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsLowering"
+  },
+  {
+    "id": 4627,
+    "name": "Incantation of Thrown Weapons Mastery Other",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 45 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 4628,
+    "name": "Incantation of Thrown Weapons Mastery Self",
+    "desc": "Increases the caster\u0027s Thrown Weapons skill by 45 points.",
+    "icon": 100668303,
+    "category": "ThrownWeaponsRaising"
+  },
+  {
+    "id": 4629,
+    "name": "Incantation of Unarmed Combat Ineptitude Other",
+    "desc": "Decreases the target\u0027s Unarmed Combat skill by 45 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 4630,
+    "name": "Incantation of Unarmed Combat Mastery Other",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 45 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 4631,
+    "name": "Incantation of Unarmed Combat Mastery Self",
+    "desc": "Increases the caster\u0027s Unarmed Combat skill by 45 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatRaising"
+  },
+  {
+    "id": 4632,
+    "name": "Incantation of Unarmed Combat Ineptitude Self",
+    "desc": "Decreases the caster\u0027s Unarmed Combat skill by 45 points.",
+    "icon": 100668274,
+    "category": "UnarmedCombatLowering"
+  },
+  {
+    "id": 4686,
+    "name": "Epic Axe Aptitude",
+    "desc": "Increases the target\u0027s Axe skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668265
+  },
+  {
+    "id": 4687,
+    "name": "Epic Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 20 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 4690,
+    "name": "Epic Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising"
+  },
+  {
+    "id": 4691,
+    "name": "Epic Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668269
+  },
+  {
+    "id": 4702,
+    "name": "Epic Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising"
+  },
+  {
+    "id": 4709,
+    "name": "Epic Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising"
+  },
+  {
+    "id": 4711,
+    "name": "Epic Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising"
+  },
+  {
+    "id": 4712,
+    "name": "Epic Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668302
+  },
+  {
+    "id": 4713,
+    "name": "Epic Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising"
+  },
+  {
+    "id": 4714,
+    "name": "Epic Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 20 points. Additional spells can be layered over this.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising"
+  },
+  {
+    "id": 4796,
+    "name": "Novice Soldier\u0027s Axe Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 3 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 4797,
+    "name": "Apprentice Soldier\u0027s Axe Aptitude",
+    "desc": "Increases the target\u0027s Axe skill by 5 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 4798,
+    "name": "Journeyman Soldier\u0027s Axe Aptitude",
+    "desc": "Increases the target\u0027s Axe skill by 10 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 4799,
+    "name": "Master Soldier\u0027s Axe Aptitude",
+    "desc": "Increases the target\u0027s Axe skill by 20 points.",
+    "icon": 100668265
+  },
+  {
+    "id": 4800,
+    "name": "Novice Archer\u0027s Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 3 points."
+  },
+  {
+    "id": 4801,
+    "name": "Apprentice Archer\u0027s Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 5 points."
+  },
+  {
+    "id": 4802,
+    "name": "Journeyman Archer\u0027s Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 10 points."
+  },
+  {
+    "id": 4803,
+    "name": "Master Archer\u0027s Bow Aptitude",
+    "desc": "Increases the target\u0027s Bow skill by 20 points."
+  },
+  {
+    "id": 4812,
+    "name": "Novice Archer\u0027s Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 3 points.",
+    "icon": 100668267,
+    "category": "SetCrossbowRaising"
+  },
+  {
+    "id": 4813,
+    "name": "Apprentice Archer\u0027s Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 5 points.",
+    "icon": 100668267,
+    "category": "SetCrossbowRaising"
+  },
+  {
+    "id": 4814,
+    "name": "Journeyman Archer\u0027s Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 10 points.",
+    "icon": 100668267,
+    "category": "SetCrossbowRaising"
+  },
+  {
+    "id": 4815,
+    "name": "Master Archer\u0027s Crossbow Aptitude",
+    "desc": "Increases the target\u0027s Crossbow skill by 20 points.",
+    "icon": 100668267,
+    "category": "SetCrossbowRaising"
+  },
+  {
+    "id": 4816,
+    "name": "Novice Soldier\u0027s Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 3 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 4817,
+    "name": "Apprentice Soldier\u0027s Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 5 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 4818,
+    "name": "Journeyman Soldier\u0027s Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 10 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 4819,
+    "name": "Master Soldier\u0027s Dagger Aptitude",
+    "desc": "Increases the target\u0027s Dagger skill by 20 points.",
+    "icon": 100668269
+  },
+  {
+    "id": 4846,
+    "name": "Novice Soldier\u0027s Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 3 points.",
+    "icon": 100668287,
+    "category": "SetMaceRaising"
+  },
+  {
+    "id": 4847,
+    "name": "Apprentice Soldier\u0027s Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 5 points.",
+    "icon": 100668287,
+    "category": "SetMaceRaising"
+  },
+  {
+    "id": 4848,
+    "name": "Journeyman Soldier\u0027s Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 10 points.",
+    "icon": 100668287,
+    "category": "SetMaceRaising"
+  },
+  {
+    "id": 4849,
+    "name": "Master Soldier\u0027s Mace Aptitude",
+    "desc": "Increases the target\u0027s Mace skill by 20 points.",
+    "icon": 100668287,
+    "category": "SetMaceRaising"
+  },
+  {
+    "id": 4868,
+    "name": "Novice Soldier\u0027s Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 3 points.",
+    "icon": 100668297,
+    "category": "SetSpearRaising"
+  },
+  {
+    "id": 4869,
+    "name": "Apprentice Soldier\u0027s Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 5 points.",
+    "icon": 100668297,
+    "category": "SetSpearRaising"
+  },
+  {
+    "id": 4870,
+    "name": "Journeyman Soldier\u0027s Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 10 points.",
+    "icon": 100668297,
+    "category": "SetSpearRaising"
+  },
+  {
+    "id": 4871,
+    "name": "Master Soldier\u0027s Spear Aptitude",
+    "desc": "Increases the target\u0027s Spear skill by 20 points.",
+    "icon": 100668297,
+    "category": "SetSpearRaising"
+  },
+  {
+    "id": 4876,
+    "name": "Novice Soldier\u0027s Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 3 points.",
+    "icon": 100668298,
+    "category": "SetStaffRaising"
+  },
+  {
+    "id": 4877,
+    "name": "Apprentice Soldier\u0027s Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 5 points.",
+    "icon": 100668298,
+    "category": "SetStaffRaising"
+  },
+  {
+    "id": 4878,
+    "name": "Journeyman Soldier\u0027s Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 10 points.",
+    "icon": 100668298,
+    "category": "SetStaffRaising"
+  },
+  {
+    "id": 4879,
+    "name": "Master Soldier\u0027s Staff Aptitude",
+    "desc": "Increases the target\u0027s Staff skill by 20 points.",
+    "icon": 100668298,
+    "category": "SetStaffRaising"
+  },
+  {
+    "id": 4880,
+    "name": "Novice Soldier\u0027s Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 3 points."
+  },
+  {
+    "id": 4881,
+    "name": "Apprentice Soldier\u0027s Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 5 points."
+  },
+  {
+    "id": 4882,
+    "name": "Journeyman Soldier\u0027s Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 10 points."
+  },
+  {
+    "id": 4883,
+    "name": "Master Soldier\u0027s Sword Aptitude",
+    "desc": "Increases the target\u0027s Sword skill by 20 points."
+  },
+  {
+    "id": 4884,
+    "name": "Novice Archer\u0027s Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapon skill by 3 points.",
+    "icon": 100668303,
+    "category": "SetThrownRaising"
+  },
+  {
+    "id": 4885,
+    "name": "Apprentice Archer\u0027s Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapon skill by 5 points.",
+    "icon": 100668303,
+    "category": "SetThrownRaising"
+  },
+  {
+    "id": 4886,
+    "name": "Journeyman Archer\u0027s Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapon skill by 10 points.",
+    "icon": 100668303,
+    "category": "SetThrownRaising"
+  },
+  {
+    "id": 4887,
+    "name": "Master Archer\u0027s Thrown Aptitude",
+    "desc": "Increases the target\u0027s Thrown Weapon skill by 20 points.",
+    "icon": 100668303,
+    "category": "SetThrownRaising"
+  },
+  {
+    "id": 4888,
+    "name": "Novice Soldier\u0027s Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 3 points.",
+    "icon": 100668274,
+    "category": "SetUnarmedRaising"
+  },
+  {
+    "id": 4889,
+    "name": "Apprentice Soldier\u0027s Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combatskill by 5 points.",
+    "icon": 100668274,
+    "category": "SetUnarmedRaising"
+  },
+  {
+    "id": 4890,
+    "name": "Journeyman Soldier\u0027s Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 10 points.",
+    "icon": 100668274,
+    "category": "SetUnarmedRaising"
+  },
+  {
+    "id": 4891,
+    "name": "Master Soldier\u0027s Unarmed Aptitude",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 20 points.",
+    "icon": 100668274,
+    "category": "SetUnarmedRaising"
+  },
+  {
+    "id": 4968,
+    "name": "Bowman\u0027s Boon",
+    "desc": "Increases the target\u0027s Bow skill by 15 points. Additional spells can be layered over this."
+  },
+  {
+    "id": 4969,
+    "name": "Chucker\u0027s Boon",
+    "desc": "Increases the target\u0027s Thrown Weapons skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668303,
+    "category": "ExtraThrownWeaponsSkillRaising2"
+  },
+  {
+    "id": 4970,
+    "name": "Crossbowman\u0027s Boon",
+    "desc": "Increases the target\u0027s Crossbow skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668267,
+    "category": "ExtraCrossbowSkillRaising2"
+  },
+  {
+    "id": 4973,
+    "name": "Knifer\u0027s Boon",
+    "desc": "Increases the target\u0027s Dagger skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668269
+  },
+  {
+    "id": 4975,
+    "name": "Macer\u0027s Boon",
+    "desc": "Increases the target\u0027s Mace skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668287,
+    "category": "CascadeMaceRaising2"
+  },
+  {
+    "id": 4976,
+    "name": "Pugilist\u0027s Boon",
+    "desc": "Increases the target\u0027s Unarmed Combat skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668274,
+    "category": "ExtraUnarmedCombatSkillRaising2"
+  },
+  {
+    "id": 4977,
+    "name": "Spearman\u0027s Boon",
+    "desc": "Increases the target\u0027s Spear skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668297,
+    "category": "CascadeSpearRaising2"
+  },
+  {
+    "id": 4978,
+    "name": "Staffer\u0027s Boon",
+    "desc": "Increases the target\u0027s Staff skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668298,
+    "category": "CascadeStaffRaising2"
+  },
+  {
+    "id": 4979,
+    "name": "Swordsman\u0027s Boon",
+    "desc": "Increases the target\u0027s Sword skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668302
+  },
+  {
+    "id": 4980,
+    "name": "Axeman\u0027s Boon",
+    "desc": "Increases the target\u0027s Axe skill by 15 points. Additional spells can be layered over this.",
+    "icon": 100668265
+  },
+  {
+    "id": 5182,
+    "name": "Incantation of Spirit Drinker",
+    "desc": "Increases the elemental damage bonus of an elemental magic caster by 7%.",
+    "bitfield": 134,
+    "formula": [
+      193,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 32768
+  },
+  {
+    "id": 5183,
+    "name": "Incantation of Blood Drinker",
+    "desc": "Increases a weapon\u0027s damage value by 22 points.",
+    "bitfield": 134,
+    "formula": [
+      193,
+      65,
+      7,
+      70,
+      36,
+      43,
+      72,
+      57
+    ],
+    "nonComponentTargetType": 257
+  }
+]

@@ -14,4 +14,8 @@
     <ProjectReference Include="..\ACE.DatLoader\ACE.DatLoader.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Recipes\Data\*.json" LogicalName="Data/%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

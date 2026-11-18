@@ -30,5 +30,15 @@ namespace ACE.DatLoader.Entity
             unknown1 = reader.ReadByte();
             unknown2 = reader.ReadByte();
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(m_strToken);
+            writer.Write(StringId);
+            writer.Write(TableId);
+            writer.Write(m_Override);
+            writer.Write(unknown1);
+            writer.Write(unknown2);
+        }
     }
 }

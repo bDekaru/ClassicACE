@@ -15,22 +15,29 @@ namespace ACE.DatLoader.Entity
         public bool PassToChildren;
         public IncorporationFlags UiIncorporationFlags;
         public Dictionary<uint, BaseProperty> Properties = new Dictionary<uint, BaseProperty>();
+        public byte PropertiesBucketSize; // first byte of the packed table, kept so that a record is written back as it was read
         public List<MediaDesc> Media = new List<MediaDesc>();
 
-        public virtual void Unpack(BinaryReader reader)
+        public void Unpack(BinaryReader reader)
+        {
+            Unpack(reader, BaseProperty.DefaultTypeLookup);
+        }
+
+        /// <param name="typeLookup">Gives the property type of a property id (see <see cref="BaseProperty.DefaultTypeLookup"/>).</param>
+        public virtual void Unpack(BinaryReader reader, Func<uint, BasePropertyType> typeLookup)
         {
             StateId = reader.ReadUInt32();
             PassToChildren = reader.ReadBoolean();
             UiIncorporationFlags = (IncorporationFlags)reader.ReadUInt32();
 
-            reader.ReadByte();
+            PropertiesBucketSize = reader.ReadByte();
             var totalObjects = reader.ReadByte();
             for (int i = 0; i < totalObjects; i++)
             {
                 var key = reader.ReadUInt32();
 
                 var item = new BaseProperty();
-                item.Unpack(reader);
+                item.Unpack(reader, typeLookup);
                 Properties.Add(key, item);
             }
 
@@ -41,6 +48,25 @@ namespace ACE.DatLoader.Entity
                 item.Unpack(reader);
                 Media.Add(item);
             }
+        }
+
+        public virtual void Pack(BinaryWriter writer)
+        {
+            writer.Write(StateId);
+            writer.Write(PassToChildren);
+            writer.Write((uint)UiIncorporationFlags);
+
+            writer.Write(PropertiesBucketSize);
+            writer.Write((byte)Properties.Count);
+            foreach (var property in Properties)
+            {
+                writer.Write(property.Key);
+                property.Value.Pack(writer);
+            }
+
+            writer.Write((byte)Media.Count);
+            foreach (var media in Media)
+                media.Pack(writer);
         }
 
     }

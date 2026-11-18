@@ -8,7 +8,10 @@ namespace ACE.DatLoader.Entity
 {
     public class MediaDesc : IUnpackable
     {
-        public MediaType Type { get; private set; }
+        public MediaType Type { get; set; }
+
+        // The second UInt32 of every media item; it is the media type again in the records seen.
+        public uint TypeAgain;
 
         // We could break all these properties into MediaDesc inherted types...but as this is just for reference, this is easier.
         public string FileName;
@@ -38,7 +41,7 @@ namespace ACE.DatLoader.Entity
         {
             Type = (MediaType)reader.ReadUInt32();
 
-            reader.ReadUInt32(); // Type again, which is read in the MediaType below...
+            TypeAgain = reader.ReadUInt32();
             switch (Type)
             {
                 case MediaType.Movie:
@@ -91,6 +94,64 @@ namespace ACE.DatLoader.Entity
                     StartAlpha = reader.ReadSingle();
                     EndAlpha = reader.ReadSingle();
                     Duration = reader.ReadSingle();
+                    break;
+            }
+        }
+
+        public virtual void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)Type);
+            writer.Write(TypeAgain);
+
+            switch (Type)
+            {
+                case MediaType.Movie:
+                    writer.WritePString1(FileName);
+                    writer.Write(StretchToFullScreen);
+                    break;
+                case MediaType.Alpha:
+                    writer.Write(File);
+                    break;
+                case MediaType.Animation:
+                    writer.Write(Duration);
+                    writer.Write(DrawMode);
+                    writer.Write((uint)Frames.Count);
+                    foreach (var frame in Frames)
+                        writer.Write(frame);
+                    break;
+                case MediaType.Cursor:
+                    writer.Write(File);
+                    writer.Write(XHotspot);
+                    writer.Write(YHotspot);
+                    break;
+                case MediaType.Image:
+                    writer.Write(File);
+                    writer.Write(DrawMode);
+                    break;
+                case MediaType.Jump:
+                    writer.Write(JumpItemIndex);
+                    writer.Write(Probability);
+                    break;
+                case MediaType.Message:
+                    writer.Write(MessageId);
+                    writer.Write(Probability);
+                    break;
+                case MediaType.Pause:
+                    writer.Write(MinDuration);
+                    writer.Write(MaxDuration);
+                    break;
+                case MediaType.Sound:
+                    writer.Write(File);
+                    writer.Write(SType);
+                    break;
+                case MediaType.State:
+                    writer.Write(StateId);
+                    writer.Write(Probability);
+                    break;
+                case MediaType.Fade:
+                    writer.Write(StartAlpha);
+                    writer.Write(EndAlpha);
+                    writer.Write(Duration);
                     break;
             }
         }

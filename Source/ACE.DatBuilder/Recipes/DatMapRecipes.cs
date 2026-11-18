@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ACE.DatLoader
+using ACE.DatLoader;
+using ACE.DatLoader.FileTypes;
+
+namespace ACE.DatBuilder
 {
     /// <summary>The cell dats that map recipes take landblocks from.</summary>
     public enum DatMapSource

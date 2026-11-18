@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace ACE.DatLoader
+using ACE.DatLoader;
+using ACE.DatLoader.FileTypes;
+
+namespace ACE.DatBuilder
 {
     /// <summary>
     /// Records taken from a pre-ToD portal dat during a portal build: converted by <see cref="DatPortalImporter"/> and written before the overlay folders.
@@ -102,6 +105,15 @@ namespace ACE.DatLoader
             return this;
         }
 
+        /// <summary>Record steps (records made from other records by function calls), run after the pre-ToD import and before the overlay folders, in this order.</summary>
+        public DatRecordStep[] RecordSteps { get; private set; } = new DatRecordStep[0];
+
+        public DatBuildRecipe WithRecordSteps(params DatRecordStep[] steps)
+        {
+            RecordSteps = steps;
+            return this;
+        }
+
         public string Name { get; }
 
         /// <summary>True for a language dat recipe; its tables step writes the title strings instead of the portal tables.</summary>
@@ -145,7 +157,17 @@ namespace ACE.DatLoader
         {
             get
             {
-                var last = Steps.Length > 0 ? Steps[Steps.Length - 1].Time : DatStepDate.Parse(PreToDImport.Date);
+                var last = Releases.StartTime;
+
+                if (PreToDImport != null)
+                    last = Math.Max(last, DatStepDate.Parse(PreToDImport.Date));
+
+                foreach (var step in RecordSteps)
+                    last = Math.Max(last, step.Time);
+
+                foreach (var step in Steps)
+                    last = Math.Max(last, step.Time);
+
                 return TablesDate != null ? Math.Max(last, TablesTime) : last;
             }
         }
@@ -164,6 +186,14 @@ namespace ACE.DatLoader
                     throw new InvalidDataException($"{Name}: the import step is dated {PreToDImport.Date}, before {Releases.StartDate}.");
 
                 previous = importTime;
+            }
+
+            foreach (var step in RecordSteps)
+            {
+                if (step.Time < previous)
+                    throw new InvalidDataException($"{Name}: record step '{step.Name}' is dated {step.Date}, earlier than the step before it (steps run in date order, none before {Releases.StartDate}).");
+
+                previous = step.Time;
             }
 
             foreach (var step in Steps)
@@ -239,7 +269,8 @@ namespace ACE.DatLoader
             .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage,
-            Initial("Language/Infiltration"));
+            Initial("Language/Infiltration"))
+            .WithRecordSteps(LanguageRecords.Infiltration(InitialVersionDate));
 
         public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
             Initial("Portal/CustomDM"),
@@ -269,7 +300,8 @@ namespace ACE.DatLoader
             Initial("Portal/Infiltration"),
             Initial("Portal/Shared/Ground Textures"),
             Initial("Portal/Shared/Trees"))
-            .WithPreToDImport(RemovedContent());
+            .WithPreToDImport(RemovedContent())
+            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate));
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
 
