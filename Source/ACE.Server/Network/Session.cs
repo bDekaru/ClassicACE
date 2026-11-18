@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading;
@@ -73,7 +74,7 @@ namespace ACE.Server.Network
         /// <summary>
         /// Queue for data files missing at time of connection (Portal/Cell/Language DAT), and data files requested by client (Cell DAT)
         /// </summary>
-        private Queue<(uint DatFileId, DatDatabaseType DatDatabaseType)> dddDataQueue;
+        private readonly ConcurrentQueue<(uint DatFileId, DatDatabaseType DatDatabaseType)> dddDataQueue = new();
         /// <summary>
         /// The rate at which ProcessDDDQueue executes (and sends DDD patch data out to client)
         /// </summary>
@@ -360,9 +361,6 @@ namespace ACE.Server.Network
         /// </summary>
         public bool AddToDDDQueue(uint datFileId, DatDatabaseType datDatabaseType)
         {
-            if (dddDataQueue == null)
-                dddDataQueue = new();
-
             //Network.EnqueueSend(new GameMessageDDDDataMessage(datFileId, datDatabaseType);
             dddDataQueue.Enqueue((datFileId, datDatabaseType));
 
@@ -374,7 +372,7 @@ namespace ACE.Server.Network
         /// </summary>
         private void ProcessDDDQueue()
         {
-            if (dddDataQueue == null)
+            if (dddDataQueue.IsEmpty)
                 return;
 
             if (dddDataQueueRateLimiter.GetSecondsToWaitBeforeNextEvent() > 0)
@@ -391,7 +389,19 @@ namespace ACE.Server.Network
             if (success)
             {
                 //Console.WriteLine($"{Account}.ProcessDDDQueue: 0x{dataFile.DatFileId:X8}, {dataFile.DatDatabaseType}; Remaining in Queue: {dddDataQueue.Count}");
-                Network.EnqueueSend(new GameMessageDDDDataMessage(dataFile.DatFileId, dataFile.DatDatabaseType));
+                GameMessageDDDDataMessage message;
+
+                try
+                {
+                    message = new GameMessageDDDDataMessage(dataFile.DatFileId, dataFile.DatDatabaseType);
+                }
+                catch (Exception ex)
+                {
+                    log.Error($"[DDD] Session {Account}: the data message for 0x{dataFile.DatFileId:X8} ({dataFile.DatDatabaseType}) could not be built and was not sent; the client will not receive that file.", ex);
+                    return;
+                }
+
+                Network.EnqueueSend(message);
                 dddDataQueueRateLimiter.RegisterEvent();
             }
         }

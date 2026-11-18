@@ -48,13 +48,11 @@ namespace ACE.Server.Network.GameMessages.Messages
             var datFileContents = DDDManager.TryGetDatFileContentsForTransmission(datFileId, datDatabaseType, out var datFile, out var isCompressed);
 
             if (datFileContents == null)
-            {
-                // do something here?
-                return;
-            }
+                throw new InvalidOperationException($"{datDatabaseType} dat does not contain 0x{datFileId:X8}.");
 
             var fileId = datFile.ObjectId;
-            var fileType = datFile.GetFileType(datDatabaseType);
+            var fileType = datFile.GetFileType(datDatabaseType)
+                ?? throw new InvalidOperationException($"{datDatabaseType} dat file 0x{fileId:X8} has no known file type.");
 
             Writer.Write((uint)datFileType); // DatFileType
             Writer.Write((uint)datFileID); // DatFileID
