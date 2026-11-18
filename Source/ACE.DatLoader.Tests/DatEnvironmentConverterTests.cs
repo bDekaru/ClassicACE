@@ -11,7 +11,7 @@ namespace ACE.DatLoader.Tests
     {
         private static readonly string SourceDats = Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS") ?? @"D:\Programming\Asheron's Call\ACEmulator\Dats\Source";
 
-        private const string EoRPortal = "client_portal - EoR.dat";
+        private const string EoRPortal = "portal - 2017-01-29 - Iteration 2072 - EoR.dat";
         private const string PreToDPortalVariable = "ACE_TEST_PRETOD_PORTAL";
 
         [TestMethod]

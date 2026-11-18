@@ -49,6 +49,16 @@ namespace ACE.DatLoader.Tests
             return dat.GetReaderForFile(id).Buffer;
         }
 
+        private static byte[] CustomDMXpRecord()
+        {
+            return ShippedCustomDMPortalRecord(XpTableId);
+        }
+
+        private static byte[] CustomDMSkillRecord()
+        {
+            return ShippedCustomDMPortalRecord(SkillTableId);
+        }
+
         private static void AssertSameBytes(byte[] expected, byte[] actual)
         {
             var common = Math.Min(expected.Length, actual.Length);
@@ -81,9 +91,9 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void XpTable_PackEqualsRecord_CustomDMFile()
+        public void XpTable_PackEqualsRecord_ShippedCustomDMDat()
         {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"));
+            var bytes = CustomDMXpRecord();
 
             AssertSameBytes(bytes, UnpackXp(bytes).Pack());
         }
@@ -102,15 +112,15 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void XpTable_PackEqualsRecord_EoRDat()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", XpTableId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", XpTableId);
 
             AssertSameBytes(bytes, UnpackXp(bytes).Pack());
         }
 
         [TestMethod]
-        public void SkillTable_PackEqualsRecord_CustomDMFile()
+        public void SkillTable_PackEqualsRecord_ShippedCustomDMDat()
         {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
+            var bytes = CustomDMSkillRecord();
 
             AssertSameBytes(bytes, UnpackSkills(bytes).Pack());
         }
@@ -126,7 +136,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void SkillTable_PackEqualsRecord_EoRDat()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", SkillTableId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SkillTableId);
 
             AssertSameBytes(bytes, UnpackSkills(bytes).Pack());
         }
@@ -210,26 +220,37 @@ namespace ACE.DatLoader.Tests
             return DatTables.ToXpTable(DatTables.ToRows(UnpackXp(bytes))).Pack();
         }
 
-        [TestMethod]
-        public void SkillRows_RebuildTheRecord_CustomDMFile()
+        private static void AssertSkillsRebuiltInIdOrder(byte[] original, byte[] rebuilt)
         {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
+            var before = UnpackSkills(original);
+            var after = UnpackSkills(rebuilt);
 
-            AssertSameBytes(bytes, SkillBytesThroughRows(bytes));
+            Assert.AreEqual(DatTables.Hash(DatTables.ToRows(before)), DatTables.Hash(DatTables.ToRows(after)));
+            Assert.AreEqual(before.BucketSize, after.BucketSize);
+            Assert.AreEqual(original.Length, rebuilt.Length);
+            CollectionAssert.AreEqual(before.SkillBaseHash.Keys.OrderBy(k => k).ToArray(), after.SkillBaseHash.Keys.ToArray());
         }
 
         [TestMethod]
-        public void SkillRows_RebuildTheRecord_EoRDat()
+        public void SkillRows_RebuildTheRecordContentInIdOrder_ShippedCustomDMDat()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", SkillTableId);
+            var bytes = CustomDMSkillRecord();
 
-            AssertSameBytes(bytes, SkillBytesThroughRows(bytes));
+            AssertSkillsRebuiltInIdOrder(bytes, SkillBytesThroughRows(bytes));
         }
 
         [TestMethod]
-        public void XpRows_RebuildTheRecord_CustomDMFile()
+        public void SkillRows_RebuildTheRecordContentInIdOrder_EoRDat()
         {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"));
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SkillTableId);
+
+            AssertSkillsRebuiltInIdOrder(bytes, SkillBytesThroughRows(bytes));
+        }
+
+        [TestMethod]
+        public void XpRows_RebuildTheRecord_ShippedCustomDMDat()
+        {
+            var bytes = CustomDMXpRecord();
 
             AssertSameBytes(bytes, XpBytesThroughRows(bytes));
         }
@@ -237,7 +258,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void XpRows_RebuildTheRecord_EoRDat()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", XpTableId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", XpTableId);
 
             AssertSameBytes(bytes, XpBytesThroughRows(bytes));
         }
@@ -245,7 +266,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void SkillRows_WithoutBase_AreWrittenInIdOrder()
         {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
+            var bytes = CustomDMSkillRecord();
             var rows = DatTables.ToRows(UnpackSkills(bytes));
 
             var rebuilt = DatTables.ToSkillTable(rows.AsEnumerable().Reverse());
@@ -257,7 +278,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void SkillRows_ChangedValue_ChangesBytesAndHash()
         {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
+            var bytes = CustomDMSkillRecord();
             var table = UnpackSkills(bytes);
             var rows = DatTables.ToRows(table);
             var before = DatTables.Hash(rows);
@@ -273,7 +294,7 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void SkillRows_RemovedAndAddedSkills_KeepBaseOrderThenAppendNewInIdOrder()
+        public void SkillRows_RemovedAndAddedSkills_AreWrittenInIdOrderWhateverTheBaseOrder()
         {
             var table = new SkillTable();
             foreach (var id in new uint[] { 9, 2, 5 })
@@ -285,13 +306,13 @@ namespace ACE.DatLoader.Tests
 
             var rebuilt = DatTables.ToSkillTable(rows, table);
 
-            CollectionAssert.AreEqual(new uint[] { 9, 5, 3, 40 }, rebuilt.SkillBaseHash.Keys.ToArray());
+            CollectionAssert.AreEqual(new uint[] { 3, 5, 9, 40 }, rebuilt.SkillBaseHash.Keys.ToArray());
         }
 
         [TestMethod]
         public void XpRows_HashIsSameForRowsAndDecodedRecord()
         {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"));
+            var bytes = CustomDMXpRecord();
             var rows = DatTables.ToRows(UnpackXp(bytes));
             var rebuilt = DatTables.ToRows(DatTables.ToXpTable(rows));
 
@@ -327,12 +348,12 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void XpRows_MissingRankOrEmptyListIsRejected()
         {
-            var rows = DatTables.ToRows(UnpackXp(File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"))));
+            var rows = DatTables.ToRows(UnpackXp(CustomDMXpRecord()));
             rows.Vital.RemoveAt(10);
 
             Assert.ThrowsExactly<InvalidDataException>(() => DatTables.ToXpTable(rows));
 
-            rows = DatTables.ToRows(UnpackXp(File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"))));
+            rows = DatTables.ToRows(UnpackXp(CustomDMXpRecord()));
             rows.TrainedSkill.Clear();
 
             Assert.ThrowsExactly<InvalidDataException>(() => DatTables.ToXpTable(rows));
@@ -379,7 +400,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void SpellComponents_PackEqualsRecord_EoRDat()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", SpellComponentTableId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SpellComponentTableId);
 
             AssertSameBytes(bytes, UnpackComponents(bytes).Pack());
         }
@@ -429,7 +450,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void SpellTable_PackEqualsRecord_EoRDat()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", SpellTableId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SpellTableId);
 
             AssertSameBytes(bytes, UnpackSpells(bytes).Pack());
         }
@@ -445,7 +466,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void SpellTable_RenamedSpell_KeepsItsFormula()
         {
-            var table = UnpackSpells(PortalRecord("client_portal - EoR.dat", SpellTableId));
+            var table = UnpackSpells(PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SpellTableId));
             var spell = table.Spells.Values.First(s => s.Formula.Count == 8);
             var formula = spell.Formula.ToList();
 
@@ -465,26 +486,39 @@ namespace ACE.DatLoader.Tests
             return DatTables.ToSpellTable(DatTables.ToRows(table), DatTables.ToSetRows(table), table).Pack();
         }
 
-        [TestMethod]
-        public void SpellRows_RebuildTheRecord_EoRDat()
+        private static void AssertSpellsRebuiltInIdOrder(byte[] original, byte[] rebuilt)
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", SpellTableId);
+            var before = UnpackSpells(original);
+            var after = UnpackSpells(rebuilt);
 
-            AssertSameBytes(bytes, SpellBytesThroughRows(bytes));
+            Assert.AreEqual(DatTables.Hash(DatTables.ToRows(before), DatTables.ToSetRows(before)), DatTables.Hash(DatTables.ToRows(after), DatTables.ToSetRows(after)));
+            Assert.AreEqual(before.SpellBucketSize, after.SpellBucketSize);
+            Assert.AreEqual(before.SetBucketSize, after.SetBucketSize);
+            Assert.AreEqual(original.Length, rebuilt.Length);
+            CollectionAssert.AreEqual(before.Spells.Keys.OrderBy(k => k).ToArray(), after.Spells.Keys.ToArray());
+            CollectionAssert.AreEqual(before.SpellSet.Keys.OrderBy(k => k).ToArray(), after.SpellSet.Keys.ToArray());
         }
 
         [TestMethod]
-        public void SpellRows_RebuildTheRecord_ShippedCustomDMDat()
+        public void SpellRows_RebuildTheRecordContentInIdOrder_EoRDat()
+        {
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SpellTableId);
+
+            AssertSpellsRebuiltInIdOrder(bytes, SpellBytesThroughRows(bytes));
+        }
+
+        [TestMethod]
+        public void SpellRows_RebuildTheRecordContentInIdOrder_ShippedCustomDMDat()
         {
             var bytes = ShippedCustomDMPortalRecord(SpellTableId);
 
-            AssertSameBytes(bytes, SpellBytesThroughRows(bytes));
+            AssertSpellsRebuiltInIdOrder(bytes, SpellBytesThroughRows(bytes));
         }
 
         [TestMethod]
         public void SpellRows_ChangedFormulaAndName_SurviveTheRecordAndChangeTheHash()
         {
-            var table = UnpackSpells(PortalRecord("client_portal - EoR.dat", SpellTableId));
+            var table = UnpackSpells(PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SpellTableId));
             var rows = DatTables.ToRows(table);
             var sets = DatTables.ToSetRows(table);
             var before = DatTables.Hash(rows, sets);
@@ -549,7 +583,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void VitalTable_PackEqualsRecord_EoRDat()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", DatTableStep.VitalRecordId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", DatTableStep.VitalRecordId);
 
             AssertSameBytes(bytes, UnpackVitals(bytes).Pack());
         }
@@ -565,7 +599,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void VitalRows_RebuildTheRecord_EoRDat()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", DatTableStep.VitalRecordId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", DatTableStep.VitalRecordId);
 
             AssertSameBytes(bytes, DatTables.ToVitalTable(DatTables.ToRows(UnpackVitals(bytes))).Pack());
         }
@@ -581,7 +615,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void VitalRows_ChangedValue_ChangesBytesAndHash()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", DatTableStep.VitalRecordId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", DatTableStep.VitalRecordId);
             var rows = DatTables.ToRows(UnpackVitals(bytes));
             var before = DatTables.Hash(rows);
 
@@ -600,7 +634,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void VitalRows_MissingOrUnknownVital_IsRejected()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", DatTableStep.VitalRecordId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", DatTableStep.VitalRecordId);
             var rows = DatTables.ToRows(UnpackVitals(bytes));
 
             Assert.ThrowsExactly<InvalidDataException>(() => DatTables.ToVitalTable(rows.Take(2)));
@@ -610,7 +644,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void VitalInsertScript_WritesTheThreeFormulas()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", DatTableStep.VitalRecordId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", DatTableStep.VitalRecordId);
             var sql = DatTables.VitalInsertScript(DatTables.ToRows(UnpackVitals(bytes)));
 
             StringAssert.StartsWith(sql, "DELETE FROM `dat_vital`;");
@@ -621,9 +655,9 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void TableStep_VitalTable_WritesOnlyWhenChanged()
         {
-            var xp = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"));
-            var skills = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
-            var vitalBytes = PortalRecord("client_portal - EoR.dat", DatTableStep.VitalRecordId);
+            var xp = CustomDMXpRecord();
+            var skills = CustomDMSkillRecord();
+            var vitalBytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", DatTableStep.VitalRecordId);
             var path = TempDatWith(xp, skills);
 
             try
@@ -681,12 +715,12 @@ namespace ACE.DatLoader.Tests
 
         private static byte[] TitleMapperBytes(bool shipped)
         {
-            return shipped ? ShippedCustomDMPortalRecord(DatTables.TitleMapperId) : PortalRecord("client_portal - EoR.dat", DatTables.TitleMapperId);
+            return shipped ? ShippedCustomDMPortalRecord(DatTables.TitleMapperId) : PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", DatTables.TitleMapperId);
         }
 
         private static byte[] TitleStringBytes(bool shipped)
         {
-            return LanguageRecord(shipped ? "client_local_English.dat" : "client_local_English - EoR.dat", DatTableStep.TitleStringRecordId, shipped);
+            return LanguageRecord(shipped ? "client_local_English.dat" : "language - 2015-06-18 - Iteration 994 - EoR.dat", DatTableStep.TitleStringRecordId, shipped);
         }
 
         private static EnumMapper UnpackMapper(byte[] bytes)
@@ -829,11 +863,11 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void TableStep_Titles_PortalMapperAndLanguageStrings_WriteOnlyWhenChanged()
         {
-            var xp = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"));
-            var skills = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
+            var xp = CustomDMXpRecord();
+            var skills = CustomDMSkillRecord();
             var mapperBytes = TitleMapperBytes(false);
             var stringBytes = TitleStringBytes(false);
-            var languageTemplate = Path.Combine(SourceDats, "client_local_English - EoR.dat");
+            var languageTemplate = Path.Combine(SourceDats, "language - 2015-06-18 - Iteration 994 - EoR.dat");
             var portalPath = TempDatWith(xp, skills);
             var languagePath = Path.Combine(Path.GetTempPath(), $"DatTableStepTests-{Guid.NewGuid():N}.dat");
 
@@ -895,7 +929,7 @@ namespace ACE.DatLoader.Tests
 
         private static string TempDatWith(byte[] xp, byte[] skills)
         {
-            var template = Path.Combine(SourceDats, "client_portal - EoR.dat");
+            var template = Path.Combine(SourceDats, "portal - 2017-01-29 - Iteration 2072 - EoR.dat");
 
             if (!File.Exists(template))
                 Assert.Inconclusive($"Test dat not found: {template}");
@@ -915,8 +949,8 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void TableStep_UnchangedChangedAndMissingSource()
         {
-            var xp = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"));
-            var skills = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
+            var xp = CustomDMXpRecord();
+            var skills = SkillBytesThroughRows(CustomDMSkillRecord());
             var path = TempDatWith(xp, skills);
 
             try
@@ -952,10 +986,10 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void TableStep_SpellTables_WriteOnlyWhenChangedAndCheckComponents()
         {
-            var xp = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"));
-            var skills = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
-            var components = PortalRecord("client_portal - EoR.dat", SpellComponentTableId);
-            var spellBytes = PortalRecord("client_portal - EoR.dat", SpellTableId);
+            var xp = CustomDMXpRecord();
+            var skills = SkillBytesThroughRows(CustomDMSkillRecord());
+            var components = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SpellComponentTableId);
+            var spellBytes = SpellBytesThroughRows(PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", SpellTableId));
             var spellTable = UnpackSpells(spellBytes);
             var path = TempDatWith(xp, skills);
 
@@ -1024,7 +1058,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void CharGen_PackEqualsRecord_EoR()
         {
-            var bytes = PortalRecord("client_portal - EoR.dat", CharGenId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", CharGenId);
             AssertSameBytes(bytes, UnpackCharGen(bytes).Pack());
         }
 
@@ -1060,7 +1094,7 @@ namespace ACE.DatLoader.Tests
 
         private static List<uint> CustomDMSkillIds()
         {
-            return DatTables.ToRows(UnpackSkills(File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin")))).Select(s => s.Id).ToList();
+            return DatTables.ToRows(UnpackSkills(CustomDMSkillRecord())).Select(s => s.Id).ToList();
         }
 
         private static byte[] CustomDMChargenBytes()
@@ -1223,8 +1257,8 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void TableStep_Chargen_WritesOnlyWhenChanged()
         {
-            var xp = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000018 - XPTable.bin"));
-            var skills = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000004 - Skills Table.bin"));
+            var xp = CustomDMXpRecord();
+            var skills = CustomDMSkillRecord();
             var chargenBytes = CustomDMChargenBytes();
             var path = TempDatWith(xp, skills);
 

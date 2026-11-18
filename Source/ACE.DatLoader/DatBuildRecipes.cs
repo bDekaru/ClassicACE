@@ -124,8 +124,8 @@ namespace ACE.DatLoader
         /// <summary>Output subfolder name, e.g. CustomDM or Infiltration.</summary>
         public string Ruleset { get; }
 
-        /// <summary>The built dat's file name: the base dat's name without the " - EoR" suffix.</summary>
-        public string OutputFileName => BaseDat.Replace(" - EoR", "");
+        /// <summary>The built dat's file name: client_local_English.dat for a language recipe, client_portal.dat for a portal one (the source dats are named <kind> - <date> - Iteration N - X% - notes).</summary>
+        public string OutputFileName => IsLanguage ? "client_local_English.dat" : "client_portal.dat";
 
         /// <summary>Recipe name as typed on the command line, e.g. portal-customdm.</summary>
         public string Key => Name.Replace(' ', '-').ToLowerInvariant();
@@ -198,10 +198,16 @@ namespace ACE.DatLoader
     /// </summary>
     public static class DatBuildRecipes
     {
-        public const string LanguageBaseDat = "client_local_English - EoR.dat";
-        public const string PortalBaseDat = "client_portal - EoR.dat";
+        // Source dats used by the recipes (MD5 of the file as checked 2026-11-17).Donor cell dats are listed in DatMapSources.
+        // LanguageBaseDat: MD5 b55f7465dbf4fa94fc919d51afcb70da
+        // PortalBaseDat:   MD5 2c89662a44fcdc2a3c31fe8f6677d265
+        // PreToDPortalDat: MD5 304275cb743dc28f37410e06e91cb17c
+        // PreToDCellDat:   MD5 0f32588ffbf648cd0695a4dbd6488205
+        // ToDCellDat:      MD5 c1521ecd4dab4123df5467090742a45b
+        public const string LanguageBaseDat = "language - 2015-06-18 - Iteration 994 - EoR.dat";
+        public const string PortalBaseDat = "portal - 2017-01-29 - Iteration 2072 - EoR.dat";
 
-        public const string PreToDPortalDat = "portal - 2005-02 (Iteration 2112).dat";
+        public const string PreToDPortalDat = "portal - 2005-02-XX - Iteration 2112 - Infiltration.dat";
         public const string PreToDSurfaceMap = "surface_map_preToD_2005-02_to_ToD.tsv";
 
         // Environments and models of the landblocks whose content was removed in ToD (2459 2577 2677 287F), the EC0E objects, and the old models
@@ -267,8 +273,8 @@ namespace ACE.DatLoader
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
 
-        public const string PreToDCellDat = "cell - 2005-02-XX (202752kb) (Admin) (Iteration 1593 - Complete).dat";
-        public const string ToDCellDat = "client_cell_1 - ToD.dat";
+        public const string PreToDCellDat = "cell - 2005-02-XX - Iteration 1593 - 100% - Admin.dat";
+        public const string ToDCellDat = "cell - 2005-06-02 - Iteration 4 - 100% - Throne of Destiny.dat";
 
         public static readonly DatCellBuildRecipe CellCustomDM = new DatCellBuildRecipe("Cell CustomDM", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM, PreToDSurfaceMap, DatReleases.CustomDMCell, InitialVersionDate, DatMapRecipes.CustomDM);
 

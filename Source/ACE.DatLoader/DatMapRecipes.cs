@@ -22,15 +22,23 @@ namespace ACE.DatLoader
     /// </summary>
     public class DatMapSources
     {
+        // MD5 of each file as checked 2026-11-17.
         public static readonly IReadOnlyDictionary<DatMapSource, (string File, bool RetailLayout)> Files = new Dictionary<DatMapSource, (string, bool)>
         {
-            [DatMapSource.Release] = ("cell - Release.dat", true),
-            [DatMapSource.Arwic] = ("cell - 2000-08-22 (58368kb) (Complete,Ice Island, Shadow Spires) (Iteration 108 - Complete).dat", true),
-            [DatMapSource.Tufa] = ("cell - 2000-07-26 (Iteration 91 - 98.57%).dat", true),
-            [DatMapSource.DarkMajesty] = ("cell - 2002-03-08 (Iteration 1303 - Complete).dat", true),
-            [DatMapSource.ObsidianSpan] = ("cell - 2000-12-31 - Obsidian Span.dat", true),
-            [DatMapSource.ToD] = ("client_cell_1 - ToD.dat", false),
-            [DatMapSource.EoR] = ("client_cell_1 - EoR.dat", false),
+            // MD5 8e61b2b6dfae5bef16f3ef670a6869df
+            [DatMapSource.Release] = ("cell - 1999-10-09 - Iteration 67 - 100% - Release.dat", true),
+            // MD5 b6ef1f5b543c3e36854f3a06c38d4eb3
+            [DatMapSource.Arwic] = ("cell - 2000-08-22 - Iteration 108 - 100% - Ice Island, Shadow Spires.dat", true),
+            // MD5 09a0fa002834ec38ea4259e76efe4b6d
+            [DatMapSource.Tufa] = ("cell - 2000-07-26 - Iteration 91 - 98.57% - To Raise a Banner of Flame.dat", true),
+            // MD5 d562b297fe7c19dab545c3d57a5b1e16
+            [DatMapSource.DarkMajesty] = ("cell - 2002-03-08 - Iteration 1303 - 100% - Fever Dreams.dat", true),
+            // MD5 33dc182ab077525a3c1b1ca544dbb9b5
+            [DatMapSource.ObsidianSpan] = ("cell - 2000-12-31 - Iteration 279 - 100% - Obsidian Span.dat", true),
+            // MD5 c1521ecd4dab4123df5467090742a45b
+            [DatMapSource.ToD] = ("cell - 2005-06-02 - Iteration 4 - 100% - Throne of Destiny.dat", false),
+            // MD5 6401b73fd3842ffdb953339522a7331a
+            [DatMapSource.EoR] = ("cell - 2016-12-23 - Iteration 982 - 100% - EoR.dat", false),
         };
 
         private readonly string _sourceDats;

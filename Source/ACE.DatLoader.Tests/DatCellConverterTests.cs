@@ -12,8 +12,8 @@ namespace ACE.DatLoader.Tests
     {
         private static readonly string SourceDats = Environment.GetEnvironmentVariable("ACE_TEST_SOURCE_DATS") ?? @"D:\Programming\Asheron's Call\ACEmulator\Dats\Source";
 
-        private const string PreToDCell = "cell - 2005-02-XX (202752kb) (Admin) (Iteration 1593 - Complete).dat";
-        private const string ToDCell = "client_cell_1 - ToD.dat";
+        private const string PreToDCell = "cell - 2005-02-XX - Iteration 1593 - 100% - Admin.dat";
+        private const string ToDCell = "cell - 2005-06-02 - Iteration 4 - 100% - Throne of Destiny.dat";
         private const string SurfaceMap = "surface_map_preToD_2005-02_to_ToD.tsv";
 
         private static string RequireSource(string name)
@@ -155,7 +155,7 @@ namespace ACE.DatLoader.Tests
             }
         }
 
-        private const string EoRPortal = "client_portal - EoR.dat";
+        private const string EoRPortal = "portal - 2017-01-29 - Iteration 2072 - EoR.dat";
 
         private static byte[] ToDCellWithPortals(uint id, ushort environment, ushort structure, params ushort[] polygons)
         {

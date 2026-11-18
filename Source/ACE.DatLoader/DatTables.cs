@@ -277,7 +277,7 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Builds the skill table from the rows. Skills the base record has keep their position and the bucket size is kept; new skills follow in id order; skills without a row are dropped.
+        /// Builds the skill table from the rows, in id order; only the bucket size is taken from the base record. The order in the record means nothing to the client, which hashes every entry into its bucket as it reads it.
         /// </summary>
         public static SkillTable ToSkillTable(IEnumerable<DatSkillRow> rows, SkillTable baseTable = null)
         {
@@ -287,14 +287,7 @@ namespace ACE.DatLoader
             if (baseTable != null)
                 table.BucketSize = baseTable.BucketSize;
 
-            var order = new List<uint>();
-
-            if (baseTable != null)
-                order.AddRange(baseTable.SkillBaseHash.Keys.Where(byId.ContainsKey));
-
-            order.AddRange(byId.Keys.Where(id => !order.Contains(id)).OrderBy(id => id));
-
-            foreach (var id in order)
+            foreach (var id in byId.Keys.OrderBy(key => key))
             {
                 var row = byId[id];
 
@@ -709,7 +702,7 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Builds the spell record from the rows. Spells and sets the base record has keep their position and the bucket sizes are kept; new ones follow in id order; ones without rows are dropped.
+        /// Builds the spell record from the rows, spells and sets in id order; only the bucket sizes are taken from the base record. The order in the record means nothing to the client, which hashes every entry into its bucket as it reads it.
         /// </summary>
         /// <exception cref="InvalidDataException">A formula has a gap, a tier has a position missing or repeated, or a tier names a spell without a row.</exception>
         public static SpellTable ToSpellTable(IEnumerable<DatSpellRow> spellRows, IEnumerable<DatSpellSetSpellRow> setRows, SpellTable baseTable = null)
@@ -723,15 +716,7 @@ namespace ACE.DatLoader
                 table.SetBucketSize = baseTable.SetBucketSize;
             }
 
-            var order = new List<uint>();
-
-            if (baseTable != null)
-                order.AddRange(baseTable.Spells.Keys.Where(byId.ContainsKey));
-
-            var known = new HashSet<uint>(order);
-            order.AddRange(byId.Keys.Where(id => !known.Contains(id)).OrderBy(id => id));
-
-            foreach (var id in order)
+            foreach (var id in byId.Keys.OrderBy(key => key))
             {
                 var row = byId[id];
                 var formula = new List<uint>();
@@ -783,15 +768,8 @@ namespace ACE.DatLoader
             }
 
             var setsById = setRows.GroupBy(r => r.SetId).ToDictionary(g => g.Key, g => g.ToList());
-            var setOrder = new List<uint>();
 
-            if (baseTable != null)
-                setOrder.AddRange(baseTable.SpellSet.Keys.Where(setsById.ContainsKey));
-
-            var knownSets = new HashSet<uint>(setOrder);
-            setOrder.AddRange(setsById.Keys.Where(id => !knownSets.Contains(id)).OrderBy(id => id));
-
-            foreach (var setId in setOrder)
+            foreach (var setId in setsById.Keys.OrderBy(key => key))
             {
                 var set = new SpellSet();
 

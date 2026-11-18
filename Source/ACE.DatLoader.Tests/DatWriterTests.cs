@@ -14,7 +14,7 @@ namespace ACE.DatLoader.Tests
 
         private static string CopyOfLanguageDat()
         {
-            var source = Path.Combine(SourceDats, "client_local_English - EoR.dat");
+            var source = Path.Combine(SourceDats, "language - 2015-06-18 - Iteration 994 - EoR.dat");
 
             if (!File.Exists(source))
                 Assert.Inconclusive($"Test dat not found: {source}");
@@ -228,7 +228,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void LargePortalDat_ReplaceAndAdd_AuditsCleanAndReadsBack()
         {
-            var source = Path.Combine(SourceDats, "client_portal - EoR.dat");
+            var source = Path.Combine(SourceDats, "portal - 2017-01-29 - Iteration 2072 - EoR.dat");
 
             if (!File.Exists(source))
                 Assert.Inconclusive($"Test dat not found: {source}");

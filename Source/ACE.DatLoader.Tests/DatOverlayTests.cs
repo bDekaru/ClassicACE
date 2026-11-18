@@ -42,7 +42,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void SyntheticFolders_AddReplaceConflictAndDuplicates()
         {
-            var path = CopyOfDat("client_local_English - EoR.dat");
+            var path = CopyOfDat("language - 2015-06-18 - Iteration 994 - EoR.dat");
             var one = NewTempFolder();
             var two = NewTempFolder();
 
@@ -97,7 +97,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void SurfaceName_UsesTheFileNameId()
         {
-            var path = CopyOfDat("client_portal - EoR.dat");
+            var path = CopyOfDat("portal - 2017-01-29 - Iteration 2072 - EoR.dat");
             var folder = NewTempFolder();
 
             try
@@ -124,7 +124,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void RejectedId_IsNotWritten()
         {
-            var path = CopyOfDat("client_local_English - EoR.dat");
+            var path = CopyOfDat("language - 2015-06-18 - Iteration 994 - EoR.dat");
             var folder = NewTempFolder();
 
             try
