@@ -5,7 +5,7 @@ namespace ACE.DatLoader.Entity
     public class TerrainTex : IUnpackable
     {
         public uint TexGID { get; private set; }
-        public uint TexTiling { get; private set; }
+        public uint TexTiling { get; set; }
         public uint MaxVertBright { get; private set; }
         public uint MinVertBright { get; private set; }
         public uint MaxVertSaturate { get; private set; }

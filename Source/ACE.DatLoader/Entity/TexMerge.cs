@@ -5,7 +5,7 @@ namespace ACE.DatLoader.Entity
 {
     public class TexMerge : IUnpackable
     {
-        public uint BaseTexSize { get; private set; }
+        public uint BaseTexSize { get; set; }
         public List<TerrainAlphaMap> CornerTerrainMaps { get; } = new List<TerrainAlphaMap>();
         public List<TerrainAlphaMap> SideTerrainMaps { get; } = new List<TerrainAlphaMap>();
         public List<RoadAlphaMap> RoadMaps { get; } = new List<RoadAlphaMap>();

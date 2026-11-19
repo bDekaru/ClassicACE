@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using ACE.DatBuilder;
 using ACE.DatLoader.Entity;
+using ACE.DatLoader.Entity.AnimationHooks;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity.Enum;
 
@@ -236,6 +237,32 @@ namespace ACE.DatLoader.Tests
                 Assert.AreEqual(edit.Text, edited[Convert.ToUInt32(edit.Id, 16)].Strings[edit.Index]);
 
             Assert.AreEqual("Random", edited[0x05D3F822].Strings[0]);
+        }
+
+        [TestMethod]
+        public void TextureDetailLabels_AreNewEntriesOfTheEndOfRetailTextStrings()
+        {
+            var table = DatRecordContext.Unpack<StringTable>(ReadRecord(DatBuildRecipes.LanguageBaseDat, LanguageRecords.TextStringsId));
+            var existing = table.StringTableData.Select(e => e.Id).ToHashSet();
+            var labels = LanguageRecords.MakeTextureDetailLabels();
+
+            Assert.AreEqual(4, labels.Count);
+            CollectionAssert.AreEqual(new[] { "Full", "1/2", "1/4", "1/8" }, labels.Select(e => e.Strings[0]).ToList());
+
+            foreach (var label in labels)
+                Assert.IsFalse(existing.Contains(label.Id));
+
+            foreach (var label in labels)
+                LanguageRecords.InsertInBucketOrder(table, label);
+
+            var reread = DatRecordContext.Unpack<StringTable>(table.Pack());
+            Assert.AreEqual(236 + 4, reread.StringTableData.Count);
+            Assert.AreEqual("1/4", reread.StringTableData.Single(e => e.Id == SpellTable.ComputeHash("ID_Graphics_TexQuarter")).Strings[0]);
+
+            // the client rejects a record whose entries are not in ascending bucket order (token modulo 383 for size byte 5)
+            Assert.AreEqual(5, reread.Unknown);
+            var bucketOrder = reread.StringTableData.Select(e => e.Id % 383).ToList();
+            CollectionAssert.AreEqual(bucketOrder.OrderBy(b => b).ToList(), bucketOrder);
         }
 
         [TestMethod]
@@ -550,6 +577,42 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
+        public void SurfaceTextureEdits_WriteOneTexturePerSurfaceTexture()
+        {
+            var expected = new Dictionary<string, (uint Id, uint Texture)>
+            {
+                { SurfaceTextureRecords.GroundFile, (0x05001C3A, 0x06006D3B) },
+                { SurfaceTextureRecords.RockFile, (0x05000FF3, 0x06008FF3) }
+            };
+
+            foreach (var file in expected)
+            {
+                var entry = DatRecipeData.Load<List<SurfaceTextureRecords.Entry>>(file.Key).Single();
+                var record = SurfaceTexture.Create(Convert.ToUInt32(entry.Id, 16), Convert.ToUInt32(entry.Texture, 16)).Pack();
+                var surfaceTexture = DatRecordContext.Unpack<SurfaceTexture>(record);
+
+                Assert.AreEqual(17, record.Length);
+                Assert.AreEqual(file.Value.Id, surfaceTexture.Id);
+                CollectionAssert.AreEqual(new[] { file.Value.Texture }, surfaceTexture.Textures);
+            }
+        }
+
+        [TestMethod]
+        public void Trees_IncludeTheParticleEmitterAndTheTwoScriptsThatUseIt()
+        {
+            var records = ModelRecords.Build(DatRecipeData.Load<ModelRecords.Data>(ModelRecords.TreesFile), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id)).ToDictionary(record => record.Key, record => record.Value);
+
+            foreach (var id in new uint[] { 0x320013DC, 0x3300272D, 0x3300272E })
+            {
+                Assert.IsTrue(records.ContainsKey(id), $"{id:X8} is not built");
+                Assert.AreEqual(id, BitConverter.ToUInt32(records[id], 0));
+            }
+
+            var script = DatRecordContext.Unpack<PhysicsScript>(records[0x3300272D]);
+            Assert.IsTrue(script.ScriptData.Any(data => data.Hook is CreateParticleHook hook && hook.EmitterInfoId == 0x320013DC));
+        }
+
+        [TestMethod]
         public void FrozenFields_ModelsAreBuiltFromThe2001Dat_WithTheSceneDensityEdit()
         {
             var data = DatRecipeData.Load<ModelRecords.Data>(RegionRecords.ModelsFile);
@@ -640,6 +703,114 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual(10, DatRecipeData.Load<List<DatLayoutMediaEdit>>(LanguageRecords.ChargenHeritageUiFile).Count);
             Assert.AreEqual(840, DatRecipeData.Load<List<Dictionary<string, System.Text.Json.JsonElement>>>(InfiltrationRecords.SpellEditsFile).Count);
             Assert.IsNotNull(DatRecipeData.Load<DatChargenEdits>(InfiltrationRecords.ChargenEditsFile));
+        }
+
+        private static string RegionDatWithTextureWidths(Func<int, int> widthOfDistinctTexture)
+        {
+            var template = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PortalBaseDat);
+
+            if (!File.Exists(template))
+                Assert.Inconclusive($"Source dat not found: {template}");
+
+            var path = Path.Combine(Path.GetTempPath(), $"RegionStepTests-{Guid.NewGuid():N}.dat");
+            DatWriter.CreateEmpty(path, template);
+
+            var regionRecord = ReadRecord(DatBuildRecipes.PortalBaseDat, 0x13000000);
+            var region = DatRecordContext.Unpack<RegionDesc>(regionRecord);
+
+            using (var writer = new DatWriter(path))
+            {
+                writer.Save(0x13000000, regionRecord);
+
+                var written = new HashSet<uint>();
+
+                foreach (var terrain in region.TerrainInfo.LandSurfaces.TexMerge.TerrainDesc)
+                {
+                    var surfaceTextureId = terrain.TerrainTex.TexGID;
+
+                    if (!written.Add(surfaceTextureId))
+                        continue;
+
+                    var surfaceTextureRecord = ReadRecord(DatBuildRecipes.PortalBaseDat, surfaceTextureId);
+                    var textureId = DatRecordContext.Unpack<SurfaceTexture>(surfaceTextureRecord).Textures[0];
+                    var texture = DatRecordContext.Unpack<Texture>(ReadRecord(DatBuildRecipes.PortalBaseDat, textureId));
+                    texture.Width = widthOfDistinctTexture(written.Count - 1);
+
+                    writer.Save(surfaceTextureId, surfaceTextureRecord);
+                    writer.Save(textureId, texture.Pack());
+                }
+            }
+
+            return path;
+        }
+
+        [TestMethod]
+        public void RegionStep_SetsTheMergeSizeAndTilesEachTerrainToFitItsTextureWidth()
+        {
+            var widths = new[] { 32, 64, 128 };
+            var path = RegionDatWithTextureWidths(i => widths[i % widths.Length]);
+            var tilings = new HashSet<uint>();
+
+            try
+            {
+                using (var writer = new DatWriter(path))
+                {
+                    var step = GroundTextureRecords.RegionStep("2025-01-01");
+                    step.Run(new DatRecordContext(writer, TestSourceDats.Folder, step));
+
+                    var merge = DatRecordContext.Unpack<RegionDesc>(writer.Read(0x13000000)).TerrainInfo.LandSurfaces.TexMerge;
+                    Assert.AreEqual(GroundTextureRecords.BaseTexSize, merge.BaseTexSize);
+
+                    foreach (var terrain in merge.TerrainDesc)
+                    {
+                        var textureId = DatRecordContext.Unpack<SurfaceTexture>(writer.Read(terrain.TerrainTex.TexGID)).Textures[0];
+                        var width = (uint)DatRecordContext.Unpack<Texture>(writer.Read(textureId)).Width;
+                        Assert.AreEqual(GroundTextureRecords.BaseTexSize / width, terrain.TerrainTex.TexTiling, $"texture {textureId:X8}");
+                        tilings.Add(terrain.TerrainTex.TexTiling);
+                    }
+
+                    Assert.IsTrue(tilings.Count > 1, "the test needs terrains of different widths");
+                }
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [TestMethod]
+        public void RegionStep_ATextureWidthThatDoesNotDivideTheMergeSize_IsRefused()
+        {
+            var path = RegionDatWithTextureWidths(i => i == 1 ? 100 : 128);
+
+            try
+            {
+                using (var writer = new DatWriter(path))
+                {
+                    var step = GroundTextureRecords.RegionStep("2025-01-01");
+                    Assert.ThrowsExactly<InvalidDataException>(() => step.Run(new DatRecordContext(writer, TestSourceDats.Folder, step)));
+                }
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [TestMethod]
+        public void DirectPixels_ReorderThePlanarPre24BitImageToBgrAndCopyOtherFormats()
+        {
+            var method = typeof(DatPortalImporter).GetMethod("DirectPixels", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+
+            var planar = new byte[16 + 6];
+            planar[16] = 1; planar[17] = 2;
+            planar[18] = 3; planar[19] = 4;
+            planar[20] = 5; planar[21] = 6;
+            CollectionAssert.AreEqual(new byte[] { 5, 3, 1, 6, 4, 2 }, (byte[])method.Invoke(null, new object[] { planar, 10u, 2, 6 }));
+
+            var plain = new byte[16 + 4];
+            plain[16] = 9; plain[19] = 7;
+            CollectionAssert.AreEqual(new byte[] { 9, 0, 0, 7 }, (byte[])method.Invoke(null, new object[] { plain, 4u, 1, 4 }));
         }
     }
 }

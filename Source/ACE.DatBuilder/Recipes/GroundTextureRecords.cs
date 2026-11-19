@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 using ACE.DatLoader;
+using ACE.DatLoader.FileTypes;
 using ACE.Entity.Enum;
 
 namespace ACE.DatBuilder
@@ -10,6 +12,8 @@ namespace ACE.DatBuilder
     public static class GroundTextureRecords
     {
         public const string TexturesFile = "ground-textures.json";
+
+        private const uint RegionId = 0x13000000;
 
         /// <summary>The second header value of the EoR terrain images, used for an image the dat does not have yet.</summary>
         private const uint DefaultHeaderValue = 2;
@@ -38,6 +42,35 @@ namespace ACE.DatBuilder
 
                     c.Write(imageId, ToTerrainFormat(image, existing != null ? BitConverter.ToUInt32(existing, 4) : DefaultHeaderValue),$"ground texture from {sourceId:X8} ({width}x{height})");
                 }
+            });
+        }
+
+        /// <summary>The merge size of the 2005 client's hardware region (130F0000): a terrain texture is repeated BaseTexSize / width times per landcell.</summary>
+        public const uint BaseTexSize = 128;
+
+        /// <summary>Sets the terrain merge to the size of the 2005 client and the tiling of each terrain texture to fit its (original) width. Runs after the surface texture steps, which can change a terrain's texture.</summary>
+        /// <exception cref="InvalidDataException">A terrain texture is not an original-size image that divides the merge size.</exception>
+        public static DatRecordStep RegionStep(string date)
+        {
+            return new DatRecordStep("Terrain merge size and tiling of the 2005 client", date, c =>
+            {
+                var region = c.ReadTarget<RegionDesc>(RegionId);
+                var merge = region.TerrainInfo.LandSurfaces.TexMerge;
+                merge.BaseTexSize = BaseTexSize;
+
+                foreach (var description in merge.TerrainDesc)
+                {
+                    var surfaceTextureId = description.TerrainTex.TexGID;
+                    var textureId = c.ReadTarget<SurfaceTexture>(surfaceTextureId).Textures[0];
+                    var width = (uint)c.ReadTarget<Texture>(textureId).Width;
+
+                    if (width == 0 || BaseTexSize % width != 0)
+                        throw new InvalidDataException($"Terrain texture {textureId:X8} ({surfaceTextureId:X8}) is {width} px wide, which does not divide the merge size {BaseTexSize}.");
+
+                    description.TerrainTex.TexTiling = BaseTexSize / width;
+                }
+
+                c.Write(RegionId, region.Pack(), $"region merge size {BaseTexSize}");
             });
         }
 

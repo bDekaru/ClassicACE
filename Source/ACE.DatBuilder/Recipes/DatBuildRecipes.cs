@@ -266,46 +266,23 @@ namespace ACE.DatBuilder
             return new DatBuildStep(folder, InitialVersionDate);
         }
 
-        public static readonly DatBuildRecipe LanguageCustomDM = new DatBuildRecipe("Language CustomDM", "CustomDM", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.CustomDMLanguage,
-            Initial("Language/CustomDM"))
+        public static readonly DatBuildRecipe LanguageCustomDM = new DatBuildRecipe("Language CustomDM", "CustomDM", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.CustomDMLanguage)
             .WithRecordSteps(LanguageRecords.CustomDM(InitialVersionDate))
             .WithTables(InitialVersionDate);
 
-        public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage,
-            Initial("Language/Infiltration"))
+        public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage)
             .WithRecordSteps(LanguageRecords.Infiltration(InitialVersionDate));
 
         public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
-            Initial("Portal/CustomDM"),
-            Initial("Portal/Shared/Ground Textures"),
-            Initial("Portal/Shared/Miscellaneous Textures"),
-            Initial("Portal/Shared/Trees"),
-            Initial("Portal/Shared/Frozen Fields"),
-            Initial("Portal/Shared/Police Box"),
-            Initial("Portal/Shared/Old Models/Drudge"),
-            Initial("Portal/Shared/Old Models/Mattekar"),
-            Initial("Portal/Shared/Old Models/Ursuin"),
-            Initial("Portal/Shared/Old Models/Carenzi"),
-            Initial("Portal/Shared/Old Models/Siraluun"),
-            Initial("Portal/Shared/Old Models/Reedshark"),
-            Initial("Portal/Shared/Old Models/Lugian - Leather"),
-            Initial("Portal/Shared/Old Models/Mite"),
-            Initial("Portal/Shared/Old Models/Mite - Alternate Palettes"),
-            Initial("Portal/Shared/Old Models/Tusker"),
-            Initial("Portal/Shared/Old Models/Banderling"),
-            Initial("Portal/Shared/Old Models/Lugian - Metal"),
-            Initial("Portal/Shared/Old Models/Mosswart"),
-            Initial("Portal/Shared/Old Models/Olthoi"))
+            Initial("Portal/CustomDM"))
             .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray())
+            .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Rock surface textures", InitialVersionDate, SurfaceTextureRecords.RockFile)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
-            Initial("Portal/Infiltration"),
-            Initial("Portal/Shared/Ground Textures"),
-            Initial("Portal/Shared/Trees"))
+            Initial("Portal/Infiltration"))
             .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray());
+            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray());
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
 

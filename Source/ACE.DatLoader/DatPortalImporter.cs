@@ -33,6 +33,28 @@ namespace ACE.DatLoader
             { 11, (28, 1, 10) },
         };
 
+        private const uint PreR8G8B8Format = 10;
+
+        /// <summary>The pixels of a pre-ToD plain-pixel image in the ToD layout. The 24-bit image (format 10) is stored as three separate planes (red, green, blue: the client's "color separated image"), ToD stores B, G, R per pixel.</summary>
+        private static byte[] DirectPixels(byte[] texture, uint format, int pixels, int length)
+        {
+            var result = new byte[length];
+
+            if (format == PreR8G8B8Format)
+            {
+                for (var i = 0; i < pixels; i++)
+                {
+                    result[i * 3] = texture[16 + 2 * pixels + i];
+                    result[i * 3 + 1] = texture[16 + pixels + i];
+                    result[i * 3 + 2] = texture[16 + i];
+                }
+            }
+            else
+                Array.Copy(texture, 16, result, 0, length);
+
+            return result;
+        }
+
         private readonly DatDatabase _pre;
         private readonly DatDatabase _target;
         private readonly IReadOnlyDictionary<ushort, ushort> _surfaceMap;
@@ -273,7 +295,7 @@ namespace ACE.DatLoader
                     throw new InvalidDataException($"Texture {preId:X8}: format {format} image of {width}x{height} is longer than its record");
 
                 WriteImageHeader(image, imageId, direct.HeaderValue, width, height, direct.ToDFormat, length);
-                image.Write(texture, 16, length);
+                image.Write(DirectPixels(texture, format, pixels, length), 0, length);
 
                 detail = $"format {format}";
             }
@@ -328,9 +350,7 @@ namespace ACE.DatLoader
                 if (16 + length > texture.Length)
                     throw new InvalidDataException($"Texture {preId:X8}: format {format} image of {width}x{height} is longer than its record");
 
-                var plain = new byte[length];
-                Array.Copy(texture, 16, plain, 0, length);
-                image = Texture.Create(imageId, width, height, (SurfacePixelFormat)direct.ToDFormat, plain);
+                image = Texture.Create(imageId, width, height, (SurfacePixelFormat)direct.ToDFormat, DirectPixels(texture, format, pixels, length));
             }
             else
                 throw new NotSupportedException($"Texture {preId:X8}: pre-ToD image format {format} is not converted");
