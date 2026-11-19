@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -191,15 +192,18 @@ namespace ACE.DatBuilder
                 {
                     result.AuditBefore = writer.Audit();
 
+                    var written = new HashSet<uint>();
+
                     foreach (var step in recipe.RecordSteps)
                     {
                         var context = new DatRecordContext(writer, sourceDats, step);
                         step.Run(context);
+                        written.UnionWith(context.Written);
                         result.RecordLog.Add($"  record step '{step.Name}' ({step.Date})");
                         result.RecordLog.AddRange(context.Log.Select(l => "    " + l));
                     }
 
-                    result.Overlay = recipe.Apply(writer, customFilesRoot, importer?.Records);
+                    result.Overlay = recipe.Apply(writer, customFilesRoot, importer?.Records.Where(r => !written.Contains(r.Key)));
 
                     if (recipe.TablesDate != null && tables != null)
                         result.Tables = recipe.IsLanguage ? DatTableStep.ApplyLanguage(writer, tables, recipe.TablesTime) : DatTableStep.Apply(writer, tables, recipe.TablesTime);

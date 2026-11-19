@@ -105,6 +105,21 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
+        /// Writes a PackedHashTable in the order of the dictionary (the counterpart of UnpackPackedHashTable).
+        /// </summary>
+        public static void WritePackedHashTable<T>(this BinaryWriter writer, Dictionary<uint, T> values, ushort bucketSize, Action<T, BinaryWriter> pack)
+        {
+            writer.Write((ushort)values.Count);
+            writer.Write(bucketSize);
+
+            foreach (var value in values)
+            {
+                writer.Write(value.Key);
+                pack(value.Value, writer);
+            }
+        }
+
+        /// <summary>
         /// Writes a SmartArray of UInt32 behind a compressed length (the counterpart of UnpackSmartArray).
         /// </summary>
         public static void WriteSmartArray(this BinaryWriter writer, List<uint> values)

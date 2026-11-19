@@ -803,6 +803,75 @@ namespace ACE.DatLoader
             return Find(id, out _, out _, out _);
         }
 
+        /// <summary>
+        /// Removes the record and frees its data blocks. The directory is not rebalanced: a node may end up with fewer entries than a split would leave, which lookups and <see cref="Audit"/> accept.
+        /// </summary>
+        /// <returns>False when the id is not in the dat.</returns>
+        public bool Delete(uint id)
+        {
+            if (!Find(id, out var nodeOffset, out var index, out var entry))
+                return false;
+
+            var node = ReadNode(nodeOffset);
+
+            if (node.IsLeaf)
+            {
+                RemoveEntry(node, index);
+                WriteNode(nodeOffset, node);
+            }
+            else
+            {
+                var fromLeft = true;
+                var leafOffset = DescendToEdge(node.Child(index), true);
+                var leaf = ReadNode(leafOffset);
+
+                if (leaf.Count == 0)
+                {
+                    fromLeft = false;
+                    leafOffset = DescendToEdge(node.Child(index + 1), false);
+                    leaf = ReadNode(leafOffset);
+                }
+
+                if (leaf.Count == 0)
+                    throw new NotSupportedException($"{FilePath}: record {id:X8} sits in an inner node whose neighbouring leaves are empty.");
+
+                var takeAt = fromLeft ? leaf.Count - 1 : 0;
+                node.SetEntry(index, leaf.GetEntry(takeAt));
+                WriteNode(nodeOffset, node);
+
+                RemoveEntry(leaf, takeAt);
+                WriteNode(leafOffset, leaf);
+            }
+
+            DeleteBlocks(entry.Offset);
+            SaveFileInfo();
+            ClearTransaction();
+            return true;
+        }
+
+        private static void RemoveEntry(Node node, int index)
+        {
+            var count = node.Count;
+
+            for (var i = index; i < count - 1; i++)
+                node.MoveEntry(i, i + 1);
+
+            node.SetCount(count - 1);
+        }
+
+        private uint DescendToEdge(uint offset, bool rightmost)
+        {
+            while (true)
+            {
+                var node = ReadNode(offset);
+
+                if (node.IsLeaf)
+                    return offset;
+
+                offset = node.Child(rightmost ? node.Count : 0);
+            }
+        }
+
         /// <summary>The version, iteration and date stored in the record's directory entry, or false when the id is not in the dat.</summary>
         public bool TryGetEntryInfo(uint id, out ushort version, out uint iteration, out uint date)
         {

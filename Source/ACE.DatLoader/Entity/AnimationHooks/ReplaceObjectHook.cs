@@ -7,14 +7,25 @@ namespace ACE.DatLoader.Entity.AnimationHooks
     {
         public AnimationPartChange APChange { get; } = new AnimationPartChange();
 
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)HookType);
+            writer.Write((int)Direction);
+            APChange.Pack(writer);
+            writer.AlignBoundary();
+        }
+
+        public override void Remap(Func<uint, uint> map)
+        {
+            APChange.PartID = map(APChange.PartID);
+        }
+
         public override void Unpack(BinaryReader reader)
         {
             base.Unpack(reader);
 
-            // The structure of AnimationPartChange here is slightly different for some reason than the other imeplementations.
-            // So we'll read in the 2-byte PartIndex and send that to our other implementation of the Unpack function.
-            ushort apChangePartIndex = reader.ReadUInt16();
-            APChange.Unpack(reader, apChangePartIndex);
+            APChange.Unpack(reader);
+            reader.AlignBoundary();
         }
     }
 }

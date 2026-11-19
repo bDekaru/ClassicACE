@@ -11,5 +11,14 @@ namespace ACE.DatLoader.Entity
         {
             STBDesc.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)STBDesc.Count);
+
+            foreach (var item in STBDesc)
+                item.Pack(writer);
+        }
     }
 }

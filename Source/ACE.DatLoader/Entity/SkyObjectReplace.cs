@@ -22,5 +22,17 @@ namespace ACE.DatLoader.Entity
 
             reader.AlignBoundary();
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(ObjectIndex);
+            writer.Write(GFXObjId);
+            writer.Write(Rotate);
+            writer.Write(Transparent);
+            writer.Write(Luminosity);
+            writer.Write(MaxBright);
+            writer.AlignBoundary();
+        }
     }
 }

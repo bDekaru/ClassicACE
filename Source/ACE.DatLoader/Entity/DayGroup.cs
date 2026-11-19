@@ -19,5 +19,23 @@ namespace ACE.DatLoader.Entity
             SkyObjects.Unpack(reader);
             SkyTime.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(ChanceOfOccur);
+            writer.WritePString(DayName);
+            writer.AlignBoundary();
+
+            writer.Write((uint)SkyObjects.Count);
+
+            foreach (var item in SkyObjects)
+                item.Pack(writer);
+
+            writer.Write((uint)SkyTime.Count);
+
+            foreach (var item in SkyTime)
+                item.Pack(writer);
+        }
     }
 }

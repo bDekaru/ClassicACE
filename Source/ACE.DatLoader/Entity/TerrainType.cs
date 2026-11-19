@@ -18,5 +18,18 @@ namespace ACE.DatLoader.Entity
 
             SceneTypes.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.WritePString(TerrainName);
+            writer.AlignBoundary();
+            writer.Write(TerrainColor);
+
+            writer.Write(SceneTypes.Count);
+
+            foreach (var item in SceneTypes)
+                writer.Write(item);
+        }
     }
 }

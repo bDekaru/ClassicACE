@@ -20,12 +20,46 @@ namespace ACE.DatLoader.FileTypes
         // The uint key corresponds to an Enum.Sound
         public Dictionary<uint, SoundData> Data { get; } = new Dictionary<uint, SoundData>();
 
+        /// <summary>The bucket size the packed hash table was stored with, kept so that a record is written back as it was read.</summary>
+        public ushort DataBucketSize { get; set; }
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
             Unknown = reader.ReadUInt32();
             SoundHash.Unpack(reader);
-            Data.UnpackPackedHashTable(reader);
+            DataBucketSize = Data.UnpackPackedHashTable(reader);
+        }
+
+        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write(Unknown);
+
+                writer.Write((uint)SoundHash.Count);
+                foreach (var item in SoundHash)
+                    item.Pack(writer);
+
+                writer.WritePackedHashTable(Data, DataBucketSize, (item, w) => item.Pack(w));
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        /// <summary>Replaces every wave id by map(id).</summary>
+        public void Remap(Func<uint, uint> map)
+        {
+            foreach (var item in SoundHash)
+                item.SoundId = map(item.SoundId);
+
+            foreach (var sound in Data.Values)
+                foreach (var item in sound.Data)
+                    item.SoundId = map(item.SoundId);
         }
     }
 }

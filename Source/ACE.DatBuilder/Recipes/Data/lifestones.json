@@ -1,0 +1,13 @@
+{
+  "GfxObjs": [
+    { "Id": "01000CFA", "Source": "01000CFA" },
+    { "Id": "01000D00", "Source": "01000D00" },
+    { "Id": "01000D02", "Source": "01000D02" },
+    { "Id": "01000D06", "Source": "01000D06" }
+  ],
+  "Maps": [
+    { "Source": "08000AA3", "Target": "080005D1" },
+    { "Source": "08000AA2", "Target": "080005D2" },
+    { "Source": "080008ED", "Target": "08000102" }
+  ]
+}

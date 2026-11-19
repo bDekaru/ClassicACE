@@ -313,6 +313,60 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
+        public void RegionPack_RoundTripsTheEndOfRetailRegion()
+        {
+            AssertEveryRecordRoundTrips<RegionDesc>(0x13, region => region.Pack());
+        }
+
+        [TestMethod]
+        public void AnimationPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<Animation>(0x03, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void PaletteSetPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<PaletteSet>(0x0F, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void ClothingPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<ClothingTable>(0x10, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void SoundTablePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<SoundTable>(0x20, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void ParticleEmitterPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<ParticleEmitterInfo>(0x32, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void PhysicsScriptPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<PhysicsScript>(0x33, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void WavePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<Wave>(0x0A, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void MotionTablePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<MotionTable>(0x09, record => record.Pack());
+        }
+
+        [TestMethod]
         public void Remap_ChangesOnlyTheReferencedIds()
         {
             var setup = new SetupModel();
@@ -414,6 +468,162 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual(Texture.ToDHeaderValue, icon.Unknown);
             CollectionAssert.AreEqual(new byte[] { 3, 2, 1, 255, 30, 20, 10, 255 }, icon.SourceData);
             Assert.AreEqual(1, DatRecipeData.Load<List<IconRecords.Icon>>(IconRecords.IconsFile).Count);
+        }
+
+        private static byte[] FadeScriptBytes(uint id, float start, float end)
+        {
+            var bytes = new List<byte>();
+            bytes.AddRange(BitConverter.GetBytes(id));
+            bytes.AddRange(BitConverter.GetBytes(1u));
+            bytes.AddRange(BitConverter.GetBytes(0.0));
+            bytes.AddRange(BitConverter.GetBytes((uint)AnimationHookType.Transparent));
+            bytes.AddRange(BitConverter.GetBytes(0));
+            bytes.AddRange(BitConverter.GetBytes(start));
+            bytes.AddRange(BitConverter.GetBytes(end));
+            bytes.AddRange(BitConverter.GetBytes(1f));
+            return bytes.ToArray();
+        }
+
+        [TestMethod]
+        public void SneakScripts_PackAOneHookFadeScript()
+        {
+            CollectionAssert.AreEqual(FadeScriptBytes(SneakScriptRecords.BeginScriptId, 0f, 0.5f), SneakScriptRecords.FadeScript(SneakScriptRecords.BeginScriptId, 0f, 0.5f));
+            CollectionAssert.AreEqual(new byte[] { 0xA0, 0x13, 0x00, 0x33, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3F, 0, 0, 0x80, 0x3F }, SneakScriptRecords.FadeScript(SneakScriptRecords.BeginScriptId, 0f, 0.5f));
+
+            var script = DatRecordContext.Unpack<PhysicsScript>(SneakScriptRecords.FadeScript(SneakScriptRecords.EndScriptId, 0.5f, 0f));
+
+            Assert.AreEqual(1, script.ScriptData.Count);
+            Assert.AreEqual(0.5f, ((ACE.DatLoader.Entity.AnimationHooks.TransparentHook)script.ScriptData[0].Hook).Start);
+        }
+
+        [TestMethod]
+        public void ScriptTablePack_RoundTripsTheEndOfRetailTable_AndTheSneakEntriesAreAdded()
+        {
+            var record = ReadRecord(DatBuildRecipes.PortalBaseDat, SneakScriptRecords.ScriptTableId);
+            var table = DatRecordContext.Unpack<PhysicsScriptTable>(record);
+
+            CollectionAssert.AreEqual(record, table.Pack());
+
+            var count = table.ScriptTable.Count;
+            var entry = new PhysicsScriptTableData();
+            entry.Scripts.Add(ScriptAndModData.Create(1f, SneakScriptRecords.BeginScriptId));
+            table.ScriptTable[SneakScriptRecords.BeginTableKey] = entry;
+
+            var again = DatRecordContext.Unpack<PhysicsScriptTable>(table.Pack());
+
+            Assert.AreEqual(count + 1, again.ScriptTable.Count);
+            Assert.AreEqual(SneakScriptRecords.BeginScriptId, again.ScriptTable[SneakScriptRecords.BeginTableKey].Scripts[0].ScriptId);
+        }
+
+        [TestMethod]
+        public void Lifestones_AreRebuiltFromThe2005RecordsAsTheCustomFilesHoldThem()
+        {
+            var folder = Path.Combine(TestSourceDats.Folder, "Custom Files", "Portal", "CustomDM");
+            var backup = Path.Combine(TestSourceDats.Folder, "_replaced-by-recipes", "Portal", "CustomDM");
+            var data = DatRecipeData.Load<ModelRecords.Data>(CustomDMRecords.LifestonesFile);
+            var records = ModelRecords.Build(data, id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
+
+            Assert.AreEqual(4, records.Count);
+
+            foreach (var record in records)
+            {
+                var file = new[] { folder, backup }.Where(Directory.Exists).SelectMany(directory => Directory.EnumerateFiles(directory, record.Key.ToString("X8") + "*.bin")).FirstOrDefault();
+
+                if (file == null)
+                    Assert.Inconclusive($"Custom file {record.Key:X8} not found.");
+
+                CollectionAssert.AreEqual(File.ReadAllBytes(file), record.Value, $"Lifestone {record.Key:X8}");
+            }
+        }
+
+        [TestMethod]
+        public void MiscModels_AreBuiltFromThe2005Dat_WithEveryReferenceMapped()
+        {
+            var data = DatRecipeData.Load<ModelRecords.Data>(CustomDMRecords.MiscModelsFile);
+            var records = ModelRecords.Build(data, id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
+
+            Assert.AreEqual(191, records.Count);
+            Assert.AreEqual(records.Count, records.Select(record => record.Key).Distinct().Count());
+
+            foreach (var record in records.Where(record => (record.Key >> 24) != 0x08))
+                Assert.AreEqual(record.Key, BitConverter.ToUInt32(record.Value, 0), $"The record {record.Key:X8} starts with another id.");
+        }
+
+        [TestMethod]
+        public void FrozenFields_ModelsAreBuiltFromThe2001Dat_WithTheSceneDensityEdit()
+        {
+            var data = DatRecipeData.Load<ModelRecords.Data>(RegionRecords.ModelsFile);
+            var records = ModelRecords.Build(data, id => ReadRecord(DatBuildRecipes.Portal2001Dat, id));
+
+            Assert.AreEqual(32, records.Count);
+
+            var scene = DatRecordContext.Unpack<Scene>(records.Single(record => record.Key == 0x1200025B).Value);
+
+            Assert.IsTrue(scene.Objects.All(o => o.Freq == 0.25f));
+        }
+
+        [TestMethod]
+        public void OldModels_AreBuiltFromThe2005Dat_WithEveryReferenceMapped()
+        {
+            var counts = new Dictionary<string, int>
+            {
+                { CustomDMRecords.BanderlingFile, 2 }, { CustomDMRecords.CarenziFile, 64 }, { CustomDMRecords.DrudgeFile, 87 }, { CustomDMRecords.LugianLeatherFile, 48 },
+                { CustomDMRecords.LugianMetalFile, 1 }, { CustomDMRecords.MattekarFile, 40 }, { CustomDMRecords.MiteFile, 53 }, { CustomDMRecords.MiteAlternatePalettesFile, 11 },
+                { CustomDMRecords.MosswartFile, 1 }, { CustomDMRecords.OlthoiFile, 5 }, { CustomDMRecords.ReedsharkFile, 56 }, { CustomDMRecords.SiraluunFile, 108 },
+                { CustomDMRecords.TuskerFile, 35 }, { CustomDMRecords.UrsuinFile, 60 }
+            };
+            var ids = new HashSet<uint>();
+
+            foreach (var file in counts)
+            {
+                var records = ModelRecords.Build(DatRecipeData.Load<ModelRecords.Data>(file.Key), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
+
+                Assert.AreEqual(file.Value, records.Count, file.Key);
+                Assert.AreEqual(records.Count, records.Select(record => record.Key).Distinct().Count(), file.Key);
+
+                foreach (var record in records)
+                    ids.Add(record.Key);
+            }
+
+            Assert.AreEqual(562, ids.Count);
+        }
+
+        [TestMethod]
+        public void UnusedOldModels_AreBuiltFromThe2005Dat_WithEveryReferenceMapped()
+        {
+            var counts = new Dictionary<string, int> { { CustomDMRecords.MonougaFile, 51 }, { CustomDMRecords.OldDrudgeFile, 50 }, { CustomDMRecords.SclavusFile, 47 }, { CustomDMRecords.TumerokFile, 59 } };
+
+            foreach (var file in counts)
+            {
+                var records = ModelRecords.Build(DatRecipeData.Load<ModelRecords.Data>(file.Key), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
+
+                Assert.AreEqual(file.Value, records.Count, file.Key);
+                Assert.AreEqual(records.Count, records.Select(record => record.Key).Distinct().Count(), file.Key);
+            }
+        }
+
+        [TestMethod]
+        public void MissingModels_AreBuiltFromThe2005Dat_WithEveryReferenceMapped()
+        {
+            var data = DatRecipeData.Load<ModelRecords.Data>(CustomDMRecords.MissingModelsFile);
+            var records = ModelRecords.Build(data, id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
+
+            Assert.AreEqual(200, records.Count);
+            Assert.AreEqual(records.Count, records.Select(record => record.Key).Distinct().Count());
+        }
+
+        [TestMethod]
+        public void FrozenFields_RegionEditAddsTheSceneToTheEndOfRetailRegion()
+        {
+            var original = DatRecordContext.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionRecords.RegionId));
+            var region = DatRecordContext.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionRecords.RegionId));
+
+            DatRecipeData.Load<RegionRecords.RegionEdits>(RegionRecords.RegionEditsFile).Apply(region);
+
+            var packed = region.Pack();
+
+            Assert.AreEqual(original.Pack().Length + 4, packed.Length);
+            CollectionAssert.AreEqual(new uint[] { 0x1200025B }, DatRecordContext.Unpack<RegionDesc>(packed).SceneInfo.SceneTypes[60].Scenes);
         }
 
         [TestMethod]

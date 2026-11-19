@@ -20,6 +20,20 @@ namespace ACE.DatLoader.Entity
             Framerate   = reader.ReadSingle();
         }
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(AnimId);
+            writer.Write(LowFrame);
+            writer.Write(HighFrame);
+            writer.Write(Framerate);
+        }
+
+        /// <summary>Replaces the animation id by map(id).</summary>
+        public void Remap(System.Func<uint, uint> map)
+        {
+            AnimId = map(AnimId);
+        }
+
         public override string ToString()
         {
             return $"AnimId: {AnimId:X8}, LowFrame: {LowFrame}, HighFrame: {HighFrame}, FrameRate: {Framerate}";

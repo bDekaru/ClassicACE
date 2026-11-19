@@ -17,5 +17,12 @@ namespace ACE.DatLoader.Entity
                 throw new NotImplementedException();
             TexMerge.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Type);
+            TexMerge.Pack(writer);
+        }
     }
 }

@@ -12,6 +12,14 @@ namespace ACE.DatLoader.Entity
         public float Probability;
         public float Volume;
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(SoundId);
+            writer.Write(Priority);
+            writer.Write(Probability);
+            writer.Write(Volume);
+        }
+
         public void Unpack(BinaryReader reader)
         {
             SoundId = reader.ReadUInt32();

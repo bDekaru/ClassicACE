@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -25,13 +26,76 @@ namespace ACE.DatLoader.FileTypes
         /// </summary>
         public Dictionary<uint, CloSubPalEffect> ClothingSubPalEffects { get; } = new Dictionary<uint, CloSubPalEffect>();
 
+        /// <summary>The bucket sizes the two packed hash tables were stored with, kept so that a record is written back as it was read.</summary>
+        public ushort BaseEffectsBucketSize { get; set; }
+        public ushort SubPalEffectsBucketSize { get; set; }
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
 
-            ClothingBaseEffects.UnpackPackedHashTable(reader);
+            BaseEffectsBucketSize = ClothingBaseEffects.UnpackPackedHashTable(reader);
 
-            ClothingSubPalEffects.UnpackPackedHashTable(reader);
+            SubPalEffectsBucketSize = ClothingSubPalEffects.UnpackPackedHashTable(reader);
+        }
+
+        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.WritePackedHashTable(ClothingBaseEffects, BaseEffectsBucketSize, (item, w) => item.Pack(w));
+                writer.WritePackedHashTable(ClothingSubPalEffects, SubPalEffectsBucketSize, (item, w) => item.Pack(w));
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Replaces every referenced setup (key), model, texture, icon and palette set id by map(id), and multiplies every palette range's offset and colour count by paletteRepeat
+        /// (the palettes it uses repeat each colour that many times).
+        /// </summary>
+        public void Remap(Func<uint, uint> map, uint paletteRepeat = 1)
+        {
+            var baseEffects = new Dictionary<uint, ClothingBaseEffect>();
+            foreach (var entry in ClothingBaseEffects)
+            {
+                foreach (var effect in entry.Value.CloObjectEffects)
+                {
+                    effect.ModelId = map(effect.ModelId);
+
+                    foreach (var texture in effect.CloTextureEffects)
+                    {
+                        texture.OldTexture = map(texture.OldTexture);
+                        texture.NewTexture = map(texture.NewTexture);
+                    }
+                }
+
+                baseEffects.Add(map(entry.Key), entry.Value);
+            }
+
+            ClothingBaseEffects.Clear();
+            foreach (var entry in baseEffects)
+                ClothingBaseEffects.Add(entry.Key, entry.Value);
+
+            foreach (var effect in ClothingSubPalEffects.Values)
+            {
+                effect.Icon = effect.Icon != 0 ? map(effect.Icon) : 0;
+
+                foreach (var palette in effect.CloSubPalettes)
+                {
+                    palette.PaletteSet = map(palette.PaletteSet);
+
+                    foreach (var range in palette.Ranges)
+                    {
+                        range.Offset *= paletteRepeat;
+                        range.NumColors *= paletteRepeat;
+                    }
+                }
+            }
         }
 
         public uint GetIcon(uint palEffectIdx)

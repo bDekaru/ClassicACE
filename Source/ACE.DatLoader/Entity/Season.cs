@@ -13,5 +13,13 @@ namespace ACE.DatLoader.Entity
             Name = reader.ReadPString();
             reader.AlignBoundary();
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(StartDate);
+            writer.WritePString(Name);
+            writer.AlignBoundary();
+        }
     }
 }

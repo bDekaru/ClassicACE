@@ -6,6 +6,13 @@ namespace ACE.DatLoader.Entity.AnimationHooks
     {
         public uint SoundType { get; private set; }
 
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)HookType);
+            writer.Write((int)Direction);
+            writer.Write(SoundType);
+        }
+
         public override void Unpack(BinaryReader reader)
         {
             base.Unpack(reader);

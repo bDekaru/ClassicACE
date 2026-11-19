@@ -13,6 +13,29 @@ namespace ACE.DatLoader.FileTypes
     {
         public List<uint> PaletteList { get; } = new List<uint>();
 
+        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write(PaletteList.Count);
+                foreach (var palette in PaletteList)
+                    writer.Write(palette);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        /// <summary>Replaces every palette id by map(id).</summary>
+        public void Remap(Func<uint, uint> map)
+        {
+            for (var i = 0; i < PaletteList.Count; i++)
+                PaletteList[i] = map(PaletteList[i]);
+        }
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();

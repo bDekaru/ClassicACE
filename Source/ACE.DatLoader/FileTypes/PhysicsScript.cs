@@ -6,7 +6,7 @@ using ACE.DatLoader.Entity;
 namespace ACE.DatLoader.FileTypes
 {
     /// <summary>
-    /// These are client_portal.dat files starting with 0x33. 
+    /// These are client_portal.dat files starting with 0x33.
     /// </summary>
     [DatFileType(DatFileType.PhysicsScript)]
     public class PhysicsScript : FileType
@@ -18,6 +18,51 @@ namespace ACE.DatLoader.FileTypes
             Id = reader.ReadUInt32();
 
             ScriptData.Unpack(reader);
+        }
+
+        public static PhysicsScript Create(uint id, params PhysicsScriptData[] data)
+        {
+            var result = new PhysicsScript { Id = id };
+            result.ScriptData.AddRange(data);
+            return result;
+        }
+
+        /// <summary>Puts the entries in a new order: position i of the result is the entry that was at order[i].</summary>
+        public void Reorder(System.Collections.Generic.IReadOnlyList<int> order)
+        {
+            if (order.Count != ScriptData.Count)
+                throw new System.ArgumentException("The order must name every entry once.", nameof(order));
+
+            var reordered = new System.Collections.Generic.List<PhysicsScriptData>();
+            foreach (var index in order)
+                reordered.Add(ScriptData[index]);
+
+            ScriptData.Clear();
+            ScriptData.AddRange(reordered);
+        }
+
+        /// <summary>Replaces the dat ids the hooks refer to by map(id).</summary>
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var data in ScriptData)
+                data.Remap(map);
+        }
+
+        /// <exception cref="System.NotSupportedException">A hook of a type that has no writer yet.</exception>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write((uint)ScriptData.Count);
+
+                foreach (var data in ScriptData)
+                    data.Pack(writer);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
         }
     }
 }

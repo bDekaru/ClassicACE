@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace ACE.DatLoader.Entity.AnimationHooks
@@ -8,6 +9,21 @@ namespace ACE.DatLoader.Entity.AnimationHooks
         public float Priority { get; private set; }
         public float Probability { get; private set; }
         public float Volume { get; private set; }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)HookType);
+            writer.Write((int)Direction);
+            writer.Write(SoundID);
+            writer.Write(Priority);
+            writer.Write(Probability);
+            writer.Write(Volume);
+        }
+
+        public override void Remap(Func<uint, uint> map)
+        {
+            SoundID = map(SoundID);
+        }
 
         public override void Unpack(BinaryReader reader)
         {

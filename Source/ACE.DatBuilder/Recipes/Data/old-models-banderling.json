@@ -1,0 +1,28 @@
+{
+  "Palettes": [
+    {
+      "Id": "040001B7",
+      "Source": "040001B7"
+    },
+    {
+      "Id": "04001352",
+      "Source": "04001352"
+    }
+  ],
+  "Textures": [],
+  "SurfaceTextures": [],
+  "Surfaces": [],
+  "GfxObjs": [],
+  "Setups": [],
+  "Scenes": [],
+  "Waves": [],
+  "Animations": [],
+  "ParticleEmitters": [],
+  "PhysicsScripts": [],
+  "ScriptTables": [],
+  "MotionTables": [],
+  "PaletteSets": [],
+  "SoundTables": [],
+  "Clothing": [],
+  "Maps": []
+}

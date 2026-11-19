@@ -1,0 +1,188 @@
+{
+  "Palettes": [
+    {
+      "Id": "04003FA1",
+      "Source": "04000FA1"
+    }
+  ],
+  "Textures": [
+    {
+      "Id": "06009916",
+      "Source": "05001916",
+      "Palette": "04000FA2"
+    },
+    {
+      "Id": "0600991E",
+      "Source": "0500191E",
+      "Palette": "04003FA1"
+    }
+  ],
+  "SurfaceTextures": [
+    {
+      "Id": "05005916",
+      "Source": "05001916",
+      "Texture": "06009916"
+    },
+    {
+      "Id": "0500591E",
+      "Source": "0500191E",
+      "Texture": "0600991E"
+    }
+  ],
+  "Surfaces": [
+    {
+      "Id": "080035B8",
+      "Source": "080015B8"
+    },
+    {
+      "Id": "080035B9",
+      "Source": "080015B9"
+    },
+    {
+      "Id": "080035BA",
+      "Source": "080015BA"
+    },
+    {
+      "Id": "080035BC",
+      "Source": "080015BC"
+    },
+    {
+      "Id": "080035BE",
+      "Source": "080015BE"
+    },
+    {
+      "Id": "080035C6",
+      "Source": "080015C6"
+    },
+    {
+      "Id": "080035C7",
+      "Source": "080015C7"
+    },
+    {
+      "Id": "080035C8",
+      "Source": "080015C8"
+    },
+    {
+      "Id": "080035DF",
+      "Source": "080015DF"
+    },
+    {
+      "Id": "080035EE",
+      "Source": "080015EE"
+    },
+    {
+      "Id": "08003605",
+      "Source": "08001605"
+    },
+    {
+      "Id": "08003617",
+      "Source": "08001617"
+    }
+  ],
+  "GfxObjs": [
+    {
+      "Id": "01006B29",
+      "Source": "01001B29"
+    },
+    {
+      "Id": "01006B2A",
+      "Source": "01001B2A"
+    },
+    {
+      "Id": "01006B2B",
+      "Source": "01001B2B"
+    },
+    {
+      "Id": "01006BB2",
+      "Source": "01001BB2"
+    },
+    {
+      "Id": "01006BC9",
+      "Source": "01001BC9"
+    },
+    {
+      "Id": "01006BDB",
+      "Source": "01001BDB"
+    },
+    {
+      "Id": "01006BDC",
+      "Source": "01001BDC"
+    },
+    {
+      "Id": "01006BDD",
+      "Source": "01001BDD"
+    },
+    {
+      "Id": "01006BEA",
+      "Source": "01001BEA"
+    }
+  ],
+  "Setups": [
+    {
+      "Id": "02002841",
+      "Source": "02000841"
+    },
+    {
+      "Id": "02002842",
+      "Source": "02000842"
+    },
+    {
+      "Id": "02002843",
+      "Source": "02000843"
+    },
+    {
+      "Id": "02002851",
+      "Source": "02000851"
+    },
+    {
+      "Id": "0200286E",
+      "Source": "0200086E"
+    }
+  ],
+  "Scenes": [
+    {
+      "Id": "1200025B",
+      "Source": "1200025B",
+      "Freq": 0.25
+    }
+  ],
+  "Waves": [],
+  "Animations": [],
+  "ParticleEmitters": [],
+  "PhysicsScripts": [],
+  "ScriptTables": [],
+  "MotionTables": [],
+  "PaletteSets": [],
+  "SoundTables": [],
+  "Clothing": [],
+  "Maps": [
+    {
+      "Source": "04000FA2",
+      "Target": "04000FA2"
+    },
+    {
+      "Source": "05001912",
+      "Target": "05001912"
+    },
+    {
+      "Source": "05001913",
+      "Target": "05001913"
+    },
+    {
+      "Source": "05001914",
+      "Target": "05001914"
+    },
+    {
+      "Source": "0500192C",
+      "Target": "0500192C"
+    },
+    {
+      "Source": "05001935",
+      "Target": "05001935"
+    },
+    {
+      "Source": "05001950",
+      "Target": "05001950"
+    }
+  ]
+}

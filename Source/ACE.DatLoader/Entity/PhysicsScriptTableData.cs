@@ -11,5 +11,13 @@ namespace ACE.DatLoader.Entity
         {
             Scripts.Unpack(reader);
         }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)Scripts.Count);
+
+            foreach (var script in Scripts)
+                script.Pack(writer);
+        }
     }
 }

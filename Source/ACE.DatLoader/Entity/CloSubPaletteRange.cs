@@ -7,6 +7,12 @@ namespace ACE.DatLoader.Entity
         public uint Offset { get; set; }
         public uint NumColors { get; set; }
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Offset);
+            writer.Write(NumColors);
+        }
+
         public void Unpack(BinaryReader reader)
         {
             Offset      = reader.ReadUInt32();

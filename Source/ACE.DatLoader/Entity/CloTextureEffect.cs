@@ -7,12 +7,18 @@ namespace ACE.DatLoader.Entity
         /// <summary>
         /// Texture portal.dat 0x05000000
         /// </summary>
-        public uint OldTexture { get; private set; }
+        public uint OldTexture { get; set; }
 
         /// <summary>
         /// Texture portal.dat 0x05000000
         /// </summary>
-        public uint NewTexture { get; private set; }
+        public uint NewTexture { get; set; }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(OldTexture);
+            writer.Write(NewTexture);
+        }
 
         public void Unpack(BinaryReader reader)
         {

@@ -20,5 +20,31 @@ namespace ACE.DatLoader.Entity
             RoadMaps.Unpack(reader);
             TerrainDesc.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(BaseTexSize);
+
+            writer.Write((uint)CornerTerrainMaps.Count);
+
+            foreach (var item in CornerTerrainMaps)
+                item.Pack(writer);
+
+            writer.Write((uint)SideTerrainMaps.Count);
+
+            foreach (var item in SideTerrainMaps)
+                item.Pack(writer);
+
+            writer.Write((uint)RoadMaps.Count);
+
+            foreach (var item in RoadMaps)
+                item.Pack(writer);
+
+            writer.Write((uint)TerrainDesc.Count);
+
+            foreach (var item in TerrainDesc)
+                item.Pack(writer);
+        }
     }
 }

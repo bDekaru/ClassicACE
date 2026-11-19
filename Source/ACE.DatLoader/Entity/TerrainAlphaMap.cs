@@ -12,5 +12,12 @@ namespace ACE.DatLoader.Entity
             TCode   = reader.ReadUInt32();
             TexGID  = reader.ReadUInt32();
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(TCode);
+            writer.Write(TexGID);
+        }
     }
 }

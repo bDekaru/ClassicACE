@@ -20,5 +20,15 @@ namespace ACE.DatLoader.Entity
         }
 
         public bool IsContinuous => (BaseChance == 0);
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(SType);
+            writer.Write(Volume);
+            writer.Write(BaseChance);
+            writer.Write(MinRate);
+            writer.Write(MaxRate);
+        }
     }
 }

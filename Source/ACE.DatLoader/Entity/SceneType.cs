@@ -14,5 +14,16 @@ namespace ACE.DatLoader.Entity
 
             Scenes.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(StbIndex);
+
+            writer.Write(Scenes.Count);
+
+            foreach (var item in Scenes)
+                writer.Write(item);
+        }
     }
 }

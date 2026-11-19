@@ -14,5 +14,16 @@ namespace ACE.DatLoader.Entity
 
             AmbientSounds.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(STBId);
+
+            writer.Write((uint)AmbientSounds.Count);
+
+            foreach (var item in AmbientSounds)
+                item.Pack(writer);
+        }
     }
 }

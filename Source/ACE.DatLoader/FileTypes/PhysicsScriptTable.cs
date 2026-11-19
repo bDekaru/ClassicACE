@@ -6,7 +6,7 @@ using ACE.DatLoader.Entity;
 namespace ACE.DatLoader.FileTypes
 {
     /// <summary>
-    /// These are client_portal.dat files starting with 0x34. 
+    /// These are client_portal.dat files starting with 0x34.
     /// </summary>
     [DatFileType(DatFileType.PhysicsScriptTable)]
     public class PhysicsScriptTable : FileType
@@ -18,6 +18,34 @@ namespace ACE.DatLoader.FileTypes
             Id = reader.ReadUInt32();
 
             ScriptTable.Unpack(reader);
+        }
+
+        /// <summary>Replaces every script id by map(id).</summary>
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var entry in ScriptTable.Values)
+                foreach (var script in entry.Scripts)
+                    script.Remap(map);
+        }
+
+        /// <summary>Entries are written in dictionary order, which is the file's order for a table read from a record and then added to.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write((uint)ScriptTable.Count);
+
+                foreach (var entry in ScriptTable)
+                {
+                    writer.Write(entry.Key);
+                    entry.Value.Pack(writer);
+                }
+
+                writer.Flush();
+                return stream.ToArray();
+            }
         }
     }
 }

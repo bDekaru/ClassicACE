@@ -6,7 +6,7 @@ namespace ACE.DatLoader.Entity
     {
         public uint ObjId { get; private set; }
         public Frame BaseLoc { get; } = new Frame();
-        public float Freq { get; private set; }
+        public float Freq { get; set; }
         public float DisplaceX { get; private set; }
         public float DisplaceY { get; private set; }
         public float MinScale { get; private set; }

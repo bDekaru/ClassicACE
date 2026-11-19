@@ -19,6 +19,37 @@ namespace ACE.DatLoader.FileTypes
         public List<Frame> PosFrames { get; } = new List<Frame>();
         public List<AnimationFrame> PartFrames { get; } = new List<AnimationFrame>();
 
+        /// <summary>Replaces the dat ids the hooks refer to by map(id).</summary>
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var partFrame in PartFrames)
+                foreach (var hook in partFrame.Hooks)
+                    hook.Remap(map);
+        }
+
+        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write((uint)Flags);
+                writer.Write(NumParts);
+                writer.Write(NumFrames);
+
+                if ((Flags & AnimationFlags.PosFrames) != 0)
+                    foreach (var frame in PosFrames)
+                        frame.Pack(writer);
+
+                foreach (var partFrame in PartFrames)
+                    partFrame.Pack(writer);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
         public override void Unpack(BinaryReader reader)
         {
             Id          = reader.ReadUInt32();

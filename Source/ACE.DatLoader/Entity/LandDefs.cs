@@ -30,5 +30,21 @@ namespace ACE.DatLoader.Entity
             for (int i = 0; i < 256; i++)
                 LandHeightTable.Add(reader.ReadSingle());
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(NumBlockLength);
+            writer.Write(NumBlockWidth);
+            writer.Write(SquareLength);
+            writer.Write(LBlockLength);
+            writer.Write(VertexPerCell);
+            writer.Write(MaxObjHeight);
+            writer.Write(SkyHeight);
+            writer.Write(RoadWidth);
+
+            foreach (var height in LandHeightTable)
+                writer.Write(height);
+        }
     }
 }

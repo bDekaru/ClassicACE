@@ -9,6 +9,16 @@ namespace ACE.DatLoader.Entity.AnimationHooks
         public float End { get; private set; }
         public float Time { get; private set; }
 
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)HookType);
+            writer.Write((int)Direction);
+            writer.Write(Part);
+            writer.Write(Start);
+            writer.Write(End);
+            writer.Write(Time);
+        }
+
         public override void Unpack(BinaryReader reader)
         {
             base.Unpack(reader);

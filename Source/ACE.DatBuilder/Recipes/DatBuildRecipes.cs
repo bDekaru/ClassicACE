@@ -232,12 +232,14 @@ namespace ACE.DatBuilder
         // LanguageBaseDat: MD5 b55f7465dbf4fa94fc919d51afcb70da
         // PortalBaseDat:   MD5 2c89662a44fcdc2a3c31fe8f6677d265
         // PreToDPortalDat: MD5 304275cb743dc28f37410e06e91cb17c
+        // Portal2001Dat:   MD5 c1438f6802b4d15c9d3f003f46339c41 (CRC32 2B64BF52, the PORTAL.DAT of the archive's 2001-09-12 snapshot)
         // PreToDCellDat:   MD5 0f32588ffbf648cd0695a4dbd6488205
         // ToDCellDat:      MD5 c1521ecd4dab4123df5467090742a45b
         public const string LanguageBaseDat = "language - 2015-06-18 - Iteration 994 - EoR.dat";
         public const string PortalBaseDat = "portal - 2017-01-29 - Iteration 2072 - EoR.dat";
 
         public const string PreToDPortalDat = "portal - 2005-02-XX - Iteration 2112 - Infiltration.dat";
+        public const string Portal2001Dat = "portal - 2001-09-12 - Iteration 541.dat";
         public const string PreToDSurfaceMap = "surface_map_preToD_2005-02_to_ToD.tsv";
 
         // Environments and models of the landblocks whose content was removed in ToD (2459 2577 2677 287F), the EC0E objects, and the old models
@@ -295,7 +297,7 @@ namespace ACE.DatBuilder
             Initial("Portal/Shared/Old Models/Mosswart"),
             Initial("Portal/Shared/Old Models/Olthoi"))
             .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).ToArray())
+            .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
@@ -303,7 +305,7 @@ namespace ACE.DatBuilder
             Initial("Portal/Shared/Ground Textures"),
             Initial("Portal/Shared/Trees"))
             .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).ToArray());
+            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray());
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
 

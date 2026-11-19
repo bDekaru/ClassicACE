@@ -12,5 +12,12 @@ namespace ACE.DatLoader.Entity
             RCode       = reader.ReadUInt32();
             RoadTexGID  = reader.ReadUInt32();
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(RCode);
+            writer.Write(RoadTexGID);
+        }
     }
 }

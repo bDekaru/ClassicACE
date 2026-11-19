@@ -44,6 +44,9 @@ namespace ACE.DatBuilder
         /// <summary>One line per record written.</summary>
         public List<string> Log { get; } = new List<string>();
 
+        /// <summary>The ids of the records written.</summary>
+        public HashSet<uint> Written { get; } = new HashSet<uint>();
+
         public DatRecordContext(DatWriter writer, string sourceDats, DatRecordStep step)
         {
             Writer = writer;
@@ -96,11 +99,22 @@ namespace ACE.DatBuilder
             return item;
         }
 
+        /// <summary>Removes the record from the dat being built. A record that is not there is an error, so a step cannot silently stop matching.</summary>
+        public void Delete(uint id, string what)
+        {
+            if (!Writer.Delete(id))
+                throw new InvalidDataException($"The dat being built has no record {id:X8} to remove.");
+
+            Written.Remove(id);
+            Log.Add($"{id:X8} {what}: removed");
+        }
+
         /// <summary>Writes the record with the step's date.</summary>
         public void Write(uint id, byte[] record, string what)
         {
             Writer.RecordDate = Step.Time;
             var outcome = Writer.Save(id, record);
+            Written.Add(id);
 
             Log.Add($"{id:X8} {what}: {(outcome == DatSaveOutcome.Added ? "added" : "replaced")} ({record.Length:N0} bytes)");
         }

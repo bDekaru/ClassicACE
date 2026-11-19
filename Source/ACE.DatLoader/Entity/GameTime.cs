@@ -35,5 +35,34 @@ namespace ACE.DatLoader.Entity
 
             Seasons.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(ZeroTimeOfYear);
+            writer.Write(ZeroYear);
+            writer.Write(DayLength);
+            writer.Write(DaysPerYear);
+            writer.WritePString(YearSpec);
+            writer.AlignBoundary();
+
+            writer.Write((uint)TimesOfDay.Count);
+
+            foreach (var item in TimesOfDay)
+                item.Pack(writer);
+
+            writer.Write((uint)DaysOfTheWeek.Count);
+
+            foreach (var day in DaysOfTheWeek)
+            {
+                writer.WritePString(day);
+                writer.AlignBoundary();
+            }
+
+            writer.Write((uint)Seasons.Count);
+
+            foreach (var item in Seasons)
+                item.Pack(writer);
+        }
     }
 }

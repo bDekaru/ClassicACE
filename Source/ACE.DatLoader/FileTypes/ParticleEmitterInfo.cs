@@ -12,42 +12,103 @@ namespace ACE.DatLoader.FileTypes
     [DatFileType(DatFileType.ParticleEmitter)]
     public class ParticleEmitterInfo : FileType
     {
-        public EmitterType EmitterType { get; private set; }
-        public ParticleType ParticleType { get; private set; }
-        public uint GfxObjId { get; private set; }
-        public uint HwGfxObjId { get; private set; }
-        public double Birthrate { get; private set; }
-        public int MaxParticles { get; private set; }
-        public int InitialParticles { get; private set; }
-        public int TotalParticles { get; private set; }
-        public double TotalSeconds { get; private set; }
-        public double Lifespan { get; private set; }
-        public double LifespanRand { get; private set; }
-        public Vector3 OffsetDir { get; private set; }
-        public float MinOffset { get; private set; }
-        public float MaxOffset { get; private set; }
-        public Vector3 A { get; private set; }
-        public float MinA { get; private set; }
-        public float MaxA { get; private set; }
-        public Vector3 B { get; private set; }
-        public float MinB { get; private set; }
-        public float MaxB { get; private set; }
-        public Vector3 C { get; private set; }
-        public float MinC { get; private set; }
-        public float MaxC { get; private set; }
-        public float StartScale { get; private set; }
-        public float FinalScale { get; private set; }
-        public float ScaleRand { get; private set; }
-        public float StartTrans { get; private set; }
-        public float FinalTrans { get; private set; }
-        public float TransRand { get; private set; }
-        public int IsParentLocal { get; private set; }
+        /// <summary>The word after the id, kept so that a record is written back as it was read.</summary>
+        public uint Unknown { get; set; }
+        public EmitterType EmitterType { get; set; }
+        public ParticleType ParticleType { get; set; }
+        public uint GfxObjId { get; set; }
+        public uint HwGfxObjId { get; set; }
+        public double Birthrate { get; set; }
+        public int MaxParticles { get; set; }
+        public int InitialParticles { get; set; }
+        public int TotalParticles { get; set; }
+        public double TotalSeconds { get; set; }
+        public double Lifespan { get; set; }
+        public double LifespanRand { get; set; }
+        public Vector3 OffsetDir { get; set; }
+        public float MinOffset { get; set; }
+        public float MaxOffset { get; set; }
+        public Vector3 A { get; set; }
+        public float MinA { get; set; }
+        public float MaxA { get; set; }
+        public Vector3 B { get; set; }
+        public float MinB { get; set; }
+        public float MaxB { get; set; }
+        public Vector3 C { get; set; }
+        public float MinC { get; set; }
+        public float MaxC { get; set; }
+        public float StartScale { get; set; }
+        public float FinalScale { get; set; }
+        public float ScaleRand { get; set; }
+        public float StartTrans { get; set; }
+        public float FinalTrans { get; set; }
+        public float TransRand { get; set; }
+        public int IsParentLocal { get; set; }
+
+        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write(Unknown);
+                writer.Write((int)EmitterType);
+                writer.Write((int)ParticleType);
+                writer.Write(GfxObjId);
+                writer.Write(HwGfxObjId);
+                writer.Write(Birthrate);
+                writer.Write(MaxParticles);
+                writer.Write(InitialParticles);
+                writer.Write(TotalParticles);
+                writer.Write(TotalSeconds);
+                writer.Write(Lifespan);
+                writer.Write(LifespanRand);
+                writer.Write(OffsetDir.X);
+                writer.Write(OffsetDir.Y);
+                writer.Write(OffsetDir.Z);
+                writer.Write(MinOffset);
+                writer.Write(MaxOffset);
+                writer.Write(A.X);
+                writer.Write(A.Y);
+                writer.Write(A.Z);
+                writer.Write(MinA);
+                writer.Write(MaxA);
+                writer.Write(B.X);
+                writer.Write(B.Y);
+                writer.Write(B.Z);
+                writer.Write(MinB);
+                writer.Write(MaxB);
+                writer.Write(C.X);
+                writer.Write(C.Y);
+                writer.Write(C.Z);
+                writer.Write(MinC);
+                writer.Write(MaxC);
+                writer.Write(StartScale);
+                writer.Write(FinalScale);
+                writer.Write(ScaleRand);
+                writer.Write(StartTrans);
+                writer.Write(FinalTrans);
+                writer.Write(TransRand);
+                writer.Write(IsParentLocal);
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        /// <summary>Replaces the GfxObj ids by map(id) (an id that is not set stays 0).</summary>
+        public void Remap(Func<uint, uint> map)
+        {
+            GfxObjId = GfxObjId != 0 ? map(GfxObjId) : 0;
+            HwGfxObjId = HwGfxObjId != 0 ? map(HwGfxObjId) : 0;
+        }
 
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
 
-            /*uint unknown = */reader.ReadUInt32();
+            Unknown = reader.ReadUInt32();
 
             EmitterType  =  (EmitterType)reader.ReadInt32();
             ParticleType = (ParticleType)reader.ReadInt32();

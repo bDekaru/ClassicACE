@@ -11,8 +11,23 @@ namespace ACE.DatLoader.Entity
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public AnimationHookType HookType { get; private set; }
-        public AnimationHookDir Direction { get; private set; }
+        public AnimationHookType HookType { get; protected set; }
+        public AnimationHookDir Direction { get; protected set; }
+
+        /// <exception cref="NotSupportedException">The hook type has no writer yet.</exception>
+        public virtual void Pack(BinaryWriter writer)
+        {
+            if (GetType() != typeof(AnimationHook))
+                throw new NotSupportedException($"Writing {HookType} hooks is not supported.");
+
+            writer.Write((uint)HookType);
+            writer.Write((int)Direction);
+        }
+
+        /// <summary>Replaces the dat ids the hook refers to (particle emitter infos, scripts, waves, objects) by map(id); hooks that refer to none keep the default.</summary>
+        public virtual void Remap(Func<uint, uint> map)
+        {
+        }
 
         public static AnimationHook AnimDoneHook;
 

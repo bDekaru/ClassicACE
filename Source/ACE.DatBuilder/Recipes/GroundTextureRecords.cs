@@ -23,6 +23,7 @@ namespace ACE.DatBuilder
             public string Source { get; set; }
         }
 
+        // Source dat: portal - 2005-02-XX - Iteration 2112 - Infiltration.dat, MD5 304275cb743dc28f37410e06e91cb17c (the images); the formats and header values are those of the EoR dat's own records, portal - 2017-01-29 - Iteration 2072 - EoR.dat, MD5 2c89662a44fcdc2a3c31fe8f6677d265.
         public static DatRecordStep Step(string date)
         {
             return new DatRecordStep("Ground textures from the 2005 dat", date, c =>

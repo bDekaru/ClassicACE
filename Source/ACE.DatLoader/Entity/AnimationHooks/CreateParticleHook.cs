@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace ACE.DatLoader.Entity.AnimationHooks
@@ -8,6 +9,21 @@ namespace ACE.DatLoader.Entity.AnimationHooks
         public uint PartIndex { get; private set; }
         public Frame Offset { get; } = new Frame();
         public uint EmitterId { get; private set; }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)HookType);
+            writer.Write((int)Direction);
+            writer.Write(EmitterInfoId);
+            writer.Write(PartIndex);
+            Offset.Pack(writer);
+            writer.Write(EmitterId);
+        }
+
+        public override void Remap(Func<uint, uint> map)
+        {
+            EmitterInfoId = map(EmitterInfoId);
+        }
 
         public override void Unpack(BinaryReader reader)
         {

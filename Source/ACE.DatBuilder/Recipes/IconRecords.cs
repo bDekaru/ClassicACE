@@ -20,6 +20,7 @@ namespace ACE.DatBuilder
             public string Source { get; set; }
         }
 
+        // Source dat: portal - 2005-02-XX - Iteration 2112 - Infiltration.dat, MD5 304275cb743dc28f37410e06e91cb17c
         public static DatRecordStep Step(string date)
         {
             return new DatRecordStep("Icons from the 2005 dat", date, c =>

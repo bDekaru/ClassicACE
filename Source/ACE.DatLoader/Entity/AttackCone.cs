@@ -16,6 +16,17 @@ namespace ACE.DatLoader.Entity
         public float Radius { get; private set; }
         public float Height { get; private set; }
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(PartIndex);
+            writer.Write(LeftX);
+            writer.Write(LeftY);
+            writer.Write(RightX);
+            writer.Write(RightY);
+            writer.Write(Radius);
+            writer.Write(Height);
+        }
+
         public void Unpack(BinaryReader reader)
         {
             PartIndex   = reader.ReadUInt32();

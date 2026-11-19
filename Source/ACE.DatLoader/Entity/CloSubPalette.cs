@@ -14,6 +14,15 @@ namespace ACE.DatLoader.Entity
         /// </summary>
         public uint PaletteSet { get; set; }
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)Ranges.Count);
+            foreach (var range in Ranges)
+                range.Pack(writer);
+
+            writer.Write(PaletteSet);
+        }
+
         public void Unpack(BinaryReader reader)
         {
             Ranges.Unpack(reader);

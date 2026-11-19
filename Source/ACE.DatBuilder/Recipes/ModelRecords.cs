@@ -24,8 +24,14 @@ namespace ACE.DatBuilder
             /// <summary>Palette records only used by textures: the palette the texture reads.</summary>
             public string Palette { get; set; }
 
+            /// <summary>Physics script entries only: the order of the script's entries, as positions in the source record (the written script is not in the source's order).</summary>
+            public List<int> Order { get; set; }
+
             /// <summary>Surface texture entries only: the texture (0x06) it refers to.</summary>
             public string Texture { get; set; }
+
+            /// <summary>Scene entries only: replaces the density (Freq) of every object of the scene.</summary>
+            public float? Freq { get; set; }
         }
 
         public class Map
@@ -43,6 +49,15 @@ namespace ACE.DatBuilder
             public List<Entry> GfxObjs { get; set; } = new List<Entry>();
             public List<Entry> Setups { get; set; } = new List<Entry>();
             public List<Entry> Scenes { get; set; } = new List<Entry>();
+            public List<Entry> Waves { get; set; } = new List<Entry>();
+            public List<Entry> Animations { get; set; } = new List<Entry>();
+            public List<Entry> ParticleEmitters { get; set; } = new List<Entry>();
+            public List<Entry> PhysicsScripts { get; set; } = new List<Entry>();
+            public List<Entry> ScriptTables { get; set; } = new List<Entry>();
+            public List<Entry> MotionTables { get; set; } = new List<Entry>();
+            public List<Entry> PaletteSets { get; set; } = new List<Entry>();
+            public List<Entry> SoundTables { get; set; } = new List<Entry>();
+            public List<Entry> Clothing { get; set; } = new List<Entry>();
 
             /// <summary>Ids the listed records refer to that are not made by this file (records of the end of retail dat, other files), as pre-ToD id to the id they have in the dat being built.</summary>
             public List<Map> Maps { get; set; } = new List<Map>();
@@ -60,11 +75,12 @@ namespace ACE.DatBuilder
             return Step("Trees from the 2005 dat", date, TreesFile);
         }
 
-        public static DatRecordStep Step(string name, string date, string dataFile)
+        // Source dat of a model step unless it names another: portal - 2005-02-XX - Iteration 2112 - Infiltration.dat, MD5 304275cb743dc28f37410e06e91cb17c
+        public static DatRecordStep Step(string name, string date, string dataFile, string sourceDat = DatBuildRecipes.PreToDPortalDat)
         {
             return new DatRecordStep(name, date, c =>
             {
-                foreach (var record in Build(DatRecipeData.Load<Data>(dataFile), id => c.ReadSource(DatBuildRecipes.PreToDPortalDat, id)))
+                foreach (var record in Build(DatRecipeData.Load<Data>(dataFile), id => c.ReadSource(sourceDat, id)))
                     c.Write(record.Key, record.Value, "model record");
             });
         }
@@ -85,6 +101,13 @@ namespace ACE.DatBuilder
             foreach (var gfx in gfxObjs)
                 if (!objects.ContainsKey(gfx.Key))
                     objects[gfx.Key] = gfx.Value;
+
+            var everything = new Dictionary<uint, uint>(explicitMap);
+            foreach (var list in new[] { data.Palettes, data.Textures, data.SurfaceTextures, data.Surfaces, data.GfxObjs, data.Setups, data.Scenes, data.Waves, data.Animations, data.ParticleEmitters, data.PhysicsScripts, data.ScriptTables, data.MotionTables, data.PaletteSets, data.SoundTables, data.Clothing })
+                foreach (var entry in list)
+                    everything[Hex(entry.Source)] = Hex(entry.Id);
+
+            Func<uint, uint> all = id => id == 0 ? 0 : Lookup(everything, id);
 
             foreach (var entry in data.Palettes)
             {
@@ -120,7 +143,8 @@ namespace ACE.DatBuilder
             foreach (var entry in data.Setups)
             {
                 var setup = ContextUnpack<SetupModel>(readSource(Hex(entry.Source)));
-                setup.Remap(id => Lookup(objects, id));
+                setup.Remap(all);
+
                 var record = setup.Pack();
                 WriteId(record, Hex(entry.Id));
                 result.Add(new KeyValuePair<uint, byte[]>(Hex(entry.Id), record));
@@ -129,13 +153,88 @@ namespace ACE.DatBuilder
             foreach (var entry in data.Scenes)
             {
                 var scene = ContextUnpack<Scene>(readSource(Hex(entry.Source)));
-                scene.Remap(id => Lookup(objects, id));
+                scene.Remap(all);
+
+                if (entry.Freq.HasValue)
+                    foreach (var obj in scene.Objects)
+                        obj.Freq = entry.Freq.Value;
+
                 var record = scene.Pack();
                 WriteId(record, Hex(entry.Id));
                 result.Add(new KeyValuePair<uint, byte[]>(Hex(entry.Id), record));
             }
 
+            foreach (var entry in data.Waves)
+            {
+                var wave = ContextUnpack<Wave>(readSource(Hex(entry.Source)));
+                Add(result, entry, wave.Pack());
+            }
+
+            foreach (var entry in data.Animations)
+            {
+                var animation = ContextUnpack<Animation>(readSource(Hex(entry.Source)));
+                animation.Remap(all);
+                Add(result, entry, animation.Pack());
+            }
+
+            foreach (var entry in data.ParticleEmitters)
+            {
+                var emitter = ContextUnpack<ParticleEmitterInfo>(readSource(Hex(entry.Source)));
+                emitter.Remap(all);
+                Add(result, entry, emitter.Pack());
+            }
+
+            foreach (var entry in data.PhysicsScripts)
+            {
+                var script = ContextUnpack<PhysicsScript>(readSource(Hex(entry.Source)));
+                script.Remap(all);
+                if (entry.Order != null)
+                    script.Reorder(entry.Order);
+                Add(result, entry, script.Pack());
+            }
+
+            foreach (var entry in data.ScriptTables)
+            {
+                var table = ContextUnpack<PhysicsScriptTable>(readSource(Hex(entry.Source)));
+                table.Remap(all);
+                Add(result, entry, table.Pack());
+            }
+
+            foreach (var entry in data.MotionTables)
+            {
+                var table = ContextUnpack<MotionTable>(readSource(Hex(entry.Source)));
+                table.Remap(all);
+                Add(result, entry, table.Pack());
+            }
+
+            foreach (var entry in data.PaletteSets)
+            {
+                var set = ContextUnpack<PaletteSet>(readSource(Hex(entry.Source)));
+                set.Remap(all);
+                Add(result, entry, set.Pack());
+            }
+
+            foreach (var entry in data.SoundTables)
+            {
+                var table = ContextUnpack<SoundTable>(readSource(Hex(entry.Source)));
+                table.Remap(all);
+                Add(result, entry, table.Pack());
+            }
+
+            foreach (var entry in data.Clothing)
+            {
+                var clothing = ContextUnpack<ClothingTable>(readSource(Hex(entry.Source)));
+                clothing.Remap(all, DatPortalImporter.PaletteRepeat);
+                Add(result, entry, clothing.Pack());
+            }
+
             return result;
+        }
+
+        private static void Add(List<KeyValuePair<uint, byte[]>> result, Entry entry, byte[] record)
+        {
+            WriteId(record, Hex(entry.Id));
+            result.Add(new KeyValuePair<uint, byte[]>(Hex(entry.Id), record));
         }
 
         private static T ContextUnpack<T>(byte[] record) where T : FileType, new()

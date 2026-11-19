@@ -20,5 +20,16 @@ namespace ACE.DatLoader.Entity
             ClearCellId     = reader.ReadUInt32();
             ClearMonsterId  = reader.ReadUInt32();
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Version);
+            writer.Write(GameMapID);
+            writer.Write(AutotestMapId);
+            writer.Write(AutotestMapSize);
+            writer.Write(ClearCellId);
+            writer.Write(ClearMonsterId);
+        }
     }
 }

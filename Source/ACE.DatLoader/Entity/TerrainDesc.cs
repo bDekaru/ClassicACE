@@ -13,5 +13,16 @@ namespace ACE.DatLoader.Entity
             TerrainTypes.Unpack(reader);
             LandSurfaces.Unpack(reader);
         }
+
+        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)TerrainTypes.Count);
+
+            foreach (var item in TerrainTypes)
+                item.Pack(writer);
+
+            LandSurfaces.Pack(writer);
+        }
     }
 }

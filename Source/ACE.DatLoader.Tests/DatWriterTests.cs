@@ -226,6 +226,58 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
+        public void DeleteRecords_LeafAndInnerEntries_AuditCleanAndTheRestReadsBack()
+        {
+            var path = CopyOfLanguageDat();
+
+            try
+            {
+                var expected = ReadAll(path);
+                var random = new Random(3);
+
+                using (var writer = new DatWriter(path))
+                {
+                    while (expected.Count < 4000)
+                    {
+                        var id = 0x23000000u + (uint)random.Next(1, 0x00FFFFFF);
+                        if (expected.ContainsKey(id))
+                            continue;
+
+                        expected[id] = RandomBytes(random, random.Next(1, 3000));
+                        writer.Save(id, expected[id]);
+                    }
+
+                    Assert.IsFalse(writer.Delete(0x23FFFFFF));
+
+                    var victims = expected.Keys.Where(id => random.Next(4) != 0).Take(3000).ToList();
+
+                    foreach (var id in victims)
+                    {
+                        Assert.IsTrue(writer.Delete(id), $"{id:X8} was not deleted");
+                        Assert.IsFalse(writer.Contains(id));
+                        expected.Remove(id);
+                    }
+
+                    Assert.AreEqual(expected.Count, writer.Audit().Records);
+
+                    var id2 = 0x23000001u;
+                    while (expected.ContainsKey(id2))
+                        id2++;
+
+                    expected[id2] = RandomBytes(random, 100);
+                    writer.Save(id2, expected[id2]);
+                    Assert.AreEqual(expected.Count, writer.Audit().Records);
+                }
+
+                AssertSame(expected, ReadAll(path));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [TestMethod]
         public void LargePortalDat_ReplaceAndAdd_AuditsCleanAndReadsBack()
         {
             var source = Path.Combine(SourceDats, "portal - 2017-01-29 - Iteration 2072 - EoR.dat");

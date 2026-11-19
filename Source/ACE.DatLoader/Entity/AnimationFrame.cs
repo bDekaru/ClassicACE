@@ -18,6 +18,17 @@ namespace ACE.DatLoader.Entity
             throw new NotSupportedException();
         }
 
+        /// <summary>Writes the frames and hooks in the layout <see cref="Unpack(BinaryReader, uint)"/> reads.</summary>
+        public void Pack(BinaryWriter writer)
+        {
+            foreach (var frame in Frames)
+                frame.Pack(writer);
+
+            writer.Write((uint)Hooks.Count);
+            foreach (var hook in Hooks)
+                hook.Pack(writer);
+        }
+
         public void Unpack(BinaryReader reader, uint numParts)
         {
             Frames.Unpack(reader, numParts);

@@ -23,6 +23,9 @@ namespace ACE.DatBuilder
         private const uint LeadershipSkillId = 35;
         private const uint LoyaltySkillId = 36;
 
+        // Source dats of the steps below (MD5 of the files):
+        //   2005 dat (XP table, skill table, in-game map): portal - 2005-02-XX - Iteration 2112 - Infiltration.dat, MD5 304275cb743dc28f37410e06e91cb17c
+        //   EoR dat (character generation, spell table): portal - 2017-01-29 - Iteration 2072 - EoR.dat, MD5 2c89662a44fcdc2a3c31fe8f6677d265
         public static DatRecordStep[] All(string date)
         {
             return new[]

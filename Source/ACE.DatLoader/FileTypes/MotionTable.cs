@@ -38,6 +38,64 @@ namespace ACE.DatLoader.FileTypes
             Links.Unpack(reader);
         }
 
+        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
+        public byte[] Pack()
+        {
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                writer.Write(Id);
+                writer.Write(DefaultStyle);
+
+                writer.Write((uint)StyleDefaults.Count);
+                foreach (var entry in StyleDefaults)
+                {
+                    writer.Write(entry.Key);
+                    writer.Write(entry.Value);
+                }
+
+                PackMotions(writer, Cycles);
+                PackMotions(writer, Modifiers);
+
+                writer.Write((uint)Links.Count);
+                foreach (var link in Links)
+                {
+                    writer.Write(link.Key);
+                    PackMotions(writer, link.Value);
+                }
+
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        private static void PackMotions(BinaryWriter writer, Dictionary<uint, MotionData> motions)
+        {
+            writer.Write((uint)motions.Count);
+            foreach (var motion in motions)
+            {
+                writer.Write(motion.Key);
+                motion.Value.Pack(writer);
+            }
+        }
+
+        /// <summary>Replaces every animation id by map(id).</summary>
+        public void Remap(Func<uint, uint> map)
+        {
+            foreach (var motion in Cycles.Values)
+                foreach (var anim in motion.Anims)
+                    anim.Remap(map);
+
+            foreach (var motion in Modifiers.Values)
+                foreach (var anim in motion.Anims)
+                    anim.Remap(map);
+
+            foreach (var links in Links.Values)
+                foreach (var motion in links.Values)
+                    foreach (var anim in motion.Anims)
+                        anim.Remap(map);
+        }
+
         /// <summary>
         /// Gets the default style for the requested MotionStance
         /// </summary>

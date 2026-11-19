@@ -3133,10 +3133,6 @@
       "Target": "0500240D"
     },
     {
-      "Source": "20000049",
-      "Target": "20000149"
-    },
-    {
       "Source": "330003EC",
       "Target": "330003EC"
     },
@@ -3147,6 +3143,88 @@
     {
       "Source": "3300072E",
       "Target": "3300272E"
+    },
+    {
+      "Source": "0A00024E",
+      "Target": "0A00024E"
+    },
+    {
+      "Source": "0A00024F",
+      "Target": "0A00024F"
+    },
+    {
+      "Source": "0A000257",
+      "Target": "0A000257"
+    },
+    {
+      "Source": "0A000259",
+      "Target": "0A000259"
+    },
+    {
+      "Source": "0A000262",
+      "Target": "0A000262"
+    },
+    {
+      "Source": "0A000263",
+      "Target": "0A000263"
+    },
+    {
+      "Source": "0A000266",
+      "Target": "0A000266"
+    },
+    {
+      "Source": "0A000267",
+      "Target": "0A000267"
+    },
+    {
+      "Source": "0A00026A",
+      "Target": "0A00026A"
+    },
+    {
+      "Source": "0A00026B",
+      "Target": "0A00026B"
+    },
+    {
+      "Source": "0A000273",
+      "Target": "0A000273"
+    },
+    {
+      "Source": "0A000274",
+      "Target": "0A000274"
+    },
+    {
+      "Source": "0A000317",
+      "Target": "0A000317"
+    },
+    {
+      "Source": "0A000318",
+      "Target": "0A000318"
+    },
+    {
+      "Source": "0A000397",
+      "Target": "0A000397"
+    },
+    {
+      "Source": "0A000398",
+      "Target": "0A000398"
+    },
+    {
+      "Source": "0A000399",
+      "Target": "0A000399"
+    },
+    {
+      "Source": "0A00039A",
+      "Target": "0A00039A"
+    },
+    {
+      "Source": "0A00039B",
+      "Target": "0A00039B"
+    }
+  ],
+  "SoundTables": [
+    {
+      "Id": "20000149",
+      "Source": "20000049"
     }
   ]
 }

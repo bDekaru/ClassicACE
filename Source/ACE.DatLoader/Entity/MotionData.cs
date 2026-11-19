@@ -14,6 +14,31 @@ namespace ACE.DatLoader.Entity
         public Vector3 Velocity { get; private set; }
         public Vector3 Omega { get; private set; }
 
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((byte)Anims.Count);
+            writer.Write(Bitfield);
+            writer.Write((byte)Flags);
+            writer.AlignBoundary();
+
+            foreach (var anim in Anims)
+                anim.Pack(writer);
+
+            if ((Flags & MotionDataFlags.HasVelocity) != 0)
+            {
+                writer.Write(Velocity.X);
+                writer.Write(Velocity.Y);
+                writer.Write(Velocity.Z);
+            }
+
+            if ((Flags & MotionDataFlags.HasOmega) != 0)
+            {
+                writer.Write(Omega.X);
+                writer.Write(Omega.Y);
+                writer.Write(Omega.Z);
+            }
+        }
+
         public void Unpack(BinaryReader reader)
         {
             var numAnims    = reader.ReadByte();

@@ -1,0 +1,78 @@
+{
+  "Palettes": [
+    {
+      "Id": "040001BF",
+      "Source": "040001BF"
+    },
+    {
+      "Id": "040009A6",
+      "Source": "040009A6"
+    },
+    {
+      "Id": "040009A7",
+      "Source": "040009A7"
+    },
+    {
+      "Id": "04000F3D",
+      "Source": "04000F3D"
+    }
+  ],
+  "Textures": [],
+  "SurfaceTextures": [],
+  "Surfaces": [],
+  "GfxObjs": [],
+  "Setups": [],
+  "Scenes": [],
+  "Waves": [],
+  "Animations": [],
+  "ParticleEmitters": [],
+  "PhysicsScripts": [],
+  "ScriptTables": [],
+  "MotionTables": [],
+  "PaletteSets": [],
+  "SoundTables": [],
+  "Clothing": [
+    {
+      "Id": "10000061",
+      "Source": "10000061"
+    }
+  ],
+  "Maps": [
+    {
+      "Source": "02000420",
+      "Target": "02000420"
+    },
+    {
+      "Source": "02000419",
+      "Target": "02000419"
+    },
+    {
+      "Source": "0200041B",
+      "Target": "0200041B"
+    },
+    {
+      "Source": "02000003",
+      "Target": "02000003"
+    },
+    {
+      "Source": "0200041E",
+      "Target": "0200041E"
+    },
+    {
+      "Source": "0200041F",
+      "Target": "0200041F"
+    },
+    {
+      "Source": "0F0000E5",
+      "Target": "0F0000E5"
+    },
+    {
+      "Source": "0F000038",
+      "Target": "0F000038"
+    },
+    {
+      "Source": "0F000037",
+      "Target": "0F000037"
+    }
+  ]
+}
