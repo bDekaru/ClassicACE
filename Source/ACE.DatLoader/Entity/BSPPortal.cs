@@ -45,5 +45,38 @@ namespace ACE.DatLoader.Entity
                 InPortals.Unpack(reader, numPortals);
             }
         }
+
+        /// <summary>
+        /// You must use the Pack(BinaryWriter writer, BSPType treeType) method.
+        /// </summary>
+        /// <exception cref="NotSupportedException">You must use the Pack(BinaryWriter writer, BSPType treeType) method.</exception>
+        public override void Pack(BinaryWriter writer)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Pack(BinaryWriter writer, BSPType treeType)
+        {
+            writer.Write(Encoding.ASCII.GetBytes(Type.Reverse()));
+
+            SplittingPlane.Pack(writer);
+
+            PosNode.Pack(writer, treeType);
+            NegNode.Pack(writer, treeType);
+
+            if (treeType == BSPType.Drawing)
+            {
+                Sphere.Pack(writer);
+
+                writer.Write((uint)InPolys.Count);
+                writer.Write((uint)InPortals.Count);
+
+                foreach (var id in InPolys)
+                    writer.Write(id);
+
+                foreach (var portal in InPortals)
+                    portal.Pack(writer);
+            }
+        }
     }
 }

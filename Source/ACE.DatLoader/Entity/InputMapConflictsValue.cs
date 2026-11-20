@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class InputMapConflictsValue : IUnpackable
+    public class InputMapConflictsValue : IUnpackable, IPackable
     {
         public uint InputMap { get; private set; }
         public List<uint> ConflictingInputMaps { get; private set; } = new List<uint>();
@@ -12,6 +12,12 @@ namespace ACE.DatLoader.Entity
         {
             InputMap = reader.ReadUInt32();
             ConflictingInputMaps.Unpack(reader);
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(InputMap);
+            ConflictingInputMaps.Pack(writer);
         }
     }
 }

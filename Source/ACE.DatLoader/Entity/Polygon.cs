@@ -4,7 +4,7 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class Polygon : IUnpackable
+    public class Polygon : IUnpackable, IPackable
     {
         public byte NumPts { get; private set; }
         public StipplingType Stippling { get; private set; } // Whether it has that textured/bumpiness to it
@@ -49,6 +49,27 @@ namespace ACE.DatLoader.Entity
                 NegSurface = PosSurface;
                 NegUVIndices = PosUVIndices;
             }
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((byte)VertexIds.Count);
+            writer.Write((byte)Stippling);
+
+            writer.Write((int)SidesType);
+            writer.Write(PosSurface);
+            writer.Write(NegSurface);
+
+            foreach (var id in VertexIds)
+                writer.Write(id);
+
+            if (!Stippling.HasFlag(StipplingType.NoPos))
+                foreach (var index in PosUVIndices)
+                    writer.Write(index);
+
+            if (SidesType == CullMode.Clockwise && !Stippling.HasFlag(StipplingType.NoNeg))
+                foreach (var index in NegUVIndices)
+                    writer.Write(index);
         }
 
         public void LoadVertices(CVertexArray vertexArray)

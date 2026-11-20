@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace ACE.DatLoader.Entity
 {
-    public class BasePropertyDesc : IUnpackable
+    public class BasePropertyDesc : IUnpackable, IPackable
     {
         public uint m_propertyName;
         public BasePropertyType m_propertyType;
@@ -146,6 +146,89 @@ namespace ACE.DatLoader.Entity
             for (var i = 0; i < numItems; i++)
             {
                 m_availableProperties.Add(reader.ReadUInt32(), reader.ReadUInt32());
+            }
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(m_propertyName);
+            writer.Write((uint)m_propertyType);
+            writer.Write((uint)m_propertyGroup);
+            writer.Write(m_propertyProvider);
+            writer.Write(m_data);
+
+            writer.Write(unknown_int_1);
+
+            writer.Write(has_default_value);
+            if (has_default_value)
+            {
+                switch (m_propertyType)
+                {
+                    case BasePropertyType.Bool:
+                        writer.Write(defaultValueBool);
+                        break;
+                    case BasePropertyType.Color:
+                        writer.Write(defaultValueColor);
+                        break;
+                    case BasePropertyType.DataFile:
+                        writer.Write(defaultValueDataFile);
+                        break;
+                    case BasePropertyType.Enum:
+                        writer.Write(defaultValueEnum);
+                        break;
+                    case BasePropertyType.Float:
+                        writer.Write(defaultValueFloat);
+                        break;
+                    case BasePropertyType.Integer:
+                        writer.Write(defaultValueInt);
+                        break;
+                    case BasePropertyType.Vector:
+                        writer.WriteVector3(defaultValueVector);
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+
+            writer.Write(hasMax);
+            if (hasMax)
+            {
+                if (m_propertyType == BasePropertyType.Float)
+                    writer.Write(maxFloat);
+                else
+                    writer.Write(max);
+            }
+
+            writer.Write(hasMin);
+            if (hasMin)
+            {
+                if (m_propertyType == BasePropertyType.Float)
+                    writer.Write(minFloat);
+                else
+                    writer.Write(min);
+            }
+
+            writer.Write(m_fPredictionTimeout);
+            writer.Write((byte)m_inheritanceType);
+            writer.Write((byte)m_datFileType);
+            writer.Write((byte)m_propagationType);
+
+            writer.Write(m_bRequired);
+            writer.Write(m_bReadOnly);
+            writer.Write(m_bPropagateToChildren);
+            writer.Write(m_bNoCheckpoint);
+            writer.Write(m_bAbsoluteTimeStamp);
+            writer.Write(m_bGroupable);
+            writer.Write(m_bAllAvailable);
+            writer.Write(m_bDoNotReplay);
+            writer.Write(m_bRecorded);
+            writer.Write(m_bToolOnly);
+
+            writer.Write((byte)m_availableProperties.Count);
+            foreach (var property in m_availableProperties)
+            {
+                writer.Write(property.Key);
+                writer.Write(property.Value);
             }
         }
 

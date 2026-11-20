@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class BuildInfo : IUnpackable
+    public class BuildInfo : IUnpackable, IPackable
     {
         /// <summary>
         /// 0x01 or 0x02 model of the building
@@ -34,6 +34,17 @@ namespace ACE.DatLoader.Entity
             NumLeaves = reader.ReadUInt32();
 
             Portals.Unpack(reader);
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(ModelId);
+
+            Frame.Pack(writer);
+
+            writer.Write(NumLeaves);
+
+            Portals.Pack(writer);
         }
     }
 }

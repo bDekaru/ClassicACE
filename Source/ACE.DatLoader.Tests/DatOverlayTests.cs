@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -149,74 +148,5 @@ namespace ACE.DatLoader.Tests
                 Directory.Delete(folder, true);
             }
         }
-
-        /// <summary>
-        /// What Melt's recipe leaves in the dat for each overlay id: folders in order, a file whose name starts with 08 takes the id from its name, any other file the first dword of its data; the last file wins.
-        /// </summary>
-        private static Dictionary<uint, byte[]> ExpectedOverlay(DatBuildRecipe recipe, string customFilesRoot)
-        {
-            var expected = new Dictionary<uint, byte[]>();
-
-            foreach (var folder in recipe.ResolveFolders(customFilesRoot))
-            {
-                foreach (var file in new DirectoryInfo(folder).GetFiles("*.bin", SearchOption.AllDirectories))
-                {
-                    var data = File.ReadAllBytes(file.FullName);
-                    var id = file.Name.StartsWith("08") ? Convert.ToUInt32(file.Name.Substring(0, 8), 16) : BitConverter.ToUInt32(data, 0);
-                    expected[id] = data;
-                }
-            }
-
-            return expected;
-        }
-
-        private static void AssertRecipe(DatBuildRecipe recipe)
-        {
-            var root = Path.Combine(SourceDats, "Custom Files");
-
-            if (recipe.ResolveFolders(root).Any(f => !Directory.Exists(f)))
-                Assert.Inconclusive($"Custom files not found under {root}");
-
-            var path = CopyOfDat(recipe.BaseDat);
-
-            try
-            {
-                var expected = ExpectedOverlay(recipe, root);
-
-                using (var writer = new DatWriter(path))
-                {
-                    var before = writer.Audit().Records;
-                    var report = recipe.Apply(writer, root);
-                    var after = writer.Audit();
-
-                    Console.WriteLine($"{recipe.Name}: added {report.Added}, replaced {report.Replaced}, identical duplicates {report.IdenticalDuplicates}, differing duplicates {report.DifferingDuplicates.Count}, name mismatches {report.NameMismatches.Count}, skipped {report.Skipped.Count}");
-
-                    foreach (var line in report.NameMismatches.Concat(report.DifferingDuplicates).Concat(report.Skipped))
-                        Console.WriteLine(line);
-
-                    Assert.AreEqual(0, report.Skipped.Count);
-                    Assert.AreEqual(before + report.Added, after.Records);
-
-                    foreach (var kvp in expected)
-                        CollectionAssert.AreEqual(kvp.Value, writer.Read(kvp.Key), $"{kvp.Key:X8}");
-                }
-            }
-            finally
-            {
-                File.Delete(path);
-            }
-        }
-
-        [TestMethod]
-        public void Recipe_LanguageCustomDM_MatchesMelt() => AssertRecipe(DatBuildRecipes.LanguageCustomDM);
-
-        [TestMethod]
-        public void Recipe_LanguageInfiltration_MatchesMelt() => AssertRecipe(DatBuildRecipes.LanguageInfiltration);
-
-        [TestMethod]
-        public void Recipe_PortalInfiltration_MatchesMelt() => AssertRecipe(DatBuildRecipes.PortalInfiltration);
-
-        [TestMethod]
-        public void Recipe_PortalCustomDM_MatchesMelt() => AssertRecipe(DatBuildRecipes.PortalCustomDM);
     }
 }

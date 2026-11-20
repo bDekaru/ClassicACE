@@ -3,7 +3,7 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CombatManeuver : IUnpackable
+    public class CombatManeuver : IUnpackable, IPackable
     {
         public MotionStance Style { get; private set; }
         public AttackHeight AttackHeight { get; private set; }
@@ -18,6 +18,15 @@ namespace ACE.DatLoader.Entity
             AttackType      = (AttackType)reader.ReadUInt32();
             MinSkillLevel   = reader.ReadUInt32();
             Motion          = (MotionCommand)reader.ReadUInt32();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)Style);
+            writer.Write((uint)AttackHeight);
+            writer.Write((uint)AttackType);
+            writer.Write(MinSkillLevel);
+            writer.Write((uint)Motion);
         }
     }
 }

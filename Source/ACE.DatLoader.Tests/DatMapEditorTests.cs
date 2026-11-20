@@ -2,8 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+using ACE.DatLoader.Entity;
+using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Tests
 {
@@ -27,15 +31,15 @@ namespace ACE.DatLoader.Tests
 
         private static byte[] Info(uint id, uint numCells, int objects, int buildings)
         {
-            var info = new DatLandblockInfo { Id = id, NumCells = numCells };
+            var info = new FileTypes.LandblockInfo { Id = id, NumCells = numCells };
 
             for (var i = 0; i < objects; i++)
-                info.Objects.Add(new DatStab { Id = 0x01000000u + (uint)i });
+                info.Objects.Add(new Stab { Id = 0x01000000u + (uint)i });
 
             for (var i = 0; i < buildings; i++)
             {
-                var building = new DatBuilding { ModelId = 0x01000100u + (uint)i, NumLeaves = 1 };
-                building.Portals.Add(new DatBuildingPortal { Flags = 3, OtherCellId = 0xFFFF, OtherPortalId = 1, VisibleCells = { 0x100, 0x101, 0x102 } });
+                var building = new BuildInfo { ModelId = 0x01000100u + (uint)i, NumLeaves = 1 };
+                building.Portals.Add(new CBldPortal { Flags = (PortalFlags)3, OtherCellId = 0xFFFF, OtherPortalId = 1, StabList = { 0x100, 0x101, 0x102 } });
                 info.Buildings.Add(building);
             }
 
@@ -66,7 +70,7 @@ namespace ACE.DatLoader.Tests
         public void LandblockInfo_RoundTrips()
         {
             var data = Info(0x1234FFFE, 3, 4, 2);
-            var info = DatLandblockInfo.Parse(data);
+            var info = FileTypes.LandblockInfo.Parse(data);
 
             Assert.AreEqual(4, info.Objects.Count);
             Assert.AreEqual(2, info.Buildings.Count);
@@ -99,7 +103,7 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual(0xBBBB0101u, BitConverter.ToUInt32(cell, 8), "the second copy of the cell id moves too");
 
             target.TryGet(0xBBBBFFFE, out var info);
-            Assert.AreEqual(0xBBBBFFFEu, DatLandblockInfo.Parse(info).Id);
+            Assert.AreEqual(0xBBBBFFFEu, FileTypes.LandblockInfo.Parse(info).Id);
         }
 
         [TestMethod]
@@ -122,7 +126,7 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual(9, landblock[170]);
 
             target.TryGet(0xAAAAFFFE, out var info);
-            var parsed = DatLandblockInfo.Parse(info);
+            var parsed = FileTypes.LandblockInfo.Parse(info);
             Assert.AreEqual(3, parsed.Objects.Count);
             Assert.AreEqual(1, parsed.Buildings.Count);
             Assert.IsTrue(target.Contains(0xAAAA0100));
@@ -140,7 +144,7 @@ namespace ACE.DatLoader.Tests
 
             new DatMapEditor(target).ReplaceLandblock(0xAAAA0000, source, true, true, false, true);
 
-            var parsed = DatLandblockInfo.Parse(Read(target, 0xAAAAFFFE));
+            var parsed = FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE));
             Assert.AreEqual(3, parsed.Objects.Count);
             Assert.AreEqual(0, parsed.Buildings.Count);
             Assert.AreEqual(0u, parsed.NumCells);
@@ -221,7 +225,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void RemoveObjects_OnlyListedObjectsInThatOutdoorCell()
         {
-            var info = new DatLandblockInfo { Id = 0xAAAAFFFE };
+            var info = new FileTypes.LandblockInfo { Id = 0xAAAAFFFE };
             info.Objects.Add(StabAt(0x02000001, 5f, 5f));    // cell 1
             info.Objects.Add(StabAt(0x02000002, 5f, 5f));    // cell 1, not listed
             info.Objects.Add(StabAt(0x02000001, 100f, 5f));  // cell 5 (100/24 = 4 -> 4*8+0+1 = 33)
@@ -229,10 +233,10 @@ namespace ACE.DatLoader.Tests
             var target = Store(R(0xAAAAFFFE, info.Pack()));
             new DatMapEditor(target).RemoveObjects(0xAAAA0001, new uint[] { 0x02000001 });
 
-            var parsed = DatLandblockInfo.Parse(Read(target, 0xAAAAFFFE));
+            var parsed = FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE));
             Assert.AreEqual(2, parsed.Objects.Count);
             Assert.AreEqual(0x02000002u, parsed.Objects[0].Id);
-            Assert.AreEqual(100f, BitConverter.ToSingle(parsed.Objects[1].Frame, 0));
+            Assert.AreEqual(100f, parsed.Objects[1].Frame.Origin.X);
         }
 
         [TestMethod]
@@ -241,7 +245,7 @@ namespace ACE.DatLoader.Tests
             var target = Store(R(0xAAAAFFFE, Info(0xAAAAFFFE, 3, 0, 2)));
 
             Assert.IsTrue(new DatMapEditor(target).RemoveBuilding(0xAAAA0101));
-            Assert.AreEqual(1, DatLandblockInfo.Parse(Read(target, 0xAAAAFFFE)).Buildings.Count, "one building per call");
+            Assert.AreEqual(1, FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE)).Buildings.Count, "one building per call");
             Assert.IsTrue(new DatMapEditor(target).RemoveBuilding(0xAAAA0101));
             Assert.IsFalse(new DatMapEditor(target).RemoveBuilding(0xAAAA0101));
         }
@@ -278,9 +282,9 @@ namespace ACE.DatLoader.Tests
 
         private static byte[] BuildingInfo(uint id, uint numCells, uint model, ushort otherCell, params ushort[] visible)
         {
-            var info = new DatLandblockInfo { Id = id, NumCells = numCells };
-            var building = new DatBuilding { ModelId = model, NumLeaves = 1 };
-            building.Portals.Add(new DatBuildingPortal { Flags = 3, OtherCellId = otherCell, OtherPortalId = 1, VisibleCells = visible.ToList() });
+            var info = new FileTypes.LandblockInfo { Id = id, NumCells = numCells };
+            var building = new BuildInfo { ModelId = model, NumLeaves = 1 };
+            building.Portals.Add(new CBldPortal { Flags = (PortalFlags)3, OtherCellId = otherCell, OtherPortalId = 1 }); building.Portals[0].StabList.AddRange(visible);
             info.Buildings.Add(building);
             return info.Pack();
         }
@@ -318,10 +322,10 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual((ushort)0x102, PortalDestinationOf(second, 0));
             Assert.AreEqual((ushort)0xFFFF, PortalDestinationOf(second, 1), "an outside portal stays outside");
 
-            var info = DatLandblockInfo.Parse(Read(target, 0xAAAAFFFE));
+            var info = FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE));
             Assert.AreEqual(4u, info.NumCells);
             Assert.AreEqual((ushort)0x102, info.Buildings.Single().Portals[0].OtherCellId);
-            CollectionAssert.AreEqual(new ushort[] { 0x102, 0x103 }, info.Buildings.Single().Portals[0].VisibleCells);
+            CollectionAssert.AreEqual(new ushort[] { 0x102, 0x103 }, info.Buildings.Single().Portals[0].StabList);
             Assert.IsFalse(new DatMapEditor(target).AddBuilding(0xAAAA0199, source));
         }
 
@@ -338,7 +342,7 @@ namespace ACE.DatLoader.Tests
             Assert.IsFalse(target.Contains(0xAAAA0100));
             Assert.IsFalse(target.Contains(0xAAAA0101));
             Assert.IsTrue(target.Contains(0xAAAA0102));
-            Assert.AreEqual(3u, DatLandblockInfo.Parse(Read(target, 0xAAAAFFFE)).NumCells, "NumCells stays as Melt leaves it");
+            Assert.AreEqual(3u, FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE)).NumCells, "NumCells stays as Melt leaves it");
         }
 
         [TestMethod]
@@ -399,11 +403,11 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void ReplaceStarterOutpost_SwapsSpireKeepsPortalStands()
         {
-            var ruined = DatLandblockInfo.Parse(BuildingInfo(0xAAAAFFFE, 2, 0x01002866, 0x100, 0x100, 0x101));
+            var ruined = FileTypes.LandblockInfo.Parse(BuildingInfo(0xAAAAFFFE, 2, 0x01002866, 0x100, 0x100, 0x101));
             ruined.Objects.Add(StabAt(0x020007C5, 1, 1));
             ruined.Objects.Add(StabAt(0x01000001, 2, 2));
 
-            var pristine = DatLandblockInfo.Parse(BuildingInfo(0xAAAAFFFE, 3, 0x010014C3, 0x100, 0x100, 0x101, 0x102));
+            var pristine = FileTypes.LandblockInfo.Parse(BuildingInfo(0xAAAAFFFE, 3, 0x010014C3, 0x100, 0x100, 0x101, 0x102));
             pristine.Objects.Add(StabAt(0x01000009, 3, 3));
 
             var source = Store(
@@ -426,7 +430,7 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual((byte)1, landblock[170], "height stays");
             Assert.AreEqual(1u, BitConverter.ToUInt32(landblock, 4));
 
-            var info = DatLandblockInfo.Parse(Read(target, 0xAAAAFFFE));
+            var info = FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE));
             CollectionAssert.AreEqual(new uint[] { 0x020007C5, 0x01000009 }, info.Objects.Select(o => o.Id).ToArray());
             Assert.AreEqual(0x010014C3u, info.Buildings.Single().ModelId);
             Assert.AreEqual(2u, info.NumCells, "NumCells stays as Melt leaves it");
@@ -435,11 +439,10 @@ namespace ACE.DatLoader.Tests
             CollectionAssert.AreEqual(new ushort[] { 0x101, 0x102 }, VisibleOf(Read(target, 0xAAAA0100)));
         }
 
-        private static DatStab StabAt(uint id, float x, float y)
+        private static Stab StabAt(uint id, float x, float y)
         {
-            var stab = new DatStab { Id = id };
-            BitConverter.GetBytes(x).CopyTo(stab.Frame, 0);
-            BitConverter.GetBytes(y).CopyTo(stab.Frame, 4);
+            var stab = new Stab { Id = id };
+            stab.Frame.Init(new Vector3(x, y, 0), Quaternion.Identity);
             return stab;
         }
 
@@ -463,7 +466,7 @@ namespace ACE.DatLoader.Tests
             foreach (var id in db.AllFiles.Keys.Where(k => (k & 0xFFFF) == 0xFFFE))
             {
                 var data = db.GetReaderForFile(id).Buffer;
-                var packed = DatLandblockInfo.Parse(data).Pack();
+                var packed = FileTypes.LandblockInfo.Parse(data).Pack();
 
                 if (!data.SequenceEqual(packed))
                     Assert.Fail($"{id:X8} did not round-trip ({data.Length} -> {packed.Length} bytes)");

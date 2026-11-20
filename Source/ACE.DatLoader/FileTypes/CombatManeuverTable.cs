@@ -50,6 +50,13 @@ namespace ACE.DatLoader.FileTypes
             }
         }
 
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            CMT.Pack(writer);
+        }
+
         public class AttackHeights
         {
             public Dictionary<AttackHeight, AttackTypes> Table = new Dictionary<AttackHeight, AttackTypes>();

@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class PortalPoly : IUnpackable
+    public class PortalPoly : IUnpackable, IPackable
     {
         public short PortalIndex { get; set; }
         public short PolygonId { get; set; }
@@ -12,6 +12,12 @@ namespace ACE.DatLoader.Entity
             // Native BSPPORTAL layout: polygon ID, then portal index.
             PolygonId   = reader.ReadInt16();
             PortalIndex = reader.ReadInt16();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(PolygonId);
+            writer.Write(PortalIndex);
         }
     }
 }

@@ -13,18 +13,34 @@ namespace ACE.DatLoader.FileTypes
         // Key is the language id (1 is english, only one that exists)
         public Dictionary<uint, NameFilterLanguageData> LanguageData = new Dictionary<uint, NameFilterLanguageData>();
 
+        private byte tableSize;
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
 
             ushort totalObjects = reader.ReadByte();
-            reader.ReadByte(); // table size
+            tableSize = reader.ReadByte();
             for (var i = 0; i < totalObjects; i++)
             {
                 uint key = reader.ReadUInt32();
                 NameFilterLanguageData val = new NameFilterLanguageData();
                 val.Unpack(reader);
                 LanguageData.Add(key, val);
+            }
+        }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            writer.Write((byte)LanguageData.Count);
+            writer.Write(tableSize);
+
+            foreach (var language in LanguageData)
+            {
+                writer.Write(language.Key);
+                language.Value.Pack(writer);
             }
         }
     }

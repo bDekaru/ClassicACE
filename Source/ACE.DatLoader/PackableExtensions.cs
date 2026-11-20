@@ -21,6 +21,21 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
+        /// A PackedHashTable uses a UInt16 for length, and a UInt16 for bucket size (the one the table was read with), in the order of the dictionary.
+        /// </summary>
+        public static void PackPackedHashTable(this Dictionary<uint, uint> value, BinaryWriter writer, ushort bucketSize)
+        {
+            writer.Write((ushort)value.Count);
+            writer.Write(bucketSize);
+
+            foreach (var item in value)
+            {
+                writer.Write(item.Key);
+                writer.Write(item.Value);
+            }
+        }
+
+        /// <summary>
         /// A SmartArray uses a Compressed UInt32 for the length.
         /// </summary>
         public static void PackSmartArray(this List<uint> value, BinaryWriter writer)
@@ -51,6 +66,50 @@ namespace ACE.DatLoader
 
             foreach (var item in value)
                 item.Pack(writer);
+        }
+
+        /// <summary>
+        /// A SmartArray uses a Compressed UInt32 for the length, in the order of the dictionary.
+        /// </summary>
+        public static void PackSmartArray<T>(this Dictionary<ushort, T> value, BinaryWriter writer) where T : IPackable
+        {
+            writer.WriteCompressedUInt32((uint)value.Count);
+
+            value.PackFixedQuantity(writer);
+        }
+
+        /// <summary>
+        /// The entries of a Dictionary without a count (the reader knows it), in the order of the dictionary.
+        /// </summary>
+        public static void PackFixedQuantity<T>(this Dictionary<ushort, T> value, BinaryWriter writer) where T : IPackable
+        {
+            foreach (var item in value)
+            {
+                writer.Write(item.Key);
+                item.Value.Pack(writer);
+            }
+        }
+
+        /// <summary>
+        /// A SmartArray uses a Compressed UInt32 for the length, in the order of the dictionary.
+        /// </summary>
+        public static void PackSmartArray<T>(this Dictionary<uint, T> value, BinaryWriter writer) where T : IPackable
+        {
+            writer.WriteCompressedUInt32((uint)value.Count);
+
+            value.PackFixedQuantity(writer);
+        }
+
+        /// <summary>
+        /// The entries of a Dictionary without a count (the reader knows it), in the order of the dictionary.
+        /// </summary>
+        public static void PackFixedQuantity<T>(this Dictionary<uint, T> value, BinaryWriter writer) where T : IPackable
+        {
+            foreach (var item in value)
+            {
+                writer.Write(item.Key);
+                item.Value.Pack(writer);
+            }
         }
 
         /// <summary>

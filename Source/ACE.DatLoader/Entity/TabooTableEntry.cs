@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace ACE.DatLoader.Entity
 {
-    public class TabooTableEntry : IUnpackable
+    public class TabooTableEntry : IUnpackable, IPackable
     {
 
         // This always seems to be 0x00010101
@@ -29,6 +29,16 @@ namespace ACE.DatLoader.Entity
 
             for (int i = 0; i < count; i++)
                 BannedPatterns.Add(reader.ReadString());
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Unknown1);
+            writer.Write(Unknown2);
+
+            writer.Write((uint)BannedPatterns.Count);
+            foreach (var pattern in BannedPatterns)
+                writer.Write(pattern);
         }
 
         /// <summary>

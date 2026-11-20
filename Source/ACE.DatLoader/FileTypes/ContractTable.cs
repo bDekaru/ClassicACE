@@ -15,12 +15,14 @@ namespace ACE.DatLoader.FileTypes
 
         public Dictionary<uint, Contract> Contracts { get; } = new Dictionary<uint, Contract>();
 
+        private ushort bucketSize;
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
 
             ushort num_contracts = reader.ReadUInt16();
-            /*ushort table_size = */reader.ReadUInt16(); // We don't need this since C# handles it's own memory
+            bucketSize = reader.ReadUInt16();
 
             for (ushort i = 0; i < num_contracts; i++)
             {
@@ -31,6 +33,12 @@ namespace ACE.DatLoader.FileTypes
 
                 Contracts.Add(key, value);
             }
+        }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+            Contracts.PackPackedHashTable(writer, bucketSize);
         }
     }
 }

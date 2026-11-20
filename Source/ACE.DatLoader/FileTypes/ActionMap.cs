@@ -17,16 +17,20 @@ namespace ACE.DatLoader.FileTypes
         public uint StringTable { get; set; } // DID Value to lookup all the hashes in -- will be 0x23000005
         public Dictionary<uint, InputMapConflictsValue> ConflictingMaps { get; } = new Dictionary<uint, InputMapConflictsValue>();
 
+        private byte inputMapsBucketSize;
+        private byte conflictsBucketSize;
+        private readonly Dictionary<uint, byte> valuesBucketSizes = new Dictionary<uint, byte>();
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
 
-            reader.ReadByte(); // bucket/size
+            inputMapsBucketSize = reader.ReadByte();
             byte count = reader.ReadByte();
             for (var i = 0; i < count; i++)
             {
                 var key = reader.ReadUInt32();
-                reader.ReadByte(); // bucket/size
+                valuesBucketSizes.Add(key, reader.ReadByte());
                 byte valuesCount = reader.ReadByte();
                 Dictionary<uint, ActionMapValue> values = new Dictionary<uint, ActionMapValue>();
                 for (var j = 0; j < valuesCount; j++)
@@ -41,7 +45,7 @@ namespace ACE.DatLoader.FileTypes
 
             StringTable = reader.ReadUInt32(); // Will be 0x23000005
 
-            reader.ReadByte(); // bucket/size
+            conflictsBucketSize = reader.ReadByte();
             byte conflictCount = reader.ReadByte();
             for (var i = 0; i < conflictCount; i++) {
                 var key = reader.ReadUInt32();
@@ -51,6 +55,25 @@ namespace ACE.DatLoader.FileTypes
             }
         }
 
-    
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            writer.Write(inputMapsBucketSize);
+            writer.Write((byte)InputMaps.Count);
+            foreach (var inputMap in InputMaps)
+            {
+                writer.Write(inputMap.Key);
+                writer.Write(valuesBucketSizes[inputMap.Key]);
+                writer.Write((byte)inputMap.Value.Count);
+                inputMap.Value.PackFixedQuantity(writer);
+            }
+
+            writer.Write(StringTable);
+
+            writer.Write(conflictsBucketSize);
+            writer.Write((byte)ConflictingMaps.Count);
+            ConflictingMaps.PackFixedQuantity(writer);
+        }
     }
 }

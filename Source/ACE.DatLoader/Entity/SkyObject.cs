@@ -17,6 +17,16 @@ namespace ACE.DatLoader.Entity
 
         public void Unpack(BinaryReader reader)
         {
+            UnpackPreToD(reader);
+
+            Properties = reader.ReadUInt32();
+
+            reader.AlignBoundary();
+        }
+
+        /// <summary>Reads the pre-ToD (2005) layout: the same fields without <see cref="Properties"/>, which stays 0.</summary>
+        public void UnpackPreToD(BinaryReader reader)
+        {
             BeginTime           = reader.ReadSingle();
             EndTime             = reader.ReadSingle();
             BeginAngle          = reader.ReadSingle();
@@ -25,9 +35,6 @@ namespace ACE.DatLoader.Entity
             TexVelocityY        = reader.ReadSingle();
             DefaultGFXObjectId  = reader.ReadUInt32();
             DefaultPESObjectId  = reader.ReadUInt32();
-            Properties          = reader.ReadUInt32();
-
-            reader.AlignBoundary();
         }
 
         public void Pack(BinaryWriter writer)

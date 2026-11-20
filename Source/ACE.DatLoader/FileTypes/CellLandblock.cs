@@ -67,6 +67,21 @@ namespace ACE.DatLoader.FileTypes
             reader.AlignBoundary();
         }
 
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            writer.Write(HasObjects ? 1u : 0u);
+
+            foreach (var terrain in Terrain)
+                writer.Write(terrain);
+
+            foreach (var height in Height)
+                writer.Write(height);
+
+            writer.AlignBoundary();
+        }
+
         public static ushort GetRoad(ushort terrain)
         {
             return GetTerrain(terrain, TerrainMask_Road, TerrainShift_Road);

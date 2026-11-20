@@ -17,6 +17,8 @@ namespace ACE.DatLoader.FileTypes
         /// </summary>
         public Dictionary<uint, TabooTableEntry> TabooTableEntries { get; } = new Dictionary<uint, TabooTableEntry>();
 
+        private byte firstByte;
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
@@ -24,10 +26,20 @@ namespace ACE.DatLoader.FileTypes
             // I don't actually know the structure of TabooTableEntries. It could be a Dictionary as I have it defined, or it could be a List where the key is just a variable in TabooTableEntry
             // I was unable to find the unpack code in the client. If someone can point me to it, I can make sure we match what the client is doing. - Mag
 
-            /*var x01 = */reader.ReadByte();
+            firstByte = reader.ReadByte();
             var length = reader.ReadByte();
 
             TabooTableEntries.Unpack(reader, length);
+        }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            writer.Write(firstByte);
+            writer.Write((byte)TabooTableEntries.Count);
+
+            TabooTableEntries.PackFixedQuantity(writer);
         }
 
         /// <summary>

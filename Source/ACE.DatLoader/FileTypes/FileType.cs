@@ -5,7 +5,7 @@ namespace ACE.DatLoader.FileTypes
 {
     public abstract class FileType : IUnpackable, IPackable
     {
-        public uint Id { get; protected set; }
+        public uint Id { get; set; }
 
         public abstract void Unpack(BinaryReader reader);
 

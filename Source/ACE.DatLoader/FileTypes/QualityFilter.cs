@@ -59,5 +59,25 @@ namespace ACE.DatLoader.FileTypes
             for (var i = 0; i < numSkill; i++)
                 SkillStatFilter.Add(reader.ReadUInt32());
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            foreach (var filter in new[] { IntStatFilter, Int64StatFilter, BoolStatFilter, FloatStatFilter, DidStatFilter, IidStatFilter, StringStatFilter, PositionStatFilter })
+                writer.Write(filter.Count);
+
+            foreach (var filter in new[] { IntStatFilter, Int64StatFilter, BoolStatFilter, FloatStatFilter, DidStatFilter, IidStatFilter, StringStatFilter, PositionStatFilter })
+                foreach (var stat in filter)
+                    writer.Write(stat);
+
+            writer.Write(AttributeStatFilter.Count);
+            writer.Write(Attribute2ndStatFilter.Count);
+            writer.Write(SkillStatFilter.Count);
+
+            foreach (var filter in new[] { AttributeStatFilter, Attribute2ndStatFilter, SkillStatFilter })
+                foreach (var stat in filter)
+                    writer.Write(stat);
+        }
     }
 }

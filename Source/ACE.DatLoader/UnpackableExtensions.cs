@@ -105,14 +105,16 @@ namespace ACE.DatLoader
         /// A PackedHashTable uses a UInt16 for length, and a UInt16 for bucket size.
         /// We don't need to worry about the bucket size with C#.
         /// </summary>
-        public static void UnpackPackedHashTable(this Dictionary<uint, uint> value, BinaryReader reader)
+        /// <returns>The bucket size the table was stored with.</returns>
+        public static ushort UnpackPackedHashTable(this Dictionary<uint, uint> value, BinaryReader reader)
         {
             var totalObjects = reader.ReadUInt16();
-            /*var bucketSize = */
-            reader.ReadUInt16();
+            var bucketSize = reader.ReadUInt16();
 
             for (int i = 0; i < totalObjects; i++)
                 value.Add(reader.ReadUInt32(), reader.ReadUInt32());
+
+            return bucketSize;
         }
 
         /// <summary>

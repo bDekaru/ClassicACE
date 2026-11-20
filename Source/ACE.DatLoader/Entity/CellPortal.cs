@@ -3,7 +3,7 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CellPortal : IUnpackable
+    public class CellPortal : IUnpackable, IPackable
     {
         public PortalFlags Flags { get; private set; }
         public ushort PolygonId { get; private set; }
@@ -19,6 +19,14 @@ namespace ACE.DatLoader.Entity
             PolygonId       = reader.ReadUInt16();
             OtherCellId     = reader.ReadUInt16();
             OtherPortalId   = reader.ReadUInt16();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((ushort)Flags);
+            writer.Write(PolygonId);
+            writer.Write(OtherCellId);
+            writer.Write(OtherPortalId);
         }
     }
 }

@@ -59,5 +59,35 @@ namespace ACE.DatLoader.FileTypes
             if ((Flags & GfxObjFlags.HasDIDDegrade) != 0)
                 DIDDegrade = reader.ReadUInt32();
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            writer.Write((uint)Flags);
+
+            Surfaces.PackSmartArray(writer);
+
+            VertexArray.Pack(writer);
+
+            if ((Flags & GfxObjFlags.HasPhysics) != 0)
+            {
+                PhysicsPolygons.PackSmartArray(writer);
+
+                PhysicsBSP.Pack(writer, BSPType.Physics);
+            }
+
+            writer.WriteVector3(SortCenter);
+
+            if ((Flags & GfxObjFlags.HasDrawing) != 0)
+            {
+                Polygons.PackSmartArray(writer);
+
+                DrawingBSP.Pack(writer, BSPType.Drawing);
+            }
+
+            if ((Flags & GfxObjFlags.HasDIDDegrade) != 0)
+                writer.Write(DIDDegrade);
+        }
     }
 }

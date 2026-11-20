@@ -5,7 +5,7 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CellStruct : IUnpackable
+    public class CellStruct : IUnpackable, IPackable
     {
         public CVertexArray VertexArray { get; } = new CVertexArray();
         public Dictionary<ushort, Polygon> Polygons { get; } = new Dictionary<ushort, Polygon>();
@@ -44,6 +44,33 @@ namespace ACE.DatLoader.Entity
             }
 
             reader.AlignBoundary();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((uint)Polygons.Count);
+            writer.Write((uint)PhysicsPolygons.Count);
+            writer.Write((uint)Portals.Count);
+
+            VertexArray.Pack(writer);
+
+            Polygons.PackFixedQuantity(writer);
+
+            foreach (var portal in Portals)
+                writer.Write(portal);
+
+            writer.AlignBoundary();
+
+            CellBSP.Pack(writer, BSPType.Cell);
+
+            PhysicsPolygons.PackFixedQuantity(writer);
+
+            PhysicsBSP.Pack(writer, BSPType.Physics);
+
+            writer.Write(DrawingBSP != null ? 1u : 0u);
+            DrawingBSP?.Pack(writer, BSPType.Drawing);
+
+            writer.AlignBoundary();
         }
     }
 }

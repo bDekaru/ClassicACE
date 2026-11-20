@@ -39,7 +39,7 @@ namespace ACE.DatLoader
         {
             foreach (var infoId in retailCellDat.AllFiles.Keys.Where(k => (k & 0xFFFF) == 0xFFFE && (k >> 16) != 0xFFFF).OrderBy(k => k))
             {
-                var info = DatLandblockInfo.Parse(retailCellDat.GetReaderForFile(infoId).Buffer);
+                var info = FileTypes.LandblockInfo.Parse(retailCellDat.GetReaderForFile(infoId).Buffer);
                 var prefix = infoId & 0xFFFF0000;
 
                 foreach (var building in info.Buildings)
@@ -92,7 +92,7 @@ namespace ACE.DatLoader
         }
 
         // The cells of a building: those its portals open into and the visible cells of its portals, then every cell reachable through visible-cell lists (Melt's removeCell with recursion).
-        private static IEnumerable<uint> EnvironmentsOf(DatDatabase cellDat, uint prefix, DatBuilding building)
+        private static IEnumerable<uint> EnvironmentsOf(DatDatabase cellDat, uint prefix, Entity.BuildInfo building)
         {
             var seen = new HashSet<ushort>();
             var pending = new Stack<ushort>();
@@ -102,7 +102,7 @@ namespace ACE.DatLoader
                 if (portal.OtherCellId != 0xFFFF)
                     pending.Push(portal.OtherCellId);
 
-                foreach (var visible in portal.VisibleCells)
+                foreach (var visible in portal.StabList)
                     pending.Push(visible);
             }
 

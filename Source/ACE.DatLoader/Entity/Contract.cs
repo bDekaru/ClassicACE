@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class Contract : IUnpackable
+    public class Contract : IUnpackable, IPackable
     {
         public uint Version { get; private set; }
         public uint ContractId { get; private set; }
@@ -58,6 +58,22 @@ namespace ACE.DatLoader.Entity
             LocationNPCStart.Unpack(reader);
             LocationNPCEnd.Unpack(reader);
             LocationQuestArea.Unpack(reader);
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Version);
+            writer.Write(ContractId);
+
+            foreach (var text in new[] { ContractName, Description, DescriptionProgress, NameNPCStart, NameNPCEnd, QuestflagStamped, QuestflagStarted, QuestflagFinished, QuestflagProgress, QuestflagTimer, QuestflagRepeatTime })
+            {
+                writer.WritePString(text);
+                writer.AlignBoundary();
+            }
+
+            LocationNPCStart.Pack(writer);
+            LocationNPCEnd.Pack(writer);
+            LocationQuestArea.Pack(writer);
         }
     }
 }

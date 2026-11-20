@@ -5,7 +5,7 @@ namespace ACE.DatLoader.Entity
     /// <summary>
     /// Info on texture UV mapping
     /// </summary>
-    public class Vec2Duv : IUnpackable
+    public class Vec2Duv : IUnpackable, IPackable
     {
         public float U { get; private set; }
         public float V { get; private set; }
@@ -14,6 +14,12 @@ namespace ACE.DatLoader.Entity
         {
             U = reader.ReadSingle();
             V = reader.ReadSingle();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(U);
+            writer.Write(V);
         }
     }
 }

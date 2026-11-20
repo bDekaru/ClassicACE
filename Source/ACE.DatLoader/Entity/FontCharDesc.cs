@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class FontCharDesc : IUnpackable
+    public class FontCharDesc : IUnpackable, IPackable
     {
         public ushort Unicode;
         public ushort OffsetX;
@@ -23,6 +23,18 @@ namespace ACE.DatLoader.Entity
             HorizontalOffsetBefore = reader.ReadByte();
             HorizontalOffsetAfter = reader.ReadByte();
             VerticalOffsetBefore = reader.ReadByte();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(Unicode);
+            writer.Write(OffsetX);
+            writer.Write(OffsetY);
+            writer.Write(Width);
+            writer.Write(Height);
+            writer.Write(HorizontalOffsetBefore);
+            writer.Write(HorizontalOffsetAfter);
+            writer.Write(VerticalOffsetBefore);
         }
     }
 }

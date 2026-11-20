@@ -12,10 +12,18 @@ namespace ACE.DatLoader.FileTypes
         // Key is a list of a WCIDs that are "bad" and should not exist. The value is always 1 (could be a bool?)
         public Dictionary<uint, uint> Bad = new Dictionary<uint, uint>();
 
+        private ushort bucketSize;
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
-            Bad.UnpackPackedHashTable(reader);
+            bucketSize = Bad.UnpackPackedHashTable(reader);
+        }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+            Bad.PackPackedHashTable(writer, bucketSize);
         }
     }
 }

@@ -20,5 +20,11 @@ namespace ACE.DatLoader.FileTypes
 
             Cells.Unpack(reader);
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+            Cells.Pack(writer);
+        }
     }
 }

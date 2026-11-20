@@ -41,5 +41,32 @@ namespace ACE.DatLoader.Entity
                     InPolys.Add(reader.ReadUInt16());
             }
         }
+
+        /// <summary>
+        /// You must use the Pack(BinaryWriter writer, BSPType treeType) method.
+        /// </summary>
+        /// <exception cref="NotSupportedException">You must use the Pack(BinaryWriter writer, BSPType treeType) method.</exception>
+        public override void Pack(BinaryWriter writer)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override void Pack(BinaryWriter writer, BSPType treeType)
+        {
+            writer.Write(Encoding.ASCII.GetBytes(Type.Reverse()));
+
+            writer.Write(LeafIndex);
+
+            if (treeType == BSPType.Physics)
+            {
+                writer.Write(Solid);
+
+                Sphere.Pack(writer);
+
+                writer.Write((uint)InPolys.Count);
+                foreach (var id in InPolys)
+                    writer.Write(id);
+            }
+        }
     }
 }

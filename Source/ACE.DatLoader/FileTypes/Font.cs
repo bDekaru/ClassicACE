@@ -41,5 +41,22 @@ namespace ACE.DatLoader.FileTypes
             ForegroundSurfaceDataID = reader.ReadUInt32();
             BackgroundSurfaceDataID = reader.ReadUInt32();
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+            writer.Write(MaxCharHeight);
+            writer.Write(MaxCharWidth);
+            writer.Write((uint)CharDescs.Count);
+
+            foreach (var charDesc in CharDescs)
+                charDesc.Pack(writer);
+
+            writer.Write(NumHorizontalBorderPixels);
+            writer.Write(NumVerticalBorderPixels);
+            writer.Write(BaselineOffset);
+            writer.Write(ForegroundSurfaceDataID);
+            writer.Write(BackgroundSurfaceDataID);
+        }
     }
 }

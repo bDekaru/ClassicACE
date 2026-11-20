@@ -189,12 +189,12 @@ namespace ACE.DatLoader
                 if (existsOnDestination && createOnly)
                     return;
 
-                var source = DatLandblockInfo.Parse(sourceData);
-                DatLandblockInfo to;
+                var source = FileTypes.LandblockInfo.Parse(sourceData);
+                FileTypes.LandblockInfo to;
 
                 if (existsOnDestination)
                 {
-                    to = DatLandblockInfo.Parse(toData);
+                    to = FileTypes.LandblockInfo.Parse(toData);
 
                     if (cells)
                     {
@@ -206,7 +206,7 @@ namespace ACE.DatLoader
                 }
                 else
                 {
-                    to = DatLandblockInfo.Parse(sourceData);
+                    to = FileTypes.LandblockInfo.Parse(sourceData);
 
                     if (!cells)
                         to.NumCells = 0;
@@ -224,14 +224,13 @@ namespace ACE.DatLoader
                     }
 
                     to.NumCells = source.NumCells;
-                    to.BuildingFlags = source.BuildingFlags;
+                    to.PackMask = source.PackMask;
                     to.Buildings = source.Buildings;
                 }
 
                 to.Id = newInfoId;
-                to.RestrictionTableCount = source.RestrictionTableCount;
                 to.RestrictionTables = source.RestrictionTables;
-                to.RestrictionTableBucketSize = source.RestrictionTableBucketSize;
+                to.RestrictionTablesBucketSize = source.RestrictionTablesBucketSize;
 
                 if (objects)
                     to.Objects = source.Objects;
@@ -246,12 +245,12 @@ namespace ACE.DatLoader
                     return;
                 }
 
-                var to = DatLandblockInfo.Parse(toData);
+                var to = FileTypes.LandblockInfo.Parse(toData);
 
                 if (!objects)
                 {
                     to.NumCells = 0;
-                    to.BuildingFlags = 0;
+                    to.PackMask = 0;
                     to.Buildings = to.Buildings.Where(b => b.Portals.Count == 0).ToList();
                     to.RestrictionTables.Clear();
                     _store.Set(newInfoId, to.Pack());
@@ -426,7 +425,7 @@ namespace ACE.DatLoader
             if (!_store.TryGet(infoId, out var data))
                 return true;
 
-            var info = DatLandblockInfo.Parse(data);
+            var info = FileTypes.LandblockInfo.Parse(data);
 
             if (RemoveObjectsInCell(fromCell & 0xFFFF, 0, info, objectIds))
                 _store.Set(infoId, info.Pack());
@@ -434,9 +433,9 @@ namespace ACE.DatLoader
             return true;
         }
 
-        private static bool RemoveObjectsInCell(uint cell, uint landblockPrefix, DatLandblockInfo info, IReadOnlyCollection<uint> objectIds)
+        private static bool RemoveObjectsInCell(uint cell, uint landblockPrefix, FileTypes.LandblockInfo info, IReadOnlyCollection<uint> objectIds)
         {
-            var kept = new List<DatStab>();
+            var kept = new List<Entity.Stab>();
             var removed = 0;
 
             foreach (var stab in info.Objects)
@@ -447,8 +446,8 @@ namespace ACE.DatLoader
                     continue;
                 }
 
-                var x = BitConverter.ToSingle(stab.Frame, 0);
-                var y = BitConverter.ToSingle(stab.Frame, 4);
+                var x = stab.Frame.Origin.X;
+                var y = stab.Frame.Origin.Y;
 
                 if (OutdoorCell(landblockPrefix, x, y) != cell)
                     kept.Add(stab);
@@ -471,21 +470,21 @@ namespace ACE.DatLoader
             if (!_store.TryGet(infoId, out var data))
                 return false;
 
-            var info = DatLandblockInfo.Parse(data);
+            var info = FileTypes.LandblockInfo.Parse(data);
             var low = (ushort)(cellInBuilding & 0xFFFF);
 
             for (var i = 0; i < info.Buildings.Count; i++)
             {
                 var building = info.Buildings[i];
 
-                if (!building.Portals.Any(p => p.VisibleCells.Contains(low)))
+                if (!building.Portals.Any(p => p.StabList.Contains(low)))
                     continue;
 
                 info.Buildings.RemoveAt(i);
 
                 if (removeObjects)
                 {
-                    var cell = OutdoorCell(cellInBuilding, BitConverter.ToSingle(building.Frame, 0), BitConverter.ToSingle(building.Frame, 4));
+                    var cell = OutdoorCell(cellInBuilding, building.Frame.Origin.X, building.Frame.Origin.Y);
                     RemoveObjectsInCell(cell, cell & 0xFFFF0000, info, objectIds);
                 }
 
@@ -622,17 +621,17 @@ namespace ACE.DatLoader
         /// Copies the cells of a building from a store into free cell ids of this landblock, moving the building's portals to the new ids (Melt's copyBuildingCellsNewId).
         /// The building's visible cells are the ones copied; returns how many cells were written.
         /// </summary>
-        private int CopyBuildingCells(uint landblockPrefix, DatBuilding building, DatCellStore from, uint newLowestCellId)
+        private int CopyBuildingCells(uint landblockPrefix, Entity.BuildInfo building, DatCellStore from, uint newLowestCellId)
         {
             var copied = new HashSet<uint>();
-            var lowest = building.Portals.SelectMany(p => p.VisibleCells).Select(c => (uint)c).DefaultIfEmpty(uint.MaxValue).Min();
+            var lowest = building.Portals.SelectMany(p => p.StabList).Select(c => (uint)c).DefaultIfEmpty(uint.MaxValue).Min();
             var offset = (int)(newLowestCellId - ((landblockPrefix & 0xFFFF0000) | lowest));
 
             foreach (var portal in building.Portals)
             {
-                for (var i = 0; i < portal.VisibleCells.Count; i++)
+                for (var i = 0; i < portal.StabList.Count; i++)
                 {
-                    var fromId = (landblockPrefix & 0xFFFF0000) | portal.VisibleCells[i];
+                    var fromId = (landblockPrefix & 0xFFFF0000) | portal.StabList[i];
                     var toId = (uint)(fromId + offset);
 
                     if (!copied.Contains(toId) && from.TryGet(fromId, out var cell))
@@ -641,7 +640,7 @@ namespace ACE.DatLoader
                         copied.Add(toId);
                     }
 
-                    portal.VisibleCells[i] += (ushort)offset;
+                    portal.StabList[i] += (ushort)offset;
                 }
 
                 portal.OtherCellId += (ushort)offset;
@@ -650,7 +649,7 @@ namespace ACE.DatLoader
             return copied.Count;
         }
 
-        private uint CopyBuildingToFreeCells(uint landblockPrefix, DatBuilding building, DatCellStore from, out int copied)
+        private uint CopyBuildingToFreeCells(uint landblockPrefix, Entity.BuildInfo building, DatCellStore from, out int copied)
         {
             var needed = CountCells(from, (landblockPrefix & 0xFFFF0000) | building.Portals[0].OtherCellId);
             var newCell = NextFreeCellBlock(0x0100 | (landblockPrefix & 0xFFFF0000), needed);
@@ -671,14 +670,14 @@ namespace ACE.DatLoader
             if (!from.TryGet(infoId, out var sourceData))
                 return false;
 
-            var building = DatLandblockInfo.Parse(sourceData).Buildings.FirstOrDefault(b => b.Portals.Any(p => p.VisibleCells.Contains(low)));
+            var building = FileTypes.LandblockInfo.Parse(sourceData).Buildings.FirstOrDefault(b => b.Portals.Any(p => p.StabList.Contains(low)));
 
             if (building == null)
                 return false;
 
             if (_store.TryGet(infoId, out var destinationData))
             {
-                var info = DatLandblockInfo.Parse(destinationData);
+                var info = FileTypes.LandblockInfo.Parse(destinationData);
 
                 CopyBuildingToFreeCells(cellInBuilding, building, from, out var copied);
 
@@ -846,7 +845,7 @@ namespace ACE.DatLoader
             if (!from.TryGet(infoId, out var sourceInfoData))
                 return;
 
-            var source = DatLandblockInfo.Parse(sourceInfoData);
+            var source = FileTypes.LandblockInfo.Parse(sourceInfoData);
 
             if (!_store.TryGet(infoId, out var destinationData))
             {
@@ -856,13 +855,13 @@ namespace ACE.DatLoader
                 return;
             }
 
-            var info = DatLandblockInfo.Parse(destinationData);
+            var info = FileTypes.LandblockInfo.Parse(destinationData);
             var ruined = info.Buildings.FirstOrDefault(b => b.ModelId == RuinedSpireModel && b.Portals.Count > 0);
 
             if (ruined != null)
             {
                 RemoveBuilding(prefix | ruined.Portals[0].OtherCellId, false, null, true);
-                info = DatLandblockInfo.Parse(_store.TryGet(infoId, out var refreshed) ? refreshed : destinationData);
+                info = FileTypes.LandblockInfo.Parse(_store.TryGet(infoId, out var refreshed) ? refreshed : destinationData);
             }
 
             info.Objects = info.Objects.Where(o => PortalStandObjects.Contains(o.Id)).Concat(source.Objects).ToList();

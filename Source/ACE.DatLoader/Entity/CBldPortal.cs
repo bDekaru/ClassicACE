@@ -4,17 +4,17 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CBldPortal : IUnpackable
+    public class CBldPortal : IUnpackable, IPackable
     {
-        public PortalFlags Flags { get; private set; }
+        public PortalFlags Flags { get; set; }
 
         // Not sure what these do. They are both calculated from the flags.
         public bool ExactMatch => Flags.HasFlag(PortalFlags.ExactMatch);
         public bool PortalSide => !Flags.HasFlag(PortalFlags.PortalSide);       // this->portal_side = ((unsigned __int8)~(_BYTE)v5 >> 1) & 1;
 
         // Basically the cells that connect both sides of the portal
-        public ushort OtherCellId { get; private set; }
-        public ushort OtherPortalId { get; private set; }
+        public ushort OtherCellId { get; set; }
+        public ushort OtherPortalId { get; set; }
 
         /// <summary>
         /// List of cells used in this structure. (Or possibly just those visible through it.)
@@ -33,6 +33,20 @@ namespace ACE.DatLoader.Entity
                 StabList.Add(reader.ReadUInt16());
 
             reader.AlignBoundary();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write((ushort)Flags);
+
+            writer.Write(OtherCellId);
+            writer.Write(OtherPortalId);
+
+            writer.Write((ushort)StabList.Count);
+            foreach (var stab in StabList)
+                writer.Write(stab);
+
+            writer.AlignBoundary();
         }
     }
 }

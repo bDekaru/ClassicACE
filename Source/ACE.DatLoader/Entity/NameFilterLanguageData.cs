@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class NameFilterLanguageData : IUnpackable
+    public class NameFilterLanguageData : IUnpackable, IPackable
     {
         public uint MaximumSameCharactersInARow;
         public uint MaximumVowelsInARow; 
@@ -24,6 +24,19 @@ namespace ACE.DatLoader.Entity
             uint numLetterGroup = reader.ReadUInt32();
             for (uint i = 0; i < numLetterGroup; i++)
                 CompoundLetterGroups.Add(reader.ReadUnicodeString());
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(MaximumSameCharactersInARow);
+            writer.Write(MaximumVowelsInARow);
+            writer.Write(FirstNCharactersMustHaveAVowel);
+            writer.Write(VowelContainingSubstringLength);
+            writer.WriteUnicodeString(ExtraAllowedCharacters);
+
+            writer.Write((uint)CompoundLetterGroups.Count);
+            foreach (var group in CompoundLetterGroups)
+                writer.WriteUnicodeString(group);
         }
     }
 }

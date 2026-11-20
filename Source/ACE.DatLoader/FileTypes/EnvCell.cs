@@ -66,5 +66,39 @@ namespace ACE.DatLoader.FileTypes
             if ((Flags & EnvCellFlags.HasRestrictionObj) != 0)
                 RestrictionObj = reader.ReadUInt32();
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            writer.Write((uint)Flags);
+
+            writer.Write(Id);
+
+            writer.Write((byte)Surfaces.Count);
+            writer.Write((byte)CellPortals.Count);
+            writer.Write((ushort)VisibleCells.Count);
+
+            foreach (var surface in Surfaces)
+                writer.Write((ushort)surface);
+
+            writer.Write((ushort)EnvironmentId);
+
+            writer.Write(CellStructure);
+
+            Position.Pack(writer);
+
+            foreach (var portal in CellPortals)
+                portal.Pack(writer);
+
+            foreach (var cell in VisibleCells)
+                writer.Write(cell);
+
+            if ((Flags & EnvCellFlags.HasStaticObjs) != 0)
+                StaticObjects.Pack(writer);
+
+            if ((Flags & EnvCellFlags.HasRestrictionObj) != 0)
+                writer.Write(RestrictionObj);
+        }
     }
 }

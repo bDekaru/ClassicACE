@@ -21,5 +21,14 @@ namespace ACE.DatLoader.FileTypes
                 CharBuffer = System.Text.Encoding.Default.GetString(thestring);
             }
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            var bytes = System.Text.Encoding.Default.GetBytes(CharBuffer ?? "");
+
+            writer.Write(Id);
+            writer.WriteCompressedUInt32((uint)bytes.Length);
+            writer.Write(bytes);
+        }
     }
 }

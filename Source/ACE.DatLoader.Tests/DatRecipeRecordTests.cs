@@ -25,6 +25,7 @@ namespace ACE.DatLoader.Tests
         private const uint ChargenHeritageUiId = 0x21000046;
         private const uint PreToDMapId = 0x0600127D;
         private const uint XpTableId = 0x0E000018;
+        private const uint PreToDHardwareRegionId = 0x130F0000;
 
         private static byte[] ReadRecord(string datFile, uint id)
         {
@@ -188,6 +189,22 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
+        public void PreToDRegion_OfTheHardwareRecord_ReadsWholeAndPacksToAToDRecord()
+        {
+            var record = ReadRecord(DatBuildRecipes.PreToDPortalDat, PreToDHardwareRegionId);
+            var region = RegionDesc.UnpackPreToD(record);
+            var skyObjects = region.SkyInfo.DayGroups.Sum(d => d.SkyObjects.Count);
+            var packed = region.Pack();
+            var again = DatRecordContext.Unpack<RegionDesc>(packed);
+
+            Assert.AreEqual(4 * skyObjects, packed.Length - record.Length);
+            Assert.AreEqual(skyObjects, again.SkyInfo.DayGroups.Sum(d => d.SkyObjects.Count));
+            Assert.AreEqual(region.SkyInfo.DayGroups.Count, again.SkyInfo.DayGroups.Count);
+            Assert.AreEqual(region.TerrainInfo.TerrainTypes.Count, again.TerrainInfo.TerrainTypes.Count);
+            CollectionAssert.AreEqual(packed, again.Pack());
+        }
+
+        [TestMethod]
         public void StringTable_PackRoundTrips()
         {
             var table = MakeTable((1, "one"), (2, "two\nlines"));
@@ -286,7 +303,7 @@ namespace ACE.DatLoader.Tests
             }
         }
 
-        private static void AssertEveryRecordRoundTrips<T>(uint type, Func<T, byte[]> pack, Func<T, bool> skip = null) where T : FileType, new()
+        private static void AssertEveryRecordRoundTrips<T>(uint type, Func<T, byte[]> pack, Func<T, bool> skip = null, Func<uint, bool> select = null) where T : FileType, new()
         {
             var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PortalBaseDat);
 
@@ -294,7 +311,7 @@ namespace ACE.DatLoader.Tests
                 Assert.Inconclusive($"Source dat not found: {path}");
 
             var database = new DatDatabase(path);
-            var ids = database.AllFiles.Keys.Where(id => (id >> 24) == type).ToList();
+            var ids = database.AllFiles.Keys.Where(id => (id >> 24) == type && (select == null || select(id))).ToList();
             var checkedCount = 0;
 
             Assert.IsTrue(ids.Count > 0);
@@ -342,6 +359,143 @@ namespace ACE.DatLoader.Tests
         public void RegionPack_RoundTripsTheEndOfRetailRegion()
         {
             AssertEveryRecordRoundTrips<RegionDesc>(0x13, region => region.Pack());
+        }
+
+        private static void AssertEveryCellRecordRoundTrips<T>(Func<uint, bool> select) where T : FileType, new()
+        {
+            var database = new DatDatabase(TestSourceDats.Dat(TestSourceDats.CellDatName), true);
+            var ids = database.AllFiles.Keys.Where(select).ToList();
+
+            Assert.IsTrue(ids.Count > 0);
+
+            foreach (var id in ids)
+            {
+                var record = database.GetReaderForFile(id).Buffer;
+
+                CollectionAssert.AreEqual(record, DatRecordContext.Unpack<T>(record).Pack(), $"Record {id:X8} does not round-trip.");
+            }
+        }
+
+        [TestMethod]
+        public void LandblockPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryCellRecordRoundTrips<CellLandblock>(id => (id & 0xFFFF) == 0xFFFF);
+        }
+
+        [TestMethod]
+        public void LandblockInfoPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryCellRecordRoundTrips<LandblockInfo>(id => (id & 0xFFFF) == 0xFFFE);
+        }
+
+        [TestMethod]
+        public void EnvCellPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryCellRecordRoundTrips<EnvCell>(id => (id & 0xFFFF) >= 0x100 && (id & 0xFFFF) < 0xFFFE);
+        }
+
+        [TestMethod]
+        public void FontPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<Font>(0x40, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void ChatPoseTablePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<ChatPoseTable>(0x0E, record => record.Pack(), select: id => id == 0x0E000007);
+        }
+
+        [TestMethod]
+        public void GeneratorTablePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<GeneratorTable>(0x0E, record => record.Pack(), select: id => id == 0x0E00000D);
+        }
+
+        [TestMethod]
+        public void BadDataPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<BadData>(0x0E, record => record.Pack(), select: id => id == 0x0E00001A);
+        }
+
+        [TestMethod]
+        public void ContractTablePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<ContractTable>(0x0E, record => record.Pack(), select: id => id == 0x0E00001D);
+        }
+
+        [TestMethod]
+        public void TabooTablePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<TabooTable>(0x0E, record => record.Pack(), select: id => id == 0x0E00001E);
+        }
+
+        [TestMethod]
+        public void QualityFilterPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<QualityFilter>(0x0E, record => record.Pack(), select: id => (id >> 16) == 0x0E01);
+        }
+
+        [TestMethod]
+        public void NameFilterTablePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<NameFilterTable>(0x0E, record => record.Pack(), select: id => id == 0x0E000020);
+        }
+
+        [TestMethod]
+        public void DidMapperPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<DidMapper>(0x25, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void DualDidMapperPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<DualDidMapper>(0x27, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void CombatManeuverTablePack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<CombatManeuverTable>(0x30, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void ActionMapPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<ActionMap>(0x26, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void MasterPropertyPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<MasterProperty>(0x39, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void DbPropertyPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            DatManager.Initialize(TestSourceDats.ClientFolder(), true, false);
+
+            AssertEveryRecordRoundTrips<DbProperty>(0x78, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void GfxObjPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<GfxObj>(0x01, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void EnvironmentPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<ACE.DatLoader.FileTypes.Environment>(0x0D, record => record.Pack());
+        }
+
+        [TestMethod]
+        public void DegradeInfoPack_RoundTripsEveryEndOfRetailRecord()
+        {
+            AssertEveryRecordRoundTrips<GfxObjDegradeInfo>(0x11, record => record.Pack());
         }
 
         [TestMethod]

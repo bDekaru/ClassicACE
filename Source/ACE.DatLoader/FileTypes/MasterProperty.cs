@@ -14,14 +14,19 @@ namespace ACE.DatLoader.FileTypes
         public Dictionary<uint, string> m_emapper { get; } = new Dictionary<uint, string>();
         public Dictionary<uint, BasePropertyDesc> m_properties { get; } = new Dictionary<uint, BasePropertyDesc>();
 
+        private uint unknown1;
+        private uint unknown2;
+        private byte enumBucketSize;
+        private byte propertiesBucketSize;
+
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
 
-            reader.ReadUInt32(); // 0, Unknown
-            reader.ReadUInt32(); // 0, Unknown
+            unknown1 = reader.ReadUInt32(); // 0, Unknown
+            unknown2 = reader.ReadUInt32(); // 0, Unknown
 
-            reader.ReadByte(); // = 5, Unknown (Bucket?)
+            enumBucketSize = reader.ReadByte(); // = 5, Unknown (Bucket?)
 
             uint numEnums = reader.ReadCompressedUInt32();
             for(var i = 0; i < numEnums; i++)
@@ -31,9 +36,30 @@ namespace ACE.DatLoader.FileTypes
                 m_emapper.Add(key, value);
             }
 
-            reader.ReadByte(); // = 6, Unknown (Bucket?)
+            propertiesBucketSize = reader.ReadByte(); // = 6, Unknown (Bucket?)
 
             m_properties.UnpackSmartArray(reader);
+        }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            writer.Write(unknown1);
+            writer.Write(unknown2);
+
+            writer.Write(enumBucketSize);
+
+            writer.WriteCompressedUInt32((uint)m_emapper.Count);
+            foreach (var entry in m_emapper)
+            {
+                writer.Write(entry.Key);
+                writer.WritePString(entry.Value, 1);
+            }
+
+            writer.Write(propertiesBucketSize);
+
+            m_properties.PackSmartArray(writer);
         }
     }
 }

@@ -60,5 +60,39 @@ namespace ACE.DatLoader.FileTypes
             for (var i = 0; i < numServerEnumToNames; i++)
                 ServerEnumToName.Add(reader.ReadUInt32(), reader.ReadPString(1));
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            PackMaps(writer, ClientIDNumberingType, ClientEnumToID);
+            PackMaps(writer, ClientNameNumberingType, ClientEnumToName);
+            PackMaps(writer, ServerIDNumberingType, ServerEnumToID);
+            PackMaps(writer, ServerNameNumberingType, ServerEnumToName);
+        }
+
+        private static void PackMaps(BinaryWriter writer, NumberingType numberingType, Dictionary<uint, uint> map)
+        {
+            writer.Write((byte)numberingType);
+            writer.WriteCompressedUInt32((uint)map.Count);
+
+            foreach (var entry in map)
+            {
+                writer.Write(entry.Key);
+                writer.Write(entry.Value);
+            }
+        }
+
+        private static void PackMaps(BinaryWriter writer, NumberingType numberingType, Dictionary<uint, string> map)
+        {
+            writer.Write((byte)numberingType);
+            writer.WriteCompressedUInt32((uint)map.Count);
+
+            foreach (var entry in map)
+            {
+                writer.Write(entry.Key);
+                writer.WritePString(entry.Value, 1);
+            }
+        }
     }
 }

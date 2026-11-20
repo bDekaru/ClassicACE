@@ -35,5 +35,12 @@ namespace ACE.DatLoader.FileTypes
             PlayDayItems = Generators.Items[0].Items;
             WeenieObjectsItems = Generators.Items[1].Items;
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+
+            Generators.Pack(writer);
+        }
     }
 }

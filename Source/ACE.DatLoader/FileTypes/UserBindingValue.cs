@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class UserBindingValue : IUnpackable
+    public class UserBindingValue : IUnpackable, IPackable
     {
         public uint ActionClass { get; private set; }
 
@@ -17,6 +17,13 @@ namespace ACE.DatLoader.Entity
             ActionClass = reader.ReadUInt32();
             ActionName = reader.ReadUInt32();
             Description = reader.ReadUInt32();
+        }
+
+        public void Pack(BinaryWriter writer)
+        {
+            writer.Write(ActionClass);
+            writer.Write(ActionName);
+            writer.Write(Description);
         }
     }
 }

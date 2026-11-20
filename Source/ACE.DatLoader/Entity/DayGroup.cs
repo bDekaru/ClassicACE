@@ -10,13 +10,31 @@ namespace ACE.DatLoader.Entity
         public List<SkyObject> SkyObjects { get; } = new List<SkyObject>();
         public List<SkyTimeOfDay> SkyTime { get; } = new List<SkyTimeOfDay>();
 
-        public void Unpack(BinaryReader reader)
+        public void Unpack(BinaryReader reader) => Unpack(reader, false);
+
+        /// <summary>Reads the pre-ToD (2005) layout, whose sky objects have no properties field.</summary>
+        public void UnpackPreToD(BinaryReader reader) => Unpack(reader, true);
+
+        private void Unpack(BinaryReader reader, bool preToD)
         {
             ChanceOfOccur   = reader.ReadSingle();
             DayName         = reader.ReadPString();
             reader.AlignBoundary();
 
-            SkyObjects.Unpack(reader);
+            if (preToD)
+            {
+                var count = reader.ReadUInt32();
+
+                for (int i = 0; i < count; i++)
+                {
+                    var skyObject = new SkyObject();
+                    skyObject.UnpackPreToD(reader);
+                    SkyObjects.Add(skyObject);
+                }
+            }
+            else
+                SkyObjects.Unpack(reader);
+
             SkyTime.Unpack(reader);
         }
 

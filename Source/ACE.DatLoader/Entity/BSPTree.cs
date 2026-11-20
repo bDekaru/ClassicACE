@@ -5,7 +5,7 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class BSPTree : IUnpackable
+    public class BSPTree : IUnpackable, IPackable
     {
         public BSPNode RootNode { get; private set; } = new BSPNode();
 
@@ -21,6 +21,20 @@ namespace ACE.DatLoader.Entity
         public void Unpack(BinaryReader reader, BSPType treeType)
         {
             RootNode = BSPNode.ReadNode(reader, treeType);
+        }
+
+        /// <summary>
+        /// You must use the Pack(BinaryWriter writer, BSPType treeType) method.
+        /// </summary>
+        /// <exception cref="NotSupportedException">You must use the Pack(BinaryWriter writer, BSPType treeType) method.</exception>
+        public void Pack(BinaryWriter writer)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void Pack(BinaryWriter writer, BSPType treeType)
+        {
+            RootNode.Pack(writer, treeType);
         }
     }
 }

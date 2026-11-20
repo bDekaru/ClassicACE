@@ -9,14 +9,31 @@ namespace ACE.DatLoader.Entity
         public double LightTickSize { get; private set; }
         public List<DayGroup> DayGroups { get; } = new List<DayGroup>();
 
-        public void Unpack(BinaryReader reader)
+        public void Unpack(BinaryReader reader) => Unpack(reader, false);
+
+        /// <summary>Reads the pre-ToD (2005) layout, whose sky objects have no properties field.</summary>
+        public void UnpackPreToD(BinaryReader reader) => Unpack(reader, true);
+
+        private void Unpack(BinaryReader reader, bool preToD)
         {
             TickSize        = reader.ReadDouble();
             LightTickSize   = reader.ReadDouble();
 
             reader.AlignBoundary();
 
-            DayGroups.Unpack(reader);
+            if (preToD)
+            {
+                var count = reader.ReadUInt32();
+
+                for (int i = 0; i < count; i++)
+                {
+                    var dayGroup = new DayGroup();
+                    dayGroup.UnpackPreToD(reader);
+                    DayGroups.Add(dayGroup);
+                }
+            }
+            else
+                DayGroups.Unpack(reader);
         }
 
         public void Pack(BinaryWriter writer)

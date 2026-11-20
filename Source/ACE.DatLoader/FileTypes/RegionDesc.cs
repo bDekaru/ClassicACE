@@ -27,7 +27,29 @@ namespace ACE.DatLoader.FileTypes
         public TerrainDesc TerrainInfo { get; } = new TerrainDesc();
         public RegionMisc RegionMisc { get; } = new RegionMisc();
 
-        public override void Unpack(BinaryReader reader)
+        public override void Unpack(BinaryReader reader) => Unpack(reader, false);
+
+        /// <summary>
+        /// Reads the record as the pre-ToD (2005) client stored it: the same layout as ToD, except that the sky objects have no properties field
+        /// (they read as 0). Only the hardware record (0x130F0000) parses; the software record has an older terrain layout.
+        /// </summary>
+        /// <exception cref="InvalidDataException">The record does not end where its parts say.</exception>
+        public static RegionDesc UnpackPreToD(byte[] record)
+        {
+            var region = new RegionDesc();
+
+            using (var reader = new BinaryReader(new MemoryStream(record)))
+            {
+                region.Unpack(reader, true);
+
+                if (reader.BaseStream.Position != record.Length)
+                    throw new InvalidDataException($"Pre-ToD region: {record.Length - reader.BaseStream.Position} bytes follow the last part.");
+            }
+
+            return region;
+        }
+
+        private void Unpack(BinaryReader reader, bool preToD)
         {
             Id = reader.ReadUInt32();
 
@@ -42,7 +64,12 @@ namespace ACE.DatLoader.FileTypes
             PartsMask = reader.ReadUInt32();
 
             if ((PartsMask & 0x10) != 0)
-                SkyInfo.Unpack(reader);
+            {
+                if (preToD)
+                    SkyInfo.UnpackPreToD(reader);
+                else
+                    SkyInfo.Unpack(reader);
+            }
 
             if ((PartsMask & 0x01) != 0)
                 SoundInfo.Unpack(reader);

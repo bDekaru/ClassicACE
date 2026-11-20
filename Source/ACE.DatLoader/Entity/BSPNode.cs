@@ -7,7 +7,7 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class BSPNode : IUnpackable
+    public class BSPNode : IUnpackable, IPackable
     {
         // These constants are actually strings in the dat file
         private const uint PORT = 1347375700; // 0x504F5254
@@ -84,6 +84,51 @@ namespace ACE.DatLoader.Entity
             uint numPolys = reader.ReadUInt32();
             for (uint i = 0; i < numPolys; i++)
                 InPolys.Add(reader.ReadUInt16());
+        }
+
+        /// <summary>
+        /// You must use the Pack(BinaryWriter writer, BSPType treeType) method.
+        /// </summary>
+        /// <exception cref="NotSupportedException">You must use the Pack(BinaryWriter writer, BSPType treeType) method.</exception>
+        public virtual void Pack(BinaryWriter writer)
+        {
+            throw new NotSupportedException();
+        }
+
+        public virtual void Pack(BinaryWriter writer, BSPType treeType)
+        {
+            writer.Write(Encoding.ASCII.GetBytes(Type.Reverse()));
+
+            SplittingPlane.Pack(writer);
+
+            switch (Type)
+            {
+                case "BPnn":
+                case "BPIn":
+                    PosNode.Pack(writer, treeType);
+                    break;
+                case "BpIN":
+                case "BpnN":
+                    NegNode.Pack(writer, treeType);
+                    break;
+                case "BPIN":
+                case "BPnN":
+                    PosNode.Pack(writer, treeType);
+                    NegNode.Pack(writer, treeType);
+                    break;
+            }
+
+            if (treeType == BSPType.Cell)
+                return;
+
+            Sphere.Pack(writer);
+
+            if (treeType == BSPType.Physics)
+                return;
+
+            writer.Write((uint)InPolys.Count);
+            foreach (var id in InPolys)
+                writer.Write(id);
         }
 
         public static BSPNode ReadNode(BinaryReader reader, BSPType treeType)

@@ -20,5 +20,18 @@ namespace ACE.DatLoader.FileTypes
 
             Degrades.Unpack(reader);
         }
+
+        public override void Pack(BinaryWriter writer)
+        {
+            writer.Write(Id);
+            Degrades.Pack(writer);
+        }
+
+        /// <summary>Replaces every model id of the levels by map(id).</summary>
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var degrade in Degrades)
+                degrade.Remap(map);
+        }
     }
 }
