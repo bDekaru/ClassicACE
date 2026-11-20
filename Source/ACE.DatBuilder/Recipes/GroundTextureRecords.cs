@@ -74,7 +74,8 @@ namespace ACE.DatBuilder
             });
         }
 
-        // The client's terrain merge reads a terrain texture as 32-bit pixels and a blend map as one byte per pixel (the EoR records are A8R8G8B8 and PFID_CUSTOM_LSCAPE_ALPHA), whatever size they have.
+        // The client's terrain merge reads a terrain texture as 32-bit pixels and a blend map as one byte per pixel (the EoR records are A8R8G8B8 and PFID_CUSTOM_LSCAPE_ALPHA).
+        // It also steps through a blend map with the width of the terrain texture it blends, so every one of them has to be BaseTexSize wide: a terrain texture is tiled up, a blend map's pixels are repeated.
         public static byte[] ToTerrainFormat(byte[] image, uint headerValue)
         {
             const int HeaderSize = 24;
@@ -104,12 +105,36 @@ namespace ACE.DatBuilder
             else
                 throw new NotSupportedException($"Ground texture image format {format} is not converted.");
 
-            var result = new byte[HeaderSize + output.Count];
+            var width = BitConverter.ToInt32(image, 8);
+            var height = BitConverter.ToInt32(image, 12);
+            var pixels = output.ToArray();
+
+            if (width > 0 && width < BaseTexSize && BaseTexSize % width == 0 && height == width)
+            {
+                var pixelSize = format == (uint)SurfacePixelFormat.PFID_A8R8G8B8 ? 4 : 1;
+                var size = (int)BaseTexSize;
+                var scale = size / width;
+                var scaled = new byte[size * size * pixelSize];
+
+                for (var y = 0; y < size; y++)
+                    for (var x = 0; x < size; x++)
+                    {
+                        var source = pixelSize == 1 ? (y / scale) * width + x / scale : (y % height) * width + x % width;
+                        Array.Copy(pixels, source * pixelSize, scaled, (y * size + x) * pixelSize, pixelSize);
+                    }
+
+                pixels = scaled;
+                width = height = size;
+            }
+
+            var result = new byte[HeaderSize + pixels.Length];
             Array.Copy(image, result, HeaderSize);
-            output.CopyTo(result, HeaderSize);
+            pixels.CopyTo(result, HeaderSize);
             Array.Copy(BitConverter.GetBytes(headerValue), 0, result, 4, 4);
+            Array.Copy(BitConverter.GetBytes(width), 0, result, 8, 4);
+            Array.Copy(BitConverter.GetBytes(height), 0, result, 12, 4);
             Array.Copy(BitConverter.GetBytes(format), 0, result, 16, 4);
-            Array.Copy(BitConverter.GetBytes(output.Count), 0, result, 20, 4);
+            Array.Copy(BitConverter.GetBytes(pixels.Length), 0, result, 20, 4);
 
             return result;
         }

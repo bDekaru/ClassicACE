@@ -454,7 +454,7 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void GroundTextures_ConvertTheOriginalImagesAtTheirOwnSize()
+        public void GroundTextures_ConvertTheOriginalImagesToTheMergeSize()
         {
             var textures = DatRecipeData.Load<List<GroundTextureRecords.GroundTexture>>(GroundTextureRecords.TexturesFile);
 
@@ -472,8 +472,48 @@ namespace ACE.DatLoader.Tests
                 var terrain = GroundTextureRecords.ToTerrainFormat(image, 2);
 
                 Assert.AreEqual(image[16] == 28 ? 244u : 21u, BitConverter.ToUInt32(terrain, 16));
-                Assert.AreEqual(24 + width * height * (image[16] == 28 ? 1 : 4), terrain.Length);
+                Assert.AreEqual(GroundTextureRecords.BaseTexSize, BitConverter.ToUInt32(terrain, 8));
+                Assert.AreEqual(GroundTextureRecords.BaseTexSize, BitConverter.ToUInt32(terrain, 12));
+                Assert.AreEqual(24 + 128 * 128 * (image[16] == 28 ? 1 : 4), terrain.Length);
             }
+        }
+
+        [TestMethod]
+        public void ToTerrainFormat_TilesATerrainTextureAndRepeatsTheBlendMapPixelsUpToTheMergeSize()
+        {
+            byte[] Image(uint format, int bytesPerPixel)
+            {
+                var record = new List<byte>(new byte[24]);
+                record.AddRange(Enumerable.Range(0, 64 * 64 * bytesPerPixel).Select(i => (byte)(i / bytesPerPixel % 251)));
+                var bytes = record.ToArray();
+                Array.Copy(BitConverter.GetBytes(64), 0, bytes, 8, 4);
+                Array.Copy(BitConverter.GetBytes(64), 0, bytes, 12, 4);
+                Array.Copy(BitConverter.GetBytes(format), 0, bytes, 16, 4);
+                return bytes;
+            }
+
+            var terrain = GroundTextureRecords.ToTerrainFormat(Image(20, 3), 2);
+            var blend = GroundTextureRecords.ToTerrainFormat(Image(28, 1), 2);
+
+            Assert.AreEqual(24 + 128 * 128 * 4, terrain.Length);
+            Assert.AreEqual(24 + 128 * 128, blend.Length);
+
+            // Terrain: the pixel at (64 + 5, 64 + 7) is the original pixel (5, 7); blend map: the pixel at (2 * 5 + 1, 2 * 7 + 1) is the original pixel (5, 7).
+            Assert.AreEqual(terrain[24 + (7 * 128 + 5) * 4], terrain[24 + ((64 + 7) * 128 + 64 + 5) * 4]);
+            Assert.AreEqual(blend[24 + 7 * 2 * 128 + 5 * 2], blend[24 + (7 * 2 + 1) * 128 + 5 * 2 + 1]);
+            Assert.AreEqual((byte)((7 * 64 + 5) % 251), blend[24 + (7 * 2 * 128 + 5 * 2)]);
+        }
+
+        [TestMethod]
+        public void BlendSurfaceTextures_PointAtTheConvertedBlendMaps()
+        {
+            var textures = DatRecipeData.Load<List<GroundTextureRecords.GroundTexture>>(GroundTextureRecords.TexturesFile);
+            var entries = DatRecipeData.Load<List<SurfaceTextureRecords.Entry>>(SurfaceTextureRecords.BlendFile);
+
+            Assert.AreEqual(8, entries.Count);
+
+            foreach (var entry in entries)
+                Assert.IsTrue(textures.Any(texture => texture.Image == entry.Texture && texture.Source == entry.Id), $"{entry.Id} -> {entry.Texture} is not a converted ground texture");
         }
 
         [TestMethod]

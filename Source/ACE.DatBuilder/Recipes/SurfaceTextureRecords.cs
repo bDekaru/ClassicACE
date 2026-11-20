@@ -9,6 +9,7 @@ namespace ACE.DatBuilder
     public static class SurfaceTextureRecords
     {
         public const string GroundFile = "ground-surface-textures.json";
+        public const string BlendFile = "blend-surface-textures.json";
         public const string RockFile = "rock-surface-textures.json";
 
         public class Entry

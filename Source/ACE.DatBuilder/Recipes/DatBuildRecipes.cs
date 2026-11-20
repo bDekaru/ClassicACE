@@ -276,13 +276,13 @@ namespace ACE.DatBuilder
         public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
             Initial("Portal/CustomDM"))
             .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Rock surface textures", InitialVersionDate, SurfaceTextureRecords.RockFile)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray())
+            .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Rock surface textures", InitialVersionDate, SurfaceTextureRecords.RockFile)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
             Initial("Portal/Infiltration"))
             .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray());
+            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray());
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
 
