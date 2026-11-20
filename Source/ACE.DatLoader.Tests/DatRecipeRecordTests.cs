@@ -69,7 +69,7 @@ namespace ACE.DatLoader.Tests
             var image = DatRecordContext.Unpack<Texture>(DatPortalImporter.ConvertImageKeepingFormat(record.ToArray(), 0x06009666, id => id + 0x3000));
 
             Assert.AreEqual(SurfacePixelFormat.PFID_INDEX16, image.Format);
-            Assert.AreEqual(0, image.Unknown);
+            Assert.AreEqual(0u, image.DataCategory);
             Assert.AreEqual(2, image.Width);
             Assert.AreEqual(0x04003DBAu, image.DefaultPaletteId);
             CollectionAssert.AreEqual(new byte[] { 0x50, 0, 0x40, 0, 0xF8, 7, 0, 0 }, image.SourceData);
@@ -491,7 +491,7 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual(2, icon.Width);
             Assert.AreEqual(1, icon.Height);
             Assert.AreEqual(SurfacePixelFormat.PFID_A8R8G8B8, icon.Format);
-            Assert.AreEqual(Texture.ToDHeaderValue, icon.Unknown);
+            Assert.AreEqual(Texture.ToDHeaderValue, icon.DataCategory);
             CollectionAssert.AreEqual(new byte[] { 3, 2, 1, 255, 30, 20, 10, 255 }, icon.SourceData);
             Assert.AreEqual(1, DatRecipeData.Load<List<IconRecords.Icon>>(IconRecords.IconsFile).Count);
         }

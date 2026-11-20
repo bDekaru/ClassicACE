@@ -17,7 +17,10 @@ namespace ACE.DatLoader.FileTypes
     [DatFileType(DatFileType.Texture)]
     public class Texture : FileType
     {
-        public int Unknown { get; set; }
+        // RenderSurface inherits m_dataCategory from DBObj.
+        // The original client serializes this field for categorized resources.
+        // The meaning of individual category values has not yet been established.
+        public uint DataCategory { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
         public SurfacePixelFormat Format { get; set; }
@@ -32,7 +35,7 @@ namespace ACE.DatLoader.FileTypes
         public override void Unpack(BinaryReader reader)
         {
             Id = reader.ReadUInt32();
-            Unknown = reader.ReadInt32();
+            DataCategory = reader.ReadUInt32();
             Width = reader.ReadInt32();
             Height = reader.ReadInt32();
             Format = (SurfacePixelFormat)reader.ReadUInt32();
@@ -52,8 +55,8 @@ namespace ACE.DatLoader.FileTypes
             }
         }
 
-        /// <summary>The value ToD records store in the field after the id (<see cref="Unknown"/>) for these images.</summary>
-        public const int ToDHeaderValue = 6;
+        /// <summary>The value ToD records store in the field after the id (<see cref="DataCategory"/>) for these images.</summary>
+        public const uint ToDHeaderValue = 6;
 
         /// <summary>
         /// Reads a pre-ToD (2005) image record of 24-bit pixels: id, width, height and the pixels in red, green, blue order. The result is a ToD image of
@@ -91,7 +94,7 @@ namespace ACE.DatLoader.FileTypes
             return new Texture
             {
                 Id = id ?? BitConverter.ToUInt32(record, 0),
-                Unknown = ToDHeaderValue,
+                DataCategory = ToDHeaderValue,
                 Width = width,
                 Height = height,
                 Format = format,
@@ -106,7 +109,7 @@ namespace ACE.DatLoader.FileTypes
             return new Texture
             {
                 Id = id,
-                Unknown = 0,
+                DataCategory = 0,
                 Width = width,
                 Height = height,
                 Format = format,
@@ -120,7 +123,7 @@ namespace ACE.DatLoader.FileTypes
         public override void Pack(BinaryWriter writer)
         {
             writer.Write(Id);
-            writer.Write(Unknown);
+            writer.Write(DataCategory);
             writer.Write(Width);
             writer.Write(Height);
             writer.Write((uint)Format);
