@@ -109,7 +109,7 @@ namespace ACE.Server.WorldObjects
         public bool IsThrownWeapon { get => DefaultCombatStyle != null && DefaultCombatStyle == CombatStyle.ThrownWeapon; }
         public bool IsRanged { get => IsAmmoLauncher || IsThrownWeapon; }
         public bool IsCaster { get => DefaultCombatStyle != null && (DefaultCombatStyle == CombatStyle.Magic); }
-        public bool IsClothArmor { get => ItemType == ItemType.Clothing && ClothingPriority.HasValue && (ClothingPriority.Value.HasFlag(CoverageMask.OuterwearChest) || ClothingPriority.Value.HasFlag(CoverageMask.Feet) || ClothingPriority.Value.HasFlag(CoverageMask.Hands) || ClothingPriority.Value.HasFlag(CoverageMask.Head)); } // Robes, Dresses, Cloth Caps, Cloth Gloves and Cloth Shoes.
+        public bool IsClothArmor { get => Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && ItemType == ItemType.Clothing && ClothingPriority.HasValue && (ClothingPriority.Value.HasFlag(CoverageMask.OuterwearChest) || ClothingPriority.Value.HasFlag(CoverageMask.Feet) || ClothingPriority.Value.HasFlag(CoverageMask.Hands) || ClothingPriority.Value.HasFlag(CoverageMask.Head)); } // Robes, Dresses, Cloth Caps, Cloth Gloves and Cloth Shoes.
         public bool IsRobe { get => ItemType == ItemType.Clothing && ClothingPriority.HasValue && ClothingPriority.Value.HasFlag(CoverageMask.OuterwearChest); } // Robes and Dresses
 
         public bool IsCreature
