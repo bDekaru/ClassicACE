@@ -11,6 +11,7 @@ namespace ACE.DatBuilder
     public static class LanguageRecords
     {
         public const uint ChargenHeritageUiId = 0x21000046;
+        public const uint TextId = 0x23000001;
         public const uint ChargenTextId = 0x23000002;
         public const uint TextStringsId = 0x23000003;
 
@@ -18,6 +19,7 @@ namespace ACE.DatBuilder
         public const string ChargenHeritageUiFile = "chargen-heritage-ui.json";
         public const string InfiltrationChargenTextFile = "infiltration-chargen-text.json";
         public const string CustomDMChargenTextFile = "customdm-chargen-text.json";
+        public const string CustomDMTextStringsFile = "customdm-text-strings.json";
 
         // Source dats of the steps below (MD5 of the files):
         //   EoR language dat (heritage layout, character generation text): language - 2015-06-18 - Iteration 994 - EoR.dat, MD5 b55f7465dbf4fa94fc919d51afcb70da
@@ -29,7 +31,7 @@ namespace ACE.DatBuilder
 
         public static DatRecordStep[] CustomDM(string date)
         {
-            return new[] { ChargenHeritageUi(date), ChargenText(date, CustomDMChargenTextFile), TextureDetailLabels(date) };
+            return new[] { ChargenHeritageUi(date), ChargenText(date, CustomDMChargenTextFile), TextStringEdits(date, CustomDMTextStringsFile), TextureDetailLabels(date) };
         }
 
         /// <summary>The labels of the landscape and environment detail options, as the client's texture detail patch reads them by the hash of the name.</summary>
@@ -107,6 +109,16 @@ namespace ACE.DatBuilder
                 var layout = DatLayoutEdits.Unpack(c.ReadTarget(ChargenHeritageUiId), master);
                 DatLayoutEdits.Apply(layout, DatRecipeData.Load<List<DatLayoutMediaEdit>>(ChargenHeritageUiFile));
                 c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout");
+            });
+        }
+
+        private static DatRecordStep TextStringEdits(string date, string editsFile)
+        {
+            return new DatRecordStep("Vitae and gameplay mode texts from the EoR record", date, c =>
+            {
+                var table = c.ReadTarget<StringTable>(TextId);
+                DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(editsFile));
+                c.Write(TextId, table.Pack(), "vitae and gameplay mode texts");
             });
         }
 

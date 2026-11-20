@@ -121,6 +121,8 @@ namespace ACE.DatLoader.FileTypes
                     return RandomizeVersion2(spell, accountName);
                 case 3:
                     return RandomizeVersion3(spell, accountName);
+                case 4:
+                    return RandomizeVersion4(spell, accountName);
                 default:
                     return spell.Formula;
             }
@@ -221,6 +223,30 @@ namespace ACE.DatLoader.FileTypes
 
             comps[3] = (compHash0 + compHash1 + compHash2 + compHash4 + compHash5 + compHash2 * compHash5 + compHash0 * compHash1 + compHash7 * (compHash4 + 1)) % 0xC + LOWEST_TAPER_ID;
             comps[6] = (compHash0 + compHash1 + compHash2 + compHash4 + key % 0x65039 % 0xC + compHash7 * (compHash4 * (compHash0 * compHash1 * compHash2 * compHash5 + 7) + 1) + compHash5 + 4 * compHash0 * compHash1 + compHash0 * compHash1 + 11 * compHash2 * compHash5) % 0xC + LOWEST_TAPER_ID;
+
+            return comps;
+        }
+
+        /// <summary>
+        /// Seven components without a potion: scarab, taper, taper, herb, powder, taper, talisman.
+        /// </summary>
+        private static List<uint> RandomizeVersion4(SpellBase spell, string accountName)
+        {
+            List<uint> comps = new List<uint>(spell.Formula);
+
+            uint key = ComputeHash(accountName);
+            uint seed1 = key % 0x13D573;
+            uint seed2 = key % 0x4AEFD;
+            uint seed3 = key % 0x96A7F;
+
+            uint scarab = comps[0];
+            uint herb = comps[3];
+            uint powder = comps[4];
+            uint talisman = comps[6];
+
+            comps[1] = (seed1 + herb + 2 * powder + talisman + scarab) % 0xC + LOWEST_TAPER_ID;
+            comps[2] = (seed2 + 2 * herb + powder + scarab * talisman) % 0xC + LOWEST_TAPER_ID;
+            comps[5] = (seed3 + herb * powder + 2 * scarab + talisman) % 0xC + LOWEST_TAPER_ID;
 
             return comps;
         }

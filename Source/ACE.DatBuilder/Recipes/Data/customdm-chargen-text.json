@@ -57,7 +57,12 @@
   {
     "Id": "05D3F822",
     "Index": 0,
-    "Text": "Random"
+    "Text": "Other"
+  },
+  {
+    "Id": "06CE87F3",
+    "Index": 0,
+    "Text": "Focus measures the acuteness of your character’s mind and senses. The higher your Focus, the better you are at magic and other mental skills."
   },
   {
     "Id": "0330CE04",
@@ -102,7 +107,7 @@
   {
     "Id": "08227F04",
     "Index": 0,
-    "Text": ""
+    "Text": "Select this option to start the gameplay mode selection process.\nYour character will start on a small island with several altars. Using one of the altars will set your gameplay mode and start your journey.\n\nAvailable gameplay modes include:\n- Hardcore: death is permanent!\n- Hardcore PK: death is permanent and other Hardcore PKs can kill you!\n- Solo Self-Found: Can only use items found by the character.\n\nMore details on each mode can be found by examing the appropriate altar."
   },
   {
     "Id": "00166F04",

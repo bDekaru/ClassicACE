@@ -1,0 +1,22 @@
+[
+  {
+    "Id": "05A64473",
+    "Index": 1,
+    "Text": "%.\n\nRecovering your corpse or being resurrected by another player will restore some of your Vitae.\n\nAll experience earned will be consumed until your Vitae is fully restored."
+  },
+  {
+    "Id": "0DCD8C35",
+    "Index": 1,
+    "Text": " more experience. You will also regain 1% of your Vitae every 5 minutes."
+  },
+  {
+    "Id": "0F209942",
+    "Index": 0,
+    "Text": "Any"
+  },
+  {
+    "Id": "0FA0F71C",
+    "Index": 0,
+    "Text": "Player Killer"
+  }
+]
