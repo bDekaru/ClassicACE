@@ -12,15 +12,22 @@ namespace ACE.DatLoader.Tests
     [TestClass]
     public class DatTests
     {
-        private static string DAT_PATH = @"C:\Turbine\Asheron's Call\";
+        // The original EoR dats from the source folder (the dat_source_folder server setting).
 
-        private static string cellDatLocation = DAT_PATH + "client_cell_1.dat";
-        private static int expectedCellDatFileCount = 805003;
+        private static string cellDatLocation => TestSourceDats.Dat(TestSourceDats.CellDatName);
+        private static int expectedCellDatFileCount = 805348;
 
-        private static string portalDatLocation = DAT_PATH + "client_portal.dat";
+        private static string portalDatLocation => TestSourceDats.Dat(TestSourceDats.PortalDatName);
         private static int expectedPortalDatFileCount = 79694;
 
-        private static string localEnglishDatLocation = DAT_PATH + "client_local_English.dat";
+        private static string localEnglishDatLocation => TestSourceDats.Dat(TestSourceDats.LanguageDatName);
+
+        private static void InitializeDatManager()
+        {
+            // DatManager reads the world ruleset from the config.
+            ACE.Common.ConfigManager.Initialize(new ACE.Common.MasterConfiguration());
+            DatManager.Initialize(TestSourceDats.ClientFolder(), true, false);
+        }
         private static int expectedLocalEnglishDatFileCount = 118;
 
 
@@ -121,7 +128,7 @@ namespace ACE.DatLoader.Tests
             // We need to init the DatManager to load PortalDat.MasterProperty for the BaseProperty references for DbProperties
             // And we need the code page for some of the PortalDat autoload types
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-            DatManager.Initialize(DAT_PATH, true, false);
+            InitializeDatManager();
 
             var assembly = typeof(DatDatabase).GetTypeInfo().Assembly;
             var types = assembly.GetTypes().Where(t => t.GetCustomAttributes(typeof(DatFileTypeAttribute), false).Length > 0).ToList();
@@ -183,7 +190,7 @@ namespace ACE.DatLoader.Tests
             // We need to init the DatManager to load PortalDat.MasterProperty for the BaseProperty references for UiLayout/LayoutDesc
             // And we need the code page for some of the PortalDat autoload types
             System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-            DatManager.Initialize(DAT_PATH, true, false);
+            InitializeDatManager();
 
             var assembly = typeof(DatDatabase).GetTypeInfo().Assembly;
             var types = assembly.GetTypes().Where(t => t.GetCustomAttributes(typeof(DatFileTypeAttribute), false).Length > 0).ToList();
@@ -237,7 +244,7 @@ namespace ACE.DatLoader.Tests
         // [TestMethod]
         public void ExtractCellDatByLandblock()
         {
-            string output = @"c:\Turbine\cell_dat_export_by_landblock";
+            string output = Path.Combine(Path.GetTempPath(), "cell_dat_export_by_landblock");
             CellDatDatabase db = new CellDatDatabase(cellDatLocation);
             db.ExtractLandblockContents(output);
         }
@@ -246,7 +253,7 @@ namespace ACE.DatLoader.Tests
         // [TestMethod]
         public void ExportPortalDatsWithTypeInfo()
         {
-            string output = @"c:\Turbine\typed_portal_dat_export";
+            string output = Path.Combine(Path.GetTempPath(), "typed_portal_dat_export");
             PortalDatDatabase db = new PortalDatDatabase(portalDatLocation);
             db.ExtractCategorizedPortalContents(output);
         }

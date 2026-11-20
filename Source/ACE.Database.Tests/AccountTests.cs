@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACE.Common;
 using ACE.Database.Models.Auth;
 using ACE.Entity.Enum;
+using ACE.TestSupport;
 using System.Net;
 
 [assembly: DoNotParallelize]
@@ -20,10 +21,7 @@ namespace ACE.Database.Tests
         [ClassInitialize]
         public static void TestSetup(TestContext context)
         {
-            // copy config.js
-            File.Copy(Path.Combine(Environment.CurrentDirectory, "..\\..\\..\\..\\..\\ACE.Server\\Config.js"), ".\\Config.js", true);
-
-            ConfigManager.Initialize();
+            TestServerSetup.InitializeConfig(".\\Config.js", true);
             authDb = new AuthenticationDatabase();
         }
 
@@ -43,12 +41,14 @@ namespace ACE.Database.Tests
             Account newAccount = new Account();
             newAccount.AccountName = "testaccount1";
 
-            authDb.UpdateAccountAccessLevel(1, AccessLevel.Sentinel);
+            var id = authDb.GetAccountIdByName(newAccount.AccountName);
+
+            authDb.UpdateAccountAccessLevel(id, AccessLevel.Sentinel);
             var results = authDb.GetAccountByName(newAccount.AccountName);
             Assert.IsNotNull(results);
             Assert.AreEqual((uint)AccessLevel.Sentinel, results.AccessLevel);
 
-            authDb.UpdateAccountAccessLevel(1, AccessLevel.Player);
+            authDb.UpdateAccountAccessLevel(id, AccessLevel.Player);
             var results2 = authDb.GetAccountByName(newAccount.AccountName);
             Assert.IsNotNull(results2);
             Assert.AreEqual((uint)AccessLevel.Player, results2.AccessLevel);

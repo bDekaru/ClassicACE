@@ -37,6 +37,10 @@
     <ProjectReference Include="..\ACE.Server\ACE.Server.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\ACE.Database.Tests\TestServerSetup.cs" Link="TestServerSetup.cs" />
+  </ItemGroup>
+
     <ItemGroup>
       <None Include="..\..\LICENSE">
         <Pack>True</Pack>

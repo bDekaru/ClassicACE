@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACE.Common;
 using ACE.Database.Models.World;
 using ACE.Entity.Enum.Properties;
+using ACE.TestSupport;
 
 namespace ACE.Database.Tests
 {
@@ -19,7 +20,7 @@ namespace ACE.Database.Tests
         public static void TestSetup(TestContext context)
         {
             // copy config.js
-            File.Copy(Path.Combine(Environment.CurrentDirectory, "..\\..\\..\\..\\..\\ACE.Server\\Config.js"), ".\\Config.js", true);
+            TestServerSetup.InitializeConfig(".\\Config.js", false);
 
             ConfigManager.Initialize();
             worldDb = new WorldDatabase();

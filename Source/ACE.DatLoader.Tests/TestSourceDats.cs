@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
+
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using ACE.DatBuilder;
 
@@ -14,6 +17,58 @@ namespace ACE.DatLoader.Tests
         private const string ConfigRelativePath = @"ACE.Server\bin\x64\Debug\net10.0\Config.js";
 
         public static readonly string Folder = Read();
+
+        public const string CellDatName = "cell - 2016-12-23 - Iteration 982 - 100% - EoR.dat";
+        public const string PortalDatName = "portal - 2017-01-29 - Iteration 2072 - EoR.dat";
+        public const string LanguageDatName = "language - 2015-06-18 - Iteration 994 - EoR.dat";
+
+        private static readonly Lazy<string> clientFolder = new Lazy<string>(MakeClientFolder);
+
+        /// <summary>The path of one of the original dats; the test is inconclusive when the file is missing.</summary>
+        public static string Dat(string name)
+        {
+            var path = Path.Combine(Folder, name);
+
+            if (!File.Exists(path))
+                Assert.Inconclusive($"Test dat not found: {path}");
+
+            return path;
+        }
+
+        /// <summary>
+        /// A folder with the original portal and language dats under the client's file names, for DatManager.Initialize (the cell dat is not needed).
+        /// It is made once in the temp folder, with hard links to the originals (copies when the temp folder is on another drive).
+        /// </summary>
+        public static string ClientFolder()
+        {
+            return clientFolder.Value;
+        }
+
+        private static string MakeClientFolder()
+        {
+            var folder = Path.Combine(Path.GetTempPath(), "ace-datloader-tests");
+
+            Directory.CreateDirectory(folder);
+
+            Link(Dat(PortalDatName), Path.Combine(folder, "client_portal.dat"));
+            Link(Dat(LanguageDatName), Path.Combine(folder, "client_local_English.dat"));
+
+            return folder;
+        }
+
+        private static void Link(string original, string link)
+        {
+            if (File.Exists(link) && new FileInfo(link).Length == new FileInfo(original).Length)
+                return;
+
+            File.Delete(link);
+
+            if (!CreateHardLink(link, original, IntPtr.Zero))
+                File.Copy(original, link);
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool CreateHardLink(string fileName, string existingFileName, IntPtr securityAttributes);
 
         private static string Read()
         {

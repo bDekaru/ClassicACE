@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ACE.Common;
 using ACE.Database;
 using ACE.Server.Managers;
+using ACE.TestSupport;
 
 [assembly: DoNotParallelize]
 
@@ -19,13 +20,7 @@ namespace ACE.Server.Tests
         {
             // copy config.js and initialize configuration
             var testDir = AppContext.BaseDirectory;
-            var serverDir = Path.GetFullPath(Path.Combine(testDir, "..", "..", "..", "..", "..", "ACE.Server"));
-            var configSource = Path.Combine(serverDir, "Config.js");
-
-            if (!File.Exists(configSource))
-                configSource = Path.Combine(serverDir, "Config.js.example");
-
-            File.Copy(configSource, Path.Combine(testDir, "Config.js"), true);
+            TestServerSetup.InitializeConfig(Path.Combine(testDir, "Config.js"), true);
             ConfigManager.Initialize();
         }
 
