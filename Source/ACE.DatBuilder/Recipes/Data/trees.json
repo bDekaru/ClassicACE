@@ -3219,6 +3219,30 @@
     {
       "Source": "0A00039B",
       "Target": "0A00039B"
+    },
+    {
+      "Source": "010018BF",
+      "Target": "010018BF"
+    },
+    {
+      "Source": "010018C0",
+      "Target": "010018C0"
+    }
+  ],
+  "ParticleEmitters": [
+    {
+      "Id": "320013DC",
+      "Source": "320003DC"
+    }
+  ],
+  "PhysicsScripts": [
+    {
+      "Id": "3300272D",
+      "Source": "3300072D"
+    },
+    {
+      "Id": "3300272E",
+      "Source": "3300072E"
     }
   ],
   "SoundTables": [
