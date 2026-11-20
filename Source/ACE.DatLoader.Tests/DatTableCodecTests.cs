@@ -1155,8 +1155,11 @@ namespace ACE.DatLoader.Tests
         {
             var bytes = ShippedPortalRecord("CustomDM", CharGenId);
             var record = UnpackCharGen(bytes);
-            var overlapping = record.HeritageGroups.SelectMany(g => g.Value.Templates).First(t => t.PrimarySkillsList.Intersect(t.NormalSkillsList).Any());
-            var skill = overlapping.PrimarySkillsList.Intersect(overlapping.NormalSkillsList).First();
+            var overlapping = record.HeritageGroups.SelectMany(g => g.Value.Templates).First(t => t.PrimarySkillsList.Count > 0);
+            var skill = overlapping.PrimarySkillsList.First();
+
+            // The dat built from the recipes has no such template (the original shipped dat had 11), so one is made.
+            overlapping.NormalSkillsList.Add(skill);
 
             var rows = DatTables.ToRows(record);
 
