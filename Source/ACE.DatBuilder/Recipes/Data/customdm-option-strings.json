@@ -1,0 +1,28 @@
+[
+  {
+    "Id": "01B70900",
+    "Index": 0,
+    "Text": "When checked, the game runs as a borderless window that covers the desktop. If unchecked, the game runs in a normal window."
+  },
+  {
+    "Id": "094E330E",
+    "Index": 0,
+    "Text": "Borderless Windowed"
+  },
+  {
+    "Name": "ID_Graphics_TexFull",
+    "Text": "Full"
+  },
+  {
+    "Name": "ID_Graphics_TexHalf",
+    "Text": "1/2"
+  },
+  {
+    "Name": "ID_Graphics_TexQuarter",
+    "Text": "1/4"
+  },
+  {
+    "Name": "ID_Graphics_TexEighth",
+    "Text": "1/8"
+  }
+]

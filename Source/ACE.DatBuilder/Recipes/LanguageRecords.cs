@@ -20,54 +20,19 @@ namespace ACE.DatBuilder
         public const string InfiltrationChargenTextFile = "infiltration-chargen-text.json";
         public const string CustomDMChargenTextFile = "customdm-chargen-text.json";
         public const string CustomDMTextStringsFile = "customdm-text-strings.json";
+        public const string CustomDMOptionStringsFile = "customdm-option-strings.json";
 
         // Source dats of the steps below (MD5 of the files):
         //   EoR language dat (heritage layout, character generation text): language - 2015-06-18 - Iteration 994 - EoR.dat, MD5 b55f7465dbf4fa94fc919d51afcb70da
         //   EoR portal dat (property table the layout is read with): portal - 2017-01-29 - Iteration 2072 - EoR.dat, MD5 2c89662a44fcdc2a3c31fe8f6677d265
         public static DatRecordStep[] Infiltration(string date)
         {
-            return new[] { ChargenHeritageUi(date), ChargenText(date, InfiltrationChargenTextFile), TextureDetailLabels(date) };
+            return new[] { ChargenHeritageUi(date), ChargenText(date, InfiltrationChargenTextFile) };
         }
 
         public static DatRecordStep[] CustomDM(string date)
         {
-            return new[] { ChargenHeritageUi(date), ChargenText(date, CustomDMChargenTextFile), TextStringEdits(date, CustomDMTextStringsFile), TextureDetailLabels(date) };
-        }
-
-        /// <summary>The labels of the landscape and environment detail options, as the client's texture detail patch reads them by the hash of the name.</summary>
-        public static readonly (string Name, string Label)[] TextureDetailLabelEntries =
-        {
-            ("ID_Graphics_TexFull", "Full"),
-            ("ID_Graphics_TexHalf", "1/2"),
-            ("ID_Graphics_TexQuarter", "1/4"),
-            ("ID_Graphics_TexEighth", "1/8"),
-        };
-
-        public static IList<StringTableData> MakeTextureDetailLabels()
-        {
-            var entries = new List<StringTableData>();
-
-            foreach (var (name, label) in TextureDetailLabelEntries)
-            {
-                var entry = new StringTableData { Id = SpellTable.ComputeHash(name) };
-                entry.Strings.Add(label);
-                entries.Add(entry);
-            }
-
-            return entries;
-        }
-
-        private static DatRecordStep TextureDetailLabels(string date)
-        {
-            return new DatRecordStep("Texture detail option labels", date, c =>
-            {
-                var table = c.ReadTarget<StringTable>(TextStringsId);
-
-                foreach (var entry in MakeTextureDetailLabels())
-                    InsertInBucketOrder(table, entry);
-
-                c.Write(TextStringsId, table.Pack(), "texture detail option labels");
-            });
+            return new[] { ChargenHeritageUi(date), ChargenText(date, CustomDMChargenTextFile), TextStringEdits(date, CustomDMTextStringsFile), OptionStringEdits(date) };
         }
 
         /// <summary>The bucket counts the client's string table hash tables are sized from; the size byte of a record is an index into this list.</summary>
@@ -119,6 +84,17 @@ namespace ACE.DatBuilder
                 var table = c.ReadTarget<StringTable>(TextId);
                 DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(editsFile));
                 c.Write(TextId, table.Pack(), "vitae and gameplay mode texts");
+            });
+        }
+
+        /// <summary>The Fullscreen option is a borderless window in the CustomDM client (patch_borderless_fullscreen.py), so its label and help text say so; the texture detail options of its patch get their labels as new entries.</summary>
+        private static DatRecordStep OptionStringEdits(string date)
+        {
+            return new DatRecordStep("Option texts from the EoR record", date, c =>
+            {
+                var table = c.ReadTarget<StringTable>(TextStringsId);
+                DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(CustomDMOptionStringsFile));
+                c.Write(TextStringsId, table.Pack(), "borderless windowed and texture detail option texts");
             });
         }
 

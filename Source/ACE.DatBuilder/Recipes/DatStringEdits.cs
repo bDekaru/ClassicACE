@@ -4,14 +4,16 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 
+using ACE.DatLoader.Entity;
 using ACE.DatLoader.FileTypes;
 
 namespace ACE.DatBuilder
 {
-    /// <summary>One changed string of a string table: the entry's id as hex text, the index in its strings and the new text.</summary>
+    /// <summary>One changed string of a string table: the entry's id as hex text, the index in its strings and the new text. An edit with a Name instead of an Id adds a new entry whose id is the hash of that name (as the client looks up its option labels).</summary>
     public class DatStringEdit
     {
         public string Id { get; set; }
+        public string Name { get; set; }
         public int Index { get; set; }
         public string Text { get; set; }
     }
@@ -26,6 +28,14 @@ namespace ACE.DatBuilder
 
             foreach (var edit in edits)
             {
+                if (edit.Name != null)
+                {
+                    var added = new StringTableData { Id = SpellTable.ComputeHash(edit.Name) };
+                    added.Strings.Add(edit.Text);
+                    LanguageRecords.InsertInBucketOrder(table, added);
+                    continue;
+                }
+
                 var id = uint.Parse(edit.Id, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 
                 if (!entries.TryGetValue(id, out var entry))

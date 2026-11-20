@@ -240,20 +240,19 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void TextureDetailLabels_AreNewEntriesOfTheEndOfRetailTextStrings()
+        public void OptionStrings_AddTheTextureDetailLabelsAsNewEntriesOfTheEndOfRetailTextStrings()
         {
             var table = DatRecordContext.Unpack<StringTable>(ReadRecord(DatBuildRecipes.LanguageBaseDat, LanguageRecords.TextStringsId));
             var existing = table.StringTableData.Select(e => e.Id).ToHashSet();
-            var labels = LanguageRecords.MakeTextureDetailLabels();
+            var labels = DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMOptionStringsFile).Where(e => e.Name != null).ToList();
 
             Assert.AreEqual(4, labels.Count);
-            CollectionAssert.AreEqual(new[] { "Full", "1/2", "1/4", "1/8" }, labels.Select(e => e.Strings[0]).ToList());
+            CollectionAssert.AreEqual(new[] { "Full", "1/2", "1/4", "1/8" }, labels.Select(e => e.Text).ToList());
 
             foreach (var label in labels)
-                Assert.IsFalse(existing.Contains(label.Id));
+                Assert.IsFalse(existing.Contains(SpellTable.ComputeHash(label.Name)));
 
-            foreach (var label in labels)
-                LanguageRecords.InsertInBucketOrder(table, label);
+            DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMOptionStringsFile));
 
             var reread = DatRecordContext.Unpack<StringTable>(table.Pack());
             Assert.AreEqual(236 + 4, reread.StringTableData.Count);
@@ -692,7 +691,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void RecipeDataFiles_OfCustomDM_AreEmbedded()
         {
-            Assert.AreEqual(33, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMChargenTextFile).Count);
+            Assert.AreEqual(34, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMChargenTextFile).Count);
             Assert.IsNotNull(DatRecipeData.Load<DatChargenEdits>(CustomDMRecords.ChargenEditsFile).Templates);
         }
 
