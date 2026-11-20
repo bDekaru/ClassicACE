@@ -10,8 +10,8 @@ namespace ACE.DatLoader.Entity.AnimationHooks
 
         public override void Pack(BinaryWriter writer)
         {
-            writer.Write((uint)HookType);
-            writer.Write((int)Direction);
+            base.Pack(writer);
+
             writer.Write(PartIndex);
             writer.Write(USpeed);
             writer.Write(VSpeed);

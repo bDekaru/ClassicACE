@@ -38,45 +38,32 @@ namespace ACE.DatLoader.FileTypes
             Links.Unpack(reader);
         }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            writer.Write(Id);
+            writer.Write(DefaultStyle);
+
+            writer.Write((uint)StyleDefaults.Count);
+            foreach (var entry in StyleDefaults)
             {
-                writer.Write(Id);
-                writer.Write(DefaultStyle);
+                writer.Write(entry.Key);
+                writer.Write(entry.Value);
+            }
 
-                writer.Write((uint)StyleDefaults.Count);
-                foreach (var entry in StyleDefaults)
-                {
-                    writer.Write(entry.Key);
-                    writer.Write(entry.Value);
-                }
+            PackMotions(writer, Cycles);
+            PackMotions(writer, Modifiers);
 
-                PackMotions(writer, Cycles);
-                PackMotions(writer, Modifiers);
-
-                writer.Write((uint)Links.Count);
-                foreach (var link in Links)
-                {
-                    writer.Write(link.Key);
-                    PackMotions(writer, link.Value);
-                }
-
-                writer.Flush();
-                return stream.ToArray();
+            writer.Write((uint)Links.Count);
+            foreach (var link in Links)
+            {
+                writer.Write(link.Key);
+                PackMotions(writer, link.Value);
             }
         }
 
         private static void PackMotions(BinaryWriter writer, Dictionary<uint, MotionData> motions)
         {
-            writer.Write((uint)motions.Count);
-            foreach (var motion in motions)
-            {
-                writer.Write(motion.Key);
-                motion.Value.Pack(writer);
-            }
+            motions.Pack(writer);
         }
 
         /// <summary>Replaces every animation id by map(id).</summary>

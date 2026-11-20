@@ -22,19 +22,12 @@ namespace ACE.DatLoader.FileTypes
             MaxMana.Unpack(reader);
         }
 
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(FILE_ID);
-                MaxHealth.Pack(writer);
-                MaxStamina.Pack(writer);
-                MaxMana.Pack(writer);
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            writer.Write(FILE_ID);
+            MaxHealth.Pack(writer);
+            MaxStamina.Pack(writer);
+            MaxMana.Pack(writer);
         }
     }
 }

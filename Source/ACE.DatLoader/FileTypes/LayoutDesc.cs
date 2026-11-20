@@ -29,7 +29,8 @@ namespace ACE.DatLoader.FileTypes
             Unpack(reader, BaseProperty.DefaultTypeLookup);
         }
 
-        /// <param name="typeLookup">Gives the property type of a property id (see <see cref="BaseProperty.DefaultTypeLookup"/>), for a caller that has no portal dat loaded in <see cref="DatManager"/>.</param>
+        /// <param name="typeLookup">Gives the property type of a property id (see <see cref="BaseProperty.DefaultTypeLookup"/>), for a caller that has no
+        /// portal dat loaded in <see cref="DatManager"/>.</param>
         public void Unpack(BinaryReader reader, Func<uint, BasePropertyType> typeLookup)
         {
             Id = reader.ReadUInt32();
@@ -49,26 +50,22 @@ namespace ACE.DatLoader.FileTypes
             }
         }
 
-        /// <summary>Writes the record as <see cref="Unpack(BinaryReader, Func{uint, BasePropertyType})"/> reads it, with the elements in the order of <see cref="Elements"/>.</summary>
-        public byte[] Pack()
+        /// <summary>
+        /// Writes the record as <see cref="Unpack(BinaryReader, Func{uint, BasePropertyType})"/> reads it, with the elements in the order of <see
+        /// cref="Elements"/>.
+        /// </summary>
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            writer.Write(Id);
+            writer.Write(DisplayWidth);
+            writer.Write(DisplayHeight);
+
+            writer.Write(ElementsBucketSize);
+            writer.Write((byte)Elements.Count);
+            foreach (var element in Elements)
             {
-                writer.Write(Id);
-                writer.Write(DisplayWidth);
-                writer.Write(DisplayHeight);
-
-                writer.Write(ElementsBucketSize);
-                writer.Write((byte)Elements.Count);
-                foreach (var element in Elements)
-                {
-                    writer.Write(element.Key);
-                    element.Value.Pack(writer);
-                }
-
-                writer.Flush();
-                return stream.ToArray();
+                writer.Write(element.Key);
+                element.Value.Pack(writer);
             }
         }
     }

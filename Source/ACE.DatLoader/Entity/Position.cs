@@ -5,7 +5,7 @@ namespace ACE.DatLoader.Entity
     /// <summary>
     /// Position consists of a CellID + a Frame (Origin + Orientation)
     /// </summary>
-    public class Position : IUnpackable
+    public class Position : IUnpackable, IPackable
     {
         public uint ObjCellID { get; private set; }
 

@@ -3,7 +3,7 @@ using ACE.Entity.Enum.Properties;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SkillFormula : IUnpackable
+    public class SkillFormula : IUnpackable, IPackable
     {
         public uint W;
         public uint X;

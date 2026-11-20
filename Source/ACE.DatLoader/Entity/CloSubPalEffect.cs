@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CloSubPalEffect : IUnpackable
+    public class CloSubPalEffect : IUnpackable, IPackable
     {
         /// <summary>
         /// Icon portal.dat 0x06000000
@@ -14,9 +14,7 @@ namespace ACE.DatLoader.Entity
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Icon);
-            writer.Write((uint)CloSubPalettes.Count);
-            foreach (var palette in CloSubPalettes)
-                palette.Pack(writer);
+            CloSubPalettes.Pack(writer);
         }
 
         public void Unpack(BinaryReader reader)

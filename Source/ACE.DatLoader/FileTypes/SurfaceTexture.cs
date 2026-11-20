@@ -32,22 +32,12 @@ namespace ACE.DatLoader.FileTypes
             return result;
         }
 
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write(Unknown);
-                writer.Write(UnknownByte);
-                writer.Write(Textures.Count);
-
-                foreach (var texture in Textures)
-                    writer.Write(texture);
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            writer.Write(Id);
+            writer.Write(Unknown);
+            writer.Write(UnknownByte);
+            Textures.Pack(writer);
         }
 
         /// <summary>Replaces every referenced texture id by map(id).</summary>

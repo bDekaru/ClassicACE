@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SoundData : IUnpackable
+    public class SoundData : IUnpackable, IPackable
     {
 
         public List<SoundTableData> Data = new List<SoundTableData>();
@@ -13,9 +13,7 @@ namespace ACE.DatLoader.Entity
 
         public void Pack(BinaryWriter writer)
         {
-            writer.Write((uint)Data.Count);
-            foreach (var item in Data)
-                item.Pack(writer);
+            Data.Pack(writer);
 
             writer.Write(Unknown);
         }

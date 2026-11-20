@@ -6,7 +6,7 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SpellBase : IUnpackable
+    public class SpellBase : IUnpackable, IPackable
     {
         public string Name { get; set; }
         public string Desc { get; set; }

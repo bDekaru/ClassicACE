@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace ACE.DatLoader.Entity
 {
-    public class BaseProperty : IUnpackable
+    public class BaseProperty : IUnpackable, IPackable
     {
         // If this is in a collection/hashtable, this will actually match the key in that table.
         // The enum value of this can be looked up in MasterProperty
@@ -153,9 +153,7 @@ namespace ACE.DatLoader.Entity
                     writer.Write(ValueColor);
                     break;
                 case BasePropertyType.Array:
-                    writer.Write((uint)ValueArray.Count);
-                    foreach (var element in ValueArray)
-                        element.Pack(writer);
+                    ValueArray.Pack(writer);
                     break;
                 case BasePropertyType.Integer:
                     writer.Write(ValueInt);
@@ -172,9 +170,7 @@ namespace ACE.DatLoader.Entity
                 case BasePropertyType.String:
                     break;
                 case BasePropertyType.Vector:
-                    writer.Write(ValueVector.X);
-                    writer.Write(ValueVector.Y);
-                    writer.Write(ValueVector.Z);
+                    writer.WriteVector3(ValueVector);
                     break;
                 case BasePropertyType.Bitfield32:
                     writer.Write(ValueBitfield32);

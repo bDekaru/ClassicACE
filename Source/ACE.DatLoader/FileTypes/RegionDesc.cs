@@ -56,39 +56,32 @@ namespace ACE.DatLoader.FileTypes
                 RegionMisc.Unpack(reader);
         }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write(RegionNumber);
-                writer.Write(Version);
-                writer.WritePString(RegionName);
-                writer.AlignBoundary();
+            writer.Write(Id);
+            writer.Write(RegionNumber);
+            writer.Write(Version);
+            writer.WritePString(RegionName);
+            writer.AlignBoundary();
 
-                LandDefs.Pack(writer);
-                GameTime.Pack(writer);
+            LandDefs.Pack(writer);
+            GameTime.Pack(writer);
 
-                writer.Write(PartsMask);
+            writer.Write(PartsMask);
 
-                if ((PartsMask & 0x10) != 0)
-                    SkyInfo.Pack(writer);
+            if ((PartsMask & 0x10) != 0)
+                SkyInfo.Pack(writer);
 
-                if ((PartsMask & 0x01) != 0)
-                    SoundInfo.Pack(writer);
+            if ((PartsMask & 0x01) != 0)
+                SoundInfo.Pack(writer);
 
-                if ((PartsMask & 0x02) != 0)
-                    SceneInfo.Pack(writer);
+            if ((PartsMask & 0x02) != 0)
+                SceneInfo.Pack(writer);
 
-                TerrainInfo.Pack(writer);
+            TerrainInfo.Pack(writer);
 
-                if ((PartsMask & 0x0200) != 0)
-                    RegionMisc.Pack(writer);
-
-                return stream.ToArray();
-            }
+            if ((PartsMask & 0x0200) != 0)
+                RegionMisc.Pack(writer);
         }
     }
 }

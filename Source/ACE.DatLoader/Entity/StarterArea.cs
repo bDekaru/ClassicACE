@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class StarterArea : IUnpackable
+    public class StarterArea : IUnpackable, IPackable
     {
         public string Name { get; set; }
         public List<Position> Locations { get; } = new List<Position>();
@@ -18,7 +18,7 @@ namespace ACE.DatLoader.Entity
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Name);
-            writer.WriteSmartArray(Locations, (location, w) => location.Pack(w));
+            Locations.PackSmartArray(writer);
         }
     }
 }

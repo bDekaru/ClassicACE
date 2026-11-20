@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CloSubPaletteRange : IUnpackable
+    public class CloSubPaletteRange : IUnpackable, IPackable
     {
         public uint Offset { get; set; }
         public uint NumColors { get; set; }

@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class AnimationPartChange : IUnpackable
+    public class AnimationPartChange : IUnpackable, IPackable
     {
         public byte PartIndex { get; set; }
 

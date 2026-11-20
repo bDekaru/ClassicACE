@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SkyDesc : IUnpackable
+    public class SkyDesc : IUnpackable, IPackable
     {
         public double TickSize { get; private set; }
         public double LightTickSize { get; private set; }
@@ -19,17 +19,13 @@ namespace ACE.DatLoader.Entity
             DayGroups.Unpack(reader);
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(TickSize);
             writer.Write(LightTickSize);
             writer.AlignBoundary();
 
-            writer.Write((uint)DayGroups.Count);
-
-            foreach (var item in DayGroups)
-                item.Pack(writer);
+            DayGroups.Pack(writer);
         }
     }
 }

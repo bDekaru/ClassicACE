@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SkyTimeOfDay : IUnpackable
+    public class SkyTimeOfDay : IUnpackable, IPackable
     {
         public float Begin { get; private set; }
 
@@ -44,7 +44,6 @@ namespace ACE.DatLoader.Entity
             SkyObjReplace.Unpack(reader);
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Begin);
@@ -60,10 +59,7 @@ namespace ACE.DatLoader.Entity
             writer.Write(WorldFog);
             writer.AlignBoundary();
 
-            writer.Write((uint)SkyObjReplace.Count);
-
-            foreach (var item in SkyObjReplace)
-                item.Pack(writer);
+            SkyObjReplace.Pack(writer);
         }
     }
 }

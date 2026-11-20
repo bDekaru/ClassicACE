@@ -45,63 +45,47 @@ namespace ACE.DatLoader.FileTypes
         public float TransRand { get; set; }
         public int IsParentLocal { get; set; }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write(Unknown);
-                writer.Write((int)EmitterType);
-                writer.Write((int)ParticleType);
-                writer.Write(GfxObjId);
-                writer.Write(HwGfxObjId);
-                writer.Write(Birthrate);
-                writer.Write(MaxParticles);
-                writer.Write(InitialParticles);
-                writer.Write(TotalParticles);
-                writer.Write(TotalSeconds);
-                writer.Write(Lifespan);
-                writer.Write(LifespanRand);
-                writer.Write(OffsetDir.X);
-                writer.Write(OffsetDir.Y);
-                writer.Write(OffsetDir.Z);
-                writer.Write(MinOffset);
-                writer.Write(MaxOffset);
-                writer.Write(A.X);
-                writer.Write(A.Y);
-                writer.Write(A.Z);
-                writer.Write(MinA);
-                writer.Write(MaxA);
-                writer.Write(B.X);
-                writer.Write(B.Y);
-                writer.Write(B.Z);
-                writer.Write(MinB);
-                writer.Write(MaxB);
-                writer.Write(C.X);
-                writer.Write(C.Y);
-                writer.Write(C.Z);
-                writer.Write(MinC);
-                writer.Write(MaxC);
-                writer.Write(StartScale);
-                writer.Write(FinalScale);
-                writer.Write(ScaleRand);
-                writer.Write(StartTrans);
-                writer.Write(FinalTrans);
-                writer.Write(TransRand);
-                writer.Write(IsParentLocal);
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            writer.Write(Id);
+            writer.Write(Unknown);
+            writer.Write((int)EmitterType);
+            writer.Write((int)ParticleType);
+            writer.Write(GfxObjId);
+            writer.Write(HwGfxObjId);
+            writer.Write(Birthrate);
+            writer.Write(MaxParticles);
+            writer.Write(InitialParticles);
+            writer.Write(TotalParticles);
+            writer.Write(TotalSeconds);
+            writer.Write(Lifespan);
+            writer.Write(LifespanRand);
+            writer.WriteVector3(OffsetDir);
+            writer.Write(MinOffset);
+            writer.Write(MaxOffset);
+            writer.WriteVector3(A);
+            writer.Write(MinA);
+            writer.Write(MaxA);
+            writer.WriteVector3(B);
+            writer.Write(MinB);
+            writer.Write(MaxB);
+            writer.WriteVector3(C);
+            writer.Write(MinC);
+            writer.Write(MaxC);
+            writer.Write(StartScale);
+            writer.Write(FinalScale);
+            writer.Write(ScaleRand);
+            writer.Write(StartTrans);
+            writer.Write(FinalTrans);
+            writer.Write(TransRand);
+            writer.Write(IsParentLocal);
         }
 
         /// <summary>Replaces the GfxObj ids by map(id) (an id that is not set stays 0).</summary>
         public void Remap(Func<uint, uint> map)
         {
-            GfxObjId = GfxObjId != 0 ? map(GfxObjId) : 0;
-            HwGfxObjId = HwGfxObjId != 0 ? map(HwGfxObjId) : 0;
+            GfxObjId = map.RemapIfSet(GfxObjId);
+            HwGfxObjId = map.RemapIfSet(HwGfxObjId);
         }
 
         public override void Unpack(BinaryReader reader)

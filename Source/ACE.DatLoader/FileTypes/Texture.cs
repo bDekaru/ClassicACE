@@ -56,7 +56,8 @@ namespace ACE.DatLoader.FileTypes
         public const int ToDHeaderValue = 6;
 
         /// <summary>
-        /// Reads a pre-ToD (2005) image record of 24-bit pixels: id, width, height and the pixels in red, green, blue order. The result is a ToD image of the given format, whose pixels are stored blue, green, red (with an opaque alpha byte after them for A8R8G8B8).
+        /// Reads a pre-ToD (2005) image record of 24-bit pixels: id, width, height and the pixels in red, green, blue order. The result is a ToD image of
+        /// the given format, whose pixels are stored blue, green, red (with an opaque alpha byte after them for A8R8G8B8).
         /// </summary>
         /// <exception cref="InvalidDataException">The record is not of that layout.</exception>
         /// <exception cref="NotSupportedException">The format is neither R8G8B8 nor A8R8G8B8.</exception>
@@ -115,31 +116,23 @@ namespace ACE.DatLoader.FileTypes
             };
         }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
         /// <exception cref="InvalidDataException">The pixel format needs a palette id and none is set.</exception>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            writer.Write(Id);
+            writer.Write(Unknown);
+            writer.Write(Width);
+            writer.Write(Height);
+            writer.Write((uint)Format);
+            writer.Write(SourceData.Length);
+            writer.Write(SourceData);
+
+            if (Format == SurfacePixelFormat.PFID_INDEX16 || Format == SurfacePixelFormat.PFID_P8)
             {
-                writer.Write(Id);
-                writer.Write(Unknown);
-                writer.Write(Width);
-                writer.Write(Height);
-                writer.Write((uint)Format);
-                writer.Write(SourceData.Length);
-                writer.Write(SourceData);
+                if (DefaultPaletteId == null)
+                    throw new InvalidDataException($"Texture {Id:X8}: format {Format} needs a default palette id.");
 
-                if (Format == SurfacePixelFormat.PFID_INDEX16 || Format == SurfacePixelFormat.PFID_P8)
-                {
-                    if (DefaultPaletteId == null)
-                        throw new InvalidDataException($"Texture {Id:X8}: format {Format} needs a default palette id.");
-
-                    writer.Write(DefaultPaletteId.Value);
-                }
-
-                writer.Flush();
-                return stream.ToArray();
+                writer.Write(DefaultPaletteId.Value);
             }
         }
 

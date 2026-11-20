@@ -6,7 +6,7 @@ using ACE.Entity.Enum;
 
 namespace ACE.DatLoader.Entity
 {
-    public class MotionData : IUnpackable
+    public class MotionData : IUnpackable, IPackable
     {
         public byte Bitfield { get; private set; }
         public MotionDataFlags Flags { get; private set; }
@@ -26,16 +26,12 @@ namespace ACE.DatLoader.Entity
 
             if ((Flags & MotionDataFlags.HasVelocity) != 0)
             {
-                writer.Write(Velocity.X);
-                writer.Write(Velocity.Y);
-                writer.Write(Velocity.Z);
+                writer.WriteVector3(Velocity);
             }
 
             if ((Flags & MotionDataFlags.HasOmega) != 0)
             {
-                writer.Write(Omega.X);
-                writer.Write(Omega.Y);
-                writer.Write(Omega.Z);
+                writer.WriteVector3(Omega);
             }
         }
 

@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class LightInfo : IUnpackable
+    public class LightInfo : IUnpackable, IPackable
     {
         public Frame ViewerSpaceLocation { get; } = new Frame();
         public uint Color { get; private set; } // _RGB Color. Red is bytes 3-4, Green is bytes 5-6, Blue is bytes 7-8. Bytes 1-2 are always FF (?)

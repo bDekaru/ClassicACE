@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class GameTime : IUnpackable
+    public class GameTime : IUnpackable, IPackable
     {
         public double ZeroTimeOfYear { get; private set; }
         public uint ZeroYear { get; private set; } // Year "0" is really "P.Y. 10" in the calendar.
@@ -36,7 +36,6 @@ namespace ACE.DatLoader.Entity
             Seasons.Unpack(reader);
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(ZeroTimeOfYear);
@@ -46,10 +45,7 @@ namespace ACE.DatLoader.Entity
             writer.WritePString(YearSpec);
             writer.AlignBoundary();
 
-            writer.Write((uint)TimesOfDay.Count);
-
-            foreach (var item in TimesOfDay)
-                item.Pack(writer);
+            TimesOfDay.Pack(writer);
 
             writer.Write((uint)DaysOfTheWeek.Count);
 
@@ -59,10 +55,7 @@ namespace ACE.DatLoader.Entity
                 writer.AlignBoundary();
             }
 
-            writer.Write((uint)Seasons.Count);
-
-            foreach (var item in Seasons)
-                item.Pack(writer);
+            Seasons.Pack(writer);
         }
     }
 }

@@ -6,7 +6,7 @@ using System.Linq;
 namespace ACE.DatLoader.Entity
 {
 
-    public class SpellSet : IUnpackable
+    public class SpellSet : IUnpackable, IPackable
     {
         // uint key is the total combined item level of all the equipped pieces in the set
         // client calls this m_PieceCount
@@ -21,12 +21,7 @@ namespace ACE.DatLoader.Entity
 
         public void Unpack(BinaryReader reader)
         {
-            var start = reader.BaseStream.Position;
-            reader.ReadUInt16();
-            BucketSize = reader.ReadUInt16();
-            reader.BaseStream.Position = start;
-
-            SpellSetTiers.UnpackPackedHashTable(reader);
+            BucketSize = SpellSetTiers.UnpackPackedHashTable(reader);
 
             HighestTier = SpellSetTiers.Keys.LastOrDefault();
 

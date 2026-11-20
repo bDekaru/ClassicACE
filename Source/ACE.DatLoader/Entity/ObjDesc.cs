@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class ObjDesc : IUnpackable
+    public class ObjDesc : IUnpackable, IPackable
     {
         /// <summary>The leading byte of the record, kept so a rewritten ObjDesc equals the original.</summary>
         public byte Marker { get; private set; } = 0x11;

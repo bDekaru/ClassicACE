@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class Season : IUnpackable
+    public class Season : IUnpackable, IPackable
     {
         public uint StartDate { get; private set; }
         public string Name { get; private set; }
@@ -14,7 +14,6 @@ namespace ACE.DatLoader.Entity
             reader.AlignBoundary();
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(StartDate);

@@ -9,11 +9,9 @@ namespace ACE.DatLoader.Entity.AnimationHooks
 
         public override void Pack(BinaryWriter writer)
         {
-            writer.Write((uint)HookType);
-            writer.Write((int)Direction);
-            writer.Write(Axis.X);
-            writer.Write(Axis.Y);
-            writer.Write(Axis.Z);
+            base.Pack(writer);
+
+            writer.WriteVector3(Axis);
         }
 
         public override void Unpack(BinaryReader reader)

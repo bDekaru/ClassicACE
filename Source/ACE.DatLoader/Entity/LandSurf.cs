@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class LandSurf : IUnpackable
+    public class LandSurf : IUnpackable, IPackable
     {
         public uint Type { get; private set; }
         //public PalShift PalShift { get; } = new PalShift(); // This is used if Type == 1 (which we haven't seen yet)
@@ -18,7 +18,6 @@ namespace ACE.DatLoader.Entity
             TexMerge.Unpack(reader);
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Type);

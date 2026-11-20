@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class LandDefs : IUnpackable
+    public class LandDefs : IUnpackable, IPackable
     {
         public int NumBlockLength { get; private set; }
         public int NumBlockWidth { get; private set; }
@@ -31,7 +31,6 @@ namespace ACE.DatLoader.Entity
                 LandHeightTable.Add(reader.ReadSingle());
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(NumBlockLength);

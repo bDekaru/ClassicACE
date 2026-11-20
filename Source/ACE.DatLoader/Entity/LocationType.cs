@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class LocationType : IUnpackable
+    public class LocationType : IUnpackable, IPackable
     {
         public int PartId { get; private set; }
         public Frame Frame { get; } = new Frame();

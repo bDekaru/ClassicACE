@@ -28,22 +28,15 @@ namespace ACE.DatLoader.FileTypes
         }
 
         /// <summary>Writes the record with the entries in the order of <see cref="StringTableData"/>.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write(Language);
-                writer.Write(Unknown);
-                writer.WriteCompressedUInt32((uint)StringTableData.Count);
+            writer.Write(Id);
+            writer.Write(Language);
+            writer.Write(Unknown);
+            writer.WriteCompressedUInt32((uint)StringTableData.Count);
 
-                foreach (var entry in StringTableData)
-                    entry.Pack(writer);
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            foreach (var entry in StringTableData)
+                entry.Pack(writer);
         }
     }
 }

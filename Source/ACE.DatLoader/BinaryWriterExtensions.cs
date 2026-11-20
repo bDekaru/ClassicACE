@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 
 namespace ACE.DatLoader
 {
     static class BinaryWriterExtensions
     {
         /// <summary>
-        /// Pads the stream with zeros up to the next DWORD boundary (the counterpart of the reader's AlignBoundary).
+        /// Pads the stream with zeros up to the next DWORD boundary.
         /// </summary>
         public static void AlignBoundary(this BinaryWriter writer)
         {
@@ -18,7 +19,7 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Writes a compressed UInt32 in its shortest form: 1 byte below 0x80, 2 bytes below 0x4000, else 4 bytes (the counterpart of the reader's ReadCompressedUInt32).
+        /// Writes a compressed UInt32 in its shortest form: 1 byte below 0x80, 2 bytes below 0x4000, else 4 bytes.
         /// </summary>
         public static void WriteCompressedUInt32(this BinaryWriter writer, uint value)
         {
@@ -38,7 +39,7 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Writes a string behind a compressed length, two bytes per character (the counterpart of the reader's ReadUnicodeString).
+        /// Writes a string behind a compressed length, two bytes per character.
         /// </summary>
         public static void WriteUnicodeString(this BinaryWriter writer, string value)
         {
@@ -51,29 +52,22 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Writes a string behind a UInt16 length (the counterpart of the reader's ReadPString).
+        /// Writes a string behind a one- or two-byte length. Encoding.Default is used like ReadPString does, so that the bytes written are the bytes read.
         /// </summary>
-        public static void WritePString(this BinaryWriter writer, string value)
+        public static void WritePString(this BinaryWriter writer, string value, uint sizeOfLength = 2)
         {
             var bytes = System.Text.Encoding.Default.GetBytes(value ?? "");
 
-            writer.Write((ushort)bytes.Length);
+            if (sizeOfLength == 1)
+                writer.Write((byte)bytes.Length);
+            else
+                writer.Write((ushort)bytes.Length);
+
             writer.Write(bytes);
         }
 
         /// <summary>
-        /// Writes a string behind a one-byte length (the counterpart of ReadPString with a length size of 1).
-        /// </summary>
-        public static void WritePString1(this BinaryWriter writer, string value)
-        {
-            var bytes = System.Text.Encoding.Default.GetBytes(value ?? "");
-
-            writer.Write((byte)bytes.Length);
-            writer.Write(bytes);
-        }
-
-        /// <summary>
-        /// Writes a string behind a UInt16 length with the nibbles of every byte swapped (the counterpart of the reader's ReadObfuscatedString).
+        /// Writes a string behind a UInt16 length with the nibbles of every byte swapped.
         /// </summary>
         public static void WriteObfuscatedString(this BinaryWriter writer, string value)
         {
@@ -89,7 +83,7 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Writes a data id relative to its known type: 2 bytes below 0x4000, else 4 bytes with 0x8000 set in the first (the counterpart of the reader's ReadAsDataIDOfKnownType).
+        /// Writes a data id relative to its known type: 2 bytes below 0x4000, else 4 bytes with 0x8000 set in the first.
         /// </summary>
         public static void WriteAsDataIDOfKnownType(this BinaryWriter writer, uint knownType, uint value)
         {
@@ -105,51 +99,13 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Writes a PackedHashTable in the order of the dictionary (the counterpart of UnpackPackedHashTable).
+        /// Writes three floats, x y z.
         /// </summary>
-        public static void WritePackedHashTable<T>(this BinaryWriter writer, Dictionary<uint, T> values, ushort bucketSize, Action<T, BinaryWriter> pack)
+        public static void WriteVector3(this BinaryWriter writer, Vector3 value)
         {
-            writer.Write((ushort)values.Count);
-            writer.Write(bucketSize);
-
-            foreach (var value in values)
-            {
-                writer.Write(value.Key);
-                pack(value.Value, writer);
-            }
-        }
-
-        /// <summary>
-        /// Writes a SmartArray of UInt32 behind a compressed length (the counterpart of UnpackSmartArray).
-        /// </summary>
-        public static void WriteSmartArray(this BinaryWriter writer, List<uint> values)
-        {
-            writer.WriteCompressedUInt32((uint)values.Count);
-
-            foreach (var value in values)
-                writer.Write(value);
-        }
-
-        /// <summary>
-        /// Writes a SmartArray of Int32 behind a compressed length (the counterpart of UnpackSmartArray).
-        /// </summary>
-        public static void WriteSmartArray(this BinaryWriter writer, List<int> values)
-        {
-            writer.WriteCompressedUInt32((uint)values.Count);
-
-            foreach (var value in values)
-                writer.Write(value);
-        }
-
-        /// <summary>
-        /// Writes a SmartArray of objects behind a compressed length (the counterpart of UnpackSmartArray).
-        /// </summary>
-        public static void WriteSmartArray<T>(this BinaryWriter writer, List<T> values, Action<T, BinaryWriter> pack)
-        {
-            writer.WriteCompressedUInt32((uint)values.Count);
-
-            foreach (var value in values)
-                pack(value, writer);
+            writer.Write(value.X);
+            writer.Write(value.Y);
+            writer.Write(value.Z);
         }
     }
 }

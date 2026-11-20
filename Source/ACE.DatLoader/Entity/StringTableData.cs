@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace ACE.DatLoader.Entity
 {
-    public class StringTableData : IUnpackable
+    public class StringTableData : IUnpackable, IPackable
     {
         public uint Id { get; set; }
         public List<string> VarNames { get; } = new List<string>();
@@ -53,9 +53,7 @@ namespace ACE.DatLoader.Entity
             foreach (var text in Strings)
                 writer.WriteUnicodeString(text);
 
-            writer.Write((uint)Comments.Count);
-            foreach (var comment in Comments)
-                writer.Write(comment);
+            Comments.Pack(writer);
 
             writer.Write(Unknown);
         }

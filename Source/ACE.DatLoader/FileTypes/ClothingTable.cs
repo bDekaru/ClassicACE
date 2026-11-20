@@ -39,19 +39,11 @@ namespace ACE.DatLoader.FileTypes
             SubPalEffectsBucketSize = ClothingSubPalEffects.UnpackPackedHashTable(reader);
         }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.WritePackedHashTable(ClothingBaseEffects, BaseEffectsBucketSize, (item, w) => item.Pack(w));
-                writer.WritePackedHashTable(ClothingSubPalEffects, SubPalEffectsBucketSize, (item, w) => item.Pack(w));
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            writer.Write(Id);
+            ClothingBaseEffects.PackPackedHashTable(writer, BaseEffectsBucketSize);
+            ClothingSubPalEffects.PackPackedHashTable(writer, SubPalEffectsBucketSize);
         }
 
         /// <summary>
@@ -60,10 +52,8 @@ namespace ACE.DatLoader.FileTypes
         /// </summary>
         public void Remap(Func<uint, uint> map, uint paletteRepeat = 1)
         {
-            var baseEffects = new Dictionary<uint, ClothingBaseEffect>();
-            foreach (var entry in ClothingBaseEffects)
-            {
-                foreach (var effect in entry.Value.CloObjectEffects)
+            foreach (var baseEffect in ClothingBaseEffects.Values)
+                foreach (var effect in baseEffect.CloObjectEffects)
                 {
                     effect.ModelId = map(effect.ModelId);
 
@@ -74,16 +64,15 @@ namespace ACE.DatLoader.FileTypes
                     }
                 }
 
-                baseEffects.Add(map(entry.Key), entry.Value);
-            }
-
+            // The keys are rewritten in the same order; two setups mapping to one id make Add throw.
+            var entries = new List<KeyValuePair<uint, ClothingBaseEffect>>(ClothingBaseEffects);
             ClothingBaseEffects.Clear();
-            foreach (var entry in baseEffects)
-                ClothingBaseEffects.Add(entry.Key, entry.Value);
+            foreach (var entry in entries)
+                ClothingBaseEffects.Add(map(entry.Key), entry.Value);
 
             foreach (var effect in ClothingSubPalEffects.Values)
             {
-                effect.Icon = effect.Icon != 0 ? map(effect.Icon) : 0;
+                effect.Icon = map.RemapIfSet(effect.Icon);
 
                 foreach (var palette in effect.CloSubPalettes)
                 {

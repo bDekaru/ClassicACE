@@ -6,7 +6,7 @@ namespace ACE.DatLoader.Entity
     /// <summary>
     /// Frame consists of a Vector3 Origin and a Quaternion Orientation
     /// </summary>
-    public class Frame : IUnpackable
+    public class Frame : IUnpackable, IPackable
     {
         public Vector3 Origin { get; private set; }
         public Quaternion Orientation { get; private set; }
@@ -47,9 +47,7 @@ namespace ACE.DatLoader.Entity
 
         public void Pack(BinaryWriter writer)
         {
-            writer.Write(Origin.X);
-            writer.Write(Origin.Y);
-            writer.Write(Origin.Z);
+            writer.WriteVector3(Origin);
             writer.Write(Orientation.W);
             writer.Write(Orientation.X);
             writer.Write(Orientation.Y);

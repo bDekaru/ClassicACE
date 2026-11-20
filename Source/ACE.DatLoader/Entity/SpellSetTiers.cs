@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.FileTypes
 {
-    public class SpellSetTiers : IUnpackable
+    public class SpellSetTiers : IUnpackable, IPackable
     {
         /// <summary>
         /// A list of spell ids that are active in the spell set tier
@@ -17,10 +17,7 @@ namespace ACE.DatLoader.FileTypes
 
         public void Pack(BinaryWriter writer)
         {
-            writer.Write(Spells.Count);
-
-            foreach (var spell in Spells)
-                writer.Write(spell);
+            Spells.Pack(writer);
         }
     }
 }

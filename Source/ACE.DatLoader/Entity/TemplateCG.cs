@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class TemplateCG : IUnpackable
+    public class TemplateCG : IUnpackable, IPackable
     {
         public string Name { get; set; }
         public uint IconImage { get; set; }
@@ -46,8 +46,8 @@ namespace ACE.DatLoader.Entity
             writer.Write(Focus);
             writer.Write(Self);
 
-            writer.WriteSmartArray(NormalSkillsList);
-            writer.WriteSmartArray(PrimarySkillsList);
+            NormalSkillsList.PackSmartArray(writer);
+            PrimarySkillsList.PackSmartArray(writer);
         }
     }
 }

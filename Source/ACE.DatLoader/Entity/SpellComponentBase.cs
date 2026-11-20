@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SpellComponentBase : IUnpackable
+    public class SpellComponentBase : IUnpackable, IPackable
     {
         public string Name { get; set; }
         public uint Category { get; set; }

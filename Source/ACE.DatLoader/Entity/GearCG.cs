@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class GearCG : IUnpackable
+    public class GearCG : IUnpackable, IPackable
     {
         public string Name { get; private set; }
         public uint ClothingTable { get; private set; }

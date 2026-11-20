@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CloObjectEffect : IUnpackable
+    public class CloObjectEffect : IUnpackable, IPackable
     {
         public uint Index { get; private set; }
         public uint ModelId { get; set; }
@@ -13,9 +13,7 @@ namespace ACE.DatLoader.Entity
         {
             writer.Write(Index);
             writer.Write(ModelId);
-            writer.Write((uint)CloTextureEffects.Count);
-            foreach (var effect in CloTextureEffects)
-                effect.Pack(writer);
+            CloTextureEffects.Pack(writer);
         }
 
         public void Unpack(BinaryReader reader)

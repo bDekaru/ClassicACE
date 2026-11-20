@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class RoadAlphaMap : IUnpackable
+    public class RoadAlphaMap : IUnpackable, IPackable
     {
         public uint RCode { get; private set; }
         public uint RoadTexGID { get; private set; }
@@ -13,7 +13,6 @@ namespace ACE.DatLoader.Entity
             RoadTexGID  = reader.ReadUInt32();
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(RCode);

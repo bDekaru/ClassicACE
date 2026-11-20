@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class HairStyleCG : IUnpackable
+    public class HairStyleCG : IUnpackable, IPackable
     {
         public uint IconImage { get; private set; }
         public bool Bald { get; private set; }

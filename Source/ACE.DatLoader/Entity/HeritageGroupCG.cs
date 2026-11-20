@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class HeritageGroupCG : IUnpackable
+    public class HeritageGroupCG : IUnpackable, IPackable
     {
         public string Name { get; private set; }
         public uint IconImage { get; private set; }
@@ -46,10 +46,10 @@ namespace ACE.DatLoader.Entity
             writer.Write(AttributeCredits);
             writer.Write(SkillCredits);
 
-            writer.WriteSmartArray(PrimaryStartAreas);
-            writer.WriteSmartArray(SecondaryStartAreas);
-            writer.WriteSmartArray(Skills, (item, w) => item.Pack(w));
-            writer.WriteSmartArray(Templates, (item, w) => item.Pack(w));
+            PrimaryStartAreas.PackSmartArray(writer);
+            SecondaryStartAreas.PackSmartArray(writer);
+            Skills.PackSmartArray(writer);
+            Templates.PackSmartArray(writer);
 
             writer.Write(GendersMarker);
 

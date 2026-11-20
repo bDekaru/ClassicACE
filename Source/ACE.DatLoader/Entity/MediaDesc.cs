@@ -6,7 +6,7 @@ using System.Text;
 
 namespace ACE.DatLoader.Entity
 {
-    public class MediaDesc : IUnpackable
+    public class MediaDesc : IUnpackable, IPackable
     {
         public MediaType Type { get; set; }
 
@@ -106,7 +106,7 @@ namespace ACE.DatLoader.Entity
             switch (Type)
             {
                 case MediaType.Movie:
-                    writer.WritePString1(FileName);
+                    writer.WritePString(FileName, 1);
                     writer.Write(StretchToFullScreen);
                     break;
                 case MediaType.Alpha:
@@ -115,9 +115,7 @@ namespace ACE.DatLoader.Entity
                 case MediaType.Animation:
                     writer.Write(Duration);
                     writer.Write(DrawMode);
-                    writer.Write((uint)Frames.Count);
-                    foreach (var frame in Frames)
-                        writer.Write(frame);
+                    Frames.Pack(writer);
                     break;
                 case MediaType.Cursor:
                     writer.Write(File);

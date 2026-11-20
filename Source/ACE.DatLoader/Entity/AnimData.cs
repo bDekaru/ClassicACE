@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class AnimData : IUnpackable
+    public class AnimData : IUnpackable, IPackable
     {
         public uint AnimId { get; private set; }
         public int LowFrame { get; private set; }

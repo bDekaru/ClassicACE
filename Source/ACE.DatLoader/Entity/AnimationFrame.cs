@@ -4,7 +4,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class AnimationFrame : IUnpackable
+    public class AnimationFrame : IUnpackable, IPackable
     {
         public List<Frame> Frames { get; } = new List<Frame>();
         public List<AnimationHook> Hooks { get; } = new List<AnimationHook>();
@@ -24,9 +24,7 @@ namespace ACE.DatLoader.Entity
             foreach (var frame in Frames)
                 frame.Pack(writer);
 
-            writer.Write((uint)Hooks.Count);
-            foreach (var hook in Hooks)
-                hook.Pack(writer);
+            Hooks.Pack(writer);
         }
 
         public void Unpack(BinaryReader reader, uint numParts)

@@ -35,7 +35,10 @@ namespace ACE.DatLoader
 
         private const uint PreR8G8B8Format = 10;
 
-        /// <summary>The pixels of a pre-ToD plain-pixel image in the ToD layout. The 24-bit image (format 10) is stored as three separate planes (red, green, blue: the client's "color separated image"), ToD stores B, G, R per pixel.</summary>
+        /// <summary>
+        /// The pixels of a pre-ToD plain-pixel image in the ToD layout. The 24-bit image (format 10) is stored as three separate planes (red, green,
+        /// blue: the client's "color separated image"), ToD stores B, G, R per pixel.
+        /// </summary>
         private static byte[] DirectPixels(byte[] texture, uint format, int pixels, int length)
         {
             var result = new byte[length];
@@ -253,7 +256,10 @@ namespace ACE.DatLoader
             return surfaceTextureId;
         }
 
-        /// <summary>Converts a pre-ToD image record (0x05) into the ToD image record (0x06) with the given id; an indexed image reads its palette through <paramref name="readRecord"/>.</summary>
+        /// <summary>
+        /// Converts a pre-ToD image record (0x05) into the ToD image record (0x06) with the given id; an indexed image reads its palette through
+        /// <paramref name="readRecord"/>.
+        /// </summary>
         /// <exception cref="InvalidDataException">The record is shorter than its header says or a palette index is outside its palette.</exception>
         /// <exception cref="NotSupportedException">The pre-ToD image format has no conversion.</exception>
         public static byte[] ConvertImage(byte[] texture, uint imageId, Func<uint, byte[]> readRecord, out int width, out int height, out string detail)
@@ -312,8 +318,10 @@ namespace ACE.DatLoader
         public const int PaletteRepeat = 8;
 
         /// <summary>
-        /// Converts a pre-ToD image record (0x05) into a ToD image record (0x06) that keeps the pixel format of the pre-ToD image: an indexed image becomes a PFID_INDEX16 image of the same palette
-        /// (every index multiplied by <see cref="PaletteRepeat"/>, to be read against <see cref="Palette.Repeated"/> of that palette, whose id <paramref name="paletteId"/> gives for the pre-ToD palette id; the same id when null), the plain pixel formats keep their pixels. The header value is 0.
+        /// Converts a pre-ToD image record (0x05) into a ToD image record (0x06) that keeps the pixel format of the pre-ToD image: an indexed image
+        /// becomes a PFID_INDEX16 image of the same palette
+        /// (every index multiplied by <see cref="PaletteRepeat"/>, to be read against <see cref="Palette.Repeated"/> of that palette, whose id <paramref
+        /// name="paletteId"/> gives for the pre-ToD palette id; the same id when null), the plain pixel formats keep their pixels. The header value is 0.
         /// </summary>
         /// <exception cref="InvalidDataException">The record is shorter than its header says.</exception>
         /// <exception cref="NotSupportedException">The pre-ToD image format has no conversion.</exception>

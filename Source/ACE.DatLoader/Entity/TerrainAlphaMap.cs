@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class TerrainAlphaMap : IUnpackable
+    public class TerrainAlphaMap : IUnpackable, IPackable
     {
         public uint TCode { get; private set; }
         public uint TexGID { get; private set; }
@@ -13,7 +13,6 @@ namespace ACE.DatLoader.Entity
             TexGID  = reader.ReadUInt32();
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(TCode);

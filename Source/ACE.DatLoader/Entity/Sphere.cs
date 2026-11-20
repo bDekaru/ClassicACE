@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace ACE.DatLoader.Entity
 {
-    public class Sphere : IUnpackable
+    public class Sphere : IUnpackable, IPackable
     {
         public Vector3 Origin { get; private set; }
         public float Radius { get; private set; }
@@ -16,9 +16,7 @@ namespace ACE.DatLoader.Entity
 
         public void Pack(BinaryWriter writer)
         {
-            writer.Write(Origin.X);
-            writer.Write(Origin.Y);
-            writer.Write(Origin.Z);
+            writer.WriteVector3(Origin);
             writer.Write(Radius);
         }
 

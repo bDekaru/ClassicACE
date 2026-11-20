@@ -45,33 +45,26 @@ namespace ACE.DatLoader.FileTypes
         }
 
         /// <summary>Writes the record in the order of <see cref="Spells"/> and <see cref="SpellSet"/>.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            writer.Write(FILE_ID);
+
+            writer.Write((ushort)Spells.Count);
+            writer.Write(SpellBucketSize);
+
+            foreach (var spell in Spells)
             {
-                writer.Write(FILE_ID);
+                writer.Write(spell.Key);
+                spell.Value.Pack(writer);
+            }
 
-                writer.Write((ushort)Spells.Count);
-                writer.Write(SpellBucketSize);
+            writer.Write((ushort)SpellSet.Count);
+            writer.Write(SetBucketSize);
 
-                foreach (var spell in Spells)
-                {
-                    writer.Write(spell.Key);
-                    spell.Value.Pack(writer);
-                }
-
-                writer.Write((ushort)SpellSet.Count);
-                writer.Write(SetBucketSize);
-
-                foreach (var set in SpellSet)
-                {
-                    writer.Write(set.Key);
-                    set.Value.Pack(writer);
-                }
-
-                writer.Flush();
-                return stream.ToArray();
+            foreach (var set in SpellSet)
+            {
+                writer.Write(set.Key);
+                set.Value.Pack(writer);
             }
         }
 
@@ -228,6 +221,7 @@ namespace ACE.DatLoader.FileTypes
         }
 
         /// <summary>
+        /// CustomDM only: the retail client knows versions 1 to 3, so this one needs the client's spell formula v4 patch.
         /// Seven components without a potion: scarab, taper, taper, herb, powder, taper, talisman.
         /// </summary>
         private static List<uint> RandomizeVersion4(SpellBase spell, string accountName)

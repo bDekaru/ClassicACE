@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SkyObject : IUnpackable
+    public class SkyObject : IUnpackable, IPackable
     {
         public float BeginTime { get; private set; }
         public float EndTime { get; private set; }
@@ -30,7 +30,6 @@ namespace ACE.DatLoader.Entity
             reader.AlignBoundary();
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(BeginTime);

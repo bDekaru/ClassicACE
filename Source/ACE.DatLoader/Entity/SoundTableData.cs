@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SoundTableData : IUnpackable
+    public class SoundTableData : IUnpackable, IPackable
     {
         public uint SoundId; // Corresponds to the DatFileType.Wave
         public float Priority;

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CloSubPalette : IUnpackable
+    public class CloSubPalette : IUnpackable, IPackable
     {
         /// <summary>
         /// Contains a list of valid offsets & color values
@@ -16,9 +16,7 @@ namespace ACE.DatLoader.Entity
 
         public void Pack(BinaryWriter writer)
         {
-            writer.Write((uint)Ranges.Count);
-            foreach (var range in Ranges)
-                range.Pack(writer);
+            Ranges.Pack(writer);
 
             writer.Write(PaletteSet);
         }

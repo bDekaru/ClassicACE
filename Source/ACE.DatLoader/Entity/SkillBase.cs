@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SkillBase : IUnpackable
+    public class SkillBase : IUnpackable, IPackable
     {
         public string Description { get; set; }
         public string Name { get; set; }

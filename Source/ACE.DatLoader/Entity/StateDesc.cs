@@ -7,7 +7,7 @@ using System.Xml.Linq;
 
 namespace ACE.DatLoader.Entity
 {
-    public class StateDesc : IUnpackable
+    public class StateDesc : IUnpackable, IPackable
     {
 
         // Enum name for the StateId can be looked up in EnumMapper file 0x2200001C

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class PhysicsScriptTableData : IUnpackable
+    public class PhysicsScriptTableData : IUnpackable, IPackable
     {
         public List<ScriptAndModData> Scripts { get; } = new List<ScriptAndModData>();
 
@@ -14,10 +14,7 @@ namespace ACE.DatLoader.Entity
 
         public void Pack(BinaryWriter writer)
         {
-            writer.Write((uint)Scripts.Count);
-
-            foreach (var script in Scripts)
-                script.Pack(writer);
+            Scripts.Pack(writer);
         }
     }
 }

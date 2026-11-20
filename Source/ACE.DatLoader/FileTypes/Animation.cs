@@ -27,27 +27,19 @@ namespace ACE.DatLoader.FileTypes
                     hook.Remap(map);
         }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write((uint)Flags);
-                writer.Write(NumParts);
-                writer.Write(NumFrames);
+            writer.Write(Id);
+            writer.Write((uint)Flags);
+            writer.Write(NumParts);
+            writer.Write(NumFrames);
 
-                if ((Flags & AnimationFlags.PosFrames) != 0)
-                    foreach (var frame in PosFrames)
-                        frame.Pack(writer);
+            if ((Flags & AnimationFlags.PosFrames) != 0)
+                foreach (var frame in PosFrames)
+                    frame.Pack(writer);
 
-                foreach (var partFrame in PartFrames)
-                    partFrame.Pack(writer);
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            foreach (var partFrame in PartFrames)
+                partFrame.Pack(writer);
         }
 
         public override void Unpack(BinaryReader reader)

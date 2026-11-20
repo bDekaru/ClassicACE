@@ -32,23 +32,16 @@ namespace ACE.DatLoader.FileTypes
         }
 
         /// <summary>Writes the record in the order of <see cref="SkillBaseHash"/>.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            writer.Write(FILE_ID);
+            writer.Write((ushort)SkillBaseHash.Count);
+            writer.Write(BucketSize);
+
+            foreach (var skill in SkillBaseHash)
             {
-                writer.Write(FILE_ID);
-                writer.Write((ushort)SkillBaseHash.Count);
-                writer.Write(BucketSize);
-
-                foreach (var skill in SkillBaseHash)
-                {
-                    writer.Write(skill.Key);
-                    skill.Value.Pack(writer);
-                }
-
-                writer.Flush();
-                return stream.ToArray();
+                writer.Write(skill.Key);
+                skill.Value.Pack(writer);
             }
         }
 

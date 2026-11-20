@@ -24,27 +24,17 @@ namespace ACE.DatLoader.FileTypes
         }
 
         /// <summary>Writes the record with the entries in the order of <see cref="IdToStringMap"/>.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            writer.Write(Id);
+            writer.Write(BaseEnumMap);
+            writer.Write((byte)NumberingType);
+            writer.WriteCompressedUInt32((uint)IdToStringMap.Count);
+
+            foreach (var entry in IdToStringMap)
             {
-                writer.Write(Id);
-                writer.Write(BaseEnumMap);
-                writer.Write((byte)NumberingType);
-                writer.WriteCompressedUInt32((uint)IdToStringMap.Count);
-
-                foreach (var entry in IdToStringMap)
-                {
-                    writer.Write(entry.Key);
-
-                    var bytes = System.Text.Encoding.Default.GetBytes(entry.Value ?? "");
-                    writer.Write((byte)bytes.Length);
-                    writer.Write(bytes);
-                }
-
-                writer.Flush();
-                return stream.ToArray();
+                writer.Write(entry.Key);
+                writer.WritePString(entry.Value, 1);
             }
         }
     }

@@ -30,28 +30,21 @@ namespace ACE.DatLoader.FileTypes
         }
 
         /// <summary>Writes the record in the order of <see cref="StarterAreas"/> and <see cref="HeritageGroups"/>.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            writer.Write(FILE_ID);
+            writer.Write(FILE_ID);
+
+            StarterAreas.PackSmartArray(writer);
+
+            writer.Write(HeritageGroupsMarker);
+
+            writer.WriteCompressedUInt32((uint)HeritageGroups.Count);
+
+            foreach (var heritageGroup in HeritageGroups)
             {
-                writer.Write(FILE_ID);
-                writer.Write(FILE_ID);
-
-                writer.WriteSmartArray(StarterAreas, (item, w) => item.Pack(w));
-
-                writer.Write(HeritageGroupsMarker);
-
-                writer.WriteCompressedUInt32((uint)HeritageGroups.Count);
-
-                foreach (var heritageGroup in HeritageGroups)
-                {
-                    writer.Write(heritageGroup.Key);
-                    heritageGroup.Value.Pack(writer);
-                }
-
-                writer.Flush();
-                return stream.ToArray();
+                writer.Write(heritageGroup.Key);
+                heritageGroup.Value.Pack(writer);
             }
         }
     }

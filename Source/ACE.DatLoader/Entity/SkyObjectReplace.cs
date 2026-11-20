@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SkyObjectReplace : IUnpackable
+    public class SkyObjectReplace : IUnpackable, IPackable
     {
         public uint ObjectIndex { get; private set; }
         public uint GFXObjId { get; private set; }
@@ -23,7 +23,6 @@ namespace ACE.DatLoader.Entity
             reader.AlignBoundary();
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(ObjectIndex);

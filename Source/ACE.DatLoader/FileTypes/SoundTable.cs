@@ -31,24 +31,14 @@ namespace ACE.DatLoader.FileTypes
             DataBucketSize = Data.UnpackPackedHashTable(reader);
         }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write(Unknown);
+            writer.Write(Id);
+            writer.Write(Unknown);
 
-                writer.Write((uint)SoundHash.Count);
-                foreach (var item in SoundHash)
-                    item.Pack(writer);
+            SoundHash.Pack(writer);
 
-                writer.WritePackedHashTable(Data, DataBucketSize, (item, w) => item.Pack(w));
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            Data.PackPackedHashTable(writer, DataBucketSize);
         }
 
         /// <summary>Replaces every wave id by map(id).</summary>

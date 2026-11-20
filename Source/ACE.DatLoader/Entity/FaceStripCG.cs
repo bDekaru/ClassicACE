@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class FaceStripCG : IUnpackable
+    public class FaceStripCG : IUnpackable, IPackable
     {
         public uint IconImage { get; private set; }
         public ObjDesc ObjDesc { get; } = new ObjDesc();

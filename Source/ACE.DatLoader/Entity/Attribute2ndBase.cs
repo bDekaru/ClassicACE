@@ -5,7 +5,7 @@ using System.Text;
 
 namespace ACE.DatLoader.Entity
 {
-    public class Attribute2ndBase : IUnpackable
+    public class Attribute2ndBase : IUnpackable, IPackable
     {
         public SkillFormula Formula { get; set; } = new SkillFormula();
 

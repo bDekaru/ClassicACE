@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class AttackCone : IUnpackable
+    public class AttackCone : IUnpackable, IPackable
     {
         public uint PartIndex { get; set; }
         

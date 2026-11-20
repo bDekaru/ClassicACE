@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SkillCG : IUnpackable
+    public class SkillCG : IUnpackable, IPackable
     {
         public uint SkillNum { get; set; }
         public int NormalCost { get; set; }

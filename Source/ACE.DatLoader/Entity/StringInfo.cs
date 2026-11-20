@@ -7,7 +7,7 @@ using System.Text;
 
 namespace ACE.DatLoader.Entity
 {
-    public class StringInfo : IUnpackable
+    public class StringInfo : IUnpackable, IPackable
     {
         public byte m_strToken;
 

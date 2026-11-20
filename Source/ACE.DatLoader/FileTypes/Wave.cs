@@ -14,21 +14,13 @@ namespace ACE.DatLoader.FileTypes
         public byte[] Header { get; private set; }
         public byte[] Data { get; private set; }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads.</summary>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write(Header.Length);
-                writer.Write(Data.Length);
-                writer.Write(Header);
-                writer.Write(Data);
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            writer.Write(Id);
+            writer.Write(Header.Length);
+            writer.Write(Data.Length);
+            writer.Write(Header);
+            writer.Write(Data);
         }
 
         public override void Unpack(BinaryReader reader)

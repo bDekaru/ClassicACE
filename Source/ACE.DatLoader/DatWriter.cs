@@ -24,7 +24,7 @@ namespace ACE.DatLoader
     /// the directory is an order-62 B-tree split top-down (30 / 1 / 30), and a replacement writes its new chain before the old one is freed.
     /// The transaction journal is only checked before and reset after a write, never replayed.
     /// </summary>
-    public class DatWriter : IDisposable
+    public partial class DatWriter : IDisposable
     {
         private const long HeaderOffset = 0x140;
         private const long JournalOffset = 0x100;
@@ -49,17 +49,24 @@ namespace ACE.DatLoader
         private const int EntriesOffset = CountOffset + 4;
         private const int NodeBytes = EntriesOffset + MaxEntries * EntryBytes;
 
-        /// <summary>Version for a record added without one. The EoR dats hold records of version 2 and 3 only (version 1 is just the iteration list), and 2 is the more common.</summary>
+        /// <summary>
+        /// Version for a record added without one. The EoR dats hold records of version 2 and 3 only (version 1 is just the iteration list), and 2 is the
+        /// more common.
+        /// </summary>
         public const ushort NewRecordVersion = 2;
 
         /// <summary>The record that holds the dat's set of iteration numbers (see <see cref="SaveIterationRecord"/>).</summary>
         public const uint IterationRecordId = 0xFFFF0001;
 
-        /// <summary>Unix time stored in every record saved without a date, new or replaced (a build sets it to the date of the step it is running, so building the same recipe twice writes the same bytes).
+        /// <summary>Unix time stored in every record saved without a date, new or replaced (a build sets it to the date of the step it is running, so
+        /// building the same recipe twice writes the same bytes).
         /// 0 keeps the stored date on a replacement and uses the current time for a new record.</summary>
         public uint RecordDate { get; set; }
 
-        /// <summary>Gives the entry iteration of a record saved with a date (its own or <see cref="RecordDate"/>) when the caller passes none; a result of 0 leaves the iteration as it would be without it.</summary>
+        /// <summary>
+        /// Gives the entry iteration of a record saved with a date (its own or <see cref="RecordDate"/>) when the caller passes none; a result of 0
+        /// leaves the iteration as it would be without it.
+        /// </summary>
         public Func<uint, uint> IterationForDate { get; set; }
 
         private const uint RoomReserve = 0x33;
@@ -109,7 +116,8 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Creates an empty post-ToD dat at <paramref name="path"/>: the template's first 0x400 bytes (header, journal, pack versions) and a pre-linked free list with an empty directory root.
+        /// Creates an empty post-ToD dat at <paramref name="path"/>: the template's first 0x400 bytes (header, journal, pack versions) and a pre-linked
+        /// free list with an empty directory root.
         /// The template is only read; the new file keeps its block size and pack versions, so build it from a dat of the same kind.
         /// </summary>
         public static void CreateEmpty(string path, string templateDat)
@@ -174,10 +182,6 @@ namespace ACE.DatLoader
         }
 
         private uint PayloadPerBlock => blockSize - 4;
-
-        // ---------------------------------------------------------------------------------------
-        // Raw access
-        // ---------------------------------------------------------------------------------------
 
         private void ReadAt(long offset, byte[] buffer, int count)
         {
@@ -249,10 +253,6 @@ namespace ACE.DatLoader
             Array.Copy(BitConverter.GetBytes(TransactionMagic), 0, record, 1, 4);
             WriteAt(JournalOffset, record, record.Length);
         }
-
-        // ---------------------------------------------------------------------------------------
-        // Block chains
-        // ---------------------------------------------------------------------------------------
 
         /// <summary>
         /// Stores the payload in the first blocks of the free list, starting at its head. The header goes to disk before the chain's last block.
@@ -409,290 +409,6 @@ namespace ACE.DatLoader
                 ExpandFile(ExpandBytes);
         }
 
-        // ---------------------------------------------------------------------------------------
-        // The directory
-        // ---------------------------------------------------------------------------------------
-
-        private struct Entry
-        {
-            public uint Bits;
-            public uint Id;
-            public uint Offset;
-            public uint Size;
-            public uint Date;
-            public uint Iteration;
-        }
-
-        private class Node
-        {
-            public readonly byte[] Bytes = new byte[NodeBytes];
-
-            public uint Child(int i) => BitConverter.ToUInt32(Bytes, i * 4);
-
-            public void SetChild(int i, uint value) => Array.Copy(BitConverter.GetBytes(value), 0, Bytes, i * 4, 4);
-
-            public bool IsLeaf => Child(0) == 0;
-
-            public int Count => (int)BitConverter.ToUInt32(Bytes, CountOffset);
-
-            public void SetCount(int n) => Array.Copy(BitConverter.GetBytes((uint)n), 0, Bytes, CountOffset, 4);
-
-            public Entry GetEntry(int i)
-            {
-                var at = EntriesOffset + i * EntryBytes;
-
-                return new Entry
-                {
-                    Bits = BitConverter.ToUInt32(Bytes, at),
-                    Id = BitConverter.ToUInt32(Bytes, at + 4),
-                    Offset = BitConverter.ToUInt32(Bytes, at + 8),
-                    Size = BitConverter.ToUInt32(Bytes, at + 12),
-                    Date = BitConverter.ToUInt32(Bytes, at + 16),
-                    Iteration = BitConverter.ToUInt32(Bytes, at + 20),
-                };
-            }
-
-            public void SetEntry(int i, Entry entry)
-            {
-                var at = EntriesOffset + i * EntryBytes;
-
-                Array.Copy(BitConverter.GetBytes(entry.Bits), 0, Bytes, at, 4);
-                Array.Copy(BitConverter.GetBytes(entry.Id), 0, Bytes, at + 4, 4);
-                Array.Copy(BitConverter.GetBytes(entry.Offset), 0, Bytes, at + 8, 4);
-                Array.Copy(BitConverter.GetBytes(entry.Size), 0, Bytes, at + 12, 4);
-                Array.Copy(BitConverter.GetBytes(entry.Date), 0, Bytes, at + 16, 4);
-                Array.Copy(BitConverter.GetBytes(entry.Iteration), 0, Bytes, at + 20, 4);
-            }
-
-            public void MoveEntry(int to, int from) => Array.Copy(Bytes, EntriesOffset + from * EntryBytes, Bytes, EntriesOffset + to * EntryBytes, EntryBytes);
-        }
-
-        private Node ReadNode(uint offset)
-        {
-            var node = new Node();
-            Array.Copy(LoadData(0, offset, NodeBytes), node.Bytes, NodeBytes);
-
-            if (node.Count >= FanOut)
-                throw new InvalidDataException($"{FilePath}: the node at 0x{offset:X} claims {node.Count} entries.");
-
-            return node;
-        }
-
-        /// <summary>
-        /// A node's chain was allocated for exactly its size, so a write only rewrites that chain's payload and leaves the links.
-        /// </summary>
-        private void WriteNode(uint offset, Node node)
-        {
-            var per = (int)PayloadPerBlock;
-            var want = (NodeBytes + per - 1) / per;
-            var dest = offset;
-            var source = 0;
-            var used = 0;
-            var block = new byte[blockSize];
-
-            while (source < NodeBytes)
-            {
-                used++;
-                if (used > want)
-                    throw new InvalidDataException($"{FilePath}: the node at 0x{offset:X} has a chain longer than {want} blocks.");
-
-                var chunk = Math.Min(NodeBytes - source, per);
-                var last = source + chunk >= NodeBytes;
-                var link = last ? 0 : LinkAt(dest);
-
-                if ((link & FreeBit) != 0 || (link == 0 && !last))
-                    throw new InvalidDataException($"{FilePath}: the node at 0x{offset:X} has a broken chain.");
-
-                Array.Copy(BitConverter.GetBytes(link), 0, block, 0, 4);
-                Array.Copy(node.Bytes, source, block, 4, chunk);
-                WriteAt(dest, block, chunk + 4);
-
-                source += chunk;
-                dest = link;
-            }
-
-            if (used != want)
-                throw new InvalidDataException($"{FilePath}: the node at 0x{offset:X} has a chain shorter than {want} blocks.");
-        }
-
-        private uint AllocateEmptyNode()
-        {
-            var offset = freeHead;
-            CheckBlock(offset);
-            StoreData(new byte[NodeBytes], offset);
-            return offset;
-        }
-
-        private bool Find(uint id, out uint nodeOffset, out int index, out Entry entry)
-        {
-            nodeOffset = 0;
-            index = 0;
-            entry = default(Entry);
-
-            if (id == 0)
-                return false;
-
-            var offset = btreeRoot;
-
-            while (true)
-            {
-                var node = ReadNode(offset);
-                var lo = 0;
-                var hi = node.Count;
-
-                while (lo < hi)
-                {
-                    var mid = (lo + hi) / 2;
-                    var key = node.GetEntry(mid).Id;
-
-                    if (key == id)
-                    {
-                        nodeOffset = offset;
-                        index = mid;
-                        entry = node.GetEntry(mid);
-                        return true;
-                    }
-
-                    if (key < id)
-                        lo = mid + 1;
-                    else
-                        hi = mid;
-                }
-
-                if (node.IsLeaf)
-                    return false;
-
-                offset = node.Child(lo);
-            }
-        }
-
-        private void SplitChild(uint parentOffset, int index)
-        {
-            var parent = ReadNode(parentOffset);
-            var parentCount = parent.Count;
-            var fullOffset = parent.Child(index);
-            var full = ReadNode(fullOffset);
-
-            if (full.Count != MaxEntries)
-                throw new InvalidDataException($"{FilePath}: asked to split the node at 0x{fullOffset:X} holding {full.Count} entries.");
-
-            var rightOffset = AllocateEmptyNode();
-            var right = new Node();
-
-            for (var k = 0; k < SplitHalf; k++)
-                right.SetEntry(k, full.GetEntry(SplitHalf + 1 + k));
-
-            if (!full.IsLeaf)
-                for (var k = 0; k <= SplitHalf; k++)
-                    right.SetChild(k, full.Child(SplitHalf + 1 + k));
-
-            right.SetCount(SplitHalf);
-            WriteNode(rightOffset, right);
-
-            var promoted = full.GetEntry(SplitHalf);
-            for (var k = parentCount; k >= index + 1; k--)
-            {
-                parent.SetChild(k + 1, parent.Child(k));
-                parent.MoveEntry(k, k - 1);
-            }
-
-            parent.SetChild(index + 1, rightOffset);
-            parent.SetEntry(index, promoted);
-            parent.SetCount(parentCount + 1);
-            WriteNode(parentOffset, parent);
-
-            full.SetCount(SplitHalf);
-            WriteNode(fullOffset, full);
-        }
-
-        private void DescendToAdd(Entry entry, byte[] payload)
-        {
-            var id = entry.Id;
-
-            if (ReadNode(btreeRoot).Count == MaxEntries)
-            {
-                var oldRoot = btreeRoot;
-                var newRoot = AllocateEmptyNode();
-                var node = new Node();
-                node.SetChild(0, oldRoot);
-                node.SetCount(0);
-
-                btreeRoot = newRoot;
-                SaveFileInfo();
-                WriteNode(newRoot, node);
-                SplitChild(newRoot, 0);
-            }
-
-            var offset = btreeRoot;
-
-            while (true)
-            {
-                var node = ReadNode(offset);
-                var n = node.Count;
-
-                if (node.IsLeaf)
-                {
-                    InsertIntoLeaf(offset, node, n, entry, payload);
-                    return;
-                }
-
-                var i = n;
-                while (i > 0 && node.GetEntry(i - 1).Id > id)
-                    i--;
-
-                var childOffset = node.Child(i);
-
-                if (ReadNode(childOffset).Count == MaxEntries)
-                {
-                    SplitChild(offset, i);
-
-                    var parent = ReadNode(offset);
-                    if (parent.GetEntry(i).Id < id)
-                        i++;
-
-                    offset = parent.Child(i);
-                }
-                else
-                    offset = childOffset;
-            }
-        }
-
-        private void InsertIntoLeaf(uint offset, Node node, int count, Entry entry, byte[] payload)
-        {
-            var i = count;
-            while (i > 0 && node.GetEntry(i - 1).Id > entry.Id)
-            {
-                node.MoveEntry(i, i - 1);
-                i--;
-            }
-
-            var head = freeHead;
-            entry.Offset = head;
-            entry.Size = (uint)payload.Length;
-            node.SetEntry(i, entry);
-            node.SetCount(count + 1);
-
-            StoreData(payload, head);
-            WriteNode(offset, node);
-        }
-
-        private void ReplaceEntry(uint nodeOffset, int index, Entry entry, byte[] payload, uint oldOffset)
-        {
-            var head = freeHead;
-            var node = ReadNode(nodeOffset);
-            entry.Offset = head;
-            entry.Size = (uint)payload.Length;
-            node.SetEntry(index, entry);
-
-            StoreData(payload, head);
-            WriteNode(nodeOffset, node);
-            DeleteBlocks(oldOffset);
-        }
-
-        // ---------------------------------------------------------------------------------------
-        // Audit
-        // ---------------------------------------------------------------------------------------
-
         /// <summary>
         /// Walks every directory node, record chain and the free list. Throws when a block is owned twice, a chain has the wrong length or end,
         /// the keys are not strictly ascending, or the free list does not match the header. Blocks reachable from nowhere are counted, not rejected.
@@ -794,17 +510,14 @@ namespace ACE.DatLoader
             };
         }
 
-        // ---------------------------------------------------------------------------------------
-        // Public operations
-        // ---------------------------------------------------------------------------------------
-
         public bool Contains(uint id)
         {
             return Find(id, out _, out _, out _);
         }
 
         /// <summary>
-        /// Removes the record and frees its data blocks. The directory is not rebalanced: a node may end up with fewer entries than a split would leave, which lookups and <see cref="Audit"/> accept.
+        /// Removes the record and frees its data blocks. The directory is not rebalanced: a node may end up with fewer entries than a split would leave,
+        /// which lookups and <see cref="Audit"/> accept.
         /// </summary>
         /// <returns>False when the id is not in the dat.</returns>
         public bool Delete(uint id)
@@ -897,9 +610,12 @@ namespace ACE.DatLoader
         /// <summary>
         /// Adds the record, or replaces it when the id is already there.
         /// </summary>
-        /// <param name="version">The entry's version (its flags word is version &lt;&lt; 16), which the client uses to choose how the payload is unpacked. Null keeps the stored version on a replacement and uses <see cref="NewRecordVersion"/> for a new record.</param>
-        /// <param name="iteration">The entry's iteration. 0 keeps the stored iteration on a replacement (a new record gets 0); a non-zero value older than the stored one refuses the write.</param>
-        /// <param name="date">Unix time stored in the entry. 0 uses <see cref="RecordDate"/>; when that is 0 too, a replacement keeps the stored date and a new record gets the current time.</param>
+        /// <param name="version">The entry's version (its flags word is version &lt;&lt; 16), which the client uses to choose how the payload is
+        /// unpacked. Null keeps the stored version on a replacement and uses <see cref="NewRecordVersion"/> for a new record.</param>
+        /// <param name="iteration">The entry's iteration. 0 keeps the stored iteration on a replacement (a new record gets 0); a non-zero value older
+        /// than the stored one refuses the write.</param>
+        /// <param name="date">Unix time stored in the entry. 0 uses <see cref="RecordDate"/>; when that is 0 too, a replacement keeps the stored date and
+        /// a new record gets the current time.</param>
         public DatSaveOutcome Save(uint id, byte[] payload, uint iteration = 0, ushort? version = null, uint date = 0)
         {
             if (id == 0)
@@ -955,7 +671,8 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Writes the iteration record the retail dats carry: the dat holds iterations 1 to <paramref name="total"/> as one run (total, minus total, first number 1), version 1, entry iteration 1.
+        /// Writes the iteration record the retail dats carry: the dat holds iterations 1 to <paramref name="total"/> as one run (total, minus total,
+        /// first number 1), version 1, entry iteration 1.
         /// </summary>
         public void SaveIterationRecord(uint total, uint date = 0)
         {

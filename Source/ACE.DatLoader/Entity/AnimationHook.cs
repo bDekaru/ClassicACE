@@ -7,19 +7,15 @@ using log4net;
 
 namespace ACE.DatLoader.Entity
 {
-    public class AnimationHook : IUnpackable
+    public class AnimationHook : IUnpackable, IPackable
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public AnimationHookType HookType { get; protected set; }
         public AnimationHookDir Direction { get; protected set; }
 
-        /// <exception cref="NotSupportedException">The hook type has no writer yet.</exception>
         public virtual void Pack(BinaryWriter writer)
         {
-            if (GetType() != typeof(AnimationHook))
-                throw new NotSupportedException($"Writing {HookType} hooks is not supported.");
-
             writer.Write((uint)HookType);
             writer.Write((int)Direction);
         }

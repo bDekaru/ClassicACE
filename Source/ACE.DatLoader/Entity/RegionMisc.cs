@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class RegionMisc : IUnpackable
+    public class RegionMisc : IUnpackable, IPackable
     {
         public uint Version { get; private set; }
         public uint GameMapID { get; private set; }
@@ -21,7 +21,6 @@ namespace ACE.DatLoader.Entity
             ClearMonsterId  = reader.ReadUInt32();
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Version);

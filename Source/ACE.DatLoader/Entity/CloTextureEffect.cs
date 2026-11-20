@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class CloTextureEffect : IUnpackable
+    public class CloTextureEffect : IUnpackable, IPackable
     {
         /// <summary>
         /// Texture portal.dat 0x05000000

@@ -49,20 +49,10 @@ namespace ACE.DatLoader.FileTypes
         }
 
         /// <exception cref="System.NotSupportedException">A hook of a type that has no writer yet.</exception>
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write((uint)ScriptData.Count);
-
-                foreach (var data in ScriptData)
-                    data.Pack(writer);
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            writer.Write(Id);
+            ScriptData.Pack(writer);
         }
     }
 }

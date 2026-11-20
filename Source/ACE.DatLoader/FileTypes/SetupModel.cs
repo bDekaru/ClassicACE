@@ -106,88 +106,63 @@ namespace ACE.DatLoader.FileTypes
             DefaultScriptTable  = reader.ReadUInt32();
         }
 
-        /// <summary>Writes the record in the layout <see cref="Unpack"/> reads. Placement frames with animation hooks are not supported.</summary>
-        public byte[] Pack()
+        /// <summary>Placement frames with animation hooks are not supported.</summary>
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
+            writer.Write(Id);
+            writer.Write((uint)Flags);
+
+            Parts.Pack(writer);
+
+            if ((Flags & SetupFlags.HasParent) != 0)
+                foreach (var index in ParentIndex)
+                    writer.Write(index);
+
+            if ((Flags & SetupFlags.HasDefaultScale) != 0)
+                foreach (var scale in DefaultScale)
+                {
+                    writer.WriteVector3(scale);
+                }
+
+            PackLocations(writer, HoldingLocations);
+            PackLocations(writer, ConnectionPoints);
+
+            writer.Write(PlacementFrames.Count);
+            foreach (var placement in PlacementFrames)
             {
-                writer.Write(Id);
-                writer.Write((uint)Flags);
+                if (placement.Value.AnimFrame.Hooks.Count > 0)
+                    throw new NotSupportedException("Setup placement frames with animation hooks cannot be written.");
 
-                writer.Write((uint)Parts.Count);
-                foreach (var part in Parts)
-                    writer.Write(part);
-
-                if ((Flags & SetupFlags.HasParent) != 0)
-                    foreach (var index in ParentIndex)
-                        writer.Write(index);
-
-                if ((Flags & SetupFlags.HasDefaultScale) != 0)
-                    foreach (var scale in DefaultScale)
-                    {
-                        writer.Write(scale.X);
-                        writer.Write(scale.Y);
-                        writer.Write(scale.Z);
-                    }
-
-                PackLocations(writer, HoldingLocations);
-                PackLocations(writer, ConnectionPoints);
-
-                writer.Write(PlacementFrames.Count);
-                foreach (var placement in PlacementFrames)
-                {
-                    if (placement.Value.AnimFrame.Hooks.Count > 0)
-                        throw new NotSupportedException("Setup placement frames with animation hooks cannot be written.");
-
-                    writer.Write(placement.Key);
-                    foreach (var frame in placement.Value.AnimFrame.Frames)
-                        frame.Pack(writer);
-                    writer.Write(0u);
-                }
-
-                writer.Write((uint)CylSpheres.Count);
-                foreach (var sphere in CylSpheres)
-                    sphere.Pack(writer);
-
-                writer.Write((uint)Spheres.Count);
-                foreach (var sphere in Spheres)
-                    sphere.Pack(writer);
-
-                writer.Write(Height);
-                writer.Write(Radius);
-                writer.Write(StepUpHeight);
-                writer.Write(StepDownHeight);
-
-                SortingSphere.Pack(writer);
-                SelectionSphere.Pack(writer);
-
-                writer.Write(Lights.Count);
-                foreach (var light in Lights)
-                {
-                    writer.Write(light.Key);
-                    light.Value.Pack(writer);
-                }
-
-                writer.Write(DefaultAnimation);
-                writer.Write(DefaultScript);
-                writer.Write(DefaultMotionTable);
-                writer.Write(DefaultSoundTable);
-                writer.Write(DefaultScriptTable);
-
-                writer.Flush();
-                return stream.ToArray();
+                writer.Write(placement.Key);
+                foreach (var frame in placement.Value.AnimFrame.Frames)
+                    frame.Pack(writer);
+                writer.Write(0u);
             }
+
+            CylSpheres.Pack(writer);
+
+            Spheres.Pack(writer);
+
+            writer.Write(Height);
+            writer.Write(Radius);
+            writer.Write(StepUpHeight);
+            writer.Write(StepDownHeight);
+
+            SortingSphere.Pack(writer);
+            SelectionSphere.Pack(writer);
+
+            Lights.Pack(writer);
+
+            writer.Write(DefaultAnimation);
+            writer.Write(DefaultScript);
+            writer.Write(DefaultMotionTable);
+            writer.Write(DefaultSoundTable);
+            writer.Write(DefaultScriptTable);
         }
 
         private static void PackLocations(BinaryWriter writer, Dictionary<int, LocationType> locations)
         {
-            writer.Write(locations.Count);
-            foreach (var location in locations)
-            {
-                writer.Write(location.Key);
-                location.Value.Pack(writer);
-            }
+            locations.Pack(writer);
         }
 
         /// <summary>Replaces every referenced part (GfxObj), animation, script, motion table, sound table and script table id (when set) by map(id).</summary>
@@ -196,11 +171,11 @@ namespace ACE.DatLoader.FileTypes
             for (var i = 0; i < Parts.Count; i++)
                 Parts[i] = map(Parts[i]);
 
-            DefaultAnimation = DefaultAnimation != 0 ? map(DefaultAnimation) : 0;
-            DefaultScript = DefaultScript != 0 ? map(DefaultScript) : 0;
-            DefaultMotionTable = DefaultMotionTable != 0 ? map(DefaultMotionTable) : 0;
-            DefaultSoundTable = DefaultSoundTable != 0 ? map(DefaultSoundTable) : 0;
-            DefaultScriptTable = DefaultScriptTable != 0 ? map(DefaultScriptTable) : 0;
+            DefaultAnimation = map.RemapIfSet(DefaultAnimation);
+            DefaultScript = map.RemapIfSet(DefaultScript);
+            DefaultMotionTable = map.RemapIfSet(DefaultMotionTable);
+            DefaultSoundTable = map.RemapIfSet(DefaultSoundTable);
+            DefaultScriptTable = map.RemapIfSet(DefaultScriptTable);
         }
 
         public static SetupModel CreateSimpleSetup()

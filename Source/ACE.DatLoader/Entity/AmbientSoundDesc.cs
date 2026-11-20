@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class AmbientSoundDesc : IUnpackable
+    public class AmbientSoundDesc : IUnpackable, IPackable
     {
         public uint SType { get; private set; }
         public float Volume { get; private set; }
@@ -21,7 +21,6 @@ namespace ACE.DatLoader.Entity
 
         public bool IsContinuous => (BaseChance == 0);
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(SType);

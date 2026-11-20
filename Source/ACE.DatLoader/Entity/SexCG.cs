@@ -4,7 +4,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class SexCG : IUnpackable
+    public class SexCG : IUnpackable, IPackable
     {
         public string Name { get; private set; }
         public uint Scale { get; private set; }
@@ -190,18 +190,18 @@ namespace ACE.DatLoader.Entity
 
             BaseObjDesc.Pack(writer);
 
-            writer.WriteSmartArray(HairColorList);
-            writer.WriteSmartArray(HairStyleList, (item, w) => item.Pack(w));
-            writer.WriteSmartArray(EyeColorList);
-            writer.WriteSmartArray(EyeStripList, (item, w) => item.Pack(w));
-            writer.WriteSmartArray(NoseStripList, (item, w) => item.Pack(w));
-            writer.WriteSmartArray(MouthStripList, (item, w) => item.Pack(w));
+            HairColorList.PackSmartArray(writer);
+            HairStyleList.PackSmartArray(writer);
+            EyeColorList.PackSmartArray(writer);
+            EyeStripList.PackSmartArray(writer);
+            NoseStripList.PackSmartArray(writer);
+            MouthStripList.PackSmartArray(writer);
 
-            writer.WriteSmartArray(HeadgearList, (item, w) => item.Pack(w));
-            writer.WriteSmartArray(ShirtList, (item, w) => item.Pack(w));
-            writer.WriteSmartArray(PantsList, (item, w) => item.Pack(w));
-            writer.WriteSmartArray(FootwearList, (item, w) => item.Pack(w));
-            writer.WriteSmartArray(ClothingColorsList);
+            HeadgearList.PackSmartArray(writer);
+            ShirtList.PackSmartArray(writer);
+            PantsList.PackSmartArray(writer);
+            FootwearList.PackSmartArray(writer);
+            ClothingColorsList.PackSmartArray(writer);
         }
     }
 }

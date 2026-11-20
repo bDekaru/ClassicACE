@@ -2,7 +2,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class TimeOfDay : IUnpackable
+    public class TimeOfDay : IUnpackable, IPackable
     {
         public float Start { get; private set; }
         public bool IsNight { get; private set; }
@@ -16,7 +16,6 @@ namespace ACE.DatLoader.Entity
             reader.AlignBoundary();
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Start);

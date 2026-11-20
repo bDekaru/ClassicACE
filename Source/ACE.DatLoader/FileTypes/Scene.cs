@@ -20,20 +20,10 @@ namespace ACE.DatLoader.FileTypes
             Objects.Unpack(reader);
         }
 
-        public byte[] Pack()
+        public override void Pack(BinaryWriter writer)
         {
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream))
-            {
-                writer.Write(Id);
-                writer.Write((uint)Objects.Count);
-
-                foreach (var obj in Objects)
-                    obj.Pack(writer);
-
-                writer.Flush();
-                return stream.ToArray();
-            }
+            writer.Write(Id);
+            Objects.Pack(writer);
         }
 
         /// <summary>Replaces every referenced object id (GfxObj or Setup) by map(id).</summary>

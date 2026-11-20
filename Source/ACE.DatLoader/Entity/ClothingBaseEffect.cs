@@ -3,15 +3,13 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class ClothingBaseEffect : IUnpackable
+    public class ClothingBaseEffect : IUnpackable, IPackable
     {
         public List<CloObjectEffect> CloObjectEffects { get; } = new List<CloObjectEffect>();
 
         public void Pack(BinaryWriter writer)
         {
-            writer.Write((uint)CloObjectEffects.Count);
-            foreach (var effect in CloObjectEffects)
-                effect.Pack(writer);
+            CloObjectEffects.Pack(writer);
         }
 
         public void Unpack(BinaryReader reader)

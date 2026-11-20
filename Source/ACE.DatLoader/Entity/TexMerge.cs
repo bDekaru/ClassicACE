@@ -3,7 +3,7 @@ using System.IO;
 
 namespace ACE.DatLoader.Entity
 {
-    public class TexMerge : IUnpackable
+    public class TexMerge : IUnpackable, IPackable
     {
         public uint BaseTexSize { get; set; }
         public List<TerrainAlphaMap> CornerTerrainMaps { get; } = new List<TerrainAlphaMap>();
@@ -21,30 +21,17 @@ namespace ACE.DatLoader.Entity
             TerrainDesc.Unpack(reader);
         }
 
-        /// <summary>Writes the entity in the layout <see cref="Unpack"/> reads.</summary>
         public void Pack(BinaryWriter writer)
         {
             writer.Write(BaseTexSize);
 
-            writer.Write((uint)CornerTerrainMaps.Count);
+            CornerTerrainMaps.Pack(writer);
 
-            foreach (var item in CornerTerrainMaps)
-                item.Pack(writer);
+            SideTerrainMaps.Pack(writer);
 
-            writer.Write((uint)SideTerrainMaps.Count);
+            RoadMaps.Pack(writer);
 
-            foreach (var item in SideTerrainMaps)
-                item.Pack(writer);
-
-            writer.Write((uint)RoadMaps.Count);
-
-            foreach (var item in RoadMaps)
-                item.Pack(writer);
-
-            writer.Write((uint)TerrainDesc.Count);
-
-            foreach (var item in TerrainDesc)
-                item.Pack(writer);
+            TerrainDesc.Pack(writer);
         }
     }
 }
