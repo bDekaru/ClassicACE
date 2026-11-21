@@ -1660,7 +1660,7 @@ namespace ACE.Server.WorldObjects
                 return;
             }
 
-            if (allegianceHouse.HouseType != HouseType.Villa && allegianceHouse.HouseType != HouseType.Mansion)
+            if (allegianceHouse.HouseType != HouseType.Villa && allegianceHouse.HouseType != HouseType.Mansion && allegianceHouse.HouseType != HouseType.CustomVilla && allegianceHouse.HouseType != HouseType.CustomMansion)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YourMonarchsHouseIsNotAMansionOrVilla));
                 return;

@@ -985,7 +985,7 @@ namespace ACE.Server.WorldObjects.Managers
 
         public float GetMultiplicativeMod(PropertyInt statModKey)
         {
-            var typeFlags = EnchantmentTypeFlags.Float | EnchantmentTypeFlags.SingleStat | EnchantmentTypeFlags.Multiplicative;
+            var typeFlags = EnchantmentTypeFlags.Int | EnchantmentTypeFlags.SingleStat | EnchantmentTypeFlags.Multiplicative;
 
             var enchantments = GetEnchantments_TopLayer(typeFlags, (uint)statModKey);
 
