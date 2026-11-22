@@ -53,7 +53,7 @@ namespace ACE.DatBuilder
                 {
                     var region = c.ReadTarget<RegionDesc>(RegionId);
                     DatRecipeData.Load<RegionEdits>(RegionEditsFile).Apply(region);
-                    c.Write(RegionId, region.Pack(), "region");
+                    c.Write(RegionId, region.Pack(), "region", true);
                 })
             };
         }

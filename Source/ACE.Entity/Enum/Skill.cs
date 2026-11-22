@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -231,76 +232,84 @@ namespace ACE.Entity.Enum
 
     public static class SkillHelper
     {
-        static SkillHelper()
+        /// <summary>
+        /// The skills the server uses for a ruleset: the EoR skills, adjusted per ruleset.
+        /// This is server-side ruleset data only. It does not depend on a character or on anything a client sends.
+        /// </summary>
+        public static HashSet<Skill> GetValidSkills(Common.Ruleset ruleset)
         {
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.Infiltration)
+            var skills = new HashSet<Skill>(EoRSkills);
+
+            if (ruleset == Common.Ruleset.Infiltration)
             {
-                ValidSkills.Remove(Skill.TwoHandedCombat);
-                ValidSkills.Remove(Skill.HeavyWeapons);
-                ValidSkills.Remove(Skill.LightWeapons);
-                ValidSkills.Remove(Skill.FinesseWeapons);
-                ValidSkills.Remove(Skill.MissileWeapons);
-                ValidSkills.Remove(Skill.Shield);
-                ValidSkills.Remove(Skill.DualWield);
-                ValidSkills.Remove(Skill.Recklessness);
-                ValidSkills.Remove(Skill.SneakAttack);
-                ValidSkills.Remove(Skill.DirtyFighting);
-                ValidSkills.Remove(Skill.VoidMagic);
-                ValidSkills.Remove(Skill.Summoning);
+                skills.Remove(Skill.TwoHandedCombat);
+                skills.Remove(Skill.HeavyWeapons);
+                skills.Remove(Skill.LightWeapons);
+                skills.Remove(Skill.FinesseWeapons);
+                skills.Remove(Skill.MissileWeapons);
+                skills.Remove(Skill.Shield);
+                skills.Remove(Skill.DualWield);
+                skills.Remove(Skill.Recklessness);
+                skills.Remove(Skill.SneakAttack);
+                skills.Remove(Skill.DirtyFighting);
+                skills.Remove(Skill.VoidMagic);
+                skills.Remove(Skill.Summoning);
 
-                ValidSkills.Add(Skill.Axe);
-                ValidSkills.Add(Skill.Bow);
-                ValidSkills.Add(Skill.Crossbow);
-                ValidSkills.Add(Skill.Dagger);
-                ValidSkills.Add(Skill.Mace);
-                ValidSkills.Add(Skill.Spear);
-                ValidSkills.Add(Skill.Staff);
-                ValidSkills.Add(Skill.Sword);
-                ValidSkills.Add(Skill.ThrownWeapon);
-                ValidSkills.Add(Skill.UnarmedCombat);
-                ValidSkills.Add(Skill.Salvaging);
+                skills.Add(Skill.Axe);
+                skills.Add(Skill.Bow);
+                skills.Add(Skill.Crossbow);
+                skills.Add(Skill.Dagger);
+                skills.Add(Skill.Mace);
+                skills.Add(Skill.Spear);
+                skills.Add(Skill.Staff);
+                skills.Add(Skill.Sword);
+                skills.Add(Skill.ThrownWeapon);
+                skills.Add(Skill.UnarmedCombat);
+                skills.Add(Skill.Salvaging);
             }
-            else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            else if (ruleset == Common.Ruleset.CustomDM)
             {
-                ValidSkills.Remove(Skill.TwoHandedCombat);
-                ValidSkills.Remove(Skill.HeavyWeapons);
-                ValidSkills.Remove(Skill.LightWeapons);
-                ValidSkills.Remove(Skill.FinesseWeapons);
-                ValidSkills.Remove(Skill.MissileWeapons);
-                ValidSkills.Remove(Skill.DualWield);
-                ValidSkills.Remove(Skill.Recklessness);
-                ValidSkills.Remove(Skill.SneakAttack);
-                ValidSkills.Remove(Skill.DirtyFighting);
-                ValidSkills.Remove(Skill.VoidMagic);
-                ValidSkills.Remove(Skill.Summoning);
+                skills.Remove(Skill.TwoHandedCombat);
+                skills.Remove(Skill.HeavyWeapons);
+                skills.Remove(Skill.LightWeapons);
+                skills.Remove(Skill.FinesseWeapons);
+                skills.Remove(Skill.MissileWeapons);
+                skills.Remove(Skill.DualWield);
+                skills.Remove(Skill.Recklessness);
+                skills.Remove(Skill.SneakAttack);
+                skills.Remove(Skill.DirtyFighting);
+                skills.Remove(Skill.VoidMagic);
+                skills.Remove(Skill.Summoning);
 
-                ValidSkills.Remove(Skill.AssessPerson);
-                ValidSkills.Remove(Skill.ItemEnchantment);
-                ValidSkills.Remove(Skill.CreatureEnchantment);
-                ValidSkills.Remove(Skill.Crossbow);
-                ValidSkills.Remove(Skill.Mace);
-                ValidSkills.Remove(Skill.Staff);
+                skills.Remove(Skill.AssessPerson);
+                skills.Remove(Skill.ItemEnchantment);
+                skills.Remove(Skill.CreatureEnchantment);
+                skills.Remove(Skill.Crossbow);
+                skills.Remove(Skill.Mace);
+                skills.Remove(Skill.Staff);
 
-                ValidSkills.Add(Skill.Axe);
-                ValidSkills.Add(Skill.Bow);
-                ValidSkills.Add(Skill.Crossbow);
-                ValidSkills.Add(Skill.Dagger);
-                ValidSkills.Add(Skill.Mace);
-                ValidSkills.Add(Skill.Spear);
-                ValidSkills.Add(Skill.Staff);
-                ValidSkills.Add(Skill.Sword);
-                ValidSkills.Add(Skill.ThrownWeapon);
-                ValidSkills.Add(Skill.UnarmedCombat);
-                ValidSkills.Add(Skill.Salvaging);
+                skills.Add(Skill.Axe);
+                skills.Add(Skill.Bow);
+                skills.Add(Skill.Crossbow);
+                skills.Add(Skill.Dagger);
+                skills.Add(Skill.Mace);
+                skills.Add(Skill.Spear);
+                skills.Add(Skill.Staff);
+                skills.Add(Skill.Sword);
+                skills.Add(Skill.ThrownWeapon);
+                skills.Add(Skill.UnarmedCombat);
+                skills.Add(Skill.Salvaging);
 
-                ValidSkills.Add(Skill.Awareness);
-                ValidSkills.Add(Skill.Appraise);
-                ValidSkills.Add(Skill.Armor);
-                ValidSkills.Add(Skill.Sneaking);
+                skills.Add(Skill.Awareness);
+                skills.Add(Skill.Appraise);
+                skills.Add(Skill.Armor);
+                skills.Add(Skill.Sneaking);
             }
+
+            return skills;
         }
 
-        public static HashSet<Skill> ValidSkills = new HashSet<Skill>
+        private static readonly Skill[] EoRSkills = new[]
         {
             Skill.MeleeDefense,
             Skill.MissileDefense,
@@ -341,6 +350,20 @@ namespace ACE.Entity.Enum
             Skill.DirtyFighting,
             Skill.Summoning
         };
+
+        /// <summary>
+        /// The valid skills of the ruleset this server runs, built once per server session
+        /// </summary>
+        public static HashSet<Skill> ValidSkills => validSkills.Value;
+
+        /// <summary>
+        /// The number of valid skills of the ruleset this server runs, counted once per server session
+        /// </summary>
+        public static int ValidSkillCount => validSkillCount.Value;
+
+        // lazy so that the server configuration is only read when the sets are first used
+        private static readonly Lazy<HashSet<Skill>> validSkills = new Lazy<HashSet<Skill>>(() => GetValidSkills(Common.ConfigManager.Config.Server.WorldRuleset));
+        private static readonly Lazy<int> validSkillCount = new Lazy<int>(() => validSkills.Value.Count);
 
         public static HashSet<Skill> AttackSkills = new HashSet<Skill>
         {

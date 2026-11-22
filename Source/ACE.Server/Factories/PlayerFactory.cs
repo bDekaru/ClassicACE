@@ -180,20 +180,18 @@ namespace ACE.Server.Factories
                 player.SetProperty(PropertyInt.AvailableSkillCredits, (int)heritageGroup.SkillCredits);
                 player.SetProperty(PropertyInt.TotalSkillCredits, (int)heritageGroup.SkillCredits);
 
+                int expectedClientSkillCount;
                 if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.EoR)
-                {
-                    if (characterCreateInfo.SkillAdvancementClasses.Count != 55)
-                        return CreateResult.ClientServerSkillsMismatch;
-                }
+                    expectedClientSkillCount = 55;
                 else if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                {
-                    if (characterCreateInfo.SkillAdvancementClasses.Count != (int)Skill.Sneaking + 1)
-                        return CreateResult.ClientServerSkillsMismatch;
-                }
+                    expectedClientSkillCount = (int)Skill.Sneaking + 1;
                 else
+                    expectedClientSkillCount = 41;
+
+                if (characterCreateInfo.SkillAdvancementClasses.Count != expectedClientSkillCount)
                 {
-                    if (characterCreateInfo.SkillAdvancementClasses.Count != 41)
-                        return CreateResult.ClientServerSkillsMismatch;
+                    log.Warn($"Character creation refused for account {accountId}: the client sent {characterCreateInfo.SkillAdvancementClasses.Count} skills, the {Common.ConfigManager.Config.Server.WorldRuleset} ruleset expects {expectedClientSkillCount} (the client's dat files do not match the server's).");
+                    return CreateResult.ClientServerSkillsMismatch;
                 }
 
                 var trainedSkills = new List<int>();

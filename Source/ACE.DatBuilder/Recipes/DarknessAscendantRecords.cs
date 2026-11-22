@@ -67,7 +67,7 @@ namespace ACE.DatBuilder
                     foreach (var hook in script.ScriptData.Select(d => d.Hook).OfType<CallPESHook>())
                         hook.Pause = pause;
 
-                    c.Write(id, script.Pack(), "script pause of the event");
+                    c.Write(id, script.Pack(), "script pause of the event", true);
                 }
             });
         }
@@ -123,7 +123,7 @@ namespace ACE.DatBuilder
                     }
                 }
 
-                c.Write(RegionRecords.RegionId, region.Pack(), "region with the sky of the event");
+                c.Write(RegionRecords.RegionId, region.Pack(), "region with the sky of the event", true);
             });
         }
     }

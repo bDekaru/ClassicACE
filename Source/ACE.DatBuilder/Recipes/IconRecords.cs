@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
+using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity.Enum;
 
@@ -30,8 +33,27 @@ namespace ACE.DatBuilder
                     var imageId = Convert.ToUInt32(icon.Image, 16);
                     var sourceId = Convert.ToUInt32(icon.Source, 16);
 
-                    c.Write(imageId, ConvertIcon(c.ReadSource(DatBuildRecipes.PreToDPortalDat, sourceId), imageId), $"icon from {sourceId:X8}");
+                    c.Write(imageId, ConvertIcon(c.ReadSource(DatBuildRecipes.PreToDPortalDat, sourceId), imageId), $"icon from {sourceId:X8}", true);
                 }
+            });
+        }
+
+        private const int IconSize = 32;
+
+        /// <summary>
+        /// The EoR icons (32x32 images) the dat does not hold yet, so Decal plugins that read item and spell icons from the dat by id do not draw a magenta box for items the 2005 dat predates.
+        /// Runs after the steps that write icons, so their records stay.
+        /// </summary>
+        public static DatRecordStep EoRStep(string date)
+        {
+            return new DatRecordStep("EoR icons the 2005 dat lacks", date, c =>
+            {
+                var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat));
+
+                var ids = eor.AllFiles.Keys.Where(id => id >> 24 == 0x06 && !c.Writer.Contains(id)).OrderBy(id => id)
+                    .Where(id => c.ReadSource<Texture>(DatBuildRecipes.PortalBaseDat, id) is { Width: IconSize, Height: IconSize }).ToList();
+
+                c.Write(ids.Select(id => new KeyValuePair<uint, byte[]>(id, c.ReadSource(DatBuildRecipes.PortalBaseDat, id))), "EoR icons", true);
             });
         }
 

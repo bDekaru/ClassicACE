@@ -80,7 +80,7 @@ namespace ACE.DatBuilder
                 region.SkyInfo.DayGroups.Clear();
                 region.SkyInfo.DayGroups.Add(group);
 
-                c.Write(RegionRecords.RegionId, region.Pack(), "region with the sky of the event");
+                c.Write(RegionRecords.RegionId, region.Pack(), "region with the sky of the event", true);
             });
         }
     }

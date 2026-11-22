@@ -44,6 +44,9 @@ namespace ACE.DatLoader
         /// <summary>The date of the step that last set the record, or 0 when no step has.</summary>
         public uint DateOf(uint id) => _dates.TryGetValue(id, out var date) ? date : 0;
 
+        /// <summary>Raised when a record's content changes (the new data) or a record is removed (null).</summary>
+        public event Action<uint, byte[]> Changed;
+
         public void Set(uint id, byte[] data)
         {
             var changed = !_records.TryGetValue(id, out var old) || !old.SequenceEqual(data);
@@ -58,15 +61,21 @@ namespace ACE.DatLoader
 
             if (IsCell(id))
                 IndexCell(id);
+
+            if (changed)
+                Changed?.Invoke(id, data);
         }
 
         public void Remove(uint id)
         {
-            _records.Remove(id);
+            var removed = _records.Remove(id);
             _dates.Remove(id);
 
             if (IsCell(id) && _cellsByLandblock.TryGetValue(LandblockOf(id), out var cells))
                 cells.Remove(id);
+
+            if (removed)
+                Changed?.Invoke(id, null);
         }
 
         /// <summary>Ids of the environment cells of one landblock (id prefix in the high 16 bits), ascending.</summary>
@@ -241,6 +250,9 @@ namespace ACE.DatLoader
             {
                 if (objects && cells)
                 {
+                    foreach (var id in _store.CellsOf(newLandblockId))
+                        _store.Remove(id);
+
                     _store.Remove(newInfoId);
                     return;
                 }

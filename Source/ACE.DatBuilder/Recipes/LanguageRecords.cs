@@ -74,7 +74,7 @@ namespace ACE.DatBuilder
                 var master = c.ReadSource<MasterProperty>(DatBuildRecipes.PortalBaseDat, DatLayoutEdits.MasterPropertyId);
                 var layout = DatLayoutEdits.Unpack(c.ReadTarget(ChargenHeritageUiId), master);
                 DatLayoutEdits.Apply(layout, DatRecipeData.Load<List<DatLayoutMediaEdit>>(ChargenHeritageUiFile));
-                c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout");
+                c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout", true);
             });
         }
 
@@ -86,7 +86,7 @@ namespace ACE.DatBuilder
                 var master = c.ReadSource<MasterProperty>(DatBuildRecipes.PortalBaseDat, DatLayoutEdits.MasterPropertyId);
                 var layout = DatLayoutEdits.Unpack(c.ReadTarget(ChargenHeritageUiId), master);
                 DatLayoutEdits.Move(layout, DatRecipeData.Load<List<DatLayoutMoveEdit>>(InfiltrationHeritageUiMovedFile));
-                c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout with the unused heritages out of sight");
+                c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout with the unused heritages out of sight", true);
             });
         }
 
@@ -96,7 +96,7 @@ namespace ACE.DatBuilder
             {
                 var table = c.ReadTarget<StringTable>(TextId);
                 DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(editsFile));
-                c.Write(TextId, table.Pack(), "vitae and gameplay mode texts");
+                c.Write(TextId, table.Pack(), "vitae and gameplay mode texts", true);
             });
         }
 
@@ -107,7 +107,7 @@ namespace ACE.DatBuilder
             {
                 var table = c.ReadTarget<StringTable>(TextStringsId);
                 DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(CustomDMOptionStringsFile));
-                c.Write(TextStringsId, table.Pack(), "borderless windowed and texture detail option texts");
+                c.Write(TextStringsId, table.Pack(), "borderless windowed and texture detail option texts", true);
             });
         }
 
@@ -117,7 +117,7 @@ namespace ACE.DatBuilder
             {
                 var table = c.ReadTarget<StringTable>(ChargenTextId);
                 DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(editsFile));
-                c.Write(ChargenTextId, table.Pack(), "character generation text");
+                c.Write(ChargenTextId, table.Pack(), "character generation text", true);
             });
         }
     }

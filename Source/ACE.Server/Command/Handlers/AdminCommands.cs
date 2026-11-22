@@ -3013,6 +3013,9 @@ namespace ACE.Server.Command.Handlers
             DatabaseManager.Shard.SaveBiota(session.Player.Biota, session.Player.BiotaDatabaseLock, result => DoGodMode(result, session));
         }
 
+        // GodState entries before the skills: 10 header/xp, 6 attributes x 4, 3 vitals x 5, and the empty entry after the trailing "="
+        private const int GodStateFixedLength = 50;
+
         private static void DoGodMode(bool playerSaved, Session session, bool exceptionReturn = false)
         {
             if (!playerSaved)
@@ -3079,30 +3082,25 @@ namespace ACE.Server.Command.Handlers
                     }
                 }
 
-                // need all skills
-                foreach (var kvp in biota.PropertiesSkill)
+                // need all skills of the ruleset
+                // a character's biota only has the skills that were touched so far, so missing ones are added (untrained) first
+                foreach (var skill in SkillHelper.ValidSkills.OrderBy(s => (int)s))
                 {
-                    var sk = kvp.Value;
+                    session.Player.GetCreatureSkill(skill);
 
-                    if (SkillHelper.ValidSkills.Contains(kvp.Key))
-                    {
-                        returnState += $"{(int)kvp.Key}=";
-                        returnState += $"{sk.LevelFromPP}=";
-                        returnState += $"{(uint)sk.SAC}=";
-                        returnState += $"{sk.PP}=";
-                        returnState += $"{sk.InitLevel}=";
-                    }
+                    var sk = biota.PropertiesSkill[skill];
+
+                    returnState += $"{(int)skill}=";
+                    returnState += $"{sk.LevelFromPP}=";
+                    returnState += $"{(uint)sk.SAC}=";
+                    returnState += $"{sk.PP}=";
+                    returnState += $"{sk.InitLevel}=";
                 }
 
-                int correctLength = 240;
-                if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                    correctLength = 205;
-                else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
-                    correctLength = 230;
-
                 // Check string is correctly formatted before altering stats
-                // correctly formatted return string should have 240 entries
-                // if the construction of the string changes - this will need to be updated to match
+                // the expected length comes from the server's skill count for the ruleset, never from the character or the client
+                // if the construction of the string changes - GodStateFixedLength will need to be updated to match
+                var correctLength = GodStateFixedLength + 5 * SkillHelper.ValidSkillCount;
                 if (returnState.Split("=").Length != correctLength)
                 {
                     ChatPacket.SendServerMessage(session, "Godmode is not available at this time.", ChatMessageType.Broadcast);
@@ -3193,14 +3191,9 @@ namespace ACE.Server.Command.Handlers
                 {
                     string[] returnStringArr = returnString.Split("=");
 
-                    int correctLength = 240;
-                    if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
-                        correctLength = 205;
-                    else if (Common.ConfigManager.Config.Server.WorldRuleset <= Common.Ruleset.Infiltration)
-                        correctLength = 230;
-
-                    // correctly formatted return string should have 240 entries
-                    // if the construction of the string changes - this will need to be updated to match
+                    // correctly formatted return string has the fixed part followed by 5 entries per skill of the ruleset
+                    // if the construction of the string changes - GodStateFixedLength will need to be updated to match
+                    var correctLength = GodStateFixedLength + 5 * SkillHelper.ValidSkillCount;
                     if (returnStringArr.Length != correctLength)
                     {
                         Console.WriteLine($"The returnString was not set to the correct length while {currentPlayer.Name} was attempting to return to normal from godmode.");

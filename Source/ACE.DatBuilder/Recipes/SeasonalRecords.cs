@@ -85,7 +85,7 @@ namespace ACE.DatBuilder
                     var imageId = c.ReadTarget<SurfaceTexture>(id).Textures[0];
                     var image = DatPortalImporter.ConvertImage(c.ReadSource(dat, id), imageId, palette => c.ReadSource(dat, palette), out var width, out var height, out _, clipMap.Contains(id));
 
-                    c.Write(imageId, image, $"foliage texture {id:X8} ({width}x{height}) from {(own.Contains(id) ? chosen.Name : Fall)}");
+                    c.Write(imageId, image, $"foliage texture {id:X8} ({width}x{height}) from {(own.Contains(id) ? chosen.Name : Fall)}", true);
                 }
 
                 var ground = (chosen?.Ground ?? new Dictionary<string, string>()).ToDictionary(g => uint.Parse(g.Key), g => Convert.ToUInt32(g.Value, 16));
@@ -109,7 +109,7 @@ namespace ACE.DatBuilder
                     region.SceneInfo.SceneTypes[index].Scenes.AddRange(scenes.TryGetValue(index, out var list) ? list : source.SceneInfo.SceneTypes[index].Scenes);
                 }
 
-                c.Write(GroundTextureRecords.RegionId, region.Pack(), $"region ground and scenes of {chosen?.Name ?? Fall}");
+                c.Write(GroundTextureRecords.RegionId, region.Pack(), $"region ground and scenes of {chosen?.Name ?? Fall}", true);
                 GroundTextureRecords.RegionStep(c.Step.Date).Run(c);
             });
         }

@@ -44,7 +44,7 @@ namespace ACE.DatBuilder
                 foreach (var group in region.SkyInfo.DayGroups)
                     AddCover(group);
 
-                c.Write(RegionRecords.RegionId, region.Pack(), "region with the moon overlay");
+                c.Write(RegionRecords.RegionId, region.Pack(), "region with the moon overlay", true);
             });
         }
 

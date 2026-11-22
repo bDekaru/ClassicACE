@@ -1075,7 +1075,7 @@ namespace ACE.DatLoader.Tests
 
             Assert.AreEqual(32, records.Count);
 
-            var scene = DatRecordContext.Unpack<Scene>(records.Single(record => record.Key == 0x1200025B).Value);
+            var scene = DatRecordContext.Unpack<Scene>(records.Single(record => record.Key == 0x1200725B).Value);
 
             Assert.IsTrue(scene.Objects.All(o => o.Freq == 0.25f));
         }
@@ -1141,7 +1141,7 @@ namespace ACE.DatLoader.Tests
             var packed = region.Pack();
 
             Assert.AreEqual(original.Pack().Length + 4, packed.Length);
-            CollectionAssert.AreEqual(new uint[] { 0x1200025B }, DatRecordContext.Unpack<RegionDesc>(packed).SceneInfo.SceneTypes[60].Scenes);
+            CollectionAssert.AreEqual(new uint[] { 0x1200725B }, DatRecordContext.Unpack<RegionDesc>(packed).SceneInfo.SceneTypes[60].Scenes);
         }
 
         [TestMethod]

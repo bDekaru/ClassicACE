@@ -37,14 +37,14 @@ namespace ACE.DatBuilder
         {
             return new[]
             {
-                new DatRecordStep("XP table from the 2005 dat", date, c => c.Write(XpTableId, XpTable.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, XpTableId)).Pack(), "XP table")),
+                new DatRecordStep("XP table from the 2005 dat", date, c => c.Write(XpTableId, XpTable.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, XpTableId)).Pack(), "XP table", true)),
                 new DatRecordStep("Skill table from the 2005 dat", date, SkillTableFromPreToD),
                 ChargenFromEoR(date, ChargenEditsFile),
                 new DatRecordStep("Spell table from the EoR record", date, c =>
                 {
                     var spells = c.ReadTarget<SpellTable>(SpellTableId);
                     DatSpellEdits.Apply(spells, DatRecipeData.Load<List<Dictionary<string, JsonElement>>>(SpellEditsFile));
-                    c.Write(SpellTableId, spells.Pack(), "spell table");
+                    c.Write(SpellTableId, spells.Pack(), "spell table", true);
                 })
             };
         }
@@ -52,7 +52,7 @@ namespace ACE.DatBuilder
         /// <summary>The in-game map of the pre-ToD look; the same record in the CustomDM and Infiltration rulesets.</summary>
         public static DatRecordStep MapFromPreToD(string date)
         {
-            return new DatRecordStep("In-game map from the 2005 dat", date, c => c.Write(MapId, Texture.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, MapId)).Pack(), "in-game map"));
+            return new DatRecordStep("In-game map from the 2005 dat", date, c => c.Write(MapId, Texture.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, MapId)).Pack(), "in-game map", true));
         }
 
         public static DatRecordStep ChargenFromEoR(string date, string editsFile)
@@ -61,7 +61,7 @@ namespace ACE.DatBuilder
             {
                 var chargen = c.ReadTarget<CharGen>(ChargenId);
                 DatRecipeData.Load<DatChargenEdits>(editsFile).Apply(chargen);
-                c.Write(ChargenId, chargen.Pack(), "character generation");
+                c.Write(ChargenId, chargen.Pack(), "character generation", true);
             });
         }
 
@@ -77,7 +77,7 @@ namespace ACE.DatBuilder
                 formula.Attr1 = 6;
             }
 
-            context.Write(SkillTableId, skills.Pack(), "skill table");
+            context.Write(SkillTableId, skills.Pack(), "skill table", true);
         }
     }
 }

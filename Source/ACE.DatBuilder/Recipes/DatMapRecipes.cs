@@ -17,6 +17,7 @@ namespace ACE.DatBuilder
         ObsidianSpan,
         ToD,
         EoR,
+        Admin2005,
     }
 
     /// <summary>
@@ -42,6 +43,8 @@ namespace ACE.DatBuilder
             [DatMapSource.ToD] = ("cell - 2005-06-02 - Iteration 4 - 100% - Throne of Destiny.dat", false),
             // MD5 6401b73fd3842ffdb953339522a7331a
             [DatMapSource.EoR] = ("cell - 2016-12-23 - Iteration 982 - 100% - EoR.dat", false),
+            // The cell dat the destination is converted from (MD5 0f32588ffbf648cd0695a4dbd6488205), for edits that put a 2005 building back.
+            [DatMapSource.Admin2005] = (DatBuildRecipes.PreToDCellDat, true),
         };
 
         private readonly string _sourceDats;
@@ -96,7 +99,8 @@ namespace ACE.DatBuilder
 
         private static (ushort TopLeft, ushort BottomRight, ushort NewTopLeft) Rect(ushort topLeft, ushort bottomRight, ushort newTopLeft = 0) => (topLeft, bottomRight, newTopLeft);
 
-        public static void CustomDM(DatMapEditor map, DatMapSources sources)
+        /// <param name="portalIs2005">The portal dat is the 2005 one, so the 856E tent and the Olthoi dungeon (66790000) come from the 2005 cell dat instead of the ToD and EoR ones, whose surface ids the portal lacks.</param>
+        public static void CustomDM(DatMapEditor map, DatMapSources sources, bool portalIs2005 = false)
         {
             var release = sources.Get(DatMapSource.Release);
             var arwic = sources.Get(DatMapSource.Arwic);
@@ -123,7 +127,7 @@ namespace ACE.DatBuilder
             // Tufa
             map.ReplaceLandblocks(new uint[] { 0x866D000B, 0x866E0011, 0x856D003C, 0x856E0031, 0x856C001C, 0x876E0032, 0x856F0015 }, tufa);
             map.ReplaceLandblocks(new uint[] { 0x846E0012, 0x846D0018, 0x836D0040, 0x836E0039 }, release);
-            map.AddBuilding(0x856E010E, tod);
+            map.AddBuilding(0x856E010E, portalIs2005 ? sources.Get(DatMapSource.Admin2005) : tod);
 
             // Eastham shadow spire crater
             map.ReplaceLandblock(0xCD95002F, release);
@@ -266,7 +270,8 @@ namespace ACE.DatBuilder
                 0x1D120000, 0x1D130000, 0x1D140000, 0x1D150000, 0x1E130000, 0x1E140000, 0x1A140000, 0x1A120040,
             }, obsidianSpan);
 
-            map.ReplaceLandblock(0x66790000, eor);
+            // The Olthoi dungeon: the Arwic island rectangle 5C80-6F57 above removes its landblock info, so it is put back. The EoR record differs from the 2005 one only in surface ids.
+            map.ReplaceLandblock(0x66790000, portalIs2005 ? sources.Get(DatMapSource.Admin2005) : eor);
         }
     }
 }

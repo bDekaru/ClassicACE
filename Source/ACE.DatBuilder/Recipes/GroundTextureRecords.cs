@@ -43,7 +43,7 @@ namespace ACE.DatBuilder
             var image = DatPortalImporter.ConvertImage(c.ReadSource(DatBuildRecipes.PreToDPortalDat, sourceId), imageId, id => c.ReadSource(DatBuildRecipes.PreToDPortalDat, id), out var width, out var height, out _);
             var existing = c.Writer.Read(imageId);
 
-            c.Write(imageId, ToTerrainFormat(image, existing != null ? BitConverter.ToUInt32(existing, 4) : DefaultHeaderValue), $"ground texture from {sourceId:X8} ({width}x{height})");
+            c.Write(imageId, ToTerrainFormat(image, existing != null ? BitConverter.ToUInt32(existing, 4) : DefaultHeaderValue), $"ground texture from {sourceId:X8} ({width}x{height})", true);
         }
 
         /// <summary>Points each ground surface texture at the image the ground texture step writes for it: the surface textures of a 2005 base still refer to the 2005 images, which are 24-bit.</summary>
@@ -56,7 +56,7 @@ namespace ACE.DatBuilder
                     var id = Convert.ToUInt32(texture.Source, 16);
                     var imageId = Convert.ToUInt32(texture.Image, 16);
 
-                    c.Write(id, SurfaceTexture.Create(id, imageId).Pack(), $"surface texture for texture {imageId:X8}");
+                    c.Write(id, SurfaceTexture.Create(id, imageId).Pack(), $"surface texture for texture {imageId:X8}", true);
                 }
             });
         }
@@ -90,7 +90,7 @@ namespace ACE.DatBuilder
                     description.TerrainTex.TexTiling = BaseTexSize / width;
                 }
 
-                c.Write(RegionId, region.Pack(), $"region merge size {BaseTexSize}");
+                c.Write(RegionId, region.Pack(), $"region merge size {BaseTexSize}", true);
             });
         }
 

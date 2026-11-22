@@ -27,7 +27,7 @@ namespace ACE.DatBuilder
 
         private const uint CoverSurface = 0x08007085;
         private const uint CoverSurfaceTexture = 0x05007085;
-        private const uint CoverTexture = 0x06007085;
+        private const uint CoverTexture = 0x06009F01;
         private const uint CoverPalette = 0x04007085;
 
         /// <summary>The red bubbles the event dat gives the golem emitter (010016C0 of that dat), as the kit writes them.</summary>
@@ -80,7 +80,7 @@ namespace ACE.DatBuilder
                 {
                     var emitter = c.ReadTarget<ParticleEmitterInfo>(id);
                     emitter.HwGfxObjId = RedBubbles;
-                    c.Write(id, emitter.Pack(), "water golem bubbles made red");
+                    c.Write(id, emitter.Pack(), "water golem bubbles made red", true);
                 }
             });
         }

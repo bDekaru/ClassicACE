@@ -311,12 +311,20 @@ namespace ACE.DatBuilder
             .WithOutputFolder("Infiltration2005")
             .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate).Concat(InfiltrationRecords.Tables(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).ToArray());
 
-        public static readonly DatBuildRecipe[] Alternatives = { PortalInfiltration2005 };
+        /// <summary>The CustomDM counterpart of <see cref="PortalInfiltration2005"/>: the 2005 look everywhere, with only the CustomDM additions that have no 2005 record laid over it.</summary>
+        public static readonly DatBuildRecipe PortalCustomDM2005 = new DatBuildRecipe("Portal CustomDM 2005", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
+            Initial("Portal/CustomDM"))
+            .WithEmptyBase()
+            .WithOutputFolder("CustomDM2005")
+            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate, CustomDMRecords.EoRRecordsFile, CustomDMRecords.MapEoRRecordsFile).Append(InfiltrationRecords.ChargenFromEoR(InitialVersionDate, CustomDMRecords.ChargenEditsFile)).Concat(CustomDMRecords.AdditionsTo2005(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).ToArray())
+            .WithTables(InitialVersionDate);
+
+        public static readonly DatBuildRecipe[] Alternatives = { PortalInfiltration2005, PortalCustomDM2005 };
 
         public const string PreToDCellDat = "cell - 2005-02-XX - Iteration 1593 - 100% - Admin.dat";
         public const string ToDCellDat = "cell - 2005-06-02 - Iteration 4 - 100% - Throne of Destiny.dat";
 
-        public static readonly DatCellBuildRecipe CellCustomDM = new DatCellBuildRecipe("Cell CustomDM", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM, PreToDSurfaceMap, DatReleases.CustomDMCell, InitialVersionDate, DatMapRecipes.CustomDM);
+        public static readonly DatCellBuildRecipe CellCustomDM = new DatCellBuildRecipe("Cell CustomDM", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM, PreToDSurfaceMap, DatReleases.CustomDMCell, InitialVersionDate, (map, sources) => DatMapRecipes.CustomDM(map, sources));
 
         public static readonly DatCellBuildRecipe CellInfiltration = new DatCellBuildRecipe("Cell Infiltration", "Infiltration", PreToDCellDat, ToDCellDat, PortalInfiltration, PreToDSurfaceMap, DatReleases.InfiltrationCell, InitialVersionDate);
 
@@ -324,7 +332,11 @@ namespace ACE.DatBuilder
             .WithIdentitySurfaces()
             .WithOutputFolder("Infiltration2005");
 
-        public static readonly DatCellBuildRecipe[] AlternativeCells = { CellInfiltration2005 };
+        public static readonly DatCellBuildRecipe CellCustomDM2005 = new DatCellBuildRecipe("Cell CustomDM 2005", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM2005, PreToDSurfaceMap, DatReleases.CustomDMCell, InitialVersionDate, (map, sources) => DatMapRecipes.CustomDM(map, sources, true))
+            .WithIdentitySurfaces()
+            .WithOutputFolder("CustomDM2005");
+
+        public static readonly DatCellBuildRecipe[] AlternativeCells = { CellInfiltration2005, CellCustomDM2005 };
 
         /// <summary>Cell recipes need their ruleset's portal dat built first.</summary>
         public static readonly DatCellBuildRecipe[] AllCells = { CellCustomDM, CellInfiltration };

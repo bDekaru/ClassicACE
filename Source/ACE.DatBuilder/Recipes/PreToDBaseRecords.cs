@@ -29,9 +29,10 @@ namespace ACE.DatBuilder
         private const uint RegionId = 0x13000000;
         public const uint HardwareRegionId = 0x130F0000;
 
-        public static DatRecordStep[] All(string date)
+        /// <param name="rulesetEoRRecordsFiles">The EoR-only records the ruleset's world needs besides those of <see cref="EoRRecordsFile"/>.</param>
+        public static DatRecordStep[] All(string date, params string[] rulesetEoRRecordsFiles)
         {
-            return new[] { ConvertedBase(date), FromEoR(date), UiImages(date), PreToDUiPictures(date), Region(date), MoonRecords.Overlay(date), ChargenFaces(date) };
+            return new[] { ConvertedBase(date), FromEoR(date, rulesetEoRRecordsFiles), UiImages(date), PreToDUiPictures(date), Region(date), MoonRecords.Overlay(date), ChargenFaces(date) };
         }
 
         /// <summary>
@@ -52,7 +53,7 @@ namespace ACE.DatBuilder
                     foreach (var sex in heritage.Value.Genders)
                         chargen.HeritageGroups[heritage.Key].Genders[sex.Key].TakeFaceFrom(sex.Value);
 
-                c.Write(CharGenId, chargen.Pack(), "character generation faces");
+                c.Write(CharGenId, chargen.Pack(), "character generation faces", true);
 
                 foreach (var sex in preToD.HeritageGroups.Values.SelectMany(h => h.Genders.Values).GroupBy(s => s.SetupID).Select(g => g.First()))
                 {
@@ -61,7 +62,7 @@ namespace ACE.DatBuilder
                     foreach (var change in sex.BaseObjDesc.AnimPartChanges)
                         setup.Parts[change.PartIndex] = change.PartID;
 
-                    c.Write(sex.SetupID, setup.Pack(), "setup with the 2005 base body models");
+                    c.Write(sex.SetupID, setup.Pack(), "setup with the 2005 base body models", true);
                 }
             });
         }
@@ -142,7 +143,7 @@ namespace ACE.DatBuilder
                 foreach (var description in eor.TerrainInfo.LandSurfaces.TexMerge.TerrainDesc.Where(t => !known.Contains(t.TerrainType)))
                     merge.TerrainDesc.Add(description);
 
-                c.Write(RegionId, region.Pack(), $"region from {HardwareRegionId:X8} (sky properties and region number from EoR, terrain types added: {string.Join(",", added)})");
+                c.Write(RegionId, region.Pack(), $"region from {HardwareRegionId:X8} (sky properties and region number from EoR, terrain types added: {string.Join(",", added)})", true);
             });
         }
 
@@ -159,7 +160,7 @@ namespace ACE.DatBuilder
 
                 var converter = new DatPreToDPortalConverter(new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat)), firstImageId, basePalettes);
 
-                c.Write(converter.Convert(), "converted pre-ToD records");
+                c.Write(converter.Convert(), "converted pre-ToD records", true);
 
                 if (converter.Failures.Count > 0)
                     throw new InvalidDataException($"{converter.Failures.Count} pre-ToD records did not convert, the first: {converter.Failures[0]}");
@@ -169,13 +170,13 @@ namespace ACE.DatBuilder
         }
 
         /// <summary>The EoR records the pre-ToD records do not cover (the id list is recipe data) and the EoR tables; an id the converted base already holds keeps the pre-ToD record.</summary>
-        private static DatRecordStep FromEoR(string date)
+        private static DatRecordStep FromEoR(string date, string[] rulesetEoRRecordsFiles)
         {
             return new DatRecordStep("EoR records the pre-ToD dat lacks", date, c =>
             {
                 var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat));
 
-                var listed = DatRecipeData.Load<List<string>>(EoRRecordsFile).Select(s => System.Convert.ToUInt32(s, 16))
+                var listed = DatRecipeData.Load<List<string>>(EoRRecordsFile).Concat(rulesetEoRRecordsFiles.SelectMany(DatRecipeData.Load<List<string>>)).Select(s => System.Convert.ToUInt32(s, 16))
                     .Concat(eor.AllFiles.Keys.Where(k => EoRTypes.Contains(k >> 24))).ToHashSet();
 
                 // What the client reaches through the master map (the header's MasterMapID): every id an EoR DID mapper holds, and the images of every font the dat gets (a font whose images are missing
@@ -194,7 +195,7 @@ namespace ACE.DatBuilder
 
                 var ids = listed.Union(mapped).Where(id => !c.Writer.Contains(id)).OrderBy(id => id).ToList();
 
-                c.Write(ids.Select(id => new KeyValuePair<uint, byte[]>(id, c.ReadSource(DatBuildRecipes.PortalBaseDat, id))), "EoR records");
+                c.Write(ids.Select(id => new KeyValuePair<uint, byte[]>(id, c.ReadSource(DatBuildRecipes.PortalBaseDat, id))), "EoR records", true);
                 c.Log.Add($"{mapped.Count(id => !listed.Contains(id) && ids.Contains(id)):N0} of them reached only through the EoR DID mappers");
             });
         }
@@ -210,7 +211,7 @@ namespace ACE.DatBuilder
                 var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat));
                 var pre = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat));
 
-                c.Write(eor.AllFiles.Keys.Where(k => k >> 24 == 0x06 && pre.AllFiles.ContainsKey(k)).OrderBy(k => k).Select(id => new KeyValuePair<uint, byte[]>(id, c.ReadSource(DatBuildRecipes.PortalBaseDat, id))), "EoR images of the UI");
+                c.Write(eor.AllFiles.Keys.Where(k => k >> 24 == 0x06 && pre.AllFiles.ContainsKey(k)).OrderBy(k => k).Select(id => new KeyValuePair<uint, byte[]>(id, c.ReadSource(DatBuildRecipes.PortalBaseDat, id))), "EoR images of the UI", true);
             });
         }
 
@@ -222,7 +223,7 @@ namespace ACE.DatBuilder
             return new DatRecordStep("UI pictures from the 2005 dat", date, c =>
             {
                 foreach (var id in PreToDUiImages)
-                    c.Write(id, Texture.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, id)).Pack(), "2005 UI picture");
+                    c.Write(id, Texture.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, id)).Pack(), "2005 UI picture", true);
             });
         }
 

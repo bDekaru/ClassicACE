@@ -16,12 +16,14 @@ namespace ACE.DatBuilder
         private const int AuditFailure = 2;
 
         private const string Usage =
-@"ACE.DatBuilder build <recipe|all> [--source <folder>] [--custom <folder>] [--out <folder>] [--force] [--config <Config.js>] [--world-db <name>]
+@"ACE.DatBuilder build <recipe|all> [--source <folder>] [--custom <folder>] [--out <folder>] [--force] [--trace-map] [--skip-step <name>]... [--config <Config.js>] [--world-db <name>]
 ACE.DatBuilder apply-tables <portal or language recipe> --config <Config.js> [--world-db <name>] [--dat <built portal dat> | --out <folder> | --source <folder>]
 ACE.DatBuilder export-tables --dat <portal dat> [--language <language dat>] --out <sql file>
 ACE.DatBuilder list
 ACE.DatBuilder audit <dat>
 ACE.DatBuilder compare-cell <first cell dat> <second cell dat> [landblocks to list]
+ACE.DatBuilder compare-portal <first portal dat> <second portal dat>
+ACE.DatBuilder check-references <portal dat> [--cell <cell dat>] [--highres <high-res dat>] [--language <language dat>] [--config <Config.js> [--world-db <name>]] [--listed <recipe data file>]...
 ACE.DatBuilder convert-portal --from <pre-ToD portal dat> --target <ToD/EoR portal dat> --map <surface map tsv> --out <folder> [--ids <id,first-last,...>] [--surfaces <surface ids>]
 ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --map <surface map tsv> --out <new dat> [--portal <target portal dat>]
 
@@ -31,6 +33,9 @@ ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --map <surface map tsv> --
   --custom  folder with the custom files (default: <source>/Custom Files)
   --out     output root; each recipe writes to <out>/<ruleset>/<name>.dat (default: <source>/../Build)
   --force   replace an existing output dat
+  --skip-step  build without the record step of that name (repeatable; the names are listed by 'list'), to find out what the step contributes: build into another --out and run compare-portal against the full build
+  check-references reports the ids that the portal dat, the cell dat and the world database refer to and nothing provides, the portal records that none of them reaches by type, and which entries of the --listed id lists (for example customdm-eor-records.json) are not reachable and so unneeded.
+  --trace-map  for a cell recipe with map edits: also report, per recipe source line, the records it changed and the ones it still owns at the end (0 = overridden, reverted or without effect), and write <name>.trace.txt
   --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP, skill, vital, character generation and spell tables) of a recipe that has them; without it the records from the custom files are kept
   --world-db  the world database to read instead of the one named in the Config.js
   --event  for the recipes that start from the 2005 dat: add the event kit (daralet: the Child of Daralet records, red water golem and Region; darkness: Darkness Ascendant, the winged figure, red sun, sulfur clouds and swollen moons; fireinthesky: Fire in the Sky, the comet, orange clouds, red dome and short fog in a single forced day group) dated --event-date <yyyy-mm-dd>, the date the step is added (steps run in date order)
@@ -56,6 +61,8 @@ The source folder is only read. Each build is made in a temporary file and moved
                     case "list": return List();
                     case "audit": return Audit(args);
                     case "compare-cell": return CompareCell(args);
+                    case "compare-portal": return ComparePortal(args);
+                    case "check-references": return CheckReferences(args);
                     case "convert-cell": return ConvertCell(args);
                     case "convert-portal": return ConvertPortal(args);
                     case "build": return Build(args);
@@ -82,7 +89,12 @@ The source folder is only read. Each build is made in a temporary file and moved
         private static int List()
         {
             foreach (var recipe in DatBuildRecipes.All.Concat(DatBuildRecipes.Alternatives))
+            {
                 Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Folders.Length} folder(s) -> {recipe.OutputFolder ?? recipe.Ruleset}/{recipe.OutputFileName}");
+
+                foreach (var step in recipe.RecordSteps)
+                    Console.WriteLine($"    record step: {step.Name}");
+            }
 
             foreach (var recipe in DatBuildRecipes.AllCells)
                 Console.WriteLine($"{recipe.Key,-24} {recipe.RetailCellDat} converted against {recipe.Portal.Key} -> {recipe.Ruleset}/{recipe.OutputFileName}");
@@ -137,14 +149,34 @@ The source folder is only read. Each build is made in a temporary file and moved
             if (args.Length == 4 && !int.TryParse(args[3], out listCount))
                 throw new ArgumentException($"Not a number of landblocks: {args[3]}");
 
-            var first = new DatDatabase(args[1], true);
-            var second = new DatDatabase(args[2], true);
             var changesByLandblock = new Dictionary<uint, List<string>>();
+
+            CompareRecords(new DatDatabase(args[1], true), new DatDatabase(args[2], true), RecordKind, (id, change) =>
+            {
+                var landblock = id & 0xFFFF0000;
+
+                if (!changesByLandblock.TryGetValue(landblock, out var changes))
+                    changesByLandblock[landblock] = changes = new List<string>();
+
+                changes.Add($"{id:X8} {change}");
+            });
+
+            Console.WriteLine($"{changesByLandblock.Count} landblock(s) with at least one difference");
+
+            foreach (var entry in changesByLandblock.Take(listCount))
+                Console.WriteLine($"  {entry.Key >> 16:X4}: {entry.Value.Count} record(s), e.g. {string.Join("; ", entry.Value.Take(3))}");
+
+            return Ok;
+        }
+
+        /// <summary>Compares the record sets of two dats by id and content, prints identical/different/only-in-one counts per kind and calls onDifference for every record that is not identical.</summary>
+        private static void CompareRecords(DatDatabase first, DatDatabase second, Func<uint, string> kindOf, Action<uint, string> onDifference)
+        {
             var countsByKind = new SortedDictionary<string, KindCounts>();
 
             foreach (var id in first.AllFiles.Keys.Union(second.AllFiles.Keys).OrderBy(k => k))
             {
-                var kind = RecordKind(id);
+                var kind = kindOf(id);
 
                 if (!countsByKind.TryGetValue(kind, out var counts))
                     countsByKind[kind] = counts = new KindCounts();
@@ -175,21 +207,50 @@ The source folder is only read. Each build is made in a temporary file and moved
                     change = "only in second";
                 }
 
-                var landblock = id & 0xFFFF0000;
-
-                if (!changesByLandblock.TryGetValue(landblock, out var changes))
-                    changesByLandblock[landblock] = changes = new List<string>();
-
-                changes.Add($"{id:X8} {change}");
+                onDifference(id, change);
             }
 
             foreach (var entry in countsByKind)
                 Console.WriteLine($"{entry.Key,-15} identical {entry.Value.Identical}, different {entry.Value.Different}, only in first {entry.Value.OnlyInFirst}, only in second {entry.Value.OnlyInSecond}");
+        }
 
-            Console.WriteLine($"{changesByLandblock.Count} landblock(s) with at least one difference");
+        private static int CheckReferences(string[] args)
+        {
+            var line = CommandLine.Parse(args, new[] { "--cell", "--highres", "--language", "--config", "--world-db", "--listed" }, allowPositional: true);
 
-            foreach (var entry in changesByLandblock.Take(listCount))
-                Console.WriteLine($"  {entry.Key >> 16:X4}: {entry.Value.Count} record(s), e.g. {string.Join("; ", entry.Value.Take(3))}");
+            var portal = line.Positional ?? throw new ArgumentException("check-references needs a portal dat.");
+            var config = line.Value("--config");
+
+            if (line.Value("--world-db") != null && config == null)
+                throw new ArgumentException("--world-db needs --config <Config.js>.");
+
+            foreach (var path in new[] { portal, line.Value("--cell"), line.Value("--highres"), line.Value("--language") }.Where(p => p != null))
+                RequireFile(path, "Dat");
+
+            var worldIds = config != null ? new WorldDatTableSource(config, line.Value("--world-db")).ReadDatIds() : null;
+            var listed = line.Values("--listed").ToDictionary(name => name, name => DatRecipeData.Load<List<string>>(name).Select(id => Convert.ToUInt32(id, 16)).ToList());
+
+            Console.Write(DatReferenceChecker.Run(portal, line.Value("--cell"), line.Value("--highres"), line.Value("--language"), worldIds, listed));
+
+            return Ok;
+        }
+
+        private static int ComparePortal(string[] args)
+        {
+            if (args.Length != 3)
+                throw new ArgumentException("compare-portal takes two dat paths.");
+
+            RequireFile(args[1], "Dat");
+            RequireFile(args[2], "Dat");
+
+            var differences = new List<string>();
+
+            CompareRecords(new DatDatabase(args[1], true), new DatDatabase(args[2], true), id => $"type {id >> 24:X2}", (id, change) => differences.Add($"{id:X8} {change}"));
+
+            Console.WriteLine($"{differences.Count} record(s) not identical");
+
+            foreach (var difference in differences)
+                Console.WriteLine($"  {difference}");
 
             return Ok;
         }
@@ -259,7 +320,7 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int Build(string[] args)
         {
-            var line = CommandLine.Parse(args, new[] { "--source", "--custom", "--out", "--config", "--world-db", "--season", "--season-date", "--event", "--event-date" }, new[] { "--force" }, allowPositional: true);
+            var line = CommandLine.Parse(args, new[] { "--source", "--custom", "--out", "--config", "--world-db", "--season", "--season-date", "--event", "--event-date", "--skip-step" }, new[] { "--force", "--trace-map" }, allowPositional: true);
 
             var selector = line.Positional;
             var config = line.Value("--config");
@@ -321,9 +382,31 @@ The source folder is only read. Each build is made in a temporary file and moved
                     recipe.WithRecordSteps(recipe.RecordSteps.Append(SeasonalRecords.Step(season, date)).ToArray());
             }
 
+            var skipped = line.Values("--skip-step");
+
+            foreach (var name in skipped.Where(n => !recipes.Any(r => r.RecordSteps.Any(s => s.Name == n))))
+                throw new ArgumentException($"No record step '{name}' in the selected recipes (see: list).");
+
+            foreach (var recipe in recipes)
+                recipe.WithRecordSteps(recipe.RecordSteps.Where(s => !skipped.Contains(s.Name)).ToArray());
+
             Directory.CreateDirectory(outRoot);
 
             var tables = config != null ? new WorldDatTableSource(config, line.Value("--world-db")) : null;
+
+            // A dat built for one ruleset with the config of another (or without the CustomDM tables) loads in the server but has the wrong spells, skills and XP.
+            if (tables != null)
+            {
+                Console.WriteLine($"Config: ruleset {tables.Ruleset}, world database {tables.Description}");
+
+                var foreign = recipes.Select(r => (r.Name, r.Ruleset)).Concat(cellRecipes.Select(r => (r.Name, r.Ruleset))).Where(r => r.Ruleset != tables.Ruleset).ToList();
+
+                if (foreign.Count > 0)
+                    throw new ArgumentException($"The config is for the {tables.Ruleset} ruleset but {string.Join(", ", foreign.Select(r => $"{r.Name} ({r.Ruleset})"))} is not: build each ruleset with its own --config.");
+            }
+
+            foreach (var recipe in recipes.Where(r => r.TablesDate != null && r.Ruleset == "CustomDM" && tables == null))
+                throw new ArgumentException($"{recipe.Name} needs the dat tables of the CustomDM world database: pass --config <CustomDM Config.js>.");
 
             foreach (var recipe in recipes)
             {
@@ -335,11 +418,14 @@ The source folder is only read. Each build is made in a temporary file and moved
                 if (readsTables)
                     Console.WriteLine($"  dat tables read from {tables.Description}");
 
+                if (readsTables && result.Tables.Skipped && recipe.Ruleset == "CustomDM")
+                    throw new ArgumentException($"{tables.Description} has no dat tables, so the {recipe.Name} dat just written lacks the CustomDM spells and skills: delete it and use the CustomDM world database.");
+
                 Console.Write(result.ToText(10));
 
                 var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
 
-                File.WriteAllText(stem + ".report.txt", result.ToText());
+                File.WriteAllText(stem + ".report.txt", ReportStamp(recipe.Ruleset, readsTables ? tables.Description : null) + result.ToText());
 
                 if (result.Import != null)
                 {
@@ -355,10 +441,22 @@ The source folder is only read. Each build is made in a temporary file and moved
             {
                 Console.WriteLine($"Building {recipe.Name} ...");
 
-                var result = DatCellBuildRunner.Build(recipe, source, outRoot, force);
+                var portalReport = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.Portal.OutputFileName) + ".report.txt";
+
+                if (!File.Exists(portalReport) || !File.ReadLines(portalReport).First().StartsWith($"Built for ruleset {recipe.Ruleset},"))
+                    throw new ArgumentException($"The report of {recipe.Portal.Name} ({portalReport}) is missing or not stamped for the {recipe.Ruleset} ruleset: build the portal first.");
+
+                var result = DatCellBuildRunner.Build(recipe, source, outRoot, force, line.Flag("--trace-map") ? new DatMapTrace() : null);
+                var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
 
                 Console.Write(result.ToText());
-                File.WriteAllText(ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName) + ".report.txt", result.ToText());
+                File.WriteAllText(stem + ".report.txt", ReportStamp(recipe.Ruleset, null) + result.ToText());
+
+                if (result.MapTrace != null)
+                {
+                    Console.Write(result.MapTrace);
+                    File.WriteAllText(stem + ".trace.txt", result.MapTrace);
+                }
             }
 
             return Ok;
@@ -512,6 +610,9 @@ The source folder is only read. Each build is made in a temporary file and moved
         }
 
         /// <summary>The path of a recipe's output dat without its extension, the start of the names of its report files.</summary>
+        /// <summary>First line of a build report: which ruleset the dat is for and which database its dat tables came from. A cell build checks its portal's.</summary>
+        private static string ReportStamp(string ruleset, string tablesFrom) => $"Built for ruleset {ruleset}, dat tables: {tablesFrom ?? "none"}\n";
+
         private static string ReportStem(string outRoot, string ruleset, string outputFileName) => Path.Combine(outRoot, ruleset, Path.ChangeExtension(outputFileName, null));
 
         private static void WriteSurfaceMapAdditions(string path, DatPortalImporter importer)

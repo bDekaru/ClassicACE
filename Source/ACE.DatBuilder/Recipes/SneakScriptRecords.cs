@@ -25,7 +25,7 @@ namespace ACE.DatBuilder
                 var table = c.ReadTarget<PhysicsScriptTable>(ScriptTableId);
                 AddTableEntry(table, BeginTableKey, BeginScriptId);
                 AddTableEntry(table, EndTableKey, EndScriptId);
-                c.Write(ScriptTableId, table.Pack(), "physics script table with the sneaking scripts");
+                c.Write(ScriptTableId, table.Pack(), "physics script table with the sneaking scripts", true);
             });
         }
 

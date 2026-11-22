@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
@@ -58,6 +59,11 @@ namespace ACE.DatBuilder
         /// <exception cref="InvalidDataException">The dat has no such record.</exception>
         public byte[] ReadSource(string datFile, uint id)
         {
+            return Source(datFile).GetReaderForFile(id)?.Buffer ?? throw new InvalidDataException($"{datFile} has no record {id:X8}.");
+        }
+
+        private DatDatabase Source(string datFile)
+        {
             if (!_sources.TryGetValue(datFile, out var database))
             {
                 var path = Path.Combine(SourceDats, datFile);
@@ -69,7 +75,21 @@ namespace ACE.DatBuilder
                 _sources[datFile] = database;
             }
 
-            return database.GetReaderForFile(id)?.Buffer ?? throw new InvalidDataException($"{datFile} has no record {id:X8}.");
+            return database;
+        }
+
+        /// <summary>The ids of the EoR portal dat, which every record that is not a replacement has to stay clear of.</summary>
+        private HashSet<uint> _eorIds;
+
+        /// <exception cref="InvalidDataException">An id is in the EoR portal dat.</exception>
+        private void CheckNew(IEnumerable<uint> ids, string what)
+        {
+            _eorIds ??= new HashSet<uint>(Source(DatBuildRecipes.PortalBaseDat).AllFiles.Keys);
+
+            var taken = ids.Distinct().Where(_eorIds.Contains).OrderBy(id => id).ToList();
+
+            if (taken.Count > 0)
+                throw new InvalidDataException($"{what}: records that are not replacements take ids of the EoR portal dat ({string.Join(", ", taken.Select(id => id.ToString("X8")))}); pass replacement: true if they replace.");
         }
 
         /// <summary>The raw record of the dat being built, as it is at this point of the build.</summary>
@@ -109,9 +129,15 @@ namespace ACE.DatBuilder
             Log.Add($"{id:X8} {what}: removed");
         }
 
-        /// <summary>Writes many records with the step's date, logging one line for all of them.</summary>
-        public void Write(IEnumerable<KeyValuePair<uint, byte[]>> records, string what)
+        /// <summary>Writes many records with the step's date, logging one line for all of them. Unless they are replacements, their ids must not be in the EoR portal dat.</summary>
+        public void Write(IEnumerable<KeyValuePair<uint, byte[]>> records, string what, bool replacement = false)
         {
+            if (!replacement)
+            {
+                records = records.ToList();
+                CheckNew(records.Select(r => r.Key), what);
+            }
+
             Writer.RecordDate = Step.Time;
             int added = 0, replaced = 0;
 
@@ -128,9 +154,12 @@ namespace ACE.DatBuilder
             Log.Add($"{what}: {added:N0} added, {replaced:N0} replaced");
         }
 
-        /// <summary>Writes the record with the step's date.</summary>
-        public void Write(uint id, byte[] record, string what)
+        /// <summary>Writes the record with the step's date. Unless it is a replacement, its id must not be in the EoR portal dat.</summary>
+        public void Write(uint id, byte[] record, string what, bool replacement = false)
         {
+            if (!replacement)
+                CheckNew(new[] { id }, what);
+
             Writer.RecordDate = Step.Time;
             var outcome = Writer.Save(id, record);
             Written.Add(id);

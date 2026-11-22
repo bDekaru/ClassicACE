@@ -29,7 +29,7 @@ namespace ACE.DatBuilder
                 {
                     var id = Convert.ToUInt32(entry.Id, 16);
                     var texture = Convert.ToUInt32(entry.Texture, 16);
-                    c.Write(id, SurfaceTexture.Create(id, texture).Pack(), $"surface texture for texture {texture:X8}");
+                    c.Write(id, SurfaceTexture.Create(id, texture).Pack(), $"surface texture for texture {texture:X8}", true);
                 }
             });
         }

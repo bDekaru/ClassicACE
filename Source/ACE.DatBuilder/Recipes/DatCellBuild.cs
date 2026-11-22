@@ -93,6 +93,9 @@ namespace ACE.DatBuilder
 
         public List<string> MapNotes { get; set; } = new List<string>();
 
+        /// <summary>The per-line report of <see cref="DatMapTrace"/> when the build was traced.</summary>
+        public string MapTrace { get; set; }
+
         /// <summary>The portal-list check over the finished store (map edits only).</summary>
         public DatCellConversionReport FinalCheck { get; set; }
 
@@ -125,7 +128,7 @@ namespace ACE.DatBuilder
     public static class DatCellBuildRunner
     {
         /// <exception cref="ArgumentException">An input is missing (including the ruleset's built portal dat), or the output would overwrite something it must not.</exception>
-        public static DatCellBuildResult Build(DatCellBuildRecipe recipe, string sourceDats, string outputRoot, bool force = false)
+        public static DatCellBuildResult Build(DatCellBuildRecipe recipe, string sourceDats, string outputRoot, bool force = false, DatMapTrace trace = null)
         {
             var retail = Path.Combine(sourceDats, recipe.RetailCellDat);
             var template = Path.Combine(sourceDats, recipe.ToDCellDat);
@@ -191,7 +194,9 @@ namespace ACE.DatBuilder
                     store.RequireDate = true;
 
                     var editor = new DatMapEditor(store);
+                    trace?.Attach(store);
                     recipe.MapOperations(editor, sources);
+                    result.MapTrace = trace?.ToText(store);
                     result.SourceReports = sources.Reports;
                     result.MapNotes = editor.Notes;
 
