@@ -12,7 +12,7 @@ namespace ACE.DatBuilder
     /// conversion mistakes (24-bit images left planar, sound hashes of 0, surface palette ids unshifted). The steps are an event kit: a recipe lists them only for the time the event runs.
     /// </summary>
     /// <remarks>
-    /// Left out on purpose: the weather set's changes to the 2005 water textures (the 2005 dat already has the red water). The set's two custom planets (01007085, 01007086) are made from the old planets and put into every day group, as the set has them.
+    /// Left out on purpose: the weather set's changes to the 2005 water textures (the 2005 dat already has the red water). The set's two custom moons (01007085, 01007086) are made from the old moons and put into every day group, as the set has them.
     /// The weather set's red golem (emitter 32000830, model 01003BA3, Setup 020007E6 script word) is the author's rework; the event dat only swaps the model of the golem's bubbles, which <see cref="RedWaterGolem"/> does.
     /// </remarks>
     public static class DaraletRecords
@@ -33,26 +33,26 @@ namespace ACE.DatBuilder
         /// <summary>The red bubbles the event dat gives the golem emitter (010016C0 of that dat), as the kit writes them.</summary>
         private const uint RedBubbles = 0x010066C0;
 
-        /// <summary>Where the weather set puts its custom planets (01007085, 01007086, the planets without the glare layer) in every day group: right after the object at the index before, which they copy.</summary>
-        private const int PlanetIndex = 4;
+        /// <summary>Where the weather set puts its custom moons (01007085, 01007086, the moons without the glare layer) in every day group: right after the object at the index before, which they copy.</summary>
+        private const int MoonIndex = 4;
 
-        /// <summary>The planet model of the object before the new one (the shifted 2080 and 207B) to the custom planet that follows it.</summary>
-        private static readonly Dictionary<uint, uint> Planets = new Dictionary<uint, uint> { [0x01007080] = 0x01007085, [0x0100707B] = 0x01007086 };
+        /// <summary>The moon model of the object before the new one (the shifted 2080 and 207B) to the custom moon that follows it.</summary>
+        private static readonly Dictionary<uint, uint> Moons = new Dictionary<uint, uint> { [0x01007080] = 0x01007085, [0x0100707B] = 0x01007086 };
 
         public static DatRecordStep[] All(string date)
         {
-            return new[] { Records(date), PlanetCover(date), RedWaterGolem(date), WaterTextures(date), Region(date) };
+            return new[] { Records(date), MoonCover(date), RedWaterGolem(date), WaterTextures(date), Region(date) };
         }
 
         /// <summary>
-        /// The surface the custom planets (01007085, 01007086) draw instead of the old planets' glare layer: a clip-map surface that is fully translucent, over an 8x8 image of palette index 0 and a black palette. It is the same
+        /// The surface the custom moons (01007085, 01007086) draw instead of the old moons' glare layer: a clip-map surface that is fully translucent, over an 8x8 image of palette index 0 and a black palette. It is the same
         /// surface the weather set uses (EoR's 08000015), made from nothing; the ids are free ones that the kit's SurfaceOverrides name.
         /// </summary>
-        public static DatRecordStep PlanetCover(string date)
+        public static DatRecordStep MoonCover(string date)
         {
-            return new DatRecordStep("Planet glare cover surface", date, c =>
+            return new DatRecordStep("Moon glare cover surface", date, c =>
             {
-                c.Write(MoonRecords.CoverRecords(CoverSurface, CoverSurfaceTexture, CoverTexture, CoverPalette), "planet glare cover");
+                c.Write(MoonRecords.CoverRecords(CoverSurface, CoverSurfaceTexture, CoverTexture, CoverPalette), "moon glare cover");
             });
         }
 
@@ -103,7 +103,7 @@ namespace ACE.DatBuilder
                 region.Remap(id => ids.TryGetValue(id, out var target) ? target : id);
 
                 foreach (var group in region.SkyInfo.DayGroups)
-                    group.InsertSkyObject(PlanetIndex, group.SkyObjects[PlanetIndex - 1].CloneWith(Planets[group.SkyObjects[PlanetIndex - 1].DefaultGFXObjectId]));
+                    group.InsertSkyObject(MoonIndex, group.SkyObjects[MoonIndex - 1].CloneWith(Moons[group.SkyObjects[MoonIndex - 1].DefaultGFXObjectId]));
 
                 foreach (var skyObject in skyObjects.Where(s => s.DefaultGFXObjectId >> 24 == 0x02 && s.DefaultPESObjectId == 1))
                     skyObject.DefaultPESObjectId = c.ReadTarget<SetupModel>(skyObject.DefaultGFXObjectId).DefaultScript;

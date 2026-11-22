@@ -33,7 +33,7 @@ ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --map <surface map tsv> --
   --force   replace an existing output dat
   --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP, skill, vital, character generation and spell tables) of a recipe that has them; without it the records from the custom files are kept
   --world-db  the world database to read instead of the one named in the Config.js
-  --event  for the recipes that start from the 2005 dat: add the event kit (daralet: the Child of Daralet records, red water golem and Region) dated --event-date <yyyy-mm-dd>, the date the step is added (steps run in date order)
+  --event  for the recipes that start from the 2005 dat: add the event kit (daralet: the Child of Daralet records, red water golem and Region; darkness: Darkness Ascendant, the winged figure, red sun, sulfur clouds and swollen moons) dated --event-date <yyyy-mm-dd>, the date the step is added (steps run in date order)
   --season  for the recipes that start from the 2005 dat: add the foliage season step (Summer, Autumn, Snow, Winter, Red; the 2005 dat is Autumn) dated --season-date <yyyy-mm-dd>, the date of the event
 
   apply-tables rewrites only the XP, skill, vital, character generation, spell and title records of an already built portal or language dat from the database (the quick loop after editing the dat_* tables).
@@ -295,14 +295,16 @@ The source folder is only read. Each build is made in a temporary file and moved
                 var date = line.Value("--event-date") ?? throw new ArgumentException("--event needs --event-date <yyyy-mm-dd>, the date the step is added: every step carries a date.");
                 var kitRecipes = recipes.Where(r => r.EmptyBase).ToList();
 
-                if (!string.Equals(eventName, "daralet", StringComparison.OrdinalIgnoreCase))
-                    throw new ArgumentException($"No event '{eventName}'; the events are: daralet.");
+                var kits = new Dictionary<string, Func<string, DatRecordStep[]>>(StringComparer.OrdinalIgnoreCase) { ["daralet"] = DaraletRecords.All, ["darkness"] = DarknessAscendantRecords.All };
+
+                if (!kits.TryGetValue(eventName, out var kit))
+                    throw new ArgumentException($"No event '{eventName}'; the events are: {string.Join(", ", kits.Keys)}.");
 
                 if (kitRecipes.Count == 0)
                     throw new ArgumentException("--event applies to the recipes that start from the 2005 dat (see: list).");
 
                 foreach (var recipe in kitRecipes)
-                    recipe.WithRecordSteps(recipe.RecordSteps.Concat(DaraletRecords.All(date)).ToArray());
+                    recipe.WithRecordSteps(recipe.RecordSteps.Concat(kit(date)).ToArray());
             }
 
             var season = line.Value("--season");

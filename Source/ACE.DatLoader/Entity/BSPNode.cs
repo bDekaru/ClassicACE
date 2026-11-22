@@ -34,6 +34,14 @@ namespace ACE.DatLoader.Entity
         /// You must use the Unpack(BinaryReader reader, BSPType treeType) method.
         /// </summary>
         /// <exception cref="NotSupportedException">You must use the Unpack(BinaryReader reader, BSPType treeType) method.</exception>
+        /// <summary>Scales the spheres of the node and its children about a point; the splitting planes stay, which is right for planes that pass through that point.</summary>
+        public void Scale(System.Numerics.Vector3 center, float factor)
+        {
+            Sphere?.Scale(center, factor);
+            PosNode?.Scale(center, factor);
+            NegNode?.Scale(center, factor);
+        }
+
         public virtual void Unpack(BinaryReader reader)
         {
             throw new NotSupportedException();

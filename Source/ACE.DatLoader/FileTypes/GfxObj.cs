@@ -75,6 +75,16 @@ namespace ACE.DatLoader.FileTypes
             }
         }
 
+        /// <summary>Scales the model about its sort center: the vertices and the spheres of its trees. For a flat model facing the viewer, as the sky's moons are, it is the model drawn larger at the same place.</summary>
+        public void Scale(float factor)
+        {
+            foreach (var vertex in VertexArray.Vertices.Values)
+                vertex.Scale(SortCenter, factor);
+
+            DrawingBSP.RootNode.Scale(SortCenter, factor);
+            PhysicsBSP.RootNode.Scale(SortCenter, factor);
+        }
+
         public override void Pack(BinaryWriter writer)
         {
             writer.Write(Id);

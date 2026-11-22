@@ -14,6 +14,12 @@ namespace ACE.DatLoader.Entity
 
         public List<Vec2Duv> UVs { get; private set; }
 
+        /// <summary>Scales the position about a point; the normal stays.</summary>
+        public void Scale(Vector3 center, float factor)
+        {
+            Origin = center + (Origin - center) * factor;
+        }
+
         public void Unpack(BinaryReader reader)
         {
             var numUVs = reader.ReadUInt16();

@@ -6,7 +6,7 @@ namespace ACE.DatLoader.Entity.AnimationHooks
     public class CallPESHook : AnimationHook
     {
         public uint PES { get; private set; }
-        public float Pause { get; private set; }
+        public float Pause { get; set; }
 
         public override void Pack(BinaryWriter writer)
         {
