@@ -1269,13 +1269,13 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void SeasonalKit_EverySeasonTextureConvertsFromItsOwnDatAndDiffersFromAutumn()
+        public void SeasonalKit_EverySeasonTextureConvertsFromItsOwnDatAndDiffersFromFall()
         {
             var kit = DatRecipeData.Load<SeasonalRecords.Kit>(SeasonalRecords.KitFile);
             var all = kit.All.Select(t => Convert.ToUInt32(t, 16)).ToHashSet();
 
-            Assert.AreEqual(4, kit.Seasons.Count);
-            CollectionAssert.AreEquivalent(new[] { "Summer", "Snow", "Winter", "Red" }, kit.Seasons.Select(s => s.Name).ToList());
+            Assert.AreEqual(5, kit.Seasons.Count);
+            CollectionAssert.AreEquivalent(new[] { "Spring", "Winter onset", "Winter", "Winter thaw", "Early Spring" }, kit.Seasons.Select(s => s.Name).ToList());
             CollectionAssert.AreEquivalent(all.ToList(), kit.Seasons.SelectMany(s => s.Textures).Select(t => Convert.ToUInt32(t, 16)).Distinct().ToList(), "the kit is the union of the seasons' textures");
 
             foreach (var season in kit.Seasons)
@@ -1283,7 +1283,7 @@ namespace ACE.DatLoader.Tests
                 {
                     byte[] ToImage(string dat) => DatPortalImporter.ConvertImage(ReadRecord(dat, id), 0x06000001, palette => ReadRecord(dat, palette), out _, out _, out _);
 
-                    CollectionAssert.AreNotEqual(ToImage(DatBuildRecipes.PreToDPortalDat), ToImage(season.Source), $"{season.Name} {id:X8} looks like autumn");
+                    CollectionAssert.AreNotEqual(ToImage(DatBuildRecipes.PreToDPortalDat), ToImage(season.Source), $"{season.Name} {id:X8} looks like fall");
                 }
         }
     }

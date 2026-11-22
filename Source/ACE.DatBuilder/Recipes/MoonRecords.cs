@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using ACE.DatLoader.Entity;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity.Enum;
 
@@ -41,15 +42,19 @@ namespace ACE.DatBuilder
                 var region = c.ReadTarget<RegionDesc>(RegionRecords.RegionId);
 
                 foreach (var group in region.SkyInfo.DayGroups)
-                {
-                    var index = group.SkyObjects.FindIndex(s => s.DefaultGFXObjectId == Moon);
-
-                    if (index >= 0)
-                        group.InsertSkyObject(index + 1, group.SkyObjects[index].CloneWith(MoonCover));
-                }
+                    AddCover(group);
 
                 c.Write(RegionRecords.RegionId, region.Pack(), "region with the moon overlay");
             });
+        }
+
+        /// <summary>Puts the moon without the glare layer right after the moon of the day group, if it has one.</summary>
+        public static void AddCover(DayGroup group)
+        {
+            var index = group.SkyObjects.FindIndex(s => s.DefaultGFXObjectId == Moon);
+
+            if (index >= 0)
+                group.InsertSkyObject(index + 1, group.SkyObjects[index].CloneWith(MoonCover));
         }
 
         /// <summary>

@@ -44,6 +44,17 @@ namespace ACE.DatLoader.Entity
             SkyObjReplace.Unpack(reader);
         }
 
+        /// <summary>Takes the directional and ambient light of another time of day; the fog and the replacements stay.</summary>
+        public void CopyLight(SkyTimeOfDay other)
+        {
+            DirBright   = other.DirBright;
+            DirHeading  = other.DirHeading;
+            DirPitch    = other.DirPitch;
+            DirColor    = other.DirColor;
+            AmbBright   = other.AmbBright;
+            AmbColor    = other.AmbColor;
+        }
+
         public void Remap(System.Func<uint, uint> map)
         {
             foreach (var replace in SkyObjReplace)

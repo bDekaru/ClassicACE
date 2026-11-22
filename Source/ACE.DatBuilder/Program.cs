@@ -33,8 +33,8 @@ ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --map <surface map tsv> --
   --force   replace an existing output dat
   --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP, skill, vital, character generation and spell tables) of a recipe that has them; without it the records from the custom files are kept
   --world-db  the world database to read instead of the one named in the Config.js
-  --event  for the recipes that start from the 2005 dat: add the event kit (daralet: the Child of Daralet records, red water golem and Region; darkness: Darkness Ascendant, the winged figure, red sun, sulfur clouds and swollen moons) dated --event-date <yyyy-mm-dd>, the date the step is added (steps run in date order)
-  --season  for the recipes that start from the 2005 dat: add the foliage season step (Summer, Autumn, Snow, Winter, Red; the 2005 dat is Autumn) dated --season-date <yyyy-mm-dd>, the date of the event
+  --event  for the recipes that start from the 2005 dat: add the event kit (daralet: the Child of Daralet records, red water golem and Region; darkness: Darkness Ascendant, the winged figure, red sun, sulfur clouds and swollen moons; fireinthesky: Fire in the Sky, the comet, orange clouds, red dome and short fog in a single forced day group) dated --event-date <yyyy-mm-dd>, the date the step is added (steps run in date order)
+  --season  for the recipes that start from the 2005 dat: add the season step, foliage colors, ground and scenery (Fall or Autumn, Spring or Summer, Winter onset, Winter, Winter thaw, Early Spring; the 2005 dat is Fall; quote names with a space) dated --season-date <yyyy-mm-dd>, the date of the event
 
   apply-tables rewrites only the XP, skill, vital, character generation, spell and title records of an already built portal or language dat from the database (the quick loop after editing the dat_* tables).
   export-tables writes the SQL that fills the dat_* tables with the values of a portal dat's XP, skill, vital, character generation and spell records (with --language, also the character titles of the portal's title enum mapper and the language dat's title strings) (the tables themselves come from the world base script).
@@ -295,7 +295,7 @@ The source folder is only read. Each build is made in a temporary file and moved
                 var date = line.Value("--event-date") ?? throw new ArgumentException("--event needs --event-date <yyyy-mm-dd>, the date the step is added: every step carries a date.");
                 var kitRecipes = recipes.Where(r => r.EmptyBase).ToList();
 
-                var kits = new Dictionary<string, Func<string, DatRecordStep[]>>(StringComparer.OrdinalIgnoreCase) { ["daralet"] = DaraletRecords.All, ["darkness"] = DarknessAscendantRecords.All };
+                var kits = new Dictionary<string, Func<string, DatRecordStep[]>>(StringComparer.OrdinalIgnoreCase) { ["daralet"] = DaraletRecords.All, ["darkness"] = DarknessAscendantRecords.All, ["fireinthesky"] = FireInTheSkyRecords.All };
 
                 if (!kits.TryGetValue(eventName, out var kit))
                     throw new ArgumentException($"No event '{eventName}'; the events are: {string.Join(", ", kits.Keys)}.");

@@ -13,7 +13,7 @@ namespace ACE.DatBuilder
     {
         public const string TexturesFile = "ground-textures.json";
 
-        private const uint RegionId = 0x13000000;
+        public const uint RegionId = 0x13000000;
 
         /// <summary>The second header value of the EoR terrain images, used for an image the dat does not have yet.</summary>
         private const uint DefaultHeaderValue = 2;

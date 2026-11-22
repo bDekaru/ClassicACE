@@ -27,7 +27,7 @@ namespace ACE.DatBuilder
 
         private const uint CharGenId = 0x0E000002;
         private const uint RegionId = 0x13000000;
-        private const uint HardwareRegionId = 0x130F0000;
+        public const uint HardwareRegionId = 0x130F0000;
 
         public static DatRecordStep[] All(string date)
         {
