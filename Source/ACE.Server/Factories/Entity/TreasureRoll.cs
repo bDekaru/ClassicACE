@@ -159,8 +159,7 @@ namespace ACE.Server.Factories.Entity
         /// </summary>
         public bool IsArmor => ArmorType != TreasureArmorType.Undef;
 
-        // Cloth armor rules are CustomDM only; other rulesets roll cloth head/hand/foot items with the regular armor level scripts, as retail did
-        public bool IsClothArmor => ArmorType == TreasureArmorType.Cloth && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM;
+        public bool IsClothArmor => ArmorType == TreasureArmorType.Cloth;
 
         public bool IsClothing => ItemType == TreasureItemType.Clothing;
 
