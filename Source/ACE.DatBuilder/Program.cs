@@ -23,7 +23,7 @@ ACE.DatBuilder list
 ACE.DatBuilder audit <dat>
 ACE.DatBuilder compare-cell <first cell dat> <second cell dat> [landblocks to list]
 ACE.DatBuilder convert-portal --from <pre-ToD portal dat> --target <ToD/EoR portal dat> --map <surface map tsv> --out <folder> [--ids <id,first-last,...>] [--surfaces <surface ids>]
-ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --template <ToD cell dat> --map <surface map tsv> --out <new dat> [--portal <target portal dat>]
+ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --map <surface map tsv> --out <new dat> [--portal <target portal dat>]
 
   A cell recipe needs its ruleset's portal built first (in the same --out); 'all' builds the portals before the cells.
 
@@ -33,6 +33,8 @@ ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --template <ToD cell dat> 
   --force   replace an existing output dat
   --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP, skill, vital, character generation and spell tables) of a recipe that has them; without it the records from the custom files are kept
   --world-db  the world database to read instead of the one named in the Config.js
+  --event  for the recipes that start from the 2005 dat: add the event kit (daralet: the Child of Daralet records, red water golem and Region) dated --event-date <yyyy-mm-dd>, the date the step is added (steps run in date order)
+  --season  for the recipes that start from the 2005 dat: add the foliage season step (Summer, Autumn, Snow, Winter, Red; the 2005 dat is Autumn) dated --season-date <yyyy-mm-dd>, the date of the event
 
   apply-tables rewrites only the XP, skill, vital, character generation, spell and title records of an already built portal or language dat from the database (the quick loop after editing the dat_* tables).
   export-tables writes the SQL that fills the dat_* tables with the values of a portal dat's XP, skill, vital, character generation and spell records (with --language, also the character titles of the portal's title enum mapper and the language dat's title strings) (the tables themselves come from the world base script).
@@ -79,8 +81,8 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int List()
         {
-            foreach (var recipe in DatBuildRecipes.All)
-                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Folders.Length} folder(s) -> {recipe.Ruleset}/{recipe.OutputFileName}");
+            foreach (var recipe in DatBuildRecipes.All.Concat(DatBuildRecipes.Alternatives))
+                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Folders.Length} folder(s) -> {recipe.OutputFolder ?? recipe.Ruleset}/{recipe.OutputFileName}");
 
             foreach (var recipe in DatBuildRecipes.AllCells)
                 Console.WriteLine($"{recipe.Key,-24} {recipe.RetailCellDat} converted against {recipe.Portal.Key} -> {recipe.Ruleset}/{recipe.OutputFileName}");
@@ -194,18 +196,17 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int ConvertCell(string[] args)
         {
-            var line = CommandLine.Parse(args, new[] { "--from", "--template", "--map", "--out", "--portal" });
+            var line = CommandLine.Parse(args, new[] { "--from", "--map", "--out", "--portal" });
 
             var from = line.Value("--from");
-            var template = line.Value("--template");
             var maps = line.Values("--map");
             var outPath = line.Value("--out");
             var portal = line.Value("--portal");
 
-            if (from == null || template == null || maps.Count == 0 || outPath == null)
-                throw new ArgumentException("convert-cell needs --from, --template, at least one --map and --out.");
+            if (from == null || maps.Count == 0 || outPath == null)
+                throw new ArgumentException("convert-cell needs --from, at least one --map and --out.");
 
-            foreach (var input in maps.Concat(new[] { from, template, portal }).Where(f => f != null))
+            foreach (var input in maps.Concat(new[] { from, portal }).Where(f => f != null))
                 RequireFile(input, "File");
 
             outPath = Path.GetFullPath(outPath);
@@ -216,7 +217,7 @@ The source folder is only read. Each build is made in a temporary file and moved
             foreach (var entry in maps.SelectMany(DatCellConverter.LoadSurfaceMap))
                 surfaceMap[entry.Key] = entry.Value;
 
-            var report = DatCellConverter.Convert(from, template, outPath, surfaceMap, portal).ToText();
+            var report = DatCellConverter.Convert(from, outPath, surfaceMap, portal).ToText();
 
             Console.Write(report);
             File.WriteAllText(Path.ChangeExtension(outPath, ".report.txt"), report);
@@ -258,7 +259,7 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int Build(string[] args)
         {
-            var line = CommandLine.Parse(args, new[] { "--source", "--custom", "--out", "--config", "--world-db" }, new[] { "--force" }, allowPositional: true);
+            var line = CommandLine.Parse(args, new[] { "--source", "--custom", "--out", "--config", "--world-db", "--season", "--season-date", "--event", "--event-date" }, new[] { "--force" }, allowPositional: true);
 
             var selector = line.Positional;
             var config = line.Value("--config");
@@ -281,11 +282,42 @@ The source folder is only read. Each build is made in a temporary file and moved
             var outRoot = Path.GetFullPath(line.Value("--out") ?? Path.Combine(source, "..", "Build"));
 
             var all = selector.Equals("all", StringComparison.OrdinalIgnoreCase);
-            var recipes = DatBuildRecipes.All.Where(r => all || KeyMatches(r.Key, selector)).ToList();
-            var cellRecipes = DatBuildRecipes.AllCells.Where(r => all || KeyMatches(r.Key, selector)).ToList();
+            var recipes = DatBuildRecipes.All.Where(r => all || KeyMatches(r.Key, selector)).Concat(DatBuildRecipes.Alternatives.Where(r => KeyMatches(r.Key, selector))).ToList();
+            var cellRecipes = DatBuildRecipes.AllCells.Where(r => all || KeyMatches(r.Key, selector)).Concat(DatBuildRecipes.AlternativeCells.Where(r => KeyMatches(r.Key, selector))).ToList();
 
             if (recipes.Count == 0 && cellRecipes.Count == 0)
                 throw new ArgumentException($"Unknown recipe '{selector}' (see: list).");
+
+            var eventName = line.Value("--event");
+
+            if (eventName != null)
+            {
+                var date = line.Value("--event-date") ?? throw new ArgumentException("--event needs --event-date <yyyy-mm-dd>, the date the step is added: every step carries a date.");
+                var kitRecipes = recipes.Where(r => r.EmptyBase).ToList();
+
+                if (!string.Equals(eventName, "daralet", StringComparison.OrdinalIgnoreCase))
+                    throw new ArgumentException($"No event '{eventName}'; the events are: daralet.");
+
+                if (kitRecipes.Count == 0)
+                    throw new ArgumentException("--event applies to the recipes that start from the 2005 dat (see: list).");
+
+                foreach (var recipe in kitRecipes)
+                    recipe.WithRecordSteps(recipe.RecordSteps.Concat(DaraletRecords.All(date)).ToArray());
+            }
+
+            var season = line.Value("--season");
+
+            if (season != null)
+            {
+                var date = line.Value("--season-date") ?? throw new ArgumentException("--season needs --season-date <yyyy-mm-dd>, the date of the event: every step carries a date.");
+                var seasonal = recipes.Where(r => r.EmptyBase).ToList();
+
+                if (seasonal.Count == 0)
+                    throw new ArgumentException("--season applies to the recipes that start from the 2005 dat (see: list).");
+
+                foreach (var recipe in seasonal)
+                    recipe.WithRecordSteps(recipe.RecordSteps.Append(SeasonalRecords.Step(season, date)).ToArray());
+            }
 
             Directory.CreateDirectory(outRoot);
 
@@ -303,7 +335,7 @@ The source folder is only read. Each build is made in a temporary file and moved
 
                 Console.Write(result.ToText(10));
 
-                var stem = ReportStem(outRoot, recipe.Ruleset, recipe.OutputFileName);
+                var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
 
                 File.WriteAllText(stem + ".report.txt", result.ToText());
 
@@ -324,7 +356,7 @@ The source folder is only read. Each build is made in a temporary file and moved
                 var result = DatCellBuildRunner.Build(recipe, source, outRoot, force);
 
                 Console.Write(result.ToText());
-                File.WriteAllText(ReportStem(outRoot, recipe.Ruleset, recipe.OutputFileName) + ".report.txt", result.ToText());
+                File.WriteAllText(ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName) + ".report.txt", result.ToText());
             }
 
             return Ok;

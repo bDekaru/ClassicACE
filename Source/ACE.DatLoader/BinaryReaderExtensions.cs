@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 
@@ -77,6 +78,47 @@ namespace ACE.DatLoader
             byte[] thestring = reader.ReadBytes(stringlength);
 
             return System.Text.Encoding.Default.GetString(thestring);
+        }
+
+        /// <summary>
+        /// A string of the pre-ToD tables: a 32-bit length and the bytes, padded to a DWORD, unless the first word is above 0xFFFF, when it is a 16-bit-length string padded the same way.
+        /// </summary>
+        public static string ReadPreToDString(this BinaryReader reader)
+        {
+            var start = reader.BaseStream.Position;
+            var length = reader.ReadUInt32();
+
+            if (length > 0xFFFF)
+            {
+                reader.BaseStream.Position = start;
+                length = reader.ReadUInt16();
+            }
+
+            var text = System.Text.Encoding.Default.GetString(reader.ReadBytes((int)length));
+            reader.AlignBoundary();
+
+            return text;
+        }
+
+        /// <summary>A 32-bit count of the pre-ToD tables, then that many items.</summary>
+        public static List<T> ReadPreToDList<T>(this BinaryReader reader, Func<BinaryReader, T> readItem)
+        {
+            var count = reader.ReadUInt32();
+            var list = new List<T>();
+
+            for (var i = 0; i < count; i++)
+                list.Add(readItem(reader));
+
+            return list;
+        }
+
+        /// <summary>Passes over a pre-ToD list, one call of <paramref name="skipItem"/> per item.</summary>
+        public static void SkipPreToDList(this BinaryReader reader, Action<BinaryReader> skipItem)
+        {
+            var count = reader.ReadUInt32();
+
+            for (var i = 0; i < count; i++)
+                skipItem(reader);
         }
 
         /// <summary>

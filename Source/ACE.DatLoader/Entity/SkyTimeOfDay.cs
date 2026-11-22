@@ -44,6 +44,12 @@ namespace ACE.DatLoader.Entity
             SkyObjReplace.Unpack(reader);
         }
 
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var replace in SkyObjReplace)
+                replace.Remap(map);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Begin);

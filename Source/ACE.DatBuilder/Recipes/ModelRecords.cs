@@ -30,6 +30,9 @@ namespace ACE.DatBuilder
             /// <summary>Surface texture entries only: the texture (0x06) it refers to.</summary>
             public string Texture { get; set; }
 
+            /// <summary>GfxObj entries only: surfaces (by their id in the source) that take the given id instead of the id the file maps them to.</summary>
+            public Dictionary<string, string> SurfaceOverrides { get; set; }
+
             /// <summary>Scene entries only: replaces the density (Freq) of every object of the scene.</summary>
             public float? Freq { get; set; }
         }
@@ -58,6 +61,9 @@ namespace ACE.DatBuilder
             public List<Entry> PaletteSets { get; set; } = new List<Entry>();
             public List<Entry> SoundTables { get; set; } = new List<Entry>();
             public List<Entry> Clothing { get; set; } = new List<Entry>();
+
+            /// <summary>The scenes keep the object ids of their source: the scenery objects are the ones the dat being built already has, not the copies this file makes.</summary>
+            public bool KeepSceneObjects { get; set; }
 
             /// <summary>Ids the listed records refer to that are not made by this file (records of the end of retail dat, other files), as pre-ToD id to the id they have in the dat being built.</summary>
             public List<Map> Maps { get; set; } = new List<Map>();
@@ -102,10 +108,7 @@ namespace ACE.DatBuilder
                 if (!objects.ContainsKey(gfx.Key))
                     objects[gfx.Key] = gfx.Value;
 
-            var everything = new Dictionary<uint, uint>(explicitMap);
-            foreach (var list in new[] { data.Palettes, data.Textures, data.SurfaceTextures, data.Surfaces, data.GfxObjs, data.Setups, data.Scenes, data.Waves, data.Animations, data.ParticleEmitters, data.PhysicsScripts, data.ScriptTables, data.MotionTables, data.PaletteSets, data.SoundTables, data.Clothing })
-                foreach (var entry in list)
-                    everything[Hex(entry.Source)] = Hex(entry.Id);
+            var everything = IdMap(data);
 
             Func<uint, uint> all = id => id == 0 ? 0 : Lookup(everything, id);
 
@@ -135,7 +138,7 @@ namespace ACE.DatBuilder
 
             foreach (var entry in data.GfxObjs)
             {
-                var record = DatEnvironmentConverter.ConvertGfxObj(readSource(Hex(entry.Source)), id => Lookup(surfaces, id));
+                var record = DatEnvironmentConverter.ConvertGfxObj(readSource(Hex(entry.Source)), id => entry.SurfaceOverrides != null && entry.SurfaceOverrides.TryGetValue(id.ToString("X8"), out var over) ? Hex(over) : Lookup(surfaces, id));
                 WriteId(record, Hex(entry.Id));
                 result.Add(new KeyValuePair<uint, byte[]>(Hex(entry.Id), record));
             }
@@ -153,7 +156,9 @@ namespace ACE.DatBuilder
             foreach (var entry in data.Scenes)
             {
                 var scene = ContextUnpack<Scene>(readSource(Hex(entry.Source)));
-                scene.Remap(all);
+
+                if (!data.KeepSceneObjects)
+                    scene.Remap(all);
 
                 if (entry.Freq.HasValue)
                     foreach (var obj in scene.Objects)
@@ -231,6 +236,24 @@ namespace ACE.DatBuilder
             return result;
         }
 
+        /// <summary>Every source id of the data file with the id it is written as, plus the explicit maps.</summary>
+        public static Dictionary<uint, uint> IdMap(Data data)
+        {
+            var map = data.Maps.ToDictionary(m => Hex(m.Source), m => Hex(m.Target));
+
+            foreach (var list in new[] { data.Palettes, data.Textures, data.SurfaceTextures, data.Surfaces, data.GfxObjs, data.Setups, data.Scenes, data.Waves, data.Animations, data.ParticleEmitters, data.PhysicsScripts, data.ScriptTables, data.MotionTables, data.PaletteSets, data.SoundTables, data.Clothing })
+                AddEntries(map, list);
+
+            return map;
+        }
+
+        /// <summary>The first entry of a source is the record other records refer to; later entries of the same source are variants (copies with other surfaces) that nothing refers to.</summary>
+        private static void AddEntries(Dictionary<uint, uint> map, List<Entry> entries)
+        {
+            foreach (var entry in entries.GroupBy(e => Hex(e.Source)).Select(g => g.First()))
+                map[Hex(entry.Source)] = Hex(entry.Id);
+        }
+
         private static void Add(List<KeyValuePair<uint, byte[]>> result, Entry entry, byte[] record)
         {
             WriteId(record, Hex(entry.Id));
@@ -246,8 +269,7 @@ namespace ACE.DatBuilder
         {
             var map = new Dictionary<uint, uint>(explicitMap);
 
-            foreach (var entry in entries)
-                map[Hex(entry.Source)] = Hex(entry.Id);
+            AddEntries(map, entries);
 
             return map;
         }

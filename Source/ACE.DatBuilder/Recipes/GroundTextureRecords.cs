@@ -33,14 +33,30 @@ namespace ACE.DatBuilder
             return new DatRecordStep("Ground textures from the 2005 dat", date, c =>
             {
                 foreach (var texture in DatRecipeData.Load<List<GroundTexture>>(TexturesFile))
+                    WriteTerrainImage(c, Convert.ToUInt32(texture.Image, 16), Convert.ToUInt32(texture.Source, 16));
+            });
+        }
+
+        /// <summary>Writes the image (0x06) of a terrain texture from the 2005 image (0x05), in the 32-bit format the terrain merge reads; the header value of an image the dat already has stays.</summary>
+        public static void WriteTerrainImage(DatRecordContext c, uint imageId, uint sourceId)
+        {
+            var image = DatPortalImporter.ConvertImage(c.ReadSource(DatBuildRecipes.PreToDPortalDat, sourceId), imageId, id => c.ReadSource(DatBuildRecipes.PreToDPortalDat, id), out var width, out var height, out _);
+            var existing = c.Writer.Read(imageId);
+
+            c.Write(imageId, ToTerrainFormat(image, existing != null ? BitConverter.ToUInt32(existing, 4) : DefaultHeaderValue), $"ground texture from {sourceId:X8} ({width}x{height})");
+        }
+
+        /// <summary>Points each ground surface texture at the image the ground texture step writes for it: the surface textures of a 2005 base still refer to the 2005 images, which are 24-bit.</summary>
+        public static DatRecordStep SurfaceTextureStep(string date)
+        {
+            return new DatRecordStep("Ground surface textures of the 2005 dat", date, c =>
+            {
+                foreach (var texture in DatRecipeData.Load<List<GroundTexture>>(TexturesFile))
                 {
+                    var id = Convert.ToUInt32(texture.Source, 16);
                     var imageId = Convert.ToUInt32(texture.Image, 16);
-                    var sourceId = Convert.ToUInt32(texture.Source, 16);
-                    var image = DatPortalImporter.ConvertImage(c.ReadSource(DatBuildRecipes.PreToDPortalDat, sourceId), imageId, id => c.ReadSource(DatBuildRecipes.PreToDPortalDat, id), out var width, out var height, out _);
 
-                    var existing = c.Writer.Read(imageId);
-
-                    c.Write(imageId, ToTerrainFormat(image, existing != null ? BitConverter.ToUInt32(existing, 4) : DefaultHeaderValue),$"ground texture from {sourceId:X8} ({width}x{height})");
+                    c.Write(id, SurfaceTexture.Create(id, imageId).Pack(), $"surface texture for texture {imageId:X8}");
                 }
             });
         }
@@ -62,7 +78,11 @@ namespace ACE.DatBuilder
                 {
                     var surfaceTextureId = description.TerrainTex.TexGID;
                     var textureId = c.ReadTarget<SurfaceTexture>(surfaceTextureId).Textures[0];
-                    var width = (uint)c.ReadTarget<Texture>(textureId).Width;
+                    var texture = c.ReadTarget<Texture>(textureId);
+                    var width = (uint)texture.Width;
+
+                    if (texture.Format != SurfacePixelFormat.PFID_A8R8G8B8)
+                        throw new InvalidDataException($"Terrain texture {textureId:X8} ({surfaceTextureId:X8}) is {texture.Format}, the terrain merge reads 32-bit pixels.");
 
                     if (width == 0 || BaseTexSize % width != 0)
                         throw new InvalidDataException($"Terrain texture {textureId:X8} ({surfaceTextureId:X8}) is {width} px wide, which does not divide the merge size {BaseTexSize}.");

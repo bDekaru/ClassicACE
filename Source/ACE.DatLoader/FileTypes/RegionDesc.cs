@@ -12,7 +12,7 @@ namespace ACE.DatLoader.FileTypes
     {
         internal const uint FILE_ID = 0x13000000;
 
-        public uint RegionNumber { get; private set; }
+        public uint RegionNumber { get; set; }
         public uint Version { get; private set; }
         public string RegionName { get; private set; }
 
@@ -109,6 +109,14 @@ namespace ACE.DatLoader.FileTypes
 
             if ((PartsMask & 0x0200) != 0)
                 RegionMisc.Pack(writer);
+        }
+
+        /// <summary>Maps the ids of the sky objects, their replacements, the ambient sound tables and the scenes; the terrain part holds none that this changes.</summary>
+        public void Remap(System.Func<uint, uint> map)
+        {
+            SkyInfo.Remap(map);
+            SoundInfo.Remap(map);
+            SceneInfo.Remap(map);
         }
     }
 }

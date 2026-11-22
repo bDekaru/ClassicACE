@@ -16,7 +16,7 @@ namespace ACE.DatLoader.Entity
         public uint PhysicsTable { get; private set; }
         public uint MotionTable { get; private set; }
         public uint CombatTable { get; private set; }
-        public ObjDesc BaseObjDesc { get; } = new ObjDesc();
+        public ObjDesc BaseObjDesc { get; private set; } = new ObjDesc();
         public List<uint> HairColorList { get; } = new List<uint>();
         public List<HairStyleCG> HairStyleList { get; } = new List<HairStyleCG>();
         public List<uint> EyeColorList { get; } = new List<uint>();
@@ -173,6 +173,73 @@ namespace ACE.DatLoader.Entity
             PantsList.UnpackSmartArray(reader);
             FootwearList.UnpackSmartArray(reader);
             ClothingColorsList.UnpackSmartArray(reader);
+        }
+
+        /// <summary>
+        /// Reads a sex as the pre-ToD (2005) client stored it: full 32-bit counts and strings, the credits, skills and templates (which belong to the sex there, and are skipped here),
+        /// and no scale, physics, motion or combat table and no alternate hair setup (they read as 0).
+        /// </summary>
+        public void UnpackPreToD(BinaryReader reader)
+        {
+            Name        = reader.ReadPreToDString();
+            SetupID     = reader.ReadUInt32();
+            SoundTable  = reader.ReadUInt32();
+            IconImage   = reader.ReadUInt32();
+            reader.ReadUInt32(); // naming help string
+
+            BaseObjDesc.Unpack(reader);
+            reader.BaseStream.Position += 8;
+
+            reader.SkipPreToDList(r => r.ReadPreToDString());
+            reader.SkipPreToDList(r => { r.ReadPreToDString(); r.ReadPreToDString(); r.ReadUInt32(); });
+            reader.BaseStream.Position += 12; // attribute credits, a word, skill credits
+            reader.SkipPreToDList(r => { r.ReadPreToDString(); r.BaseStream.Position += 8; });
+            reader.SkipPreToDList(r => r.BaseStream.Position += 12);
+            reader.SkipPreToDList(r =>
+            {
+                r.ReadPreToDString();
+                r.BaseStream.Position += 8;
+                r.SkipPreToDList(p =>
+                {
+                    p.BaseStream.Position += 24;
+                    for (var i = 0; i < 3; i++)
+                        p.SkipPreToDList(s => s.BaseStream.Position += 4);
+                });
+            });
+            reader.SkipPreToDList(r => r.BaseStream.Position += 17 * 4); // heraldry
+
+            BasePalette = reader.ReadUInt32();
+            SkinPalSet  = reader.ReadUInt32();
+
+            HairColorList.AddRange(reader.ReadPreToDList(r => r.ReadUInt32()));
+            HairStyleList.AddRange(reader.ReadPreToDList(r => { var hairStyle = new HairStyleCG(); hairStyle.UnpackPreToD(r); return hairStyle; }));
+            EyeColorList.AddRange(reader.ReadPreToDList(r => r.ReadUInt32()));
+            EyeStripList.AddRange(reader.ReadPreToDList(r => { var eyeStrip = new EyeStripCG(); eyeStrip.Unpack(r); return eyeStrip; }));
+            NoseStripList.AddRange(reader.ReadPreToDList(r => { var strip = new FaceStripCG(); strip.Unpack(r); return strip; }));
+            MouthStripList.AddRange(reader.ReadPreToDList(r => { var strip = new FaceStripCG(); strip.Unpack(r); return strip; }));
+
+            foreach (var gear in new[] { HeadgearList, ShirtList, PantsList, FootwearList })
+                gear.AddRange(reader.ReadPreToDList(r => { var item = new GearCG(); item.UnpackPreToD(r); return item; }));
+
+            var colorCount = reader.ReadUInt32();
+            reader.ReadUInt32(); // the largest index
+            for (var i = 0; i < colorCount; i++)
+                ClothingColorsList.Add(reader.ReadUInt32());
+        }
+
+        /// <summary>Takes the look of the head from another sex: the body's object description and the hair, eye, nose and mouth lists.</summary>
+        public void TakeFaceFrom(SexCG other)
+        {
+            BaseObjDesc = other.BaseObjDesc;
+
+            HairStyleList.Clear();
+            HairStyleList.AddRange(other.HairStyleList);
+            EyeStripList.Clear();
+            EyeStripList.AddRange(other.EyeStripList);
+            NoseStripList.Clear();
+            NoseStripList.AddRange(other.NoseStripList);
+            MouthStripList.Clear();
+            MouthStripList.AddRange(other.MouthStripList);
         }
 
         public void Pack(BinaryWriter writer)

@@ -15,6 +15,12 @@ namespace ACE.DatLoader.Entity
             Scenes.Unpack(reader);
         }
 
+        public void Remap(System.Func<uint, uint> map)
+        {
+            for (var i = 0; i < Scenes.Count; i++)
+                Scenes[i] = map.RemapIfSet(Scenes[i]);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             writer.Write(StbIndex);

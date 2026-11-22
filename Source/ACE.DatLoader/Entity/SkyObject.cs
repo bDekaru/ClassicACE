@@ -12,8 +12,8 @@ namespace ACE.DatLoader.Entity
         public float TexVelocityY { get; private set; }
         public float TexVelocityZ { get; } = 0;
         public uint DefaultGFXObjectId { get; private set; }
-        public uint DefaultPESObjectId { get; private set; }
-        public uint Properties { get; private set; }
+        public uint DefaultPESObjectId { get; set; }
+        public uint Properties { get; set; }
 
         public void Unpack(BinaryReader reader)
         {
@@ -49,6 +49,20 @@ namespace ACE.DatLoader.Entity
             writer.Write(DefaultPESObjectId);
             writer.Write(Properties);
             writer.AlignBoundary();
+        }
+
+        /// <summary>A copy that shows another model.</summary>
+        public SkyObject CloneWith(uint gfxObjectId)
+        {
+            var copy = (SkyObject)MemberwiseClone();
+            copy.DefaultGFXObjectId = gfxObjectId;
+            return copy;
+        }
+
+        public void Remap(System.Func<uint, uint> map)
+        {
+            DefaultGFXObjectId = map.RemapIfSet(DefaultGFXObjectId);
+            DefaultPESObjectId = map.RemapIfSet(DefaultPESObjectId);
         }
     }
 }

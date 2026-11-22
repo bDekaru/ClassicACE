@@ -18,6 +18,15 @@ namespace ACE.DatLoader.Entity
             ObjDesc.Unpack(reader);
         }
 
+        /// <summary>The pre-ToD layout: the bald flag is a 32-bit word and there is no alternate setup.</summary>
+        public void UnpackPreToD(BinaryReader reader)
+        {
+            IconImage   = reader.ReadUInt32();
+            Bald        = (reader.ReadUInt32() == 1);
+
+            ObjDesc.Unpack(reader);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             writer.Write(IconImage);

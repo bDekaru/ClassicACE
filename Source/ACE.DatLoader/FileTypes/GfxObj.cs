@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
@@ -58,6 +59,20 @@ namespace ACE.DatLoader.FileTypes
 
             if ((Flags & GfxObjFlags.HasDIDDegrade) != 0)
                 DIDDegrade = reader.ReadUInt32();
+        }
+
+        /// <summary>
+        /// Reads the record as the pre-ToD client stored it (32-bit counts, alignment pads, no degrade field), by way of <see cref="DatEnvironmentConverter.ConvertGfxObj"/>.
+        /// </summary>
+        /// <exception cref="NotSupportedException">The model uses legacy triangle strips.</exception>
+        public static GfxObj UnpackPreToD(byte[] record)
+        {
+            using (var reader = new BinaryReader(new MemoryStream(DatEnvironmentConverter.ConvertGfxObj(record))))
+            {
+                var model = new GfxObj();
+                model.Unpack(reader);
+                return model;
+            }
         }
 
         public override void Pack(BinaryWriter writer)

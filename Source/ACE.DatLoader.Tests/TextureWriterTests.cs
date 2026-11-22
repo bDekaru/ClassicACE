@@ -61,6 +61,29 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
+        public void TextureKeyOutBlack_MakesBlackTransparentUnlessTheImageIsAllBlack()
+        {
+            // Pre-ToD record: id, width, height, then red, green, blue per pixel.
+            byte[] Record(params byte[] pixels) => Bytes(w =>
+            {
+                w.Write(0x06000002u);
+                w.Write(pixels.Length / 3);
+                w.Write(1);
+                w.Write(pixels);
+            });
+
+            var mixed = Texture.UnpackPreToD(Record(0, 0, 0, 10, 20, 30, 1, 0, 0), SurfacePixelFormat.PFID_A8R8G8B8);
+            mixed.KeyOutBlack();
+
+            CollectionAssert.AreEqual(new byte[] { 0, 0, 0, 0, 30, 20, 10, 0xFF, 0, 0, 1, 0xFF }, mixed.SourceData);
+
+            var allBlack = Texture.UnpackPreToD(Record(0, 0, 0, 0, 0, 0), SurfacePixelFormat.PFID_A8R8G8B8);
+            allBlack.KeyOutBlack();
+
+            CollectionAssert.AreEqual(new byte[] { 0, 0, 0, 0xFF, 0, 0, 0, 0xFF }, allBlack.SourceData);
+        }
+
+        [TestMethod]
         [DataRow(0u)]
         [DataRow(6u)]
         [DataRow(0x80000001u)]

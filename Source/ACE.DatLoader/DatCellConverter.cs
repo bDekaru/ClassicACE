@@ -308,17 +308,16 @@ namespace ACE.DatLoader
         /// <summary>
         /// Writes a new ToD-layout cell dat at <paramref name="outputPath"/> holding every landblock, landblock info and environment cell of the retail-layout dat.
         /// </summary>
-        /// <param name="templateToDDat">A ToD-layout dat of the same kind (its header, block size and pack versions are used).</param>
         /// <param name="portalDat">The portal dat the cell dat will be used with. When given, each cell's portal polygon ids are checked against its cell structure there.
         /// Cell structures were reshaped between the builds (environments 0574, 0575, 02FB, 05BF), and a cell whose portal polygon is not a portal of its structure crashes the client;
         /// the portal build replaces those buildings with their pre-ToD versions, so a cell that still does not fit is only reported.</param>
         /// <param name="recordDate">The date every record carries (Unix time); 0 uses the current time.</param>
         /// <param name="iterationForDate">Gives each record's entry iteration from its date; null leaves them 0.</param>
-        public static DatCellConversionReport Convert(string retailCellDat, string templateToDDat, string outputPath, IReadOnlyDictionary<ushort, ushort> surfaceMap, string portalDat = null, uint recordDate = 0, Func<uint, uint> iterationForDate = null)
+        public static DatCellConversionReport Convert(string retailCellDat, string outputPath, IReadOnlyDictionary<ushort, ushort> surfaceMap, string portalDat = null, uint recordDate = 0, Func<uint, uint> iterationForDate = null)
         {
             var report = new DatCellConversionReport();
 
-            DatWriter.CreateEmpty(outputPath, templateToDDat);
+            DatWriter.CreateEmpty(outputPath, DatContainerSpec.Cell);
 
             try
             {

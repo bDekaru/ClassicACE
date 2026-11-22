@@ -12,6 +12,12 @@ namespace ACE.DatLoader.Entity
             SceneTypes.Unpack(reader);
         }
 
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var sceneType in SceneTypes)
+                sceneType.Remap(map);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             SceneTypes.Pack(writer);

@@ -109,6 +109,25 @@ namespace ACE.DatBuilder
             Log.Add($"{id:X8} {what}: removed");
         }
 
+        /// <summary>Writes many records with the step's date, logging one line for all of them.</summary>
+        public void Write(IEnumerable<KeyValuePair<uint, byte[]>> records, string what)
+        {
+            Writer.RecordDate = Step.Time;
+            int added = 0, replaced = 0;
+
+            foreach (var record in records)
+            {
+                if (Writer.Save(record.Key, record.Value) == DatSaveOutcome.Added)
+                    added++;
+                else
+                    replaced++;
+
+                Written.Add(record.Key);
+            }
+
+            Log.Add($"{what}: {added:N0} added, {replaced:N0} replaced");
+        }
+
         /// <summary>Writes the record with the step's date.</summary>
         public void Write(uint id, byte[] record, string what)
         {

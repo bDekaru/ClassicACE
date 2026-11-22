@@ -2,6 +2,7 @@ using ACE.DatLoader.Entity;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace ACE.DatLoader.FileTypes
 {
@@ -39,6 +40,16 @@ namespace ACE.DatLoader.FileTypes
             SoundHash.Pack(writer);
 
             Data.PackPackedHashTable(writer, DataBucketSize);
+        }
+
+        /// <summary>Renumbers the sounds the table is keyed by (the Sound enum): every key becomes map(key), in the same order.</summary>
+        public void RemapSounds(Func<uint, uint> map)
+        {
+            var entries = Data.ToList();
+
+            Data.Clear();
+            foreach (var entry in entries)
+                Data.Add(map(entry.Key), entry.Value);
         }
 
         /// <summary>Replaces every wave id by map(id).</summary>

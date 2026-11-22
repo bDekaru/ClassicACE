@@ -15,6 +15,13 @@ namespace ACE.DatLoader.Entity
             WeenieDefault   = reader.ReadUInt32();
         }
 
+        public void UnpackPreToD(BinaryReader reader)
+        {
+            Name            = reader.ReadPreToDString();
+            ClothingTable   = reader.ReadUInt32();
+            WeenieDefault   = reader.ReadUInt32();
+        }
+
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Name);

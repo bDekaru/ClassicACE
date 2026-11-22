@@ -158,7 +158,7 @@ namespace ACE.DatBuilder
             if (missing != null)
                 throw new ArgumentException($"Overlay folder not found: {missing}");
 
-            var outputFolder = Path.GetFullPath(Path.Combine(outputRoot, recipe.Ruleset));
+            var outputFolder = Path.GetFullPath(Path.Combine(outputRoot, recipe.OutputFolder ?? recipe.Ruleset));
             var output = Path.Combine(outputFolder, recipe.OutputFileName);
             var sourceFull = Path.GetFullPath(sourceDats).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
@@ -171,7 +171,14 @@ namespace ACE.DatBuilder
             Directory.CreateDirectory(outputFolder);
 
             var temp = output + ".building";
-            File.Copy(baseDat, temp, true);
+
+            if (recipe.EmptyBase)
+            {
+                File.Delete(temp);
+                DatWriter.CreateEmpty(temp, DatContainerSpec.Portal);
+            }
+            else
+                File.Copy(baseDat, temp, true);
 
             try
             {

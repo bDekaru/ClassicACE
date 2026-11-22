@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 
 using ACE.DatLoader.Entity;
+using ACE.Entity.Enum;
 using ACE.DatLoader.FileTypes;
 
 namespace ACE.DatBuilder
@@ -19,6 +20,14 @@ namespace ACE.DatBuilder
         public string State { get; set; }
         public int Media { get; set; }
         public string File { get; set; }
+    }
+
+    /// <summary>A new position of an element of a UI layout, in the layout's pixels; the element is named as in <see cref="DatLayoutMediaEdit"/>.</summary>
+    public class DatLayoutMoveEdit
+    {
+        public string Element { get; set; }
+        public uint X { get; set; }
+        public uint Y { get; set; }
     }
 
     /// <summary>Edits of a UI layout record (language dat, 0x21......), read from a recipe data file.</summary>
@@ -42,17 +51,7 @@ namespace ACE.DatBuilder
         {
             foreach (var edit in edits)
             {
-                var ids = edit.Element.Split('/').Select(Parse).ToList();
-
-                if (!layout.Elements.TryGetValue(ids[0], out var element))
-                    throw new InvalidDataException($"Layout edit: the layout has no element {edit.Element}.");
-
-                foreach (var id in ids.Skip(1))
-                {
-                    if (!element.Children.TryGetValue(id, out element))
-                        throw new InvalidDataException($"Layout edit: the layout has no element {edit.Element}.");
-                }
-
+                var element = Find(layout, edit.Element);
                 StateDesc state = element;
 
                 if (!string.IsNullOrEmpty(edit.State) && !element.States.TryGetValue(Parse(edit.State), out state))
@@ -63,6 +62,36 @@ namespace ACE.DatBuilder
 
                 state.Media[edit.Media].File = Parse(edit.File);
             }
+        }
+
+        /// <summary>Moves elements to a new position (the client needs every element of a page to exist, so an unused one is moved out of sight instead of removed).</summary>
+        /// <exception cref="InvalidDataException">An edit names an element the layout does not have.</exception>
+        public static void Move(LayoutDesc layout, List<DatLayoutMoveEdit> edits)
+        {
+            foreach (var edit in edits)
+            {
+                var element = Find(layout, edit.Element);
+
+                element.UiIncorporationFlags |= IncorporationFlags.X | IncorporationFlags.Y;
+                element.X = edit.X;
+                element.Y = edit.Y;
+            }
+        }
+
+        private static ElementDesc Find(LayoutDesc layout, string path)
+        {
+            var ids = path.Split('/').Select(Parse).ToList();
+
+            if (!layout.Elements.TryGetValue(ids[0], out var element))
+                throw new InvalidDataException($"Layout edit: the layout has no element {path}.");
+
+            foreach (var id in ids.Skip(1))
+            {
+                if (!element.Children.TryGetValue(id, out element))
+                    throw new InvalidDataException($"Layout edit: the layout has no element {path}.");
+            }
+
+            return element;
         }
 
         /// <summary>The edits that turn <paramref name="source"/> into <paramref name="target"/>, in the order of the layout (the tool that writes a data file from an existing record). Only changes of the file id of a media item are expressed.</summary>

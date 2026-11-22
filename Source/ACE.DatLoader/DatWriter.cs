@@ -116,42 +116,54 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Creates an empty post-ToD dat at <paramref name="path"/>: the template's first 0x400 bytes (header, journal, pack versions) and a pre-linked
-        /// free list with an empty directory root.
-        /// The template is only read; the new file keeps its block size and pack versions, so build it from a dat of the same kind.
+        /// Creates an empty post-ToD dat at <paramref name="path"/> the way the client's DiskController::InitFile does: a zeroed first 0x400 bytes holding the
+        /// header values of <paramref name="spec"/> (DiskFileInfo_t at 0x140) and an idle journal (type 0, magic 0x4C50 at 0x100), a pre-linked free list
+        /// and an empty directory root. Nothing is copied from another dat.
         /// </summary>
-        public static void CreateEmpty(string path, string templateDat)
+        public static void CreateEmpty(string path, DatContainerSpec spec)
         {
             const uint initialBlocks = 64;
 
             if (File.Exists(path))
                 throw new ArgumentException($"{path} already exists.");
 
-            var head = new byte[FirstBlock];
-
-            using (var template = new FileStream(templateDat, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
-                if (template.Length < FirstBlock)
-                    throw new InvalidDataException($"{templateDat} is too short to be a dat.");
-
-                template.Read(head, 0, head.Length);
-            }
-
-            if (BitConverter.ToUInt32(head, (int)HeaderOffset) != Magic)
-                throw new InvalidDataException($"{templateDat} is not a post-ToD dat (no header magic at 0x{HeaderOffset:X}).");
-
-            var size = BitConverter.ToUInt32(head, (int)HeaderOffset + 4);
+            var size = spec.BlockSize;
 
             if (size < 0x100)
-                throw new InvalidDataException($"{templateDat}: implausible block size {size}.");
+                throw new ArgumentException($"Implausible block size {size}.", nameof(spec));
 
-            var last = FirstBlock + (initialBlocks - 1) * size;
+            if (spec.VersionMajor.Length != 16)
+                throw new ArgumentException("The version stamp is 16 bytes.", nameof(spec));
 
-            Array.Copy(BitConverter.GetBytes(FirstBlock + initialBlocks * size), 0, head, HeaderOffset + FileSizeField, 4);
-            Array.Copy(BitConverter.GetBytes(FirstBlock), 0, head, HeaderOffset + FreeHeadField, 4);
-            Array.Copy(BitConverter.GetBytes(last), 0, head, HeaderOffset + FreeTailField, 4);
-            Array.Copy(BitConverter.GetBytes(initialBlocks), 0, head, HeaderOffset + FreeCountField, 4);
-            Array.Copy(BitConverter.GetBytes(0u), 0, head, HeaderOffset + BTreeRootField, 4);
+            var head = new byte[FirstBlock];
+
+            Array.Copy(BitConverter.GetBytes(TransactionMagic), 0, head, JournalOffset + 1, 4);
+
+            // DiskFileInfo_t in file order: the 15 dwords, then the stamp.
+            var fields = new uint[]
+            {
+                Magic,
+                size,
+                FirstBlock + initialBlocks * size,      // file size
+                (uint)spec.DataSet,
+                spec.DataSubset,
+                FirstBlock,                             // first free block
+                FirstBlock + (initialBlocks - 1) * size, // last free block
+                initialBlocks,                          // free blocks
+                0,                                      // directory root, allocated below
+                0,                                      // young and old LRU, use LRU: the client clears them
+                0,
+                0,
+                spec.MasterMapId,
+                spec.EnginePackVersion,
+                spec.GamePackVersion,
+            };
+
+            for (var i = 0; i < fields.Length; i++)
+                Array.Copy(BitConverter.GetBytes(fields[i]), 0, head, HeaderOffset + i * 4, 4);
+
+            Array.Copy(spec.VersionMajor, 0, head, HeaderOffset + fields.Length * 4, 16);
+            Array.Copy(BitConverter.GetBytes(spec.VersionMinor), 0, head, HeaderOffset + fields.Length * 4 + 16, 4);
 
             using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
             {

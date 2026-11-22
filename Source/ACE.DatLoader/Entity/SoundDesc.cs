@@ -12,6 +12,12 @@ namespace ACE.DatLoader.Entity
             STBDesc.Unpack(reader);
         }
 
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var stb in STBDesc)
+                stb.Remap(map);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             STBDesc.Pack(writer);

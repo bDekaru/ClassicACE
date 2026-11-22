@@ -33,5 +33,17 @@ namespace ACE.DatLoader.Entity
             writer.Write(MaxBright);
             writer.AlignBoundary();
         }
+
+        /// <summary>The object list got a new object at <paramref name="index"/>: the objects from there on move up by one.</summary>
+        public void Inserted(uint index)
+        {
+            if (ObjectIndex >= index)
+                ObjectIndex++;
+        }
+
+        public void Remap(System.Func<uint, uint> map)
+        {
+            GFXObjId = map.RemapIfSet(GFXObjId);
+        }
     }
 }

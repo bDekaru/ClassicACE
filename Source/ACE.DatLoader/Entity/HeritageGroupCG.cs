@@ -37,6 +37,27 @@ namespace ACE.DatLoader.Entity
             Genders.UnpackSmartArray(reader);
         }
 
+        /// <summary>
+        /// Reads a heritage as the pre-ToD client stored it. Its sexes have no keys there: they are numbered by name (Male 1, Female 2), and the credits, skills and templates
+        /// stay with the sexes (they are not read into the group).
+        /// </summary>
+        public void UnpackPreToD(BinaryReader reader)
+        {
+            Name                = reader.ReadPreToDString();
+            IconImage           = reader.ReadUInt32();
+            SetupID             = reader.ReadUInt32();
+            reader.ReadUInt32(); // description string
+            EnvironmentSetupID  = reader.ReadUInt32();
+
+            PrimaryStartAreas.AddRange(reader.ReadPreToDList(r => r.ReadInt32()));
+            SecondaryStartAreas.AddRange(reader.ReadPreToDList(r => r.ReadInt32()));
+
+            var sexes = reader.ReadPreToDList(r => { var sex = new SexCG(); sex.UnpackPreToD(r); return sex; });
+
+            for (var i = 0; i < sexes.Count; i++)
+                Genders.Add(sexes[i].Name == "Male" ? 1 : sexes[i].Name == "Female" ? 2 : i + 1, sexes[i]);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             writer.Write(Name);

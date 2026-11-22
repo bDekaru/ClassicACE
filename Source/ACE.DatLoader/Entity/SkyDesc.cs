@@ -36,6 +36,12 @@ namespace ACE.DatLoader.Entity
                 DayGroups.Unpack(reader);
         }
 
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var dayGroup in DayGroups)
+                dayGroup.Remap(map);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             writer.Write(TickSize);

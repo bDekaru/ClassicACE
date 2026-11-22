@@ -103,6 +103,30 @@ namespace ACE.DatLoader.FileTypes
             };
         }
 
+        /// <summary>
+        /// Makes every pure black pixel of an A8R8G8B8 image transparent: the pre-ToD client draws its plain pixel (0x06, user interface) images with black as the transparent color and the ToD client reads the transparency from the alpha channel.
+        /// An image with no other color stays opaque, as in the ToD dat (060011C5).
+        /// </summary>
+        public void KeyOutBlack()
+        {
+            if (Format != SurfacePixelFormat.PFID_A8R8G8B8)
+                throw new InvalidOperationException($"Texture {Id:X8}: only an A8R8G8B8 image can be keyed, not {Format}.");
+
+            var black = new List<int>();
+
+            for (var i = 0; i < SourceData.Length; i += 4)
+            {
+                if (SourceData[i] == 0 && SourceData[i + 1] == 0 && SourceData[i + 2] == 0)
+                    black.Add(i);
+            }
+
+            if (black.Count == Width * Height)
+                return;
+
+            foreach (var i in black)
+                SourceData[i + 3] = 0;
+        }
+
         /// <summary>A new image record with the header value 0 (the value of the palette and plain pixel images the custom files carry).</summary>
         public static Texture Create(uint id, int width, int height, SurfacePixelFormat format, byte[] pixels, uint? defaultPaletteId = null)
         {

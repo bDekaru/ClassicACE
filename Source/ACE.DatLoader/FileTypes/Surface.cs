@@ -18,6 +18,21 @@ namespace ACE.DatLoader.FileTypes
         public float Luminosity { get; private set; }
         public float Diffuse { get; private set; }
 
+        /// <summary>A new surface that draws an image (a SurfaceTexture, 0x05) with the given palette (0 for none).</summary>
+        public static Surface Create(uint id, SurfaceType type, uint textureId, uint paletteId, float translucency, float luminosity, float diffuse)
+        {
+            return new Surface
+            {
+                Id = id,
+                Type = type,
+                OrigTextureId = textureId,
+                OrigPaletteId = paletteId,
+                Translucency = translucency,
+                Luminosity = luminosity,
+                Diffuse = diffuse
+            };
+        }
+
         public override void Unpack(BinaryReader reader)
         {
             Type = (SurfaceType)reader.ReadUInt32();

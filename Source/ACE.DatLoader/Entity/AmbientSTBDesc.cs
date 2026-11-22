@@ -15,6 +15,11 @@ namespace ACE.DatLoader.Entity
             AmbientSounds.Unpack(reader);
         }
 
+        public void Remap(System.Func<uint, uint> map)
+        {
+            STBId = map.RemapIfSet(STBId);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             writer.Write(STBId);

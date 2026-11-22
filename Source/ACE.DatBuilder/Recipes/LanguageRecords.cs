@@ -17,6 +17,7 @@ namespace ACE.DatBuilder
 
         /// <summary>The heritage layout edits are the same in every ruleset.</summary>
         public const string ChargenHeritageUiFile = "chargen-heritage-ui.json";
+        public const string InfiltrationHeritageUiMovedFile = "infiltration-heritage-ui-moved.json";
         public const string InfiltrationChargenTextFile = "infiltration-chargen-text.json";
         public const string CustomDMChargenTextFile = "customdm-chargen-text.json";
         public const string CustomDMTextStringsFile = "customdm-text-strings.json";
@@ -27,7 +28,7 @@ namespace ACE.DatBuilder
         //   EoR portal dat (property table the layout is read with): portal - 2017-01-29 - Iteration 2072 - EoR.dat, MD5 2c89662a44fcdc2a3c31fe8f6677d265
         public static DatRecordStep[] Infiltration(string date)
         {
-            return new[] { ChargenHeritageUi(date), ChargenText(date, InfiltrationChargenTextFile) };
+            return new[] { ChargenHeritageUi(date), ChargenText(date, InfiltrationChargenTextFile), ChargenHeritageUiMoved(date) };
         }
 
         public static DatRecordStep[] CustomDM(string date)
@@ -74,6 +75,18 @@ namespace ACE.DatBuilder
                 var layout = DatLayoutEdits.Unpack(c.ReadTarget(ChargenHeritageUiId), master);
                 DatLayoutEdits.Apply(layout, DatRecipeData.Load<List<DatLayoutMediaEdit>>(ChargenHeritageUiFile));
                 c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout");
+            });
+        }
+
+        /// <summary>Infiltration has the first three heritages: the buttons of the others stay in the layout (the heritage page reads all 13 without a null check) but outside the page.</summary>
+        private static DatRecordStep ChargenHeritageUiMoved(string date)
+        {
+            return new DatRecordStep("Unused heritage buttons moved out of the heritage layout", date, c =>
+            {
+                var master = c.ReadSource<MasterProperty>(DatBuildRecipes.PortalBaseDat, DatLayoutEdits.MasterPropertyId);
+                var layout = DatLayoutEdits.Unpack(c.ReadTarget(ChargenHeritageUiId), master);
+                DatLayoutEdits.Move(layout, DatRecipeData.Load<List<DatLayoutMoveEdit>>(InfiltrationHeritageUiMovedFile));
+                c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout with the unused heritages out of sight");
             });
         }
 

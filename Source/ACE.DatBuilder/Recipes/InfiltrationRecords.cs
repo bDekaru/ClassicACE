@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 
 using ACE.DatLoader.FileTypes;
@@ -28,9 +29,14 @@ namespace ACE.DatBuilder
         //   EoR dat (character generation, spell table): portal - 2017-01-29 - Iteration 2072 - EoR.dat, MD5 2c89662a44fcdc2a3c31fe8f6677d265
         public static DatRecordStep[] All(string date)
         {
+            return new[] { MapFromPreToD(date) }.Concat(Tables(date)).ToArray();
+        }
+
+        /// <summary>The steps without the in-game map, for a recipe whose base already holds the 2005 records.</summary>
+        public static DatRecordStep[] Tables(string date)
+        {
             return new[]
             {
-                MapFromPreToD(date),
                 new DatRecordStep("XP table from the 2005 dat", date, c => c.Write(XpTableId, XpTable.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, XpTableId)).Pack(), "XP table")),
                 new DatRecordStep("Skill table from the 2005 dat", date, SkillTableFromPreToD),
                 ChargenFromEoR(date, ChargenEditsFile),

@@ -123,15 +123,57 @@ namespace ACE.DatLoader.Tests
             Assert.IsTrue(identical >= sample.Count * 0.97, $"{identical} of {sample.Count} identical");
         }
 
+        /// <summary>The header values of a new dat equal the retail EoR dat of the same kind everywhere the contents do not decide them: magic, block size, data set and subset,
+        /// master map, pack versions and version stamp. The journal is idle and the 0x100 bytes before it (the version string) are empty, as DatReaderWriter's header also has them.</summary>
         [TestMethod]
-        public void CreateEmpty_ProducesAnAuditableDatThatAcceptsRecords()
+        [DataRow("portal - 2017-01-29 - Iteration 2072 - EoR.dat", "Portal")]
+        [DataRow("language - 2015-06-18 - Iteration 994 - EoR.dat", "Language")]
+        [DataRow("cell - 2016-12-23 - Iteration 982 - 100% - EoR.dat", "Cell")]
+        public void CreateEmpty_WritesTheHeaderOfTheRetailDat(string retailName, string kind)
         {
-            var template = RequireSource(ToDCell);
+            var retail = RequireSource(retailName);
+            var spec = kind == "Portal" ? DatContainerSpec.Portal : kind == "Cell" ? DatContainerSpec.Cell : DatContainerSpec.Language;
             var path = Path.Combine(Path.GetTempPath(), $"emptydat-{Guid.NewGuid():N}.dat");
 
             try
             {
-                DatWriter.CreateEmpty(path, template);
+                DatWriter.CreateEmpty(path, spec);
+
+                var created = new byte[0x400];
+                var expected = new byte[0x400];
+
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    stream.ReadExactly(created);
+
+                using (var stream = new FileStream(retail, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    stream.ReadExactly(expected);
+
+                // Compared dword by dword in the DiskFileInfo_t at 0x140: magic, block size, data set, subset, master map, engine and game version, stamp.
+                foreach (var offset in new[] { 0x140, 0x144, 0x14C, 0x150, 0x170, 0x174, 0x178 })
+                    Assert.AreEqual(BitConverter.ToUInt32(expected, offset), BitConverter.ToUInt32(created, offset), $"{kind}: header dword at 0x{offset:X}");
+
+                CollectionAssert.AreEqual(expected.Skip(0x17C).Take(0x10).ToArray(), created.Skip(0x17C).Take(0x10).ToArray(), $"{kind}: version stamp");
+                Assert.AreEqual(BitConverter.ToUInt32(expected, 0x18C), BitConverter.ToUInt32(created, 0x18C), $"{kind}: minor version");
+
+                // Idle journal: type 0, magic 0x4C50; the rest of the head is zero.
+                CollectionAssert.AreEqual(new byte[] { 0x00, 0x50, 0x4C, 0x00, 0x00 }, created.Skip(0x100).Take(5).ToArray());
+                Assert.IsTrue(created.Take(0x100).All(b => b == 0), $"{kind}: version string area");
+                Assert.IsTrue(created.Skip(0x190).All(b => b == 0), $"{kind}: bytes after the header");
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
+        [TestMethod]
+        public void CreateEmpty_ProducesAnAuditableDatThatAcceptsRecords()
+        {
+            var path = Path.Combine(Path.GetTempPath(), $"emptydat-{Guid.NewGuid():N}.dat");
+
+            try
+            {
+                DatWriter.CreateEmpty(path, DatContainerSpec.Cell);
 
                 using (var writer = new DatWriter(path))
                 {

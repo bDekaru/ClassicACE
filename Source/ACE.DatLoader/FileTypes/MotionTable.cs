@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 
 using ACE.DatLoader.Entity;
@@ -81,6 +82,45 @@ namespace ACE.DatLoader.FileTypes
                 foreach (var motion in links.Values)
                     foreach (var anim in motion.Anims)
                         anim.Remap(map);
+        }
+
+        /// <summary>A motion command or stance with its number (the low 16 bits) replaced by map(number); the class bits above it stay.</summary>
+        public static uint RemapCommand(uint command, Func<uint, uint> map)
+        {
+            return (command & 0xFFFF0000) | map(command & 0xFFFF);
+        }
+
+        /// <summary>
+        /// Renumbers the commands and stances the table is keyed by: <paramref name="map"/> gets a command's number (its low 16 bits) and returns the new one.
+        /// A cycle, modifier or link group key holds the stance's number in its high half and the command's in its low half. The order of the entries stays when the map keeps the numbers in order.
+        /// </summary>
+        public void RemapCommands(Func<uint, uint> map)
+        {
+            uint Key(uint key) => (map(key >> 16) << 16) | map(key & 0xFFFF);
+
+            Dictionary<uint, T> Rekey<T>(Dictionary<uint, T> source, Func<uint, uint> rekey) => source.ToDictionary(e => rekey(e.Key), e => e.Value);
+
+            DefaultStyle = RemapCommand(DefaultStyle, map);
+
+            var styles = StyleDefaults.ToList();
+            StyleDefaults.Clear();
+            foreach (var entry in styles)
+                StyleDefaults.Add(RemapCommand(entry.Key, map), RemapCommand(entry.Value, map));
+
+            var cycles = Rekey(Cycles, Key);
+            Cycles.Clear();
+            foreach (var entry in cycles)
+                Cycles.Add(entry.Key, entry.Value);
+
+            var modifiers = Rekey(Modifiers, Key);
+            Modifiers.Clear();
+            foreach (var entry in modifiers)
+                Modifiers.Add(entry.Key, entry.Value);
+
+            var links = Links.ToList();
+            Links.Clear();
+            foreach (var link in links)
+                Links.Add(Key(link.Key), Rekey(link.Value, command => RemapCommand(command, map)));
         }
 
         /// <summary>

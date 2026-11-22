@@ -189,6 +189,29 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
+        public void PreToDGfxObj_OfEveryModelOfThe2005Dat_ReadsWithItsSurfacesAndPolygons()
+        {
+            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PreToDPortalDat);
+
+            if (!File.Exists(path))
+                Assert.Inconclusive($"Source dat not found: {path}");
+
+            var pre = new DatDatabase(path, true);
+            var read = 0;
+
+            foreach (var id in pre.AllFiles.Keys.Where(k => k >> 24 == 0x01))
+            {
+                var model = GfxObj.UnpackPreToD(pre.GetReaderForFile(id).Buffer);
+
+                Assert.AreEqual(id, model.Id);
+                Assert.IsTrue(model.Surfaces.Count > 0 || model.Polygons.Count == 0, $"{id:X8} has polygons but no surfaces.");
+                read++;
+            }
+
+            Assert.IsTrue(read > 0);
+        }
+
+        [TestMethod]
         public void PreToDRegion_OfTheHardwareRecord_ReadsWholeAndPacksToAToDRecord()
         {
             var record = ReadRecord(DatBuildRecipes.PreToDPortalDat, PreToDHardwareRegionId);
@@ -202,6 +225,182 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual(region.SkyInfo.DayGroups.Count, again.SkyInfo.DayGroups.Count);
             Assert.AreEqual(region.TerrainInfo.TerrainTypes.Count, again.TerrainInfo.TerrainTypes.Count);
             CollectionAssert.AreEqual(packed, again.Pack());
+        }
+
+        [TestMethod]
+        public void PreToDChargen_ReadsWhole_AndTakingTheFaceKeepsTheOtherFieldsOfTheSex()
+        {
+            var chargen = CharGen.UnpackPreToD(ReadRecord(DatBuildRecipes.PreToDPortalDat, 0x0E000002));
+
+            CollectionAssert.AreEqual(new uint[] { 1, 2, 3 }, chargen.HeritageGroups.Keys.OrderBy(k => k).ToArray());
+            Assert.IsTrue(chargen.HeritageGroups.Values.All(h => h.Genders.Count == 2 && h.Genders.Values.All(s => s.HairStyleList.Count > 0 && s.EyeStripList.Count > 0 && s.NoseStripList.Count > 0 && s.MouthStripList.Count > 0)));
+
+            var preToD = chargen.HeritageGroups[1].Genders[1];
+            var target = new SexCG();
+            target.TakeFaceFrom(preToD);
+
+            Assert.AreSame(preToD.BaseObjDesc, target.BaseObjDesc);
+            Assert.AreEqual(preToD.HairStyleList.Count, target.HairStyleList.Count);
+            Assert.AreEqual(0u, target.SetupID);
+        }
+
+        [TestMethod]
+        public void PreToDPortalConverter_ShiftsTheEffectNumbersFrom0x1EUp_AndKeepsTheLowOnes()
+        {
+            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PreToDPortalDat);
+
+            if (!File.Exists(path))
+                Assert.Inconclusive($"Source dat not found: {path}");
+
+            const uint tableId = 0x34000004;
+
+            var pre = new DatDatabase(path, true);
+            var converted = new DatPreToDPortalConverter(pre, 0x06100000).Convert().First(r => r.Key == tableId);
+
+            var before = DatRecordContext.Unpack<PhysicsScriptTable>(pre.GetReaderForFile(tableId).Buffer).ScriptTable;
+            var after = DatRecordContext.Unpack<PhysicsScriptTable>(converted.Value).ScriptTable;
+
+            Assert.AreEqual(before.Count, after.Count);
+
+            foreach (var entry in before)
+            {
+                var key = entry.Key >= 0x1E ? entry.Key + 1 : entry.Key;
+                CollectionAssert.AreEqual(entry.Value.Scripts.Select(s => s.ScriptId).ToList(), after[key].Scripts.Select(s => s.ScriptId).ToList(), $"effect {entry.Key:X2}");
+            }
+
+            // The server's Hide (0x74) plays the script the 2005 table had at 0x73, and its UnHide (0x75) the one it had at 0x74.
+            Assert.AreEqual(before[0x73].Scripts[0].ScriptId, after[0x74].Scripts[0].ScriptId);
+            Assert.AreEqual(before[0x74].Scripts[0].ScriptId, after[0x75].Scripts[0].ScriptId);
+        }
+
+        [TestMethod]
+        public void PreToDPortalConverter_ShiftsTheMotionNumbersFrom0x115AndTheSoundNumbersFrom0x76_AndKeepsTheLowOnes()
+        {
+            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PreToDPortalDat);
+
+            if (!File.Exists(path))
+                Assert.Inconclusive($"Source dat not found: {path}");
+
+            var pre = new DatDatabase(path, true);
+            var converted = new DatPreToDPortalConverter(pre, 0x06100000).Convert().Where(r => r.Key >> 24 == 0x09 || r.Key >> 24 == 0x20 || r.Key >> 24 == 0x30).ToDictionary(r => r.Key, r => r.Value);
+
+            uint Motion(uint number) => number >= 0x115 ? number + 3 : number;
+            uint Command(uint command) => (command & 0xFFFF0000) | Motion(command & 0xFFFF);
+            uint Key(uint key) => (Motion(key >> 16) << 16) | Motion(key & 0xFFFF);
+
+            byte[] Packed(MotionData data)
+            {
+                var stream = new MemoryStream();
+                using (var writer = new BinaryWriter(stream))
+                    data.Pack(writer);
+
+                return stream.ToArray();
+            }
+
+            int shiftedMotions = 0, shiftedSounds = 0, shiftedManeuvers = 0;
+
+            foreach (var id in pre.AllFiles.Keys.Where(k => k >> 24 == 0x09))
+            {
+                var before = DatRecordContext.Unpack<MotionTable>(pre.GetReaderForFile(id).Buffer);
+                var after = DatRecordContext.Unpack<MotionTable>(converted[id]);
+
+                Assert.AreEqual(Command(before.DefaultStyle), after.DefaultStyle);
+                Assert.AreEqual(before.StyleDefaults.Count, after.StyleDefaults.Count);
+                Assert.AreEqual(before.Cycles.Count, after.Cycles.Count);
+                Assert.AreEqual(before.Links.Count, after.Links.Count);
+
+                foreach (var style in before.StyleDefaults)
+                    Assert.AreEqual(Command(style.Value), after.StyleDefaults[Command(style.Key)]);
+
+                foreach (var cycle in before.Cycles)
+                {
+                    CollectionAssert.AreEqual(Packed(cycle.Value), Packed(after.Cycles[Key(cycle.Key)]), $"{id:X8} cycle {cycle.Key:X8}");
+
+                    if (Key(cycle.Key) != cycle.Key)
+                        shiftedMotions++;
+                }
+
+                foreach (var link in before.Links)
+                    foreach (var motion in link.Value)
+                        CollectionAssert.AreEqual(Packed(motion.Value), Packed(after.Links[Key(link.Key)][Command(motion.Key)]), $"{id:X8} link {link.Key:X8} {motion.Key:X8}");
+            }
+
+            foreach (var id in pre.AllFiles.Keys.Where(k => k >> 24 == 0x20))
+            {
+                var before = DatRecordContext.Unpack<SoundTable>(pre.GetReaderForFile(id).Buffer);
+                var after = DatRecordContext.Unpack<SoundTable>(converted[id]);
+
+                Assert.AreEqual(before.Data.Count, after.Data.Count);
+
+                foreach (var sound in before.Data)
+                {
+                    var key = sound.Key >= 0x76 ? sound.Key + 0x15 : sound.Key;
+
+                    CollectionAssert.AreEqual(sound.Value.Data.Select(d => d.SoundId).ToList(), after.Data[key].Data.Select(d => d.SoundId).ToList(), $"{id:X8} sound {sound.Key:X2}");
+
+                    if (key != sound.Key)
+                        shiftedSounds++;
+                }
+            }
+
+            foreach (var id in pre.AllFiles.Keys.Where(k => k >> 24 == 0x30))
+            {
+                var before = DatRecordContext.Unpack<CombatManeuverTable>(pre.GetReaderForFile(id).Buffer).CMT;
+                var after = DatRecordContext.Unpack<CombatManeuverTable>(converted[id]).CMT;
+
+                Assert.AreEqual(before.Count, after.Count);
+
+                for (var i = 0; i < before.Count; i++)
+                {
+                    Assert.AreEqual(Command((uint)before[i].Style), (uint)after[i].Style);
+                    Assert.AreEqual(Command((uint)before[i].Motion), (uint)after[i].Motion);
+
+                    if (Command((uint)before[i].Motion) != (uint)before[i].Motion)
+                        shiftedManeuvers++;
+                }
+            }
+
+            Assert.IsTrue(shiftedMotions > 0 && shiftedSounds > 0 && shiftedManeuvers > 0, $"nothing was shifted: {shiftedMotions} cycles, {shiftedSounds} sounds, {shiftedManeuvers} maneuvers");
+        }
+
+        [TestMethod]
+        public void PreToDPortalConverter_ConvertsEveryRecordOfThe2005Dat_ToRecordsTheEoRCodecsRead()
+        {
+            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PreToDPortalDat);
+
+            if (!File.Exists(path))
+                Assert.Inconclusive($"Source dat not found: {path}");
+
+            var pre = new DatDatabase(path, true);
+            var converter = new DatPreToDPortalConverter(pre, 0x06100000);
+            var records = new Dictionary<uint, byte[]>();
+
+            foreach (var record in converter.Convert())
+                Assert.IsTrue(records.TryAdd(record.Key, record.Value), $"{record.Key:X8} is written twice");
+
+            Assert.AreEqual(0, converter.Failures.Count, string.Join("\n", converter.Failures.Take(20)));
+
+            var skipped = pre.AllFiles.Keys.Count(k => k >> 24 == 0x0E || k >> 24 == 0x13);
+            Assert.AreEqual(pre.AllFiles.Count - skipped + converter.ImageOfTexture.Count, records.Count);
+
+            foreach (var record in records)
+            {
+                var again = (record.Key >> 24) switch
+                {
+                    0x01 => DatRecordContext.Unpack<GfxObj>(record.Value).Pack(),
+                    0x05 => DatRecordContext.Unpack<SurfaceTexture>(record.Value).Pack(),
+                    0x06 => DatRecordContext.Unpack<Texture>(record.Value).Pack(),
+                    0x08 => DatRecordContext.Unpack<Surface>(record.Value).Pack(),
+                    0x0D => DatRecordContext.Unpack<ACE.DatLoader.FileTypes.Environment>(record.Value).Pack(),
+                    0x10 => DatRecordContext.Unpack<ClothingTable>(record.Value).Pack(),
+                    _ => record.Value
+                };
+
+                CollectionAssert.AreEqual(record.Value, again, $"{record.Key:X8} does not read back as it was written");
+            }
+
+            foreach (var model in converter.DegradedModels)
+                Assert.AreEqual(0x11000000 | (model & 0xFFFFFF), DatRecordContext.Unpack<GfxObj>(records[model]).DIDDegrade);
         }
 
         [TestMethod]
@@ -565,6 +764,52 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
+        public void RegionRemap_KeepsTheRecordWithTheIdentityAndShiftsTheSkyIds()
+        {
+            var record = ReadRecord(DatBuildRecipes.PortalBaseDat, RegionRecords.RegionId);
+            var region = DatRecordContext.Unpack<RegionDesc>(record);
+            var packed = region.Pack();
+
+            region.Remap(id => id);
+            CollectionAssert.AreEqual(packed, region.Pack());
+
+            var first = region.SkyInfo.DayGroups[0].SkyObjects[0].DefaultGFXObjectId;
+            region.Remap(id => id + 0x5000);
+
+            var shifted = DatRecordContext.Unpack<RegionDesc>(region.Pack());
+            Assert.AreEqual(first + 0x5000, shifted.SkyInfo.DayGroups[0].SkyObjects[0].DefaultGFXObjectId);
+            Assert.AreEqual(0u, shifted.SkyInfo.DayGroups[0].SkyObjects[0].DefaultPESObjectId);
+        }
+
+        [TestMethod]
+        public void InsertSkyObject_MovesTheReplacementsOfTheObjectsFromThereOn()
+        {
+            var group = DatRecordContext.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionRecords.RegionId)).SkyInfo.DayGroups[0];
+            var before = group.SkyObjects.Select(o => o.DefaultGFXObjectId).ToList();
+            var replaces = group.SkyTime.SelectMany(t => t.SkyObjReplace).Select(r => r.ObjectIndex).ToList();
+            Assert.IsTrue(replaces.Any(i => i >= 4), "the test needs a replacement of an object after the insert position");
+
+            group.InsertSkyObject(4, group.SkyObjects[3].CloneWith(0x01007086));
+
+            Assert.AreEqual(before.Count + 1, group.SkyObjects.Count);
+            Assert.AreEqual(0x01007086u, group.SkyObjects[4].DefaultGFXObjectId);
+            Assert.AreEqual(before[3], group.SkyObjects[3].DefaultGFXObjectId);
+            Assert.AreEqual(before[4], group.SkyObjects[5].DefaultGFXObjectId);
+            CollectionAssert.AreEqual(replaces.Select(i => i >= 4 ? i + 1 : i).ToList(), group.SkyTime.SelectMany(t => t.SkyObjReplace).Select(r => r.ObjectIndex).ToList());
+        }
+
+        [TestMethod]
+        public void CoverRecords_MakeAFullyTranslucentClipMapSurface()
+        {
+            var records = MoonRecords.CoverRecords(0x08007087, 0x05007087, 0x06009F00, 0x04007087).ToDictionary(r => r.Key, r => r.Value);
+            CollectionAssert.AreEquivalent(new uint[] { 0x08007087, 0x05007087, 0x06009F00, 0x04007087 }, records.Keys.ToList());
+
+            var surface = DatRecordContext.Unpack<Surface>(records[0x08007087]);
+            Assert.IsTrue(surface.Type.HasFlag(SurfaceType.Base1ClipMap | SurfaceType.Translucent));
+            Assert.AreEqual(0x05007087u, surface.OrigTextureId);
+        }
+
+        [TestMethod]
         public void LayoutEdits_ChangeOnlyTheNamedMediaItem()
         {
             var master = ReadMasterProperty();
@@ -590,6 +835,23 @@ namespace ACE.DatLoader.Tests
             var layout = DatLayoutEdits.Unpack(ReadRecord(DatBuildRecipes.LanguageBaseDat, ChargenHeritageUiId), ReadMasterProperty());
 
             Assert.ThrowsExactly<InvalidDataException>(() => DatLayoutEdits.Apply(layout, new List<DatLayoutMediaEdit> { new DatLayoutMediaEdit { Element = "0000FFFF", State = "", Media = 0, File = "00000000" } }));
+        }
+
+        [TestMethod]
+        public void LayoutEdits_MoveTheUnusedHeritageButtonsOutOfTheLayout_AndKeepTheThreeOfInfiltration()
+        {
+            var layout = DatLayoutEdits.Unpack(ReadRecord(DatBuildRecipes.LanguageBaseDat, ChargenHeritageUiId), ReadMasterProperty());
+            var moves = DatRecipeData.Load<List<DatLayoutMoveEdit>>(LanguageRecords.InfiltrationHeritageUiMovedFile);
+            var kept = layout.Elements[0x100003BD].Children.Where(c => c.Value.X == 21 && c.Value.Y < 150 && c.Key != 0x100003C4).Select(c => (c.Key, c.Value.X, c.Value.Y)).ToList();
+
+            DatLayoutEdits.Move(layout, moves);
+
+            var buttons = DatLayoutEdits.Unpack(layout.Pack(), ReadMasterProperty()).Elements[0x100003BD].Children;
+
+            Assert.AreEqual(13 + 2, buttons.Count);
+            Assert.AreEqual(moves.Count, buttons.Values.Count(b => b.X > 800));
+            Assert.IsTrue(kept.All(k => buttons[k.Key].X == k.X && buttons[k.Key].Y == k.Y));
+            Assert.ThrowsExactly<InvalidDataException>(() => DatLayoutEdits.Move(layout, new List<DatLayoutMoveEdit> { new DatLayoutMoveEdit { Element = "0000FFFF" } }));
         }
 
         [TestMethod]
@@ -906,7 +1168,7 @@ namespace ACE.DatLoader.Tests
                 Assert.Inconclusive($"Source dat not found: {template}");
 
             var path = Path.Combine(Path.GetTempPath(), $"RegionStepTests-{Guid.NewGuid():N}.dat");
-            DatWriter.CreateEmpty(path, template);
+            DatWriter.CreateEmpty(path, DatContainerSpec.Portal);
 
             var regionRecord = ReadRecord(DatBuildRecipes.PortalBaseDat, 0x13000000);
             var region = DatRecordContext.Unpack<RegionDesc>(regionRecord);
@@ -1004,6 +1266,25 @@ namespace ACE.DatLoader.Tests
             var plain = new byte[16 + 4];
             plain[16] = 9; plain[19] = 7;
             CollectionAssert.AreEqual(new byte[] { 9, 0, 0, 7 }, (byte[])method.Invoke(null, new object[] { plain, 4u, 1, 4 }));
+        }
+
+        [TestMethod]
+        public void SeasonalKit_EverySeasonTextureConvertsFromItsOwnDatAndDiffersFromAutumn()
+        {
+            var kit = DatRecipeData.Load<SeasonalRecords.Kit>(SeasonalRecords.KitFile);
+            var all = kit.All.Select(t => Convert.ToUInt32(t, 16)).ToHashSet();
+
+            Assert.AreEqual(4, kit.Seasons.Count);
+            CollectionAssert.AreEquivalent(new[] { "Summer", "Snow", "Winter", "Red" }, kit.Seasons.Select(s => s.Name).ToList());
+            CollectionAssert.AreEquivalent(all.ToList(), kit.Seasons.SelectMany(s => s.Textures).Select(t => Convert.ToUInt32(t, 16)).Distinct().ToList(), "the kit is the union of the seasons' textures");
+
+            foreach (var season in kit.Seasons)
+                foreach (var id in season.Textures.Select(t => Convert.ToUInt32(t, 16)))
+                {
+                    byte[] ToImage(string dat) => DatPortalImporter.ConvertImage(ReadRecord(dat, id), 0x06000001, palette => ReadRecord(dat, palette), out _, out _, out _);
+
+                    CollectionAssert.AreNotEqual(ToImage(DatBuildRecipes.PreToDPortalDat), ToImage(season.Source), $"{season.Name} {id:X8} looks like autumn");
+                }
         }
     }
 }

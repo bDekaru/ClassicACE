@@ -37,6 +37,24 @@ namespace ACE.DatBuilder
         /// <summary>The step date of the conversion itself ("yyyy-MM-dd"): the date of every record the map edits do not change.</summary>
         public string ConversionDate { get; }
 
+        /// <summary>Set when the portal dat is made from the pre-ToD portal dat, which keeps the surface ids: the cells keep theirs instead of going through the surface map, and no additions file is read.</summary>
+        public bool IdentitySurfaces { get; private set; }
+
+        public DatCellBuildRecipe WithIdentitySurfaces()
+        {
+            IdentitySurfaces = true;
+            return this;
+        }
+
+        /// <summary>Output subfolder when it is not the ruleset's name, which is also where the portal build is read from.</summary>
+        public string OutputFolder { get; private set; }
+
+        public DatCellBuildRecipe WithOutputFolder(string folder)
+        {
+            OutputFolder = folder;
+            return this;
+        }
+
         public string OutputFileName => "client_cell_1.dat";
 
         public string Key => Name.Replace(' ', '-').ToLowerInvariant();
@@ -55,7 +73,7 @@ namespace ACE.DatBuilder
         }
 
         /// <summary>The built portal dat and the surface map additions file the portal build wrote next to it.</summary>
-        public string BuiltPortalPath(string outputRoot) => Path.Combine(outputRoot, Ruleset, Portal.OutputFileName);
+        public string BuiltPortalPath(string outputRoot) => Path.Combine(outputRoot, OutputFolder ?? Ruleset, Portal.OutputFileName);
 
         public string BuiltAdditionsPath(string outputRoot) => Path.Combine(Path.GetDirectoryName(BuiltPortalPath(outputRoot)), Path.ChangeExtension(Portal.OutputFileName, null) + ".surface_map_additions.tsv");
     }
@@ -118,11 +136,11 @@ namespace ACE.DatBuilder
                 if (!File.Exists(input))
                     throw new ArgumentException($"Source dat not found: {input}");
 
-            foreach (var input in new[] { portal, additions })
+            foreach (var input in recipe.IdentitySurfaces ? new[] { portal } : new[] { portal, additions })
                 if (!File.Exists(input))
                     throw new ArgumentException($"{input} not found: build {recipe.Portal.Key} first.");
 
-            var outputFolder = Path.GetFullPath(Path.Combine(outputRoot, recipe.Ruleset));
+            var outputFolder = Path.GetFullPath(Path.Combine(outputRoot, recipe.OutputFolder ?? recipe.Ruleset));
             var output = Path.Combine(outputFolder, recipe.OutputFileName);
             var sourceFull = Path.GetFullPath(sourceDats).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
@@ -132,10 +150,17 @@ namespace ACE.DatBuilder
             if (File.Exists(output) && !force)
                 throw new ArgumentException($"{output} already exists (use --force to replace it).");
 
-            var surfaceMap = DatCellConverter.LoadEmbeddedSurfaceMap(recipe.SurfaceMap);
+            Dictionary<ushort, ushort> surfaceMap;
 
-            foreach (var entry in DatCellConverter.LoadSurfaceMap(additions))
-                surfaceMap[entry.Key] = entry.Value;
+            if (recipe.IdentitySurfaces)
+                surfaceMap = new DatDatabase(portal).AllFiles.Keys.Where(id => id >> 24 == 0x08).ToDictionary(id => (ushort)id, id => (ushort)id);
+            else
+            {
+                surfaceMap = DatCellConverter.LoadEmbeddedSurfaceMap(recipe.SurfaceMap);
+
+                foreach (var entry in DatCellConverter.LoadSurfaceMap(additions))
+                    surfaceMap[entry.Key] = entry.Value;
+            }
 
             Directory.CreateDirectory(outputFolder);
 
@@ -149,7 +174,7 @@ namespace ACE.DatBuilder
 
                 if (recipe.MapOperations == null)
                 {
-                    result.Conversion = DatCellConverter.Convert(retail, template, temp, surfaceMap, portal, conversionTime, recipe.Releases.IterationForDate);
+                    result.Conversion = DatCellConverter.Convert(retail, temp, surfaceMap, portal, conversionTime, recipe.Releases.IterationForDate);
 
                     using (var writer = new DatWriter(temp))
                     {
@@ -173,7 +198,7 @@ namespace ACE.DatBuilder
                     result.FinalCheck = new DatCellConversionReport();
                     DatCellConverter.CheckStore(store, portal, result.FinalCheck);
 
-                    DatWriter.CreateEmpty(temp, template);
+                    DatWriter.CreateEmpty(temp, DatContainerSpec.Cell);
 
                     using (var writer = new DatWriter(temp) { RecordDate = conversionTime, IterationForDate = recipe.Releases.IterationForDate })
                     {

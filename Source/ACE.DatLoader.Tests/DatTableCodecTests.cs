@@ -864,11 +864,10 @@ namespace ACE.DatLoader.Tests
             var skills = CustomDMSkillRecord();
             var mapperBytes = TitleMapperBytes(false);
             var stringBytes = TitleStringBytes(false);
-            var languageTemplate = Path.Combine(SourceDats, "language - 2015-06-18 - Iteration 994 - EoR.dat");
             var portalPath = TempDatWith(xp, skills);
             var languagePath = Path.Combine(Path.GetTempPath(), $"DatTableStepTests-{Guid.NewGuid():N}.dat");
 
-            DatWriter.CreateEmpty(languagePath, languageTemplate);
+            DatWriter.CreateEmpty(languagePath, DatContainerSpec.Language);
 
             try
             {
@@ -926,13 +925,8 @@ namespace ACE.DatLoader.Tests
 
         private static string TempDatWith(byte[] xp, byte[] skills)
         {
-            var template = Path.Combine(SourceDats, "portal - 2017-01-29 - Iteration 2072 - EoR.dat");
-
-            if (!File.Exists(template))
-                Assert.Inconclusive($"Test dat not found: {template}");
-
             var path = Path.Combine(Path.GetTempPath(), $"DatTableStepTests-{Guid.NewGuid():N}.dat");
-            DatWriter.CreateEmpty(path, template);
+            DatWriter.CreateEmpty(path, DatContainerSpec.Portal);
 
             using (var writer = new DatWriter(path))
             {

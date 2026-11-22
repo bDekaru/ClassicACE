@@ -38,6 +38,25 @@ namespace ACE.DatLoader.Entity
             SkyTime.Unpack(reader);
         }
 
+        /// <summary>Puts a sky object into the list; the replacements of the times keep pointing at the objects they pointed at.</summary>
+        public void InsertSkyObject(int index, SkyObject skyObject)
+        {
+            SkyObjects.Insert(index, skyObject);
+
+            foreach (var time in SkyTime)
+                foreach (var replace in time.SkyObjReplace)
+                    replace.Inserted((uint)index);
+        }
+
+        public void Remap(System.Func<uint, uint> map)
+        {
+            foreach (var skyObject in SkyObjects)
+                skyObject.Remap(map);
+
+            foreach (var time in SkyTime)
+                time.Remap(map);
+        }
+
         public void Pack(BinaryWriter writer)
         {
             writer.Write(ChanceOfOccur);

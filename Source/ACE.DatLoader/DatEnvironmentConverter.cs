@@ -14,6 +14,7 @@ namespace ACE.DatLoader
         private const uint TagPortal = 0x504F5254; // PORT
         private const uint TagLeaf = 0x4C454146;   // LEAF
         private const int ClockwiseSides = 2;
+        private const uint HasDegradeFlag = 8;
 
         private enum TreeType
         {
@@ -33,10 +34,12 @@ namespace ACE.DatLoader
         /// Converts a GfxObj record (portal dat, 0x01......) from the pre-ToD layout to the ToD/EoR layout:
         /// counts become compressed integers, the alignment pads go, and the legacy triangle strips (flag 4) are not supported.
         /// </summary>
-        public static byte[] ConvertGfxObj(byte[] retail, Func<uint, uint> surfaceId = null)
+        /// <param name="degradeId">The GfxObjDegradeInfo (0x11) record the model uses; the pre-ToD record has no such field (the client derives the id from the model's), 0 leaves the model without one.</param>
+        public static byte[] ConvertGfxObj(byte[] retail, Func<uint, uint> surfaceId = null, uint degradeId = 0)
         {
             var conv = new Transcoder(retail);
             conv.SurfaceId = surfaceId;
+            conv.DegradeId = degradeId;
             conv.GfxObj();
             return conv.Result();
         }
@@ -48,6 +51,7 @@ namespace ACE.DatLoader
             private readonly MemoryStream _out = new MemoryStream();
 
             public Func<uint, uint> SurfaceId { get; set; }
+            public uint DegradeId { get; set; }
 
             public Transcoder(byte[] input)
             {
@@ -139,7 +143,7 @@ namespace ACE.DatLoader
                 if ((flags & 4) != 0)
                     throw new NotSupportedException("GfxObj: legacy triangle strips (flag 4)");
 
-                _out.Write(BitConverter.GetBytes(flags), 0, 4);
+                _out.Write(BitConverter.GetBytes(DegradeId != 0 ? flags | HasDegradeFlag : flags), 0, 4);
 
                 var numSurfaces = CountToCompressed();
                 for (uint i = 0; i < numSurfaces; i++)
@@ -166,6 +170,9 @@ namespace ACE.DatLoader
                 }
 
                 SkipInPad();
+
+                if (DegradeId != 0)
+                    _out.Write(BitConverter.GetBytes(DegradeId), 0, 4);
             }
 
             public void Environment()

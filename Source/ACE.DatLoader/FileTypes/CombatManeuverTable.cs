@@ -57,6 +57,13 @@ namespace ACE.DatLoader.FileTypes
             CMT.Pack(writer);
         }
 
+        /// <summary>Renumbers the stances and motions of every maneuver (<see cref="CombatManeuver.RemapCommands"/>); the lookup tables built by Unpack are not rebuilt, so the table is only to be packed afterwards.</summary>
+        public void RemapCommands(Func<uint, uint> map)
+        {
+            foreach (var maneuver in CMT)
+                maneuver.RemapCommands(map);
+        }
+
         public class AttackHeights
         {
             public Dictionary<AttackHeight, AttackTypes> Table = new Dictionary<AttackHeight, AttackTypes>();

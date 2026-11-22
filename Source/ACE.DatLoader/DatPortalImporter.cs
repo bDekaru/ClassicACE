@@ -19,7 +19,7 @@ namespace ACE.DatLoader
         private const uint SurfacePrefix = 0x08000000;
         private const uint PixelFormatA8R8G8B8 = 21;
         private const uint ImageHeaderValue = 6;
-        private const uint PreIndexedFormat = 2;
+        public const uint PreIndexedFormat = 2;
         private const byte TexturedSurfaceMask = 6;
 
         // Pre-ToD image formats stored as plain pixels (ImgTex::UnPack): 3 A1R5G5B5, 4 A4R4G4B4, 7 R5G6B5, 10 R8G8B8 (3 bytes), 11 A8.
@@ -202,7 +202,17 @@ namespace ACE.DatLoader
             if (_importedSurfaces.TryGetValue(preSurfaceId, out var imported))
                 return imported;
 
-            var record = PreRecord(preSurfaceId);
+            var id = _nextSurface++;
+            Records[id] = ConvertSurface(PreRecord(preSurfaceId), ImportTexture);
+            _importedSurfaces[preSurfaceId] = id;
+            Log.Add($"{preSurfaceId:X8} surface imported as {id:X8}");
+
+            return id;
+        }
+
+        /// <summary>The ToD surface record (0x08) of a pre-ToD one; <paramref name="surfaceTextureId"/> gives the SurfaceTexture for the pre-ToD image a textured surface names.</summary>
+        public static byte[] ConvertSurface(byte[] record, Func<uint, uint> surfaceTextureId)
+        {
             var type = BitConverter.ToUInt32(record, 4);
 
             var toD = new MemoryStream();
@@ -210,22 +220,14 @@ namespace ACE.DatLoader
 
             if ((type & TexturedSurfaceMask) != 0)
             {
-                var textureId = BitConverter.ToUInt32(record, 8);
-                var surfaceTexture = ImportTexture(textureId);
-
-                toD.Write(BitConverter.GetBytes(surfaceTexture), 0, 4);
+                toD.Write(BitConverter.GetBytes(surfaceTextureId(BitConverter.ToUInt32(record, 8))), 0, 4);
                 toD.Write(BitConverter.GetBytes(0u), 0, 4); // the palette lives in the image now
                 toD.Write(record, 16, 12);
             }
             else
                 toD.Write(record, 8, 16); // colour and the three floats
 
-            var id = _nextSurface++;
-            Records[id] = toD.ToArray();
-            _importedSurfaces[preSurfaceId] = id;
-            Log.Add($"{preSurfaceId:X8} surface imported as {id:X8}");
-
-            return id;
+            return toD.ToArray();
         }
 
         /// <summary>Imports a pre-ToD image (0x05) as a ToD image and SurfaceTexture and returns the SurfaceTexture id.</summary>
@@ -258,11 +260,11 @@ namespace ACE.DatLoader
 
         /// <summary>
         /// Converts a pre-ToD image record (0x05) into the ToD image record (0x06) with the given id; an indexed image reads its palette through
-        /// <paramref name="readRecord"/>.
+        /// <paramref name="readRecord"/>. <paramref name="transparentIndexZero"/> makes palette index 0 transparent: the pre-ToD client clips a clipmap surface at that index, whatever its color.
         /// </summary>
         /// <exception cref="InvalidDataException">The record is shorter than its header says or a palette index is outside its palette.</exception>
         /// <exception cref="NotSupportedException">The pre-ToD image format has no conversion.</exception>
-        public static byte[] ConvertImage(byte[] texture, uint imageId, Func<uint, byte[]> readRecord, out int width, out int height, out string detail)
+        public static byte[] ConvertImage(byte[] texture, uint imageId, Func<uint, byte[]> readRecord, out int width, out int height, out string detail, bool transparentIndexZero = false)
         {
             var preId = BitConverter.ToUInt32(texture, 0);
             var format = BitConverter.ToUInt32(texture, 4);
@@ -281,6 +283,31 @@ namespace ACE.DatLoader
 
                 WriteImageHeader(image, imageId, ImageHeaderValue, width, height, PixelFormatA8R8G8B8, pixels * 4);
 
+                // A transparent texel keeps the average opaque color, not the key color: filtering blends the two at the edges of the leaves.
+                var fill = new byte[3];
+
+                if (transparentIndexZero)
+                {
+                    var sums = new long[3];
+                    var opaque = 0;
+
+                    for (var i = 0; i < pixels; i++)
+                    {
+                        var index = texture[16 + i];
+
+                        if (index == 0 || index >= colors)
+                            continue;
+
+                        for (var c = 0; c < 3; c++)
+                            sums[c] += palette[8 + 4 * index + c];
+
+                        opaque++;
+                    }
+
+                    for (var c = 0; c < 3; c++)
+                        fill[c] = opaque == 0 ? palette[8 + c] : (byte)(sums[c] / opaque);
+                }
+
                 for (var i = 0; i < pixels; i++)
                 {
                     var index = texture[16 + i];
@@ -288,7 +315,13 @@ namespace ACE.DatLoader
                     if (index >= colors)
                         throw new InvalidDataException($"Texture {preId:X8}: palette index {index} outside palette {paletteId:X8}");
 
-                    image.Write(palette, 8 + 4 * index, 4);
+                    if (transparentIndexZero && index == 0)
+                    {
+                        image.Write(fill, 0, 3);
+                        image.WriteByte(0);
+                    }
+                    else
+                        image.Write(palette, 8 + 4 * index, 4);
                 }
 
                 detail = $"palette {paletteId:X8}";
