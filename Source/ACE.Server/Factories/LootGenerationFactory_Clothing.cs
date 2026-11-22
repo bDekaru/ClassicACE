@@ -162,7 +162,7 @@ namespace ACE.Server.Factories
                 {
                     if (wo.IsShield)
                         return $"ArmorLevel.{ruleset}.shield_level.txt";
-                    else if (roll.IsClothArmor)
+                    else if (roll.IsClothArmor && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
                         return $"ArmorLevel.{ruleset}.cloth_armor_level.txt";
                     return $"ArmorLevel.{ruleset}.armor_level.txt";
                 }

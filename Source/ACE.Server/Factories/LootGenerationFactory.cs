@@ -845,7 +845,8 @@ namespace ACE.Server.Factories
                     break;
 
                 case TreasureItemType.Clothing:
-                    treasureRoll.ArmorType = TreasureArmorType.Cloth;
+                    if (wo.IsClothArmor)
+                        treasureRoll.ArmorType = TreasureArmorType.Cloth;
                     MutateArmor(wo, treasureDeath, isMagical, treasureRoll);
                     break;
 
