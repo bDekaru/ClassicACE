@@ -576,19 +576,31 @@ namespace ACE.Server.WorldObjects
         public bool SnareCooldown { get; set; }
         public void Ensnare()
         {
-            StopCurrentActivity(true);
+            var isCustomDM = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM;
+
+            if (!isCustomDM)
+                StopCurrentActivity(true);
 
             IsSnared = true;
             NextSnareEffectTimestamp = 0;
+
+            if (isCustomDM && !TrySendChaseUpdate())
+                StopCurrentActivity(true);
         }
 
         public void RemoveSnare()
         {
             if (IsSnared)
             {
-                StopCurrentActivity(true);
+                var isCustomDM = Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM;
+
+                if (!isCustomDM)
+                    StopCurrentActivity(true);
 
                 IsSnared = false;
+
+                if (isCustomDM && !TrySendChaseUpdate())
+                    StopCurrentActivity(true);
             }
         }
 

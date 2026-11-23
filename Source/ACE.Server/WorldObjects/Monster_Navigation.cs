@@ -649,8 +649,101 @@ namespace ACE.Server.WorldObjects
             var previousMoveSpeed = MoveSpeed;
             UpdateMovementSpeed();
 
-            if (IsMoving && previousMoveSpeed != MoveSpeed)
+            if (!IsMoving || previousMoveSpeed == MoveSpeed)
+                return;
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && LastMoveTo != null)
+                SendMoveSpeedUpdate();
+            else
                 CancelMoveTo(WeenieError.ObjectGone);
+        }
+
+        /// <summary>
+        /// CustomDM: sends the move this creature is on again with its new run rate and MotionFlags.SpeedUpdate, so the clients
+        /// change its speed without stopping it. A client that is not running to the target yet just starts the move afresh.
+        /// The server's own move keeps going: it reads the run rate each step.
+        /// </summary>
+        private void SendMoveSpeedUpdate()
+        {
+            Motion speedUpdate;
+
+            MonsterMovementLock.EnterWriteLock();
+            try
+            {
+                // later observers get the move with the new rate too (BroadcastMoveTo)
+                LastMoveTo.RunRate = RunRate;
+
+                speedUpdate = new Motion(LastMoveTo);
+            }
+            finally
+            {
+                MonsterMovementLock.ExitWriteLock();
+            }
+
+            speedUpdate.MotionFlags |= MotionFlags.SpeedUpdate;
+            speedUpdate.MotionFlags &= ~MotionFlags.AnimationBreak;
+
+            EnqueueBroadcastMotion(speedUpdate);
+        }
+
+        /// <summary>
+        /// CustomDM: when this creature is running to its attack target, sends that move again with the walk or run parameters it
+        /// should have now (see GetMoveToMotion; it changes when the creature is snared or freed) and MotionFlags.SpeedUpdate, so the
+        /// clients carry on without stopping it, and starts the same move on the server's own physics. False (nothing done) if the
+        /// creature is not on such a move: the caller stops it instead.
+        /// </summary>
+        private bool TrySendChaseUpdate()
+        {
+            if (!IsMoving || AttackTarget == null)
+                return false;
+
+            Motion lastMoveTo;
+
+            MonsterMovementLock.EnterReadLock();
+            try
+            {
+                lastMoveTo = LastMoveTo;
+            }
+            finally
+            {
+                MonsterMovementLock.ExitReadLock();
+            }
+
+            if (lastMoveTo == null || lastMoveTo.MovementType != MovementType.MoveToObject || lastMoveTo.TargetGuid != AttackTarget.Guid)
+                return false;
+
+            // the clients only carry on if the creature is walking or running to the target, not turning
+            var moveToManager = PhysicsObj.MovementManager?.MoveToManager;
+            if (moveToManager == null || moveToManager.MovementType != MovementType.MoveToObject
+                || (moveToManager.CurrentCommand != (uint)MotionCommand.WalkForward && moveToManager.CurrentCommand != (uint)MotionCommand.RunForward))
+                return false;
+
+            var motion = GetMoveToMotion(AttackTarget, lastMoveTo.MoveToParameters.DistanceToObject, lastMoveTo.MoveToParameters.Speed);
+
+            // late observers get the move as it is now, without the update flag
+            MonsterMovementLock.EnterWriteLock();
+            try
+            {
+                LastMoveTo = motion;
+            }
+            finally
+            {
+                MonsterMovementLock.ExitWriteLock();
+            }
+            CurrentMotionState = motion;
+
+            var speedUpdate = new Motion(motion);
+            speedUpdate.MotionFlags |= MotionFlags.SpeedUpdate;
+
+            EnqueueBroadcastMotion(speedUpdate);
+
+            // the server's own move changes the same way as the clients' (a new move would stop the creature and start it again)
+            var mvp = new MovementParameters(motion);
+            moveToManager.MovementParams.Flags = mvp.Flags;
+            moveToManager.MovementParams.Speed = mvp.Speed;
+            moveToManager.BeginMoveForward();
+
+            return true;
         }
 
         public void CancelMoveTo(WeenieError error = WeenieError.ActionCancelled)
