@@ -44,6 +44,8 @@ namespace ACE.Server.WorldObjects
 
         private double PvPInciteTickTimestamp;
 
+        private double RunRateChangeTimestamp;
+        private const double RunRateChangeGrace = 2.0;
         private double RoadCheckTimestamp;
         private const double RoadCheckInterval = 2.5;
         private int OnRoadStatus;
@@ -672,7 +674,8 @@ namespace ACE.Server.WorldObjects
                                     else
                                         walkDistDelta -= 0.25f * deltaTime;
 
-                                    if (runDistDelta > walkDistDelta)
+                                    // right after a run rate change the position updates still cover the old speed, which would read as walking
+                                    if (runDistDelta > walkDistDelta && !(isRunning && Time.GetUnixTime() - RunRateChangeTimestamp < RunRateChangeGrace))
                                         shouldBeWalking = true;
 
                                     //Session.Network.EnqueueSend(new GameMessageSystemChat($"isRunning: {isRunning} wasRunning: {LastMoveToStateWasRun}", ChatMessageType.Broadcast));

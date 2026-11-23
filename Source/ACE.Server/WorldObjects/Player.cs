@@ -1247,13 +1247,15 @@ namespace ACE.Server.WorldObjects
             //Console.WriteLine($"{Name}.OnRunRateChanged()");
 
             CurrentMovementData = new MovementData(this, CurrentMoveToState);
+            RunRateChangeTimestamp = Time.GetUnixTime();
 
             // verify - forced commands from server should be non-autonomous, but could have been sent as autonomous in retail?
             // if set to autonomous here, the desired effect doesn't happen
             CurrentMovementData.IsAutonomous = false;
 
             var movementEvent = new GameMessageUpdateMotion(this, CurrentMovementData);
-            EnqueueBroadcast(movementEvent);    // broadcast to all players, including self
+            // not sent to the player: the client takes a non-autonomous motion as a server takeover and stops and restarts the run, the patched client re-applies the held run itself
+            EnqueueBroadcast(false, movementEvent);
 
             return true;
         }
