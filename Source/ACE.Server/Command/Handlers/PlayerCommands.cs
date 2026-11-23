@@ -14,6 +14,7 @@ using ACE.Server.Managers;
 using ACE.Server.Network;
 using ACE.Server.Network.GameEvent.Events;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Pathfinding;
 using ACE.Server.WorldObjects;
 using System.Linq;
 using System.Text;
@@ -2038,7 +2039,7 @@ namespace ACE.Server.Command.Handlers
                 CommandHandlerHelper.WriteOutputInfo(session, $"You are at an unknown location.");
         }
 
-        [CommandHandler("FollowRoad", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Follows the nearest road")]
+        [CommandHandler("FollowRoad", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Follows the road you are on or next to, in the direction you face. Use it again to stop.")]
         public static void HandleFollowRoad(Session session, params string[] parameters)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
@@ -2048,62 +2049,17 @@ namespace ACE.Server.Command.Handlers
             }
 
             var player = session.Player;
-            if (player == null)
+            if (player == null || player.CurrentLandblock == null)
                 return;
 
-            var landblock = player.CurrentLandblock;
-
-            if (landblock == null)
-                return;
-
-            var forwardPosition = player.Location.InFrontOf(LandDefs.CellLength * 1.5);
-
-            var distanceToRoad = landblock.GetDistanceToNearestRoad(forwardPosition, out var roadPosition, player.Location);
-
-            var previousRoadPositions = new List<uint>();
-            previousRoadPositions.Add(roadPosition.Cell);
-            if (roadPosition != null && distanceToRoad < LandDefs.CellLength * 2)
+            if (RoadFollower.IsFollowing(player))
             {
-                var dir = Math.Abs((int)Math.Floor(player.Location.PhysPosition().heading_diff(roadPosition.PhysPosition())));
-                var heightDiff = Math.Abs(player.Location.PositionZ - roadPosition.PositionZ);
-                var counter = 0;
-                if (dir < 3 && heightDiff < 25)
-                {
-                    for (int maxSections = 0; maxSections < 30; maxSections++)
-                    {
-                        forwardPosition = forwardPosition.InFrontOf(LandDefs.CellLength * 1.5);
-                        landblock.GetDistanceToNearestRoad(forwardPosition, out var nextRoadPosition, roadPosition);
-
-                        if (nextRoadPosition == null)
-                            break;
-
-                        dir = Math.Abs((int)Math.Floor(player.Location.PhysPosition().heading_diff(nextRoadPosition.PhysPosition())));
-                        heightDiff += Math.Abs(player.Location.PositionZ - roadPosition.PositionZ);
-                        if (!previousRoadPositions.Contains(nextRoadPosition.Cell) && dir < 3 && heightDiff < 25)
-                        {
-                            session.Network.EnqueueSend(new GameMessageSystemChat($"{nextRoadPosition.ToLOCString()}", ChatMessageType.Help));
-                            counter++;
-                            previousRoadPositions.Add(nextRoadPosition.Cell);
-                            roadPosition = nextRoadPosition;
-                        }
-                        else
-                            break;
-                    }
-                }
-
-                player.CreateMoveToChain(roadPosition, (success) =>
-                {
-                    if (success)
-                    {
-                        var actionChain = new ActionChain();
-                        actionChain.AddDelaySeconds(0.1);
-                        actionChain.AddAction(session.Player, () => HandleFollowRoad(session));
-                        actionChain.EnqueueChain();
-                    }
-                }, 2);
+                RoadFollower.Stop(player);
+                session.Network.EnqueueSend(new GameMessageSystemChat("Stopped following the road.", ChatMessageType.Help));
+                return;
             }
-            else
-                session.Network.EnqueueSend(new GameMessageSystemChat($"Can't find a road to follow.", ChatMessageType.Help));
+
+            RoadFollower.Start(player);
         }
 
         [CommandHandler("fso", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Fixes stuck item in the offhand.")]
