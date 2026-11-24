@@ -974,27 +974,6 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void Lifestones_AreRebuiltFromThe2005RecordsAsTheCustomFilesHoldThem()
-        {
-            var folder = Path.Combine(TestSourceDats.Folder, "Custom Files", "Portal", "CustomDM");
-            var backup = Path.Combine(TestSourceDats.Folder, "_replaced-by-recipes", "Portal", "CustomDM");
-            var data = DatRecipeData.Load<ModelRecords.Data>(CustomDMRecords.LifestonesFile);
-            var records = ModelRecords.Build(data, id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
-
-            Assert.AreEqual(4, records.Count);
-
-            foreach (var record in records)
-            {
-                var file = new[] { folder, backup }.Where(Directory.Exists).SelectMany(directory => Directory.EnumerateFiles(directory, record.Key.ToString("X8") + "*.bin")).FirstOrDefault();
-
-                if (file == null)
-                    Assert.Inconclusive($"Custom file {record.Key:X8} not found.");
-
-                CollectionAssert.AreEqual(File.ReadAllBytes(file), record.Value, $"Lifestone {record.Key:X8}");
-            }
-        }
-
-        [TestMethod]
         public void MiscModels_AreBuiltFromThe2005Dat_WithEveryReferenceMapped()
         {
             var data = DatRecipeData.Load<ModelRecords.Data>(CustomDMRecords.MiscModelsFile);
@@ -1008,42 +987,6 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void SurfaceTextureEdits_WriteOneTexturePerSurfaceTexture()
-        {
-            var expected = new Dictionary<string, (uint Id, uint Texture)>
-            {
-                { SurfaceTextureRecords.GroundFile, (0x05001C3A, 0x06006D3B) },
-                { SurfaceTextureRecords.RockFile, (0x05000FF3, 0x06008FF3) }
-            };
-
-            foreach (var file in expected)
-            {
-                var entry = DatRecipeData.Load<List<SurfaceTextureRecords.Entry>>(file.Key).Single();
-                var record = SurfaceTexture.Create(DatRecipeData.Hex(entry.Id), DatRecipeData.Hex(entry.Texture)).Pack();
-                var surfaceTexture = FileType.Unpack<SurfaceTexture>(record);
-
-                Assert.AreEqual(17, record.Length);
-                Assert.AreEqual(file.Value.Id, surfaceTexture.Id);
-                CollectionAssert.AreEqual(new[] { file.Value.Texture }, surfaceTexture.Textures);
-            }
-        }
-
-        [TestMethod]
-        public void Trees_IncludeTheParticleEmitterAndTheTwoScriptsThatUseIt()
-        {
-            var records = ModelRecords.Build(DatRecipeData.Load<ModelRecords.Data>(ModelRecords.TreesFile), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id)).ToDictionary(record => record.Key, record => record.Value);
-
-            foreach (var id in new uint[] { 0x320013DC, 0x3300272D, 0x3300272E })
-            {
-                Assert.IsTrue(records.ContainsKey(id), $"{id:X8} is not built");
-                Assert.AreEqual(id, BitConverter.ToUInt32(records[id], 0));
-            }
-
-            var script = FileType.Unpack<PhysicsScript>(records[0x3300272D]);
-            Assert.IsTrue(script.ScriptData.Any(data => data.Hook is CreateParticleHook hook && hook.EmitterInfoId == 0x320013DC));
-        }
-
-        [TestMethod]
         public void FrozenFields_ModelsAreBuiltFromThe2001Dat_WithTheSceneDensityEdit()
         {
             var data = DatRecipeData.Load<ModelRecords.Data>(RegionRecords.ModelsFile);
@@ -1054,56 +997,6 @@ namespace ACE.DatLoader.Tests
             var scene = FileType.Unpack<Scene>(records.Single(record => record.Key == 0x1200725B).Value);
 
             Assert.IsTrue(scene.Objects.All(o => o.Freq == 0.25f));
-        }
-
-        [TestMethod]
-        public void OldModels_AreBuiltFromThe2005Dat_WithEveryReferenceMapped()
-        {
-            var counts = new Dictionary<string, int>
-            {
-                { CustomDMRecords.BanderlingFile, 2 }, { CustomDMRecords.CarenziFile, 64 }, { CustomDMRecords.DrudgeFile, 87 }, { CustomDMRecords.LugianLeatherFile, 48 },
-                { CustomDMRecords.LugianMetalFile, 1 }, { CustomDMRecords.MattekarFile, 40 }, { CustomDMRecords.MiteFile, 53 }, { CustomDMRecords.MiteAlternatePalettesFile, 11 },
-                { CustomDMRecords.MosswartFile, 1 }, { CustomDMRecords.OlthoiFile, 5 }, { CustomDMRecords.ReedsharkFile, 56 }, { CustomDMRecords.SiraluunFile, 108 },
-                { CustomDMRecords.TuskerFile, 35 }, { CustomDMRecords.UrsuinFile, 60 }
-            };
-            var ids = new HashSet<uint>();
-
-            foreach (var file in counts)
-            {
-                var records = ModelRecords.Build(DatRecipeData.Load<ModelRecords.Data>(file.Key), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
-
-                Assert.AreEqual(file.Value, records.Count, file.Key);
-                Assert.AreEqual(records.Count, records.Select(record => record.Key).Distinct().Count(), file.Key);
-
-                foreach (var record in records)
-                    ids.Add(record.Key);
-            }
-
-            Assert.AreEqual(562, ids.Count);
-        }
-
-        [TestMethod]
-        public void UnusedOldModels_AreBuiltFromThe2005Dat_WithEveryReferenceMapped()
-        {
-            var counts = new Dictionary<string, int> { { CustomDMRecords.MonougaFile, 51 }, { CustomDMRecords.OldDrudgeFile, 50 }, { CustomDMRecords.SclavusFile, 47 }, { CustomDMRecords.TumerokFile, 59 } };
-
-            foreach (var file in counts)
-            {
-                var records = ModelRecords.Build(DatRecipeData.Load<ModelRecords.Data>(file.Key), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
-
-                Assert.AreEqual(file.Value, records.Count, file.Key);
-                Assert.AreEqual(records.Count, records.Select(record => record.Key).Distinct().Count(), file.Key);
-            }
-        }
-
-        [TestMethod]
-        public void MissingModels_AreBuiltFromThe2005Dat_WithEveryReferenceMapped()
-        {
-            var data = DatRecipeData.Load<ModelRecords.Data>(CustomDMRecords.MissingModelsFile);
-            var records = ModelRecords.Build(data, id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id));
-
-            Assert.AreEqual(200, records.Count);
-            Assert.AreEqual(records.Count, records.Select(record => record.Key).Distinct().Count());
         }
 
         [TestMethod]

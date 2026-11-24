@@ -26,12 +26,7 @@ namespace ACE.DatBuilder
         // Source dats of the steps below (MD5 of the files):
         //   2005 dat (XP table, skill table, in-game map): portal - 2005-02-XX - Iteration 2112 - Infiltration.dat, MD5 304275cb743dc28f37410e06e91cb17c
         //   EoR dat (character generation, spell table): portal - 2017-01-29 - Iteration 2072 - EoR.dat, MD5 2c89662a44fcdc2a3c31fe8f6677d265
-        public static DatRecordStep[] All(string date)
-        {
-            return new[] { MapFromPreToD(date) }.Concat(Tables(date)).ToArray();
-        }
-
-        /// <summary>The steps without the in-game map, for a recipe whose base already holds the 2005 records.</summary>
+        /// <summary>The XP, skill, character generation and spell table steps.</summary>
         public static DatRecordStep[] Tables(string date)
         {
             return new[]
@@ -46,12 +41,6 @@ namespace ACE.DatBuilder
                     c.Write(SpellTableId, spells.Pack(), "spell table", true);
                 })
             };
-        }
-
-        /// <summary>The in-game map of the pre-ToD look; the same record in the CustomDM and Infiltration rulesets.</summary>
-        public static DatRecordStep MapFromPreToD(string date)
-        {
-            return new DatRecordStep("In-game map from the 2005 dat", date, c => c.Write(MapId, Texture.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, MapId)).Pack(), "in-game map", true));
         }
 
         public static DatRecordStep ChargenFromEoR(string date, string editsFile)

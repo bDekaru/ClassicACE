@@ -8,62 +8,6 @@ using ACE.DatLoader.FileTypes;
 
 namespace ACE.DatBuilder
 {
-    /// <summary>
-    /// Records taken from a pre-ToD portal dat during a portal build: converted by <see cref="DatPortalImporter"/> and written before the overlay folders.
-    /// </summary>
-    public class DatPreToDImport
-    {
-        /// <summary>File name of the pre-ToD portal dat in the source dats folder.</summary>
-        public string PreToDDat { get; }
-
-        /// <summary>File name of the embedded pre-ToD to ToD surface map (Data folder).</summary>
-        public string SurfaceMap { get; }
-
-        /// <summary>Environments, models and setups to import, e.g. "0D000418-0D00041B,01001753". Imported in this order; surface ids handed out for new surfaces depend on it.</summary>
-        public string Ids { get; }
-
-        /// <summary>Surfaces to import although the map does not know them.</summary>
-        public string Surfaces { get; }
-
-        /// <summary>File name of the pre-ToD cell dat in the source dats folder, which says which environments each building uses.</summary>
-        public string PreToDCellDat { get; }
-
-        /// <summary>Building models to replace as a whole with the pre-ToD versions, e.g. "01002EF1,01002EF2": each brings its group (see <see cref="DatBuildingGroups"/>). Imported after the surfaces.</summary>
-        public string Buildings { get; }
-
-        /// <summary>The step date the imported records carry.</summary>
-        public string Date { get; }
-
-        public DatPreToDImport(string date, string preToDDat, string surfaceMap, string ids, string surfaces, string preToDCellDat = null, string buildings = null)
-        {
-            Date = date;
-            PreToDDat = preToDDat;
-            SurfaceMap = surfaceMap;
-            Ids = ids;
-            Surfaces = surfaces;
-            PreToDCellDat = preToDCellDat;
-            Buildings = buildings;
-        }
-
-        public DatPortalImporter Run(string sourceDats, string targetDat)
-        {
-            var importer = new DatPortalImporter(new DatDatabase(Path.Combine(sourceDats, PreToDDat), true), new DatDatabase(targetDat, true), DatCellConverter.LoadEmbeddedSurfaceMap(SurfaceMap));
-
-            importer.ImportIds(Ids);
-            importer.ImportSurfaces(Surfaces);
-
-            if (!string.IsNullOrEmpty(Buildings))
-            {
-                var groups = new DatBuildingGroups(new DatDatabase(Path.Combine(sourceDats, PreToDCellDat), true));
-
-                foreach (var model in DatPortalImporter.ParseIds(Buildings))
-                    importer.ImportBuilding(model, groups);
-            }
-
-            return importer;
-        }
-    }
-
     /// <summary>One overlay folder (relative to the Custom Files root, written with '/') and the date the records it writes carry. The date is chosen by hand when the step is added and never changed afterwards.</summary>
     public class DatBuildStep
     {
@@ -80,20 +24,11 @@ namespace ACE.DatBuilder
     }
 
     /// <summary>
-    /// One dat build: a base dat, optionally records imported from a pre-ToD dat, and the ordered list of overlay folders (relative to the Custom Files root) laid over it.
+    /// One dat build: a base dat and the ordered list of overlay folders (relative to the Custom Files root) laid over it.
     /// Every step carries a date, in non-decreasing order; the dat's release table turns the dates into entry iterations.
     /// </summary>
     public class DatBuildRecipe
     {
-        /// <summary>Set for portal recipes that need old content the EoR portal dat no longer has.</summary>
-        public DatPreToDImport PreToDImport { get; private set; }
-
-        public DatBuildRecipe WithPreToDImport(DatPreToDImport import)
-        {
-            PreToDImport = import;
-            return this;
-        }
-
         /// <summary>Set for portal recipes whose XP and skill tables come from the ruleset's dat_* database tables: the date the records written from them carry, after the folder steps.</summary>
         public string TablesDate { get; private set; }
 
@@ -105,7 +40,7 @@ namespace ACE.DatBuilder
             return this;
         }
 
-        /// <summary>Record steps (records made from other records by function calls), run after the pre-ToD import and before the overlay folders, in this order.</summary>
+        /// <summary>Record steps (records made from other records by function calls), run before the overlay folders, in this order.</summary>
         public DatRecordStep[] RecordSteps { get; private set; } = new DatRecordStep[0];
 
         public DatBuildRecipe WithRecordSteps(params DatRecordStep[] steps)
@@ -120,15 +55,6 @@ namespace ACE.DatBuilder
         public DatBuildRecipe WithEmptyBase()
         {
             EmptyBase = true;
-            return this;
-        }
-
-        /// <summary>Output subfolder when it is not the ruleset's name, so an alternative recipe of a ruleset does not overwrite the ruleset's dat.</summary>
-        public string OutputFolder { get; private set; }
-
-        public DatBuildRecipe WithOutputFolder(string folder)
-        {
-            OutputFolder = folder;
             return this;
         }
 
@@ -174,9 +100,6 @@ namespace ACE.DatBuilder
             {
                 var last = Releases.StartTime;
 
-                if (PreToDImport != null)
-                    last = Math.Max(last, DatStepDate.Parse(PreToDImport.Date));
-
                 foreach (var step in RecordSteps)
                     last = Math.Max(last, step.Time);
 
@@ -192,16 +115,6 @@ namespace ACE.DatBuilder
         public void ValidateDates()
         {
             var previous = Releases.StartTime;
-
-            if (PreToDImport != null)
-            {
-                var importTime = DatStepDate.Parse(PreToDImport.Date);
-
-                if (importTime < previous)
-                    throw new InvalidDataException($"{Name}: the import step is dated {PreToDImport.Date}, before {Releases.StartDate}.");
-
-                previous = importTime;
-            }
 
             foreach (var step in RecordSteps)
             {
@@ -228,11 +141,11 @@ namespace ACE.DatBuilder
             return Steps.Select(s => Path.Combine(customFilesRoot, s.Folder.Replace('/', Path.DirectorySeparatorChar))).ToArray();
         }
 
-        public DatOverlayReport Apply(DatWriter writer, string customFilesRoot, IEnumerable<KeyValuePair<uint, byte[]>> generated = null)
+        public DatOverlayReport Apply(DatWriter writer, string customFilesRoot)
         {
             var folders = ResolveFolders(customFilesRoot);
 
-            return DatOverlay.Apply(writer, Steps.Select((s, i) => (folders[i], s.Time)), AcceptId, generated, PreToDImport != null ? DatStepDate.Parse(PreToDImport.Date) : 0);
+            return DatOverlay.Apply(writer, Steps.Select((s, i) => (folders[i], s.Time)), AcceptId);
         }
     }
 
@@ -257,23 +170,6 @@ namespace ACE.DatBuilder
         public const string PreToDPortalDat = "portal - 2005-02-XX - Iteration 2112 - Infiltration.dat";
         public const string Portal2001Dat = "portal - 2001-09-12 - Iteration 541.dat";
         public const string Portal2000Dat = "portal - 2000-12-12 - Iteration 382.dat";
-        public const string PreToDSurfaceMap = "surface_map_preToD_2005-02_to_ToD.tsv";
-
-        // Environments and models of the landblocks whose content was removed in ToD (2459 2577 2677 287F), the EC0E objects, and the old models
-        // CustomDM also gets from Melt's Missing Files; surfaces that the cell conversion reports as unmapped.
-        // 0D0003DA is the environment of two cells of landblock EBF7 (CustomDM, from the older-era dats), which ToD removed.
-        private const string RemovedContentIds = "0D000418-0D00041B,01001753-01001756,0100353E-0100353F,010015F3-010015F4,0100281E,020001DC,0D0003DA";
-        private const string UnmappedSurfaces = "080015B0,080015B1,080015E2,08001E7A";
-
-        // Buildings whose exterior model or environments were reshaped between 2005 and EoR, so the 2005 cells no longer fit the EoR records. Each is replaced with its whole group (models and environments).
-        // 01002EF1/2: Candeth Keep and Renegade Fortress (0574, 0575), 010034FA: the EC0E chapel (05BF), 01000830: the 02FB buildings (the 2005 look), 01002EF6: exterior only.
-        private const string ReplacedBuildings = "01000830,01002EF1,01002EF2,01002EF6,010034FA";
-
-        // Every portal recipe imports the same set, so the rulesets get identical converted records and the cell conversion can use either portal.
-        private static DatPreToDImport RemovedContent()
-        {
-            return new DatPreToDImport(InitialVersionDate, PreToDPortalDat, PreToDSurfaceMap, RemovedContentIds, UnmappedSurfaces, PreToDCellDat, ReplacedBuildings);
-        }
 
         // Every step is dated by hand when it is added and the date is never changed afterwards (see DatReleases). All steps below make up the initial version.
         public const string InitialVersionDate = "2026-11-16";
@@ -290,61 +186,34 @@ namespace ACE.DatBuilder
         public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage)
             .WithRecordSteps(LanguageRecords.Infiltration(InitialVersionDate));
 
-        /// <summary>Deprecated (2026-11-24): the portal built from the EoR dat. <see cref="PortalCustomDM2005"/> is the one in use.</summary>
-        public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
-            Initial("Portal/CustomDM"))
-            .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Rock surface textures", InitialVersionDate, SurfaceTextureRecords.RockFile)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(MoonRecords.Overlay(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray())
-            .WithTables(InitialVersionDate);
-
-        /// <summary>Deprecated (2026-11-24): the portal built from the EoR dat. <see cref="PortalInfiltration2005"/> is the one in use.</summary>
+        /// <summary>The Infiltration portal: the 2005 dat with the Infiltration tables.</summary>
         public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
             Initial("Portal/Infiltration"))
-            .WithPreToDImport(RemovedContent())
-            .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray());
-
-        public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
-
-        /// <summary>The Infiltration portal that starts from the 2005 dat, the one in use; it is built only when asked for by name (<see cref="Alternatives"/>) until <see cref="All"/> and the cell recipes are switched from the deprecated <see cref="PortalInfiltration"/>.</summary>
-        public static readonly DatBuildRecipe PortalInfiltration2005 = new DatBuildRecipe("Portal Infiltration 2005", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
-            Initial("Portal/Infiltration"))
             .WithEmptyBase()
-            .WithOutputFolder("Infiltration2005")
             .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate).Concat(InfiltrationRecords.Tables(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).ToArray());
 
-        /// <summary>The CustomDM counterpart of <see cref="PortalInfiltration2005"/>: the 2005 look everywhere, with only the CustomDM additions that have no 2005 record laid over it.</summary>
-        public static readonly DatBuildRecipe PortalCustomDM2005 = new DatBuildRecipe("Portal CustomDM 2005", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
+        /// <summary>The CustomDM counterpart of <see cref="PortalInfiltration"/>: the 2005 look everywhere, with only the CustomDM additions that have no 2005 record laid over it.</summary>
+        public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
             Initial("Portal/CustomDM"))
             .WithEmptyBase()
-            .WithOutputFolder("CustomDM2005")
             .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate, CustomDMRecords.EoRRecordsFile, CustomDMRecords.MapEoRRecordsFile).Append(InfiltrationRecords.ChargenFromEoR(InitialVersionDate, CustomDMRecords.ChargenEditsFile)).Concat(CustomDMRecords.AdditionsTo2005(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).Append(SeasonalRecords.Step("Summer", InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
-        public static readonly DatBuildRecipe[] Alternatives = { PortalInfiltration2005, PortalCustomDM2005 };
+        public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
 
         public const string PreToDCellDat = "cell - 2005-02-XX - Iteration 1593 - 100% - Admin.dat";
         public const string ToDCellDat = "cell - 2005-06-02 - Iteration 4 - 100% - Throne of Destiny.dat";
 
-        public static readonly DatCellBuildRecipe CellCustomDM = new DatCellBuildRecipe("Cell CustomDM", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM, PreToDSurfaceMap, DatReleases.CustomDMCell, InitialVersionDate, (map, sources) => DatMapRecipes.CustomDM(map, sources));
+        public static readonly DatCellBuildRecipe CellInfiltration = new DatCellBuildRecipe("Cell Infiltration", "Infiltration", PreToDCellDat, ToDCellDat, PortalInfiltration, DatReleases.InfiltrationCell, InitialVersionDate);
 
-        public static readonly DatCellBuildRecipe CellInfiltration = new DatCellBuildRecipe("Cell Infiltration", "Infiltration", PreToDCellDat, ToDCellDat, PortalInfiltration, PreToDSurfaceMap, DatReleases.InfiltrationCell, InitialVersionDate);
-
-        public static readonly DatCellBuildRecipe CellInfiltration2005 = new DatCellBuildRecipe("Cell Infiltration 2005", "Infiltration", PreToDCellDat, ToDCellDat, PortalInfiltration2005, PreToDSurfaceMap, DatReleases.InfiltrationCell, InitialVersionDate)
-            .WithIdentitySurfaces()
-            .WithOutputFolder("Infiltration2005");
-
-        public static readonly DatCellBuildRecipe CellCustomDM2005 = new DatCellBuildRecipe("Cell CustomDM 2005", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM2005, PreToDSurfaceMap, DatReleases.CustomDMCell, InitialVersionDate, (map, sources) => DatMapRecipes.CustomDM(map, sources, true))
-            .WithIdentitySurfaces()
-            .WithOutputFolder("CustomDM2005");
-
-        public static readonly DatCellBuildRecipe[] AlternativeCells = { CellInfiltration2005, CellCustomDM2005 };
+        public static readonly DatCellBuildRecipe CellCustomDM = new DatCellBuildRecipe("Cell CustomDM", "CustomDM", PreToDCellDat, ToDCellDat, PortalCustomDM, DatReleases.CustomDMCell, InitialVersionDate, (map, sources) => DatMapRecipes.CustomDM(map, sources, true));
 
         /// <summary>Cell recipes need their ruleset's portal dat built first.</summary>
         public static readonly DatCellBuildRecipe[] AllCells = { CellCustomDM, CellInfiltration };
 
         private static bool KeyMatches(string key, string selector) => key.Equals(selector, StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>The recipe with that key (a portal or language recipe, not an alternative), or null.</summary>
+        /// <summary>The recipe with that key (a portal or language recipe), or null.</summary>
         public static DatBuildRecipe Find(string key)
         {
             return All.FirstOrDefault(r => KeyMatches(r.Key, key));
@@ -355,8 +224,8 @@ namespace ACE.DatBuilder
         public static (List<DatBuildRecipe> Portals, List<DatCellBuildRecipe> Cells) Select(string selector)
         {
             var all = selector.Equals("all", StringComparison.OrdinalIgnoreCase);
-            var portals = All.Where(r => all || KeyMatches(r.Key, selector)).Concat(Alternatives.Where(r => KeyMatches(r.Key, selector))).ToList();
-            var cells = AllCells.Where(r => all || KeyMatches(r.Key, selector)).Concat(AlternativeCells.Where(r => KeyMatches(r.Key, selector))).ToList();
+            var portals = All.Where(r => all || KeyMatches(r.Key, selector)).ToList();
+            var cells = AllCells.Where(r => all || KeyMatches(r.Key, selector)).ToList();
 
             if (portals.Count == 0 && cells.Count == 0)
                 throw new ArgumentException($"Unknown recipe '{selector}' (see: list).");

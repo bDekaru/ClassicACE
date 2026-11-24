@@ -88,9 +88,9 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int List()
         {
-            foreach (var recipe in DatBuildRecipes.All.Concat(DatBuildRecipes.Alternatives))
+            foreach (var recipe in DatBuildRecipes.All)
             {
-                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Steps.Length} folder(s) -> {recipe.OutputFolder ?? recipe.Ruleset}/{recipe.OutputFileName}");
+                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Steps.Length} folder(s) -> {recipe.Ruleset}/{recipe.OutputFileName}");
 
                 foreach (var step in recipe.RecordSteps)
                     Console.WriteLine($"    record step: {step.Name}");
@@ -407,15 +407,9 @@ The source folder is only read. Each build is made in a temporary file and moved
 
             Console.Write(result.ToText(10));
 
-            var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
+            var stem = ReportStem(outRoot, recipe.Ruleset, recipe.OutputFileName);
 
             File.WriteAllText(stem + ".report.txt", ReportStamp(recipe.Ruleset, readsTables ? tables.Description : null) + result.ToText());
-
-            if (result.Import != null)
-            {
-                WriteSurfaceMapAdditions(stem + ".surface_map_additions.tsv", result.Import);
-                File.WriteAllText(stem + ".import.txt", result.Import.ToText());
-            }
 
             if (recipe.IsLanguage)
                 Console.WriteLine("  note: a language dat written this way is the same structure Melt writes, which crashes the client (cause not yet found).");
@@ -425,13 +419,13 @@ The source folder is only read. Each build is made in a temporary file and moved
         {
             Console.WriteLine($"Building {recipe.Name} ...");
 
-            var portalReport = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.Portal.OutputFileName) + ".report.txt";
+            var portalReport = ReportStem(outRoot, recipe.Ruleset, recipe.Portal.OutputFileName) + ".report.txt";
 
             if (!File.Exists(portalReport) || !File.ReadLines(portalReport).First().StartsWith($"Built for ruleset {recipe.Ruleset},"))
                 throw new ArgumentException($"The report of {recipe.Portal.Name} ({portalReport}) is missing or not stamped for the {recipe.Ruleset} ruleset: build the portal first.");
 
             var result = DatCellBuildRunner.Build(recipe, source, outRoot, force, trace ? new DatMapTrace() : null);
-            var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
+            var stem = ReportStem(outRoot, recipe.Ruleset, recipe.OutputFileName);
 
             Console.Write(result.ToText());
             File.WriteAllText(stem + ".report.txt", ReportStamp(recipe.Ruleset, null) + result.ToText());

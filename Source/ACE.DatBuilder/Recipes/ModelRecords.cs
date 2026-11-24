@@ -70,13 +70,6 @@ namespace ACE.DatBuilder
             public List<Map> Maps { get; set; } = new List<Map>();
         }
 
-        public const string TreesFile = "trees.json";
-
-        public static DatRecordStep Trees(string date)
-        {
-            return Step("Trees from the 2005 dat", date, TreesFile);
-        }
-
         // Source dat of a model step unless it names another: portal - 2005-02-XX - Iteration 2112 - Infiltration.dat, MD5 304275cb743dc28f37410e06e91cb17c
         public static DatRecordStep Step(string name, string date, string dataFile, string sourceDat = DatBuildRecipes.PreToDPortalDat)
         {

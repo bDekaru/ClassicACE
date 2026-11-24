@@ -21,9 +21,6 @@ namespace ACE.DatBuilder
         /// <summary>What the record steps wrote, one line per record.</summary>
         public System.Collections.Generic.List<string> RecordLog { get; } = new System.Collections.Generic.List<string>();
 
-        /// <summary>The records imported from the pre-ToD dat, when the recipe has an import step.</summary>
-        public DatPortalImporter Import { get; set; }
-
         /// <summary>What the dat tables step did; null when it did not run (no source given, or the recipe has no tables step).</summary>
         public DatTablesReport Tables { get; set; }
 
@@ -38,9 +35,6 @@ namespace ACE.DatBuilder
             sb.AppendLine($"{Recipe.Name}: {OutputPath} ({OutputBytes:N0} bytes)");
             sb.AppendLine($"  release {ReleaseNumber}, hash {ReleaseHash}");
             sb.AppendLine($"  base {Recipe.BaseDat}: {AuditBefore.Records} records, audit ok");
-
-            if (Import != null)
-                sb.AppendLine($"  pre-ToD import from {Recipe.PreToDImport.PreToDDat}: {Import.Records.Count} records, {Import.ImportedSurfaces.Count()} imported surfaces");
 
             foreach (var line in RecordLog)
                 sb.AppendLine(line);
@@ -156,7 +150,7 @@ namespace ACE.DatBuilder
             if (missing != null)
                 throw new ArgumentException($"Overlay folder not found: {missing}");
 
-            var output = DatBuildOutput.Prepare(sourceDats, outputRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName, force);
+            var output = DatBuildOutput.Prepare(sourceDats, outputRoot, recipe.Ruleset, recipe.OutputFileName, force);
 
             var built = DatBuildOutput.BuildInTemp(output, temp =>
             {
@@ -170,33 +164,19 @@ namespace ACE.DatBuilder
 
                 var result = new DatBuildResult { Recipe = recipe, OutputPath = output };
 
-                DatPortalImporter importer = null;
-
-                if (recipe.PreToDImport != null)
-                {
-                    if (!File.Exists(Path.Combine(sourceDats, recipe.PreToDImport.PreToDDat)))
-                        throw new ArgumentException($"Pre-ToD dat not found: {Path.Combine(sourceDats, recipe.PreToDImport.PreToDDat)}");
-
-                    importer = recipe.PreToDImport.Run(sourceDats, baseDat);
-                    result.Import = importer;
-                }
-
                 using (var writer = new DatWriter(temp) { IterationForDate = recipe.Releases.IterationForDate })
                 {
                     result.AuditBefore = writer.Audit();
-
-                    var written = new HashSet<uint>();
 
                     foreach (var step in recipe.RecordSteps)
                     {
                         var context = new DatRecordContext(writer, sourceDats, step);
                         step.Run(context);
-                        written.UnionWith(context.Written);
                         result.RecordLog.Add($"  record step '{step.Name}' ({step.Date})");
                         result.RecordLog.AddRange(context.Log.Select(l => "    " + l));
                     }
 
-                    result.Overlay = recipe.Apply(writer, customFilesRoot, importer?.Records.Where(r => !written.Contains(r.Key)));
+                    result.Overlay = recipe.Apply(writer, customFilesRoot);
 
                     if (recipe.TablesDate != null && tables != null)
                         result.Tables = recipe.IsLanguage ? DatTableStep.ApplyLanguage(writer, tables, recipe.TablesTime) : DatTableStep.Apply(writer, tables, recipe.TablesTime);

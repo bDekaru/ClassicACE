@@ -7,17 +7,8 @@ using ACE.DatBuilder;
 namespace ACE.DatLoader.Tests
 {
     [TestClass]
-    public class DatPreToDImportTests
+    public class DatRecipeAndImporterTests
     {
-        [TestMethod]
-        public void EmbeddedSurfaceMap_HasAllRows()
-        {
-            var map = DatCellConverter.LoadEmbeddedSurfaceMap(DatBuildRecipes.PreToDSurfaceMap);
-
-            Assert.AreEqual(686, map.Count);
-            Assert.AreEqual(0x0139, map[0x0077]);
-        }
-
         [TestMethod]
         public void ParseIds_ExpandsRangesAndSingles()
         {
@@ -33,14 +24,6 @@ namespace ACE.DatLoader.Tests
             Assert.AreSame(DatBuildRecipes.PortalCustomDM, DatBuildRecipes.CellCustomDM.Portal);
             Assert.AreSame(DatBuildRecipes.PortalInfiltration, DatBuildRecipes.CellInfiltration.Portal);
             Assert.AreEqual("cell-customdm", DatBuildRecipes.CellCustomDM.Key);
-        }
-
-        [TestMethod]
-        public void PortalRecipes_ImportFromThePreToDDat()
-        {
-            Assert.IsNotNull(DatBuildRecipes.PortalCustomDM.PreToDImport);
-            Assert.IsNotNull(DatBuildRecipes.PortalInfiltration.PreToDImport);
-            Assert.IsNull(DatBuildRecipes.LanguageCustomDM.PreToDImport);
         }
     }
 }

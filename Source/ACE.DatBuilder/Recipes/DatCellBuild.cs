@@ -22,11 +22,8 @@ namespace ACE.DatBuilder
         /// <summary>A ToD-layout cell dat in the source dats folder: supplies the header, block size and pack versions of the output dat.</summary>
         public string ToDCellDat { get; }
 
-        /// <summary>The portal recipe whose built dat the cells must match; its imported surfaces extend the surface map.</summary>
+        /// <summary>The portal recipe whose built dat the cells must match; the cells keep the surface ids of its dat.</summary>
         public DatBuildRecipe Portal { get; }
-
-        /// <summary>File name of the embedded pre-ToD to ToD surface map.</summary>
-        public string SurfaceMap { get; }
 
         /// <summary>Edits applied to the converted records before they are written; null writes the converted dat as it is. The edits start their own steps with <see cref="DatMapEditor.Step"/>.</summary>
         public Action<DatMapEditor, DatMapSources> MapOperations { get; }
@@ -37,45 +34,24 @@ namespace ACE.DatBuilder
         /// <summary>The step date of the conversion itself ("yyyy-MM-dd"): the date of every record the map edits do not change.</summary>
         public string ConversionDate { get; }
 
-        /// <summary>Set when the portal dat is made from the pre-ToD portal dat, which keeps the surface ids: the cells keep theirs instead of going through the surface map, and no additions file is read.</summary>
-        public bool IdentitySurfaces { get; private set; }
-
-        public DatCellBuildRecipe WithIdentitySurfaces()
-        {
-            IdentitySurfaces = true;
-            return this;
-        }
-
-        /// <summary>Output subfolder when it is not the ruleset's name, which is also where the portal build is read from.</summary>
-        public string OutputFolder { get; private set; }
-
-        public DatCellBuildRecipe WithOutputFolder(string folder)
-        {
-            OutputFolder = folder;
-            return this;
-        }
-
         public string OutputFileName => "client_cell_1.dat";
 
         public string Key => Name.Replace(' ', '-').ToLowerInvariant();
 
-        public DatCellBuildRecipe(string name, string ruleset, string retailCellDat, string toDCellDat, DatBuildRecipe portal, string surfaceMap, DatReleaseSet releases, string conversionDate, Action<DatMapEditor, DatMapSources> mapOperations = null)
+        public DatCellBuildRecipe(string name, string ruleset, string retailCellDat, string toDCellDat, DatBuildRecipe portal, DatReleaseSet releases, string conversionDate, Action<DatMapEditor, DatMapSources> mapOperations = null)
         {
             Name = name;
             Ruleset = ruleset;
             RetailCellDat = retailCellDat;
             ToDCellDat = toDCellDat;
             Portal = portal;
-            SurfaceMap = surfaceMap;
             Releases = releases;
             ConversionDate = conversionDate;
             MapOperations = mapOperations;
         }
 
-        /// <summary>The built portal dat and the surface map additions file the portal build wrote next to it.</summary>
-        public string BuiltPortalPath(string outputRoot) => Path.Combine(outputRoot, OutputFolder ?? Ruleset, Portal.OutputFileName);
-
-        public string BuiltAdditionsPath(string outputRoot) => Path.Combine(Path.GetDirectoryName(BuiltPortalPath(outputRoot)), Path.ChangeExtension(Portal.OutputFileName, null) + ".surface_map_additions.tsv");
+        /// <summary>The built portal dat of the ruleset.</summary>
+        public string BuiltPortalPath(string outputRoot) => Path.Combine(outputRoot, Ruleset, Portal.OutputFileName);
     }
 
     public class DatCellBuildResult
@@ -133,29 +109,17 @@ namespace ACE.DatBuilder
             var retail = Path.Combine(sourceDats, recipe.RetailCellDat);
             var template = Path.Combine(sourceDats, recipe.ToDCellDat);
             var portal = recipe.BuiltPortalPath(outputRoot);
-            var additions = recipe.BuiltAdditionsPath(outputRoot);
 
             foreach (var input in new[] { retail, template })
                 if (!File.Exists(input))
                     throw new ArgumentException($"Source dat not found: {input}");
 
-            foreach (var input in recipe.IdentitySurfaces ? new[] { portal } : new[] { portal, additions })
-                if (!File.Exists(input))
-                    throw new ArgumentException($"{input} not found: build {recipe.Portal.Key} first.");
+            if (!File.Exists(portal))
+                throw new ArgumentException($"{portal} not found: build {recipe.Portal.Key} first.");
 
-            var output = DatBuildOutput.Prepare(sourceDats, outputRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName, force);
+            var output = DatBuildOutput.Prepare(sourceDats, outputRoot, recipe.Ruleset, recipe.OutputFileName, force);
 
-            Dictionary<ushort, ushort> surfaceMap;
-
-            if (recipe.IdentitySurfaces)
-                surfaceMap = new DatDatabase(portal).AllFiles.Keys.Where(id => id >> 24 == 0x08).ToDictionary(id => (ushort)id, id => (ushort)id);
-            else
-            {
-                surfaceMap = DatCellConverter.LoadEmbeddedSurfaceMap(recipe.SurfaceMap);
-
-                foreach (var entry in DatCellConverter.LoadSurfaceMap(additions))
-                    surfaceMap[entry.Key] = entry.Value;
-            }
+            var surfaceMap = new DatDatabase(portal).AllFiles.Keys.Where(id => id >> 24 == 0x08).ToDictionary(id => (ushort)id, id => (ushort)id);
 
             var built = DatBuildOutput.BuildInTemp(output, temp =>
             {

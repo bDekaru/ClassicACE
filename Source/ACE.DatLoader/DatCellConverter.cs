@@ -78,19 +78,6 @@ namespace ACE.DatLoader
                 return LoadSurfaceMap(reader);
         }
 
-        /// <summary>The map that ships inside this assembly (Data folder), by file name.</summary>
-        public static Dictionary<ushort, ushort> LoadEmbeddedSurfaceMap(string fileName)
-        {
-            var assembly = typeof(DatCellConverter).Assembly;
-            var resource = assembly.GetManifestResourceNames().FirstOrDefault(n => n.EndsWith("." + fileName, StringComparison.Ordinal));
-
-            if (resource == null)
-                throw new FileNotFoundException($"Embedded surface map {fileName} not found.");
-
-            using (var reader = new StreamReader(assembly.GetManifestResourceStream(resource)))
-                return LoadSurfaceMap(reader);
-        }
-
         public static Dictionary<ushort, ushort> LoadSurfaceMap(TextReader lines)
         {
             var map = new Dictionary<ushort, ushort>();
@@ -280,7 +267,7 @@ namespace ACE.DatLoader
 
         /// <summary>
         /// Runs the portal-list check of the conversion over every environment cell of a store, after map edits have moved cells between landblocks and dats.
-        /// Cells that do not fit are listed in the report and left as they are; a building whose environments were reshaped is replaced as a whole instead (see <see cref="DatBuildingGroups"/>).
+        /// Cells that do not fit are listed in the report and left as they are.
         /// </summary>
         public static void CheckStore(DatCellStore store, string portalDat, DatCellConversionReport report)
         {

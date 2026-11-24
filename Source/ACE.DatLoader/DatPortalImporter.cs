@@ -141,27 +141,6 @@ namespace ACE.DatLoader
             }
         }
 
-        /// <summary>
-        /// Replaces a building as a whole: the exterior models and environments of its group (see <see cref="DatBuildingGroups"/>), so that the cells of the pre-ToD map
-        /// keep matching the records they were made for. Records already imported are not converted again.
-        /// </summary>
-        public DatBuildingGroup ImportBuilding(uint modelId, DatBuildingGroups groups)
-        {
-            var group = groups.Resolve(modelId);
-
-            Log.Add($"{modelId:X8} building: {group.Buildings} buildings, models {string.Join(" ", group.Models.Select(m => m.ToString("X8")))}, environments {string.Join(" ", group.Environments.Select(e => e.ToString("X8")))}");
-
-            foreach (var environment in group.Environments)
-                if (!Records.ContainsKey(environment))
-                    ImportEnvironment(environment);
-
-            foreach (var model in group.Models)
-                if (!Records.ContainsKey(model))
-                    ImportModel(model);
-
-            return group;
-        }
-
         /// <summary>Resolves the listed pre-ToD surfaces (importing those the map does not know), in list order.</summary>
         public void ImportSurfaces(string list)
         {

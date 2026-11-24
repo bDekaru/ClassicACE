@@ -8,9 +8,7 @@ namespace ACE.DatBuilder
     /// <summary>Surface textures (0x05) of the EoR dat that are pointed at another texture (0x06), replacing the EoR record.</summary>
     public static class SurfaceTextureRecords
     {
-        public const string GroundFile = "ground-surface-textures.json";
         public const string BlendFile = "blend-surface-textures.json";
-        public const string RockFile = "rock-surface-textures.json";
 
         public class Entry
         {

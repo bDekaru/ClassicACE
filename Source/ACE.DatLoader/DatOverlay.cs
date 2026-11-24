@@ -47,17 +47,13 @@ namespace ACE.DatLoader
         }
 
         /// <param name="acceptId">Records whose id this rejects are counted as refused and not written. Null accepts every id.</param>
-        public const string GeneratedSource = "(generated from the pre-ToD dat)";
-
-        /// <param name="generated">Records made by a converter, written before any folder so that a file in a folder still replaces them. Their ids are used as given.</param>
-        public static DatOverlayReport Apply(DatWriter writer, IEnumerable<string> folders, Func<uint, bool> acceptId = null, IEnumerable<KeyValuePair<uint, byte[]>> generated = null)
+        public static DatOverlayReport Apply(DatWriter writer, IEnumerable<string> folders, Func<uint, bool> acceptId = null)
         {
-            return Apply(writer, folders.Select(f => (f, 0u)), acceptId, generated, 0);
+            return Apply(writer, folders.Select(f => (f, 0u)), acceptId);
         }
 
         /// <param name="steps">Each folder with the date its records carry (0 leaves the writer's record date as it is).</param>
-        /// <param name="generatedDate">The date the generated records carry (0 leaves the writer's record date as it is).</param>
-        public static DatOverlayReport Apply(DatWriter writer, IEnumerable<(string Folder, uint Date)> steps, Func<uint, bool> acceptId, IEnumerable<KeyValuePair<uint, byte[]>> generated, uint generatedDate)
+        public static DatOverlayReport Apply(DatWriter writer, IEnumerable<(string Folder, uint Date)> steps, Func<uint, bool> acceptId)
         {
             var report = new DatOverlayReport();
             var written = new Dictionary<uint, string>();
@@ -96,12 +92,6 @@ namespace ACE.DatLoader
                     else
                         report.Replaced++;
                 }
-
-                if (generatedDate != 0)
-                    writer.RecordDate = generatedDate;
-
-                foreach (var record in generated ?? Enumerable.Empty<KeyValuePair<uint, byte[]>>())
-                    Write(record.Key, record.Value, $"{record.Key:X8} {GeneratedSource}");
 
                 foreach (var (folder, date) in steps)
                 {
