@@ -9,7 +9,7 @@ namespace ACE.DatLoader.FileTypes
     [DatFileType(DatFileType.MasterProperty)]
     public class MasterProperty : FileType
     {
-        internal const uint FILE_ID = 0x39000001;
+        public const uint FILE_ID = 0x39000001;
 
         public Dictionary<uint, string> m_emapper { get; } = new Dictionary<uint, string>();
         public Dictionary<uint, BasePropertyDesc> m_properties { get; } = new Dictionary<uint, BasePropertyDesc>();

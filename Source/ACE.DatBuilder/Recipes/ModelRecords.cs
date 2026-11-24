@@ -5,6 +5,7 @@ using System.Linq;
 
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
+using static ACE.DatBuilder.DatRecipeData;
 
 namespace ACE.DatBuilder
 {
@@ -69,11 +70,6 @@ namespace ACE.DatBuilder
             public List<Map> Maps { get; set; } = new List<Map>();
         }
 
-        private static uint Hex(string value)
-        {
-            return Convert.ToUInt32(value, 16);
-        }
-
         public const string TreesFile = "trees.json";
 
         public static DatRecordStep Trees(string date)
@@ -114,7 +110,7 @@ namespace ACE.DatBuilder
 
             foreach (var entry in data.Palettes)
             {
-                var palette = ContextUnpack<Palette>(readSource(Hex(entry.Source)));
+                var palette = FileType.Unpack<Palette>(readSource(Hex(entry.Source)));
                 result.Add(new KeyValuePair<uint, byte[]>(Hex(entry.Id), palette.Repeated(Hex(entry.Id), DatPortalImporter.PaletteRepeat).Pack()));
             }
 
@@ -131,7 +127,7 @@ namespace ACE.DatBuilder
             foreach (var entry in data.Surfaces)
             {
                 var record = readSource(Hex(entry.Source));
-                var surface = ContextUnpack<Surface>(record.Skip(4).ToArray());
+                var surface = FileType.Unpack<Surface>(record.Skip(4).ToArray());
                 surface.Remap(id => Lookup(surfaceTextures, id), id => Lookup(palettes, id));
                 result.Add(new KeyValuePair<uint, byte[]>(Hex(entry.Id), surface.Pack()));
             }
@@ -145,7 +141,7 @@ namespace ACE.DatBuilder
 
             foreach (var entry in data.Setups)
             {
-                var setup = ContextUnpack<SetupModel>(readSource(Hex(entry.Source)));
+                var setup = FileType.Unpack<SetupModel>(readSource(Hex(entry.Source)));
                 setup.Remap(all);
 
                 var record = setup.Pack();
@@ -155,7 +151,7 @@ namespace ACE.DatBuilder
 
             foreach (var entry in data.Scenes)
             {
-                var scene = ContextUnpack<Scene>(readSource(Hex(entry.Source)));
+                var scene = FileType.Unpack<Scene>(readSource(Hex(entry.Source)));
 
                 if (!data.KeepSceneObjects)
                     scene.Remap(all);
@@ -171,27 +167,27 @@ namespace ACE.DatBuilder
 
             foreach (var entry in data.Waves)
             {
-                var wave = ContextUnpack<Wave>(readSource(Hex(entry.Source)));
+                var wave = FileType.Unpack<Wave>(readSource(Hex(entry.Source)));
                 Add(result, entry, wave.Pack());
             }
 
             foreach (var entry in data.Animations)
             {
-                var animation = ContextUnpack<Animation>(readSource(Hex(entry.Source)));
+                var animation = FileType.Unpack<Animation>(readSource(Hex(entry.Source)));
                 animation.Remap(all);
                 Add(result, entry, animation.Pack());
             }
 
             foreach (var entry in data.ParticleEmitters)
             {
-                var emitter = ContextUnpack<ParticleEmitterInfo>(readSource(Hex(entry.Source)));
+                var emitter = FileType.Unpack<ParticleEmitterInfo>(readSource(Hex(entry.Source)));
                 emitter.Remap(all);
                 Add(result, entry, emitter.Pack());
             }
 
             foreach (var entry in data.PhysicsScripts)
             {
-                var script = ContextUnpack<PhysicsScript>(readSource(Hex(entry.Source)));
+                var script = FileType.Unpack<PhysicsScript>(readSource(Hex(entry.Source)));
                 script.Remap(all);
                 if (entry.Order != null)
                     script.Reorder(entry.Order);
@@ -200,35 +196,35 @@ namespace ACE.DatBuilder
 
             foreach (var entry in data.ScriptTables)
             {
-                var table = ContextUnpack<PhysicsScriptTable>(readSource(Hex(entry.Source)));
+                var table = FileType.Unpack<PhysicsScriptTable>(readSource(Hex(entry.Source)));
                 table.Remap(all);
                 Add(result, entry, table.Pack());
             }
 
             foreach (var entry in data.MotionTables)
             {
-                var table = ContextUnpack<MotionTable>(readSource(Hex(entry.Source)));
+                var table = FileType.Unpack<MotionTable>(readSource(Hex(entry.Source)));
                 table.Remap(all);
                 Add(result, entry, table.Pack());
             }
 
             foreach (var entry in data.PaletteSets)
             {
-                var set = ContextUnpack<PaletteSet>(readSource(Hex(entry.Source)));
+                var set = FileType.Unpack<PaletteSet>(readSource(Hex(entry.Source)));
                 set.Remap(all);
                 Add(result, entry, set.Pack());
             }
 
             foreach (var entry in data.SoundTables)
             {
-                var table = ContextUnpack<SoundTable>(readSource(Hex(entry.Source)));
+                var table = FileType.Unpack<SoundTable>(readSource(Hex(entry.Source)));
                 table.Remap(all);
                 Add(result, entry, table.Pack());
             }
 
             foreach (var entry in data.Clothing)
             {
-                var clothing = ContextUnpack<ClothingTable>(readSource(Hex(entry.Source)));
+                var clothing = FileType.Unpack<ClothingTable>(readSource(Hex(entry.Source)));
                 clothing.Remap(all, DatPortalImporter.PaletteRepeat);
                 Add(result, entry, clothing.Pack());
             }
@@ -258,11 +254,6 @@ namespace ACE.DatBuilder
         {
             WriteId(record, Hex(entry.Id));
             result.Add(new KeyValuePair<uint, byte[]>(Hex(entry.Id), record));
-        }
-
-        private static T ContextUnpack<T>(byte[] record) where T : FileType, new()
-        {
-            return DatRecordContext.Unpack<T>(record);
         }
 
         private static Dictionary<uint, uint> ToMap(List<Entry> entries, Dictionary<uint, uint> explicitMap)

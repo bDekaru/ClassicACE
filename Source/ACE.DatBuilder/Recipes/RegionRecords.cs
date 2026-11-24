@@ -13,8 +13,6 @@ namespace ACE.DatBuilder
         public const string ModelsFile = "frozen-fields.json";
         public const string RegionEditsFile = "frozen-fields-region.json";
 
-        public const uint RegionId = 0x13000000;
-
         public class SceneTypeEdit
         {
             /// <summary>The scene type of the region that is changed, by its position in the region's list (the StbIndex is not unique).</summary>
@@ -39,7 +37,7 @@ namespace ACE.DatBuilder
                     var sceneType = region.SceneInfo.SceneTypes[edit.Index];
 
                     foreach (var scene in edit.Add)
-                        sceneType.Scenes.Add(Convert.ToUInt32(scene, 16));
+                        sceneType.Scenes.Add(DatRecipeData.Hex(scene));
                 }
             }
         }
@@ -51,9 +49,9 @@ namespace ACE.DatBuilder
                 ModelRecords.Step("Frozen Fields models from the 2001 dat", date, ModelsFile, DatBuildRecipes.Portal2001Dat),
                 new DatRecordStep("Frozen Fields scene in the region from the EoR record", date, c =>
                 {
-                    var region = c.ReadTarget<RegionDesc>(RegionId);
+                    var region = c.ReadTarget<RegionDesc>(RegionDesc.FILE_ID);
                     DatRecipeData.Load<RegionEdits>(RegionEditsFile).Apply(region);
-                    c.Write(RegionId, region.Pack(), "region", true);
+                    c.Write(RegionDesc.FILE_ID, region.Pack(), "region", true);
                 })
             };
         }

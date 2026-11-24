@@ -97,7 +97,7 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Darkness Ascendant sky", date, c =>
             {
-                var region = c.ReadTarget<RegionDesc>(RegionRecords.RegionId);
+                var region = c.ReadTarget<RegionDesc>(RegionDesc.FILE_ID);
                 var replaced = new Dictionary<uint, uint>
                 {
                     [Sun] = RedSun,
@@ -126,7 +126,7 @@ namespace ACE.DatBuilder
                 if (figures == 0)
                     throw new InvalidDataException("The base Region has no lightning flash at the event's times in a Rainy day group, so the figure and thunder would be missing.");
 
-                c.Write(RegionRecords.RegionId, region.Pack(), "region with the sky of the event", true);
+                c.Write(RegionDesc.FILE_ID, region.Pack(), "region with the sky of the event", true);
             });
         }
     }

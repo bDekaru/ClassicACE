@@ -12,7 +12,6 @@ namespace ACE.DatBuilder
     public static class InfiltrationRecords
     {
         public const uint MapId = 0x0600127D;
-        public const uint ChargenId = 0x0E000002;
         public const uint SkillTableId = 0x0E000004;
         public const uint SpellTableId = 0x0E00000E;
         public const uint XpTableId = 0x0E000018;
@@ -59,9 +58,9 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Character generation from the EoR record", date, c =>
             {
-                var chargen = c.ReadTarget<CharGen>(ChargenId);
+                var chargen = c.ReadTarget<CharGen>(CharGen.FILE_ID);
                 DatRecipeData.Load<DatChargenEdits>(editsFile).Apply(chargen);
-                c.Write(ChargenId, chargen.Pack(), "character generation", true);
+                c.Write(CharGen.FILE_ID, chargen.Pack(), "character generation", true);
             });
         }
 

@@ -39,12 +39,12 @@ namespace ACE.DatBuilder
                 c.Write(CoverRecords(CoverSurface, CoverSurfaceTexture, CoverTexture, CoverPalette), "moon glare cover");
                 c.Write(MoonCover, model.Pack(), "moon without the glare layer");
 
-                var region = c.ReadTarget<RegionDesc>(RegionRecords.RegionId);
+                var region = c.ReadTarget<RegionDesc>(RegionDesc.FILE_ID);
 
                 foreach (var group in region.SkyInfo.DayGroups)
                     AddCover(group);
 
-                c.Write(RegionRecords.RegionId, region.Pack(), "region with the moon overlay", true);
+                c.Write(RegionDesc.FILE_ID, region.Pack(), "region with the moon overlay", true);
             });
         }
 

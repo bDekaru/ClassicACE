@@ -58,7 +58,7 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Fire in the Sky sky", date, c =>
             {
-                var region = c.ReadTarget<RegionDesc>(RegionRecords.RegionId);
+                var region = c.ReadTarget<RegionDesc>(RegionDesc.FILE_ID);
                 var sunny = PreToDBaseRecords.DayGroupsNamed(region, "Sunny").FirstOrDefault() ?? throw new InvalidDataException("The base Region has no Sunny day group.");
                 var group = RegionDesc.UnpackPreToD(c.ReadSource(SourceDat, PreToDBaseRecords.HardwareRegionId)).SkyInfo.DayGroups.Single();
 
@@ -80,7 +80,7 @@ namespace ACE.DatBuilder
                 region.SkyInfo.DayGroups.Clear();
                 region.SkyInfo.DayGroups.Add(group);
 
-                c.Write(RegionRecords.RegionId, region.Pack(), "region with the sky of the event", true);
+                c.Write(RegionDesc.FILE_ID, region.Pack(), "region with the sky of the event", true);
             });
         }
     }

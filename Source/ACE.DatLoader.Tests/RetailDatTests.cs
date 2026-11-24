@@ -13,10 +13,7 @@ namespace ACE.DatLoader.Tests
 
         private static string RequireFile(params string[] parts)
         {
-            var path = Path.Combine(new[] { DatsRoot }.Concat(parts).ToArray());
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Test dat not found: {path}");
+            var path = TestSourceDats.Require(Path.Combine(new[] { DatsRoot }.Concat(parts).ToArray()));
 
             return path;
         }

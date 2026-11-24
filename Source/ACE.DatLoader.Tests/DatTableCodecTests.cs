@@ -30,20 +30,14 @@ namespace ACE.DatLoader.Tests
 
         private static string CustomFile(params string[] parts)
         {
-            var path = Path.Combine(new[] { SourceDats, "Custom Files" }.Concat(parts).ToArray());
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Test file not found: {path}");
+            var path = TestSourceDats.Require(Path.Combine(new[] { SourceDats, "Custom Files" }.Concat(parts).ToArray()));
 
             return path;
         }
 
         private static byte[] PortalRecord(string datName, uint id)
         {
-            var path = Path.Combine(SourceDats, datName);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Test dat not found: {path}");
+            var path = TestSourceDats.Dat(datName);
 
             var dat = new DatDatabase(path);
             return dat.GetReaderForFile(id).Buffer;
@@ -376,10 +370,7 @@ namespace ACE.DatLoader.Tests
 
         private static byte[] ShippedCustomDMPortalRecord(uint id)
         {
-            var path = Path.GetFullPath(Path.Combine(SourceDats, "..", "CustomDM", "client_portal.dat"));
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Test dat not found: {path}");
+            var path = TestSourceDats.Require(Path.GetFullPath(Path.Combine(SourceDats, "..", "CustomDM", "client_portal.dat")));
 
             return new DatDatabase(path).GetReaderForFile(id).Buffer;
         }
@@ -701,12 +692,9 @@ namespace ACE.DatLoader.Tests
 
         private static byte[] LanguageRecord(string datName, uint id, bool shipped)
         {
-            var path = shipped
+            var path = TestSourceDats.Require(shipped
                 ? Path.GetFullPath(Path.Combine(SourceDats, "..", "CustomDM", datName))
-                : Path.Combine(SourceDats, datName);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Test dat not found: {path}");
+                : Path.Combine(SourceDats, datName));
 
             return new DatDatabase(path).GetReaderForFile(id).Buffer;
         }
@@ -866,7 +854,7 @@ namespace ACE.DatLoader.Tests
             var mapperBytes = TitleMapperBytes(false);
             var stringBytes = TitleStringBytes(false);
             var portalPath = TempDatWith(xp, skills);
-            var languagePath = Path.Combine(Path.GetTempPath(), $"DatTableStepTests-{Guid.NewGuid():N}.dat");
+            var languagePath = TestSourceDats.TempPath("DatTableStepTests", ".dat");
 
             DatWriter.CreateEmpty(languagePath, DatContainerSpec.Language);
 
@@ -926,7 +914,7 @@ namespace ACE.DatLoader.Tests
 
         private static string TempDatWith(byte[] xp, byte[] skills)
         {
-            var path = Path.Combine(Path.GetTempPath(), $"DatTableStepTests-{Guid.NewGuid():N}.dat");
+            var path = TestSourceDats.TempPath("DatTableStepTests", ".dat");
             DatWriter.CreateEmpty(path, DatContainerSpec.Portal);
 
             using (var writer = new DatWriter(path))
@@ -1025,14 +1013,9 @@ namespace ACE.DatLoader.Tests
 
         // ---- character generation (record codec) ----
 
-        private const uint CharGenId = 0x0E000002;
-
         private static byte[] ShippedPortalRecord(string ruleset, uint id)
         {
-            var path = Path.GetFullPath(Path.Combine(SourceDats, "..", ruleset, "client_portal.dat"));
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Test dat not found: {path}");
+            var path = TestSourceDats.Require(Path.GetFullPath(Path.Combine(SourceDats, "..", ruleset, "client_portal.dat")));
 
             return new DatDatabase(path).GetReaderForFile(id).Buffer;
         }
@@ -1050,21 +1033,21 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void CharGen_PackEqualsRecord_EoR()
         {
-            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", CharGenId);
+            var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", CharGen.FILE_ID);
             AssertSameBytes(bytes, UnpackCharGen(bytes).Pack());
         }
 
         [TestMethod]
         public void CharGen_PackEqualsRecord_ShippedCustomDM()
         {
-            var bytes = ShippedPortalRecord("CustomDM", CharGenId);
+            var bytes = ShippedPortalRecord("CustomDM", CharGen.FILE_ID);
             AssertSameBytes(bytes, UnpackCharGen(bytes).Pack());
         }
 
         [TestMethod]
         public void CharGen_PackEqualsRecord_ShippedInfiltration()
         {
-            var bytes = ShippedPortalRecord("Infiltration", CharGenId);
+            var bytes = ShippedPortalRecord("Infiltration", CharGen.FILE_ID);
             AssertSameBytes(bytes, UnpackCharGen(bytes).Pack());
         }
 
@@ -1148,7 +1131,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void ChargenRows_SpecializedSkillIsListedOnce_AndComesBackInThePrimaryListOnly()
         {
-            var bytes = ShippedPortalRecord("CustomDM", CharGenId);
+            var bytes = ShippedPortalRecord("CustomDM", CharGen.FILE_ID);
             var record = UnpackCharGen(bytes);
             var overlapping = record.HeritageGroups.SelectMany(g => g.Value.Templates).First(t => t.PrimarySkillsList.Count > 0);
             var skill = overlapping.PrimarySkillsList.First();

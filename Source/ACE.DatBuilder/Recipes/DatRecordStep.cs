@@ -101,22 +101,12 @@ namespace ACE.DatBuilder
 
         public T ReadSource<T>(string datFile, uint id) where T : FileType, new()
         {
-            return Unpack<T>(ReadSource(datFile, id));
+            return FileType.Unpack<T>(ReadSource(datFile, id));
         }
 
         public T ReadTarget<T>(uint id) where T : FileType, new()
         {
-            return Unpack<T>(ReadTarget(id));
-        }
-
-        public static T Unpack<T>(byte[] record) where T : FileType, new()
-        {
-            var item = new T();
-
-            using (var reader = new BinaryReader(new MemoryStream(record)))
-                item.Unpack(reader);
-
-            return item;
+            return FileType.Unpack<T>(ReadTarget(id));
         }
 
         /// <summary>Removes the record from the dat being built. A record that is not there is an error, so a step cannot silently stop matching.</summary>

@@ -156,21 +156,9 @@ namespace ACE.DatBuilder
             if (missing != null)
                 throw new ArgumentException($"Overlay folder not found: {missing}");
 
-            var outputFolder = Path.GetFullPath(Path.Combine(outputRoot, recipe.OutputFolder ?? recipe.Ruleset));
-            var output = Path.Combine(outputFolder, recipe.OutputFileName);
-            var sourceFull = Path.GetFullPath(sourceDats).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            var output = DatBuildOutput.Prepare(sourceDats, outputRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName, force);
 
-            if ((outputFolder + Path.DirectorySeparatorChar).StartsWith(sourceFull, StringComparison.OrdinalIgnoreCase))
-                throw new ArgumentException($"The output folder {outputFolder} is inside the source folder {sourceFull}; the source dats are never written.");
-
-            if (File.Exists(output) && !force)
-                throw new ArgumentException($"{output} already exists (use --force to replace it).");
-
-            Directory.CreateDirectory(outputFolder);
-
-            var temp = output + ".building";
-
-            try
+            var built = DatBuildOutput.BuildInTemp(output, temp =>
             {
                 if (recipe.EmptyBase)
                 {
@@ -219,20 +207,13 @@ namespace ACE.DatBuilder
 
                 result.OutputBytes = new FileInfo(temp).Length;
 
-                File.Move(temp, output, true);
-
-                result.ReleaseNumber = recipe.Releases.CurrentNumber;
-                result.ReleaseHash = DatReleaseHash.Compute(output);
-
                 return result;
-            }
-            catch
-            {
-                if (File.Exists(temp))
-                    File.Delete(temp);
+            });
 
-                throw;
-            }
+            built.ReleaseNumber = recipe.Releases.CurrentNumber;
+            built.ReleaseHash = DatReleaseHash.Compute(output);
+
+            return built;
         }
     }
 }

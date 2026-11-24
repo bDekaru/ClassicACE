@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 using ACE.DatLoader.FileTypes;
 
@@ -240,6 +242,68 @@ namespace ACE.DatLoader
             writer.RecordDate = date;
             writer.Save(id, payload);
             report.Written.Add(name);
+        }
+
+        /// <summary>The SQL that fills the dat_* tables with the values of a portal dat's tables (the title rows need <paramref name="language"/>), the counterpart of <see cref="Apply"/>. One summary line per table goes to <paramref name="log"/>.</summary>
+        /// <exception cref="ArgumentException">The dat lacks a table record that every dat has.</exception>
+        public static string ExportScript(DatDatabase dat, DatDatabase language, Action<string> log)
+        {
+            if (!dat.AllFiles.ContainsKey(XpRecordId) || !dat.AllFiles.ContainsKey(SkillRecordId))
+                throw new ArgumentException($"{dat.FilePath} has no XP or skill table record.");
+
+            var xp = DatTables.ToRows(dat.ReadFromDat<XpTable>(XpRecordId));
+            var skills = DatTables.ToRows(dat.ReadFromDat<SkillTable>(SkillRecordId));
+
+            var script = new StringBuilder(DatTables.InsertScript(xp, skills));
+
+            log($"{xp.Attribute.Count} attribute ranks, {xp.Vital.Count} vital ranks, {xp.TrainedSkill.Count} trained skill ranks, {xp.SpecializedSkill.Count} specialized skill ranks, {xp.Levels.Count} levels, {skills.Count} skills");
+            log($"  xp hash {DatTables.Hash(xp)}, skill hash {DatTables.Hash(skills)}");
+
+            if (dat.AllFiles.ContainsKey(VitalRecordId))
+            {
+                var vitals = DatTables.ToRows(dat.ReadFromDat<SecondaryAttributeTable>(VitalRecordId));
+
+                script.Append(DatTables.VitalInsertScript(vitals));
+
+                log($"  {vitals.Count} vital formulas, vital hash {DatTables.Hash(vitals)}");
+            }
+
+            if (dat.AllFiles.ContainsKey(SpellRecordId))
+            {
+                var spellTable = dat.ReadFromDat<SpellTable>(SpellRecordId);
+                var spells = DatTables.ToRows(spellTable);
+                var setSpells = DatTables.ToSetRows(spellTable);
+
+                script.Append(DatTables.SpellInsertScript(spells, setSpells));
+
+                log($"  {spells.Count} spells, {spellTable.SpellSet.Count} equipment sets with {setSpells.Count} tier spells, spell hash {DatTables.Hash(spells, setSpells)}");
+            }
+
+            if (dat.AllFiles.ContainsKey(ChargenRecordId))
+            {
+                var chargen = DatTables.ToRows(dat.ReadFromDat<CharGen>(ChargenRecordId));
+
+                script.Append(DatTables.ChargenInsertScript(chargen));
+
+                log($"  {chargen.Overrides.Count} heritage skill costs, {chargen.Templates.Count} templates with {chargen.TemplateSkills.Count} skills, credits {chargen.Chargen.AttributeCredits}/{chargen.Chargen.SkillCredits}, chargen hash {DatTables.Hash(chargen)}");
+            }
+
+            if (language != null)
+            {
+                if (!dat.AllFiles.ContainsKey(TitleMapperRecordId))
+                    throw new ArgumentException($"{dat.FilePath} has no title enum mapper record.");
+
+                if (!language.AllFiles.ContainsKey(TitleStringRecordId))
+                    throw new ArgumentException($"{language.FilePath} has no title string table record.");
+
+                var titles = DatTables.ToRows(dat.ReadFromDat<EnumMapper>(TitleMapperRecordId), language.ReadFromDat<StringTable>(TitleStringRecordId));
+
+                script.Append(DatTables.TitleInsertScript(titles));
+
+                log($"  {titles.Count} character titles, title hash {DatTables.Hash(titles)}");
+            }
+
+            return script.ToString();
         }
     }
 }

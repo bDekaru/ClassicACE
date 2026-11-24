@@ -18,10 +18,7 @@ namespace ACE.DatLoader.Tests
 
         private static string RequireSource(string name)
         {
-            var path = Path.Combine(SourceDats, name);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(name);
 
             return path;
         }
@@ -133,7 +130,7 @@ namespace ACE.DatLoader.Tests
         {
             var retail = RequireSource(retailName);
             var spec = kind == "Portal" ? DatContainerSpec.Portal : kind == "Cell" ? DatContainerSpec.Cell : DatContainerSpec.Language;
-            var path = Path.Combine(Path.GetTempPath(), $"emptydat-{Guid.NewGuid():N}.dat");
+            var path = TestSourceDats.TempPath("emptydat", ".dat");
 
             try
             {
@@ -169,7 +166,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void CreateEmpty_ProducesAnAuditableDatThatAcceptsRecords()
         {
-            var path = Path.Combine(Path.GetTempPath(), $"emptydat-{Guid.NewGuid():N}.dat");
+            var path = TestSourceDats.TempPath("emptydat", ".dat");
 
             try
             {

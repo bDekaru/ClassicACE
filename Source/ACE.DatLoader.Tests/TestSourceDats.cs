@@ -27,12 +27,22 @@ namespace ACE.DatLoader.Tests
         /// <summary>The path of one of the original dats; the test is inconclusive when the file is missing.</summary>
         public static string Dat(string name)
         {
-            var path = Path.Combine(Folder, name);
+            return Require(Path.Combine(Folder, name));
+        }
 
+        /// <summary>The path itself; the test is inconclusive when the file is missing.</summary>
+        public static string Require(string path)
+        {
             if (!File.Exists(path))
-                Assert.Inconclusive($"Test dat not found: {path}");
+                Assert.Inconclusive($"Test file not found: {path}");
 
             return path;
+        }
+
+        /// <summary>A new path in the temp folder for a file or folder the test makes and removes itself.</summary>
+        public static string TempPath(string prefix, string extension = "")
+        {
+            return Path.Combine(Path.GetTempPath(), $"{prefix}-{Guid.NewGuid():N}{extension}");
         }
 
         /// <summary>

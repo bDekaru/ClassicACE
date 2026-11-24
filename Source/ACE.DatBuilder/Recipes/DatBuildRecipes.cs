@@ -248,6 +248,7 @@ namespace ACE.DatBuilder
         // PortalBaseDat:   MD5 2c89662a44fcdc2a3c31fe8f6677d265
         // PreToDPortalDat: MD5 304275cb743dc28f37410e06e91cb17c
         // Portal2001Dat:   MD5 c1438f6802b4d15c9d3f003f46339c41 (CRC32 2B64BF52, the PORTAL.DAT of the archive's 2001-09-12 snapshot)
+        // Portal2000Dat:   MD5 29cffe605048756ba57868d343b08932 (the 2000-12-12 portal.dat)
         // PreToDCellDat:   MD5 0f32588ffbf648cd0695a4dbd6488205
         // ToDCellDat:      MD5 c1521ecd4dab4123df5467090742a45b
         public const string LanguageBaseDat = "language - 2015-06-18 - Iteration 994 - EoR.dat";
@@ -255,6 +256,7 @@ namespace ACE.DatBuilder
 
         public const string PreToDPortalDat = "portal - 2005-02-XX - Iteration 2112 - Infiltration.dat";
         public const string Portal2001Dat = "portal - 2001-09-12 - Iteration 541.dat";
+        public const string Portal2000Dat = "portal - 2000-12-12 - Iteration 382.dat";
         public const string PreToDSurfaceMap = "surface_map_preToD_2005-02_to_ToD.tsv";
 
         // Environments and models of the landblocks whose content was removed in ToD (2459 2577 2677 287F), the EC0E objects, and the old models
@@ -337,5 +339,80 @@ namespace ACE.DatBuilder
 
         /// <summary>Cell recipes need their ruleset's portal dat built first.</summary>
         public static readonly DatCellBuildRecipe[] AllCells = { CellCustomDM, CellInfiltration };
+
+        private static bool KeyMatches(string key, string selector) => key.Equals(selector, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>The recipe with that key (a portal or language recipe, not an alternative), or null.</summary>
+        public static DatBuildRecipe Find(string key)
+        {
+            return All.FirstOrDefault(r => KeyMatches(r.Key, key));
+        }
+
+        /// <summary>The recipes a build selector names: <c>all</c> for the default ones, or one key, which can be an alternative.</summary>
+        /// <exception cref="ArgumentException">The selector names no recipe.</exception>
+        public static (List<DatBuildRecipe> Portals, List<DatCellBuildRecipe> Cells) Select(string selector)
+        {
+            var all = selector.Equals("all", StringComparison.OrdinalIgnoreCase);
+            var portals = All.Where(r => all || KeyMatches(r.Key, selector)).Concat(Alternatives.Where(r => KeyMatches(r.Key, selector))).ToList();
+            var cells = AllCells.Where(r => all || KeyMatches(r.Key, selector)).Concat(AlternativeCells.Where(r => KeyMatches(r.Key, selector))).ToList();
+
+            if (portals.Count == 0 && cells.Count == 0)
+                throw new ArgumentException($"Unknown recipe '{selector}' (see: list).");
+
+            return (portals, cells);
+        }
+
+        private static readonly Dictionary<string, Func<string, DatRecordStep[]>> EventKits = new Dictionary<string, Func<string, DatRecordStep[]>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["daralet"] = DaraletRecords.All,
+            ["darkness"] = DarknessAscendantRecords.All,
+            ["fireinthesky"] = FireInTheSkyRecords.All
+        };
+
+        /// <summary>Adds the steps of an event kit, dated <paramref name="date"/>, to the recipes that start from the 2005 dat.</summary>
+        /// <exception cref="ArgumentException">The event is unknown, the date is missing, or no recipe starts from the 2005 dat.</exception>
+        public static void AddEvent(IEnumerable<DatBuildRecipe> recipes, string eventName, string date)
+        {
+            if (date == null)
+                throw new ArgumentException("--event needs --event-date <yyyy-mm-dd>, the date the step is added: every step carries a date.");
+
+            if (!EventKits.TryGetValue(eventName, out var kit))
+                throw new ArgumentException($"No event '{eventName}'; the events are: {string.Join(", ", EventKits.Keys)}.");
+
+            var targets = recipes.Where(r => r.EmptyBase).ToList();
+
+            if (targets.Count == 0)
+                throw new ArgumentException("--event applies to the recipes that start from the 2005 dat (see: list).");
+
+            foreach (var recipe in targets)
+                recipe.WithRecordSteps(recipe.RecordSteps.Concat(kit(date)).ToArray());
+        }
+
+        /// <summary>Adds the season step, dated <paramref name="date"/>, to the recipes that start from the 2005 dat.</summary>
+        /// <exception cref="ArgumentException">The date is missing, or no recipe starts from the 2005 dat.</exception>
+        public static void AddSeason(IEnumerable<DatBuildRecipe> recipes, string season, string date)
+        {
+            if (date == null)
+                throw new ArgumentException("--season needs --season-date <yyyy-mm-dd>, the date of the event: every step carries a date.");
+
+            var targets = recipes.Where(r => r.EmptyBase).ToList();
+
+            if (targets.Count == 0)
+                throw new ArgumentException("--season applies to the recipes that start from the 2005 dat (see: list).");
+
+            foreach (var recipe in targets)
+                recipe.WithRecordSteps(recipe.RecordSteps.Append(SeasonalRecords.Step(season, date)).ToArray());
+        }
+
+        /// <summary>Removes the record steps of those names from the recipes.</summary>
+        /// <exception cref="ArgumentException">A name is no record step of any of the recipes.</exception>
+        public static void SkipSteps(List<DatBuildRecipe> recipes, IReadOnlyList<string> skipped)
+        {
+            foreach (var name in skipped.Where(n => !recipes.Any(r => r.RecordSteps.Any(s => s.Name == n))))
+                throw new ArgumentException($"No record step '{name}' in the selected recipes (see: list).");
+
+            foreach (var recipe in recipes)
+                recipe.WithRecordSteps(recipe.RecordSteps.Where(s => !skipped.Contains(s.Name)).ToArray());
+        }
     }
 }

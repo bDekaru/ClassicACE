@@ -73,13 +73,13 @@ namespace ACE.DatBuilder
             if (chosen == null && !new[] { Fall, FallAlias }.Contains(season, StringComparer.OrdinalIgnoreCase))
                 throw new ArgumentException($"No season '{season}'; the seasons are {string.Join(", ", Names)}.", nameof(season));
 
-            var own = new HashSet<uint>((chosen?.Textures ?? new List<string>()).Select(t => Convert.ToUInt32(t, 16)));
+            var own = new HashSet<uint>((chosen?.Textures ?? new List<string>()).Select(t => DatRecipeData.Hex(t)));
 
             return new DatRecordStep($"Season: {chosen?.Name ?? Fall}", date, c =>
             {
                 var clipMap = DatPreToDPortalConverter.ClipMapTextures(new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat), true));
 
-                foreach (var id in kit.All.Select(t => Convert.ToUInt32(t, 16)))
+                foreach (var id in kit.All.Select(t => DatRecipeData.Hex(t)))
                 {
                     var dat = own.Contains(id) ? chosen.Source : DatBuildRecipes.PreToDPortalDat;
                     var imageId = c.ReadTarget<SurfaceTexture>(id).Textures[0];
@@ -88,7 +88,7 @@ namespace ACE.DatBuilder
                     c.Write(imageId, image, $"foliage texture {id:X8} ({width}x{height}) from {(own.Contains(id) ? chosen.Name : Fall)}", true);
                 }
 
-                var ground = (chosen?.Ground ?? new Dictionary<string, string>()).ToDictionary(g => uint.Parse(g.Key), g => Convert.ToUInt32(g.Value, 16));
+                var ground = (chosen?.Ground ?? new Dictionary<string, string>()).ToDictionary(g => uint.Parse(g.Key), g => DatRecipeData.Hex(g.Value));
 
                 foreach (var id in ground.Values.Distinct())
                     GroundTextureRecords.WriteTerrainImage(c, c.ReadTarget<SurfaceTexture>(id).Textures[0], id);
@@ -96,12 +96,12 @@ namespace ACE.DatBuilder
                 var source = RegionDesc.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, PreToDBaseRecords.HardwareRegionId));
                 var original = source.TerrainInfo.LandSurfaces.TexMerge.TerrainDesc.ToDictionary(d => d.TerrainType, d => d.TerrainTex.TexGID);
                 var types = kit.Seasons.SelectMany(s => s.Ground.Keys).Select(uint.Parse).ToHashSet();
-                var region = c.ReadTarget<RegionDesc>(GroundTextureRecords.RegionId);
+                var region = c.ReadTarget<RegionDesc>(RegionDesc.FILE_ID);
 
                 foreach (var description in region.TerrainInfo.LandSurfaces.TexMerge.TerrainDesc.Where(d => types.Contains(d.TerrainType)))
                     description.TerrainTex.TexGID = ground.TryGetValue(description.TerrainType, out var texture) ? texture : original[description.TerrainType];
 
-                var scenes = (chosen?.Scenes ?? new Dictionary<string, List<string>>()).ToDictionary(s => int.Parse(s.Key), s => s.Value.Select(id => Convert.ToUInt32(id, 16)).ToList());
+                var scenes = (chosen?.Scenes ?? new Dictionary<string, List<string>>()).ToDictionary(s => int.Parse(s.Key), s => s.Value.Select(id => DatRecipeData.Hex(id)).ToList());
 
                 foreach (var index in kit.Seasons.SelectMany(s => s.Scenes.Keys).Select(int.Parse).Distinct())
                 {
@@ -109,7 +109,7 @@ namespace ACE.DatBuilder
                     region.SceneInfo.SceneTypes[index].Scenes.AddRange(scenes.TryGetValue(index, out var list) ? list : source.SceneInfo.SceneTypes[index].Scenes);
                 }
 
-                c.Write(GroundTextureRecords.RegionId, region.Pack(), $"region ground and scenes of {chosen?.Name ?? Fall}", true);
+                c.Write(RegionDesc.FILE_ID, region.Pack(), $"region ground and scenes of {chosen?.Name ?? Fall}", true);
                 GroundTextureRecords.RegionStep(c.Step.Date).Run(c);
             });
         }

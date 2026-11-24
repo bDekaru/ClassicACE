@@ -8,7 +8,7 @@ namespace ACE.DatLoader.FileTypes
     [DatFileType(DatFileType.CharacterGenerator)]
     public class CharGen : FileType
     {
-        internal const uint FILE_ID = 0x0E000002;
+        public const uint FILE_ID = 0x0E000002;
 
         public List<StarterArea> StarterAreas { get; } = new List<StarterArea>();
         public Dictionary<uint, HeritageGroupCG> HeritageGroups { get; } = new Dictionary<uint, HeritageGroupCG>();

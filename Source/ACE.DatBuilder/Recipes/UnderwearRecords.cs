@@ -17,7 +17,7 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Brown underwear from the 2000-12 dat", date, c =>
             {
-                var brown = c.ReadSource<Palette>(DaraletRecords.SourceDat, BasePalette);
+                var brown = c.ReadSource<Palette>(DatBuildRecipes.Portal2000Dat, BasePalette);
                 var palette = c.ReadTarget<Palette>(BasePalette);
 
                 for (var color = FirstColor; color <= LastColor; color++)

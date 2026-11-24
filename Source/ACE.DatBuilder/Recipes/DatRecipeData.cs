@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
@@ -18,6 +19,12 @@ namespace ACE.DatBuilder
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Converters = { new JsonStringEnumConverter() }
         };
+
+        /// <summary>The id a recipe data file gives as hex text.</summary>
+        public static uint Hex(string id)
+        {
+            return uint.Parse(id, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+        }
 
         public static T Load<T>(string name)
         {

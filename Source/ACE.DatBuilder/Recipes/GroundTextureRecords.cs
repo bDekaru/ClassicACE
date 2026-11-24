@@ -13,8 +13,6 @@ namespace ACE.DatBuilder
     {
         public const string TexturesFile = "ground-textures.json";
 
-        public const uint RegionId = 0x13000000;
-
         /// <summary>The second header value of the EoR terrain images, used for an image the dat does not have yet.</summary>
         private const uint DefaultHeaderValue = 2;
 
@@ -33,7 +31,7 @@ namespace ACE.DatBuilder
             return new DatRecordStep("Ground textures from the 2005 dat", date, c =>
             {
                 foreach (var texture in DatRecipeData.Load<List<GroundTexture>>(TexturesFile))
-                    WriteTerrainImage(c, Convert.ToUInt32(texture.Image, 16), Convert.ToUInt32(texture.Source, 16));
+                    WriteTerrainImage(c, DatRecipeData.Hex(texture.Image), DatRecipeData.Hex(texture.Source));
             });
         }
 
@@ -53,8 +51,8 @@ namespace ACE.DatBuilder
             {
                 foreach (var texture in DatRecipeData.Load<List<GroundTexture>>(TexturesFile))
                 {
-                    var id = Convert.ToUInt32(texture.Source, 16);
-                    var imageId = Convert.ToUInt32(texture.Image, 16);
+                    var id = DatRecipeData.Hex(texture.Source);
+                    var imageId = DatRecipeData.Hex(texture.Image);
 
                     c.Write(id, SurfaceTexture.Create(id, imageId).Pack(), $"surface texture for texture {imageId:X8}", true);
                 }
@@ -70,7 +68,7 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Terrain merge size and tiling of the 2005 client", date, c =>
             {
-                var region = c.ReadTarget<RegionDesc>(RegionId);
+                var region = c.ReadTarget<RegionDesc>(RegionDesc.FILE_ID);
                 var merge = region.TerrainInfo.LandSurfaces.TexMerge;
                 merge.BaseTexSize = BaseTexSize;
 
@@ -90,7 +88,7 @@ namespace ACE.DatBuilder
                     description.TerrainTex.TexTiling = BaseTexSize / width;
                 }
 
-                c.Write(RegionId, region.Pack(), $"region merge size {BaseTexSize}", true);
+                c.Write(RegionDesc.FILE_ID, region.Pack(), $"region merge size {BaseTexSize}", true);
             });
         }
 

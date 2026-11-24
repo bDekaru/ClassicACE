@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -36,7 +35,7 @@ namespace ACE.DatBuilder
                     continue;
                 }
 
-                var id = uint.Parse(edit.Id, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                var id = DatRecipeData.Hex(edit.Id);
 
                 if (!entries.TryGetValue(id, out var entry))
                     throw new InvalidDataException($"String edit: the table has no entry {edit.Id}.");

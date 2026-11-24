@@ -25,8 +25,6 @@ namespace ACE.DatBuilder
         // 0x25-0x27, 0x78): the header's MasterMapID (0x25000000) points into them, and the client cannot name its language dat without it ("Can't find the local data file ''").
         private static readonly uint[] EoRTypes = { 0x0E, 0x39, 0x31, 0x14, 0x15, 0x16, 0x17, 0x18, 0x22, 0x25, 0x26, 0x27, 0x78 };
 
-        private const uint CharGenId = 0x0E000002;
-        private const uint RegionId = 0x13000000;
         public const uint HardwareRegionId = 0x130F0000;
 
         /// <param name="rulesetEoRRecordsFiles">The EoR-only records the ruleset's world needs besides those of <see cref="EoRRecordsFile"/>.</param>
@@ -46,14 +44,14 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Chargen faces and base body from the 2005 record", date, c =>
             {
-                var chargen = c.ReadTarget<CharGen>(CharGenId);
-                var preToD = CharGen.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, CharGenId));
+                var chargen = c.ReadTarget<CharGen>(CharGen.FILE_ID);
+                var preToD = CharGen.UnpackPreToD(c.ReadSource(DatBuildRecipes.PreToDPortalDat, CharGen.FILE_ID));
 
                 foreach (var heritage in preToD.HeritageGroups)
                     foreach (var sex in heritage.Value.Genders)
                         chargen.HeritageGroups[heritage.Key].Genders[sex.Key].TakeFaceFrom(sex.Value);
 
-                c.Write(CharGenId, chargen.Pack(), "character generation faces", true);
+                c.Write(CharGen.FILE_ID, chargen.Pack(), "character generation faces", true);
 
                 foreach (var sex in preToD.HeritageGroups.Values.SelectMany(h => h.Genders.Values).GroupBy(s => s.SetupID).Select(g => g.First()))
                 {
@@ -124,9 +122,9 @@ namespace ACE.DatBuilder
             return new DatRecordStep(name, date, c =>
             {
                 var region = RegionDesc.UnpackPreToD(c.ReadSource(sourceDat, HardwareRegionId));
-                var eor = c.ReadSource<RegionDesc>(DatBuildRecipes.PortalBaseDat, RegionId);
+                var eor = c.ReadSource<RegionDesc>(DatBuildRecipes.PortalBaseDat, RegionDesc.FILE_ID);
 
-                region.Id = RegionId;
+                region.Id = RegionDesc.FILE_ID;
                 region.RegionNumber = eor.RegionNumber;
                 fillSky(c, region, eor);
 
@@ -149,7 +147,7 @@ namespace ACE.DatBuilder
                 foreach (var description in eor.TerrainInfo.LandSurfaces.TexMerge.TerrainDesc.Where(t => !known.Contains(t.TerrainType)))
                     merge.TerrainDesc.Add(description);
 
-                c.Write(RegionId, region.Pack(), $"region from {HardwareRegionId:X8} (sky properties and region number from EoR, terrain types added: {string.Join(",", added)})", true);
+                c.Write(RegionDesc.FILE_ID, region.Pack(), $"region from {HardwareRegionId:X8} (sky properties and region number from EoR, terrain types added: {string.Join(",", added)})", true);
             });
         }
 
@@ -161,8 +159,8 @@ namespace ACE.DatBuilder
                 var firstImageId = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat), true).AllFiles.Keys.Where(k => k >> 24 == 0x06).Max() + 1;
 
                 // The base palettes of the worlds' objects, and those of the character creation (every heritage and sex of the EoR CharGen record): its face and hair images are recoloured the same way.
-                var basePalettes = DatRecipeData.Load<List<string>>(BasePalettesFile).Select(s => System.Convert.ToUInt32(s, 16)).ToHashSet();
-                basePalettes.UnionWith(c.ReadSource<CharGen>(DatBuildRecipes.PortalBaseDat, CharGenId).HeritageGroups.Values.SelectMany(h => h.Genders.Values).Select(g => g.BasePalette));
+                var basePalettes = DatRecipeData.Load<List<string>>(BasePalettesFile).Select(s => DatRecipeData.Hex(s)).ToHashSet();
+                basePalettes.UnionWith(c.ReadSource<CharGen>(DatBuildRecipes.PortalBaseDat, CharGen.FILE_ID).HeritageGroups.Values.SelectMany(h => h.Genders.Values).Select(g => g.BasePalette));
 
                 var converter = new DatPreToDPortalConverter(new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat), true), firstImageId, basePalettes);
 
@@ -182,7 +180,7 @@ namespace ACE.DatBuilder
             {
                 var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat), true);
 
-                var listed = DatRecipeData.Load<List<string>>(EoRRecordsFile).Concat(rulesetEoRRecordsFiles.SelectMany(DatRecipeData.Load<List<string>>)).Select(s => System.Convert.ToUInt32(s, 16))
+                var listed = DatRecipeData.Load<List<string>>(EoRRecordsFile).Concat(rulesetEoRRecordsFiles.SelectMany(DatRecipeData.Load<List<string>>)).Select(s => DatRecipeData.Hex(s))
                     .Concat(eor.AllFiles.Keys.Where(k => EoRTypes.Contains(k >> 24))).ToHashSet();
 
                 // What the client reaches through the master map (the header's MasterMapID): every id an EoR DID mapper holds, and the images of every font the dat gets (a font whose images are missing

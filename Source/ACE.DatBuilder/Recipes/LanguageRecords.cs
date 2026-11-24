@@ -71,7 +71,7 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Character generation heritage layout from the EoR record", date, c =>
             {
-                var master = c.ReadSource<MasterProperty>(DatBuildRecipes.PortalBaseDat, DatLayoutEdits.MasterPropertyId);
+                var master = c.ReadSource<MasterProperty>(DatBuildRecipes.PortalBaseDat, MasterProperty.FILE_ID);
                 var layout = DatLayoutEdits.Unpack(c.ReadTarget(ChargenHeritageUiId), master);
                 DatLayoutEdits.Apply(layout, DatRecipeData.Load<List<DatLayoutMediaEdit>>(ChargenHeritageUiFile));
                 c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout", true);
@@ -83,7 +83,7 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Unused heritage buttons moved out of the heritage layout", date, c =>
             {
-                var master = c.ReadSource<MasterProperty>(DatBuildRecipes.PortalBaseDat, DatLayoutEdits.MasterPropertyId);
+                var master = c.ReadSource<MasterProperty>(DatBuildRecipes.PortalBaseDat, MasterProperty.FILE_ID);
                 var layout = DatLayoutEdits.Unpack(c.ReadTarget(ChargenHeritageUiId), master);
                 DatLayoutEdits.Move(layout, DatRecipeData.Load<List<DatLayoutMoveEdit>>(InfiltrationHeritageUiMovedFile));
                 c.Write(ChargenHeritageUiId, layout.Pack(), "character generation heritage layout with the unused heritages out of sight", true);

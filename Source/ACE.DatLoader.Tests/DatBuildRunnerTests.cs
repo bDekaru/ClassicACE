@@ -14,7 +14,7 @@ namespace ACE.DatLoader.Tests
 
         private static string TempFolder()
         {
-            var folder = Path.Combine(Path.GetTempPath(), $"DatBuildRunnerTests-{Guid.NewGuid():N}");
+            var folder = TestSourceDats.TempPath("DatBuildRunnerTests");
             Directory.CreateDirectory(folder);
             return folder;
         }

@@ -10,7 +10,7 @@ namespace ACE.DatLoader.FileTypes
     [DatFileType(DatFileType.Region)]
     public class RegionDesc : FileType
     {
-        internal const uint FILE_ID = 0x13000000;
+        public const uint FILE_ID = 0x13000000;
 
         public uint RegionNumber { get; set; }
         public uint Version { get; private set; }

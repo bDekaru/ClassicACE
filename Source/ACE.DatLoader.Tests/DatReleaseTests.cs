@@ -159,7 +159,7 @@ namespace ACE.DatLoader.Tests
             if (!Directory.Exists(Path.Combine(SourceDats, "Custom Files")))
                 Assert.Inconclusive($"Custom files not found: {Path.Combine(SourceDats, "Custom Files")}");
 
-            var outRoot = Path.Combine(Path.GetTempPath(), $"DatReleaseGuard-{Guid.NewGuid():N}");
+            var outRoot = TestSourceDats.TempPath("DatReleaseGuard");
             var custom = Path.Combine(SourceDats, "Custom Files");
             var mismatches = new System.Text.StringBuilder();
 

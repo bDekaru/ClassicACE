@@ -88,7 +88,7 @@ namespace ACE.DatBuilder
                     Dangling($"portal type {id >> 24:X2}", reference);
             }
 
-            roots.Add(0x13000000);
+            roots.Add(RegionDesc.FILE_ID);
 
             var cellRefs = 0;
 
@@ -120,7 +120,7 @@ namespace ACE.DatBuilder
 
             if (language != null)
             {
-                var master = portal.ReadFromDat<MasterProperty>(DatLayoutEdits.MasterPropertyId);
+                var master = portal.ReadFromDat<MasterProperty>(MasterProperty.FILE_ID);
 
                 foreach (var id in language.AllFiles.Keys)
                 {

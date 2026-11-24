@@ -8,7 +8,7 @@ namespace ACE.DatBuilder
 {
     /// <summary>
     /// The Child of Daralet event (December 2000) on a portal dat made from the 2005 dat (<see cref="PreToDBaseRecords"/>): the records the event's dat added or changed, the red water golem and the event's Region (its sky, sounds and scenery).
-    /// The records are made from <see cref="SourceDat"/> by the id shifts of the data file (the shifts of the EoR weather set of the event), with our own conversion; the weather set's records are not copied, because they carry
+    /// The records are made from <see cref="DatBuildRecipes.Portal2000Dat"/> by the id shifts of the data file (the shifts of the EoR weather set of the event), with our own conversion; the weather set's records are not copied, because they carry
     /// conversion mistakes (24-bit images left planar, sound hashes of 0, surface palette ids unshifted). The steps are an event kit: a recipe lists them only for the time the event runs.
     /// </summary>
     /// <remarks>
@@ -18,9 +18,6 @@ namespace ACE.DatBuilder
     public static class DaraletRecords
     {
         public const string KitFile = "daralet-kit.json";
-
-        /// <summary>portal.dat 2000-12-12, Iteration 382, MD5 29cffe605048756ba57868d343b08932.</summary>
-        public const string SourceDat = "portal - 2000-12-12 - Iteration 382.dat";
 
         /// <summary>The swarm emitters the water golem's script (3300088E) creates: 3200048E on its limbs, 3200048F (12 particles) on the chest. The event dat has both red.</summary>
         private static readonly uint[] GolemEmitters = { 0x3200048E, 0x3200048F };
@@ -58,7 +55,7 @@ namespace ACE.DatBuilder
 
         public static DatRecordStep Records(string date)
         {
-            return ModelRecords.Step("Child of Daralet records", date, KitFile, SourceDat);
+            return ModelRecords.Step("Child of Daralet records", date, KitFile, DatBuildRecipes.Portal2000Dat);
         }
 
         /// <summary>The terrain textures of the red water (05001AF3-05001AF7, the same records in the 2000 and 2005 dats) as terrain images: the event's Region points its water terrain at them.</summary>
@@ -91,7 +88,7 @@ namespace ACE.DatBuilder
         /// </summary>
         public static DatRecordStep Region(string date)
         {
-            var rebuild = PreToDBaseRecords.Region("Region of the Child of Daralet", date, SourceDat, (c, region, eor) =>
+            var rebuild = PreToDBaseRecords.Region("Region of the Child of Daralet", date, DatBuildRecipes.Portal2000Dat, (c, region, eor) =>
             {
                 var properties = PreToDBaseRecords.SkyPropertiesOf2005(c, eor);
                 var skyObjects = region.SkyInfo.DayGroups.SelectMany(g => g.SkyObjects).ToList();

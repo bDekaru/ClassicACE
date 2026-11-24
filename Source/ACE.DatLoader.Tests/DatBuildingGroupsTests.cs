@@ -15,10 +15,7 @@ namespace ACE.DatLoader.Tests
 
         private static DatBuildingGroups LoadGroups()
         {
-            var path = Path.Combine(SourceDats, DatBuildRecipes.PreToDCellDat);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(DatBuildRecipes.PreToDCellDat);
 
             return new DatBuildingGroups(new DatDatabase(path, true));
         }
@@ -47,7 +44,7 @@ namespace ACE.DatLoader.Tests
         {
             var groups = LoadGroups();
             var environments = new[] { "01000830", "01002EF1", "01002EF2", "01002EF6", "010034FA" }
-                .SelectMany(m => groups.Resolve(Convert.ToUInt32(m, 16)).Environments)
+                .SelectMany(m => groups.Resolve(DatRecipeData.Hex(m)).Environments)
                 .ToList();
 
             foreach (var reshaped in new[] { 0x0D0002FBu, 0x0D000574u, 0x0D000575u, 0x0D0005BFu })

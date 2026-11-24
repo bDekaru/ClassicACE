@@ -26,11 +26,11 @@ namespace ACE.DatLoader.Tests
         public void Import_RemovedBuildingModels_ParseAndUseTargetSurfaces()
         {
             var prePath = Environment.GetEnvironmentVariable(PreToDPortalVariable);
-            var eorPath = Path.Combine(SourceDats, EoRPortal);
-            var mapPath = Path.Combine(SourceDats, "surface_map_preToD_2005-02_to_ToD.tsv");
+            var eorPath = TestSourceDats.Dat(EoRPortal);
+            var mapPath = TestSourceDats.Dat("surface_map_preToD_2005-02_to_ToD.tsv");
 
-            if (string.IsNullOrEmpty(prePath) || !File.Exists(prePath) || !File.Exists(eorPath) || !File.Exists(mapPath))
-                Assert.Inconclusive($"Needs {PreToDPortalVariable}, {EoRPortal} and the surface map.");
+            if (string.IsNullOrEmpty(prePath) || !File.Exists(prePath))
+                Assert.Inconclusive($"Set {PreToDPortalVariable} to a pre-ToD portal dat.");
 
             var target = new DatDatabase(eorPath, true);
             var importer = new DatPortalImporter(new DatDatabase(prePath, true), target, DatCellConverter.LoadSurfaceMap(mapPath));
@@ -62,11 +62,11 @@ namespace ACE.DatLoader.Tests
         public void ImportTexture_PlainPixelFormats_KeepPixelsInToDFormat()
         {
             var prePath = Environment.GetEnvironmentVariable(PreToDPortalVariable);
-            var eorPath = Path.Combine(SourceDats, EoRPortal);
-            var mapPath = Path.Combine(SourceDats, "surface_map_preToD_2005-02_to_ToD.tsv");
+            var eorPath = TestSourceDats.Dat(EoRPortal);
+            var mapPath = TestSourceDats.Dat("surface_map_preToD_2005-02_to_ToD.tsv");
 
-            if (string.IsNullOrEmpty(prePath) || !File.Exists(prePath) || !File.Exists(eorPath) || !File.Exists(mapPath))
-                Assert.Inconclusive($"Needs {PreToDPortalVariable}, {EoRPortal} and the surface map.");
+            if (string.IsNullOrEmpty(prePath) || !File.Exists(prePath))
+                Assert.Inconclusive($"Set {PreToDPortalVariable} to a pre-ToD portal dat.");
 
             var pre = new DatDatabase(prePath, true);
             var importer = new DatPortalImporter(pre, new DatDatabase(eorPath, true), DatCellConverter.LoadSurfaceMap(mapPath));
@@ -103,13 +103,10 @@ namespace ACE.DatLoader.Tests
         public void Convert_PreToDEnvironments_MatchEoRRecords()
         {
             var prePath = Environment.GetEnvironmentVariable(PreToDPortalVariable);
-            var eorPath = Path.Combine(SourceDats, EoRPortal);
+            var eorPath = TestSourceDats.Dat(EoRPortal);
 
             if (string.IsNullOrEmpty(prePath) || !File.Exists(prePath))
                 Assert.Inconclusive($"Set {PreToDPortalVariable} to a pre-ToD portal dat.");
-
-            if (!File.Exists(eorPath))
-                Assert.Inconclusive($"Source dat not found: {eorPath}");
 
             var pre = new DatDatabase(prePath, true);
             var eor = new DatDatabase(eorPath, true);

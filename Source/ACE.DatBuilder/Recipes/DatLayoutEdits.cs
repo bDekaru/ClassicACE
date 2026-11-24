@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 
@@ -33,9 +32,6 @@ namespace ACE.DatBuilder
     /// <summary>Edits of a UI layout record (language dat, 0x21......), read from a recipe data file.</summary>
     public static class DatLayoutEdits
     {
-        /// <summary>The MasterProperty record of the portal dat, which gives the type of every property a layout holds.</summary>
-        public const uint MasterPropertyId = 0x39000001;
-
         public static LayoutDesc Unpack(byte[] record, MasterProperty master)
         {
             var layout = new LayoutDesc();
@@ -54,13 +50,13 @@ namespace ACE.DatBuilder
                 var element = Find(layout, edit.Element);
                 StateDesc state = element;
 
-                if (!string.IsNullOrEmpty(edit.State) && !element.States.TryGetValue(Parse(edit.State), out state))
+                if (!string.IsNullOrEmpty(edit.State) && !element.States.TryGetValue(DatRecipeData.Hex(edit.State), out state))
                     throw new InvalidDataException($"Layout edit: element {edit.Element} has no state {edit.State}.");
 
                 if (edit.Media < 0 || edit.Media >= state.Media.Count)
                     throw new InvalidDataException($"Layout edit: element {edit.Element} state {edit.State} has no media item {edit.Media}.");
 
-                state.Media[edit.Media].File = Parse(edit.File);
+                state.Media[edit.Media].File = DatRecipeData.Hex(edit.File);
             }
         }
 
@@ -80,7 +76,7 @@ namespace ACE.DatBuilder
 
         private static ElementDesc Find(LayoutDesc layout, string path)
         {
-            var ids = path.Split('/').Select(Parse).ToList();
+            var ids = path.Split('/').Select(DatRecipeData.Hex).ToList();
 
             if (!layout.Elements.TryGetValue(ids[0], out var element))
                 throw new InvalidDataException($"Layout edit: the layout has no element {path}.");
@@ -134,11 +130,6 @@ namespace ACE.DatBuilder
         private static string Hex(uint value)
         {
             return value.ToString("X8");
-        }
-
-        private static uint Parse(string value)
-        {
-            return uint.Parse(value, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         }
     }
 }

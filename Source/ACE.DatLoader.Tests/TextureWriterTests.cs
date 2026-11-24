@@ -23,7 +23,7 @@ namespace ACE.DatLoader.Tests
         {
             var record = SurfaceTextureRecord(0x05000001, 0xF0000001u, TextureType.Cube, 0x06000001, 0x06000002);
 
-            CollectionAssert.AreEqual(record, DatRecordContext.Unpack<SurfaceTexture>(record).Pack());
+            CollectionAssert.AreEqual(record, FileType.Unpack<SurfaceTexture>(record).Pack());
         }
 
         [TestMethod]
@@ -31,7 +31,7 @@ namespace ACE.DatLoader.Tests
         {
             var record = SurfaceTextureRecord(0x15000000, 0x80000000u, TextureType.Movie2D, 0x06000010);
 
-            CollectionAssert.AreEqual(record, DatRecordContext.Unpack<RenderTexture>(record).Pack());
+            CollectionAssert.AreEqual(record, FileType.Unpack<RenderTexture>(record).Pack());
         }
 
         [TestMethod]
@@ -91,7 +91,7 @@ namespace ACE.DatLoader.Tests
         {
             var record = TextureRecord(0x06000003, category, 1, 1, SurfacePixelFormat.PFID_A8R8G8B8, new byte[] { 5, 6, 7, 8 });
 
-            CollectionAssert.AreEqual(record, DatRecordContext.Unpack<Texture>(record).Pack());
+            CollectionAssert.AreEqual(record, FileType.Unpack<Texture>(record).Pack());
         }
 
         private static byte[] SurfaceTextureRecord(uint id, uint category, TextureType textureType, params uint[] textures)

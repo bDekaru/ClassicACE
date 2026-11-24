@@ -228,7 +228,7 @@ The source folder is only read. Each build is made in a temporary file and moved
                 RequireFile(path, "Dat");
 
             var worldIds = config != null ? new WorldDatTableSource(config, line.Value("--world-db")).ReadDatIds() : null;
-            var listed = line.Values("--listed").ToDictionary(name => name, name => DatRecipeData.Load<List<string>>(name).Select(id => Convert.ToUInt32(id, 16)).ToList());
+            var listed = line.Values("--listed").ToDictionary(name => name, name => DatRecipeData.Load<List<string>>(name).Select(id => DatRecipeData.Hex(id)).ToList());
 
             Console.Write(DatReferenceChecker.Run(portal, line.Value("--cell"), line.Value("--highres"), line.Value("--language"), worldIds, listed));
 
@@ -342,57 +342,33 @@ The source folder is only read. Each build is made in a temporary file and moved
             var custom = Path.GetFullPath(line.Value("--custom") ?? Path.Combine(source, "Custom Files"));
             var outRoot = Path.GetFullPath(line.Value("--out") ?? Path.Combine(source, "..", "Build"));
 
-            var all = selector.Equals("all", StringComparison.OrdinalIgnoreCase);
-            var recipes = DatBuildRecipes.All.Where(r => all || KeyMatches(r.Key, selector)).Concat(DatBuildRecipes.Alternatives.Where(r => KeyMatches(r.Key, selector))).ToList();
-            var cellRecipes = DatBuildRecipes.AllCells.Where(r => all || KeyMatches(r.Key, selector)).Concat(DatBuildRecipes.AlternativeCells.Where(r => KeyMatches(r.Key, selector))).ToList();
+            var (recipes, cellRecipes) = DatBuildRecipes.Select(selector);
 
-            if (recipes.Count == 0 && cellRecipes.Count == 0)
-                throw new ArgumentException($"Unknown recipe '{selector}' (see: list).");
+            if (line.Value("--event") != null)
+                DatBuildRecipes.AddEvent(recipes, line.Value("--event"), line.Value("--event-date"));
 
-            var eventName = line.Value("--event");
+            if (line.Value("--season") != null)
+                DatBuildRecipes.AddSeason(recipes, line.Value("--season"), line.Value("--season-date"));
 
-            if (eventName != null)
-            {
-                var date = line.Value("--event-date") ?? throw new ArgumentException("--event needs --event-date <yyyy-mm-dd>, the date the step is added: every step carries a date.");
-                var kitRecipes = recipes.Where(r => r.EmptyBase).ToList();
-
-                var kits = new Dictionary<string, Func<string, DatRecordStep[]>>(StringComparer.OrdinalIgnoreCase) { ["daralet"] = DaraletRecords.All, ["darkness"] = DarknessAscendantRecords.All, ["fireinthesky"] = FireInTheSkyRecords.All };
-
-                if (!kits.TryGetValue(eventName, out var kit))
-                    throw new ArgumentException($"No event '{eventName}'; the events are: {string.Join(", ", kits.Keys)}.");
-
-                if (kitRecipes.Count == 0)
-                    throw new ArgumentException("--event applies to the recipes that start from the 2005 dat (see: list).");
-
-                foreach (var recipe in kitRecipes)
-                    recipe.WithRecordSteps(recipe.RecordSteps.Concat(kit(date)).ToArray());
-            }
-
-            var season = line.Value("--season");
-
-            if (season != null)
-            {
-                var date = line.Value("--season-date") ?? throw new ArgumentException("--season needs --season-date <yyyy-mm-dd>, the date of the event: every step carries a date.");
-                var seasonal = recipes.Where(r => r.EmptyBase).ToList();
-
-                if (seasonal.Count == 0)
-                    throw new ArgumentException("--season applies to the recipes that start from the 2005 dat (see: list).");
-
-                foreach (var recipe in seasonal)
-                    recipe.WithRecordSteps(recipe.RecordSteps.Append(SeasonalRecords.Step(season, date)).ToArray());
-            }
-
-            var skipped = line.Values("--skip-step");
-
-            foreach (var name in skipped.Where(n => !recipes.Any(r => r.RecordSteps.Any(s => s.Name == n))))
-                throw new ArgumentException($"No record step '{name}' in the selected recipes (see: list).");
-
-            foreach (var recipe in recipes)
-                recipe.WithRecordSteps(recipe.RecordSteps.Where(s => !skipped.Contains(s.Name)).ToArray());
+            DatBuildRecipes.SkipSteps(recipes, line.Values("--skip-step"));
 
             Directory.CreateDirectory(outRoot);
 
-            var tables = config != null ? new WorldDatTableSource(config, line.Value("--world-db")) : null;
+            var tables = CheckTables(config, line.Value("--world-db"), recipes, cellRecipes);
+
+            foreach (var recipe in recipes)
+                BuildPortal(recipe, source, custom, outRoot, force, tables);
+
+            foreach (var recipe in cellRecipes)
+                BuildCell(recipe, source, outRoot, force, line.Flag("--trace-map"));
+
+            return Ok;
+        }
+
+        /// <summary>The ruleset checks of a build with a --config: the dat tables source, or null without one.</summary>
+        private static WorldDatTableSource CheckTables(string config, string worldDb, List<DatBuildRecipe> recipes, List<DatCellBuildRecipe> cellRecipes)
+        {
+            var tables = config != null ? new WorldDatTableSource(config, worldDb) : null;
 
             // A dat built for one ruleset with the config of another (or without the CustomDM tables) loads in the server but has the wrong spells, skills and XP.
             if (tables != null)
@@ -416,55 +392,55 @@ The source folder is only read. Each build is made in a temporary file and moved
                     throw new ArgumentException($"{tables.Description} has no dat tables, so {string.Join(", ", customDmTables)} would lack the CustomDM spells and skills: use the CustomDM world database.");
             }
 
-            foreach (var recipe in recipes)
+            return tables;
+        }
+
+        private static void BuildPortal(DatBuildRecipe recipe, string source, string custom, string outRoot, bool force, WorldDatTableSource tables)
+        {
+            Console.WriteLine($"Building {recipe.Name} ...");
+
+            var readsTables = recipe.TablesDate != null && tables != null;
+            var result = DatBuildRunner.Build(recipe, source, custom, outRoot, force, readsTables ? tables : null);
+
+            if (readsTables)
+                Console.WriteLine($"  dat tables read from {tables.Description}");
+
+            Console.Write(result.ToText(10));
+
+            var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
+
+            File.WriteAllText(stem + ".report.txt", ReportStamp(recipe.Ruleset, readsTables ? tables.Description : null) + result.ToText());
+
+            if (result.Import != null)
             {
-                Console.WriteLine($"Building {recipe.Name} ...");
-
-                var readsTables = recipe.TablesDate != null && tables != null;
-                var result = DatBuildRunner.Build(recipe, source, custom, outRoot, force, readsTables ? tables : null);
-
-                if (readsTables)
-                    Console.WriteLine($"  dat tables read from {tables.Description}");
-
-                Console.Write(result.ToText(10));
-
-                var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
-
-                File.WriteAllText(stem + ".report.txt", ReportStamp(recipe.Ruleset, readsTables ? tables.Description : null) + result.ToText());
-
-                if (result.Import != null)
-                {
-                    WriteSurfaceMapAdditions(stem + ".surface_map_additions.tsv", result.Import);
-                    File.WriteAllText(stem + ".import.txt", result.Import.ToText());
-                }
-
-                if (recipe.IsLanguage)
-                    Console.WriteLine("  note: a language dat written this way is the same structure Melt writes, which crashes the client (cause not yet found).");
+                WriteSurfaceMapAdditions(stem + ".surface_map_additions.tsv", result.Import);
+                File.WriteAllText(stem + ".import.txt", result.Import.ToText());
             }
 
-            foreach (var recipe in cellRecipes)
+            if (recipe.IsLanguage)
+                Console.WriteLine("  note: a language dat written this way is the same structure Melt writes, which crashes the client (cause not yet found).");
+        }
+
+        private static void BuildCell(DatCellBuildRecipe recipe, string source, string outRoot, bool force, bool trace)
+        {
+            Console.WriteLine($"Building {recipe.Name} ...");
+
+            var portalReport = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.Portal.OutputFileName) + ".report.txt";
+
+            if (!File.Exists(portalReport) || !File.ReadLines(portalReport).First().StartsWith($"Built for ruleset {recipe.Ruleset},"))
+                throw new ArgumentException($"The report of {recipe.Portal.Name} ({portalReport}) is missing or not stamped for the {recipe.Ruleset} ruleset: build the portal first.");
+
+            var result = DatCellBuildRunner.Build(recipe, source, outRoot, force, trace ? new DatMapTrace() : null);
+            var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
+
+            Console.Write(result.ToText());
+            File.WriteAllText(stem + ".report.txt", ReportStamp(recipe.Ruleset, null) + result.ToText());
+
+            if (result.MapTrace != null)
             {
-                Console.WriteLine($"Building {recipe.Name} ...");
-
-                var portalReport = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.Portal.OutputFileName) + ".report.txt";
-
-                if (!File.Exists(portalReport) || !File.ReadLines(portalReport).First().StartsWith($"Built for ruleset {recipe.Ruleset},"))
-                    throw new ArgumentException($"The report of {recipe.Portal.Name} ({portalReport}) is missing or not stamped for the {recipe.Ruleset} ruleset: build the portal first.");
-
-                var result = DatCellBuildRunner.Build(recipe, source, outRoot, force, line.Flag("--trace-map") ? new DatMapTrace() : null);
-                var stem = ReportStem(outRoot, recipe.OutputFolder ?? recipe.Ruleset, recipe.OutputFileName);
-
-                Console.Write(result.ToText());
-                File.WriteAllText(stem + ".report.txt", ReportStamp(recipe.Ruleset, null) + result.ToText());
-
-                if (result.MapTrace != null)
-                {
-                    Console.Write(result.MapTrace);
-                    File.WriteAllText(stem + ".trace.txt", result.MapTrace);
-                }
+                Console.Write(result.MapTrace);
+                File.WriteAllText(stem + ".trace.txt", result.MapTrace);
             }
-
-            return Ok;
         }
 
         private static int ApplyTables(string[] args)
@@ -481,7 +457,7 @@ The source folder is only read. Each build is made in a temporary file and moved
             if (config == null)
                 throw new ArgumentException("apply-tables needs --config <Config.js>.");
 
-            var recipe = DatBuildRecipes.All.FirstOrDefault(r => KeyMatches(r.Key, selector));
+            var recipe = DatBuildRecipes.Find(selector);
 
             if (recipe == null)
                 throw new ArgumentException($"Unknown recipe '{selector}' (see: list).");
@@ -531,68 +507,17 @@ The source folder is only read. Each build is made in a temporary file and moved
 
             RequireFile(datPath, "Dat");
 
-            var dat = new DatDatabase(datPath, true);
-
-            if (!dat.AllFiles.ContainsKey(DatTableStep.XpRecordId) || !dat.AllFiles.ContainsKey(DatTableStep.SkillRecordId))
-                throw new ArgumentException($"{datPath} has no XP or skill table record.");
-
-            var xp = DatTables.ToRows(dat.ReadFromDat<XpTable>(DatTableStep.XpRecordId));
-            var skills = DatTables.ToRows(dat.ReadFromDat<SkillTable>(DatTableStep.SkillRecordId));
-
-            var script = new StringBuilder(DatTables.InsertScript(xp, skills));
-
-            Console.WriteLine($"{outPath}: {xp.Attribute.Count} attribute ranks, {xp.Vital.Count} vital ranks, {xp.TrainedSkill.Count} trained skill ranks, {xp.SpecializedSkill.Count} specialized skill ranks, {xp.Levels.Count} levels, {skills.Count} skills");
-            Console.WriteLine($"  xp hash {DatTables.Hash(xp)}, skill hash {DatTables.Hash(skills)}");
-
-            if (dat.AllFiles.ContainsKey(DatTableStep.VitalRecordId))
-            {
-                var vitals = DatTables.ToRows(dat.ReadFromDat<SecondaryAttributeTable>(DatTableStep.VitalRecordId));
-
-                script.Append(DatTables.VitalInsertScript(vitals));
-
-                Console.WriteLine($"  {vitals.Count} vital formulas, vital hash {DatTables.Hash(vitals)}");
-            }
-
-            if (dat.AllFiles.ContainsKey(DatTableStep.SpellRecordId))
-            {
-                var spellTable = dat.ReadFromDat<SpellTable>(DatTableStep.SpellRecordId);
-                var spells = DatTables.ToRows(spellTable);
-                var setSpells = DatTables.ToSetRows(spellTable);
-
-                script.Append(DatTables.SpellInsertScript(spells, setSpells));
-
-                Console.WriteLine($"  {spells.Count} spells, {spellTable.SpellSet.Count} equipment sets with {setSpells.Count} tier spells, spell hash {DatTables.Hash(spells, setSpells)}");
-            }
-
-            if (dat.AllFiles.ContainsKey(DatTableStep.ChargenRecordId))
-            {
-                var chargen = DatTables.ToRows(dat.ReadFromDat<CharGen>(DatTableStep.ChargenRecordId));
-
-                script.Append(DatTables.ChargenInsertScript(chargen));
-
-                Console.WriteLine($"  {chargen.Overrides.Count} heritage skill costs, {chargen.Templates.Count} templates with {chargen.TemplateSkills.Count} skills, credits {chargen.Chargen.AttributeCredits}/{chargen.Chargen.SkillCredits}, chargen hash {DatTables.Hash(chargen)}");
-            }
-
             if (languagePath != null)
-            {
                 RequireFile(languagePath, "Language dat");
 
-                if (!dat.AllFiles.ContainsKey(DatTableStep.TitleMapperRecordId))
-                    throw new ArgumentException($"{datPath} has no title enum mapper record.");
+            var first = true;
+            var script = DatTableStep.ExportScript(new DatDatabase(datPath, true), languagePath != null ? new DatDatabase(languagePath, true) : null, text =>
+            {
+                Console.WriteLine(first ? $"{outPath}: {text}" : text);
+                first = false;
+            });
 
-                var language = new DatDatabase(languagePath, true);
-
-                if (!language.AllFiles.ContainsKey(DatTableStep.TitleStringRecordId))
-                    throw new ArgumentException($"{languagePath} has no title string table record.");
-
-                var titles = DatTables.ToRows(dat.ReadFromDat<EnumMapper>(DatTableStep.TitleMapperRecordId), language.ReadFromDat<StringTable>(DatTableStep.TitleStringRecordId));
-
-                script.Append(DatTables.TitleInsertScript(titles));
-
-                Console.WriteLine($"  {titles.Count} character titles, title hash {DatTables.Hash(titles)}");
-            }
-
-            File.WriteAllText(Path.GetFullPath(outPath), script.ToString());
+            File.WriteAllText(Path.GetFullPath(outPath), script);
             return Ok;
         }
 
@@ -610,18 +535,16 @@ The source folder is only read. Each build is made in a temporary file and moved
             return source;
         }
 
-        private static bool KeyMatches(string key, string selector) => key.Equals(selector, StringComparison.OrdinalIgnoreCase);
-
         private static void RequireFile(string path, string what)
         {
             if (!File.Exists(path))
                 throw new ArgumentException($"{what} not found: {path}");
         }
 
-        /// <summary>The path of a recipe's output dat without its extension, the start of the names of its report files.</summary>
         /// <summary>First line of a build report: which ruleset the dat is for and which database its dat tables came from. A cell build checks its portal's.</summary>
         private static string ReportStamp(string ruleset, string tablesFrom) => $"Built for ruleset {ruleset}, dat tables: {tablesFrom ?? "none"}\n";
 
+        /// <summary>The path of a recipe's output dat without its extension, the start of the names of its report files.</summary>
         private static string ReportStem(string outRoot, string ruleset, string outputFileName) => Path.Combine(outRoot, ruleset, Path.ChangeExtension(outputFileName, null));
 
         private static void WriteSurfaceMapAdditions(string path, DatPortalImporter importer)

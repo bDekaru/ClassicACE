@@ -27,8 +27,8 @@ namespace ACE.DatBuilder
             {
                 foreach (var entry in DatRecipeData.Load<List<Entry>>(dataFile))
                 {
-                    var id = Convert.ToUInt32(entry.Id, 16);
-                    var texture = Convert.ToUInt32(entry.Texture, 16);
+                    var id = DatRecipeData.Hex(entry.Id);
+                    var texture = DatRecipeData.Hex(entry.Texture);
                     c.Write(id, SurfaceTexture.Create(id, texture).Pack(), $"surface texture for texture {texture:X8}", true);
                 }
             });

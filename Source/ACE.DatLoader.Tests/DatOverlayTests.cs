@@ -15,19 +15,16 @@ namespace ACE.DatLoader.Tests
 
         private static string CopyOfDat(string name)
         {
-            var source = Path.Combine(SourceDats, name);
+            var source = TestSourceDats.Dat(name);
 
-            if (!File.Exists(source))
-                Assert.Inconclusive($"Test dat not found: {source}");
-
-            var copy = Path.Combine(Path.GetTempPath(), $"DatOverlayTests-{Guid.NewGuid():N}.dat");
+            var copy = TestSourceDats.TempPath("DatOverlayTests", ".dat");
             File.Copy(source, copy);
             return copy;
         }
 
         private static string NewTempFolder()
         {
-            var folder = Path.Combine(Path.GetTempPath(), $"DatOverlayTests-{Guid.NewGuid():N}");
+            var folder = TestSourceDats.TempPath("DatOverlayTests");
             Directory.CreateDirectory(folder);
             return folder;
         }

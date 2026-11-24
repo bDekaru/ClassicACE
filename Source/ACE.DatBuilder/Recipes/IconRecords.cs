@@ -30,8 +30,8 @@ namespace ACE.DatBuilder
             {
                 foreach (var icon in DatRecipeData.Load<List<Icon>>(IconsFile))
                 {
-                    var imageId = Convert.ToUInt32(icon.Image, 16);
-                    var sourceId = Convert.ToUInt32(icon.Source, 16);
+                    var imageId = DatRecipeData.Hex(icon.Image);
+                    var sourceId = DatRecipeData.Hex(icon.Source);
 
                     c.Write(imageId, ConvertIcon(c.ReadSource(DatBuildRecipes.PreToDPortalDat, sourceId), imageId), $"icon from {sourceId:X8}", true);
                 }

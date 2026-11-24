@@ -14,12 +14,9 @@ namespace ACE.DatLoader.Tests
 
         private static string CopyOfLanguageDat()
         {
-            var source = Path.Combine(SourceDats, "language - 2015-06-18 - Iteration 994 - EoR.dat");
+            var source = TestSourceDats.Dat("language - 2015-06-18 - Iteration 994 - EoR.dat");
 
-            if (!File.Exists(source))
-                Assert.Inconclusive($"Test dat not found: {source}");
-
-            var copy = Path.Combine(Path.GetTempPath(), $"DatWriterTests-{Guid.NewGuid():N}.dat");
+            var copy = TestSourceDats.TempPath("DatWriterTests", ".dat");
             File.Copy(source, copy);
             return copy;
         }
@@ -280,12 +277,9 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void LargePortalDat_ReplaceAndAdd_AuditsCleanAndReadsBack()
         {
-            var source = Path.Combine(SourceDats, "portal - 2017-01-29 - Iteration 2072 - EoR.dat");
+            var source = TestSourceDats.Dat("portal - 2017-01-29 - Iteration 2072 - EoR.dat");
 
-            if (!File.Exists(source))
-                Assert.Inconclusive($"Test dat not found: {source}");
-
-            var path = Path.Combine(Path.GetTempPath(), $"DatWriterTests-{Guid.NewGuid():N}.dat");
+            var path = TestSourceDats.TempPath("DatWriterTests", ".dat");
             File.Copy(source, path);
 
             try

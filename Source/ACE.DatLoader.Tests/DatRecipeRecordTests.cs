@@ -29,17 +29,14 @@ namespace ACE.DatLoader.Tests
 
         private static byte[] ReadRecord(string datFile, uint id)
         {
-            var path = Path.Combine(TestSourceDats.Folder, datFile);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(datFile);
 
             return new DatDatabase(path).GetReaderForFile(id)?.Buffer ?? throw new AssertFailedException($"{datFile} has no record {id:X8}.");
         }
 
         private static MasterProperty ReadMasterProperty()
         {
-            return DatRecordContext.Unpack<MasterProperty>(ReadRecord(DatBuildRecipes.PortalBaseDat, DatLayoutEdits.MasterPropertyId));
+            return FileType.Unpack<MasterProperty>(ReadRecord(DatBuildRecipes.PortalBaseDat, MasterProperty.FILE_ID));
         }
 
         private static StringTable MakeTable(params (uint Id, string Text)[] entries)
@@ -67,7 +64,7 @@ namespace ACE.DatLoader.Tests
             record.AddRange(new byte[] { 0x0A, 0x08, 0xFF, 0x00 });
             record.AddRange(BitConverter.GetBytes(0x04000DBAu));
 
-            var image = DatRecordContext.Unpack<Texture>(DatPortalImporter.ConvertImageKeepingFormat(record.ToArray(), 0x06009666, id => id + 0x3000));
+            var image = FileType.Unpack<Texture>(DatPortalImporter.ConvertImageKeepingFormat(record.ToArray(), 0x06009666, id => id + 0x3000));
 
             Assert.AreEqual(SurfacePixelFormat.PFID_INDEX16, image.Format);
             Assert.AreEqual(0u, image.DataCategory);
@@ -86,7 +83,7 @@ namespace ACE.DatLoader.Tests
             record.AddRange(BitConverter.GetBytes(1));
             record.AddRange(new byte[] { 1, 2, 3, 4 });
 
-            var image = DatRecordContext.Unpack<Texture>(DatPortalImporter.ConvertImageKeepingFormat(record.ToArray(), 0x06000136));
+            var image = FileType.Unpack<Texture>(DatPortalImporter.ConvertImageKeepingFormat(record.ToArray(), 0x06000136));
 
             Assert.AreEqual(SurfacePixelFormat.PFID_R5G6B5, image.Format);
             Assert.IsNull(image.DefaultPaletteId);
@@ -100,7 +97,7 @@ namespace ACE.DatLoader.Tests
             palette.Colors.AddRange(new uint[] { 0xFF112233, 0xFF445566 });
 
             var repeated = palette.Repeated(0x04003DBA, 3);
-            var unpacked = DatRecordContext.Unpack<Palette>(repeated.Pack());
+            var unpacked = FileType.Unpack<Palette>(repeated.Pack());
 
             Assert.AreEqual(0x04003DBAu, unpacked.Id);
             CollectionAssert.AreEqual(new uint[] { 0xFF112233, 0xFF112233, 0xFF112233, 0xFF445566, 0xFF445566, 0xFF445566 }, unpacked.Colors);
@@ -110,18 +107,15 @@ namespace ACE.DatLoader.Tests
         public void IndexedImage_And_Palette_ReproduceTheCustomFiles()
         {
             var customFiles = Path.Combine(TestSourceDats.Folder, "Custom Files", "Portal", "CustomDM", "Missing Files");
-            var imagePath = Path.Combine(customFiles, "06-Texture", "06009666.bin");
-
-            if (!File.Exists(imagePath))
-                Assert.Inconclusive($"Custom file not found: {imagePath}");
+            var imagePath = TestSourceDats.Require(Path.Combine(customFiles, "06-Texture", "06009666.bin"));
 
             var custom = File.ReadAllBytes(imagePath);
-            var customImage = DatRecordContext.Unpack<Texture>(custom);
+            var customImage = FileType.Unpack<Texture>(custom);
 
             var image = DatPortalImporter.ConvertImageKeepingFormat(ReadRecord(DatBuildRecipes.PreToDPortalDat, 0x05001666), 0x06009666, id => customImage.DefaultPaletteId.Value);
             CollectionAssert.AreEqual(custom, image);
 
-            var palette = DatRecordContext.Unpack<Palette>(ReadRecord(DatBuildRecipes.PreToDPortalDat, customImage.DefaultPaletteId.Value));
+            var palette = FileType.Unpack<Palette>(ReadRecord(DatBuildRecipes.PreToDPortalDat, customImage.DefaultPaletteId.Value));
             var palettePath = Directory.EnumerateFiles(Path.Combine(TestSourceDats.Folder, "Custom Files", "Portal"), customImage.DefaultPaletteId.Value.ToString("X8") + ".bin", SearchOption.AllDirectories).FirstOrDefault();
 
             if (palettePath == null)
@@ -145,7 +139,7 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual(2, texture.Width);
             Assert.AreEqual(1, texture.Height);
 
-            var again = DatRecordContext.Unpack<Texture>(texture.Pack());
+            var again = FileType.Unpack<Texture>(texture.Pack());
 
             Assert.AreEqual(texture.Id, again.Id);
             Assert.AreEqual(texture.Format, again.Format);
@@ -166,7 +160,7 @@ namespace ACE.DatLoader.Tests
         public void PreToDTexture_OfTheRetailMap_PacksToAToDRecord()
         {
             var texture = Texture.UnpackPreToD(ReadRecord(DatBuildRecipes.PreToDPortalDat, PreToDMapId));
-            var again = DatRecordContext.Unpack<Texture>(texture.Pack());
+            var again = FileType.Unpack<Texture>(texture.Pack());
 
             Assert.AreEqual(PreToDMapId, again.Id);
             Assert.AreEqual(texture.Width, again.Width);
@@ -178,7 +172,7 @@ namespace ACE.DatLoader.Tests
         public void PreToDXpTable_PacksToATodRecordWithTheSameLists()
         {
             var table = XpTable.UnpackPreToD(ReadRecord(DatBuildRecipes.PreToDPortalDat, XpTableId));
-            var again = DatRecordContext.Unpack<XpTable>(table.Pack());
+            var again = FileType.Unpack<XpTable>(table.Pack());
 
             CollectionAssert.AreEqual(table.AttributeXpList, again.AttributeXpList);
             CollectionAssert.AreEqual(table.VitalXpList, again.VitalXpList);
@@ -191,10 +185,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void PreToDGfxObj_OfEveryModelOfThe2005Dat_ReadsWithItsSurfacesAndPolygons()
         {
-            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PreToDPortalDat);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(DatBuildRecipes.PreToDPortalDat);
 
             var pre = new DatDatabase(path, true);
             var read = 0;
@@ -218,7 +209,7 @@ namespace ACE.DatLoader.Tests
             var region = RegionDesc.UnpackPreToD(record);
             var skyObjects = region.SkyInfo.DayGroups.Sum(d => d.SkyObjects.Count);
             var packed = region.Pack();
-            var again = DatRecordContext.Unpack<RegionDesc>(packed);
+            var again = FileType.Unpack<RegionDesc>(packed);
 
             Assert.AreEqual(4 * skyObjects, packed.Length - record.Length);
             Assert.AreEqual(skyObjects, again.SkyInfo.DayGroups.Sum(d => d.SkyObjects.Count));
@@ -247,18 +238,15 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void PreToDPortalConverter_ShiftsTheEffectNumbersFrom0x1EUp_AndKeepsTheLowOnes()
         {
-            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PreToDPortalDat);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(DatBuildRecipes.PreToDPortalDat);
 
             const uint tableId = 0x34000004;
 
             var pre = new DatDatabase(path, true);
             var converted = new DatPreToDPortalConverter(pre, 0x06100000).Convert().First(r => r.Key == tableId);
 
-            var before = DatRecordContext.Unpack<PhysicsScriptTable>(pre.GetReaderForFile(tableId).Buffer).ScriptTable;
-            var after = DatRecordContext.Unpack<PhysicsScriptTable>(converted.Value).ScriptTable;
+            var before = FileType.Unpack<PhysicsScriptTable>(pre.GetReaderForFile(tableId).Buffer).ScriptTable;
+            var after = FileType.Unpack<PhysicsScriptTable>(converted.Value).ScriptTable;
 
             Assert.AreEqual(before.Count, after.Count);
 
@@ -276,10 +264,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void PreToDPortalConverter_ShiftsTheMotionNumbersFrom0x115AndTheSoundNumbersFrom0x76_AndKeepsTheLowOnes()
         {
-            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PreToDPortalDat);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(DatBuildRecipes.PreToDPortalDat);
 
             var pre = new DatDatabase(path, true);
             var converted = new DatPreToDPortalConverter(pre, 0x06100000).Convert().Where(r => r.Key >> 24 == 0x09 || r.Key >> 24 == 0x20 || r.Key >> 24 == 0x30).ToDictionary(r => r.Key, r => r.Value);
@@ -301,8 +286,8 @@ namespace ACE.DatLoader.Tests
 
             foreach (var id in pre.AllFiles.Keys.Where(k => k >> 24 == 0x09))
             {
-                var before = DatRecordContext.Unpack<MotionTable>(pre.GetReaderForFile(id).Buffer);
-                var after = DatRecordContext.Unpack<MotionTable>(converted[id]);
+                var before = FileType.Unpack<MotionTable>(pre.GetReaderForFile(id).Buffer);
+                var after = FileType.Unpack<MotionTable>(converted[id]);
 
                 Assert.AreEqual(Command(before.DefaultStyle), after.DefaultStyle);
                 Assert.AreEqual(before.StyleDefaults.Count, after.StyleDefaults.Count);
@@ -327,8 +312,8 @@ namespace ACE.DatLoader.Tests
 
             foreach (var id in pre.AllFiles.Keys.Where(k => k >> 24 == 0x20))
             {
-                var before = DatRecordContext.Unpack<SoundTable>(pre.GetReaderForFile(id).Buffer);
-                var after = DatRecordContext.Unpack<SoundTable>(converted[id]);
+                var before = FileType.Unpack<SoundTable>(pre.GetReaderForFile(id).Buffer);
+                var after = FileType.Unpack<SoundTable>(converted[id]);
 
                 Assert.AreEqual(before.Data.Count, after.Data.Count);
 
@@ -345,8 +330,8 @@ namespace ACE.DatLoader.Tests
 
             foreach (var id in pre.AllFiles.Keys.Where(k => k >> 24 == 0x30))
             {
-                var before = DatRecordContext.Unpack<CombatManeuverTable>(pre.GetReaderForFile(id).Buffer).CMT;
-                var after = DatRecordContext.Unpack<CombatManeuverTable>(converted[id]).CMT;
+                var before = FileType.Unpack<CombatManeuverTable>(pre.GetReaderForFile(id).Buffer).CMT;
+                var after = FileType.Unpack<CombatManeuverTable>(converted[id]).CMT;
 
                 Assert.AreEqual(before.Count, after.Count);
 
@@ -366,10 +351,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void PreToDPortalConverter_ConvertsEveryRecordOfThe2005Dat_ToRecordsTheEoRCodecsRead()
         {
-            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PreToDPortalDat);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(DatBuildRecipes.PreToDPortalDat);
 
             var pre = new DatDatabase(path, true);
             var converter = new DatPreToDPortalConverter(pre, 0x06100000);
@@ -380,19 +362,19 @@ namespace ACE.DatLoader.Tests
 
             Assert.AreEqual(0, converter.Failures.Count, string.Join("\n", converter.Failures.Take(20)));
 
-            var skipped = pre.AllFiles.Keys.Count(k => k >> 24 == 0x0E || k >> 24 == 0x13);
+            var skipped = pre.AllFiles.Keys.Count(k => k >> 24 == 0x0E || k >> 24 == 0x13 || k >> 24 == 0x31);
             Assert.AreEqual(pre.AllFiles.Count - skipped + converter.ImageOfTexture.Count, records.Count);
 
             foreach (var record in records)
             {
                 var again = (record.Key >> 24) switch
                 {
-                    0x01 => DatRecordContext.Unpack<GfxObj>(record.Value).Pack(),
-                    0x05 => DatRecordContext.Unpack<SurfaceTexture>(record.Value).Pack(),
-                    0x06 => DatRecordContext.Unpack<Texture>(record.Value).Pack(),
-                    0x08 => DatRecordContext.Unpack<Surface>(record.Value).Pack(),
-                    0x0D => DatRecordContext.Unpack<ACE.DatLoader.FileTypes.Environment>(record.Value).Pack(),
-                    0x10 => DatRecordContext.Unpack<ClothingTable>(record.Value).Pack(),
+                    0x01 => FileType.Unpack<GfxObj>(record.Value).Pack(),
+                    0x05 => FileType.Unpack<SurfaceTexture>(record.Value).Pack(),
+                    0x06 => FileType.Unpack<Texture>(record.Value).Pack(),
+                    0x08 => FileType.Unpack<Surface>(record.Value).Pack(),
+                    0x0D => FileType.Unpack<ACE.DatLoader.FileTypes.Environment>(record.Value).Pack(),
+                    0x10 => FileType.Unpack<ClothingTable>(record.Value).Pack(),
                     _ => record.Value
                 };
 
@@ -400,14 +382,14 @@ namespace ACE.DatLoader.Tests
             }
 
             foreach (var model in converter.DegradedModels)
-                Assert.AreEqual(0x11000000 | (model & 0xFFFFFF), DatRecordContext.Unpack<GfxObj>(records[model]).DIDDegrade);
+                Assert.AreEqual(0x11000000 | (model & 0xFFFFFF), FileType.Unpack<GfxObj>(records[model]).DIDDegrade);
         }
 
         [TestMethod]
         public void StringTable_PackRoundTrips()
         {
             var table = MakeTable((1, "one"), (2, "two\nlines"));
-            var again = DatRecordContext.Unpack<StringTable>(table.Pack());
+            var again = FileType.Unpack<StringTable>(table.Pack());
 
             Assert.AreEqual(2, again.StringTableData.Count);
             Assert.AreEqual("two\nlines", again.StringTableData[1].Strings[0]);
@@ -443,14 +425,14 @@ namespace ACE.DatLoader.Tests
         public void ChargenTextEdits_OfTheRecipe_ApplyToTheEndOfRetailRecord()
         {
             var edits = DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.InfiltrationChargenTextFile);
-            var table = DatRecordContext.Unpack<StringTable>(ReadRecord(DatBuildRecipes.LanguageBaseDat, LanguageRecords.ChargenTextId));
+            var table = FileType.Unpack<StringTable>(ReadRecord(DatBuildRecipes.LanguageBaseDat, LanguageRecords.ChargenTextId));
 
             DatStringEdits.Apply(table, edits);
 
             var edited = table.StringTableData.ToDictionary(e => e.Id);
 
             foreach (var edit in edits)
-                Assert.AreEqual(edit.Text, edited[Convert.ToUInt32(edit.Id, 16)].Strings[edit.Index]);
+                Assert.AreEqual(edit.Text, edited[DatRecipeData.Hex(edit.Id)].Strings[edit.Index]);
 
             Assert.AreEqual("Random", edited[0x05D3F822].Strings[0]);
         }
@@ -458,7 +440,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void OptionStrings_AddTheTextureDetailLabelsAsNewEntriesOfTheEndOfRetailTextStrings()
         {
-            var table = DatRecordContext.Unpack<StringTable>(ReadRecord(DatBuildRecipes.LanguageBaseDat, LanguageRecords.TextStringsId));
+            var table = FileType.Unpack<StringTable>(ReadRecord(DatBuildRecipes.LanguageBaseDat, LanguageRecords.TextStringsId));
             var existing = table.StringTableData.Select(e => e.Id).ToHashSet();
             var labels = DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMOptionStringsFile).Where(e => e.Name != null).ToList();
 
@@ -470,7 +452,7 @@ namespace ACE.DatLoader.Tests
 
             DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMOptionStringsFile));
 
-            var reread = DatRecordContext.Unpack<StringTable>(table.Pack());
+            var reread = FileType.Unpack<StringTable>(table.Pack());
             Assert.AreEqual(236 + 4, reread.StringTableData.Count);
             Assert.AreEqual("1/4", reread.StringTableData.Single(e => e.Id == SpellTable.ComputeHash("ID_Graphics_TexQuarter")).Strings[0]);
 
@@ -483,10 +465,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void LayoutPack_RoundTripsEveryLayoutOfTheEndOfRetailLanguageDat()
         {
-            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.LanguageBaseDat);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(DatBuildRecipes.LanguageBaseDat);
 
             var master = ReadMasterProperty();
             var database = new DatDatabase(path);
@@ -504,10 +483,7 @@ namespace ACE.DatLoader.Tests
 
         private static void AssertEveryRecordRoundTrips<T>(uint type, Func<T, byte[]> pack, Func<T, bool> skip = null, Func<uint, bool> select = null) where T : FileType, new()
         {
-            var path = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PortalBaseDat);
-
-            if (!File.Exists(path))
-                Assert.Inconclusive($"Source dat not found: {path}");
+            var path = TestSourceDats.Dat(DatBuildRecipes.PortalBaseDat);
 
             var database = new DatDatabase(path);
             var ids = database.AllFiles.Keys.Where(id => (id >> 24) == type && (select == null || select(id))).ToList();
@@ -518,7 +494,7 @@ namespace ACE.DatLoader.Tests
             foreach (var id in ids)
             {
                 var record = database.GetReaderForFile(id).Buffer;
-                var value = DatRecordContext.Unpack<T>(record);
+                var value = FileType.Unpack<T>(record);
 
                 if (skip != null && skip(value))
                     continue;
@@ -571,7 +547,7 @@ namespace ACE.DatLoader.Tests
             {
                 var record = database.GetReaderForFile(id).Buffer;
 
-                CollectionAssert.AreEqual(record, DatRecordContext.Unpack<T>(record).Pack(), $"Record {id:X8} does not round-trip.");
+                CollectionAssert.AreEqual(record, FileType.Unpack<T>(record).Pack(), $"Record {id:X8} does not round-trip.");
             }
         }
 
@@ -766,8 +742,8 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void RegionRemap_KeepsTheRecordWithTheIdentityAndShiftsTheSkyIds()
         {
-            var record = ReadRecord(DatBuildRecipes.PortalBaseDat, RegionRecords.RegionId);
-            var region = DatRecordContext.Unpack<RegionDesc>(record);
+            var record = ReadRecord(DatBuildRecipes.PortalBaseDat, RegionDesc.FILE_ID);
+            var region = FileType.Unpack<RegionDesc>(record);
             var packed = region.Pack();
 
             region.Remap(id => id);
@@ -776,7 +752,7 @@ namespace ACE.DatLoader.Tests
             var first = region.SkyInfo.DayGroups[0].SkyObjects[0].DefaultGFXObjectId;
             region.Remap(id => id + 0x5000);
 
-            var shifted = DatRecordContext.Unpack<RegionDesc>(region.Pack());
+            var shifted = FileType.Unpack<RegionDesc>(region.Pack());
             Assert.AreEqual(first + 0x5000, shifted.SkyInfo.DayGroups[0].SkyObjects[0].DefaultGFXObjectId);
             Assert.AreEqual(0u, shifted.SkyInfo.DayGroups[0].SkyObjects[0].DefaultPESObjectId);
         }
@@ -784,7 +760,7 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void InsertSkyObject_MovesTheReplacementsOfTheObjectsFromThereOn()
         {
-            var group = DatRecordContext.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionRecords.RegionId)).SkyInfo.DayGroups[0];
+            var group = FileType.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionDesc.FILE_ID)).SkyInfo.DayGroups[0];
             var before = group.SkyObjects.Select(o => o.DefaultGFXObjectId).ToList();
             var replaces = group.SkyTime.SelectMany(t => t.SkyObjReplace).Select(r => r.ObjectIndex).ToList();
             Assert.IsTrue(replaces.Any(i => i >= 4), "the test needs a replacement of an object after the insert position");
@@ -804,7 +780,7 @@ namespace ACE.DatLoader.Tests
             var records = MoonRecords.CoverRecords(0x08007087, 0x05007087, 0x06009F00, 0x04007087).ToDictionary(r => r.Key, r => r.Value);
             CollectionAssert.AreEquivalent(new uint[] { 0x08007087, 0x05007087, 0x06009F00, 0x04007087 }, records.Keys.ToList());
 
-            var surface = DatRecordContext.Unpack<Surface>(records[0x08007087]);
+            var surface = FileType.Unpack<Surface>(records[0x08007087]);
             Assert.IsTrue(surface.Type.HasFlag(SurfaceType.Base1ClipMap | SurfaceType.Translucent));
             Assert.AreEqual(0x05007087u, surface.OrigTextureId);
         }
@@ -857,12 +833,12 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void ChargenEdits_DiffOfAChangedRecord_AppliesBackToTheSameBytes()
         {
-            var record = ReadRecord(DatBuildRecipes.PortalBaseDat, InfiltrationRecords.ChargenId);
-            var changed = DatRecordContext.Unpack<CharGen>(record);
+            var record = ReadRecord(DatBuildRecipes.PortalBaseDat, CharGen.FILE_ID);
+            var changed = FileType.Unpack<CharGen>(record);
             DatRecipeData.Load<DatChargenEdits>(CustomDMRecords.ChargenEditsFile).Apply(changed);
 
-            var edits = DatChargenEdits.Diff(DatRecordContext.Unpack<CharGen>(record), changed);
-            var again = DatRecordContext.Unpack<CharGen>(record);
+            var edits = DatChargenEdits.Diff(FileType.Unpack<CharGen>(record), changed);
+            var again = FileType.Unpack<CharGen>(record);
             edits.Apply(again);
 
             Assert.IsTrue(again.Pack().SequenceEqual(changed.Pack()));
@@ -878,11 +854,11 @@ namespace ACE.DatLoader.Tests
 
             foreach (var texture in textures.Take(3))
             {
-                var source = Convert.ToUInt32(texture.Source, 16);
-                var image = DatPortalImporter.ConvertImage(ReadRecord(DatBuildRecipes.PreToDPortalDat, source), Convert.ToUInt32(texture.Image, 16), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id), out var width, out var height, out _);
+                var source = DatRecipeData.Hex(texture.Source);
+                var image = DatPortalImporter.ConvertImage(ReadRecord(DatBuildRecipes.PreToDPortalDat, source), DatRecipeData.Hex(texture.Image), id => ReadRecord(DatBuildRecipes.PreToDPortalDat, id), out var width, out var height, out _);
 
                 Assert.IsTrue(width <= 128 && height <= 128);
-                Assert.AreEqual(Convert.ToUInt32(texture.Image, 16), BitConverter.ToUInt32(image, 0));
+                Assert.AreEqual(DatRecipeData.Hex(texture.Image), BitConverter.ToUInt32(image, 0));
                 Assert.AreEqual(24 + width * height * (image[16] == 28 ? 1 : 3), image.Length);
 
                 var terrain = GroundTextureRecords.ToTerrainFormat(image, 2);
@@ -941,7 +917,7 @@ namespace ACE.DatLoader.Tests
             source.AddRange(BitConverter.GetBytes(1));
             source.AddRange(new byte[] { 1, 2, 3, 10, 20, 30 });
 
-            var icon = DatRecordContext.Unpack<Texture>(IconRecords.ConvertIcon(source.ToArray(), 0x06001F99));
+            var icon = FileType.Unpack<Texture>(IconRecords.ConvertIcon(source.ToArray(), 0x06001F99));
 
             Assert.AreEqual(0x06001F99u, icon.Id);
             Assert.AreEqual(2, icon.Width);
@@ -972,7 +948,7 @@ namespace ACE.DatLoader.Tests
             CollectionAssert.AreEqual(FadeScriptBytes(SneakScriptRecords.BeginScriptId, 0f, 0.5f), SneakScriptRecords.FadeScript(SneakScriptRecords.BeginScriptId, 0f, 0.5f));
             CollectionAssert.AreEqual(new byte[] { 0xA0, 0x13, 0x00, 0x33, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x3F, 0, 0, 0x80, 0x3F }, SneakScriptRecords.FadeScript(SneakScriptRecords.BeginScriptId, 0f, 0.5f));
 
-            var script = DatRecordContext.Unpack<PhysicsScript>(SneakScriptRecords.FadeScript(SneakScriptRecords.EndScriptId, 0.5f, 0f));
+            var script = FileType.Unpack<PhysicsScript>(SneakScriptRecords.FadeScript(SneakScriptRecords.EndScriptId, 0.5f, 0f));
 
             Assert.AreEqual(1, script.ScriptData.Count);
             Assert.AreEqual(0.5f, ((ACE.DatLoader.Entity.AnimationHooks.TransparentHook)script.ScriptData[0].Hook).Start);
@@ -982,7 +958,7 @@ namespace ACE.DatLoader.Tests
         public void ScriptTablePack_RoundTripsTheEndOfRetailTable_AndTheSneakEntriesAreAdded()
         {
             var record = ReadRecord(DatBuildRecipes.PortalBaseDat, SneakScriptRecords.ScriptTableId);
-            var table = DatRecordContext.Unpack<PhysicsScriptTable>(record);
+            var table = FileType.Unpack<PhysicsScriptTable>(record);
 
             CollectionAssert.AreEqual(record, table.Pack());
 
@@ -991,7 +967,7 @@ namespace ACE.DatLoader.Tests
             entry.Scripts.Add(ScriptAndModData.Create(1f, SneakScriptRecords.BeginScriptId));
             table.ScriptTable[SneakScriptRecords.BeginTableKey] = entry;
 
-            var again = DatRecordContext.Unpack<PhysicsScriptTable>(table.Pack());
+            var again = FileType.Unpack<PhysicsScriptTable>(table.Pack());
 
             Assert.AreEqual(count + 1, again.ScriptTable.Count);
             Assert.AreEqual(SneakScriptRecords.BeginScriptId, again.ScriptTable[SneakScriptRecords.BeginTableKey].Scripts[0].ScriptId);
@@ -1043,8 +1019,8 @@ namespace ACE.DatLoader.Tests
             foreach (var file in expected)
             {
                 var entry = DatRecipeData.Load<List<SurfaceTextureRecords.Entry>>(file.Key).Single();
-                var record = SurfaceTexture.Create(Convert.ToUInt32(entry.Id, 16), Convert.ToUInt32(entry.Texture, 16)).Pack();
-                var surfaceTexture = DatRecordContext.Unpack<SurfaceTexture>(record);
+                var record = SurfaceTexture.Create(DatRecipeData.Hex(entry.Id), DatRecipeData.Hex(entry.Texture)).Pack();
+                var surfaceTexture = FileType.Unpack<SurfaceTexture>(record);
 
                 Assert.AreEqual(17, record.Length);
                 Assert.AreEqual(file.Value.Id, surfaceTexture.Id);
@@ -1063,7 +1039,7 @@ namespace ACE.DatLoader.Tests
                 Assert.AreEqual(id, BitConverter.ToUInt32(records[id], 0));
             }
 
-            var script = DatRecordContext.Unpack<PhysicsScript>(records[0x3300272D]);
+            var script = FileType.Unpack<PhysicsScript>(records[0x3300272D]);
             Assert.IsTrue(script.ScriptData.Any(data => data.Hook is CreateParticleHook hook && hook.EmitterInfoId == 0x320013DC));
         }
 
@@ -1075,7 +1051,7 @@ namespace ACE.DatLoader.Tests
 
             Assert.AreEqual(32, records.Count);
 
-            var scene = DatRecordContext.Unpack<Scene>(records.Single(record => record.Key == 0x1200725B).Value);
+            var scene = FileType.Unpack<Scene>(records.Single(record => record.Key == 0x1200725B).Value);
 
             Assert.IsTrue(scene.Objects.All(o => o.Freq == 0.25f));
         }
@@ -1133,15 +1109,15 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void FrozenFields_RegionEditAddsTheSceneToTheEndOfRetailRegion()
         {
-            var original = DatRecordContext.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionRecords.RegionId));
-            var region = DatRecordContext.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionRecords.RegionId));
+            var original = FileType.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionDesc.FILE_ID));
+            var region = FileType.Unpack<RegionDesc>(ReadRecord(DatBuildRecipes.PortalBaseDat, RegionDesc.FILE_ID));
 
             DatRecipeData.Load<RegionRecords.RegionEdits>(RegionRecords.RegionEditsFile).Apply(region);
 
             var packed = region.Pack();
 
             Assert.AreEqual(original.Pack().Length + 4, packed.Length);
-            CollectionAssert.AreEqual(new uint[] { 0x1200725B }, DatRecordContext.Unpack<RegionDesc>(packed).SceneInfo.SceneTypes[60].Scenes);
+            CollectionAssert.AreEqual(new uint[] { 0x1200725B }, FileType.Unpack<RegionDesc>(packed).SceneInfo.SceneTypes[60].Scenes);
         }
 
         [TestMethod]
@@ -1162,20 +1138,17 @@ namespace ACE.DatLoader.Tests
 
         private static string RegionDatWithTextureWidths(Func<int, int> widthOfDistinctTexture)
         {
-            var template = Path.Combine(TestSourceDats.Folder, DatBuildRecipes.PortalBaseDat);
+            var template = TestSourceDats.Dat(DatBuildRecipes.PortalBaseDat);
 
-            if (!File.Exists(template))
-                Assert.Inconclusive($"Source dat not found: {template}");
-
-            var path = Path.Combine(Path.GetTempPath(), $"RegionStepTests-{Guid.NewGuid():N}.dat");
+            var path = TestSourceDats.TempPath("RegionStepTests", ".dat");
             DatWriter.CreateEmpty(path, DatContainerSpec.Portal);
 
-            var regionRecord = ReadRecord(DatBuildRecipes.PortalBaseDat, 0x13000000);
-            var region = DatRecordContext.Unpack<RegionDesc>(regionRecord);
+            var regionRecord = ReadRecord(DatBuildRecipes.PortalBaseDat, RegionDesc.FILE_ID);
+            var region = FileType.Unpack<RegionDesc>(regionRecord);
 
             using (var writer = new DatWriter(path))
             {
-                writer.Save(0x13000000, regionRecord);
+                writer.Save(RegionDesc.FILE_ID, regionRecord);
 
                 var written = new HashSet<uint>();
 
@@ -1187,8 +1160,8 @@ namespace ACE.DatLoader.Tests
                         continue;
 
                     var surfaceTextureRecord = ReadRecord(DatBuildRecipes.PortalBaseDat, surfaceTextureId);
-                    var textureId = DatRecordContext.Unpack<SurfaceTexture>(surfaceTextureRecord).Textures[0];
-                    var texture = DatRecordContext.Unpack<Texture>(ReadRecord(DatBuildRecipes.PortalBaseDat, textureId));
+                    var textureId = FileType.Unpack<SurfaceTexture>(surfaceTextureRecord).Textures[0];
+                    var texture = FileType.Unpack<Texture>(ReadRecord(DatBuildRecipes.PortalBaseDat, textureId));
                     texture.Width = widthOfDistinctTexture(written.Count - 1);
 
                     writer.Save(surfaceTextureId, surfaceTextureRecord);
@@ -1213,13 +1186,13 @@ namespace ACE.DatLoader.Tests
                     var step = GroundTextureRecords.RegionStep("2025-01-01");
                     step.Run(new DatRecordContext(writer, TestSourceDats.Folder, step));
 
-                    var merge = DatRecordContext.Unpack<RegionDesc>(writer.Read(0x13000000)).TerrainInfo.LandSurfaces.TexMerge;
+                    var merge = FileType.Unpack<RegionDesc>(writer.Read(RegionDesc.FILE_ID)).TerrainInfo.LandSurfaces.TexMerge;
                     Assert.AreEqual(GroundTextureRecords.BaseTexSize, merge.BaseTexSize);
 
                     foreach (var terrain in merge.TerrainDesc)
                     {
-                        var textureId = DatRecordContext.Unpack<SurfaceTexture>(writer.Read(terrain.TerrainTex.TexGID)).Textures[0];
-                        var width = (uint)DatRecordContext.Unpack<Texture>(writer.Read(textureId)).Width;
+                        var textureId = FileType.Unpack<SurfaceTexture>(writer.Read(terrain.TerrainTex.TexGID)).Textures[0];
+                        var width = (uint)FileType.Unpack<Texture>(writer.Read(textureId)).Width;
                         Assert.AreEqual(GroundTextureRecords.BaseTexSize / width, terrain.TerrainTex.TexTiling, $"texture {textureId:X8}");
                         tilings.Add(terrain.TerrainTex.TexTiling);
                     }
@@ -1272,14 +1245,14 @@ namespace ACE.DatLoader.Tests
         public void SeasonalKit_EverySeasonTextureConvertsFromItsOwnDatAndDiffersFromFall()
         {
             var kit = DatRecipeData.Load<SeasonalRecords.Kit>(SeasonalRecords.KitFile);
-            var all = kit.All.Select(t => Convert.ToUInt32(t, 16)).ToHashSet();
+            var all = kit.All.Select(t => DatRecipeData.Hex(t)).ToHashSet();
 
             Assert.AreEqual(5, kit.Seasons.Count);
             CollectionAssert.AreEquivalent(new[] { "Spring", "Winter onset", "Winter", "Winter thaw", "Early Spring" }, kit.Seasons.Select(s => s.Name).ToList());
-            CollectionAssert.AreEquivalent(all.ToList(), kit.Seasons.SelectMany(s => s.Textures).Select(t => Convert.ToUInt32(t, 16)).Distinct().ToList(), "the kit is the union of the seasons' textures");
+            CollectionAssert.AreEquivalent(all.ToList(), kit.Seasons.SelectMany(s => s.Textures).Select(t => DatRecipeData.Hex(t)).Distinct().ToList(), "the kit is the union of the seasons' textures");
 
             foreach (var season in kit.Seasons)
-                foreach (var id in season.Textures.Select(t => Convert.ToUInt32(t, 16)))
+                foreach (var id in season.Textures.Select(t => DatRecipeData.Hex(t)))
                 {
                     byte[] ToImage(string dat) => DatPortalImporter.ConvertImage(ReadRecord(dat, id), 0x06000001, palette => ReadRecord(dat, palette), out _, out _, out _);
 
