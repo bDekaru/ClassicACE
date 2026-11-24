@@ -842,6 +842,9 @@ namespace ACE.Server.WorldObjects
             // hijacking this for both start/end on portal teleport
             if (LastTeleportStartTimestamp == LastPortalTeleportTimestamp)
                 LastPortalTeleportTimestamp = Time.GetUnixTime();
+
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                RoadFollower.OnTeleported(this);
         }
 
         public void SendTeleportedViaMagicMessage(WorldObject itemCaster, Spell spell)

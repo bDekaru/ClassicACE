@@ -8,6 +8,7 @@ using ACE.DatLoader.FileTypes;
 using ACE.Entity;
 using ACE.Server.Entity;
 using ACE.Server.Physics.Common;
+using ACE.Server.WorldObjects;
 
 using Position = ACE.Entity.Position;
 
@@ -73,9 +74,14 @@ namespace ACE.Server.Pathfinding
         private const float OffRoadFactor = 2f;
 
         /// <summary>
+        /// Taking a portal costs this many metres of road: the walk onto it and the arrival.
+        /// </summary>
+        private const float TeleportCost = 40f;
+
+        /// <summary>
         /// A place nearer than this is walked to directly when the road route would cost more.
         /// </summary>
-        private const float MaxDirectWalk = 400f;
+        public const float MaxDirectWalk = 400f;
 
         /// <summary>
         /// A trace turning more than this away from its direction ends: the road turns back on itself, or what is
@@ -677,12 +683,66 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
+        /// A portal standing on the ground, from where it is to where it leads, for a route to take.
+        /// </summary>
+        public class PortalLink
+        {
+            public Vector3 From, To;
+            public Portal Portal;
+        }
+
+        /// <summary>
+        /// The portals a route may take, by the road node nearest the portal, with what taking one costs.
+        /// </summary>
+        private readonly Dictionary<int, List<(PortalLink link, int to, float cost)>> portalsAt = new Dictionary<int, List<(PortalLink, int, float)>>();
+
+        /// <summary>
+        /// Joins the portals to the roads: each is reached from the road node nearest it and leads to the one nearest
+        /// where it ends. A portal with no road within maxApproach of either end is left out.
+        /// </summary>
+        public void SetPortals(IEnumerable<PortalLink> portals, float maxApproach)
+        {
+            portalsAt.Clear();
+
+            foreach (var link in portals)
+            {
+                var from = FindNearestNode(Flat(link.From), nodes.Count, true);
+                var to = FindNearestNode(Flat(link.To), nodes.Count, true);
+                if (from < 0 || to < 0)
+                    continue;
+
+                var fromLeg = Vector2.Distance(Flat(from), Flat(link.From));
+                var toLeg = Vector2.Distance(Flat(to), Flat(link.To));
+                if (fromLeg > maxApproach || toLeg > maxApproach)
+                    continue;
+
+                if (!portalsAt.TryGetValue(from, out var hops))
+                    portalsAt[from] = hops = new List<(PortalLink, int, float)>();
+
+                hops.Add((link, to, TeleportCost + OffRoadFactor * (fromLeg + toLeg)));
+            }
+        }
+
+        /// <summary>
         /// A route over the roads to a place.
         /// </summary>
         public class RoadRoute
         {
+            /// <summary>
+            /// The points of the way to walk: up to the end of the route, or to the first portal on it if it takes any.
+            /// </summary>
             public List<Vector3> Points;
+
+            /// <summary>
+            /// Metres of road (not the portals' cost) over the whole route.
+            /// </summary>
             public float RoadLength;
+
+            /// <summary>
+            /// The first portal the route takes, where Points end, and how many it takes in all.
+            /// </summary>
+            public PortalLink Portal;
+            public int PortalCount;
 
             /// <summary>
             /// Metres off the road at the start (to reach it) and at the end (from its end to the place).
@@ -693,15 +753,17 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// The cheapest way over the roads from the road point nearest to a position to the road node nearest to the
         /// place, counting the off-road metres at both ends double. Returns null if no road is within reach of either
-        /// end, they are not joined by road, or walking straight to the place would cost less.
+        /// end, they are not joined by road, or walking straight to the place would cost less. The portals canUsePortal
+        /// accepts may be taken on the way; none are when it is null.
         /// </summary>
-        public RoadRoute FindRoute(Vector3 from, Vector3 to, float maxApproach, float maxOffRoad)
+        public RoadRoute FindRoute(Vector3 from, Vector3 to, float maxApproach, float maxOffRoad, Func<PortalLink, bool> canUsePortal = null)
         {
             if (!TryFindNearestRoadPoint(from, maxApproach, out var a, out var b, out var entry))
                 return null;
 
             var cost = new float[nodes.Count];
             var previous = new int[nodes.Count];
+            var via = new PortalLink[nodes.Count];
             Array.Fill(cost, float.MaxValue);
             Array.Fill(previous, -1);
 
@@ -724,7 +786,22 @@ namespace ACE.Server.Pathfinding
                     {
                         cost[next] = nextCost;
                         previous[next] = node;
+                        via[next] = null;
                         queue.Enqueue(next, nextCost);
+                    }
+                }
+
+                if (canUsePortal == null || !portalsAt.TryGetValue(node, out var hops))
+                    continue;
+
+                foreach (var (link, next, hopCost) in hops)
+                {
+                    if (nodeCost + hopCost < cost[next] && canUsePortal(link))
+                    {
+                        cost[next] = nodeCost + hopCost;
+                        previous[next] = node;
+                        via[next] = link;
+                        queue.Enqueue(next, cost[next]);
                     }
                 }
             }
@@ -756,16 +833,35 @@ namespace ACE.Server.Pathfinding
                 return null;
 
             var points = new List<Vector3>();
+            PortalLink portal = null;
+            var portalCount = 0;
+            var portalCost = 0f;
             for (var node = end; node >= 0; node = previous[node])
             {
+                // what was gathered lies beyond a portal: only the way to the first one is walked
+                if (via[node] != null)
+                {
+                    points.Clear();
+                    portal = via[node];
+                    portalCount++;
+                    portalCost += cost[node] - cost[previous[node]];
+                    continue;
+                }
+
                 // a bridge's end nodes are not on the mesh: the pathfinder's route crosses the bridge between its road points
                 if (!IsBridgeEnd(node))
                     points.Add(nodes[node]);
             }
             points.Add(entry);
             points.Reverse();
+            if (portal != null)
+                points.Add(portal.From);
 
-            return new RoadRoute { Points = DropCollinear(points), RoadLength = cost[end], StartLeg = startLeg, EndLeg = Vector2.Distance(Flat(end), target) };
+            return new RoadRoute
+            {
+                Points = DropCollinear(points), RoadLength = cost[end] - portalCost, Portal = portal, PortalCount = portalCount,
+                StartLeg = startLeg, EndLeg = Vector2.Distance(Flat(end), target)
+            };
         }
 
         /// <summary>

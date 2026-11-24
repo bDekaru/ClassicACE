@@ -316,6 +316,7 @@ namespace ACE.Server
             {
                 log.Info("Building the road network...");
                 Pathfinding.RoadNetwork.GetWorld();
+                Pathfinding.RoadFollower.Prebuild();
             }
 
             log.Info("Initializing PlayerManager...");

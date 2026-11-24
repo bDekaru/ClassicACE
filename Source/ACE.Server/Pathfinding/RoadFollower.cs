@@ -5,6 +5,8 @@ using System.Globalization;
 using System.Linq;
 using System.Numerics;
 
+using log4net;
+
 using ACE.Common;
 using ACE.Database;
 using ACE.Entity;
@@ -13,6 +15,7 @@ using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
+using ACE.Server.Factories;
 using ACE.Server.Physics.Extensions;
 using ACE.Server.Network.Structure;
 using ACE.Server.Network.GameMessages.Messages;
@@ -27,6 +30,8 @@ namespace ACE.Server.Pathfinding
     /// </summary>
     public static class RoadFollower
     {
+        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         /// <summary>
         /// A road point counts as reached this close (3D).
         /// </summary>
@@ -101,8 +106,31 @@ namespace ACE.Server.Pathfinding
         private const float StepAsideMaxAngle = 260f;
         private const float StepAsideRadius = 1.5f;
 
+        /// <summary>
+        /// How long after using a portal the player may take to start teleporting before the portal counts as not working.
+        /// </summary>
+        private const double PortalUseSeconds = 5;
+
         private sealed class Follow
         {
+            /// <summary>
+            /// Where a walk to a place is going, whether it may take portals, and the portals that are left out because
+            /// the player could not use them.
+            /// </summary>
+            public Position DestinationPosition;
+            public bool UsePortals;
+            public HashSet<RoadNetwork.PortalLink> RefusedPortals = new HashSet<RoadNetwork.PortalLink>();
+
+            /// <summary>
+            /// The portal the walk is going to take, at the end of the waypoints.
+            /// </summary>
+            public RoadNetwork.PortalLink PendingPortal;
+
+            /// <summary>
+            /// Set when the walk uses the pending portal: only a teleport after that is the walk's own.
+            /// </summary>
+            public bool PortalUsed;
+
             public int Crossings;
             public int MeshRetries;
 
@@ -170,7 +198,7 @@ namespace ACE.Server.Pathfinding
         /// Plans the cheapest route over the roads to a point of interest (a part-name works when it is unambiguous),
         /// tells the player about it, and walks it unless previewOnly.
         /// </summary>
-        public static void StartTo(Player player, string place, bool previewOnly)
+        public static void StartTo(Player player, string place, bool previewOnly, bool usePortals)
         {
             if (player.Location.Indoors)
             {
@@ -206,21 +234,135 @@ namespace ACE.Server.Pathfinding
                 return;
             }
 
-            var route = GetNetwork(player).FindRoute(player.Location.ToGlobal(), destination.ToGlobal(), MaxRouteApproach, MaxRouteOffRoad);
+            var follow = new Follow { Player = player, Destination = name, DestinationPosition = destination, UsePortals = usePortals };
+            var route = FindRoute(follow);
             if (route == null)
             {
                 Tell(player, $"No road route to {name} from here.");
                 return;
             }
 
-            Tell(player, $"Route to {name}: {route.RoadLength:0} m of road, {route.StartLeg:0} m to reach it and {route.EndLeg:0} m from its end to the place.");
+            var portals = route.PortalCount == 0 ? "" : $", {route.PortalCount} portal{(route.PortalCount > 1 ? "s" : "")}, the first {route.Portal.Portal.Name}";
+            Tell(player, $"Route to {name}: {route.RoadLength:0} m of road{portals}, {route.StartLeg:0} m to reach it and {route.EndLeg:0} m from its end to the place.");
             if (previewOnly)
                 return;
 
-            var follow = new Follow { Player = player, Destination = name };
             Follows[player.Guid.Full] = follow;
-            follow.Waypoints = new Queue<Position>(GetGuides(route.Points).Append(destination));
+            WalkRoute(follow, route);
+        }
+
+        private static RoadNetwork.RoadRoute FindRoute(Follow follow)
+        {
+            var player = follow.Player;
+            Func<RoadNetwork.PortalLink, bool> canUsePortal = link => !follow.RefusedPortals.Contains(link) && link.Portal.GetRestriction(player) == null
+                && (player.IgnorePortalRestrictions || player.VerifyGameplayMode(link.Portal));
+
+            return GetNetwork(player).FindRoute(player.Location.ToGlobal(), follow.DestinationPosition.ToGlobal(), MaxRouteApproach, MaxRouteOffRoad, follow.UsePortals ? canUsePortal : null);
+        }
+
+        /// <summary>
+        /// Walks the route's points, to the portal if it takes one, else to the place.
+        /// </summary>
+        private static void WalkRoute(Follow follow, RoadNetwork.RoadRoute route)
+        {
+            follow.PendingPortal = route.Portal;
+            follow.PortalUsed = false;
+            follow.Route.Clear();
+
+            var guides = GetGuides(route.Points);
+            follow.Waypoints = new Queue<Position>(route.Portal == null ? guides.Append(follow.DestinationPosition) : guides);
             WalkNext(follow);
+        }
+
+        /// <summary>
+        /// Plans the rest of the way to the place from where the player is, after a portal was taken or did not work.
+        /// </summary>
+        private static void Reroute(Follow follow)
+        {
+            if (!IsCurrent(follow))
+                return;
+
+            // a portal can end the walk right at the place
+            var here = follow.Player.Location.ToGlobal();
+            var place = follow.DestinationPosition.ToGlobal();
+            var distance = Vector2.Distance(new Vector2(here.X, here.Y), new Vector2(place.X, place.Y));
+            if (distance <= WaypointRadius)
+            {
+                End(follow, $"Arrived at {follow.Destination}.");
+                return;
+            }
+
+            var route = FindRoute(follow);
+            if (route != null)
+            {
+                WalkRoute(follow, route);
+                return;
+            }
+
+            // a place within walking distance has no road route, it is walked to
+            if (distance > RoadNetwork.MaxDirectWalk)
+            {
+                End(follow, $"No road route to {follow.Destination} from here.");
+                return;
+            }
+
+            follow.PendingPortal = null;
+            follow.Route.Clear();
+            follow.Waypoints = new Queue<Position>(new[] { follow.DestinationPosition });
+            WalkNext(follow);
+        }
+
+        /// <summary>
+        /// Called when a player has been teleported: a walk that was going to a portal goes on from where it came out.
+        /// </summary>
+        public static void OnTeleported(Player player)
+        {
+            if (Follows.TryGetValue(player.Guid.Full, out var follow) && ReferenceEquals(follow.Player, player) && follow.PortalUsed)
+                EnqueueStep(follow, Reroute);
+        }
+
+        /// <summary>
+        /// Uses the portal the walk has got to, as a double click would. If the player is not teleporting soon after (the
+        /// portal refused them, or is not there), the route is planned again without it.
+        /// </summary>
+        private static void UsePortal(Follow follow)
+        {
+            var portal = follow.PendingPortal;
+            var step = follow.Step;
+
+            // a second portal within the portal timer is refused: wait it out
+            var sinceLastPortal = follow.Player.LastPortalTeleportTimestamp.HasValue ? Time.GetUnixTime() - follow.Player.LastPortalTeleportTimestamp.Value : double.MaxValue;
+
+            // a teleport (under way, or done and gone on to a new route, which started a move) ends the wait
+            bool IsWaiting() => IsCurrent(follow) && follow.Step == step && !follow.Player.Teleporting;
+
+            var actionChain = new ActionChain();
+            actionChain.AddDelaySeconds(Math.Max(0, Portal.minTimeSinceLastPortal - sinceLastPortal));
+
+            // the second try covers a slow approach or a busy server
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                actionChain.AddAction(follow.Player, () =>
+                {
+                    if (!IsWaiting())
+                        return;
+
+                    follow.PortalUsed = true;
+                    follow.Player.HandleActionUseItem(portal.Portal.Guid.Full);
+                });
+                actionChain.AddDelaySeconds(PortalUseSeconds);
+            }
+
+            actionChain.AddAction(follow.Player, () =>
+            {
+                if (!IsWaiting())
+                    return;
+
+                follow.RefusedPortals.Add(portal);
+                Tell(follow.Player, $"The portal {portal.Portal.Name} did not work; planning another way.");
+                Reroute(follow);
+            });
+            actionChain.EnqueueChain();
         }
 
         private static bool IsCurrent(Follow follow)
@@ -243,7 +385,64 @@ namespace ACE.Server.Pathfinding
             if (!RoadNetwork.IsBuilt)
                 Tell(player, "Mapping the roads of the world; this takes a moment the first time.");
 
-            return RoadNetwork.GetWorld();
+            return Network.Value;
+        }
+
+        /// <summary>
+        /// The road network with the world's portals joined to it, from the database on first use.
+        /// </summary>
+        private static readonly Lazy<RoadNetwork> Network = new Lazy<RoadNetwork>(() =>
+        {
+            var network = RoadNetwork.GetWorld();
+
+            // a database error leaves the walk without portals; the Lazy would keep the exception for good
+            try
+            {
+                network.SetPortals(LoadPortals(), MaxRouteApproach);
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Loading the portals for /followroad failed: {ex}");
+            }
+
+            return network;
+        });
+
+        /// <summary>
+        /// Builds the road network and joins the portals to it at server start, so no command waits for them.
+        /// </summary>
+        public static void Prebuild() => _ = Network.Value;
+
+        /// <summary>
+        /// The portals placed on the ground that lead to the ground, and that need nothing from a player but their
+        /// level, kind and the like: not those that ask a quest.
+        /// </summary>
+        private static List<RoadNetwork.PortalLink> LoadPortals()
+        {
+            var links = new List<RoadNetwork.PortalLink>();
+            var database = DatabaseManager.World;
+
+            // one query for the placed portals on the ground: a query per portal weenie takes minutes
+            List<ACE.Database.Models.World.LandblockInstance> instances;
+            using (var context = new ACE.Database.Models.World.WorldDbContext())
+            {
+                var portalWcids = database.GetAllWeenieTypes(context).Where(t => t.Value == (int)WeenieType.Portal).Select(t => t.Key).ToList();
+                instances = context.LandblockInstance.Where(i => portalWcids.Contains(i.WeenieClassId) && (i.ObjCellId & 0xFFFF) < 0x100).ToList();
+            }
+
+            foreach (var instance in instances)
+            {
+                var location = new Position(instance.ObjCellId, instance.OriginX, instance.OriginY, instance.OriginZ, instance.AnglesX, instance.AnglesY, instance.AnglesZ, instance.AnglesW);
+                if (!(WorldObjectFactory.CreateWorldObject(database.GetCachedWeenie(instance.WeenieClassId), new ObjectGuid(instance.Guid)) is Portal portal))
+                    continue;
+
+                if (portal.Destination == null || portal.Destination.Indoors || portal.Quest != null || portal.QuestRestriction != null)
+                    continue;
+
+                links.Add(new RoadNetwork.PortalLink { From = location.ToGlobal(), To = portal.Destination.ToGlobal(), Portal = portal });
+            }
+
+            return links;
         }
 
         private static void End(Follow follow, string message)
@@ -367,7 +566,11 @@ namespace ACE.Server.Pathfinding
             {
                 if (follow.Waypoints.Count == 0)
                 {
-                    OnTraceEnd(follow);
+                    if (follow.PendingPortal != null)
+                        UsePortal(follow);
+                    else
+                        OnTraceEnd(follow);
+
                     return;
                 }
 

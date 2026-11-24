@@ -2041,10 +2041,11 @@ namespace ACE.Server.Command.Handlers
 
         [CommandHandler("FollowRoad", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0,
             "Follows the road you are on or next to, in the direction you face, or the roads to a place. Use it again to stop.",
-            "[place | plan place]\n" +
+            "[place | plan place | noportal place]\n" +
             "/followroad: follow the road ahead of you\n" +
-            "/followroad Holtburg: walk to Holtburg over the roads\n" +
-            "/followroad plan Holtburg: show the route without walking it")]
+            "/followroad Holtburg: walk to Holtburg over the roads, taking portals you can use where they shorten the way\n" +
+            "/followroad plan Holtburg: show the route without walking it\n" +
+            "/followroad noportal Holtburg: the same without portals (also works with plan)")]
         public static void HandleFollowRoad(Session session, params string[] parameters)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
@@ -2057,12 +2058,15 @@ namespace ACE.Server.Command.Handlers
             if (player == null || player.CurrentLandblock == null)
                 return;
 
+            var usePortals = !parameters.Any(p => p.Equals("noportal", StringComparison.OrdinalIgnoreCase));
+            parameters = parameters.Where(p => !p.Equals("noportal", StringComparison.OrdinalIgnoreCase)).ToArray();
+
             var preview = parameters.Length > 1 && parameters[0].Equals("plan", StringComparison.OrdinalIgnoreCase);
             var place = string.Join(" ", preview ? parameters.Skip(1) : parameters);
 
             if (preview)
             {
-                RoadFollower.StartTo(player, place, true);
+                RoadFollower.StartTo(player, place, true, usePortals);
                 return;
             }
 
@@ -2071,7 +2075,7 @@ namespace ACE.Server.Command.Handlers
                 RoadFollower.Stop(player);
 
             if (place.Length > 0)
-                RoadFollower.StartTo(player, place, false);
+                RoadFollower.StartTo(player, place, false, usePortals);
             else if (following)
                 session.Network.EnqueueSend(new GameMessageSystemChat("Stopped following the road.", ChatMessageType.Help));
             else
