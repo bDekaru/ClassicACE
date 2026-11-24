@@ -688,6 +688,11 @@ namespace ACE.Server.Pathfinding
         public class PortalLink
         {
             public Vector3 From, To;
+
+            /// <summary>
+            /// Where the portal stands, with its cell: From is only its place on the world's grid.
+            /// </summary>
+            public Position Location;
             public Portal Portal;
         }
 

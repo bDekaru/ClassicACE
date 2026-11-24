@@ -111,6 +111,12 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private const double PortalUseSeconds = 5;
 
+        /// <summary>
+        /// Portals placed inside a building (by instance guid) that routes may take as well: the Yanshi portal at
+        /// 36.8S 12.1E. The other building portals are far from any road or have monsters and doors.
+        /// </summary>
+        private static readonly uint[] BuildingPortalGuids = { 2028277760 };
+
         private sealed class Follow
         {
             /// <summary>
@@ -269,7 +275,12 @@ namespace ACE.Server.Pathfinding
             follow.PortalUsed = false;
             follow.Route.Clear();
 
-            var guides = GetGuides(route.Points);
+            var guides = GetGuides(route.Points).ToList();
+
+            // the last guide is on the terrain: a portal inside a building is walked to at its own position, which has the cell the pathfinder routes to
+            if (route.Portal != null && route.Portal.Location.Indoors)
+                guides[guides.Count - 1] = route.Portal.Location;
+
             follow.Waypoints = new Queue<Position>(route.Portal == null ? guides.Append(follow.DestinationPosition) : guides);
             WalkNext(follow);
         }
@@ -414,8 +425,8 @@ namespace ACE.Server.Pathfinding
         public static void Prebuild() => _ = Network.Value;
 
         /// <summary>
-        /// The portals placed on the ground that lead to the ground, and that need nothing from a player but their
-        /// level, kind and the like: not those that ask a quest.
+        /// The portals placed on the ground (and the building portals listed) that lead to the ground, and that need
+        /// nothing from a player but their level, kind and the like: not those that ask a quest.
         /// </summary>
         private static List<RoadNetwork.PortalLink> LoadPortals()
         {
@@ -427,7 +438,8 @@ namespace ACE.Server.Pathfinding
             using (var context = new ACE.Database.Models.World.WorldDbContext())
             {
                 var portalWcids = database.GetAllWeenieTypes(context).Where(t => t.Value == (int)WeenieType.Portal).Select(t => t.Key).ToList();
-                instances = context.LandblockInstance.Where(i => portalWcids.Contains(i.WeenieClassId) && (i.ObjCellId & 0xFFFF) < 0x100).ToList();
+                var buildingGuids = BuildingPortalGuids.ToList();
+                instances = context.LandblockInstance.Where(i => portalWcids.Contains(i.WeenieClassId) && ((i.ObjCellId & 0xFFFF) < 0x100 || buildingGuids.Contains(i.Guid))).ToList();
             }
 
             foreach (var instance in instances)
@@ -439,7 +451,7 @@ namespace ACE.Server.Pathfinding
                 if (portal.Destination == null || portal.Destination.Indoors || portal.Quest != null || portal.QuestRestriction != null)
                     continue;
 
-                links.Add(new RoadNetwork.PortalLink { From = location.ToGlobal(), To = portal.Destination.ToGlobal(), Portal = portal });
+                links.Add(new RoadNetwork.PortalLink { From = location.ToGlobal(), Location = location, To = portal.Destination.ToGlobal(), Portal = portal });
             }
 
             return links;
