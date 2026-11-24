@@ -99,6 +99,12 @@ namespace ACE.DatBuilder
             return properties;
         }
 
+        /// <summary>The day groups of the region with the name; the dat pads names with spaces or NULs.</summary>
+        public static List<DayGroup> DayGroupsNamed(RegionDesc region, string name)
+        {
+            return region.SkyInfo.DayGroups.Where(g => g.DayName.Trim('\0', ' ') == name).ToList();
+        }
+
         private static IEnumerable<(SkyObject Old, SkyObject Eor)> MatchedSkyObjects(RegionDesc old, RegionDesc eor)
         {
             var days = old.SkyInfo.DayGroups;
@@ -152,13 +158,13 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("Pre-ToD records converted", date, c =>
             {
-                var firstImageId = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat)).AllFiles.Keys.Where(k => k >> 24 == 0x06).Max() + 1;
+                var firstImageId = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat), true).AllFiles.Keys.Where(k => k >> 24 == 0x06).Max() + 1;
 
                 // The base palettes of the worlds' objects, and those of the character creation (every heritage and sex of the EoR CharGen record): its face and hair images are recoloured the same way.
                 var basePalettes = DatRecipeData.Load<List<string>>(BasePalettesFile).Select(s => System.Convert.ToUInt32(s, 16)).ToHashSet();
                 basePalettes.UnionWith(c.ReadSource<CharGen>(DatBuildRecipes.PortalBaseDat, CharGenId).HeritageGroups.Values.SelectMany(h => h.Genders.Values).Select(g => g.BasePalette));
 
-                var converter = new DatPreToDPortalConverter(new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat)), firstImageId, basePalettes);
+                var converter = new DatPreToDPortalConverter(new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat), true), firstImageId, basePalettes);
 
                 c.Write(converter.Convert(), "converted pre-ToD records", true);
 
@@ -174,7 +180,7 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("EoR records the pre-ToD dat lacks", date, c =>
             {
-                var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat));
+                var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat), true);
 
                 var listed = DatRecipeData.Load<List<string>>(EoRRecordsFile).Concat(rulesetEoRRecordsFiles.SelectMany(DatRecipeData.Load<List<string>>)).Select(s => System.Convert.ToUInt32(s, 16))
                     .Concat(eor.AllFiles.Keys.Where(k => EoRTypes.Contains(k >> 24))).ToHashSet();
@@ -208,8 +214,8 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("UI images from EoR", date, c =>
             {
-                var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat));
-                var pre = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat));
+                var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat), true);
+                var pre = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat), true);
 
                 c.Write(eor.AllFiles.Keys.Where(k => k >> 24 == 0x06 && pre.AllFiles.ContainsKey(k)).OrderBy(k => k).Select(id => new KeyValuePair<uint, byte[]>(id, c.ReadSource(DatBuildRecipes.PortalBaseDat, id))), "EoR images of the UI", true);
             });

@@ -44,43 +44,5 @@ namespace ACE.DatBuilder
                 }
             }
         }
-
-        /// <summary>The edits that turn <paramref name="source"/> into <paramref name="target"/>, in spell id order (the tool that writes a data file from an existing record).</summary>
-        /// <exception cref="InvalidDataException">The tables do not hold the same spell ids.</exception>
-        public static List<Dictionary<string, JsonElement>> Diff(SpellTable source, SpellTable target)
-        {
-            if (source.Spells.Count != target.Spells.Count || target.Spells.Keys.Any(k => !source.Spells.ContainsKey(k)))
-                throw new InvalidDataException("Spell edits can only be made between tables with the same spell ids.");
-
-            var edits = new List<Dictionary<string, JsonElement>>();
-
-            foreach (var id in target.Spells.Keys.OrderBy(k => k))
-            {
-                var edit = new Dictionary<string, JsonElement>();
-
-                foreach (var property in Properties)
-                {
-                    var before = property.GetValue(source.Spells[id]);
-                    var after = property.GetValue(target.Spells[id]);
-
-                    if (before is List<uint> list ? list.SequenceEqual((List<uint>)after) : Equals(before, after))
-                        continue;
-
-                    edit[Key(property)] = JsonSerializer.SerializeToElement(after, property.PropertyType, Options);
-                }
-
-                if (edit.Count == 0)
-                    continue;
-
-                var withId = new Dictionary<string, JsonElement> { [IdKey] = JsonSerializer.SerializeToElement(id) };
-
-                foreach (var field in edit)
-                    withId[field.Key] = field.Value;
-
-                edits.Add(withId);
-            }
-
-            return edits;
-        }
     }
 }

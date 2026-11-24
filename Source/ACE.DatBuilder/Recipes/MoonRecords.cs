@@ -62,12 +62,12 @@ namespace ACE.DatBuilder
         /// </summary>
         public static List<KeyValuePair<uint, byte[]>> CoverRecords(uint surfaceId, uint surfaceTextureId, uint textureId, uint paletteId)
         {
-            const int imageSize = 8;
+            const int ImageSize = 8;
 
             var palette = new Palette { Id = paletteId };
             palette.Colors.AddRange(Enumerable.Repeat(0xFF000000, 2048));
 
-            var texture = Texture.Create(textureId, imageSize, imageSize, SurfacePixelFormat.PFID_INDEX16, new byte[2 * imageSize * imageSize], paletteId);
+            var texture = Texture.Create(textureId, ImageSize, ImageSize, SurfacePixelFormat.PFID_INDEX16, new byte[2 * ImageSize * ImageSize], paletteId);
             texture.DataCategory = 7;
 
             return new List<KeyValuePair<uint, byte[]>>

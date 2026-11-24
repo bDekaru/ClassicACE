@@ -203,6 +203,7 @@ namespace ACE.DatBuilder
                     result.FinalCheck = new DatCellConversionReport();
                     DatCellConverter.CheckStore(store, portal, result.FinalCheck);
 
+                    File.Delete(temp);
                     DatWriter.CreateEmpty(temp, DatContainerSpec.Cell);
 
                     using (var writer = new DatWriter(temp) { RecordDate = conversionTime, IterationForDate = recipe.Releases.IterationForDate })
@@ -217,10 +218,7 @@ namespace ACE.DatBuilder
 
                 result.OutputBytes = new FileInfo(temp).Length;
 
-                if (File.Exists(output))
-                    File.Delete(output);
-
-                File.Move(temp, output);
+                File.Move(temp, output, true);
 
                 result.ReleaseNumber = recipe.Releases.CurrentNumber;
                 result.ReleaseHash = DatReleaseHash.Compute(output);

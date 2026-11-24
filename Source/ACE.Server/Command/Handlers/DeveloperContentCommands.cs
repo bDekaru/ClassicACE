@@ -4117,7 +4117,8 @@ namespace ACE.Server.Command.Handlers.Processors
             if (SpellSQLWriter == null)
                 SpellSQLWriter = new SpellSQLWriter();
 
-            SpellSQLWriter.SpellNames = DatManager.PortalDat.SpellTable.GetNames();
+            SpellSQLWriter.SpellNames ??= DatManager.PortalDat.SpellTable.GetNames();
+            SpellSQLWriter.NameColumn = Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM;
 
             var sql_filename = SpellSQLWriter.GetDefaultFileName(spell);
 

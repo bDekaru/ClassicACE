@@ -562,6 +562,7 @@ namespace ACE.DatLoader.Tests
 
             var sql = DatTables.SpellInsertScript(new[] { row }, new[] { new DatSpellSetSpellRow { SetId = 4, Tier = 2, Position = 0, SpellId = 1 } });
 
+            StringAssert.StartsWith(sql, "SET FOREIGN_KEY_CHECKS = 0;");
             StringAssert.Contains(sql, "'It''s', 'd'");
             StringAssert.Contains(sql, "0.1, 0, 0, 0, 0, 0, 1, 0, 30, NULL, NULL, NULL, 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0,");
             StringAssert.Contains(sql, "`dat_spell_set_spell` (`set_Id`, `tier`, `position`, `spell_Id`) VALUES (4, 2, 0, 1);");

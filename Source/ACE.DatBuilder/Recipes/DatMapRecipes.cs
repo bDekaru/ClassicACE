@@ -237,6 +237,7 @@ namespace ACE.DatBuilder
                 Rect(0x1896, 0x1A96, 0x0FC8),
             };
 
+            // The swaps change the Arwic donor itself, so every later edit that takes landblocks from it gets the swapped words.
             var arwicEditor = new DatMapEditor(arwic);
             var oldMarae = marae.SelectMany(r => arwicEditor.LandblocksInRect(r.TopLeft, r.BottomRight)).ToList();
 

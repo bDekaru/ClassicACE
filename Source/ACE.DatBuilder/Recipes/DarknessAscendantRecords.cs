@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 using ACE.DatLoader.Entity.AnimationHooks;
@@ -104,15 +105,13 @@ namespace ACE.DatBuilder
                     [SmallMoon] = SwollenSmallMoon,
                     [BigMoon] = SwollenBigMoon,
                     [BigMoonCover] = SwollenBigMoonCover,
-
-                    // The event's own moons, as the event dat has them (not in the 2005 dat): the old pink and cream moons at the swollen size, to use instead of the lines above.
-                    // [SmallMoon] = 0x01001BC0,
-                    // [BigMoon] = 0x01001BC1,
                 };
 
                 region.Remap(id => replaced.TryGetValue(id, out var target) ? target : id);
 
-                foreach (var group in region.SkyInfo.DayGroups.Where(g => g.DayName.Trim() == "Rainy"))
+                var figures = 0;
+
+                foreach (var group in PreToDBaseRecords.DayGroupsNamed(region, "Rainy"))
                 {
                     var flashes = group.SkyObjects.Where(s => s.DefaultGFXObjectId == Flash && (Math.Abs(s.BeginTime - 0.03f) < 0.001f || Math.Abs(s.BeginTime - 0.91f) < 0.001f)).ToList();
 
@@ -120,8 +119,12 @@ namespace ACE.DatBuilder
                     {
                         group.SkyObjects[group.SkyObjects.IndexOf(flash)] = flash.CloneWith(Figure);
                         group.SkyObjects.Add(flash.CloneWith(Thunder));
+                        figures++;
                     }
                 }
+
+                if (figures == 0)
+                    throw new InvalidDataException("The base Region has no lightning flash at the event's times in a Rainy day group, so the figure and thunder would be missing.");
 
                 c.Write(RegionRecords.RegionId, region.Pack(), "region with the sky of the event", true);
             });

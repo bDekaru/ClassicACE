@@ -67,10 +67,8 @@ namespace ACE.DatBuilder
                     throw new InvalidDataException($"String edits: entry {after.Id:X8} differs in more than the text of its strings.");
 
                 for (var s = 0; s < after.Strings.Count; s++)
-                {
                     if (before.Strings[s] != after.Strings[s])
                         edits.Add(new DatStringEdit { Id = after.Id.ToString("X8"), Index = s, Text = after.Strings[s] });
-                }
             }
 
             return edits;

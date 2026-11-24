@@ -165,25 +165,33 @@ namespace ACE.DatLoader
             Array.Copy(spec.VersionMajor, 0, head, HeaderOffset + fields.Length * 4, 16);
             Array.Copy(BitConverter.GetBytes(spec.VersionMinor), 0, head, HeaderOffset + fields.Length * 4 + 16, 4);
 
-            using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
+            try
             {
-                file.Write(head, 0, head.Length);
-
-                var block = new byte[size];
-
-                for (uint i = 0; i < initialBlocks; i++)
+                using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write))
                 {
-                    var next = i == initialBlocks - 1 ? 0 : FirstBlock + (i + 1) * size;
-                    Array.Copy(BitConverter.GetBytes(next | FreeBit), 0, block, 0, 4);
-                    file.Write(block, 0, block.Length);
+                    file.Write(head, 0, head.Length);
+
+                    var block = new byte[size];
+
+                    for (uint i = 0; i < initialBlocks; i++)
+                    {
+                        var next = i == initialBlocks - 1 ? 0 : FirstBlock + (i + 1) * size;
+                        Array.Copy(BitConverter.GetBytes(next | FreeBit), 0, block, 0, 4);
+                        file.Write(block, 0, block.Length);
+                    }
+                }
+
+                using (var writer = new DatWriter(path))
+                {
+                    writer.btreeRoot = writer.AllocateEmptyNode();
+                    writer.SaveFileInfo();
+                    writer.ClearTransaction();
                 }
             }
-
-            using (var writer = new DatWriter(path))
+            catch
             {
-                writer.btreeRoot = writer.AllocateEmptyNode();
-                writer.SaveFileInfo();
-                writer.ClearTransaction();
+                File.Delete(path);
+                throw;
             }
         }
 
@@ -694,7 +702,8 @@ namespace ACE.DatLoader
             BitConverter.GetBytes(-(int)total).CopyTo(payload, 4);
             BitConverter.GetBytes(1).CopyTo(payload, 8);
 
-            Save(IterationRecordId, payload, 1, 1, date);
+            if (Save(IterationRecordId, payload, 1, 1, date) == DatSaveOutcome.RefusedOlderIteration)
+                throw new InvalidDataException($"{FilePath}: the iteration record is newer than the one being written.");
         }
     }
 }

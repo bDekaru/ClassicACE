@@ -87,8 +87,6 @@ namespace ACE.DatBuilder
     /// </summary>
     public static class DatBuildRunner
     {
-        /// <exception cref="ArgumentException">An input is missing, or the output would overwrite something it must not.</exception>
-        /// <exception cref="InvalidDataException">An audit of the base or built dat failed.</exception>
         /// <summary>
         /// Rewrites only the XP and skill records of an already built portal dat from the database (the quick loop after editing the dat_* tables), through a temporary copy that is audited before it replaces the dat.
         /// </summary>
@@ -105,10 +103,11 @@ namespace ACE.DatBuilder
             recipe.ValidateDates();
 
             var temp = datPath + ".building";
-            File.Copy(datPath, temp, true);
 
             try
             {
+                File.Copy(datPath, temp, true);
+
                 var result = new DatTablesApplyResult { DatPath = datPath, ReleaseNumber = recipe.Releases.CurrentNumber };
 
                 using (var writer = new DatWriter(temp) { IterationForDate = recipe.Releases.IterationForDate })
@@ -124,10 +123,7 @@ namespace ACE.DatBuilder
                 }
 
                 if (result.Changed)
-                {
-                    File.Delete(datPath);
-                    File.Move(temp, datPath);
-                }
+                    File.Move(temp, datPath, true);
                 else
                     File.Delete(temp);
 
@@ -143,6 +139,8 @@ namespace ACE.DatBuilder
             }
         }
 
+        /// <exception cref="ArgumentException">An input is missing, or the output would overwrite something it must not.</exception>
+        /// <exception cref="InvalidDataException">An audit of the base or built dat failed.</exception>
         /// <param name="tables">Where the XP and skill tables are read from, for a recipe with a tables step. Null leaves the records the overlay wrote.</param>
         public static DatBuildResult Build(DatBuildRecipe recipe, string sourceDats, string customFilesRoot, string outputRoot, bool force = false, IDatTableSource tables = null)
         {
@@ -172,16 +170,16 @@ namespace ACE.DatBuilder
 
             var temp = output + ".building";
 
-            if (recipe.EmptyBase)
-            {
-                File.Delete(temp);
-                DatWriter.CreateEmpty(temp, DatContainerSpec.Portal);
-            }
-            else
-                File.Copy(baseDat, temp, true);
-
             try
             {
+                if (recipe.EmptyBase)
+                {
+                    File.Delete(temp);
+                    DatWriter.CreateEmpty(temp, DatContainerSpec.Portal);
+                }
+                else
+                    File.Copy(baseDat, temp, true);
+
                 var result = new DatBuildResult { Recipe = recipe, OutputPath = output };
 
                 DatPortalImporter importer = null;
@@ -221,10 +219,7 @@ namespace ACE.DatBuilder
 
                 result.OutputBytes = new FileInfo(temp).Length;
 
-                if (File.Exists(output))
-                    File.Delete(output);
-
-                File.Move(temp, output);
+                File.Move(temp, output, true);
 
                 result.ReleaseNumber = recipe.Releases.CurrentNumber;
                 result.ReleaseHash = DatReleaseHash.Compute(output);

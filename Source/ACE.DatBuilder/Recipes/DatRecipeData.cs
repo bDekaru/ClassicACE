@@ -24,10 +24,5 @@ namespace ACE.DatBuilder
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Data/" + name) ?? throw new FileNotFoundException($"Recipe data file {name} is not embedded."))
                 return JsonSerializer.Deserialize<T>(stream, Options);
         }
-
-        public static string ToJson<T>(T value)
-        {
-            return JsonSerializer.Serialize(value, Options);
-        }
     }
 }

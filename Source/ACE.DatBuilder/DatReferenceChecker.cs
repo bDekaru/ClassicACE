@@ -166,7 +166,7 @@ namespace ACE.DatBuilder
                         queue.Enqueue(reference);
             }
 
-            text.AppendLine($"Reference check of {portalPath}: {present.Count:N0} records, {scanned:N0} table/layout records scanned by word, {cellRefs:N0} ids referenced by the cell dat, {languageRecords:N0} language dat records read,{worldIds?.Count ?? 0:N0} ids named by the world database, {reachable.Count:N0} records reachable from them and the engine records");
+            text.AppendLine($"Reference check of {portalPath}: {present.Count:N0} records, {scanned:N0} table/layout records scanned by word, {cellRefs:N0} ids referenced by the cell dat, {languageRecords:N0} language dat records read, {worldIds?.Count ?? 0:N0} ids named by the world database, {reachable.Count:N0} records reachable from them and the engine records");
             text.AppendLine($"Dangling (not in the portal{(highresPath != null ? " or the high-res dat" : "")}): {dangling.Values.Sum(ids => ids.Count):N0} ids");
 
             foreach (var entry in dangling)

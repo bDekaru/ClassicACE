@@ -143,9 +143,6 @@ namespace ACE.DatBuilder
         /// <summary>The overlay steps in application order.</summary>
         public DatBuildStep[] Steps { get; }
 
-        /// <summary>Folders in application order, relative to the Custom Files root, written with '/'.</summary>
-        public string[] Folders => Steps.Select(s => s.Folder).ToArray();
-
         /// <summary>The releases of the dat this recipe builds.</summary>
         public DatReleaseSet Releases { get; }
 
@@ -297,7 +294,7 @@ namespace ACE.DatBuilder
             .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Rock surface textures", InitialVersionDate, SurfaceTextureRecords.RockFile)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(MoonRecords.Overlay(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
-        public static readonly DatBuildRecipe PortalInfiltration= new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
+        public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
             Initial("Portal/Infiltration"))
             .WithPreToDImport(RemovedContent())
             .WithRecordSteps(InfiltrationRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(ModelRecords.Trees(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray());

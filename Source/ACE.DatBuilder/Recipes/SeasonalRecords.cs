@@ -77,7 +77,7 @@ namespace ACE.DatBuilder
 
             return new DatRecordStep($"Season: {chosen?.Name ?? Fall}", date, c =>
             {
-                var clipMap = DatPreToDPortalConverter.ClipMapTextures(new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat)));
+                var clipMap = DatPreToDPortalConverter.ClipMapTextures(new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PreToDPortalDat), true));
 
                 foreach (var id in kit.All.Select(t => Convert.ToUInt32(t, 16)))
                 {

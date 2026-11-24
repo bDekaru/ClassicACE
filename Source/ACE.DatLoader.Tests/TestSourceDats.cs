@@ -70,24 +70,28 @@ namespace ACE.DatLoader.Tests
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern bool CreateHardLink(string fileName, string existingFileName, IntPtr securityAttributes);
 
+        /// <summary>The folder, or a folder that does not exist when the setting cannot be read, so the tests that need the dats end up inconclusive instead of every test class failing to initialize.</summary>
         private static string Read()
         {
-            for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
+            try
             {
-                var config = Path.Combine(directory.FullName, ConfigRelativePath);
+                for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory != null; directory = directory.Parent)
+                {
+                    var config = Path.Combine(directory.FullName, ConfigRelativePath);
 
-                if (!File.Exists(config))
-                    continue;
+                    if (!File.Exists(config))
+                        continue;
 
-                var folder = DatSourceSetting.Read(config);
+                    return DatSourceSetting.Read(config) ?? throw new InvalidOperationException($"The {DatSourceSetting.Key} setting is empty in the shard database named in {config}.");
+                }
 
-                if (folder == null)
-                    throw new InvalidOperationException($"The {DatSourceSetting.Key} setting is empty in the shard database named in {config}.");
-
-                return folder;
+                throw new InvalidOperationException($"{ConfigRelativePath} was not found above {AppContext.BaseDirectory}.");
             }
-
-            throw new InvalidOperationException($"{ConfigRelativePath} was not found above {AppContext.BaseDirectory}.");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Test source dats unavailable: {ex.Message}");
+                return Path.Combine(Path.GetTempPath(), "ace-datloader-tests-no-source-dats");
+            }
         }
     }
 }

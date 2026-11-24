@@ -59,7 +59,7 @@ namespace ACE.DatBuilder
             return new DatRecordStep("Fire in the Sky sky", date, c =>
             {
                 var region = c.ReadTarget<RegionDesc>(RegionRecords.RegionId);
-                var sunny = region.SkyInfo.DayGroups.First(g => g.DayName.Trim().Trim('\0') == "Sunny");
+                var sunny = PreToDBaseRecords.DayGroupsNamed(region, "Sunny").FirstOrDefault() ?? throw new InvalidDataException("The base Region has no Sunny day group.");
                 var group = RegionDesc.UnpackPreToD(c.ReadSource(SourceDat, PreToDBaseRecords.HardwareRegionId)).SkyInfo.DayGroups.Single();
 
                 if (!group.SkyTime.Select(t => t.Begin).SequenceEqual(sunny.SkyTime.Select(t => t.Begin)))

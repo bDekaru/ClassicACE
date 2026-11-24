@@ -1186,6 +1186,8 @@ CREATE TABLE IF NOT EXISTS `dat_spell_set_spell` (
         {
             var sql = new StringBuilder();
 
+            // The game's spell rows reference dat_spell with ON DELETE CASCADE; with the checks off the emptying does not cascade into them.
+            sql.AppendLine("SET FOREIGN_KEY_CHECKS = 0;");
             sql.AppendLine($"DELETE FROM `{SpellSetSpellName}`;");
             sql.AppendLine($"DELETE FROM `{SpellName}`;");
 
@@ -1194,6 +1196,8 @@ CREATE TABLE IF NOT EXISTS `dat_spell_set_spell` (
 
             foreach (var r in setSpells.OrderBy(r => r.SetId).ThenBy(r => r.Tier).ThenBy(r => r.Position))
                 sql.AppendLine(Inv($"INSERT INTO `{SpellSetSpellName}` (`set_Id`, `tier`, `position`, `spell_Id`) VALUES ({r.SetId}, {r.Tier}, {r.Position}, {r.SpellId});"));
+
+            sql.AppendLine("SET FOREIGN_KEY_CHECKS = 1;");
 
             return sql.ToString();
         }

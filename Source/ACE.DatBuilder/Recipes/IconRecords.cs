@@ -48,7 +48,7 @@ namespace ACE.DatBuilder
         {
             return new DatRecordStep("EoR icons the 2005 dat lacks", date, c =>
             {
-                var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat));
+                var eor = new DatDatabase(Path.Combine(c.SourceDats, DatBuildRecipes.PortalBaseDat), true);
 
                 var ids = eor.AllFiles.Keys.Where(id => id >> 24 == 0x06 && !c.Writer.Contains(id)).OrderBy(id => id)
                     .Where(id => c.ReadSource<Texture>(DatBuildRecipes.PortalBaseDat, id) is { Width: IconSize, Height: IconSize }).ToList();

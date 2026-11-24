@@ -10,7 +10,12 @@ namespace ACE.Database.SQLFormatters.World
     public class SpellSQLWriter : SQLWriter
     {
         /// <summary>
-        /// The spell's name comes from the dat (the spell table has no name column); it is empty when <see cref="SQLWriter.SpellNames"/> is not set.
+        /// Set for the rulesets whose spell table still has a name column (all but CustomDM, whose names come from the dat_spell table).
+        /// </summary>
+        public bool NameColumn;
+
+        /// <summary>
+        /// The spell's name comes from the dat (the entity has no name); it is empty when <see cref="SQLWriter.SpellNames"/> is not set.
         /// </summary>
         private string GetName(Spell input)
         {
@@ -42,9 +47,9 @@ namespace ACE.Database.SQLFormatters.World
         {
             var name = GetName(input);
 
-            var spellLineHdr = "INSERT INTO `spell` (`id`";
+            var spellLineHdr = NameColumn ? "INSERT INTO `spell` (`id`, `name`" : "INSERT INTO `spell` (`id`";
 
-            var spellLine = $"VALUES ({input.Id}" + (name.Length > 0 ? $" /* {name} */" : "");
+            var spellLine = NameColumn ? $"VALUES ({input.Id}, {GetSQLString(name)}" : $"VALUES ({input.Id}" + (name.Length > 0 ? $" /* {name} */" : "");
 
             if (input.StatModType.HasValue)
             {

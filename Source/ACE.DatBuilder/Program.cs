@@ -81,7 +81,7 @@ The source folder is only read. Each build is made in a temporary file and moved
             }
             catch (InvalidDataException ex)
             {
-                Console.Error.WriteLine($"Audit failed: {ex.Message}");
+                Console.Error.WriteLine($"Build failed: {ex.Message}");
                 return AuditFailure;
             }
         }
@@ -90,7 +90,7 @@ The source folder is only read. Each build is made in a temporary file and moved
         {
             foreach (var recipe in DatBuildRecipes.All.Concat(DatBuildRecipes.Alternatives))
             {
-                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Folders.Length} folder(s) -> {recipe.OutputFolder ?? recipe.Ruleset}/{recipe.OutputFileName}");
+                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Steps.Length} folder(s) -> {recipe.OutputFolder ?? recipe.Ruleset}/{recipe.OutputFileName}");
 
                 foreach (var step in recipe.RecordSteps)
                     Console.WriteLine($"    record step: {step.Name}");
@@ -405,8 +405,16 @@ The source folder is only read. Each build is made in a temporary file and moved
                     throw new ArgumentException($"The config is for the {tables.Ruleset} ruleset but {string.Join(", ", foreign.Select(r => $"{r.Name} ({r.Ruleset})"))} is not: build each ruleset with its own --config.");
             }
 
-            foreach (var recipe in recipes.Where(r => r.TablesDate != null && r.Ruleset == "CustomDM" && tables == null))
-                throw new ArgumentException($"{recipe.Name} needs the dat tables of the CustomDM world database: pass --config <CustomDM Config.js>.");
+            var customDmTables = recipes.Where(r => r.TablesDate != null && r.Ruleset == "CustomDM").Select(r => r.Name).ToList();
+
+            if (customDmTables.Count > 0)
+            {
+                if (tables == null)
+                    throw new ArgumentException($"{string.Join(", ", customDmTables)} needs the dat tables of the CustomDM world database: pass --config <CustomDM Config.js>.");
+
+                if (tables.Read() == null)
+                    throw new ArgumentException($"{tables.Description} has no dat tables, so {string.Join(", ", customDmTables)} would lack the CustomDM spells and skills: use the CustomDM world database.");
+            }
 
             foreach (var recipe in recipes)
             {
@@ -417,9 +425,6 @@ The source folder is only read. Each build is made in a temporary file and moved
 
                 if (readsTables)
                     Console.WriteLine($"  dat tables read from {tables.Description}");
-
-                if (readsTables && result.Tables.Skipped && recipe.Ruleset == "CustomDM")
-                    throw new ArgumentException($"{tables.Description} has no dat tables, so the {recipe.Name} dat just written lacks the CustomDM spells and skills: delete it and use the CustomDM world database.");
 
                 Console.Write(result.ToText(10));
 
@@ -497,6 +502,10 @@ The source folder is only read. Each build is made in a temporary file and moved
             }
 
             var tables = new WorldDatTableSource(config, line.Value("--world-db"));
+
+            if (recipe.Ruleset != tables.Ruleset)
+                throw new ArgumentException($"The config is for the {tables.Ruleset} ruleset but {recipe.Name} ({recipe.Ruleset}) is not: use its own --config.");
+
             var result = DatBuildRunner.ApplyTables(recipe, Path.GetFullPath(datPath), tables);
 
             Console.WriteLine($"{recipe.Name}: {result.DatPath}");

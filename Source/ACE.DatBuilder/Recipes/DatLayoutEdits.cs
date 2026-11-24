@@ -86,10 +86,8 @@ namespace ACE.DatBuilder
                 throw new InvalidDataException($"Layout edit: the layout has no element {path}.");
 
             foreach (var id in ids.Skip(1))
-            {
                 if (!element.Children.TryGetValue(id, out element))
                     throw new InvalidDataException($"Layout edit: the layout has no element {path}.");
-            }
 
             return element;
         }
@@ -129,10 +127,8 @@ namespace ACE.DatBuilder
                 throw new InvalidDataException($"Layout edits: element {path} state {state} has a different number of media items.");
 
             for (var i = 0; i < source.Media.Count; i++)
-            {
                 if (source.Media[i].File != target.Media[i].File)
                     edits.Add(new DatLayoutMediaEdit { Element = path, State = state, Media = i, File = Hex(target.Media[i].File) });
-            }
         }
 
         private static string Hex(uint value)

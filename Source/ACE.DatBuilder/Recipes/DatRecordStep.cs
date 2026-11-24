@@ -69,9 +69,9 @@ namespace ACE.DatBuilder
                 var path = Path.Combine(SourceDats, datFile);
 
                 if (!File.Exists(path))
-                    throw new FileNotFoundException($"Source dat not found: {path}");
+                    throw new ArgumentException($"Source dat not found: {path}");
 
-                database = new DatDatabase(path);
+                database = new DatDatabase(path, true);
                 _sources[datFile] = database;
             }
 
