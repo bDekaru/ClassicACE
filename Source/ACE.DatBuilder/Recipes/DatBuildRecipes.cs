@@ -315,7 +315,7 @@ namespace ACE.DatBuilder
             Initial("Portal/CustomDM"))
             .WithEmptyBase()
             .WithOutputFolder("CustomDM2005")
-            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate, CustomDMRecords.EoRRecordsFile, CustomDMRecords.MapEoRRecordsFile).Append(InfiltrationRecords.ChargenFromEoR(InitialVersionDate, CustomDMRecords.ChargenEditsFile)).Concat(CustomDMRecords.AdditionsTo2005(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).ToArray())
+            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate, CustomDMRecords.EoRRecordsFile, CustomDMRecords.MapEoRRecordsFile).Append(InfiltrationRecords.ChargenFromEoR(InitialVersionDate, CustomDMRecords.ChargenEditsFile)).Concat(CustomDMRecords.AdditionsTo2005(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).Append(SeasonalRecords.Step("Summer", InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe[] Alternatives = { PortalInfiltration2005, PortalCustomDM2005 };
