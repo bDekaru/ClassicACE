@@ -3165,6 +3165,9 @@ namespace ACE.Server.Command.Handlers
 
             currentPlayer.SetMaxVitals();
 
+            // the skills were set directly: a held or server-driven run changes speed now
+            currentPlayer.HandleRunRateUpdate();
+
             ChatPacket.SendServerMessage(session, "You are now a god!!!", ChatMessageType.Broadcast);
         }
 
@@ -3275,6 +3278,7 @@ namespace ACE.Server.Command.Handlers
                 }
 
                 currentPlayer.SetMaxVitals();
+                currentPlayer.HandleRunRateUpdate();
 
                 currentPlayer.RemoveProperty(PropertyString.GodState);
 

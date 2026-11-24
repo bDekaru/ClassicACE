@@ -844,6 +844,10 @@ namespace ACE.Server.WorldObjects
 
             SetWalkRunThreshold(moveToObject, target.Location);
 
+            // not a position move any more (Player.SendMoveToSpeedUpdate)
+            if (this is Player)
+                LastMoveTo = null;
+
             EnqueueBroadcastMotion(moveToObject);
         }
 
@@ -867,6 +871,10 @@ namespace ACE.Server.WorldObjects
                 moveToPosition.MoveToParameters.MovementParameters &= ~(MovementParams.CanRun | MovementParams.CanCharge);
             else
                 SetWalkRunThreshold(moveToPosition, position);
+
+            // a player's run rate can change on the way (HandleRunRateUpdate)
+            if (this is Player)
+                LastMoveTo = moveToPosition;
 
             EnqueueBroadcastMotion(moveToPosition);
         }

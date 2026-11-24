@@ -364,7 +364,7 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// Uses the portal the walk has got to, as a double click would. If the player is not teleporting soon after (the
+        /// Uses the portal the walk has got to, as walking into it would. If the player is not teleporting soon after (the
         /// portal refused them, or is not there), the route is planned again without it.
         /// </summary>
         private static void UsePortal(Follow follow)
@@ -390,7 +390,9 @@ namespace ACE.Server.Pathfinding
                         return;
 
                     follow.PortalUsed = true;
-                    follow.Player.HandleActionUseItem(portal.Portal.Guid.Full);
+                    // as walking into the portal does: HandleActionUseItem would answer a use the client never sent with a
+                    // UseDone, and the client counts that down below zero, leaving the hourglass up
+                    portal.Portal.OnActivate(follow.Player);
                 });
                 actionChain.AddDelaySeconds(PortalUseSeconds);
             }
@@ -418,7 +420,7 @@ namespace ACE.Server.Pathfinding
         private static void Tell(Player player, string message)
         {
             if (player.Session != null)
-                player.Session.Network.EnqueueSend(new GameMessageSystemChat(message, ChatMessageType.Help));
+                player.Session.Network.EnqueueSend(new GameMessageSystemChat(message, ChatMessageType.WorldBroadcast));
         }
 
         /// <summary>

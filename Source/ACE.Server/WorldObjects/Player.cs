@@ -1224,6 +1224,9 @@ namespace ACE.Server.WorldObjects
         {
             //Console.WriteLine($"{Name}.HandleRunRateUpdates()");
 
+            if (ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && IsPlayerMovingTo2 && LastMoveTo != null)
+                return SendMoveToSpeedUpdate();
+
             if (CurrentMovementData.MovementType != MovementType.Invalid || CurrentMovementData.Invalid == null)
                 return false;
 
@@ -1263,6 +1266,31 @@ namespace ACE.Server.WorldObjects
             else
                 EnqueueBroadcast(movementEvent);    // broadcast to all players, including self
 
+            return true;
+        }
+
+        /// <summary>
+        /// CustomDM: while the server moves the player to a position (/followroad), sends that move again with the new run rate
+        /// and MotionFlags.SpeedUpdate, so the client changes the speed without stopping (as for monsters,
+        /// Monster_Navigation.SendMoveSpeedUpdate). The server's own move reads the run rate each step.
+        /// </summary>
+        private bool SendMoveToSpeedUpdate()
+        {
+            // a walk (short move) has no run rate to change
+            if (!LastMoveTo.MoveToParameters.MovementParameters.HasFlag(MovementParams.CanCharge))
+                return false;
+
+            var runRate = GetRunRate();
+            if (LastMoveTo.RunRate == runRate)
+                return false;
+
+            LastMoveTo.RunRate = runRate;
+
+            var speedUpdate = new Motion(LastMoveTo);
+            speedUpdate.MotionFlags |= MotionFlags.SpeedUpdate;
+            speedUpdate.MotionFlags &= ~MotionFlags.AnimationBreak;
+
+            EnqueueBroadcast(new GameMessageUpdateMotion(this, speedUpdate));
             return true;
         }
 

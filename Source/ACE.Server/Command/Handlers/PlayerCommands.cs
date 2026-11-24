@@ -2066,7 +2066,7 @@ namespace ACE.Server.Command.Handlers
 
             if (preview && place.Length == 0)
             {
-                session.Network.EnqueueSend(new GameMessageSystemChat("Which place? Use /followroad plan <place>.", ChatMessageType.Help));
+                session.Network.EnqueueSend(new GameMessageSystemChat("Which place? Use /followroad plan <place>.", ChatMessageType.WorldBroadcast));
                 return;
             }
 
@@ -2079,7 +2079,7 @@ namespace ACE.Server.Command.Handlers
             if (RoadFollower.IsFollowing(player))
             {
                 RoadFollower.Stop(player);
-                session.Network.EnqueueSend(new GameMessageSystemChat("Stopped following the road.", ChatMessageType.Help));
+                session.Network.EnqueueSend(new GameMessageSystemChat("Stopped following the road.", ChatMessageType.WorldBroadcast));
             }
             else
                 RoadFollower.Start(player);

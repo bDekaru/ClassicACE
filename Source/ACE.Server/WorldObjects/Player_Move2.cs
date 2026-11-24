@@ -221,6 +221,7 @@ namespace ACE.Server.WorldObjects
                 Console.WriteLine($"{Name}.OnMoveComplete_MoveTo({status})");
 
             IsPlayerMovingTo2 = false;
+            LastMoveTo = null;
 
             if (MoveToParams == null || MoveToParams.Callback == null)
             {
