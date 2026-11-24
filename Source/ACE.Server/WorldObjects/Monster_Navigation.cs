@@ -889,12 +889,7 @@ namespace ACE.Server.WorldObjects
             if (IsWandering)
                 return;
 
-            var offsetPosition = new Position(Location);
-            offsetPosition.Rotation = new Quaternion(0, 0, offsetPosition.RotationZ, offsetPosition.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(directionMinAngle.ToRadians(), directionMaxAngle.ToRadians()));
-            offsetPosition = offsetPosition.InFrontOf(distance);
-            offsetPosition.SetLandblock();
-
-            WanderTarget = PlaceOnFloor(offsetPosition);
+            WanderTarget = PlaceOnFloor(Location.GetRandomOffset(directionMinAngle, directionMaxAngle, distance));
             IsWanderingPending = true;
         }
 

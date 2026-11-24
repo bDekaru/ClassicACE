@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 
 using log4net;
 
@@ -65,9 +66,8 @@ namespace ACE.Server.Pathfinding
         private const float MaxTraceLength = 150f;
 
         /// <summary>
-        /// A route to a place may start and end this far off the road.
+        /// A route to a place may start and end this far off the road, and a portal may be this far from it.
         /// </summary>
-        private const float MaxRouteApproach = 150f;
         private const float MaxRouteOffRoad = 150f;
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// A follow left over from an earlier login (the player logged out or was removed while following) doesn't count.
         /// </summary>
-        public static bool IsFollowing(Player player) => Follows.TryGetValue(player.Guid.Full, out var follow) && ReferenceEquals(follow.Player, player) && IsCurrent(follow);
+        public static bool IsFollowing(Player player) => Follows.TryGetValue(player.Guid.Full, out var follow) && ReferenceEquals(follow.Player, player);
 
         public static void Stop(Player player)
         {
@@ -192,7 +192,7 @@ namespace ACE.Server.Pathfinding
 
             var facing = player.Location.GetCurrentDir();
             var direction = new Vector2(facing.X, facing.Y);
-            follow.Heading = Vector2.Normalize(direction);
+            follow.Heading = Normalized(direction);
             if (!Plan(follow, direction))
                 return;
 
@@ -244,7 +244,21 @@ namespace ACE.Server.Pathfinding
             var route = FindRoute(follow);
             if (route == null)
             {
-                Tell(player, $"No road route to {name} from here.");
+                // a place within walking distance has no road route when walking is cheaper
+                var distance = GetDistanceToDestination(follow);
+                if (distance > RoadNetwork.MaxDirectWalk)
+                {
+                    Tell(player, $"No road route to {name} from here.");
+                    return;
+                }
+
+                Tell(player, $"No road route to {name}, but it is within walking distance ({distance:0} m): {(previewOnly ? "it would be walked to directly" : "walking there directly")}.");
+                if (previewOnly)
+                    return;
+
+                Stop(player);
+                Follows[player.Guid.Full] = follow;
+                WalkDirect(follow);
                 return;
             }
 
@@ -253,8 +267,24 @@ namespace ACE.Server.Pathfinding
             if (previewOnly)
                 return;
 
+            Stop(player);
             Follows[player.Guid.Full] = follow;
             WalkRoute(follow, route);
+        }
+
+        private static float GetDistanceToDestination(Follow follow)
+        {
+            var here = follow.Player.Location.ToGlobal();
+            var place = follow.DestinationPosition.ToGlobal();
+            return Vector2.Distance(new Vector2(here.X, here.Y), new Vector2(place.X, place.Y));
+        }
+
+        private static void WalkDirect(Follow follow)
+        {
+            follow.PendingPortal = null;
+            follow.Route.Clear();
+            follow.Waypoints = new Queue<Position>(new[] { follow.DestinationPosition });
+            WalkNext(follow);
         }
 
         private static RoadNetwork.RoadRoute FindRoute(Follow follow)
@@ -263,7 +293,7 @@ namespace ACE.Server.Pathfinding
             Func<RoadNetwork.PortalLink, bool> canUsePortal = link => !follow.RefusedPortals.Contains(link) && link.Portal.GetRestriction(player) == null
                 && (player.IgnorePortalRestrictions || player.VerifyGameplayMode(link.Portal));
 
-            return GetNetwork(player).FindRoute(player.Location.ToGlobal(), follow.DestinationPosition.ToGlobal(), MaxRouteApproach, MaxRouteOffRoad, follow.UsePortals ? canUsePortal : null);
+            return GetNetwork(player).FindRoute(player.Location.ToGlobal(), follow.DestinationPosition.ToGlobal(), MaxRouteOffRoad, MaxRouteOffRoad, follow.UsePortals ? canUsePortal : null);
         }
 
         /// <summary>
@@ -294,9 +324,7 @@ namespace ACE.Server.Pathfinding
                 return;
 
             // a portal can end the walk right at the place
-            var here = follow.Player.Location.ToGlobal();
-            var place = follow.DestinationPosition.ToGlobal();
-            var distance = Vector2.Distance(new Vector2(here.X, here.Y), new Vector2(place.X, place.Y));
+            var distance = GetDistanceToDestination(follow);
             if (distance <= WaypointRadius)
             {
                 End(follow, $"Arrived at {follow.Destination}.");
@@ -317,10 +345,7 @@ namespace ACE.Server.Pathfinding
                 return;
             }
 
-            follow.PendingPortal = null;
-            follow.Route.Clear();
-            follow.Waypoints = new Queue<Position>(new[] { follow.DestinationPosition });
-            WalkNext(follow);
+            WalkDirect(follow);
         }
 
         /// <summary>
@@ -328,8 +353,14 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         public static void OnTeleported(Player player)
         {
-            if (Follows.TryGetValue(player.Guid.Full, out var follow) && ReferenceEquals(follow.Player, player) && follow.PortalUsed)
+            if (!Follows.TryGetValue(player.Guid.Full, out var follow) || !ReferenceEquals(follow.Player, player))
+                return;
+
+            // a teleport that is not the walk's own cancels its moves for good
+            if (follow.PortalUsed)
                 EnqueueStep(follow, Reroute);
+            else
+                End(follow, "Stopped following the road: you were teleported.");
         }
 
         /// <summary>
@@ -382,6 +413,8 @@ namespace ACE.Server.Pathfinding
                 && Follows.TryGetValue(follow.Player.Guid.Full, out var current) && current == follow;
         }
 
+        private static Vector2 Normalized(Vector2 vector) => vector == Vector2.Zero ? vector : Vector2.Normalize(vector);
+
         private static void Tell(Player player, string message)
         {
             if (player.Session != null)
@@ -409,7 +442,7 @@ namespace ACE.Server.Pathfinding
             // a database error leaves the walk without portals; the Lazy would keep the exception for good
             try
             {
-                network.SetPortals(LoadPortals(), MaxRouteApproach);
+                network.SetPortals(LoadPortals(), MaxRouteOffRoad);
             }
             catch (Exception ex)
             {
@@ -417,7 +450,7 @@ namespace ACE.Server.Pathfinding
             }
 
             return network;
-        });
+        }, LazyThreadSafetyMode.PublicationOnly);
 
         /// <summary>
         /// Builds the road network and joins the portals to it at server start, so no command waits for them.
@@ -502,8 +535,8 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The road points as guide points, GuideSpacing apart (the last one always), on the terrain: a route's target
-        /// must be within reach of the mesh, and the road graph's heights are interpolated.
+        /// The road points as guide points, GuideSpacing apart (the last one always). Their heights are the road
+        /// graph's, interpolated; WalkNext puts each on the terrain, as a route's target must be within reach of the mesh.
         /// </summary>
         private static IEnumerable<Position> GetGuides(List<Vector3> points)
         {
@@ -515,9 +548,7 @@ namespace ACE.Server.Pathfinding
                     continue;
 
                 lastIndex = i;
-                var guide = RoadNetwork.ToPosition(points[i]);
-                guide.PositionZ = guide.GetTerrainZ();
-                yield return guide;
+                yield return RoadNetwork.ToPosition(points[i]);
             }
         }
 
@@ -588,14 +619,26 @@ namespace ACE.Server.Pathfinding
 
                 // the route to the next guide point; where there is none yet, a straight move
                 var guide = follow.Waypoints.Dequeue();
+
+                // guides get their terrain height one at a time, as landing on the terrain loads the landblock
+                if (!guide.Indoors && !ReferenceEquals(guide, follow.DestinationPosition))
+                    guide.PositionZ = guide.GetTerrainZ();
+
                 follow.Route = new Queue<Position>(GetRoute(player.Location, guide) ?? new List<Position> { guide });
             }
 
-            var target = follow.Route.Dequeue();
-            follow.Target = target;
-            follow.MoveToStateAtStart = player.CurrentMoveToState;
+            follow.Target = follow.Route.Dequeue();
+            StartMove(follow, follow.Target, WaypointRadius, OnWaypointDone);
+        }
+
+        /// <summary>
+        /// Starts a move to the target; done is called with the move's number, which only the latest move's report counts for.
+        /// </summary>
+        private static void StartMove(Follow follow, Position target, float radius, Action<Follow, int, bool> done)
+        {
+            follow.MoveToStateAtStart = follow.Player.CurrentMoveToState;
             var moveId = ++follow.Step;
-            player.CreateMoveToChain(target, success => OnWaypointDone(follow, moveId, success), WaypointRadius, walk: false, useSpheres: false);
+            follow.Player.CreateMoveToChain(target, success => done(follow, moveId, success), radius, walk: false, useSpheres: false);
         }
 
         private static void OnWaypointDone(Follow follow, int moveId, bool success)
@@ -615,21 +658,17 @@ namespace ACE.Server.Pathfinding
             if (!ReferenceEquals(follow.Player.CurrentMoveToState, follow.MoveToStateAtStart))
                 End(follow, "Stopped following the road: you moved.");
             else if (follow.Replans < MaxReplans)
-                EnqueueStep(follow, StepAsideOrReplan);
+            {
+                // from a queued step, not from this callback: its caller clears the move-to parameters when it returns,
+                // which would drop the move started here
+                EnqueueStep(follow, step =>
+                {
+                    if (IsCurrent(step) && !TryStepAside(step))
+                        ReplanOrWait(step);
+                });
+            }
             else
                 End(follow, "Stopped following the road: something is in the way.");
-        }
-
-        /// <summary>
-        /// Run from a queued step, not from the move's callback: the callback's caller clears the move-to parameters
-        /// when it returns, which would drop the move started here.
-        /// </summary>
-        private static void StepAsideOrReplan(Follow follow)
-        {
-            if (!IsCurrent(follow) || TryStepAside(follow))
-                return;
-
-            ReplanOrWait(follow);
         }
 
         /// <summary>
@@ -695,24 +734,16 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static bool TryStepAside(Follow follow)
         {
-            var player = follow.Player;
-
-            var aside = new Position(player.Location);
-            aside.Rotation = new Quaternion(0, 0, aside.RotationZ, aside.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ThreadSafeRandom.Next(StepAsideMinAngle.ToRadians(), StepAsideMaxAngle.ToRadians()));
-            aside = aside.InFrontOf(StepAsideDistance);
-            aside.SetLandblock();
-
+            var aside = follow.Player.Location.GetRandomOffset(StepAsideMinAngle, StepAsideMaxAngle, StepAsideDistance);
             var onMesh = Pathfinder.GetClosestPointOnMesh(aside, AgentSize.Small);
             if (onMesh == null)
                 return false;
 
-            follow.MoveToStateAtStart = player.CurrentMoveToState;
-            var moveId = ++follow.Step;
-            player.CreateMoveToChain(onMesh, success => OnSteppedAside(follow, moveId), StepAsideRadius, walk: false, useSpheres: false);
+            StartMove(follow, onMesh, StepAsideRadius, OnSteppedAside);
             return true;
         }
 
-        private static void OnSteppedAside(Follow follow, int moveId)
+        private static void OnSteppedAside(Follow follow, int moveId, bool success)
         {
             if (!IsCurrent(follow) || moveId != follow.Step)
                 return;
@@ -773,7 +804,7 @@ namespace ACE.Server.Pathfinding
 
                 follow.Route = new Queue<Position>(route);
                 follow.Waypoints.Clear();
-                follow.Trace = new RoadNetwork.RoadTrace { Points = new List<Vector3>(), Direction = Vector2.Normalize(new Vector2(node.X - from.X, node.Y - from.Y)), Continues = bridge == null || bridge.ExitOnRoad };
+                follow.Trace = new RoadNetwork.RoadTrace { Points = new List<Vector3>(), Direction = Normalized(new Vector2(node.X - from.X, node.Y - from.Y)), Continues = bridge == null || bridge.ExitOnRoad };
                 follow.Heading = follow.Trace.Direction;
                 follow.Crossings++;
                 follow.MeshRetries = 0;

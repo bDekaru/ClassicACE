@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
 
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
@@ -67,11 +68,6 @@ namespace ACE.Server.Pathfinding
         /// A desert path marker this close to a road vertex is linked to the nearest one.
         /// </summary>
         private const float MarkerRoadLinkDistance = 50f;
-
-        /// <summary>
-        /// Walking off the road counts this many times its length when comparing routes.
-        /// </summary>
-        private const float OffRoadFactor = 2f;
 
         /// <summary>
         /// Taking a portal costs this many metres of road: the walk onto it and the arrival.
@@ -183,7 +179,7 @@ namespace ACE.Server.Pathfinding
             public Vector2 AxisTo;
         }
 
-        private static readonly Lazy<RoadNetwork> World = new Lazy<RoadNetwork>(Build);
+        private static readonly Lazy<RoadNetwork> World = new Lazy<RoadNetwork>(Build, LazyThreadSafetyMode.PublicationOnly);
 
         /// <summary>
         /// The roads of the whole world, built once on first use (about a second).
@@ -724,7 +720,7 @@ namespace ACE.Server.Pathfinding
                 if (!portalsAt.TryGetValue(from, out var hops))
                     portalsAt[from] = hops = new List<(PortalLink, int, float)>();
 
-                hops.Add((link, to, TeleportCost + OffRoadFactor * (fromLeg + toLeg)));
+                hops.Add((link, to, TeleportCost + Pathfinder.OffRoadCostFactor * (fromLeg + toLeg)));
             }
         }
 
@@ -820,10 +816,10 @@ namespace ACE.Server.Pathfinding
                 if (cost[i] == float.MaxValue || offRoad > maxOffRoad || IsBridgeEnd(i))
                     continue;
 
-                if (cost[i] + OffRoadFactor * offRoad < endTotal)
+                if (cost[i] + Pathfinder.OffRoadCostFactor * offRoad < endTotal)
                 {
                     end = i;
-                    endTotal = cost[i] + OffRoadFactor * offRoad;
+                    endTotal = cost[i] + Pathfinder.OffRoadCostFactor * offRoad;
                 }
             }
 
@@ -834,7 +830,7 @@ namespace ACE.Server.Pathfinding
 
             // a place within walking distance is not worth a detour over the roads
             var straight = Vector2.Distance(Flat(from), target);
-            if (straight <= MaxDirectWalk && OffRoadFactor * startLeg + endTotal >= OffRoadFactor * straight)
+            if (straight <= MaxDirectWalk && Pathfinder.OffRoadCostFactor * startLeg + endTotal >= Pathfinder.OffRoadCostFactor * straight)
                 return null;
 
             var points = new List<Vector3>();

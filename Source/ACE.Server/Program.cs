@@ -315,8 +315,15 @@ namespace ACE.Server
             if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
             {
                 log.Info("Building the road network...");
-                Pathfinding.RoadNetwork.GetWorld();
-                Pathfinding.RoadFollower.Prebuild();
+                try
+                {
+                    Pathfinding.RoadNetwork.GetWorld();
+                    Pathfinding.RoadFollower.Prebuild();
+                }
+                catch (Exception ex)
+                {
+                    log.Error($"Building the road network failed, /followroad builds it on first use: {ex}");
+                }
             }
 
             log.Info("Initializing PlayerManager...");

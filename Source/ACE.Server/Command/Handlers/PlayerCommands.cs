@@ -2061,23 +2061,26 @@ namespace ACE.Server.Command.Handlers
             var usePortals = !parameters.Any(p => p.Equals("noportal", StringComparison.OrdinalIgnoreCase));
             parameters = parameters.Where(p => !p.Equals("noportal", StringComparison.OrdinalIgnoreCase)).ToArray();
 
-            var preview = parameters.Length > 1 && parameters[0].Equals("plan", StringComparison.OrdinalIgnoreCase);
+            var preview = parameters.Length > 0 && parameters[0].Equals("plan", StringComparison.OrdinalIgnoreCase);
             var place = string.Join(" ", preview ? parameters.Skip(1) : parameters);
 
-            if (preview)
+            if (preview && place.Length == 0)
             {
-                RoadFollower.StartTo(player, place, true, usePortals);
+                session.Network.EnqueueSend(new GameMessageSystemChat("Which place? Use /followroad plan <place>.", ChatMessageType.Help));
                 return;
             }
 
-            var following = RoadFollower.IsFollowing(player);
-            if (following)
-                RoadFollower.Stop(player);
-
             if (place.Length > 0)
-                RoadFollower.StartTo(player, place, false, usePortals);
-            else if (following)
+            {
+                RoadFollower.StartTo(player, place, preview, usePortals);
+                return;
+            }
+
+            if (RoadFollower.IsFollowing(player))
+            {
+                RoadFollower.Stop(player);
                 session.Network.EnqueueSend(new GameMessageSystemChat("Stopped following the road.", ChatMessageType.Help));
+            }
             else
                 RoadFollower.Start(player);
         }

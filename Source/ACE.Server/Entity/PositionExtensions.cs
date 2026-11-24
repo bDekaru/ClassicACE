@@ -313,6 +313,18 @@ namespace ACE.Server.Entity
             pos.PositionZ = envCell.Position.Origin.Z;
         }
 
+        /// <summary>
+        /// The position the distance in front of this one after turning by a random angle (degrees) in the range.
+        /// </summary>
+        public static Position GetRandomOffset(this Position p, float minAngle, float maxAngle, float distance)
+        {
+            var offset = new Position(p);
+            offset.Rotation = new Quaternion(0, 0, offset.RotationZ, offset.RotationW) * Quaternion.CreateFromYawPitchRoll(0, 0, (float)ACE.Common.ThreadSafeRandom.Next(minAngle.ToRadians(), maxAngle.ToRadians()));
+            offset = offset.InFrontOf(distance);
+            offset.SetLandblock();
+            return offset;
+        }
+
         public static float GetTerrainZ(this Position p)
         {
             var landblock = LScape.get_landblock(p.LandblockId.Raw);

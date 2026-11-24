@@ -69,7 +69,7 @@ namespace ACE.Server.Pathfinding
         /// an admissible heuristic); the road is 1. Beyond 2 the routes stay as long and as far off road (measured on a
         /// Holtburg tile: 12.0% off road at 2, 11.9% at 4, against 59.7% without the preference).
         /// </summary>
-        private const float OffRoadCostFactor = 2.0f;
+        internal const float OffRoadCostFactor = 2.0f;
 
         private const float RoadLedgeDropCostFactor = 10.0f;
 

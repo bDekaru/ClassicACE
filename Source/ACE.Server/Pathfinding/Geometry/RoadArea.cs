@@ -2,6 +2,8 @@ using DotRecast.Recast;
 using System.Collections.Generic;
 using System.Numerics;
 
+using ACE.Server.Physics.Common;
+
 namespace ACE.Server.Pathfinding.Geometry
 {
     /// <summary>
@@ -15,8 +17,8 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// The terrain cell length and the road half width OnRoad uses, in metres.
         /// </summary>
-        private const float CellLength = 24f;
-        private const float RoadWidth = 5f;
+        private const float CellLength = LandDefs.CellLength;
+        private static readonly float RoadWidth = Landblock.RoadWidth;
 
         /// <summary>
         /// The mark covers spans this far above and below the cell's terrain, so a bridge deck or an object above it is
@@ -24,8 +26,8 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         private const float MarkHeight = 1.5f;
 
-        private const float RMin = RoadWidth;
-        private const float RMax = CellLength - RoadWidth;
+        private static readonly float RMin = RoadWidth;
+        private static readonly float RMax = CellLength - RoadWidth;
 
         /// <summary>
         /// A half plane a * dx + b * dy &lt;= c, in the cell's local coordinates.
