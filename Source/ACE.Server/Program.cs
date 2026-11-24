@@ -312,6 +312,12 @@ namespace ACE.Server
             else
                 log.Info("Precaching World Database Disabled...");
 
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM)
+            {
+                log.Info("Building the road network...");
+                Pathfinding.RoadNetwork.GetWorld();
+            }
+
             log.Info("Initializing PlayerManager...");
             PlayerManager.Initialize();
 

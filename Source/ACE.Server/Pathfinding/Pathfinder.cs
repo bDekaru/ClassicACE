@@ -549,9 +549,10 @@ namespace ACE.Server.Pathfinding
         /// Finds the mesh poly nearest to a point (within QueryHalfExtents). Returns false if the point is not on the
         /// mesh. Note FindNearestPoly succeeds with a 0 ref (and the input point) when it finds nothing.
         /// </summary>
-        private static bool TryFindNearestPoly(DtNavMeshQuery query, IDtQueryFilter filter, RcVec3f center, out long polyRef, out RcVec3f point)
+        private static bool TryFindNearestPoly(DtNavMeshQuery query, IDtQueryFilter filter, RcVec3f center, out long polyRef, out RcVec3f point, float verticalReach = 0f)
         {
-            var status = query.FindNearestPoly(center, QueryHalfExtents, filter, out polyRef, out point, out _);
+            var halfExtents = verticalReach > QueryHalfExtents.Y ? new RcVec3f(QueryHalfExtents.X, verticalReach, QueryHalfExtents.Z) : QueryHalfExtents;
+            var status = query.FindNearestPoly(center, halfExtents, filter, out polyRef, out point, out _);
             return status.Succeeded() && polyRef != 0;
         }
 
@@ -559,13 +560,13 @@ namespace ACE.Server.Pathfinding
         /// Like TryFindNearestPoly, but prefers a poly that is not on an island. Falls back to an island poly when
         /// there is no other within reach (onIsland is then true), e.g. for a creature that stands on one.
         /// </summary>
-        private static bool TryFindNearestReachablePoly(DtNavMeshQuery query, RcVec3f center, out long polyRef, out RcVec3f point, out bool onIsland)
+        private static bool TryFindNearestReachablePoly(DtNavMeshQuery query, RcVec3f center, out long polyRef, out RcVec3f point, out bool onIsland, float verticalReach = 0f)
         {
             onIsland = false;
-            if (TryFindNearestPoly(query, ReachableFilter, center, out polyRef, out point))
+            if (TryFindNearestPoly(query, ReachableFilter, center, out polyRef, out point, verticalReach))
                 return true;
 
-            onIsland = TryFindNearestPoly(query, AllPolysFilter, center, out polyRef, out point);
+            onIsland = TryFindNearestPoly(query, AllPolysFilter, center, out polyRef, out point, verticalReach);
             return onIsland;
         }
 
@@ -612,7 +613,8 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        public static Position GetClosestPointOnMesh(Position location, AgentSize agentSize)
+        /// <param name="verticalReach">How far above or below the location the mesh is looked for, when more than the usual</param>
+        public static Position GetClosestPointOnMesh(Position location, AgentSize agentSize, float verticalReach = 0f)
         {
             try
             {
@@ -622,7 +624,7 @@ namespace ACE.Server.Pathfinding
                     return null;
 
                 // prefers the main area over an island, e.g. the floor beside a table rather than its top
-                if (!TryFindNearestReachablePoly(lease.Query, lease.ToMesh(location), out _, out var startPt, out _))
+                if (!TryFindNearestReachablePoly(lease.Query, lease.ToMesh(location), out _, out var startPt, out _, verticalReach))
                     return null;
 
                 return CreatePosition(location, group, startPt);

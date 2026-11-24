@@ -74,7 +74,11 @@ namespace ACE.Server.Pathfinding.Geometry
             var collector = new MeshGeometryCollector(new List<EnvCell>());
             collector.LoadSurface(landblockId, sources);
 
-            return FromCollector(collector);
+            var geometry = FromCollector(collector);
+            foreach (var volume in collector.RoadVolumes)
+                geometry?.AddConvexVolume(volume);
+
+            return geometry;
         }
 
         private static NavMeshGeometry FromCollector(MeshGeometryCollector collector)
@@ -124,7 +128,7 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// The volumes that mark areas of the mesh: the door aprons (see DoorApron).
+        /// The volumes that mark areas of the mesh: the door aprons (see DoorApron) and the roads (see RoadArea).
         /// </summary>
         public IList<RcConvexVolume> ConvexVolumes()
         {

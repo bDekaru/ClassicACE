@@ -34,6 +34,16 @@ namespace ACE.Server.Pathfinding
         private const int MaxRouteLandblockSpan = 2;
 
         /// <summary>
+        /// The span of a RouteProfile.Road search: it is a rare, explicit request (a player following a road), and a
+        /// river crossing can be three landblocks long. The search and the tile loads grow with the square of the span
+        /// (25 tiles at 2, 81 at 4, each tile a few seconds to build the first time), and monsters search every tick, so
+        /// they stay at MaxRouteLandblockSpan.
+        /// </summary>
+        private const int RoadRouteLandblockSpan = 4;
+
+        private static int GetRouteLandblockSpan(RouteProfile profile) => profile == RouteProfile.Road ? RoadRouteLandblockSpan : MaxRouteLandblockSpan;
+
+        /// <summary>
         /// A ledge drop (see LedgeDropFinder) costs this many times its length, so a creature only takes one
         /// when walking around is clearly longer: it can't come back up the same way.
         /// </summary>
@@ -42,15 +52,31 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Every poly, for route searches: like AllPolysFilter, with ledge drops at LedgeDropCostFactor.
         /// </summary>
-        private static readonly DtQueryDefaultFilter RouteFilter = CreateRouteFilter();
+        private static readonly DtQueryDefaultFilter RouteFilter = CreateRouteFilter(1.0f, LedgeDropCostFactor);
 
-        private static DtQueryDefaultFilter CreateRouteFilter()
+        /// <param name="offRoadCost">The cost factor of every area but the road (1) and ledge drops</param>
+        private static DtQueryDefaultFilter CreateRouteFilter(float offRoadCost, float ledgeDropCost)
         {
             var areaCosts = new float[DtDetour.DT_MAX_AREAS];
-            Array.Fill(areaCosts, 1.0f);
-            areaCosts[NavArea.LedgeDrop] = LedgeDropCostFactor;
+            Array.Fill(areaCosts, offRoadCost);
+            areaCosts[NavArea.Road] = 1.0f;
+            areaCosts[NavArea.LedgeDrop] = ledgeDropCost;
             return new DtQueryDefaultFilter(0xFFFF, 0, areaCosts);
         }
+
+        /// <summary>
+        /// Off road costs this many times its length for RouteProfile.Road. Costs must stay at 1 or more (Recast's A* needs
+        /// an admissible heuristic); the road is 1. Beyond 2 the routes stay as long and as far off road (measured on a
+        /// Holtburg tile: 12.0% off road at 2, 11.9% at 4, against 59.7% without the preference).
+        /// </summary>
+        private const float OffRoadCostFactor = 2.0f;
+
+        private const float RoadLedgeDropCostFactor = 10.0f;
+
+        /// <summary>
+        /// Like RouteFilter, but the road is preferred over the ground and ledge drops cost more.
+        /// </summary>
+        private static readonly DtQueryDefaultFilter RoadRouteFilter = CreateRouteFilter(OffRoadCostFactor, RoadLedgeDropCostFactor);
 
         /// <summary>
         /// Limits a search to the outdoor tiles in a rect of landblocks, so a route towards an unreachable target
@@ -90,7 +116,7 @@ namespace ACE.Server.Pathfinding
         /// Positions in different mesh groups have no direct route. If one of them is outdoors and the other in a
         /// building or cave, the route leads to the doorway between them; once there the caller can continue outside
         /// (or route again inside). Otherwise there is no route. Outdoor routes cross landblock edges, searching up to
-        /// MaxRouteLandblockSpan landblocks away from the start. Outdoor tiles load in the background, so a route
+        /// the profile's span (GetRouteLandblockSpan) of landblocks away from the start. Outdoor tiles load in the background, so a route
         /// through landblocks whose tiles are not loaded yet ends at the edge of the loaded ones.
         /// </summary>
         /// <param name="end">The ending position</param>
@@ -98,7 +124,7 @@ namespace ACE.Server.Pathfinding
         /// doorway towards it when the end is in another mesh group. False for a partial route, which leads as close to
         /// the target as the mesh allows.</param>
         /// <returns>A list of positions</returns>
-        public static List<Position> FindRoute(Position start, Position end, AgentSize agentSize, out bool reachesTarget)
+        public static List<Position> FindRoute(Position start, Position end, AgentSize agentSize, out bool reachesTarget, RouteProfile profile = RouteProfile.Default)
         {
             reachesTarget = false;
 
@@ -117,7 +143,7 @@ namespace ACE.Server.Pathfinding
             if (group.IsOutdoor)
             {
                 foreach (var (candidate, _) in candidates)
-                    RequestOutdoorTilesBetween(start, candidate);
+                    RequestOutdoorTilesBetween(start, candidate, GetRouteLandblockSpan(profile));
             }
 
             using var lease = AcquireMesh(start, group, agentSize);
@@ -129,7 +155,7 @@ namespace ACE.Server.Pathfinding
             if (!TryFindNearestReachablePoly(query, lease.ToMesh(start), out var startRef, out var startPt, out var startOnIsland))
                 return null; // the start is not on the mesh
 
-            var pathFilter = GetPathFilter(lease, start);
+            var pathFilter = GetPathFilter(lease, start, profile);
 
             // Path to each candidate and keep the shortest complete route, counting the estimated distance left after
             // a doorway. If no candidate can be reached, use the partial route towards the most promising one.
@@ -182,16 +208,18 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The filter a route search runs with: every poly, but outdoors only within MaxRouteLandblockSpan
+        /// The filter a route search runs with: every poly, but outdoors only within the profile's span
         /// landblocks of the start.
         /// </summary>
-        private static IDtQueryFilter GetPathFilter(MeshLease lease, Position start)
+        private static IDtQueryFilter GetPathFilter(MeshLease lease, Position start, RouteProfile profile)
         {
+            var filter = profile == RouteProfile.Road ? RoadRouteFilter : RouteFilter;
             if (!lease.IsOutdoor)
-                return RouteFilter;
+                return filter;
 
             var (x, y) = GetLandblockCoords(start.Cell);
-            return new TileRectFilter(RouteFilter, x - MaxRouteLandblockSpan, y - MaxRouteLandblockSpan, x + MaxRouteLandblockSpan, y + MaxRouteLandblockSpan);
+            var span = GetRouteLandblockSpan(profile);
+            return new TileRectFilter(filter, x - span, y - span, x + span, y + span);
         }
 
         /// <summary>
@@ -428,7 +456,7 @@ namespace ACE.Server.Pathfinding
         /// Outdoor tiles load in the background, so a leg through the outdoors can be missing or partial the first time.
         /// </summary>
         /// <param name="reachesEnd">True if the legs lead all the way to the end position</param>
-        public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd)
+        public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd, RouteProfile profile = RouteProfile.Default)
         {
             reachesEnd = false;
 
@@ -440,7 +468,7 @@ namespace ACE.Server.Pathfinding
 
                 for (var i = 0; i < MaxRouteLegs; i++)
                 {
-                    var leg = FindRoute(current, end, agentSize, out var legReachesTarget);
+                    var leg = FindRoute(current, end, agentSize, out var legReachesTarget, profile);
                     if (leg == null || leg.Count == 0)
                         break;
 

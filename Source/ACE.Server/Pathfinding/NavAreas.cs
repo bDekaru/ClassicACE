@@ -15,6 +15,11 @@ namespace ACE.Server.Pathfinding
         public const int Ground = 0;
 
         /// <summary>
+        /// Road, outdoors (see RoadArea). Walkable like Ground; a route filter can price it differently.
+        /// </summary>
+        public const int Road = 1;
+
+        /// <summary>
         /// A door apron (see DoorApron), outside a doorway.
         /// </summary>
         public const int Door = 3;
@@ -35,9 +40,30 @@ namespace ACE.Server.Pathfinding
         public static readonly RcAreaModification WalkableMod = new RcAreaModification(Walkable, RcAreaModification.RC_AREA_FLAGS_MASK);
 
         /// <summary>
+        /// Marks the spans inside a road volume as Road.
+        /// </summary>
+        public static readonly RcAreaModification RoadMod = new RcAreaModification(Road, RcAreaModification.RC_AREA_FLAGS_MASK);
+
+        /// <summary>
         /// Marks the spans inside a door apron's volume as Door.
         /// </summary>
         public static readonly RcAreaModification DoorMod = new RcAreaModification(Door, RcAreaModification.RC_AREA_FLAGS_MASK);
+    }
+
+    /// <summary>
+    /// How a route search prices the areas (see Pathfinder.FindRoute).
+    /// </summary>
+    public enum RouteProfile
+    {
+        /// <summary>
+        /// Every area costs its length (ledge drops more): the shortest way.
+        /// </summary>
+        Default,
+
+        /// <summary>
+        /// The road is preferred over the ground: a way that keeps to the road unless it is much longer.
+        /// </summary>
+        Road
     }
 
     /// <summary>
@@ -47,7 +73,7 @@ namespace ACE.Server.Pathfinding
     public static class NavPolyFlags
     {
         /// <summary>
-        /// Floor (Ground area).
+        /// Floor (Ground and Road areas).
         /// </summary>
         public const int Walk = 0x01;
 

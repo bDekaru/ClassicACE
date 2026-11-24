@@ -1,10 +1,12 @@
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
+using DotRecast.Recast;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Environment = ACE.DatLoader.FileTypes.Environment;
 using Frame = ACE.DatLoader.Entity.Frame;
+using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
 
 namespace ACE.Server.Pathfinding.Geometry
@@ -48,6 +50,11 @@ namespace ACE.Server.Pathfinding.Geometry
     {
         public List<Vector3> Vertices { get; } = new List<Vector3>();
         public List<List<int>> Polygons { get; } = new List<List<int>>();
+
+        /// <summary>
+        /// The volumes that mark the road of the terrain cells loaded by LoadSurface (see RoadArea).
+        /// </summary>
+        public List<RcConvexVolume> RoadVolumes { get; } = new List<RcConvexVolume>();
 
         public List<EnvCell> Cells { get; }
 
@@ -771,6 +778,8 @@ namespace ACE.Server.Pathfinding.Geometry
             var cellLength = (float)ACE.Entity.Position.BlockLength / sideCells;
             var origin = GeometryHelpers.GetLandblockOrigin(landblockId);
 
+            bool IsRoad(int vx, int vy) => (landblock.Terrain[vx * sideVerts + vy] & 3) != 0;
+
             for (var x = 0; x < sideCells; x++)
             {
                 for (var y = 0; y < sideCells; y++)
@@ -786,6 +795,8 @@ namespace ACE.Server.Pathfinding.Geometry
                     var z01 = vertices[x * sideVerts + y + 1].Origin.Z;
                     var z11 = vertices[(x + 1) * sideVerts + y + 1].Origin.Z;
                     var swToNeCut = landblock.SWtoNEcut[x * sideCells + y];
+
+                    RoadVolumes.AddRange(RoadArea.GetVolumes(IsRoad(x, y), IsRoad(x, y + 1), IsRoad(x + 1, y), IsRoad(x + 1, y + 1), new Vector2(x0, y0), Math.Min(Math.Min(z00, z10), Math.Min(z01, z11)), Math.Max(Math.Max(z00, z10), Math.Max(z01, z11))));
 
                     // terrain height at local offset (u, v) within this cell, using the same split as the physics polygons
                     float TerrainZ(float u, float v)

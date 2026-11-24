@@ -2039,7 +2039,12 @@ namespace ACE.Server.Command.Handlers
                 CommandHandlerHelper.WriteOutputInfo(session, $"You are at an unknown location.");
         }
 
-        [CommandHandler("FollowRoad", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0, "Follows the road you are on or next to, in the direction you face. Use it again to stop.")]
+        [CommandHandler("FollowRoad", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, 0,
+            "Follows the road you are on or next to, in the direction you face, or the roads to a place. Use it again to stop.",
+            "[place | plan place]\n" +
+            "/followroad: follow the road ahead of you\n" +
+            "/followroad Holtburg: walk to Holtburg over the roads\n" +
+            "/followroad plan Holtburg: show the route without walking it")]
         public static void HandleFollowRoad(Session session, params string[] parameters)
         {
             if (Common.ConfigManager.Config.Server.WorldRuleset != Common.Ruleset.CustomDM)
@@ -2052,14 +2057,25 @@ namespace ACE.Server.Command.Handlers
             if (player == null || player.CurrentLandblock == null)
                 return;
 
-            if (RoadFollower.IsFollowing(player))
+            var preview = parameters.Length > 1 && parameters[0].Equals("plan", StringComparison.OrdinalIgnoreCase);
+            var place = string.Join(" ", preview ? parameters.Skip(1) : parameters);
+
+            if (preview)
             {
-                RoadFollower.Stop(player);
-                session.Network.EnqueueSend(new GameMessageSystemChat("Stopped following the road.", ChatMessageType.Help));
+                RoadFollower.StartTo(player, place, true);
                 return;
             }
 
-            RoadFollower.Start(player);
+            var following = RoadFollower.IsFollowing(player);
+            if (following)
+                RoadFollower.Stop(player);
+
+            if (place.Length > 0)
+                RoadFollower.StartTo(player, place, false);
+            else if (following)
+                session.Network.EnqueueSend(new GameMessageSystemChat("Stopped following the road.", ChatMessageType.Help));
+            else
+                RoadFollower.Start(player);
         }
 
         [CommandHandler("fso", AccessLevel.Player, CommandHandlerFlag.RequiresWorld, "Fixes stuck item in the offhand.")]

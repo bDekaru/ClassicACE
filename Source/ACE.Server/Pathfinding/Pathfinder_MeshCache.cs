@@ -41,9 +41,9 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Like MeshGeometryVersion, for the outdoor tiles. 2: tiles in world coordinates with a border from the
         /// neighboring landblocks. 3: the objects of every landblock come from the dat, loaded or not. 4: spheres at
-        /// their centers. 5: no small sphere obstacles.
+        /// their centers. 5: no small sphere obstacles. 6: road areas.
         /// </summary>
-        private const int OutdoorMeshGeometryVersion = 5;
+        private const int OutdoorMeshGeometryVersion = 6;
 
         /// <summary>
         /// After an outdoor tile build fails, no new attempt is made for this long (unless a rebuild is requested).
@@ -299,15 +299,15 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Requests the outdoor tiles of the landblocks between two positions (inclusive), as far as a route search
-        /// reaches (MaxRouteLandblockSpan).
+        /// reaches (the span, see GetRouteLandblockSpan).
         /// </summary>
-        private static void RequestOutdoorTilesBetween(Position a, Position b)
+        private static void RequestOutdoorTilesBetween(Position a, Position b, int span)
         {
             var (ax, ay) = GetLandblockCoords(a.Cell);
             var (bx, by) = GetLandblockCoords(b.Cell);
 
-            bx = Math.Clamp(bx, ax - MaxRouteLandblockSpan, ax + MaxRouteLandblockSpan);
-            by = Math.Clamp(by, ay - MaxRouteLandblockSpan, ay + MaxRouteLandblockSpan);
+            bx = Math.Clamp(bx, ax - span, ax + span);
+            by = Math.Clamp(by, ay - span, ay + span);
 
             for (var x = Math.Max(0, Math.Min(ax, bx)); x <= Math.Min(0xFF, Math.Max(ax, bx)); x++)
             {
