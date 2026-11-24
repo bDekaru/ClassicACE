@@ -1,0 +1,100 @@
+{
+  "id": "numbers",
+  "title": "Game numbers",
+  "description": "Formulas and constants the client computes itself.",
+  "items": [
+    {
+      "change": "Change encumbrance capacity formula: +40 to default amount",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x4fd7a4",
+          "was": "85d27f0333c0c3",
+          "now": "83c228eb2f9090",
+          "note": "EncumbranceSystem::EncumbranceCapacity adds 40 and jumps into the cave"
+        },
+        {
+          "address": "0x4fd7d8",
+          "was": "90909090909090",
+          "now": "85d27fcf33c0c3",
+          "note": "cave in former padding: the rest of EncumbranceCapacity"
+        }
+      ]
+    },
+    {
+      "change": "Change RunRate divisor from 1.0 to 1.5",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x592823",
+          "was": "80",
+          "now": "c0",
+          "note": "CACQualities::InqMaxRunRate constant address"
+        },
+        {
+          "address": "0x59371a",
+          "was": "80",
+          "now": "c0",
+          "note": "CACQualities::InqRunRate constant address"
+        }
+      ]
+    },
+    {
+      "change": "Change JumpHeight divisor from 1.0 to 1.5",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x5938fa",
+          "was": "80",
+          "now": "c0",
+          "note": "CACQualities::InqJumpVelocity constant address"
+        }
+      ]
+    },
+    {
+      "change": "Updated vitae penalty formula (VitaeCPPoolThreshold)",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x5c9fc4",
+          "was": "b88d7e",
+          "now": "e05e79",
+          "note": "VitaeSystem::VitaeCPPoolThreshold constant address"
+        },
+        {
+          "address": "0x5c9fcf",
+          "was": "b88d7e",
+          "now": "b0a179",
+          "note": "VitaeSystem::VitaeCPPoolThreshold constant address"
+        },
+        {
+          "address": "0x5c9ff0",
+          "was": "e9cf5401009090909090909090909090",
+          "now": "dd05b88d7e00dff1721d90e9c4540100",
+          "note": "jump out to the cave at 0x5CA017"
+        },
+        {
+          "address": "0x5ca017",
+          "was": "9090909090909090",
+          "now": "dd05b88d7e00ebdc",
+          "note": "cave in former padding: new formula"
+        },
+        {
+          "address": "0x7e8dbd",
+          "was": "0004",
+          "now": "6ac8",
+          "note": "the double at 0x7E8DB8 that the formula reads"
+        }
+      ]
+    }
+  ]
+}

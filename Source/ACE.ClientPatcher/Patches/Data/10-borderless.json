@@ -1,0 +1,97 @@
+{
+  "id": "borderless",
+  "title": "Borderless window",
+  "description": "The Fullscreen option gives a borderless popup window at 0,0 the size of the desktop (not topmost, the renderer always windowed) instead of Direct3D exclusive fullscreen; off keeps the old centred window with a title bar. Only in the world: login and character selection stay a framed 800x600 window (the client forces 800x600 there through Device::ForceDisplayResolution). The option's label and help are renamed to \"Borderless Windowed\" in the language dat (client-option-strings.json). Needs the code-space entry.",
+  "items": [
+    {
+      "change": "Fullscreen becomes a borderless desktop-sized window at 0,0, not topmost, with the renderer always windowed",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x4393e4",
+          "was": "8a0d028b810084c97504c6400c00",
+          "now": "e837133d00909090909090909090",
+          "note": "Device::LoadDisplayPreferences: a cave sets FullScreen = 0 and, when the option byte 0x818B68 is on and no resolution is forced (0x8381A0), the presentation size becomes GetSystemMetrics(SM_CXSCREEN, SM_CYSCREEN); the AllowFullScreenMode test is gone"
+        },
+        {
+          "address": "0x43a569",
+          "was": "8a4424688b0da4818300f6d81bc0250000367f050000ca12",
+          "now": "8b0da4818300e8ec013d0090909090909090909090909090",
+          "note": "Device::ChangePresentation: the window style comes from a cave: option on 0x92000000 (popup, visible), off 0x12CA0000 (as before)"
+        },
+        {
+          "address": "0x43a5d3",
+          "was": "8a44247083c40833db33ed84c089542414",
+          "now": "83c40833db33ed89542414e89d013d0090",
+          "note": "ChangePresentation: the test that skips the frame metrics and the centring reads the option byte through a cave, so the window goes to 0,0"
+        },
+        {
+          "address": "0x43bb6c",
+          "was": "028b810084c074108a44243c84c0",
+          "now": "688b810084c09090909090909090",
+          "note": "Device::Init: the windowed flag comes from the option byte (popup style, 0,0, no frame metrics when on)"
+        },
+        {
+          "address": "0x43bdf1",
+          "was": "f6d8",
+          "now": "f990",
+          "note": "Device::Init: the SetWindowPos always uses HWND_NOTOPMOST (neg al -> stc; nop)"
+        },
+        {
+          "address": "0x80a720",
+          "was": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "c6400c00803da0818300007523803d688b810000741a5689c66a00ff15d03479008946046a01ff15d03479008946085ec3",
+          "note": "cave: the LoadDisplayPreferences body and the style cave"
+        },
+        {
+          "address": "0x80a760",
+          "was": "0000000000000000000000000000000000000000",
+          "now": "803d688b810000b80000ca127405b800000092c3",
+          "note": "cave: the frame-metrics test"
+        },
+        {
+          "address": "0x80a780",
+          "was": "00000000000000000000000000",
+          "now": "803d688b8100000f95c084c0c3",
+          "note": "cave: the Device::Init windowed flag"
+        }
+      ]
+    },
+    {
+      "change": "The borderless window applies only in the world; login and character selection stay a framed 800x600 window",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x43bb6b",
+          "was": "a0688b810084c0909090",
+          "now": "e810ed3c000f95c084c0",
+          "note": "Device::Init: the direct read of the option byte calls cave D"
+        },
+        {
+          "address": "0x80a760",
+          "was": "803d688b810000",
+          "now": "e81b0100009090",
+          "note": "the style and frame-metrics caves call cave D instead of reading the option byte"
+        },
+        {
+          "address": "0x80a780",
+          "was": "803d688b810000",
+          "now": "e8fb0000009090",
+          "note": "the Device::Init cave calls cave D"
+        },
+        {
+          "address": "0x80a880",
+          "was": "0000000000000000000000000000000000000000",
+          "now": "803da0818300007508803d688b810000c338c0c3",
+          "note": "cave D: ZF = (option off or the forced-resolution flag 0x8381A0 on)"
+        }
+      ]
+    }
+  ]
+}

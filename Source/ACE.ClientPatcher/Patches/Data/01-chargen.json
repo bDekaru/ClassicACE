@@ -1,0 +1,79 @@
+{
+  "id": "chargen",
+  "title": "Character generation",
+  "description": "Text and rules of the character creation screens.",
+  "items": [
+    {
+      "change": "Chargen: Remove Training Bonus +5 and Specialization Bonus +10 text",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x481710",
+          "was": "7507",
+          "now": "eb31",
+          "note": "gmCGSkillsPage::ShowSkillsText skips the bonus text"
+        }
+      ]
+    },
+    {
+      "change": "Limit random heritage selection to Aluvian, Gharu and Sho (both random char and random heritage buttons)",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x5c7a09",
+          "was": "7504",
+          "now": "9090",
+          "note": "CharGenState::RandomizeHeritageGroup, jnz replaced by nops"
+        },
+        {
+          "address": "0x5c7d6e",
+          "was": "7504",
+          "now": "9090",
+          "note": "CharGenState::RandomizeCharacter, jnz replaced by nops"
+        }
+      ]
+    },
+    {
+      "change": "Sanamar->Other in the chargen starter location selection (Infiltration: Random)",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x79fc94",
+          "was": "530061006e0061006d00610072",
+          "now": "4f007400680065007200000000",
+          "note": "starter location name \"Sanamar\" -> \"Other\"",
+          "variant": "CustomDM"
+        },
+        {
+          "address": "0x79fc94",
+          "was": "530061006e0061006d00610072",
+          "now": "520061006e0064006f006d0000",
+          "note": "starter location name \"Sanamar\" -> \"Random\"",
+          "variant": "Infiltration"
+        }
+      ]
+    },
+    {
+      "change": "Fix narrow vs wide char strings for attribute names in attr1 x attr2 skill formula text (unused after the InqSkillFormula change)",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7a120a",
+          "was": "73",
+          "now": "53",
+          "note": "wide format string \"%s)\" -> \"%S)\" in the formula text"
+        }
+      ]
+    }
+  ]
+}

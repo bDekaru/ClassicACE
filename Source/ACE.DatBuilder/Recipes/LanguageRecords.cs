@@ -21,14 +21,14 @@ namespace ACE.DatBuilder
         public const string InfiltrationChargenTextFile = "infiltration-chargen-text.json";
         public const string CustomDMChargenTextFile = "customdm-chargen-text.json";
         public const string CustomDMTextStringsFile = "customdm-text-strings.json";
-        public const string CustomDMOptionStringsFile = "customdm-option-strings.json";
+        public const string ClientOptionStringsFile = "client-option-strings.json";
 
         // Source dats of the steps below (MD5 of the files):
         //   EoR language dat (heritage layout, character generation text): language - 2015-06-18 - Iteration 994 - EoR.dat, MD5 b55f7465dbf4fa94fc919d51afcb70da
         //   EoR portal dat (property table the layout is read with): portal - 2017-01-29 - Iteration 2072 - EoR.dat, MD5 2c89662a44fcdc2a3c31fe8f6677d265
         public static DatRecordStep[] Infiltration(string date)
         {
-            return new[] { ChargenHeritageUi(date), ChargenText(date, InfiltrationChargenTextFile), ChargenHeritageUiMoved(date) };
+            return new[] { ChargenHeritageUi(date), ChargenText(date, InfiltrationChargenTextFile), ChargenHeritageUiMoved(date), OptionStringEdits(date) };
         }
 
         public static DatRecordStep[] CustomDM(string date)
@@ -100,13 +100,13 @@ namespace ACE.DatBuilder
             });
         }
 
-        /// <summary>The Fullscreen option is a borderless window in the CustomDM client (patch_borderless_fullscreen.py), so its label and help text say so; the texture detail options of its patch get their labels as new entries.</summary>
+        /// <summary>The Fullscreen option is a borderless window in the CustomDM and Infiltration clients (ACE.ClientPatcher, borderless entry), so its label and help text say so; the texture detail options of its patch get their labels as new entries.</summary>
         private static DatRecordStep OptionStringEdits(string date)
         {
             return new DatRecordStep("Option texts from the EoR record", date, c =>
             {
                 var table = c.ReadTarget<StringTable>(TextStringsId);
-                DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(CustomDMOptionStringsFile));
+                DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(ClientOptionStringsFile));
                 c.Write(TextStringsId, table.Pack(), "borderless windowed and texture detail option texts", true);
             });
         }

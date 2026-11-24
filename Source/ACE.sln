@@ -43,6 +43,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACE.Adapter", "ACE.Adapter\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACE.DatBuilder", "ACE.DatBuilder\ACE.DatBuilder.csproj", "{EB46DE68-8D1A-4EFA-8AEC-CBC8A9AAC09A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACE.ClientPatcher", "ACE.ClientPatcher\ACE.ClientPatcher.csproj", "{1873E255-A5D2-43E3-B08E-65CEE55D42EE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -173,6 +175,18 @@ Global
 		{EB46DE68-8D1A-4EFA-8AEC-CBC8A9AAC09A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{EB46DE68-8D1A-4EFA-8AEC-CBC8A9AAC09A}.Release|x86.ActiveCfg = Release|Any CPU
 		{EB46DE68-8D1A-4EFA-8AEC-CBC8A9AAC09A}.Release|x86.Build.0 = Release|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Debug|x64.Build.0 = Debug|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Debug|x86.Build.0 = Debug|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Release|x64.ActiveCfg = Release|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Release|x64.Build.0 = Release|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Release|x86.ActiveCfg = Release|Any CPU
+		{1873E255-A5D2-43E3-B08E-65CEE55D42EE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

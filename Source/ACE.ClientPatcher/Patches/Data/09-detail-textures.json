@@ -1,0 +1,229 @@
+{
+  "id": "detail-textures",
+  "title": "Texture detail options",
+  "description": "The landscape and environment detail menus of the 2005 client (Full, 1/2, 1/4, 1/8) with the 2005 texture sampling, and a separate Landscape Detail Textures checkbox. The \"1/8\" entry is left as in retail: its shift is 4, which is 1/16 (8 px of the 128 px merge), as in the 2005 client (table 0,1,2,4 at 0x635438); an earlier build changed it to 3 and was dropped on 2026-11-24. Needs the code-space entry, and the language dat strings ID_Graphics_TexEighth, TexQuarter, TexHalf and TexFull (DatBuilder, CustomDM and Infiltration rulesets) or the menu shows \"string table error\". It is written for the 128 px ground dat (Region BaseTexSize 128, tiling 1). Saved values in UserPreferences.ini win over the new defaults. Notes from testing: the environment setting also coarsens detail textures in stock EoR (RenderTexture::DropUnwantedLevels, 0x44C550), and our Full (value 1) is stock High, which loses nothing.",
+  "items": [
+    {
+      "change": "Landscape and environment texture detail menus: four entries 1/8, 1/4, 1/2, Full (values 4,3,2,1), default Full, no restart notice. Retail ToD has five (VeryLow to VeryHigh, values 4 to 0, default 2) where 0 and 1 are the same size, and changing to or from 0 shows the high-resolution dialog",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x403f70",
+          "was": "5846",
+          "now": "a02f",
+          "note": "gmClient::InitUIPreferences: the menu label ids (language dat strings) become ID_Graphics_TexEighth, TexQuarter, TexHalf, TexFull, the fifth entry is jumped over"
+        },
+        {
+          "address": "0x403fb3",
+          "was": "4046",
+          "now": "b62f",
+          "note": "InitUIPreferences, same menu"
+        },
+        {
+          "address": "0x403ffb",
+          "was": "2446",
+          "now": "cd2f",
+          "note": "InitUIPreferences, same menu"
+        },
+        {
+          "address": "0x404043",
+          "was": "0c46",
+          "now": "e12f",
+          "note": "InitUIPreferences, same menu"
+        },
+        {
+          "address": "0x40408a",
+          "was": "68f04579",
+          "now": "e9430000",
+          "note": "InitUIPreferences, same menu"
+        },
+        {
+          "address": "0x40410f",
+          "was": "5846",
+          "now": "a02f",
+          "note": "InitUIPreferences, environment menu"
+        },
+        {
+          "address": "0x404152",
+          "was": "4046",
+          "now": "b62f",
+          "note": "InitUIPreferences, environment menu"
+        },
+        {
+          "address": "0x40419a",
+          "was": "2446",
+          "now": "cd2f",
+          "note": "InitUIPreferences, environment menu"
+        },
+        {
+          "address": "0x4041e2",
+          "was": "0c46",
+          "now": "e12f",
+          "note": "InitUIPreferences, environment menu"
+        },
+        {
+          "address": "0x404229",
+          "was": "68f04579",
+          "now": "e9430000",
+          "note": "InitUIPreferences, environment menu"
+        },
+        {
+          "address": "0x49e947",
+          "was": "02",
+          "now": "01",
+          "note": "gmConfigUI::InitOptions: the reset-to-default value of the landscape menu becomes 1 (Full)"
+        },
+        {
+          "address": "0x54f7cd",
+          "was": "05",
+          "now": "04",
+          "note": "Render::Startup: RegisterPreference of the landscape detail passes the choice count 4 instead of 5"
+        },
+        {
+          "address": "0x54f81d",
+          "was": "05",
+          "now": "04",
+          "note": "Render::Startup: the same for the environment detail"
+        },
+        {
+          "address": "0x54bccc",
+          "was": "02",
+          "now": "01",
+          "note": "Render::SetOverallGraphicsQuality preset 3 (the fresh-install default): eax = 1 instead of 2"
+        },
+        {
+          "address": "0x54bd12",
+          "was": "a3a8ff81",
+          "now": "e9757224",
+          "note": "SetOverallGraphicsQuality preset 4: jumps to the 11-byte cave at 0x792F8C that stores the landscape value"
+        },
+        {
+          "address": "0x54bd46",
+          "was": "a3a8ff81",
+          "now": "e9357224",
+          "note": "SetOverallGraphicsQuality preset 5: jumps to the 11-byte cave at 0x792F80"
+        },
+        {
+          "address": "0x792f80",
+          "was": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "890da8ff8100e9c08ddbff00890da8ff8100e9808ddbff00000000000000000049445f47726170686963735f5465784569676874680049445f47726170686963735f546578517561727465720049445f47726170686963735f54657848616c660049445f47726170686963735f54657846756c6c",
+          "note": "the two 11-byte caves of presets 5 (0x792F80) and 4 (0x792F8C), then the language string names ID_Graphics_TexEighth, TexQuarter, TexHalf, TexFull at 0x792FA0 (the language dat must hold them: DatBuilder LanguageRecords.TextureDetailLabels, client-option-strings.json)"
+        }
+      ]
+    },
+    {
+      "change": "Lower landscape detail no longer clips the ground: the 2005 TileCSI sampling (a merge buffer smaller than tiling x texture width samples every n-th texel, a larger one repeats the texture)",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x53f508",
+          "was": "8b4c24443bcf0f869f0000008bd30faf54243c33c0558954243089442424894c2428eb048b4c2448897c2414894c24203bdf8b4c241076448b6c24408b542414c1e50203c28b5424388d34828bfb8b54241885d28bc676118b19891883c00483c1044a75f38b5c241c03f54f75e08b7424448b4424248b54243033ff8b6c24148b4c242003ea49896c2414894c2420759f8b6c24188b4c242803c54989442424894c24280f857affffff5d",
+          "now": "5553575683ec088b4c245c85c9747b837c24240074748b6c242c8b7c24548bc10fafc533d2f7f785c0750140894424048bc10faf44243033d2f774245085c07501408904244d33db8bc30faf04248b5424304a23c20faf44242c8b7424248d34868bc30fafc78b54244c8d148233c08bc80faf4c240423cd8b0c8e890c82403bc772ec433b5c245072be83c4085e5f5b5d9090909090909090909090909090909090909090909090909090",
+          "note": "ImgTex::TileCSI (0x53F4A0): the tiling loop (0x53F508 to 0x53F5B2) is replaced by the 2005 sampling (tilecsi_rescale)"
+        }
+      ]
+    },
+    {
+      "change": "A separate \"Landscape Detail Textures\" checkbox (on by default) turns the ground detail textures on and off; the Building Detail Textures option no longer drives them",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x50768a",
+          "was": "8b44241083c40485c0",
+          "now": "59803da4ff81000090",
+          "note": "LScape::SetDetailTexturing: the landscape flag is read from the preference byte 0x81FFA4 instead of an argument (the three callers stay as they are). Stock the flag comes from an argument that every caller passes as 0, so landscape detail was never made; the CustomDM exe read the building flag instead"
+        },
+        {
+          "address": "0x54e5e9",
+          "was": "3805cc028700",
+          "now": "e9d2c02b0090",
+          "note": "Render::UpdateFromPreferences: a cave with a cache byte (0x906FF0) forces SmartBox::SetDetailTexturing when the landscape preference changed"
+        },
+        {
+          "address": "0x403f15",
+          "was": "68dc4679",
+          "now": "e9366740",
+          "note": "gmClient::InitUIPreferences: a cave attaches the preference as a checkbox (language ids ID_Graphics_LandscapeDetailTextures and _Help, already in the language dat)"
+        },
+        {
+          "address": "0x49e99e",
+          "was": "68f0f583",
+          "now": "e9edbc36",
+          "note": "gmConfigUI::InitOptions: a cave adds the checkbox before the Building one, default 1"
+        },
+        {
+          "address": "0x54bcbc",
+          "was": "a2a4ff8100a2a5ff8100",
+          "now": "e92fea2b009090909090",
+          "note": "SetOverallGraphicsQuality preset 3: both detail bytes on"
+        },
+        {
+          "address": "0x54bd05",
+          "was": "00",
+          "now": "01",
+          "note": "SetOverallGraphicsQuality preset 4: landscape on"
+        },
+        {
+          "address": "0x54bd32",
+          "was": "33c0",
+          "now": "89c8",
+          "note": "SetOverallGraphicsQuality preset 5: landscape on"
+        },
+        {
+          "address": "0x80a600",
+          "was": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "49445f47726170686963735f4c616e64736361706544657461696c54657874757265730049445f47726170686963735f4c616e64736361706544657461696c54657874757265735f48656c700000000083c4146824a68000e85370bfff83c404506800a68000e84570bfff83c4045068030000106a046844748600e8d047ddff83c41483ec1468dc467900e98a98bfff68447486008bcee8548fceff8b106a018bc8ff92d802000068f0f58300e9f142c9ff",
+          "note": "the .rdata caves and strings of the checkbox (code space at 0x80A600 to 0x80A710)"
+        },
+        {
+          "address": "0x80a6c0",
+          "was": "000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "8a15a4ff81003a15f06f9000740b8815f06f9000c6442408013805cc028700e90b3fd4ff",
+          "note": "the .rdata caves of the checkbox, part 2"
+        },
+        {
+          "address": "0x80a6f0",
+          "was": "00000000000000000000000000000000000000",
+          "now": "c605a4ff810001c605a5ff810001e9c315d4ff",
+          "note": "the .rdata caves of the checkbox, part 3"
+        }
+      ]
+    },
+    {
+      "change": "The overlay terrain image is sampled across the whole texture at lower landscape detail (it used to be cropped to its top-left corner), so the layers match. It made the seam between ground tiles at 1/8 less visible, not gone: the rest is a property of the per-tile texture at low resolution (a full 512 px ground dat showed the same seam)",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x53f75f",
+          "was": "8d049d00000000",
+          "now": "e93cb12c009090",
+          "note": "ImgTex::MergeTexture (0x53F5D0), merge buffer S <= mask width: calls cave E to get the overlay step bs = max(1, W / S)"
+        },
+        {
+          "address": "0x53f7f3",
+          "was": "8b5424508b44246083c10483c70403ea",
+          "now": "908b44246083c104037c242c036c2450",
+          "note": "MergeTexture: the per-texel advance 'add edi,4' becomes 'add edi,[esp+2Ch]'"
+        },
+        {
+          "address": "0x80a8a0",
+          "was": "0000000000000000000000000000000000000000000000000000000000000000",
+          "now": "528b44242833d2f774245085c0750140c1e002894424300fafc35ae9a64ed3ff",
+          "note": "cave E: computes bs, stores 4*bs in the free stack slot, returns eax = 4*W*bs, the overlay row advance"
+        }
+      ]
+    }
+  ]
+}

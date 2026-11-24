@@ -290,12 +290,14 @@ namespace ACE.DatBuilder
         public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage)
             .WithRecordSteps(LanguageRecords.Infiltration(InitialVersionDate));
 
+        /// <summary>Deprecated (2026-11-24): the portal built from the EoR dat. <see cref="PortalCustomDM2005"/> is the one in use.</summary>
         public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
             Initial("Portal/CustomDM"))
             .WithPreToDImport(RemovedContent())
             .WithRecordSteps(CustomDMRecords.All(InitialVersionDate).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Ground surface textures", InitialVersionDate, SurfaceTextureRecords.GroundFile)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Rock surface textures", InitialVersionDate, SurfaceTextureRecords.RockFile)).Append(ModelRecords.Trees(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(MoonRecords.Overlay(InitialVersionDate)).Append(RemovedRecords.Step(InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
+        /// <summary>Deprecated (2026-11-24): the portal built from the EoR dat. <see cref="PortalInfiltration2005"/> is the one in use.</summary>
         public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
             Initial("Portal/Infiltration"))
             .WithPreToDImport(RemovedContent())
@@ -303,12 +305,12 @@ namespace ACE.DatBuilder
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };
 
-        /// <summary>The alternative portal recipe that starts from the 2005 dat; built only when asked for by name, to compare with <see cref="PortalInfiltration"/>.</summary>
+        /// <summary>The Infiltration portal that starts from the 2005 dat, the one in use; it is built only when asked for by name (<see cref="Alternatives"/>) until <see cref="All"/> and the cell recipes are switched from the deprecated <see cref="PortalInfiltration"/>.</summary>
         public static readonly DatBuildRecipe PortalInfiltration2005 = new DatBuildRecipe("Portal Infiltration 2005", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
             Initial("Portal/Infiltration"))
             .WithEmptyBase()
             .WithOutputFolder("Infiltration2005")
-            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate).Concat(InfiltrationRecords.Tables(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).ToArray());
+            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate).Concat(InfiltrationRecords.Tables(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).ToArray());
 
         /// <summary>The CustomDM counterpart of <see cref="PortalInfiltration2005"/>: the 2005 look everywhere, with only the CustomDM additions that have no 2005 record laid over it.</summary>
         public static readonly DatBuildRecipe PortalCustomDM2005 = new DatBuildRecipe("Portal CustomDM 2005", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,

@@ -1,0 +1,203 @@
+{
+  "id": "movement",
+  "title": "Movement",
+  "description": "Smoother creature and player movement against the CustomDM server: no back-slide after a sticky, no stuck slide after a collision, a blended stop at arrival, and run speed that changes live. The edits depend on each other in this order: the crossfade rewrites a call inside the arrival cave, the live player speed hooks into the run rate cave, and the blend into the live speed caves. Needs the code-space and animation-break entries.",
+  "items": [
+    {
+      "change": "A creature stuck to its target forgets the positions queued before the sticky, so it no longer runs back through them when the sticky ends (back-slides of 2 to 7 m)",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x556391",
+          "was": "e86a94fbff",
+          "now": "e94ac92300",
+          "note": "StickyManager::StickTo: the call to set_target jumps to a cave"
+        },
+        {
+          "address": "0x792ce0",
+          "was": "000000000000000000000000000000000000",
+          "now": "e81bcbd7ff8b4e50e823c9d7ffe9a436dcff",
+          "note": "cave: the same set_target call, then CPhysicsObj::StopInterpolating on the sticky's physics object ([esi+50h]), back to 0x556396"
+        }
+      ]
+    },
+    {
+      "change": "A step that collides with something no longer leaves the stored sliding normal behind, so a chaser that ran into its target is not stuck for seconds",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x516438",
+          "was": "54e7ffff",
+          "now": "b6c82700",
+          "note": "CPhysicsObj::UpdateObjectInternal, branch where transition() returned null: the call to set_frame goes to a cave"
+        },
+        {
+          "address": "0x792cf2",
+          "was": "000000000000000000000000",
+          "now": "83a6ac000000fbe9921ed8ff",
+          "note": "cave: and dword ptr [esi+0ACh],0FFFFFFFBh (clears the SLIDING bit of transient_state), then jmp CPhysicsObj::set_frame"
+        }
+      ]
+    },
+    {
+      "change": "A creature that arrives at its target after a chase drops its queued link animations, so it does not glide on past the arrival point (players are left alone)",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x52abd6",
+          "was": "b6f0ffff",
+          "now": "86812600",
+          "note": "MoveToManager::HandleMoveToPosition, arrival branch: the call to _StopMotion goes to a cave"
+        },
+        {
+          "address": "0x792d60",
+          "was": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "ff742408ff742408e8236fd9ff833e0675228b8e5401000085c974188b812c01000085c0740ef68000010000087505e85cdbd7ffc208",
+          "note": "cave (entered by a call, so it first copies the caller's two arguments): _StopMotion; then for a move to an object (type 6) of a non-player (weenie bit 8 of +100h clear) CPhysicsObj::RemoveLinkAnimations"
+        }
+      ]
+    },
+    {
+      "change": "The pose change at a chase arrival is blended over ten updates instead of snapping",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x519c69",
+          "was": "93feffff",
+          "now": "73912700",
+          "note": "CPartArray::UpdateParts: the call to Frame::combine goes to CaveC"
+        },
+        {
+          "address": "0x792d90",
+          "was": "5cdbd7ff",
+          "now": "04000000",
+          "note": "the call to RemoveLinkAnimations in the arrival cave goes to CaveB"
+        },
+        {
+          "address": "0x792d98",
+          "was": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "8b411085c0743a56ba00689000be080000003902742183c2084e75f6ba00689000be08000000837a04007e0b83c2084e75f4ba006890008902c742040a0000005eb8f0085100ffe051ba00689000b808000000391a7506837a04007f1d83c2084875f0ff742410ff742410ff742410b8009b5100ffd059c20c0085f67503ff4a048b420485c07edb83ec308944241c8b018904248b4104894424048b4108894424088b410c8944240c8b4134894424108b4138894424148b413c89442418ff742440ff742440ff742440b8009b5100ffd08b4c2430c744242c295c8f3ddb44241cd84c242cd95c2420d9e8d8642420d95c2424d901d80c24d94104d84c2404dec1d94108d84c2408dec1d9410cd84c240cdec1d95c24288b44242885c08b4424207905350000008089442428d901d84c2424d90424d84c2428dec1d91c24d94104d84c2424d9442404d84c2428dec1d95c2404d94108d84c2424d9442408d84c2428dec1d95c2408d9410cd84c2424d944240cd84c2428dec1d95c240cd94134d84c2424d9442410d84c2420dec1d95934d94138d84c2424d9442414d84c2420dec1d95938d9413cd84c2424d9442418d84c2420dec1d9593cff74240cff74240cff74240cff74240c8b4c2440b8c05d5300ffd083c43059c20c",
+          "note": "CaveB registers the creature's CPartArray in an 8-slot table at 0x906800 (10 updates left) and jumps to RemoveLinkAnimations; CaveC combines as before, then blends the new pose (nlerp of origin and quaternion) with the old one, the old pose weighing 0.07 per remaining update (0.70 falling to 0.07)"
+        }
+      ]
+    },
+    {
+      "change": "A change of the player's run rate while a run key or autorun is held (spell, road bonus, burden, exhaustion) takes effect at once, without releasing the keys",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x6b4b30",
+          "was": "568bf18b06",
+          "now": "e9cb5d1500",
+          "note": "CommandInterpreter::UseTime, first instructions: jmp to cave F (the stolen instructions run there)"
+        },
+        {
+          "address": "0x80a900",
+          "was": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "568bf1578b4e0885c90f84dd0000008b81c400000085c00f84cf0000008b0085c00f84c50000008b480485c90f841f0000008b115083ec048d44240050ff523488c18b142483c4045884c90f85030000008b507c89d7a1e06f900085c00f848300000039f80f8481000000837e34000f85710000008b4e08e8034cd0ff85c00f85670000008b4e08e8534cd0ff85c00f8551000000837e48000f85350000008d4e0ce8d9afeaff85c00f85250000008d4e18e8c9afeaff85c00f85150000008d4e24e8b9afeaff85c00f8505000000e912000000893de06f900089f1e88f99eaffe906000000893de06f90005f89f18b06e93fa1eaff",
+          "note": "cave F: reads the run rate as CMotionInterp::apply_run_to_command does, compares its bits with the last one seen (dword 0x906FE0) and when it changed re-issues the held command through ApplyCurrentMovement (0x6B4370), unless the server controls the player, motions are pending or a move-to runs"
+        }
+      ]
+    },
+    {
+      "change": "A creature running to its target changes speed or walk/run without stopping when the server sends the move again with the speed-update flag (0x800 in the first word of the packet)",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x525060",
+          "was": "e85bbcfeff8b4f08e843a5feff",
+          "now": "e99b592e009090909090909090",
+          "note": "MovementManager::unpack_movement, hook A: skips cancel_moveto and unstick_from_object for a flagged move-to packet while the creature runs to its target (flag byte 0x906FE4)"
+        },
+        {
+          "address": "0x5251e9",
+          "was": "8b0753d9587c",
+          "now": "e9a2582e0090",
+          "note": "unpack_movement, hook B1 after the run rate of MoveToObject is stored"
+        },
+        {
+          "address": "0x525256",
+          "was": "8b0fd9597c",
+          "now": "e985582e00",
+          "note": "unpack_movement, hook B2, the same place for MoveToPosition"
+        },
+        {
+          "address": "0x80aa00",
+          "was": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "508b8424bc0000008b008b003c060f84080000003c070f8553000000f6c4080f844a0000008b470485c00f843f0000008b1083fa060f840900000083fa070f852b0000008b903c01000081fa050000450f840c00000081fa070000440f850d000000c605e46f90000158e9fea5d1ff58e84b62d0ff8b4f08e8334bd0ffe9eba5d1ff",
+          "note": "cave A"
+        },
+        {
+          "address": "0x80aa90",
+          "was": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "8b07d9587c803de46f9000000f841e000000c605e46f9000008b4f048b44241c8981e0000000e855fbd1ffe949a7d1ff53e89a54d0ffe929a7d1ff",
+          "note": "cave B1: when the flag is set, clears it and calls MoveToManager::BeginMoveForward (0x52A610), which retimes the run through CMotionTable::GetObjectSequence without a stop"
+        },
+        {
+          "address": "0x80aae0",
+          "was": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "8b0fd9597c803de46f9000000f841e000000c605e46f9000008b4f048b44241c8981e0000000e805fbd1ffe95da7d1ffe946a7d1ff",
+          "note": "cave B2"
+        }
+      ]
+    },
+    {
+      "change": "A live speed change that switches the creature's forward command (snare: run to walk and back) is blended with the same crossfade",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x80aab7",
+          "was": "55fbd1ff",
+          "now": "e5000000",
+          "note": "cave B1: the call to BeginMoveForward goes to the wrapper W"
+        },
+        {
+          "address": "0x80ab07",
+          "was": "05fbd1ff",
+          "now": "95000000",
+          "note": "cave B2: the call to BeginMoveForward goes to the wrapper W"
+        },
+        {
+          "address": "0x80ab40",
+          "was": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "8b411085c00f844a00000056ba00689000be0800000039020f842d00000083c2084e0f85eeffffffba00689000be08000000837a04000f8e0f00000083c2084e0f85ecffffffba006890008902c742040a0000005ec300000000000000000000518b4f08e897ffffff59e961fad1ff",
+          "note": "cave R registers the creature's CPartArray in the crossfade table (as CaveB); wrapper W calls R with the creature's physics object, then jumps to BeginMoveForward"
+        }
+      ]
+    },
+    {
+      "change": "The player's own run speed changes during a server move-to (/god, Sprint) without stopping: the run is re-issued when the rate the client computes changes",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x80a9e6",
+          "was": "893de06f9000",
+          "now": "e91502000090",
+          "note": "cave F, at the point where the new rate is stored: jumps to cave G"
+        },
+        {
+          "address": "0x80ac00",
+          "was": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "893de06f90008b4e0885c90f844e0000008b89c400000085c90f84400000008b490485c90f84350000008b0183f8060f840900000083f8070f85210000008b813c0100003d050000450f840b0000003d070000440f8505000000e8b1f9d1ffe988fdffff",
+          "note": "cave G: if the player's MoveToManager runs a MoveToObject or MoveToPosition with WalkForward or RunForward, calls BeginMoveForward, which re-issues the command at the rate InqRunRate returns now"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+{
+  "id": "text",
+  "title": "Text wording",
+  "description": "Appraisal and message wording changed to match the server.",
+  "items": [
+    {
+      "change": "Item appraisal: remove base shield level display related to EoR shield skill",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x4b17fb",
+          "was": "1c",
+          "now": "19",
+          "note": "ItemExamineUI::Appraisal_ShowWeaponAndArmorData, shield level branch skipped"
+        }
+      ]
+    },
+    {
+      "change": "Change \"Burden: Unknown\" to \"Burden: ???\" for unknown burden items",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7b05e8",
+          "was": "556e6b6e",
+          "now": "3f3f3f00",
+          "note": "\"Burden: Unknown\" -> \"Burden: ???\""
+        }
+      ]
+    },
+    {
+      "change": "Change +1 Magic/Missile/Melee Defense imbue text to +3 to match server",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7b1355",
+          "was": "31",
+          "now": "33",
+          "note": "\"+1 Magic Defense\" -> \"+3 ...\""
+        },
+        {
+          "address": "0x7b1369",
+          "was": "31",
+          "now": "33",
+          "note": "\"+1 Missile Defense\" -> \"+3 ...\""
+        },
+        {
+          "address": "0x7b137d",
+          "was": "31",
+          "now": "33",
+          "note": "\"+1 Melee Defense\" -> \"+3 ...\""
+        }
+      ]
+    },
+    {
+      "change": "Change \"Nether Rending\" text to \"Elem. Rending\"",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7b13c4",
+          "was": "4e65746865722052656e64696e67",
+          "now": "456c656d2e2052656e64696e6700",
+          "note": "\"Nether Rending\" -> \"Elem. Rending\""
+        }
+      ]
+    },
+    {
+      "change": "Change weapon damage range to not show any decimal places and rounded to the nearest whole integer (changed in 2 places)",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7b1778",
+          "was": "3467",
+          "now": "3066",
+          "note": "number format \".4g\" -> \".0f\""
+        },
+        {
+          "address": "0x7b1788",
+          "was": "3367",
+          "now": "3066",
+          "note": "number format \".3g\" -> \".0f\""
+        }
+      ]
+    },
+    {
+      "change": "Change \"Shield Level: Unknown\" text to \"Covers Front\" text",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x7b184c",
+          "was": "536869656c64204c6576656c3a20",
+          "now": "436f766572732046726f6e740000",
+          "note": "\"Shield Level: \" -> \"Covers Front\""
+        }
+      ]
+    },
+    {
+      "change": "Change \"* = Unenchantable\" text to \"\" in the creature appraisal window",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7b20a0",
+          "was": "2a0020003d00200055006e0065006e006300680061006e007400610062006c0065",
+          "now": "000000000000000000000000000000000000000000000000000000000000000000",
+          "note": "\"* = Unenchantable\" blanked"
+        }
+      ]
+    },
+    {
+      "change": "Change \"Player Killer Lite\" text to \"Player Killer\" in the appraisal window",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7b239a",
+          "was": "20004c006900740065",
+          "now": "000000000000000000",
+          "note": "\" Lite\" blanked"
+        }
+      ]
+    },
+    {
+      "change": "Change \"Lite Player Killers may not use this portal.\" to \"Hardcore Killers may not use this portal.\"",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7b24d8",
+          "was": "4c69746520506c61796572204b696c6c657273206d6179206e6f7420757365207468697320706f7274616c2e0a",
+          "now": "48617264636f7265204b696c6c657273206d6179206e6f7420757365207468697320706f7274616c2e00000000",
+          "note": "portal restriction message"
+        }
+      ]
+    },
+    {
+      "change": "Change \"Only Player Killer Lite characters may use this command!\" to \"Only Hardcore Killer characters may use this command!\"",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7d3dca",
+          "was": "50006c00610079006500720020004b0069006c006c006500720020004c006900740065002000630068006100720061006300740065007200730020006d0061007900200075007300650020007400680069007300200063006f006d006d0061006e00640021000a",
+          "now": "480061007200640063006f007200650020004b0069006c006c00650072002000630068006100720061006300740065007200730020006d0061007900200075007300650020007400680069007300200063006f006d006d0061006e006400210000000000000000",
+          "note": "command restriction message"
+        }
+      ]
+    },
+    {
+      "change": "Change \"Lite Player Killers may not interact with that portal!\" to \"Hardcore Killers may not interact with that portal!\"",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7d6830",
+          "was": "4c00690074006500200050006c00610079006500720020004b0069006c006c0065007200730020006d006100790020006e006f007400200069006e007400650072006100630074002000770069007400680020007400680061007400200070006f007200740061006c0021000a",
+          "now": "480061007200640063006f007200650020004b0069006c006c0065007200730020006d006100790020006e006f007400200069006e007400650072006100630074002000770069007400680020007400680061007400200070006f007200740061006c00210000000000000000",
+          "note": "portal interaction message"
+        }
+      ]
+    },
+    {
+      "change": "Change the landscape house purchase text to \"Are you sure you want to buy this house?\"",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7b7dc0",
+          "was": "5700680065006e00200079006f00750020006200750079002000610020006c0061006e00640073006300610070006500200068006f0075007300650020006c0069006b0065002000740068006900730020006f006e0065002c00200079006f0075002000610072006500200072006500730074007200690063007400650064002000660072006f006d00200062007500790069006e006700200061006e006f007400680065007200200066006f007200200033003000200064006100790073002e002000410072006500200079006f00750020007300750072006500200079006f0075002000770061006e007400200074006f00200062007500790020007400680069007300200068006f007500730065003f",
+          "now": "410072006500200079006f00750020007300750072006500200079006f0075002000770061006e007400200074006f00200062007500790020007400680069007300200068006f007500730065003f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "note": "house purchase confirmation without the 30 day restriction"
+        }
+      ]
+    },
+    {
+      "change": "Change \"Void Magic\" to \"Any\": an item requirement of any magic skill at a particular level",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x7e591c",
+          "was": "566f6964204d61676963",
+          "now": "416e7900000000000000",
+          "note": "\"Void Magic\" -> \"Any\""
+        }
+      ]
+    }
+  ]
+}

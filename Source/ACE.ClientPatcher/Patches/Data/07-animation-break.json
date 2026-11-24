@@ -1,0 +1,53 @@
+{
+  "id": "animation-break",
+  "title": "Animation break and move-to flags",
+  "description": "Lets the server drop a creature's queued link animations (MotionFlags.AnimationBreak, bit 0x400 of the first word of a movement packet) and makes MoveToPosition use the new move's flags for its first distance read, as the server does. Both came with the logon version c119.",
+  "items": [
+    {
+      "change": "Animation break: a movement packet with MotionFlags 0x400 drops the object's link animations; a Dead motion no longer does it by itself (the server sets the flag on death motions)",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x528fcb",
+          "was": "75",
+          "now": "eb",
+          "note": "CMotionInterp::DoInterpretedMotion: the Dead check (cmp edi,40000011h; jne +8 -> jmp +8) always jumps over the call to CPhysicsObj::RemoveLinkAnimations, so a Dead motion no longer drops them by itself"
+        },
+        {
+          "address": "0x5250ef",
+          "was": "0fb7e983c002",
+          "now": "e90cdc260090",
+          "note": "MovementManager::unpack_movement, after reading the first word: jmp to the cave at 0x792D00 (replaces movzx ebp,cx; add eax,2)"
+        },
+        {
+          "address": "0x792d00",
+          "was": "000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "0fb7e983c002f7c500040000740e5051528b4f08e8d7dbd7ff5a5958e9d423d9ff",
+          "note": "cave: movzx ebp,cx; add eax,2 (the stolen instructions); test ebp,400h; jz skip; save eax, ecx, edx; ecx = [edi+8] (the physics object); call CPhysicsObj::RemoveLinkAnimations (0x5108F0); restore; jmp back to 0x5250F5"
+        }
+      ]
+    },
+    {
+      "change": "Move to position: the packet's movement flags are stored before the first distance read. Retail MoveToPosition measures the distance (GetCurrentDistance, for example the UseSpheres flag) with the previous move's flags and stores the new ones afterwards, so the first position move after a chase could count a waypoint within about 1 m as already reached",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x52ae84",
+          "was": "8bcec7863401000000000000",
+          "now": "e9b77e260090909090909090",
+          "note": "MoveToManager::MoveToPosition after the position is stored: jmp to the cave at 0x792D40 (replaces mov ecx,esi; mov dword ptr [esi+134h],0)"
+        },
+        {
+          "address": "0x792d40",
+          "was": "000000000000000000000000000000000000000000000000000000000000",
+          "now": "8b4424288b40048986e00000008bcec7863401000000000000e93281d9ff",
+          "note": "cave: eax = the MovementParameters argument; eax = its flags word (+4); store it in the manager's copy (this+0E0h, the same assignment MoveToPosition makes a few lines later); the stolen mov ecx,esi and mov dword ptr [esi+134h],0; jmp back to 0x52AE90"
+        }
+      ]
+    }
+  ]
+}

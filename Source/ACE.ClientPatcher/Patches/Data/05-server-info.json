@@ -1,0 +1,79 @@
+{
+  "id": "server-info",
+  "title": "Server-authored information",
+  "description": "Things the client no longer says or works out because the server sends them.",
+  "items": [
+    {
+      "change": "Add query item mana when clicking overworld items to alert server of target change; every client target change sends a query mana or query health packet and/or a clear target packet",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x4bdd66",
+          "was": "e805b81e",
+          "now": "eb030000",
+          "note": "gmToolbarUI::RecvNotice_UpdateItemMana"
+        },
+        {
+          "address": "0x4c0065",
+          "was": "17",
+          "now": "19",
+          "note": "gmToolbarUI::HandleSelectionChanged"
+        },
+        {
+          "address": "0x4c007d",
+          "was": "8b8e200600008b91a4000000d1eaf6c20174176a00e8d9941e00",
+          "now": "eb05e9550300008b8e200600008b91a4000000d1eaf6c2017410",
+          "note": "gmToolbarUI::HandleSelectionChanged, jump into added query code"
+        },
+        {
+          "address": "0x4c00a1",
+          "was": "04",
+          "now": "00",
+          "note": "gmToolbarUI::HandleSelectionChanged"
+        },
+        {
+          "address": "0x4c0304",
+          "was": "1d01",
+          "now": "cf00",
+          "note": "gmToolbarUI::HandleSelectionChanged"
+        },
+        {
+          "address": "0x4c03d7",
+          "was": "8b8e140600008b01680b000010ff909c0000008bcfe89fdb0c0085c07430",
+          "now": "eb1c6a00e890911e0083c404e99cfcffff00000000000000000000000000",
+          "note": "gmToolbarUI::HandleSelectionChanged, jump plus added call"
+        }
+      ]
+    },
+    {
+      "change": "Suppress client-side spell expired message, replaced by a server authored one with more information",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x5695a5",
+          "was": "8b4424146a006a016a0783c014508bcde836edf1ff",
+          "now": "eb1300000000000000000000000000000000000000",
+          "note": "ClientMagicSystem::NotifyOfEnchantmentRemoval jumps over the message"
+        }
+      ]
+    },
+    {
+      "change": "Change client-side InqSkillFormula() to return nothing as server authored descriptions with the formula are sent instead",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x5c9998",
+          "was": "85ff7507",
+          "now": "90909090",
+          "note": "SkillSystem::InqSkillFormula returns nothing"
+        }
+      ]
+    }
+  ]
+}

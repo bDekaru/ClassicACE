@@ -442,7 +442,7 @@ namespace ACE.DatLoader.Tests
         {
             var table = FileType.Unpack<StringTable>(ReadRecord(DatBuildRecipes.LanguageBaseDat, LanguageRecords.TextStringsId));
             var existing = table.StringTableData.Select(e => e.Id).ToHashSet();
-            var labels = DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMOptionStringsFile).Where(e => e.Name != null).ToList();
+            var labels = DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.ClientOptionStringsFile).Where(e => e.Name != null).ToList();
 
             Assert.AreEqual(4, labels.Count);
             CollectionAssert.AreEqual(new[] { "Full", "1/2", "1/4", "1/8" }, labels.Select(e => e.Text).ToList());
@@ -450,7 +450,7 @@ namespace ACE.DatLoader.Tests
             foreach (var label in labels)
                 Assert.IsFalse(existing.Contains(SpellTable.ComputeHash(label.Name)));
 
-            DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMOptionStringsFile));
+            DatStringEdits.Apply(table, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.ClientOptionStringsFile));
 
             var reread = FileType.Unpack<StringTable>(table.Pack());
             Assert.AreEqual(236 + 4, reread.StringTableData.Count);

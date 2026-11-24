@@ -1,0 +1,30 @@
+{
+  "id": "version",
+  "title": "Client version",
+  "description": "The version string the client sends at logon.",
+  "items": [
+    {
+      "change": "Change \"1802\" to the client version string (CustomDM c119, Infiltration i104). The base CustomDM exe has c118; c119 is what the server requires (DatManager.CUSTOMDM_CLIENT_VERSION_STRING), set when the animation break was added",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x7caea8",
+          "was": "31383032",
+          "now": "63313139",
+          "note": "logon version \"1802\" -> \"c119\"",
+          "variant": "CustomDM"
+        },
+        {
+          "address": "0x7caea8",
+          "was": "31383032",
+          "now": "69313034",
+          "note": "logon version \"1802\" -> \"i104\"",
+          "variant": "Infiltration"
+        }
+      ]
+    }
+  ]
+}

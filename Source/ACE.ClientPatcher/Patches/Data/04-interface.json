@@ -1,0 +1,94 @@
+{
+  "id": "interface",
+  "title": "Interface rules",
+  "description": "Client-side blocks and indicators removed.",
+  "items": [
+    {
+      "change": "Remove client-side block when trying to equip shields when using missile weapons, two handed weapons, etc.",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x55e100",
+          "was": "8b81ec000000",
+          "now": "b800000000c3",
+          "note": "ACCWeenieObject::BlocksUseOfShield returns 0"
+        }
+      ]
+    },
+    {
+      "change": "Remove client-side block when trying to equip trinkets with a trinket already equipped (allow trinket switching)",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x5619ae",
+          "was": "8586300200007506",
+          "now": "eb06000000000000",
+          "note": "CPlayerSystem::AutoWield skips the trinket check"
+        }
+      ]
+    },
+    {
+      "change": "Disable recklessness indicator in the combat power bar",
+      "variants": [
+        "CustomDM",
+        "Infiltration"
+      ],
+      "edits": [
+        {
+          "address": "0x4cd122",
+          "was": "32",
+          "now": "18",
+          "note": "gmCombatUI::ListenToElementMessage"
+        },
+        {
+          "address": "0x4cd12e",
+          "was": "02",
+          "now": "05",
+          "note": "gmCombatUI::ListenToElementMessage"
+        },
+        {
+          "address": "0x4cd2c5",
+          "was": "32",
+          "now": "18",
+          "note": "gmCombatUI::RecvNotice_SetCombatMode"
+        },
+        {
+          "address": "0x4cd2d1",
+          "was": "02",
+          "now": "05",
+          "note": "gmCombatUI::RecvNotice_SetCombatMode"
+        },
+        {
+          "address": "0x4db406",
+          "was": "32",
+          "now": "18",
+          "note": "gmPowerbarUI::RecvNotice_BeginPowerbar"
+        },
+        {
+          "address": "0x4db412",
+          "was": "02",
+          "now": "05",
+          "note": "gmPowerbarUI::RecvNotice_BeginPowerbar"
+        }
+      ]
+    },
+    {
+      "change": "Remove house re-purchase timer warning when buying a house",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x4ca1d5",
+          "was": "8b86f006000085c0740683784804743a",
+          "now": "eb0e0000000000000000000000000000",
+          "note": "gmSlumlordUI::ListenToElementMessage skips the warning"
+        }
+      ]
+    }
+  ]
+}

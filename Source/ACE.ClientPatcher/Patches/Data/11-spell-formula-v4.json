@@ -1,0 +1,27 @@
+{
+  "id": "spell-formula-v4",
+  "title": "Spell formula version 4",
+  "description": "SpellFormula::RandomizeForName (0x5BE120) knows versions 1 to 3 and leaves the stored taper ids (63, Red Taper) for any other version, so ClientMagicSystem::CastSpell refuses the cast (\"You do not have all of this spell's components\") for a player who owns the per-account tapers but no Red Taper, and the spell examine panel shows the wrong tapers. Version 4 takes the scarab from comps[0], the herb from comps[3], the powder from comps[4] and the talisman from comps[6], and fills the taper slots comps[1], comps[2] and comps[5] per account (seeds hash % 0x13D573, 0x4AEFD and 0x96A7F; result % 12 + 63), like the server's RandomizeVersion4. A version 5 would be one more compare in the cave plus another body. Needs the code-space entry.",
+  "items": [
+    {
+      "change": "Spell formula version 4: taper slots per account",
+      "variants": [
+        "CustomDM"
+      ],
+      "edits": [
+        {
+          "address": "0x5be12d",
+          "was": "33c0c208",
+          "now": "e98ec624",
+          "note": "SpellFormula::RandomizeForName: the unknown-version exit (xor eax,eax; retn 8) jumps to the cave"
+        },
+        {
+          "address": "0x80a7c0",
+          "was": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+          "now": "48740533c0c20800535657558bf18b4c24148b398b471083f8ff750aba40e44f00ffd28947108bd833d2b973d51300f7f18bfa8bc333d2b9fdae0400f7f18bea8bc333d2b97f6a0900f7f18bda8bc70346108b4e148d044803461c03460433d2b90c000000f7f183c23f8956088b461003c003c50346148b56040faf561c03c233d2b90c000000f7f183c23f89560c8b46100faf461403c38b56048d045003461c33d2b90c000000f7f183c23f895618b8010000005d5f5e5bc208",
+          "note": "cave (formula_v4.asm): tests for version 4 (eax = version - 3) and otherwise returns 0 as before; for version 4 builds the components as described above"
+        }
+      ]
+    }
+  ]
+}
