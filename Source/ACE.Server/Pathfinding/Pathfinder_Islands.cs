@@ -66,63 +66,14 @@ namespace ACE.Server.Pathfinding
 
             var polyCount = data.header.polyCount;
 
-            // the component of each poly (-1 for a ledge drop), the area of each component without its door aprons and
-            // whether it has any door apron polys, and the ledge drops (one-way off-mesh connections) between components as
-            // (ledge drop, from, to) poly indices
-            var component = new int[polyCount];
-            var componentArea = new List<float>();
-            var componentHasDoor = new List<bool>();
+            var (component, componentArea, componentHasDoor) = FindComponents(mesh, tile);
+            // the ledge drops (one-way off-mesh connections) between components as (ledge drop, from, to) poly indices
             var ledgeDrops = new List<(int ledgeDropPoly, int from, int to)>();
-
-            FindComponents();
             FindLedgeDrops();
 
             // all connected: everything is kept, and only a ledge drop that isn't attached to the floor on both ends leads nowhere
             var keep = componentArea.Count <= 1 ? Enumerable.Repeat(true, componentArea.Count).ToArray() : GetKeptComponents();
             FlagIslands(keep);
-
-            // connected components over the poly links
-            void FindComponents()
-            {
-                Array.Fill(component, -1);
-                var stack = new Stack<int>();
-
-                for (var i = 0; i < polyCount; i++)
-                {
-                    // ledge drops are not part of any component, see FindLedgeDrops
-                    if (component[i] != -1 || data.polys[i].GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
-                        continue;
-
-                    var id = componentArea.Count;
-                    var area = 0f;
-                    var hasDoor = false;
-                    component[i] = id;
-                    stack.Push(i);
-
-                    while (stack.Count > 0)
-                    {
-                        var poly = data.polys[stack.Pop()];
-                        if (poly.GetArea() == NavArea.Door)
-                            hasDoor = true;
-                        else
-                            area += GetPolyArea(data, poly);
-
-                        for (var link = poly.firstLink; link != DtDetour.DT_NULL_LINK; link = tile.links[link].next)
-                        {
-                            mesh.GetTileAndPolyByRefUnsafe(tile.links[link].refs, out var neighborTile, out var neighbor);
-                            if (neighborTile != tile || neighbor == null || component[neighbor.index] != -1 ||
-                                neighbor.GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
-                                continue;
-
-                            component[neighbor.index] = id;
-                            stack.Push(neighbor.index);
-                        }
-                    }
-
-                    componentArea.Add(area);
-                    componentHasDoor.Add(hasDoor);
-                }
-            }
 
             // A ledge drop links to the poly at its start (edge 0) and the one it lands on (edge 1).
             void FindLedgeDrops()
@@ -257,6 +208,60 @@ namespace ACE.Server.Pathfinding
                 if (islandPolys > 0)
                     log.Debug($"Pathfinder: flagged {islandPolys} of {polyCount} polys as islands ({kept.Count(k => !k)} of {kept.Length} components)");
             }
+        }
+
+        /// <summary>
+        /// The connected components of a tile over its poly links, within the tile: the component of each poly (-1 for
+        /// a ledge drop, which belongs to none), and for each component its area without door aprons and whether it has
+        /// door apron polys.
+        /// </summary>
+        private static (int[] component, List<float> area, List<bool> hasDoor) FindComponents(DtNavMesh mesh, DtMeshTile tile)
+        {
+            var data = tile.data;
+            var polyCount = data.header.polyCount;
+            var component = new int[polyCount];
+            var componentArea = new List<float>();
+            var componentHasDoor = new List<bool>();
+
+            Array.Fill(component, -1);
+            var stack = new Stack<int>();
+
+            for (var i = 0; i < polyCount; i++)
+            {
+                if (component[i] != -1 || data.polys[i].GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
+                    continue;
+
+                var id = componentArea.Count;
+                var area = 0f;
+                var hasDoor = false;
+                component[i] = id;
+                stack.Push(i);
+
+                while (stack.Count > 0)
+                {
+                    var poly = data.polys[stack.Pop()];
+                    if (poly.GetArea() == NavArea.Door)
+                        hasDoor = true;
+                    else
+                        area += GetPolyArea(data, poly);
+
+                    for (var link = poly.firstLink; link != DtDetour.DT_NULL_LINK; link = tile.links[link].next)
+                    {
+                        mesh.GetTileAndPolyByRefUnsafe(tile.links[link].refs, out var neighborTile, out var neighbor);
+                        if (neighborTile != tile || neighbor == null || component[neighbor.index] != -1 ||
+                            neighbor.GetPolyType() == DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
+                            continue;
+
+                        component[neighbor.index] = id;
+                        stack.Push(neighbor.index);
+                    }
+                }
+
+                componentArea.Add(area);
+                componentHasDoor.Add(hasDoor);
+            }
+
+            return (component, componentArea, componentHasDoor);
         }
 
         /// <summary>

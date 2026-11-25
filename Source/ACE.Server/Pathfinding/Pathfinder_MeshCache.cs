@@ -730,54 +730,24 @@ namespace ACE.Server.Pathfinding
             if (!IsCurrent())
                 return;
 
-            var (tileX, tileY) = GetLandblockCoords(landblockId);
-
-            NavMeshGeometry geom = null;
-            var geometryLoaded = false;
+            var geom = CreateOutdoorGeometry(landblockId);
 
             foreach (var agentSize in AgentSizes)
             {
-                var meshId = GetMeshId(landblockId, OutdoorGroup, agentSize);
-                var meshPath = GetMeshPath(OutdoorMeshDirectory, meshId, true, agentSize);
-
                 try
                 {
-                    DtMeshData data = null;
-                    if (!force && TryReadMeshData(meshPath, out var cached))
-                    {
-                        if (cached.header.x == tileX && cached.header.y == tileY)
-                            data = cached;
-                        else
-                            TryDeleteFile(meshPath);
-                    }
-
+                    var data = LoadOutdoorTileData(landblockId, agentSize, geom, force);
                     if (data == null)
                     {
-                        if (!geometryLoaded)
-                        {
-                            geometryLoaded = true;
-                            geom = NavMeshGeometry.LoadSurfaceGeometry(landblockId, GetSurfaceSources(landblockId));
-                        }
-
-                        if (geom is null)
+                        if (geom.IsValueCreated && geom.Value is null)
                         {
                             log.Warn($"Pathfinder: could not load outdoor geometry for 0x{landblockId:X8}");
                             FailOutdoorBuild(landblockId);
                             return;
                         }
 
-                        var stopwatch = Stopwatch.StartNew();
-                        data = NavMeshBuilder.BuildTile(geom, GetMeshSettings(true, agentSize), tileX, tileY, Position.BlockLength);
-                        if (data == null)
-                        {
-                            // the same geometry would build the same way, so the request stays and no retry is made
-                            log.Warn($"Pathfinder: could not build the {agentSize} outdoor tile for 0x{landblockId:X8}");
-                            continue;
-                        }
-
-                        SaveMeshData(data, meshId, meshPath);
-
-                        log.Info($"Pathfinder: built {agentSize} outdoor tile for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.Vertices.Length / 3} vertices, {geom.Faces.Length / 3} triangles, {data.header.offMeshConCount} ledge drops)");
+                        // the same geometry would build the same way, so the request stays and no retry is made
+                        continue;
                     }
 
                     // islands are flagged on the tile alone, before anything can query it
@@ -813,6 +783,51 @@ namespace ACE.Server.Pathfinding
                 if (IsCurrent())
                     OutdoorTilesBuilt[landblockId] = 0;
             }
+        }
+
+        /// <summary>
+        /// The geometry of a landblock's outdoor tile, loaded on first use so the sizes built from it share it. Its
+        /// value is null if the geometry can't be loaded.
+        /// </summary>
+        private static Lazy<NavMeshGeometry> CreateOutdoorGeometry(uint landblockId)
+        {
+            return new Lazy<NavMeshGeometry>(() => NavMeshGeometry.LoadSurfaceGeometry(landblockId, GetSurfaceSources(landblockId)), LazyThreadSafetyMode.None);
+        }
+
+        /// <summary>
+        /// A landblock's outdoor tile of an agent size, from the cache or built from the geometry and saved. Whether
+        /// the landblock is loaded doesn't matter, and nothing is added to the outdoor mesh. Null if it can't be built.
+        /// </summary>
+        /// <param name="force">Build the tile even if it is cached</param>
+        private static DtMeshData LoadOutdoorTileData(uint landblockId, AgentSize agentSize, Lazy<NavMeshGeometry> geom, bool force)
+        {
+            var (tileX, tileY) = GetLandblockCoords(landblockId);
+            var meshId = GetMeshId(landblockId, OutdoorGroup, agentSize);
+            var meshPath = GetMeshPath(OutdoorMeshDirectory, meshId, true, agentSize);
+
+            if (!force && TryReadMeshData(meshPath, out var cached))
+            {
+                if (cached.header.x == tileX && cached.header.y == tileY)
+                    return cached;
+
+                TryDeleteFile(meshPath);
+            }
+
+            if (geom.Value is null)
+                return null;
+
+            var stopwatch = Stopwatch.StartNew();
+            var data = NavMeshBuilder.BuildTile(geom.Value, GetMeshSettings(true, agentSize), tileX, tileY, Position.BlockLength);
+            if (data == null)
+            {
+                log.Warn($"Pathfinder: could not build the {agentSize} outdoor tile for 0x{landblockId:X8}");
+                return null;
+            }
+
+            SaveMeshData(data, meshId, meshPath);
+
+            log.Info($"Pathfinder: built {agentSize} outdoor tile for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.Value.Vertices.Length / 3} vertices, {geom.Value.Faces.Length / 3} triangles, {data.header.offMeshConCount} ledge drops)");
+            return data;
         }
 
         /// <summary>
