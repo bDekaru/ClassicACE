@@ -85,7 +85,8 @@ namespace ACE.DatLoader
         /// This will try to find the object for the given fileId in local cache. If the object was not found, it will be read from the dat and cached.<para />
         /// This function is thread safe.
         /// </summary>
-        public T ReadFromDat<T>(uint fileId) where T : FileType, new()
+        /// <param name="cache">False to leave an object read from the dat out of the FileCache, for one-off scans of many records</param>
+        public T ReadFromDat<T>(uint fileId, bool cache = true) where T : FileType, new()
         {
             // Check the FileCache so we don't need to hit the FileSystem repeatedly
             if (FileCache.TryGetValue(fileId, out FileType result))
@@ -101,6 +102,9 @@ namespace ACE.DatLoader
                 using (var reader = new BinaryReader(memoryStream))
                     obj.Unpack(reader);
             }
+
+            if (!cache)
+                return obj;
 
             // Store this object in the FileCache
             obj = (T)FileCache.GetOrAdd(fileId, obj);

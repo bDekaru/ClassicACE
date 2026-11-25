@@ -4,6 +4,8 @@ using DotRecast.Recast.Geom;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using EnvCell = ACE.DatLoader.FileTypes.EnvCell;
 
 namespace ACE.Server.Pathfinding.Geometry
@@ -138,6 +140,34 @@ namespace ACE.Server.Pathfinding.Geometry
         public void AddConvexVolume(RcConvexVolume convexVolume)
         {
             volumes.Add(convexVolume);
+        }
+
+        /// <summary>
+        /// A hash of the triangles and volumes, all a mesh is built from besides the build settings. It changes with
+        /// any dat edit that reaches the geometry, and with changes to how the geometry is collected.
+        /// </summary>
+        public ulong GetFingerprint()
+        {
+            using (var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
+            {
+                hash.AppendData(MemoryMarshal.AsBytes(Vertices.AsSpan()));
+                hash.AppendData(MemoryMarshal.AsBytes(Faces.AsSpan()));
+
+                Span<float> heights = stackalloc float[2];
+                Span<int> area = stackalloc int[2];
+                foreach (var volume in volumes)
+                {
+                    heights[0] = volume.hmin;
+                    heights[1] = volume.hmax;
+                    area[0] = volume.areaMod.Value;
+                    area[1] = volume.areaMod.Mask;
+                    hash.AppendData(MemoryMarshal.AsBytes(volume.verts.AsSpan()));
+                    hash.AppendData(MemoryMarshal.AsBytes(heights));
+                    hash.AppendData(MemoryMarshal.AsBytes(area));
+                }
+
+                return BitConverter.ToUInt64(hash.GetHashAndReset(), 0);
+            }
         }
 
         // Off-mesh connections are part of IRcInputGeomProvider, but none come from the geometry: the ledge drops are found
