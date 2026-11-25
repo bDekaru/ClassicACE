@@ -219,7 +219,7 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static bool SummarizeRecast(TileSummary summary, DtMeshData data, List<Polygon> terrain)
         {
-            var mesh = CreateSingleTileMesh(data);
+            var mesh = CreateTileMesh(data);
             if (mesh == null)
                 return false;
 
@@ -306,7 +306,8 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// The piece at ground level under a landblock-local spot, NoPiece if there is none.
         /// </summary>
-        private static ushort GetSummaryPiece(TileSummary summary, Vector3 local)
+        /// <param name="terrain">The landblock's terrain polygons, if the caller has them: read from the dat otherwise</param>
+        private static ushort GetSummaryPiece(TileSummary summary, Vector3 local, List<Polygon> terrain = null)
         {
             var max = LandDefs.BlockLength - 0.001f;
             var spot = new Vector3(Math.Clamp(local.X, 0f, max), Math.Clamp(local.Y, 0f, max), 0f);
@@ -318,6 +319,9 @@ namespace ACE.Server.Pathfinding
             var cell = GetTerrainCell(spot);
             if (summary.Map[cell * 2] == summary.Map[cell * 2 + 1])
                 return summary.Map[cell * 2];
+
+            if (terrain != null)
+                return summary.Map[GetTerrainPolygon(terrain, spot)];
 
             var cellLandblock = DatManager.CellDat.ReadFromDat<CellLandblock>(summary.LandblockId | 0xFFFF, false);
             return HasFullTerrain(cellLandblock) ? summary.Map[GetTerrainPolygon(new LandblockStruct(cellLandblock).Polygons, spot)] : TileSummary.NoPiece;

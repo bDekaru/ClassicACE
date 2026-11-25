@@ -100,7 +100,7 @@ namespace ACE.Server.Pathfinding.Geometry
             if (data?.header == null || data.header.polyCount == 0)
                 return ledgeDrops;
 
-            var mesh = Pathfinder.CreateSingleTileMesh(data);
+            var mesh = Pathfinder.CreateTileMesh(data);
             if (mesh == null)
                 return ledgeDrops;
 

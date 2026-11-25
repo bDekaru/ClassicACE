@@ -441,7 +441,7 @@ namespace ACE.Server.Pathfinding
             if (!TryReadMeshData(meshPath, out var meshData))
                 return false;
 
-            mesh = CreateSingleTileMesh(meshData);
+            mesh = CreateTileMesh(meshData);
             if (mesh == null)
             {
                 log.Warn($"Pathfinder: discarding mesh file {meshPath}: mesh init failed");
@@ -451,11 +451,14 @@ namespace ACE.Server.Pathfinding
             return true;
         }
 
-        internal static DtNavMesh CreateSingleTileMesh(DtMeshData meshData)
+        /// <summary>
+        /// A mesh of just the given tiles, each at GetTile(its index here); null if one can't be added.
+        /// </summary>
+        internal static DtNavMesh CreateTileMesh(params DtMeshData[] tiles)
         {
             // Init(meshData) puts the grid origin at the tile's bmin, so queries look for the tile at grid (0, 0); an
             // outdoor tile is at its landblock's coordinates, so the origin goes back to where that grid starts
-            var header = meshData.header;
+            var header = tiles[0].header;
             var tileWidth = header.bmax.X - header.bmin.X;
             var tileHeight = header.bmax.Z - header.bmin.Z;
             var navMeshParams = new DtNavMeshParams
@@ -463,15 +466,20 @@ namespace ACE.Server.Pathfinding
                 orig = new RcVec3f(header.bmin.X - header.x * tileWidth, header.bmin.Y, header.bmin.Z - header.y * tileHeight),
                 tileWidth = tileWidth,
                 tileHeight = tileHeight,
-                maxTiles = 1,
-                maxPolys = header.polyCount
+                maxTiles = tiles.Length,
+                maxPolys = tiles.Max(t => t.header.polyCount)
             };
 
             var mesh = new DtNavMesh();
             if (mesh.Init(in navMeshParams, MaxVertsPerPoly).Failed())
                 return null;
 
-            return mesh.AddTile(meshData, 0, 0, out _).Failed() ? null : mesh;
+            foreach (var tile in tiles)
+            {
+                if (mesh.AddTile(tile, 0, 0, out _).Failed())
+                    return null;
+            }
+            return mesh;
         }
 
         private static void TryDeleteFile(string path)
@@ -542,7 +550,7 @@ namespace ACE.Server.Pathfinding
             if (data is null)
                 return null;
 
-            var mesh = CreateSingleTileMesh(data);
+            var mesh = CreateTileMesh(data);
             if (mesh == null)
             {
                 log.Warn($"Pathfinder: could not initialize the built mesh 0x{meshId:X8}");
@@ -793,7 +801,7 @@ namespace ACE.Server.Pathfinding
                         continue; // the same geometry would build the same way, so the request stays and no retry is made
 
                     // islands are flagged on the tile alone, before anything can query it
-                    var tileMesh = CreateSingleTileMesh(data);
+                    var tileMesh = CreateTileMesh(data);
                     if (tileMesh == null)
                     {
                         log.Warn($"Pathfinder: could not initialize the {agentSize} outdoor tile for 0x{landblockId:X8}");

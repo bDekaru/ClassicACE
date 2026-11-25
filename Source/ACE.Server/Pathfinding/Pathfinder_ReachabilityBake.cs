@@ -26,21 +26,27 @@ namespace ACE.Server.Pathfinding
 
         private static string ReachabilitySummariesPath => Path.Combine(ReachabilityDirectory, "summaries.bin");
 
+        /// <summary>
+        /// A background reachability job (a bake or a verify); one runs at a time.
+        /// </summary>
         private class BakeRun
         {
+            public readonly string Name;
             public readonly int Threads;
             public readonly CancellationTokenSource Cancel = new CancellationTokenSource();
             public readonly Stopwatch Watch = Stopwatch.StartNew();
             public readonly Stopwatch TileWatch = new Stopwatch();
-            public volatile string Phase = "checking the dats";
+            public volatile string Phase = "starting";
 
             /// <summary>
-            /// Recast tiles only: terrain summaries take seconds for the whole world.
+            /// The work items run on the job's threads (a bake's Recast tiles: terrain summaries take seconds for the
+            /// whole world).
             /// </summary>
             public int Total, Built, Failed;
 
-            public BakeRun(int threads)
+            public BakeRun(string name, int threads)
             {
+                Name = name;
                 Threads = threads;
             }
         }
@@ -54,10 +60,15 @@ namespace ACE.Server.Pathfinding
         private static DateTime reachabilityGraphTime;
 
         /// <summary>
-        /// Starts a bake on threads of below-normal priority, false if one is running. Landblocks with an up to date
-        /// summary are skipped, so with nothing changed it takes seconds and only puts the graph in use.
+        /// Starts a bake on threads of below-normal priority, false if a reachability job is running. Landblocks with an
+        /// up to date summary are skipped, so with nothing changed it takes seconds and only puts the graph in use.
         /// </summary>
-        public static bool StartReachabilityBake(int threads)
+        public static bool StartReachabilityBake(int threads) => TryStartReachabilityJob("Bake", threads, RunReachabilityBake);
+
+        /// <summary>
+        /// Runs a job on a thread of below-normal priority, unless one is running. An exception ends the job, logged.
+        /// </summary>
+        private static bool TryStartReachabilityJob(string name, int threads, Action<BakeRun> job)
         {
             BakeRun run;
             lock (BakeSync)
@@ -65,16 +76,84 @@ namespace ACE.Server.Pathfinding
                 if (bakeRun != null)
                     return false;
 
-                run = bakeRun = new BakeRun(Math.Max(1, threads));
+                run = bakeRun = new BakeRun(name, Math.Max(1, threads));
             }
 
-            new Thread(() => RunReachabilityBake(run)) { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "Reachability bake" }.Start();
+            new Thread(() =>
+            {
+                try
+                {
+                    job(run);
+                }
+                catch (Exception e)
+                {
+                    log.Error($"Pathfinder: reachability {name.ToLowerInvariant()} failed: {e}");
+                }
+                finally
+                {
+                    lock (BakeSync)
+                        bakeRun = null;
+                }
+            }) { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = $"Reachability {name}" }.Start();
             return true;
         }
 
         /// <summary>
-        /// Stops a running bake after the tiles in progress; what it built is saved, so the next bake resumes there.
-        /// False if none is running.
+        /// Runs the work for every item on the job's threads until all are done or the job is stopped, and the
+        /// checkpoint every BakeCheckpointInterval meanwhile. An item whose work throws is logged and skipped.
+        /// </summary>
+        private static void RunOnJobThreads(BakeRun run, List<int> items, Action<int> work, Action checkpoint)
+        {
+            var queue = new ConcurrentQueue<int>(items);
+            using (var workersDone = new CountdownEvent(run.Threads))
+            {
+                var started = 0;
+                try
+                {
+                    for (var t = 0; t < run.Threads; t++, started++)
+                    {
+                        new Thread(() =>
+                        {
+                            try
+                            {
+                                while (!run.Cancel.IsCancellationRequested && queue.TryDequeue(out var i))
+                                {
+                                    try
+                                    {
+                                        work(i);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Interlocked.Increment(ref run.Failed);
+                                        log.Warn($"Pathfinder: reachability {run.Name.ToLowerInvariant()} failed on landblock {i:X4}: {e}");
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                workersDone.Signal();
+                            }
+                        }) { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = $"Reachability {run.Name} work" }.Start();
+                    }
+
+                    while (!workersDone.Wait(BakeCheckpointInterval))
+                        checkpoint?.Invoke();
+                }
+                catch
+                {
+                    // the workers signal the event as they end, so it must outlive them; unstarted ones never will
+                    run.Cancel.Cancel();
+                    if (started < run.Threads)
+                        workersDone.Signal(run.Threads - started);
+                    workersDone.Wait();
+                    throw;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Stops a running bake or verify after the items in progress; what a bake built is saved, so the next bake
+        /// resumes there. False if none is running.
         /// </summary>
         public static bool StopReachabilityBake()
         {
@@ -87,107 +166,66 @@ namespace ACE.Server.Pathfinding
 
         private static void RunReachabilityBake(BakeRun run)
         {
-            try
+            run.Phase = "checking the dats";
+            var manifest = UpdateReachabilityManifest();
+            reachabilityManifest = manifest;
+
+            run.Phase = "loading summaries";
+            var summaries = TileSummary.LoadAll(ReachabilitySummariesPath) ?? new TileSummary[ReachabilityManifest.LandblockCount];
+            var pending = new List<int>();
+            for (var i = 0; i < summaries.Length; i++)
             {
-                var manifest = UpdateReachabilityManifest();
-                reachabilityManifest = manifest;
+                var entry = manifest.Entries[i];
 
-                run.Phase = "loading summaries";
-                var summaries = TileSummary.LoadAll(ReachabilitySummariesPath) ?? new TileSummary[ReachabilityManifest.LandblockCount];
-                var pending = new List<int>();
-                for (var i = 0; i < summaries.Length; i++)
-                {
-                    var entry = manifest.Entries[i];
+                // a summary of other input, or of a pending entry (a new world key leaves the fingerprints alike), is
+                // dropped, so the landblock is Unknown until it is built again
+                if (summaries[i] != null && (summaries[i].Method != entry.Method || summaries[i].Fingerprint != entry.Fingerprint || entry.Status == ReachabilityStatus.Pending))
+                    summaries[i] = null;
 
-                    // a summary of other input, or of a pending entry (a new world key leaves the fingerprints alike), is
-                    // dropped, so the landblock is Unknown until it is built again
-                    if (summaries[i] != null && (summaries[i].Method != entry.Method || summaries[i].Fingerprint != entry.Fingerprint || entry.Status == ReachabilityStatus.Pending))
-                        summaries[i] = null;
-
-                    if (summaries[i] != null)
-                        manifest.Entries[i].Status = ReachabilityStatus.Done;
-                    else if ((entry.Method == ReachabilityMethod.Terrain || entry.Method == ReachabilityMethod.Recast) && entry.Status != ReachabilityStatus.Failed)
-                        pending.Add(i);
-                }
-
-                var cachedBefore = new HashSet<uint>(DatManager.CellDat.FileCache.Keys);
-
-                run.Phase = "summarizing terrain";
-                foreach (var i in pending.Where(i => manifest.Entries[i].Method == ReachabilityMethod.Terrain))
-                {
-                    if (run.Cancel.IsCancellationRequested)
-                        break;
-
-                    BakeTile(manifest, summaries, i);
-                }
-                PublishReachability(manifest, summaries, pending.Count > 0);
-
-                var seeds = PlayerFactory.StarterTownLocations.Values.SelectMany(spots => spots).Select(spot => GetLandblockCoords(spot.Cell)).ToList();
-                var recast = pending.Where(i => manifest.Entries[i].Method == ReachabilityMethod.Recast)
-                    .OrderBy(i => seeds.Min(s => Math.Max(Math.Abs((i >> 8) - s.x), Math.Abs((i & 0xFF) - s.y))))
-                    .ToList();
-
-                if (recast.Count > 0 && !run.Cancel.IsCancellationRequested)
-                {
-                    run.Phase = "building tiles";
-                    run.Total = recast.Count;
-                    run.TileWatch.Start();
-
-                    var queue = new ConcurrentQueue<int>(recast);
-                    using (var workersDone = new CountdownEvent(run.Threads))
-                    {
-                        for (var t = 0; t < run.Threads; t++)
-                        {
-                            new Thread(() =>
-                            {
-                                try
-                                {
-                                    while (!run.Cancel.IsCancellationRequested && queue.TryDequeue(out var i))
-                                    {
-                                        if (BakeTile(manifest, summaries, i))
-                                            Interlocked.Increment(ref run.Built);
-                                        else
-                                            Interlocked.Increment(ref run.Failed);
-                                    }
-                                }
-                                finally
-                                {
-                                    workersDone.Signal();
-                                }
-                            }) { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = "Reachability bake tiles" }.Start();
-                        }
-
-                        try
-                        {
-                            while (!workersDone.Wait(BakeCheckpointInterval))
-                                PublishReachability(manifest, summaries, true);
-                        }
-                        catch
-                        {
-                            // the workers signal the event as they end, so it must outlive them
-                            run.Cancel.Cancel();
-                            workersDone.Wait();
-                            throw;
-                        }
-                    }
-
-                    PublishReachability(manifest, summaries, true);
-                }
-
-                // only at the end: a landblock still loading isn't counted as loaded, and would lose its fresh records
-                DropAddedCellDatEntries(cachedBefore);
-
-                log.Info($"Pathfinder: reachability bake {(run.Cancel.IsCancellationRequested ? "stopped" : "done")} in {FormatDuration(run.Watch.Elapsed)}, {run.Built} tiles built, {run.Failed} failed, {recast.Count - run.Built - run.Failed} left");
+                if (summaries[i] != null)
+                    manifest.Entries[i].Status = ReachabilityStatus.Done;
+                else if ((entry.Method == ReachabilityMethod.Terrain || entry.Method == ReachabilityMethod.Recast) && entry.Status != ReachabilityStatus.Failed)
+                    pending.Add(i);
             }
-            catch (Exception e)
+
+            var cachedBefore = new HashSet<uint>(DatManager.CellDat.FileCache.Keys);
+
+            run.Phase = "summarizing terrain";
+            foreach (var i in pending.Where(i => manifest.Entries[i].Method == ReachabilityMethod.Terrain))
             {
-                log.Error($"Pathfinder: reachability bake failed: {e}");
+                if (run.Cancel.IsCancellationRequested)
+                    break;
+
+                BakeTile(manifest, summaries, i);
             }
-            finally
+            PublishReachability(manifest, summaries, pending.Count > 0);
+
+            var seeds = PlayerFactory.StarterTownLocations.Values.SelectMany(spots => spots).Select(spot => GetLandblockCoords(spot.Cell)).ToList();
+            var recast = pending.Where(i => manifest.Entries[i].Method == ReachabilityMethod.Recast)
+                .OrderBy(i => seeds.Min(s => Math.Max(Math.Abs((i >> 8) - s.x), Math.Abs((i & 0xFF) - s.y))))
+                .ToList();
+
+            if (recast.Count > 0 && !run.Cancel.IsCancellationRequested)
             {
-                lock (BakeSync)
-                    bakeRun = null;
+                run.Phase = "building tiles";
+                run.Total = recast.Count;
+                run.TileWatch.Start();
+
+                RunOnJobThreads(run, recast, i =>
+                {
+                    if (BakeTile(manifest, summaries, i))
+                        Interlocked.Increment(ref run.Built);
+                    else
+                        Interlocked.Increment(ref run.Failed);
+                }, () => PublishReachability(manifest, summaries, true));
+
+                PublishReachability(manifest, summaries, true);
             }
+
+            // only at the end: a landblock still loading isn't counted as loaded, and would lose its fresh records
+            DropAddedCellDatEntries(cachedBefore);
+
+            log.Info($"Pathfinder: reachability bake {(run.Cancel.IsCancellationRequested ? "stopped" : "done")} in {FormatDuration(run.Watch.Elapsed)}, {run.Built} tiles built, {run.Failed} failed, {recast.Count - run.Built - run.Failed} left");
         }
 
         /// <summary>
@@ -239,14 +277,14 @@ namespace ACE.Server.Pathfinding
 
             var run = bakeRun;
             if (run == null)
-                lines.Add("No bake running.");
+                lines.Add("No bake or verify running.");
             else
             {
-                var line = $"Bake running on {run.Threads} threads for {FormatDuration(run.Watch.Elapsed)}: {run.Phase}";
+                var line = $"{run.Name} running on {run.Threads} threads for {FormatDuration(run.Watch.Elapsed)}: {run.Phase}";
                 var done = run.Built + run.Failed;
                 if (run.Total > 0)
                 {
-                    line += $", tiles {done}/{run.Total} ({run.Failed} failed)";
+                    line += $", {done}/{run.Total} done ({run.Failed} failed)";
                     if (done > 0)
                         line += $", about {FormatDuration(TimeSpan.FromTicks(run.TileWatch.Elapsed.Ticks / done * (run.Total - done)))} left";
                 }
