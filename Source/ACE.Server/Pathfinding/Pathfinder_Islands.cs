@@ -67,39 +67,11 @@ namespace ACE.Server.Pathfinding
             var polyCount = data.header.polyCount;
 
             var (component, componentArea, componentHasDoor) = FindComponents(mesh, tile);
-            // the ledge drops (one-way off-mesh connections) between components as (ledge drop, from, to) poly indices
-            var ledgeDrops = new List<(int ledgeDropPoly, int from, int to)>();
-            FindLedgeDrops();
+            var ledgeDrops = FindLedgeDrops(mesh, tile);
 
             // all connected: everything is kept, and only a ledge drop that isn't attached to the floor on both ends leads nowhere
             var keep = componentArea.Count <= 1 ? Enumerable.Repeat(true, componentArea.Count).ToArray() : GetKeptComponents();
             FlagIslands(keep);
-
-            // A ledge drop links to the poly at its start (edge 0) and the one it lands on (edge 1).
-            void FindLedgeDrops()
-            {
-                for (var i = 0; i < polyCount; i++)
-                {
-                    var poly = data.polys[i];
-                    if (poly.GetPolyType() != DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
-                        continue;
-
-                    int from = -1, to = -1;
-                    for (var link = poly.firstLink; link != DtDetour.DT_NULL_LINK; link = tile.links[link].next)
-                    {
-                        mesh.GetTileAndPolyByRefUnsafe(tile.links[link].refs, out var endTile, out var endPoly);
-                        if (endTile != tile || endPoly == null)
-                            continue;
-
-                        if (tile.links[link].edge == 0)
-                            from = endPoly.index;
-                        else
-                            to = endPoly.index;
-                    }
-
-                    ledgeDrops.Add((i, from, to));
-                }
-            }
 
             // the components that can be walked to, of several
             bool[] GetKeptComponents()
@@ -211,6 +183,40 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
+        /// The ledge drops (one-way off-mesh connections) of a tile as (ledge drop, from, to) poly indices: the poly at
+        /// its start (link edge 0) and the one it lands on (edge 1), -1 for an end that isn't attached.
+        /// </summary>
+        private static List<(int ledgeDropPoly, int from, int to)> FindLedgeDrops(DtNavMesh mesh, DtMeshTile tile)
+        {
+            var data = tile.data;
+            var ledgeDrops = new List<(int ledgeDropPoly, int from, int to)>();
+
+            for (var i = 0; i < data.header.polyCount; i++)
+            {
+                var poly = data.polys[i];
+                if (poly.GetPolyType() != DtPolyTypes.DT_POLYTYPE_OFFMESH_CONNECTION)
+                    continue;
+
+                int from = -1, to = -1;
+                for (var link = poly.firstLink; link != DtDetour.DT_NULL_LINK; link = tile.links[link].next)
+                {
+                    mesh.GetTileAndPolyByRefUnsafe(tile.links[link].refs, out var endTile, out var endPoly);
+                    if (endTile != tile || endPoly == null)
+                        continue;
+
+                    if (tile.links[link].edge == 0)
+                        from = endPoly.index;
+                    else
+                        to = endPoly.index;
+                }
+
+                ledgeDrops.Add((i, from, to));
+            }
+
+            return ledgeDrops;
+        }
+
+        /// <summary>
         /// The connected components of a tile over its poly links, within the tile: the component of each poly (-1 for
         /// a ledge drop, which belongs to none), and for each component its area without door aprons and whether it has
         /// door apron polys.
@@ -313,12 +319,15 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static float GetPolyArea(DtMeshData data, DtPoly poly)
         {
+            // relative to the first vertex: outdoor coordinates are ~30000 m, where the products lose all precision
             var area = 0f;
+            var originX = data.verts[poly.verts[0] * 3];
+            var originZ = data.verts[poly.verts[0] * 3 + 2];
             for (int i = 0, j = poly.vertCount - 1; i < poly.vertCount; j = i++)
             {
                 var a = poly.verts[j] * 3;
                 var b = poly.verts[i] * 3;
-                area += data.verts[a] * data.verts[b + 2] - data.verts[b] * data.verts[a + 2];
+                area += (data.verts[a] - originX) * (data.verts[b + 2] - originZ) - (data.verts[b] - originX) * (data.verts[a + 2] - originZ);
             }
             return Math.Abs(area) * 0.5f;
         }

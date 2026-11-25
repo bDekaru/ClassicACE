@@ -487,27 +487,44 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
+        /// Writes a file to a temporary file and moves it into place, so an interrupted write leaves the previous file,
+        /// never a truncated one. False (logged) if it could not be written.
+        /// </summary>
+        internal static bool TryWriteFile(string path, Action<BinaryWriter> write)
+        {
+            var tempPath = $"{path}.{Guid.NewGuid():N}.tmp";
+            try
+            {
+                // nothing if it exists; recreated if it was deleted while the server runs
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+                using (var writer = new BinaryWriter(File.Create(tempPath)))
+                    write(writer);
+                File.Move(tempPath, path, true);
+                return true;
+            }
+            catch (Exception e)
+            {
+                log.Warn($"Pathfinder: could not save {path}: {e.Message}");
+                if (File.Exists(tempPath))
+                    TryDeleteFile(tempPath);
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Saves mesh data to its cache file, and deletes the cache files of the same mesh built with other settings or
         /// geometry, which are stale now.
         /// </summary>
         private static void SaveMeshData(DtMeshData meshData, uint meshId, string meshPath)
         {
-            // write to a temporary file and move it into place, so an interrupted write never leaves a truncated mesh
-            var tempPath = $"{meshPath}.{Guid.NewGuid():N}.tmp";
+            // if it fails the mesh is still usable, it just gets built again next time
+            if (!TryWriteFile(meshPath, writer => new DtMeshDataWriter().Write(writer, meshData, RcByteOrder.LITTLE_ENDIAN, false)))
+                return;
+
             try
             {
-                // nothing if it exists; recreated if it was deleted while the server runs
-                Directory.CreateDirectory(Path.GetDirectoryName(meshPath));
-
-                using (var stream = File.Create(tempPath))
-                using (var writer = new BinaryWriter(stream))
-                {
-                    new DtMeshDataWriter().Write(writer, meshData, RcByteOrder.LITTLE_ENDIAN, false);
-                }
-                File.Move(tempPath, meshPath, true);
-
-                var directory = Path.GetDirectoryName(meshPath);
-                foreach (var stale in Directory.GetFiles(directory, $"{meshId:X8}*.mesh"))
+                foreach (var stale in Directory.GetFiles(Path.GetDirectoryName(meshPath), $"{meshId:X8}*.mesh"))
                 {
                     if (!string.Equals(Path.GetFullPath(stale), Path.GetFullPath(meshPath), StringComparison.OrdinalIgnoreCase))
                         TryDeleteFile(stale);
@@ -515,10 +532,7 @@ namespace ACE.Server.Pathfinding
             }
             catch (Exception e)
             {
-                // the mesh is still usable, it just gets built again next time
-                log.Warn($"Pathfinder: could not save mesh {meshPath}: {e.Message}");
-                if (File.Exists(tempPath))
-                    TryDeleteFile(tempPath);
+                log.Warn($"Pathfinder: could not clean up the old files of mesh {meshPath}: {e.Message}");
             }
         }
 

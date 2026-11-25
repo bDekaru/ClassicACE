@@ -56,6 +56,12 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public List<RcConvexVolume> RoadVolumes { get; } = new List<RcConvexVolume>();
 
+        /// <summary>
+        /// Set by LoadSurface when a neighbor's building or static object reaches into the tile's own landblock (a bridge
+        /// end, a wall on the border). Scenery doesn't count. Tested on polygon bounds, so it can only err towards true.
+        /// </summary>
+        public bool NeighborObjectsInside { get; private set; }
+
         public List<EnvCell> Cells { get; }
 
         public MeshGeometryCollector(List<EnvCell> cells)
@@ -530,6 +536,11 @@ namespace ACE.Server.Pathfinding.Geometry
         private float clipMinX, clipMinY, clipMaxX, clipMaxY;
 
         /// <summary>
+        /// The world (x, y) of the tile's own landblock's corner.
+        /// </summary>
+        private Vector2 ownMin;
+
+        /// <summary>
         /// Exports the outdoors around one landblock, for its outdoor tile: terrain, building exterior shells, static
         /// objects and scenery of the landblock itself and of the strip of each neighbor within SurfaceMargin of it.
         /// Interior cells are not part of it; each connected group of interior cells gets its own mesh, so spaces that
@@ -544,6 +555,7 @@ namespace ACE.Server.Pathfinding.Geometry
             clipMinY = origin.Y - SurfaceMargin;
             clipMaxX = origin.X + ACE.Entity.Position.BlockLength + SurfaceMargin;
             clipMaxY = origin.Y + ACE.Entity.Position.BlockLength + SurfaceMargin;
+            ownMin = new Vector2(origin.X, origin.Y);
 
             foreach (var source in sources)
             {
@@ -552,10 +564,10 @@ namespace ACE.Server.Pathfinding.Geometry
                 var landblock = source.Landblock;
 
                 foreach (var building in landblock.Buildings ?? Enumerable.Empty<ACE.Server.Physics.PhysicsObj>())
-                    AddPhysicsObj(building, source.LandblockId, true, isOwn);
+                    NeighborObjectsInside |= AddPhysicsObj(building, source.LandblockId, true, isOwn) && !isOwn;
 
                 foreach (var obj in landblock.StaticObjects ?? Enumerable.Empty<ACE.Server.Physics.PhysicsObj>())
-                    AddPhysicsObj(obj, source.LandblockId, false, isOwn);
+                    NeighborObjectsInside |= AddPhysicsObj(obj, source.LandblockId, false, isOwn) && !isOwn;
 
                 foreach (var obj in landblock.Scenery ?? Enumerable.Empty<ACE.Server.Physics.PhysicsObj>())
                     AddPhysicsObj(obj, source.LandblockId, false, isOwn);
@@ -570,13 +582,17 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Adds a polygon given in world coordinates, unless it lies entirely outside the clip rect.
+        /// Adds a polygon given in world coordinates, unless it lies entirely outside the clip rect. True if it reaches
+        /// into the tile's own landblock (touching its edge doesn't count).
         /// </summary>
-        private void AddSurfacePolygon(List<Vector3> points)
+        private bool AddSurfacePolygon(List<Vector3> points)
         {
             var (min, max) = GeometryHelpers.GetBounds(points);
-            if (IntersectsClip(min.X, min.Y, max.X, max.Y))
-                AddPolygon(points);
+            if (!IntersectsClip(min.X, min.Y, max.X, max.Y))
+                return false;
+
+            AddPolygon(points);
+            return max.X > ownMin.X && min.X < ownMin.X + ACE.Entity.Position.BlockLength && max.Y > ownMin.Y && min.Y < ownMin.Y + ACE.Entity.Position.BlockLength;
         }
 
         /// <summary>
@@ -584,10 +600,11 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         /// <param name="sourceLandblockId">The landblock whose object list holds the object</param>
         /// <param name="isOwn">True for the tile's own landblock, whose objects are never skipped by distance</param>
-        private void AddPhysicsObj(ACE.Server.Physics.PhysicsObj obj, uint sourceLandblockId, bool isBuilding, bool isOwn)
+        /// <returns>True if the shape reaches into the tile's own landblock</returns>
+        private bool AddPhysicsObj(ACE.Server.Physics.PhysicsObj obj, uint sourceLandblockId, bool isBuilding, bool isOwn)
         {
             if (obj?.Position?.Frame == null)
-                return;
+                return false;
 
             // Objects are occasionally re-parented to a neighboring landblock (AdjustToOutside), which puts their
             // frame in that landblock's coordinates: the frame is relative to the landblock of their own cell.
@@ -597,11 +614,13 @@ namespace ACE.Server.Pathfinding.Geometry
             {
                 var at = obj.Position.Frame.Origin + offset;
                 if (!IntersectsClip(at.X - MaxObjectReach, at.Y - MaxObjectReach, at.X + MaxObjectReach, at.Y + MaxObjectReach))
-                    return;
+                    return false;
             }
 
+            var inside = false;
             foreach (var polygon in GetCollisionPolygons(obj, offset, isBuilding))
-                AddSurfacePolygon(polygon);
+                inside |= AddSurfacePolygon(polygon);
+            return inside;
         }
 
         /// <summary>

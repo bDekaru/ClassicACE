@@ -26,6 +26,12 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public int[] Faces { get; }
 
+        /// <summary>
+        /// For an outdoor tile: a neighbor's building or static object reaches into the landblock (see
+        /// MeshGeometryCollector.NeighborObjectsInside).
+        /// </summary>
+        public bool NeighborObjectsInside { get; private set; }
+
         private readonly RcVec3f bmin;
         private readonly RcVec3f bmax;
         private readonly List<RcConvexVolume> volumes = new List<RcConvexVolume>();
@@ -77,8 +83,12 @@ namespace ACE.Server.Pathfinding.Geometry
             collector.LoadSurface(landblockId, sources);
 
             var geometry = FromCollector(collector);
+            if (geometry == null)
+                return null;
+
             foreach (var volume in collector.RoadVolumes)
-                geometry?.AddConvexVolume(volume);
+                geometry.AddConvexVolume(volume);
+            geometry.NeighborObjectsInside = collector.NeighborObjectsInside;
 
             return geometry;
         }

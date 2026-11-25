@@ -19,7 +19,8 @@ namespace ACE.Server.Pathfinding.Reachability
         None,
 
         /// <summary>
-        /// The terrain alone: the landblock has no buildings or static objects (no LandblockInfo).
+        /// The terrain alone: neither the landblock nor a neighbor has a building or static object that reaches into
+        /// it. Scenery is left out.
         /// </summary>
         Terrain,
 
@@ -115,40 +116,26 @@ namespace ACE.Server.Pathfinding.Reachability
         }
 
         /// <summary>
-        /// Writes to a temporary file and moves it into place, so an interrupted save leaves the previous manifest.
-        /// False if it could not be saved.
+        /// False (logged) if it could not be saved; an interrupted save leaves the previous manifest (see
+        /// Pathfinder.TryWriteFile).
         /// </summary>
         public bool Save(string path)
         {
-            var tempPath = $"{path}.{Guid.NewGuid():N}.tmp";
-            try
+            return Pathfinder.TryWriteFile(path, writer =>
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                writer.Write(Magic);
+                writer.Write(FormatVersion);
+                writer.Write(WorldKey);
+                writer.Write(DatIdentity);
+                writer.Write(LandblockCount);
 
-                using (var writer = new BinaryWriter(File.Create(tempPath)))
+                foreach (var entry in Entries)
                 {
-                    writer.Write(Magic);
-                    writer.Write(FormatVersion);
-                    writer.Write(WorldKey);
-                    writer.Write(DatIdentity);
-                    writer.Write(LandblockCount);
-
-                    foreach (var entry in Entries)
-                    {
-                        writer.Write((byte)entry.Method);
-                        writer.Write((byte)entry.Status);
-                        writer.Write(entry.Fingerprint);
-                    }
+                    writer.Write((byte)entry.Method);
+                    writer.Write((byte)entry.Status);
+                    writer.Write(entry.Fingerprint);
                 }
-                File.Move(tempPath, path, true);
-                return true;
-            }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
-            {
-                if (File.Exists(tempPath))
-                    File.Delete(tempPath);
-                return false;
-            }
+            });
         }
     }
 }
