@@ -23,6 +23,29 @@ namespace ACE.Server.Factories
     {
         private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        /// <summary>
+        /// The two start spots of each starter town outside the end of retail: copied for a new character, and the seeds
+        /// of the world reachability graph.
+        /// </summary>
+        public static readonly Dictionary<string, Position[]> StarterTownLocations = new Dictionary<string, Position[]>
+        {
+            ["Shoushi"] = new[]
+            {
+                new Position(0xD6550023, 108.765625f, 62.215103f, 52.005001f, 0.000000f, 0.000000f, -0.300088f, 0.953912f), // West
+                new Position(0xDE51001D, 85.017159f, 107.291908f, 15.861228f, 0.000000f, 0.000000f, 0.323746f, 0.946144f) // Southeast
+            },
+            ["Yaraq"] = new[]
+            {
+                new Position(0x7D680012, 65.508179f, 37.516647f, 16.257774f, 0.000000f, 0.000000f, -0.950714f, 0.310069f), // North
+                new Position(0x8164000D, 40.296101f, 107.638382f, 31.363008f, 0.000000f, 0.000000f, -0.699884f, -0.714257f) // East
+            },
+            ["Holtburg"] = new[]
+            {
+                new Position(0xA5B4002A, 131.134338f, 33.602352f, 53.077141f, 0.000000f, 0.000000f, -0.263666f, 0.964614f), // West
+                new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f) // South
+            }
+        };
+
         public enum CreateResult
         {
             Success,
@@ -354,23 +377,12 @@ namespace ACE.Server.Factories
                 switch (starterAreaName)
                 {
                     case "Shoushi":
-                        if(ThreadSafeRandom.Next(0, 1) == 1)
-                            player.Location = new Position(0xD6550023, 108.765625f, 62.215103f, 52.005001f, 0.000000f, 0.000000f, -0.300088f, 0.953912f); // Shoushi West
-                        else
-                            player.Location = new Position(0xDE51001D, 85.017159f, 107.291908f, 15.861228f, 0.000000f, 0.000000f, 0.323746f, 0.946144f); // Shoushi Southeast
-                        break;
                     case "Yaraq":
-                        if (ThreadSafeRandom.Next(0, 1) == 1)
-                            player.Location = new Position(0x7D680012, 65.508179f, 37.516647f, 16.257774f, 0.000000f, 0.000000f, -0.950714f, 0.310069f); // Yaraq North
-                        else
-                            player.Location = new Position(0x8164000D, 40.296101f, 107.638382f, 31.363008f, 0.000000f, 0.000000f, -0.699884f, -0.714257f); //Yaraq East
+                        player.Location = new Position(StarterTownLocations[starterAreaName][ThreadSafeRandom.Next(0, 1)]);
                         break;
                     case "Holtburg":
                     default:
-                        if (ThreadSafeRandom.Next(0, 1) == 1)
-                            player.Location = new Position(0xA5B4002A, 131.134338f, 33.602352f, 53.077141f, 0.000000f, 0.000000f, -0.263666f, 0.964614f); // Holtburg West
-                        else
-                            player.Location = new Position(0xA9B00015, 60.108139f, 103.333549f, 64.402885f, 0.000000f, 0.000000f, -0.381155f, -0.924511f); // Holtburg South
+                        player.Location = new Position(StarterTownLocations["Holtburg"][ThreadSafeRandom.Next(0, 1)]);
                         break;
                     case "Hardcore":
                         if (!PropertyManager.GetBool("allow_custom_gameplay_modes").Item)

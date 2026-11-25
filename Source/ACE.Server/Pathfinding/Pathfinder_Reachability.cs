@@ -2,6 +2,7 @@ using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity;
 using ACE.Entity.Enum;
+using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Pathfinding.Geometry;
 using ACE.Server.Pathfinding.Reachability;
@@ -263,8 +264,7 @@ namespace ACE.Server.Pathfinding
                     for (var y = 0; y < TileSummary.MapSide; y++)
                     {
                         var point = new Vector3((x + 0.5f) * TileSummary.MapCellSize, (y + 0.5f) * TileSummary.MapCellSize, 0f);
-                        var cell = (int)(point.X / LandDefs.CellLength) * LandDefs.BlockSide + (int)(point.Y / LandDefs.CellLength);
-                        var ground = terrain[cell * 2].point_in_poly2D(point, Sidedness.Positive) ? terrain[cell * 2] : terrain[cell * 2 + 1];
+                        var ground = terrain[GetTerrainPolygon(terrain, point)];
                         point.Z = -(ground.Plane.Normal.X * point.X + ground.Plane.Normal.Y * point.Y + ground.Plane.D) / ground.Plane.Normal.Z;
 
                         var status = lease.Query.FindNearestPoly(ToMeshPoint(summary.LandblockId, point, true), halfExtents, AllPolysFilter, out var polyRef, out _, out _);
@@ -278,6 +278,83 @@ namespace ACE.Server.Pathfinding
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// The index of the terrain triangle under a landblock-local spot, in LandblockStruct.Polygons order.
+        /// </summary>
+        private static int GetTerrainPolygon(List<Polygon> terrain, Vector3 local)
+        {
+            var cell = GetTerrainCell(local);
+            return terrain[cell * 2].point_in_poly2D(local, Sidedness.Positive) ? cell * 2 : cell * 2 + 1;
+        }
+
+        /// <summary>
+        /// The terrain cell under a landblock-local spot; its two triangles are polygons cell * 2 and cell * 2 + 1.
+        /// </summary>
+        private static int GetTerrainCell(Vector3 local) => (int)(local.X / LandDefs.CellLength) * LandDefs.BlockSide + (int)(local.Y / LandDefs.CellLength);
+
+        /// <summary>
+        /// The piece at ground level under a landblock-local spot, NoPiece if there is none.
+        /// </summary>
+        private static ushort GetSummaryPiece(TileSummary summary, Vector3 local)
+        {
+            var max = LandDefs.BlockLength - 0.001f;
+            var spot = new Vector3(Math.Clamp(local.X, 0f, max), Math.Clamp(local.Y, 0f, max), 0f);
+
+            if (summary.Method == ReachabilityMethod.Recast)
+                return summary.Map[(int)(spot.X / TileSummary.MapCellSize) * TileSummary.MapSide + (int)(spot.Y / TileSummary.MapCellSize)];
+
+            // a cell's two triangles are nearly always the same piece; only when they differ does the split matter
+            var cell = GetTerrainCell(spot);
+            if (summary.Map[cell * 2] == summary.Map[cell * 2 + 1])
+                return summary.Map[cell * 2];
+
+            var cellLandblock = DatManager.CellDat.ReadFromDat<CellLandblock>(summary.LandblockId | 0xFFFF, false);
+            return HasFullTerrain(cellLandblock) ? summary.Map[GetTerrainPolygon(new LandblockStruct(cellLandblock).Polygons, spot)] : TileSummary.NoPiece;
+        }
+
+        private static volatile WorldGraph reachabilityGraph;
+
+        /// <summary>
+        /// Builds the walking graph of the world from the summaries (by landblock index, null where there is none) and
+        /// puts it in use. Landblocks the manifest gives walkable ground but that have no summary are Unknown.
+        /// </summary>
+        public static WorldGraph BuildReachabilityGraph(TileSummary[] summaries, ReachabilityManifest manifest)
+        {
+            var unknown = manifest.Entries.Select((entry, i) => summaries[i] == null && entry.Method != ReachabilityMethod.None).ToArray();
+
+            var seeds = PlayerFactory.StarterTownLocations.Values.SelectMany(spots => spots).Select(spot =>
+            {
+                var landblock = (int)(spot.Cell >> 16);
+                if (summaries[landblock] == null)
+                    return (landblock, TileSummary.NoPiece);
+
+                var piece = GetSummaryPiece(summaries[landblock], spot.Pos);
+                if (piece == TileSummary.NoPiece)
+                    log.Warn($"Pathfinder: start spot 0x{spot.Cell:X8} {spot.Pos} is on no walkable piece, so it seeds nothing");
+                return (landblock, piece);
+            }).ToList();
+
+            var graph = WorldGraph.Build(summaries, unknown, seeds, SmallProfile.MaxClimb);
+            reachabilityGraph = graph;
+            return graph;
+        }
+
+        /// <summary>
+        /// Whether a spot can be walked to from a start spot and back. Answers for the ground under the spot (a roof or
+        /// platform gets the ground's label). Unknown until the graph is built, and for interiors (not in the graph
+        /// yet).
+        /// </summary>
+        public static ReachabilityLabel GetReachability(ACE.Entity.Position position)
+        {
+            var graph = reachabilityGraph;
+            if (graph == null || position.Indoors)
+                return ReachabilityLabel.Unknown;
+
+            var landblock = (int)(position.Cell >> 16);
+            var summary = graph.Summaries[landblock];
+            return graph.GetLabel(landblock, summary == null ? TileSummary.NoPiece : GetSummaryPiece(summary, position.Pos));
         }
 
         private static void AddSpan(TileSummary summary, ushort piece, int side, Vector3 a, Vector3 b)
