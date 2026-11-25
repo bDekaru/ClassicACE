@@ -11,6 +11,8 @@ using ACE.Server.Entity.Actions;
 using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
+using ACE.Server.Pathfinding;
+using ACE.Server.Pathfinding.Reachability;
 using ACE.Server.Physics.Common;
 using System;
 using System.Collections.Concurrent;
@@ -96,7 +98,7 @@ namespace ACE.Server.WorldObjects
             }
 
             var possibleEncounterWcids = TreasureEncounters.Value[landblockTier];
-            if (possibleEncounterWcids.Count == 0)
+            if (possibleEncounterWcids.Count == 0 || WaitsForReachability)
                 return null;
 
             Vector2? coords = null;
@@ -126,6 +128,12 @@ namespace ACE.Server.WorldObjects
             return wo;
         }
 
+        /// <summary>
+        /// With the startup reachability bake on (see Program), no map drops until its graph is in use, even past a
+        /// bake that ended without one (until a restart), so no spot lands where a player can't walk to.
+        /// </summary>
+        private static bool WaitsForReachability => ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && PropertyManager.GetBool("reachability_bake").Item && !Pathfinder.HasReachabilityGraph;
+
         public static Vector2? RollEncounter(List<Encounter> possibleEncounters)
         {
             if (possibleEncounters == null || possibleEncounters.Count == 0)
@@ -142,16 +150,22 @@ namespace ACE.Server.WorldObjects
             pos.Frame = new Physics.Animation.AFrame(new Vector3(xPos, yPos, 0), Quaternion.Identity);
             pos.adjust_to_outside();
 
-            var sortCell = LScape.get_landcell(pos.ObjCellID) as SortCell;
-            if (sortCell == null || sortCell.has_building() || sortCell.WaterType == LandDefs.WaterType.EntirelyWater)
+            var coords = pos.ACEPosition().GetMapCoords();
+            if (coords == null)
                 return null;
 
-            var location = pos.ACEPosition();
+            // checked where the map points, as ActOnUse reads it back: a neighboring cell of the encounter's
+            var spot = new Position(coords.Value.Y, coords.Value.X);
+            spot.AdjustMapCoords();
 
-            if (!location.IsWalkable())
+            var sortCell = LScape.get_landcell(spot.Cell) as SortCell;
+            if (sortCell == null || sortCell.has_building() || sortCell.WaterType == LandDefs.WaterType.EntirelyWater || !spot.IsWalkable())
                 return null;
 
-            var coords = location.GetMapCoords();
+            // Unknown too: a landblock not baked yet, or one that failed
+            if (Pathfinder.HasReachabilityGraph && Pathfinder.GetReachability(spot) != ReachabilityLabel.Walkable)
+                return null;
+
             return coords;
         }
 
