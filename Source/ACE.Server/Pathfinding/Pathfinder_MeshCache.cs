@@ -41,10 +41,10 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Like MeshGeometryVersion, for the outdoor tiles. 2: tiles in world coordinates with a border from the
         /// neighboring landblocks. 3: the objects of every landblock come from the dat, loaded or not. 4: spheres at
-        /// their centers. 5: no small sphere obstacles. 6: road areas. A change to the geometry alone needs no bump: the
+        /// their centers. 5: no small sphere obstacles. 6: road areas. 7: ledge drops (LedgeDropFinder never found any outdoors before). A change to the geometry alone needs no bump: the
         /// tile file names carry the geometry's fingerprint (see GetMeshPath).
         /// </summary>
-        private const int OutdoorMeshGeometryVersion = 6;
+        private const int OutdoorMeshGeometryVersion = 7;
 
         /// <summary>
         /// After an outdoor tile build fails, no new attempt is made for this long (unless a rebuild is requested).
@@ -451,7 +451,7 @@ namespace ACE.Server.Pathfinding
             return true;
         }
 
-        private static DtNavMesh CreateSingleTileMesh(DtMeshData meshData)
+        internal static DtNavMesh CreateSingleTileMesh(DtMeshData meshData)
         {
             // Init(meshData) puts the grid origin at the tile's bmin, so queries look for the tile at grid (0, 0); an
             // outdoor tile is at its landblock's coordinates, so the origin goes back to where that grid starts

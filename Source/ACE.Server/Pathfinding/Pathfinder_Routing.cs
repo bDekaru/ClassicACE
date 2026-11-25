@@ -55,13 +55,13 @@ namespace ACE.Server.Pathfinding
         private static readonly DtQueryDefaultFilter RouteFilter = CreateRouteFilter(1.0f, LedgeDropCostFactor);
 
         /// <param name="offRoadCost">The cost factor of every area but the road (1) and ledge drops</param>
-        private static DtQueryDefaultFilter CreateRouteFilter(float offRoadCost, float ledgeDropCost)
+        private static DtQueryDefaultFilter CreateRouteFilter(float offRoadCost, float ledgeDropCost, int excludeFlags = 0)
         {
             var areaCosts = new float[DtDetour.DT_MAX_AREAS];
             Array.Fill(areaCosts, offRoadCost);
             areaCosts[NavArea.Road] = 1.0f;
             areaCosts[NavArea.LedgeDrop] = ledgeDropCost;
-            return new DtQueryDefaultFilter(0xFFFF, 0, areaCosts);
+            return new DtQueryDefaultFilter(0xFFFF, excludeFlags, areaCosts);
         }
 
         /// <summary>
@@ -71,12 +71,11 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         internal const float OffRoadCostFactor = 2.0f;
 
-        private const float RoadLedgeDropCostFactor = 10.0f;
-
         /// <summary>
-        /// Like RouteFilter, but the road is preferred over the ground and ledge drops cost more.
+        /// Like RouteFilter, but the road is preferred over the ground, and no ledge drops: RoadFollower walks every
+        /// waypoint with a wide arrival radius, which would cut a drop short.
         /// </summary>
-        private static readonly DtQueryDefaultFilter RoadRouteFilter = CreateRouteFilter(OffRoadCostFactor, RoadLedgeDropCostFactor);
+        private static readonly DtQueryDefaultFilter RoadRouteFilter = CreateRouteFilter(OffRoadCostFactor, LedgeDropCostFactor, NavPolyFlags.LedgeDrop);
 
         /// <summary>
         /// Limits a search to the outdoor tiles in a rect of landblocks, so a route towards an unreachable target

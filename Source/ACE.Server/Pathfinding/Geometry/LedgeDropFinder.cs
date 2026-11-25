@@ -83,20 +83,25 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         private const float ClearancePathSpacing = 0.25f;
 
+        /// <summary>
+        /// How far inside the tile's max x and z edges a landing must be.
+        /// </summary>
+        private const float TileEdgeMargin = 0.05f;
+
         private const int MaxLandingCandidates = 32;
 
         /// <summary>
         /// Finds the ledge drops of a single tile mesh, built from geom (in the same coordinates).
         /// </summary>
-        public static List<RcOffMeshConnection> Find(DtMeshData data, IRcInputGeomProvider geom, int maxVertsPerPoly, float agentRadius, float agentHeight, float agentMaxClimb)
+        public static List<RcOffMeshConnection> Find(DtMeshData data, IRcInputGeomProvider geom, float agentRadius, float agentHeight, float agentMaxClimb)
         {
             var ledgeDrops = new List<RcOffMeshConnection>();
 
             if (data?.header == null || data.header.polyCount == 0)
                 return ledgeDrops;
 
-            var mesh = new DtNavMesh();
-            if (mesh.Init(data, maxVertsPerPoly, 0).Failed())
+            var mesh = Pathfinder.CreateSingleTileMesh(data);
+            if (mesh == null)
                 return ledgeDrops;
 
             var tile = mesh.GetTile(0);
@@ -164,7 +169,7 @@ namespace ACE.Server.Pathfinding.Geometry
                             continue;
 
                         // the floor below, just past the lower floor's eroded edge
-                        if (!TryFindLanding(query, filter, landingCandidates, polyRef, start, Along(start, normal, landingDistance), minLedgeDrop, out var landing))
+                        if (!TryFindLanding(query, filter, landingCandidates, polyRef, start, Along(start, normal, landingDistance), minLedgeDrop, data.header.bmax, out var landing))
                             continue;
 
                         // Where a walking agent comes down: it leaves the ground at the ledge's edge, about a radius past
@@ -175,7 +180,7 @@ namespace ACE.Server.Pathfinding.Geometry
                         // Further out than the floor found above: the landing is there, and must be the same floor.
                         if (touchdownDistance > landingDistance)
                         {
-                            if (!TryFindLanding(query, filter, landingCandidates, polyRef, start, Along(start, normal, touchdownDistance), minLedgeDrop, out var farLanding) ||
+                            if (!TryFindLanding(query, filter, landingCandidates, polyRef, start, Along(start, normal, touchdownDistance), minLedgeDrop, data.header.bmax, out var farLanding) ||
                                 Math.Abs(farLanding.Y - landing.Y) > SurfaceTolerance)
                                 continue;
 
@@ -208,7 +213,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// Finds the floor the agent lands on below the probe point: the highest poly under it (within
         /// LandingSearchRadius) that is between minLedgeDrop and MaxLedgeDropHeight below the start.
         /// </summary>
-        private static bool TryFindLanding(DtNavMeshQuery query, IDtQueryFilter filter, long[] candidates, long startRef, RcVec3f start, RcVec3f probe, float minLedgeDrop, out RcVec3f landing)
+        private static bool TryFindLanding(DtNavMeshQuery query, IDtQueryFilter filter, long[] candidates, long startRef, RcVec3f start, RcVec3f probe, float minLedgeDrop, RcVec3f tileMax, out RcVec3f landing)
         {
             landing = default;
 
@@ -235,6 +240,10 @@ namespace ACE.Server.Pathfinding.Geometry
 
                 var dropHeight = start.Y - point.Y;
                 if (dropHeight < minLedgeDrop || dropHeight > MaxLedgeDropHeight)
+                    continue;
+
+                // Detour puts a point on the tile's max x or z edge in the next tile, so its end would not link here
+                if (point.X > tileMax.X - TileEdgeMargin || point.Z > tileMax.Z - TileEdgeMargin)
                     continue;
 
                 // the first floor below is the one landed on

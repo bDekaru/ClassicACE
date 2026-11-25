@@ -149,7 +149,7 @@ namespace ACE.Server.Pathfinding.Geometry
             if (meshData == null)
                 return null;
 
-            var ledgeDrops = LedgeDropFinder.Find(meshData, geom, settings.VertsPerPoly, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
+            var ledgeDrops = LedgeDropFinder.Find(meshData, geom, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
             if (ledgeDrops.Count == 0)
                 return meshData;
 
