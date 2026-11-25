@@ -393,11 +393,6 @@ namespace ACE.DatLoader.Tests
             CollectionAssert.AreEqual(new uint[] { 0x3FAC0005 }, list.Regular);
             CollectionAssert.AreEqual(new uint[] { 0x030F0000 }, list.PreserveTextures);
             CollectionAssert.AreEqual(new uint[] { 0x02000000 }, list.PreserveSurface);
-
-            var embedded = DatMapEditor.SettlementList.LoadEmbedded("settlement_landblocks.tsv");
-            Assert.AreEqual(1319, embedded.Regular.Count + embedded.PreserveTextures.Count + embedded.PreserveSurface.Count);
-            Assert.AreEqual(25, embedded.PreserveTextures.Count);
-            Assert.AreEqual(114, embedded.PreserveSurface.Count);
         }
 
         [TestMethod]

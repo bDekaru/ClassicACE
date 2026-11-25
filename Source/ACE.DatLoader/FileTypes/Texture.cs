@@ -19,8 +19,12 @@ namespace ACE.DatLoader.FileTypes
     {
         // RenderSurface inherits m_dataCategory from DBObj.
         // The original client serializes this field for categorized resources.
-        // The meaning of individual category values has not yet been established.
+        // Its only use in the retail client: RenderSurface::Serialize keeps images of category 6 or 10 in the cache when unused (see KeptInCache).
+        // EoR has 6 on the 2D images (UI, icons, JPEG maps), 10 on the A8 images and 0-9 on world textures; the other values look like art tool labels.
         public uint DataCategory { get; set; }
+
+        /// <summary>True when the client keeps the image in its cache's free list once no longer used, instead of reading it from the dat again (RenderSurface::Serialize sets m_AllowedInFreeList).</summary>
+        public bool KeptInCache => DataCategory == 6 || DataCategory == 10;
         public int Width { get; set; }
         public int Height { get; set; }
         public SurfacePixelFormat Format { get; set; }
@@ -55,7 +59,7 @@ namespace ACE.DatLoader.FileTypes
             }
         }
 
-        /// <summary>The value ToD records store in the field after the id (<see cref="DataCategory"/>) for these images.</summary>
+        /// <summary>The <see cref="DataCategory"/> of the 2D images (UI images, icons, JPEG maps) in ToD records: one the client keeps in its cache.</summary>
         public const uint ToDHeaderValue = 6;
 
         /// <summary>
@@ -141,6 +145,33 @@ namespace ACE.DatLoader.FileTypes
                 SourceData = pixels,
                 DefaultPaletteId = defaultPaletteId
             };
+        }
+
+        /// <summary>A 2D image record (<see cref="ToDHeaderValue"/>) of an A8R8G8B8 or R8G8B8 format made from a picture, such as one read from a PNG: the counterpart of <see cref="GetBitmap()"/>.</summary>
+        /// <exception cref="NotSupportedException">The format is neither A8R8G8B8 nor R8G8B8.</exception>
+        public static Texture FromBitmap(uint id, Bitmap image, SurfacePixelFormat format)
+        {
+            if (format != SurfacePixelFormat.PFID_A8R8G8B8 && format != SurfacePixelFormat.PFID_R8G8B8)
+                throw new NotSupportedException($"Texture {id:X8}: images are made from pictures as A8R8G8B8 or R8G8B8, not {format}.");
+
+            // GDI+ lays both formats out in the dat's byte order: blue, green, red (and alpha).
+            var step = format == SurfacePixelFormat.PFID_A8R8G8B8 ? 4 : 3;
+            var pixels = new byte[image.Width * image.Height * step];
+            var data = image.LockBits(new Rectangle(0, 0, image.Width, image.Height), ImageLockMode.ReadOnly, step == 4 ? PixelFormat.Format32bppArgb : PixelFormat.Format24bppRgb);
+
+            try
+            {
+                for (var y = 0; y < image.Height; y++)
+                    System.Runtime.InteropServices.Marshal.Copy(data.Scan0 + y * data.Stride, pixels, y * image.Width * step, image.Width * step);
+            }
+            finally
+            {
+                image.UnlockBits(data);
+            }
+
+            var texture = Create(id, image.Width, image.Height, format, pixels);
+            texture.DataCategory = ToDHeaderValue;
+            return texture;
         }
 
         /// <exception cref="InvalidDataException">The pixel format needs a palette id and none is set.</exception>

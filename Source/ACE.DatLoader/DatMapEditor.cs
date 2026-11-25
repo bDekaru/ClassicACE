@@ -795,18 +795,6 @@ namespace ACE.DatLoader
 
                 return list;
             }
-
-            public static SettlementList LoadEmbedded(string fileName)
-            {
-                var assembly = typeof(DatMapEditor).Assembly;
-                var resource = assembly.GetManifestResourceNames().FirstOrDefault(n => n.EndsWith("." + fileName, StringComparison.Ordinal));
-
-                if (resource == null)
-                    throw new System.IO.FileNotFoundException($"Embedded settlement list {fileName} not found.");
-
-                using (var reader = new System.IO.StreamReader(assembly.GetManifestResourceStream(resource)))
-                    return Parse(reader);
-            }
         }
 
         /// <summary>

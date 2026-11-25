@@ -28,13 +28,6 @@ namespace ACE.DatLoader.Tests
         private const uint XpTableId = 0x0E000018;
         private const uint SkillTableId = 0x0E000004;
 
-        private static string CustomFile(params string[] parts)
-        {
-            var path = TestSourceDats.Require(Path.Combine(new[] { SourceDats, "Custom Files" }.Concat(parts).ToArray()));
-
-            return path;
-        }
-
         private static byte[] PortalRecord(string datName, uint id)
         {
             var path = TestSourceDats.Dat(datName);
@@ -93,14 +86,6 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void XpTable_PackEqualsRecord_InfiltrationFile()
-        {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "Infiltration", "0E000018 - XpTable.bin"));
-
-            AssertSameBytes(bytes, UnpackXp(bytes).Pack());
-        }
-
-        [TestMethod]
         public void XpTable_PackEqualsRecord_EoRDat()
         {
             var bytes = PortalRecord("portal - 2017-01-29 - Iteration 2072 - EoR.dat", XpTableId);
@@ -112,14 +97,6 @@ namespace ACE.DatLoader.Tests
         public void SkillTable_PackEqualsRecord_ShippedCustomDMDat()
         {
             var bytes = CustomDMSkillRecord();
-
-            AssertSameBytes(bytes, UnpackSkills(bytes).Pack());
-        }
-
-        [TestMethod]
-        public void SkillTable_PackEqualsRecord_InfiltrationFile()
-        {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "Infiltration", "0E000004 - SkillTable.bin"));
 
             AssertSameBytes(bytes, UnpackSkills(bytes).Pack());
         }
@@ -1051,20 +1028,6 @@ namespace ACE.DatLoader.Tests
             AssertSameBytes(bytes, UnpackCharGen(bytes).Pack());
         }
 
-        [TestMethod]
-        public void CharGen_PackEqualsRecord_CustomDMFile()
-        {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000002 - CharGen.bin"));
-            AssertSameBytes(bytes, UnpackCharGen(bytes).Pack());
-        }
-
-        [TestMethod]
-        public void CharGen_PackEqualsRecord_InfiltrationFile()
-        {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "Infiltration", "0E000002 - CharGen.bin"));
-            AssertSameBytes(bytes, UnpackCharGen(bytes).Pack());
-        }
-
         // ---- character generation (tables) ----
 
         private static List<uint> CustomDMSkillIds()
@@ -1074,7 +1037,7 @@ namespace ACE.DatLoader.Tests
 
         private static byte[] CustomDMChargenBytes()
         {
-            return File.ReadAllBytes(CustomFile("Portal", "CustomDM", "0E000002 - CharGen.bin"));
+            return ShippedPortalRecord("CustomDM", CharGen.FILE_ID);
         }
 
         private static void AssertSameLists(CharGen expected, CharGen actual)
@@ -1113,19 +1076,6 @@ namespace ACE.DatLoader.Tests
             Assert.AreEqual(DatTables.Hash(rows), DatTables.Hash(DatTables.ToRows(UnpackCharGen(rebuilt.Pack()))));
             AssertSameLists(UnpackCharGen(bytes), rebuilt);
             Assert.IsTrue(DatTables.CreditsApplied(rebuilt, rows.Chargen));
-        }
-
-        [TestMethod]
-        public void ChargenRows_RebuildTheRecord_InfiltrationFile()
-        {
-            var bytes = File.ReadAllBytes(CustomFile("Portal", "Infiltration", "0E000002 - CharGen.bin"));
-            var rows = DatTables.ToRows(UnpackCharGen(bytes));
-            var skillIds = DatTables.ToRows(UnpackSkills(File.ReadAllBytes(CustomFile("Portal", "Infiltration", "0E000004 - SkillTable.bin")))).Select(s => s.Id).ToList();
-            var rebuilt = DatTables.ToCharGen(rows, UnpackCharGen(bytes), skillIds);
-
-            Assert.IsTrue(rows.Overrides.Count > 13);
-            Assert.AreEqual(DatTables.Hash(rows), DatTables.Hash(DatTables.ToRows(UnpackCharGen(rebuilt.Pack()))));
-            AssertSameLists(UnpackCharGen(bytes), rebuilt);
         }
 
         [TestMethod]

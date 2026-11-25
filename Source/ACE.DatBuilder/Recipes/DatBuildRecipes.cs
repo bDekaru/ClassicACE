@@ -8,28 +8,13 @@ using ACE.DatLoader.FileTypes;
 
 namespace ACE.DatBuilder
 {
-    /// <summary>One overlay folder (relative to the Custom Files root, written with '/') and the date the records it writes carry. The date is chosen by hand when the step is added and never changed afterwards.</summary>
-    public class DatBuildStep
-    {
-        public string Folder { get; }
-        public string Date { get; }
-        public uint Time { get; }
-
-        public DatBuildStep(string folder, string date)
-        {
-            Folder = folder;
-            Date = date;
-            Time = DatStepDate.Parse(date);
-        }
-    }
-
     /// <summary>
-    /// One dat build: a base dat and the ordered list of overlay folders (relative to the Custom Files root) laid over it.
+    /// One dat build: a base dat and the ordered list of record steps run over it.
     /// Every step carries a date, in non-decreasing order; the dat's release table turns the dates into entry iterations.
     /// </summary>
     public class DatBuildRecipe
     {
-        /// <summary>Set for portal recipes whose XP and skill tables come from the ruleset's dat_* database tables: the date the records written from them carry, after the folder steps.</summary>
+        /// <summary>Set for portal recipes whose XP and skill tables come from the ruleset's dat_* database tables: the date the records written from them carry, after the record steps.</summary>
         public string TablesDate { get; private set; }
 
         public uint TablesTime => DatStepDate.Parse(TablesDate);
@@ -40,7 +25,7 @@ namespace ACE.DatBuilder
             return this;
         }
 
-        /// <summary>Record steps (records made from other records by function calls), run before the overlay folders, in this order.</summary>
+        /// <summary>Record steps (records made from other records by function calls, or from the data files), run in this order.</summary>
         public DatRecordStep[] RecordSteps { get; private set; } = new DatRecordStep[0];
 
         public DatBuildRecipe WithRecordSteps(params DatRecordStep[] steps)
@@ -66,13 +51,8 @@ namespace ACE.DatBuilder
         /// <summary>File name of the base dat in the source dats folder.</summary>
         public string BaseDat { get; }
 
-        /// <summary>The overlay steps in application order.</summary>
-        public DatBuildStep[] Steps { get; }
-
         /// <summary>The releases of the dat this recipe builds.</summary>
         public DatReleaseSet Releases { get; }
-
-        public Func<uint, bool> AcceptId { get; }
 
         /// <summary>Output subfolder name, e.g. CustomDM or Infiltration.</summary>
         public string Ruleset { get; }
@@ -83,14 +63,12 @@ namespace ACE.DatBuilder
         /// <summary>Recipe name as typed on the command line, e.g. portal-customdm.</summary>
         public string Key => Name.Replace(' ', '-').ToLowerInvariant();
 
-        public DatBuildRecipe(string name, string ruleset, string baseDat, Func<uint, bool> acceptId, DatReleaseSet releases, params DatBuildStep[] steps)
+        public DatBuildRecipe(string name, string ruleset, string baseDat, DatReleaseSet releases)
         {
             Name = name;
             Ruleset = ruleset;
             BaseDat = baseDat;
-            AcceptId = acceptId;
             Releases = releases;
-            Steps = steps;
         }
 
         /// <summary>The date of the last step.</summary>
@@ -101,9 +79,6 @@ namespace ACE.DatBuilder
                 var last = Releases.StartTime;
 
                 foreach (var step in RecordSteps)
-                    last = Math.Max(last, step.Time);
-
-                foreach (var step in Steps)
                     last = Math.Max(last, step.Time);
 
                 return TablesDate != null ? Math.Max(last, TablesTime) : last;
@@ -124,36 +99,12 @@ namespace ACE.DatBuilder
                 previous = step.Time;
             }
 
-            foreach (var step in Steps)
-            {
-                if (step.Time < previous)
-                    throw new InvalidDataException($"{Name}: step '{step.Folder}' is dated {step.Date}, earlier than the step before it (steps run in date order, none before {Releases.StartDate}).");
-
-                previous = step.Time;
-            }
-
             if (TablesDate != null && TablesTime < previous)
                 throw new InvalidDataException($"{Name}: the dat tables step is dated {TablesDate}, earlier than the step before it (steps run in date order, none before {Releases.StartDate}).");
         }
-
-        public string[] ResolveFolders(string customFilesRoot)
-        {
-            return Steps.Select(s => Path.Combine(customFilesRoot, s.Folder.Replace('/', Path.DirectorySeparatorChar))).ToArray();
-        }
-
-        public DatOverlayReport Apply(DatWriter writer, string customFilesRoot)
-        {
-            var folders = ResolveFolders(customFilesRoot);
-
-            return DatOverlay.Apply(writer, Steps.Select((s, i) => (folders[i], s.Time)), AcceptId);
-        }
     }
 
-    /// <summary>
-    /// The overlay steps of Melt's Language and Portal builders (Program.cs: LanguageManipulationForCustomDM, LanguageManipulationForInfiltration,
-    /// PortalManipulationForCustomDM, PortalManipulationForInfiltration), with the same folders in the same order.
-    /// Folders Melt has commented out are deliberately absent.
-    /// </summary>
+    /// <summary>The Language and Portal recipes of each ruleset, which replace Melt's builders (Program.cs: LanguageManipulationForCustomDM, LanguageManipulationForInfiltration, PortalManipulationForCustomDM, PortalManipulationForInfiltration).</summary>
     public static class DatBuildRecipes
     {
         // Source dats used by the recipes (MD5 of the file as checked 2026-11-17).Donor cell dats are listed in DatMapSources.
@@ -174,29 +125,22 @@ namespace ACE.DatBuilder
         // Every step is dated by hand when it is added and the date is never changed afterwards (see DatReleases). All steps below make up the initial version.
         public const string InitialVersionDate = "2026-11-16";
 
-        private static DatBuildStep Initial(string folder)
-        {
-            return new DatBuildStep(folder, InitialVersionDate);
-        }
-
-        public static readonly DatBuildRecipe LanguageCustomDM = new DatBuildRecipe("Language CustomDM", "CustomDM", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.CustomDMLanguage)
+        public static readonly DatBuildRecipe LanguageCustomDM = new DatBuildRecipe("Language CustomDM", "CustomDM", LanguageBaseDat, DatReleases.CustomDMLanguage)
             .WithRecordSteps(LanguageRecords.CustomDM(InitialVersionDate))
             .WithTables(InitialVersionDate);
 
-        public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.InfiltrationLanguage)
+        public static readonly DatBuildRecipe LanguageInfiltration = new DatBuildRecipe("Language Infiltration", "Infiltration", LanguageBaseDat, DatReleases.InfiltrationLanguage)
             .WithRecordSteps(LanguageRecords.Infiltration(InitialVersionDate));
 
         /// <summary>The Infiltration portal: the 2005 dat with the Infiltration tables.</summary>
-        public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.InfiltrationPortal,
-            Initial("Portal/Infiltration"))
+        public static readonly DatBuildRecipe PortalInfiltration = new DatBuildRecipe("Portal Infiltration", "Infiltration", PortalBaseDat, DatReleases.InfiltrationPortal)
             .WithEmptyBase()
-            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate).Concat(InfiltrationRecords.Tables(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).ToArray());
+            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate).Concat(InfiltrationRecords.Tables(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(SurfaceTextureRecords.Step("Blend surface textures", InitialVersionDate, SurfaceTextureRecords.BlendFile)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).Append(CustomImageRecords.Step("Infiltration", InitialVersionDate)).ToArray());
 
         /// <summary>The CustomDM counterpart of <see cref="PortalInfiltration"/>: the 2005 look everywhere, with only the CustomDM additions that have no 2005 record laid over it.</summary>
-        public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatOverlay.IsPortalId, DatReleases.CustomDMPortal,
-            Initial("Portal/CustomDM"))
+        public static readonly DatBuildRecipe PortalCustomDM = new DatBuildRecipe("Portal CustomDM", "CustomDM", PortalBaseDat, DatReleases.CustomDMPortal)
             .WithEmptyBase()
-            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate, CustomDMRecords.EoRRecordsFile, CustomDMRecords.MapEoRRecordsFile).Append(InfiltrationRecords.ChargenFromEoR(InitialVersionDate, CustomDMRecords.ChargenEditsFile)).Concat(CustomDMRecords.AdditionsTo2005(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).Append(SeasonalRecords.Step("Summer", InitialVersionDate)).ToArray())
+            .WithRecordSteps(PreToDBaseRecords.All(InitialVersionDate, CustomDMRecords.EoRRecordsFile, CustomDMRecords.MapEoRRecordsFile).Append(InfiltrationRecords.ChargenFromEoR(InitialVersionDate, CustomDMRecords.ChargenEditsFile)).Concat(CustomDMRecords.AdditionsTo2005(InitialVersionDate)).Append(GroundTextureRecords.Step(InitialVersionDate)).Append(GroundTextureRecords.SurfaceTextureStep(InitialVersionDate)).Append(GroundTextureRecords.RegionStep(InitialVersionDate)).Append(IconRecords.Step(InitialVersionDate)).Concat(RegionRecords.All(InitialVersionDate)).Append(IconRecords.EoRStep(InitialVersionDate)).Append(SeasonalRecords.Step("Summer", InitialVersionDate)).Append(CustomImageRecords.Step("CustomDM", InitialVersionDate)).ToArray())
             .WithTables(InitialVersionDate);
 
         public static readonly DatBuildRecipe[] All = { LanguageCustomDM, LanguageInfiltration, PortalCustomDM, PortalInfiltration };

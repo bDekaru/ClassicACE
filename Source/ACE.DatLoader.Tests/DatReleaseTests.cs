@@ -111,14 +111,13 @@ namespace ACE.DatLoader.Tests
         [TestMethod]
         public void Recipe_StepDatedBeforeAnEarlierStep_IsRejected()
         {
-            var recipe = new DatBuildRecipe("Test", "CustomDM", DatBuildRecipes.LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.CustomDMLanguage,
-                new DatBuildStep("Language/One", "2026-11-17"),
-                new DatBuildStep("Language/Two", "2026-11-16"));
+            var recipe = new DatBuildRecipe("Test", "CustomDM", DatBuildRecipes.LanguageBaseDat, DatReleases.CustomDMLanguage)
+                .WithRecordSteps(new DatRecordStep("One", "2026-11-17", c => { }), new DatRecordStep("Two", "2026-11-16", c => { }));
 
             Assert.ThrowsExactly<InvalidDataException>(() => recipe.ValidateDates());
 
-            var early = new DatBuildRecipe("Test", "CustomDM", DatBuildRecipes.LanguageBaseDat, DatOverlay.IsLanguageId, DatReleases.CustomDMLanguage,
-                new DatBuildStep("Language/One", "2026-11-15"));
+            var early = new DatBuildRecipe("Test", "CustomDM", DatBuildRecipes.LanguageBaseDat, DatReleases.CustomDMLanguage)
+                .WithRecordSteps(new DatRecordStep("One", "2026-11-15", c => { }));
 
             Assert.ThrowsExactly<InvalidDataException>(() => early.ValidateDates());
         }
@@ -156,17 +155,13 @@ namespace ACE.DatLoader.Tests
             if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(GuardVariable)))
                 Assert.Inconclusive($"Set {GuardVariable}=1 to build every dat and compare the hashes (about 6 minutes).");
 
-            if (!Directory.Exists(Path.Combine(SourceDats, "Custom Files")))
-                Assert.Inconclusive($"Custom files not found: {Path.Combine(SourceDats, "Custom Files")}");
-
             var outRoot = TestSourceDats.TempPath("DatReleaseGuard");
-            var custom = Path.Combine(SourceDats, "Custom Files");
             var mismatches = new System.Text.StringBuilder();
 
             try
             {
                 foreach (var recipe in DatBuildRecipes.All)
-                    Check(recipe.Releases, DatBuildRunner.Build(recipe, SourceDats, custom, outRoot).ReleaseHash, mismatches);
+                    Check(recipe.Releases, DatBuildRunner.Build(recipe, SourceDats, outRoot).ReleaseHash, mismatches);
 
                 foreach (var recipe in DatBuildRecipes.AllCells)
                     Check(recipe.Releases, DatCellBuildRunner.Build(recipe, SourceDats, outRoot).ReleaseHash, mismatches);

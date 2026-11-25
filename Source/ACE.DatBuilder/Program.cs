@@ -16,7 +16,7 @@ namespace ACE.DatBuilder
         private const int AuditFailure = 2;
 
         private const string Usage =
-@"ACE.DatBuilder build <recipe|all> [--source <folder>] [--custom <folder>] [--out <folder>] [--force] [--trace-map] [--skip-step <name>]... [--config <Config.js>] [--world-db <name>]
+@"ACE.DatBuilder build <recipe|all> [--source <folder>] [--out <folder>] [--force] [--trace-map] [--skip-step <name>]... [--config <Config.js>] [--world-db <name>]
 ACE.DatBuilder apply-tables <portal or language recipe> --config <Config.js> [--world-db <name>] [--dat <built portal dat> | --out <folder> | --source <folder>]
 ACE.DatBuilder export-tables --dat <portal dat> [--language <language dat>] --out <sql file>
 ACE.DatBuilder list
@@ -30,13 +30,12 @@ ACE.DatBuilder convert-cell --from <pre-ToD cell dat> --map <surface map tsv> --
   A cell recipe needs its ruleset's portal built first (in the same --out); 'all' builds the portals before the cells.
 
   --source  folder with the original dats (default: the dat_source_folder setting of the --config server)
-  --custom  folder with the custom files (default: <source>/Custom Files)
   --out     output root; each recipe writes to <out>/<ruleset>/<name>.dat (default: <source>/../Build)
   --force   replace an existing output dat
   --skip-step  build without the record step of that name (repeatable; the names are listed by 'list'), to find out what the step contributes: build into another --out and run compare-portal against the full build
   check-references reports the ids that the portal dat, the cell dat and the world database refer to and nothing provides, the portal records that none of them reaches by type, and which entries of the --listed id lists (for example customdm-eor-records.json) are not reachable and so unneeded.
   --trace-map  for a cell recipe with map edits: also report, per recipe source line, the records it changed and the ones it still owns at the end (0 = overridden, reverted or without effect), and write <name>.trace.txt
-  --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP, skill, vital, character generation and spell tables) of a recipe that has them; without it the records from the custom files are kept
+  --config  a server Config.js: its MySql.World connection is used to read the dat_* tables (XP, skill, vital, character generation and spell tables) of a recipe that has them; without it the records the recipe's steps wrote are kept
   --world-db  the world database to read instead of the one named in the Config.js
   --event  for the recipes that start from the 2005 dat: add the event kit (daralet: the Child of Daralet records, red water golem and Region; darkness: Darkness Ascendant, the winged figure, red sun, sulfur clouds and swollen moons; fireinthesky: Fire in the Sky, the comet, orange clouds, red dome and short fog in a single forced day group) dated --event-date <yyyy-mm-dd>, the date the step is added (steps run in date order)
   --season  for the recipes that start from the 2005 dat: add the season step, foliage colors, ground and scenery (Fall or Autumn, Spring or Summer, Winter onset, Winter, Winter thaw, Early Spring; the 2005 dat is Fall; quote names with a space) dated --season-date <yyyy-mm-dd>, the date of the event
@@ -90,7 +89,7 @@ The source folder is only read. Each build is made in a temporary file and moved
         {
             foreach (var recipe in DatBuildRecipes.All)
             {
-                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} + {recipe.Steps.Length} folder(s) -> {recipe.Ruleset}/{recipe.OutputFileName}");
+                Console.WriteLine($"{recipe.Key,-24} {recipe.BaseDat} -> {recipe.Ruleset}/{recipe.OutputFileName}");
 
                 foreach (var step in recipe.RecordSteps)
                     Console.WriteLine($"    record step: {step.Name}");
@@ -320,7 +319,7 @@ The source folder is only read. Each build is made in a temporary file and moved
 
         private static int Build(string[] args)
         {
-            var line = CommandLine.Parse(args, new[] { "--source", "--custom", "--out", "--config", "--world-db", "--season", "--season-date", "--event", "--event-date", "--skip-step" }, new[] { "--force", "--trace-map" }, allowPositional: true);
+            var line = CommandLine.Parse(args, new[] { "--source", "--out", "--config", "--world-db", "--season", "--season-date", "--event", "--event-date", "--skip-step" }, new[] { "--force", "--trace-map" }, allowPositional: true);
 
             var selector = line.Positional;
             var config = line.Value("--config");
@@ -339,7 +338,6 @@ The source folder is only read. Each build is made in a temporary file and moved
 
             source = Path.GetFullPath(source);
 
-            var custom = Path.GetFullPath(line.Value("--custom") ?? Path.Combine(source, "Custom Files"));
             var outRoot = Path.GetFullPath(line.Value("--out") ?? Path.Combine(source, "..", "Build"));
 
             var (recipes, cellRecipes) = DatBuildRecipes.Select(selector);
@@ -357,7 +355,7 @@ The source folder is only read. Each build is made in a temporary file and moved
             var tables = CheckTables(config, line.Value("--world-db"), recipes, cellRecipes);
 
             foreach (var recipe in recipes)
-                BuildPortal(recipe, source, custom, outRoot, force, tables);
+                BuildPortal(recipe, source, outRoot, force, tables);
 
             foreach (var recipe in cellRecipes)
                 BuildCell(recipe, source, outRoot, force, line.Flag("--trace-map"));
@@ -395,17 +393,17 @@ The source folder is only read. Each build is made in a temporary file and moved
             return tables;
         }
 
-        private static void BuildPortal(DatBuildRecipe recipe, string source, string custom, string outRoot, bool force, WorldDatTableSource tables)
+        private static void BuildPortal(DatBuildRecipe recipe, string source, string outRoot, bool force, WorldDatTableSource tables)
         {
             Console.WriteLine($"Building {recipe.Name} ...");
 
             var readsTables = recipe.TablesDate != null && tables != null;
-            var result = DatBuildRunner.Build(recipe, source, custom, outRoot, force, readsTables ? tables : null);
+            var result = DatBuildRunner.Build(recipe, source, outRoot, force, readsTables ? tables : null);
 
             if (readsTables)
                 Console.WriteLine($"  dat tables read from {tables.Description}");
 
-            Console.Write(result.ToText(10));
+            Console.Write(result.ToText());
 
             var stem = ReportStem(outRoot, recipe.Ruleset, recipe.OutputFileName);
 

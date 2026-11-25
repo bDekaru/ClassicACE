@@ -1,6 +1,6 @@
 namespace ACE.DatBuilder
 {
-    /// <summary>The CustomDM portal records that are made from other records rather than kept as files in Custom Files/Portal/CustomDM.</summary>
+    /// <summary>The CustomDM portal records that are made from other records.</summary>
     public static class CustomDMRecords
     {
         public const string ChargenEditsFile = "customdm-chargen.json";

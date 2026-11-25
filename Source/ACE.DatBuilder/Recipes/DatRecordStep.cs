@@ -10,7 +10,7 @@ namespace ACE.DatBuilder
 {
     /// <summary>
     /// One step that makes records from other records: it runs a list of calls against a <see cref="DatRecordContext"/> (read a record of a source dat or of the dat being built, change it through its codec, write it back)
-    /// and carries the date the records it writes carry. Like a folder step, its date is chosen by hand when the step is added and never changed afterwards.
+    /// and carries the date the records it writes carry. Its date is chosen by hand when the step is added and never changed afterwards.
     /// </summary>
     public class DatRecordStep
     {

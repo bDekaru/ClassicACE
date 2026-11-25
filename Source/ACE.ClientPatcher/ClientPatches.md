@@ -244,7 +244,7 @@ The landscape and environment detail menus of the 2005 client (Full, 1/2, 1/4, 1
 
 ## Borderless window (`borderless`)
 
-The Fullscreen option gives a borderless popup window at 0,0 the size of the desktop (not topmost, the renderer always windowed) instead of Direct3D exclusive fullscreen; off keeps the old centred window with a title bar. Only in the world: login and character selection stay a framed 800x600 window (the client forces 800x600 there through Device::ForceDisplayResolution). The option's label and help are renamed to "Borderless Windowed" in the language dat (client-option-strings.json). Needs the code-space entry.
+The Fullscreen option gives a borderless popup window at 0,0 the size of the desktop (not topmost, the renderer always windowed) instead of Direct3D exclusive fullscreen; off keeps the old centred window with a title bar. Only in the world: login and character selection stay a framed 800x600 window (the client forces 800x600 there through Device::ForceDisplayResolution). The option's label and help are renamed to "Borderless Window" in the language dat (client-option-strings.json). Needs the code-space entry.
 
 - **Fullscreen becomes a borderless desktop-sized window at 0,0, not topmost, with the renderer always windowed** (CustomDM, Infiltration)
   - `0x4393e4`, 14 bytes: Device::LoadDisplayPreferences: a cave sets FullScreen = 0 and, when the option byte 0x818B68 is on and no resolution is forced (0x8381A0), the presentation size becomes GetSystemMetrics(SM_CXSCREEN, SM_CYSCREEN); the AllowFullScreenMode test is gone

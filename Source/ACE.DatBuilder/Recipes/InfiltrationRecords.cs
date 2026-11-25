@@ -7,7 +7,7 @@ using ACE.DatLoader.FileTypes;
 namespace ACE.DatBuilder
 {
     /// <summary>
-    /// The Infiltration portal records that are made from other records rather than kept as files in Custom Files/Portal/Infiltration: three come from the 2005 dat, two from the EoR record with the Infiltration edits of the data files.
+    /// The Infiltration portal records that are made from other records: three come from the 2005 dat, two from the EoR record with the Infiltration edits of the data files.
     /// </summary>
     public static class InfiltrationRecords
     {

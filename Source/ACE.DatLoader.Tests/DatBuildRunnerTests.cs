@@ -23,10 +23,6 @@ namespace ACE.DatLoader.Tests
         {
             if (!File.Exists(Path.Combine(SourceDats, recipe.BaseDat)))
                 Assert.Inconclusive($"Test dat not found: {Path.Combine(SourceDats, recipe.BaseDat)}");
-
-            foreach (var folder in recipe.ResolveFolders(Path.Combine(SourceDats, "Custom Files")))
-                if (!Directory.Exists(folder))
-                    Assert.Inconclusive($"Custom files not found: {folder}");
         }
 
         [TestMethod]
@@ -41,13 +37,13 @@ namespace ACE.DatLoader.Tests
 
             try
             {
-                var result = DatBuildRunner.Build(recipe, SourceDats, Path.Combine(SourceDats, "Custom Files"), outRoot);
+                var result = DatBuildRunner.Build(recipe, SourceDats, outRoot);
 
                 Assert.AreEqual(Path.Combine(outRoot, "CustomDM", "client_local_English.dat"), result.OutputPath);
                 Assert.IsTrue(File.Exists(result.OutputPath));
                 Assert.IsFalse(File.Exists(result.OutputPath + ".building"));
-                Assert.AreEqual(result.AuditBefore.Records + result.Overlay.Added, result.AuditAfter.Records);
-                Assert.IsTrue(result.Overlay.Written > 0 || result.RecordLog.Count > 0);
+                Assert.AreEqual(result.AuditBefore.Records, result.AuditAfter.Records);
+                Assert.IsTrue(result.RecordLog.Count > 0);
 
                 using (var writer = new DatWriter(result.OutputPath))
                     writer.Audit();
@@ -72,7 +68,7 @@ namespace ACE.DatLoader.Tests
 
                 try
                 {
-                    var result = DatBuildRunner.Build(recipe, SourceDats, Path.Combine(SourceDats, "Custom Files"), outRoot);
+                    var result = DatBuildRunner.Build(recipe, SourceDats, outRoot);
 
                     Assert.AreEqual(recipe.Releases.CurrentNumber, result.ReleaseNumber);
                     Assert.AreEqual((int)recipe.Releases.CurrentNumber, new DatDatabase(result.OutputPath).Iteration);
@@ -96,7 +92,7 @@ namespace ACE.DatLoader.Tests
 
                 try
                 {
-                    var result = DatBuildRunner.Build(recipe, SourceDats, Path.Combine(SourceDats, "Custom Files"), outRoot);
+                    var result = DatBuildRunner.Build(recipe, SourceDats, outRoot);
                     var copy = Path.Combine(outRoot, "source.dat");
                     File.Copy(Path.Combine(SourceDats, recipe.BaseDat), copy);
 
@@ -136,15 +132,14 @@ namespace ACE.DatLoader.Tests
 
             try
             {
-                var custom = Path.Combine(SourceDats, "Custom Files");
-                DatBuildRunner.Build(recipe, SourceDats, custom, outRoot);
+                DatBuildRunner.Build(recipe, SourceDats, outRoot);
 
-                Assert.ThrowsExactly<ArgumentException>(() => DatBuildRunner.Build(recipe, SourceDats, custom, outRoot));
+                Assert.ThrowsExactly<ArgumentException>(() => DatBuildRunner.Build(recipe, SourceDats, outRoot));
 
-                var again = DatBuildRunner.Build(recipe, SourceDats, custom, outRoot, true);
+                var again = DatBuildRunner.Build(recipe, SourceDats, outRoot, true);
                 Assert.IsTrue(File.Exists(again.OutputPath));
 
-                Assert.ThrowsExactly<ArgumentException>(() => DatBuildRunner.Build(recipe, SourceDats, custom, Path.Combine(SourceDats, "Build")));
+                Assert.ThrowsExactly<ArgumentException>(() => DatBuildRunner.Build(recipe, SourceDats, Path.Combine(SourceDats, "Build")));
                 Assert.IsFalse(Directory.Exists(Path.Combine(SourceDats, "Build")));
             }
             finally
@@ -160,7 +155,7 @@ namespace ACE.DatLoader.Tests
 
             try
             {
-                Assert.ThrowsExactly<ArgumentException>(() => DatBuildRunner.Build(DatBuildRecipes.LanguageCustomDM, outRoot, outRoot, Path.Combine(outRoot, "out")));
+                Assert.ThrowsExactly<ArgumentException>(() => DatBuildRunner.Build(DatBuildRecipes.LanguageCustomDM, outRoot, Path.Combine(outRoot, "out")));
             }
             finally
             {

@@ -104,27 +104,6 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void IndexedImage_And_Palette_ReproduceTheCustomFiles()
-        {
-            var customFiles = Path.Combine(TestSourceDats.Folder, "Custom Files", "Portal", "CustomDM", "Missing Files");
-            var imagePath = TestSourceDats.Require(Path.Combine(customFiles, "06-Texture", "06009666.bin"));
-
-            var custom = File.ReadAllBytes(imagePath);
-            var customImage = FileType.Unpack<Texture>(custom);
-
-            var image = DatPortalImporter.ConvertImageKeepingFormat(ReadRecord(DatBuildRecipes.PreToDPortalDat, 0x05001666), 0x06009666, id => customImage.DefaultPaletteId.Value);
-            CollectionAssert.AreEqual(custom, image);
-
-            var palette = FileType.Unpack<Palette>(ReadRecord(DatBuildRecipes.PreToDPortalDat, customImage.DefaultPaletteId.Value));
-            var palettePath = Directory.EnumerateFiles(Path.Combine(TestSourceDats.Folder, "Custom Files", "Portal"), customImage.DefaultPaletteId.Value.ToString("X8") + ".bin", SearchOption.AllDirectories).FirstOrDefault();
-
-            if (palettePath == null)
-                Assert.Inconclusive("Custom palette not found.");
-
-            CollectionAssert.AreEqual(File.ReadAllBytes(palettePath),palette.Repeated(palette.Id, DatPortalImporter.PaletteRepeat).Pack());
-        }
-
-        [TestMethod]
         public void PreToDTexture_SwapsBlueAndRed_AndPackRoundTrips()
         {
             var record = new byte[12 + 6];
@@ -1018,6 +997,11 @@ namespace ACE.DatLoader.Tests
         {
             Assert.AreEqual(34, DatRecipeData.Load<List<DatStringEdit>>(LanguageRecords.CustomDMChargenTextFile).Count);
             Assert.IsNotNull(DatRecipeData.Load<DatChargenEdits>(CustomDMRecords.ChargenEditsFile).Templates);
+
+            var settlements = DatMapRecipes.LoadSettlementList();
+            Assert.AreEqual(1319, settlements.Regular.Count + settlements.PreserveTextures.Count + settlements.PreserveSurface.Count);
+            Assert.AreEqual(25, settlements.PreserveTextures.Count);
+            Assert.AreEqual(114, settlements.PreserveSurface.Count);
         }
 
         [TestMethod]

@@ -95,7 +95,13 @@ namespace ACE.DatBuilder
     /// <summary>Map edits per ruleset, applied to the converted 2005 cell dat before it is written. Each follows the order of the edits it replaces, because a later edit overrides an earlier one.</summary>
     public static class DatMapRecipes
     {
-        public const string SettlementList = "settlement_landblocks.tsv";
+        public const string SettlementListFile = "Cell/settlement_landblocks.tsv";
+
+        public static DatMapEditor.SettlementList LoadSettlementList()
+        {
+            using (var reader = new System.IO.StreamReader(DatRecipeData.Open(SettlementListFile)))
+                return DatMapEditor.SettlementList.Parse(reader);
+        }
 
         private static (ushort TopLeft, ushort BottomRight, ushort NewTopLeft) Rect(ushort topLeft, ushort bottomRight, ushort newTopLeft = 0) => (topLeft, bottomRight, newTopLeft);
 
@@ -136,7 +142,7 @@ namespace ACE.DatBuilder
             map.ReplaceLandblock(0xCD960039, release);
             map.RemoveBuilding(0xCE95016C);
 
-            map.RemoveHouseSettlements(obsidianSpan, DatMapEditor.SettlementList.LoadEmbedded(SettlementList));
+            map.RemoveHouseSettlements(obsidianSpan, LoadSettlementList());
             map.RemoveNoobFence();
             map.ReplaceLandblock(0x7D8F0013, obsidianSpan);
 

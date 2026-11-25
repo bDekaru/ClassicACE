@@ -1,7 +1,7 @@
 {
   "id": "borderless",
   "title": "Borderless window",
-  "description": "The Fullscreen option gives a borderless popup window at 0,0 the size of the desktop (not topmost, the renderer always windowed) instead of Direct3D exclusive fullscreen; off keeps the old centred window with a title bar. Only in the world: login and character selection stay a framed 800x600 window (the client forces 800x600 there through Device::ForceDisplayResolution). The option's label and help are renamed to \"Borderless Windowed\" in the language dat (client-option-strings.json). Needs the code-space entry.",
+  "description": "The Fullscreen option gives a borderless popup window at 0,0 the size of the desktop (not topmost, the renderer always windowed) instead of Direct3D exclusive fullscreen; off keeps the old centred window with a title bar. Only in the world: login and character selection stay a framed 800x600 window (the client forces 800x600 there through Device::ForceDisplayResolution). The option's label and help are renamed to \"Borderless Window\" in the language dat (client-option-strings.json). Needs the code-space entry.",
   "items": [
     {
       "change": "Fullscreen becomes a borderless desktop-sized window at 0,0, not topmost, with the renderer always windowed",

@@ -7,7 +7,7 @@ using ACE.DatLoader.FileTypes;
 
 namespace ACE.DatBuilder
 {
-    /// <summary>The language records that are made from the EoR record with the edits of a data file rather than kept as files in the Language folder of Custom Files.</summary>
+    /// <summary>The language records that are made from the EoR record with the edits of a data file.</summary>
     public static class LanguageRecords
     {
         public const uint ChargenHeritageUiId = 0x21000046;
