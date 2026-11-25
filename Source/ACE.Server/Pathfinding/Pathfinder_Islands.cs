@@ -37,6 +37,11 @@ namespace ACE.Server.Pathfinding
         private static readonly DtQueryDefaultFilter PassableDoorFilter = new DtQueryDefaultFilter(NavPolyFlags.Door, NavPolyFlags.Island, Array.Empty<float>());
 
         /// <summary>
+        /// The door polys of all door aprons, on a mesh whose islands aren't marked.
+        /// </summary>
+        private static readonly DtQueryDefaultFilter DoorFilter = new DtQueryDefaultFilter(NavPolyFlags.Door, 0, Array.Empty<float>());
+
+        /// <summary>
         /// How far around the center of a door apron to look for its door polys, on the mesh of an agent size. Erosion
         /// leaves them well inside the apron; vertically they are on the threshold.
         /// </summary>
@@ -276,25 +281,25 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static List<CellGroupDoor> FindPassableDoors(DtNavMesh mesh, CellGroup cellGroup, AgentSize agentSize)
         {
-            var passable = new List<CellGroupDoor>(cellGroup.Doors.Count);
-            var halfExtents = GetDoorPolyHalfExtents(agentSize);
-
             using var lease = new MeshLease(mesh);
-            foreach (var door in cellGroup.Doors)
-            {
-                var center = DoorApron.GetCenter(door, agentSize);
-                var status = lease.Query.FindNearestPoly(ToMeshPoint(0, center, false), halfExtents, PassableDoorFilter, out var doorRef, out var doorPt, out _);
-                if (status.Failed() || doorRef == 0)
-                    continue;
+            return cellGroup.Doors.Where(door => FindDoorPoly(lease.Query, cellGroup, door, agentSize, PassableDoorFilter) != 0).ToList();
+        }
 
-                // the door poly found could belong to the apron of a doorway next to this one
-                var found = FromMeshPoint(doorPt);
-                var owner = cellGroup.Doors.OrderBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentSize), found)).First();
-                if (owner.CellId == door.CellId && owner.Position == door.Position)
-                    passable.Add(door);
-            }
+        /// <summary>
+        /// The door poly of a doorway's apron on a cell group's mesh of an agent size, among the polys the filter
+        /// passes; 0 if there is none.
+        /// </summary>
+        private static long FindDoorPoly(DtNavMeshQuery query, CellGroup cellGroup, CellGroupDoor door, AgentSize agentSize, IDtQueryFilter filter)
+        {
+            var center = DoorApron.GetCenter(door, agentSize);
+            var status = query.FindNearestPoly(ToMeshPoint(0, center, false), GetDoorPolyHalfExtents(agentSize), filter, out var doorRef, out var doorPt, out _);
+            if (status.Failed() || doorRef == 0)
+                return 0;
 
-            return passable;
+            // the door poly found could belong to the apron of a doorway next to this one
+            var found = FromMeshPoint(doorPt);
+            var owner = cellGroup.Doors.MinBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentSize), found));
+            return owner.CellId == door.CellId && owner.Position == door.Position ? doorRef : 0;
         }
 
         /// <summary>

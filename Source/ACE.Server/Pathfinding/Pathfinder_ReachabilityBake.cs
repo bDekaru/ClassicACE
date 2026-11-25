@@ -26,6 +26,8 @@ namespace ACE.Server.Pathfinding
 
         private static string ReachabilitySummariesPath => Path.Combine(ReachabilityDirectory, "summaries.bin");
 
+        private static string InteriorSummariesPath => Path.Combine(ReachabilityDirectory, "interiors.bin");
+
         /// <summary>
         /// A background reachability job (a bake or a verify); one runs at a time.
         /// </summary>
@@ -39,7 +41,7 @@ namespace ACE.Server.Pathfinding
             public volatile string Phase = "starting";
 
             /// <summary>
-            /// The work items run on the job's threads (a bake's Recast tiles: terrain summaries take seconds for the
+            /// The work items run on the job's threads (a bake's Recast tiles and interiors: terrain summaries take seconds for the
             /// whole world).
             /// </summary>
             public int Total, Built, Failed;
@@ -167,15 +169,22 @@ namespace ACE.Server.Pathfinding
         private static void RunReachabilityBake(BakeRun run)
         {
             run.Phase = "checking the dats";
-            var manifest = UpdateReachabilityManifest();
+            var manifest = UpdateReachabilityManifest(run.Cancel.Token);
+            if (manifest == null)
+            {
+                log.Info("Pathfinder: reachability bake stopped while checking the dats");
+                return;
+            }
             reachabilityManifest = manifest;
 
             run.Phase = "loading summaries";
             var summaries = TileSummary.LoadAll(ReachabilitySummariesPath) ?? new TileSummary[ReachabilityManifest.LandblockCount];
+            var interiors = InteriorSummary.LoadAll(InteriorSummariesPath) ?? new InteriorSummary[ReachabilityManifest.LandblockCount];
             var pending = new List<int>();
+            var pendingInteriors = new List<int>();
             for (var i = 0; i < summaries.Length; i++)
             {
-                var entry = manifest.Entries[i];
+                ref var entry = ref manifest.Entries[i];
 
                 // a summary of other input, or of a pending entry (a new world key leaves the fingerprints alike), is
                 // dropped, so the landblock is Unknown until it is built again
@@ -183,9 +192,17 @@ namespace ACE.Server.Pathfinding
                     summaries[i] = null;
 
                 if (summaries[i] != null)
-                    manifest.Entries[i].Status = ReachabilityStatus.Done;
+                    entry.Status = ReachabilityStatus.Done;
                 else if ((entry.Method == ReachabilityMethod.Terrain || entry.Method == ReachabilityMethod.Recast) && entry.Status != ReachabilityStatus.Failed)
                     pending.Add(i);
+
+                if (interiors[i] != null && (entry.InteriorMethod != ReachabilityMethod.Recast || interiors[i].Fingerprint != entry.InteriorFingerprint || entry.InteriorStatus == ReachabilityStatus.Pending))
+                    interiors[i] = null;
+
+                if (interiors[i] != null)
+                    entry.InteriorStatus = ReachabilityStatus.Done;
+                else if (entry.InteriorMethod == ReachabilityMethod.Recast && entry.InteriorStatus != ReachabilityStatus.Failed)
+                    pendingInteriors.Add(i);
             }
 
             var cachedBefore = new HashSet<uint>(DatManager.CellDat.FileCache.Keys);
@@ -198,34 +215,66 @@ namespace ACE.Server.Pathfinding
 
                 BakeTile(manifest, summaries, i);
             }
-            PublishReachability(manifest, summaries, pending.Count > 0);
+            PublishReachability(manifest, summaries, interiors, pending.Count > 0);
 
             var seeds = PlayerFactory.StarterTownLocations.Values.SelectMany(spots => spots).Select(spot => GetLandblockCoords(spot.Cell)).ToList();
             var recast = pending.Where(i => manifest.Entries[i].Method == ReachabilityMethod.Recast)
                 .OrderBy(i => seeds.Min(s => Math.Max(Math.Abs((i >> 8) - s.x), Math.Abs((i & 0xFF) - s.y))))
                 .ToList();
 
-            if (recast.Count > 0 && !run.Cancel.IsCancellationRequested)
+            // the outdoor tiles first: their pieces are what the interiors join. The counters are per phase, as a tile
+            // and an interior take very different times.
+            int built = 0, failed = 0;
+            foreach (var (phase, items, bake) in new (string, List<int>, Func<int, bool>)[]
             {
-                run.Phase = "building tiles";
-                run.Total = recast.Count;
-                run.TileWatch.Start();
+                ("building tiles", recast, i => BakeTile(manifest, summaries, i)),
+                ("building interiors", pendingInteriors, i => BakeInterior(manifest, interiors, i))
+            })
+            {
+                if (items.Count == 0 || run.Cancel.IsCancellationRequested)
+                    continue;
 
-                RunOnJobThreads(run, recast, i =>
+                run.Phase = phase;
+                run.Total = items.Count;
+                run.Built = run.Failed = 0;
+                run.TileWatch.Restart();
+
+                RunOnJobThreads(run, items, i =>
                 {
-                    if (BakeTile(manifest, summaries, i))
+                    if (bake(i))
                         Interlocked.Increment(ref run.Built);
                     else
                         Interlocked.Increment(ref run.Failed);
-                }, () => PublishReachability(manifest, summaries, true));
+                }, () => PublishReachability(manifest, summaries, interiors, true));
 
-                PublishReachability(manifest, summaries, true);
+                PublishReachability(manifest, summaries, interiors, true);
+                built += run.Built;
+                failed += run.Failed;
             }
 
             // only at the end: a landblock still loading isn't counted as loaded, and would lose its fresh records
             DropAddedCellDatEntries(cachedBefore);
 
-            log.Info($"Pathfinder: reachability bake {(run.Cancel.IsCancellationRequested ? "stopped" : "done")} in {FormatDuration(run.Watch.Elapsed)}, {run.Built} tiles built, {run.Failed} failed, {recast.Count - run.Built - run.Failed} left");
+            log.Info($"Pathfinder: reachability bake {(run.Cancel.IsCancellationRequested ? "stopped" : "done")} in {FormatDuration(run.Watch.Elapsed)}, {built} tiles and interiors built, {failed} failed, {recast.Count + pendingInteriors.Count - built - failed} left");
+        }
+
+        /// <summary>
+        /// Builds a landblock's interior summary and records the outcome in the manifest, as BakeTile does.
+        /// </summary>
+        private static bool BakeInterior(ReachabilityManifest manifest, InteriorSummary[] interiors, int index)
+        {
+            var landblockId = (uint)index << 16;
+            try
+            {
+                interiors[index] = BuildInteriorSummary(landblockId);
+            }
+            catch (Exception e)
+            {
+                log.Warn($"Pathfinder: could not summarize the interiors of 0x{landblockId:X8} for reachability: {e}");
+            }
+
+            manifest.Entries[index].InteriorStatus = interiors[index] != null ? ReachabilityStatus.Done : ReachabilityStatus.Failed;
+            return interiors[index] != null;
         }
 
         /// <summary>
@@ -251,14 +300,16 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Saves the bake's progress if asked, and puts a graph of the summaries so far in use.
         /// </summary>
-        private static void PublishReachability(ReachabilityManifest manifest, TileSummary[] summaries, bool save)
+        private static void PublishReachability(ReachabilityManifest manifest, TileSummary[] summaries, InteriorSummary[] interiors, bool save)
         {
-            // the workers keep filling the array: save and build from one snapshot
+            // the workers keep filling the arrays: save and build from one snapshot
             summaries = (TileSummary[])summaries.Clone();
+            interiors = (InteriorSummary[])interiors.Clone();
 
             if (save)
             {
                 TileSummary.SaveAll(ReachabilitySummariesPath, summaries);
+                InteriorSummary.SaveAll(InteriorSummariesPath, interiors);
                 manifest.Save(ReachabilityManifestPath);
             }
 
@@ -294,11 +345,16 @@ namespace ACE.Server.Pathfinding
             var manifest = reachabilityManifest;
             if (manifest != null)
             {
+                string CountStatuses(IEnumerable<ReachabilityStatus> statuses) => string.Join(", ", statuses.GroupBy(s => s).OrderBy(g => g.Key).Select(g => $"{g.Count()} {g.Key.ToString().ToLowerInvariant()}"));
+
                 foreach (var method in new[] { ReachabilityMethod.Terrain, ReachabilityMethod.Recast })
                 {
                     var entries = manifest.Entries.Where(e => e.Method == method).ToList();
-                    lines.Add($"{method}: {entries.Count} landblocks, " + string.Join(", ", entries.GroupBy(e => e.Status).OrderBy(g => g.Key).Select(g => $"{g.Count()} {g.Key.ToString().ToLowerInvariant()}")));
+                    lines.Add($"{method}: {entries.Count} landblocks, {CountStatuses(entries.Select(e => e.Status))}");
                 }
+
+                var interiors = manifest.Entries.Where(e => e.InteriorMethod == ReachabilityMethod.Recast).ToList();
+                lines.Add($"Interiors: {interiors.Count} landblocks, {CountStatuses(interiors.Select(e => e.InteriorStatus))}");
             }
 
             var graph = reachabilityGraph;

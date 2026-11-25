@@ -11,7 +11,7 @@ namespace ACE.Server.Pathfinding.Reachability
         None = 0,
 
         /// <summary>
-        /// Has door apron polys: a doorway into a building or cave (phase 2 links interiors through it).
+        /// Has door apron polys: a doorway between a building or cave and the outdoors.
         /// </summary>
         HasDoor = 0x1,
 
@@ -45,15 +45,27 @@ namespace ACE.Server.Pathfinding.Reachability
     }
 
     /// <summary>
+    /// The piece at one doorway of a cell group, by the doorway's index in CellGroup.Doors: on a tile the outdoor piece
+    /// in front of it, in an interior the piece inside.
+    /// </summary>
+    public struct SummaryDoor
+    {
+        public ushort Group;
+        public ushort Door;
+        public ushort Piece;
+    }
+
+    /// <summary>
     /// What the world graph needs of one landblock's outdoor walkable surface, without its mesh: the connected pieces,
-    /// where they reach the tile edge, the ledge drops between them, and a ground-level map of which piece a spot is on.
+    /// where they reach the tile edge, the ledge drops between them, the pieces in front of the doorways, and a
+    /// ground-level map of which piece a spot is on.
     /// </summary>
     public class TileSummary
     {
         /// <summary>
         /// Bump when the summaries built from the same input change, so they are built again.
         /// </summary>
-        public const int Version = 1;
+        public const int Version = 2;
 
         public const ushort NoPiece = ushort.MaxValue;
 
@@ -83,6 +95,11 @@ namespace ACE.Server.Pathfinding.Reachability
         public List<(ushort from, ushort to)> LedgeDrops { get; } = new List<(ushort, ushort)>();
 
         /// <summary>
+        /// Recast only: the doorways of the landblock's buildings and caves that have an outdoor piece in front.
+        /// </summary>
+        public List<SummaryDoor> Doors { get; } = new List<SummaryDoor>();
+
+        /// <summary>
         /// The piece at ground level, or NoPiece. Terrain: per terrain triangle, in LandblockStruct.Polygons order.
         /// Recast: per map cell, x * MapSide + y.
         /// </summary>
@@ -94,14 +111,7 @@ namespace ACE.Server.Pathfinding.Reachability
             writer.Write((byte)Method);
             writer.Write(Fingerprint);
 
-            writer.Write(Pieces.Count);
-            foreach (var piece in Pieces)
-            {
-                writer.Write(piece.Area);
-                writer.Write(piece.MinZ);
-                writer.Write(piece.MaxZ);
-                writer.Write((byte)piece.Flags);
-            }
+            SummaryFile.WritePieces(writer, Pieces, LedgeDrops);
 
             writer.Write(Spans.Count);
             foreach (var span in Spans)
@@ -114,11 +124,12 @@ namespace ACE.Server.Pathfinding.Reachability
                 writer.Write(span.EndZ);
             }
 
-            writer.Write(LedgeDrops.Count);
-            foreach (var (from, to) in LedgeDrops)
+            writer.Write(Doors.Count);
+            foreach (var door in Doors)
             {
-                writer.Write(from);
-                writer.Write(to);
+                writer.Write(door.Group);
+                writer.Write(door.Door);
+                writer.Write(door.Piece);
             }
 
             // run-length encoded: a tile of one piece is a single run
@@ -154,49 +165,32 @@ namespace ACE.Server.Pathfinding.Reachability
                 _ => throw new InvalidDataException($"summary of 0x{summary.LandblockId:X8} has method {summary.Method}")
             };
 
-            int ReadCount(int max)
-            {
-                var count = reader.ReadInt32();
-                if (count < 0 || count > max)
-                    throw new InvalidDataException($"summary of 0x{summary.LandblockId:X8} has a count of {count}");
-                return count;
-            }
+            var label = $"summary of 0x{summary.LandblockId:X8}";
+            var pieceCount = SummaryFile.ReadPieces(reader, label, summary.Pieces, summary.LedgeDrops);
 
-            var pieceCount = ReadCount(NoPiece);
-            for (var i = 0; i < pieceCount; i++)
-                summary.Pieces.Add(new SummaryPiece { Area = reader.ReadSingle(), MinZ = reader.ReadSingle(), MaxZ = reader.ReadSingle(), Flags = (PieceFlags)reader.ReadByte() });
-
-            ushort ReadPiece(bool noPieceAllowed = false)
-            {
-                var piece = reader.ReadUInt16();
-                if (piece >= pieceCount && !(noPieceAllowed && piece == NoPiece))
-                    throw new InvalidDataException($"summary of 0x{summary.LandblockId:X8} has piece {piece} of {pieceCount}");
-                return piece;
-            }
-
-            var spanCount = ReadCount(ushort.MaxValue);
+            var spanCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
             for (var i = 0; i < spanCount; i++)
             {
-                var span = new SummarySpan { Piece = ReadPiece(), Side = reader.ReadByte(), Start = reader.ReadSingle(), End = reader.ReadSingle(), StartZ = reader.ReadSingle(), EndZ = reader.ReadSingle() };
+                var span = new SummarySpan { Piece = SummaryFile.ReadPiece(reader, label, pieceCount), Side = reader.ReadByte(), Start = reader.ReadSingle(), End = reader.ReadSingle(), StartZ = reader.ReadSingle(), EndZ = reader.ReadSingle() };
                 if (span.Side > 3)
-                    throw new InvalidDataException($"summary of 0x{summary.LandblockId:X8} has span side {span.Side}");
+                    throw new InvalidDataException($"{label} has span side {span.Side}");
                 summary.Spans.Add(span);
             }
 
-            var ledgeDropCount = ReadCount(ushort.MaxValue);
-            for (var i = 0; i < ledgeDropCount; i++)
-                summary.LedgeDrops.Add((ReadPiece(), ReadPiece()));
+            var doorCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
+            for (var i = 0; i < doorCount; i++)
+                summary.Doors.Add(new SummaryDoor { Group = reader.ReadUInt16(), Door = reader.ReadUInt16(), Piece = SummaryFile.ReadPiece(reader, label, pieceCount) });
 
-            if (ReadCount(mapLength) != mapLength)
-                throw new InvalidDataException($"summary of 0x{summary.LandblockId:X8} has a map of the wrong size");
+            if (SummaryFile.ReadCount(reader, label, mapLength) != mapLength)
+                throw new InvalidDataException($"{label} has a map of the wrong size");
 
             summary.Map = new ushort[mapLength];
             for (var i = 0; i < mapLength;)
             {
-                var value = ReadPiece(true);
+                var value = SummaryFile.ReadPiece(reader, label, pieceCount, true);
                 var run = reader.ReadUInt16();
                 if (run == 0 || run > mapLength - i)
-                    throw new InvalidDataException($"summary of 0x{summary.LandblockId:X8} has a map run of {run} at {i}");
+                    throw new InvalidDataException($"{label} has a map run of {run} at {i}");
 
                 Array.Fill(summary.Map, value, i, run);
                 i += run;
@@ -211,55 +205,12 @@ namespace ACE.Server.Pathfinding.Reachability
         /// The summaries of the world by landblock index (landblock id >> 16), null where there is none. Null if the
         /// file is missing, unreadable or of another version.
         /// </summary>
-        public static TileSummary[] LoadAll(string path)
-        {
-            if (!File.Exists(path))
-                return null;
-
-            try
-            {
-                using (var reader = new BinaryReader(File.OpenRead(path)))
-                {
-                    if (reader.ReadUInt32() != FileMagic || reader.ReadInt32() != Version || reader.ReadInt32() != ReachabilityManifest.LandblockCount)
-                        return null;
-
-                    var summaries = new TileSummary[ReachabilityManifest.LandblockCount];
-                    for (var i = 0; i < summaries.Length; i++)
-                    {
-                        if (!reader.ReadBoolean())
-                            continue;
-
-                        summaries[i] = Read(reader);
-                        if (summaries[i].LandblockId != (uint)i << 16)
-                            return null;
-                    }
-                    return summaries;
-                }
-            }
-            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is ArgumentException || e is InvalidDataException)
-            {
-                return null;
-            }
-        }
+        public static TileSummary[] LoadAll(string path) => SummaryFile.Load(path, FileMagic, Version, Read, s => s.LandblockId);
 
         /// <summary>
         /// False (logged) if it could not be saved; an interrupted save leaves the previous file (see
         /// Pathfinder.TryWriteFile).
         /// </summary>
-        public static bool SaveAll(string path, TileSummary[] summaries)
-        {
-            return Pathfinder.TryWriteFile(path, writer =>
-            {
-                writer.Write(FileMagic);
-                writer.Write(Version);
-                writer.Write(summaries.Length);
-
-                foreach (var summary in summaries)
-                {
-                    writer.Write(summary != null);
-                    summary?.Write(writer);
-                }
-            });
-        }
+        public static bool SaveAll(string path, TileSummary[] summaries) => SummaryFile.Save(path, FileMagic, Version, summaries, (s, writer) => s.Write(writer));
     }
 }

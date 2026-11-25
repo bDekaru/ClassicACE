@@ -25,7 +25,7 @@ namespace ACE.Server.Pathfinding.Reachability
         Terrain,
 
         /// <summary>
-        /// The landblock's outdoor navmesh tile.
+        /// Navmeshes: the landblock's outdoor tile, or its interior cell groups' meshes.
         /// </summary>
         Recast
     }
@@ -47,6 +47,17 @@ namespace ACE.Server.Pathfinding.Reachability
         /// when it changes.
         /// </summary>
         public ulong Fingerprint;
+
+        /// <summary>
+        /// The landblock's interior cell groups, apart from its outdoors: Recast if it has any, None if not.
+        /// </summary>
+        public ReachabilityMethod InteriorMethod;
+        public ReachabilityStatus InteriorStatus;
+
+        /// <summary>
+        /// The fingerprint of the groups' Small mesh geometry (see Pathfinder.GetInteriorInput).
+        /// </summary>
+        public ulong InteriorFingerprint;
     }
 
     /// <summary>
@@ -59,7 +70,7 @@ namespace ACE.Server.Pathfinding.Reachability
     {
         private const uint Magic = 0x4D524341; // "ACRM"
 
-        private const int FormatVersion = 1;
+        private const int FormatVersion = 2;
 
         public const int LandblockCount = 0x10000;
 
@@ -102,7 +113,10 @@ namespace ACE.Server.Pathfinding.Reachability
                         {
                             Method = (ReachabilityMethod)reader.ReadByte(),
                             Status = (ReachabilityStatus)reader.ReadByte(),
-                            Fingerprint = reader.ReadUInt64()
+                            Fingerprint = reader.ReadUInt64(),
+                            InteriorMethod = (ReachabilityMethod)reader.ReadByte(),
+                            InteriorStatus = (ReachabilityStatus)reader.ReadByte(),
+                            InteriorFingerprint = reader.ReadUInt64()
                         };
                     }
 
@@ -134,6 +148,9 @@ namespace ACE.Server.Pathfinding.Reachability
                     writer.Write((byte)entry.Method);
                     writer.Write((byte)entry.Status);
                     writer.Write(entry.Fingerprint);
+                    writer.Write((byte)entry.InteriorMethod);
+                    writer.Write((byte)entry.InteriorStatus);
+                    writer.Write(entry.InteriorFingerprint);
                 }
             });
         }

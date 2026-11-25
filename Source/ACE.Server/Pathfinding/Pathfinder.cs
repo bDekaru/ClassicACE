@@ -224,7 +224,7 @@ namespace ACE.Server.Pathfinding
         {
             public readonly Dictionary<int, CellGroup> ByIndex = new Dictionary<int, CellGroup>();
             public readonly Dictionary<uint, int> CellToGroup = new Dictionary<uint, int>();
-            private readonly Dictionary<uint, ACE.DatLoader.FileTypes.EnvCell> cellsById = new Dictionary<uint, ACE.DatLoader.FileTypes.EnvCell>();
+            public readonly Dictionary<uint, ACE.DatLoader.FileTypes.EnvCell> CellsById = new Dictionary<uint, ACE.DatLoader.FileTypes.EnvCell>();
             private readonly ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell> physicsCells = new ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell>();
 
             /// <summary>
@@ -257,7 +257,7 @@ namespace ACE.Server.Pathfinding
                     foreach (var cellId in group.CellIds)
                         CellToGroup[cellId] = group.Index;
                     foreach (var cell in group.Cells)
-                        cellsById[cell.Id] = cell;
+                        CellsById[cell.Id] = cell;
                 }
             }
 
@@ -305,7 +305,7 @@ namespace ACE.Server.Pathfinding
                     if (GetPhysicsCell(cellId)?.point_in_cell(point) == true)
                         return cellId;
 
-                    foreach (var portal in cellsById[cellId].CellPortals)
+                    foreach (var portal in CellsById[cellId].CellPortals)
                     {
                         var otherCellId = landblockId | portal.OtherCellId;
                         if (group.CellIds.Contains(otherCellId) && seen.Add(otherCellId))

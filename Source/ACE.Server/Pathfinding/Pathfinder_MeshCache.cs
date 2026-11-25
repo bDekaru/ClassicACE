@@ -369,14 +369,13 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The cache file of a mesh. The name includes a hash of the build settings and the geometry version, so a
-        /// mesh built with other settings or older geometry is never loaded; it is rebuilt instead.
+        /// The cache file of a mesh. The name includes a hash of the build settings and the geometry version, and the
+        /// geometry's fingerprint (see NavMeshGeometry.GetFingerprint), so a mesh built with other settings or from other
+        /// geometry is never loaded; it is rebuilt instead.
         /// </summary>
-        /// <param name="fingerprint">An outdoor tile's geometry fingerprint (see NavMeshGeometry.GetFingerprint), so a tile
-        /// cached from other geometry is not loaded</param>
-        private static string GetMeshPath(string directory, uint meshId, bool outdoor, AgentSize agentSize, ulong? fingerprint = null)
+        private static string GetMeshPath(string directory, uint meshId, bool outdoor, AgentSize agentSize, ulong fingerprint)
         {
-            return Path.Combine(directory, $"{meshId:X8}_{GetMeshCacheKey(outdoor, agentSize)}{(fingerprint.HasValue ? $"_{fingerprint:X16}" : "")}.mesh");
+            return Path.Combine(directory, $"{meshId:X8}_{GetMeshCacheKey(outdoor, agentSize)}_{fingerprint:X16}.mesh");
         }
 
         private static string GetMeshCacheKey(bool outdoor, AgentSize agentSize)
@@ -568,6 +567,12 @@ namespace ACE.Server.Pathfinding
         private static readonly SemaphoreSlim MeshBuildSlots = new SemaphoreSlim(Math.Max(1, System.Environment.ProcessorCount / 2));
 
         /// <summary>
+        /// At most this many interior cell groups load their geometry and cache files at once: the geometry comes before
+        /// every cache read (see TryLoadInteriorMesh), so a server start with many dungeons would flood the thread pool.
+        /// </summary>
+        private static readonly SemaphoreSlim InteriorLoadSlots = new SemaphoreSlim(Math.Max(1, System.Environment.ProcessorCount / 2));
+
+        /// <summary>
         /// Runs a mesh build on the thread pool, waiting for a free build slot first.
         /// </summary>
         private static void RunMeshBuild(Action build)
@@ -592,7 +597,7 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Loads the meshes of one interior cell group: only that group's cells and their static objects. Everything
-        /// runs in the background: cached meshes load in tens of ms for a large dungeon, too long for the tick that asks
+        /// runs in the background: a cached mesh needs its geometry first (up to about 2 s for a large dungeon), too long for the tick that asks
         /// for them, and missing ones are built, which can take seconds. Until then the mesh is present as a
         /// placeholder (see InteriorMesh) and queries return no result.
         /// </summary>
@@ -614,7 +619,7 @@ namespace ACE.Server.Pathfinding
             if (!GetGroups(landblockId).ByIndex.TryGetValue(group, out var cellGroup))
                 return;
 
-            var toLoad = new List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)>();
+            var toLoad = new List<(AgentSize agentSize, uint meshId, InteriorMesh placeholder)>();
 
             foreach (var agentSize in AgentSizes)
             {
@@ -624,7 +629,7 @@ namespace ACE.Server.Pathfinding
 
                 var placeholder = InteriorMesh.CreatePlaceholder();
                 if (Meshes.TryAdd(meshId, placeholder))
-                    toLoad.Add((agentSize, meshId, GetMeshPath(InteriorMeshDirectory, meshId, false, agentSize), placeholder));
+                    toLoad.Add((agentSize, meshId, placeholder));
             }
 
             if (toLoad.Count == 0)
@@ -635,43 +640,71 @@ namespace ACE.Server.Pathfinding
             // a mesh unloaded or rebuilt since its load was queued no longer has this load's placeholder
             bool IsCurrent(uint meshId, InteriorMesh placeholder) => Meshes.TryGetValue(meshId, out var current) && current == placeholder;
 
-            // cached meshes load right away, outside the build slots, so they don't wait for other landblocks' builds
-            Task.Run(() =>
+            // cached meshes load outside the build slots, so they don't wait for other landblocks' builds; the geometry
+            // comes first, as the cache file names its fingerprint
+            Task.Run(async () =>
             {
-                var toBuild = new List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)>();
-
-                foreach (var entry in toLoad)
+                await InteriorLoadSlots.WaitAsync();
+                try
                 {
-                    var (agentSize, meshId, meshPath, placeholder) = entry;
-                    if (!IsCurrent(meshId, placeholder))
-                        continue;
+                    if (!toLoad.Any(l => IsCurrent(l.meshId, l.placeholder)))
+                        return;
 
-                    try
+                    // the cells are loaded once; each size gets its own door aprons (see DoorApron)
+                    var geoms = NavMeshGeometry.LoadGeometry(cellGroup.Cells, cellGroup.Doors, toLoad.Select(l => l.agentSize));
+
+                    // sealed rooms and orphan cells often have nothing walkable; that is expected, so only debug logging
+                    if (geoms is null)
                     {
-                        if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
-                        {
-                            MarkIslands(cachedMesh, NoSeeds, false);
-                            Meshes.TryUpdate(meshId, new InteriorMesh(cachedMesh, FindPassableDoors(cachedMesh, cellGroup, agentSize)), placeholder);
+                        log.Debug($"Pathfinder: no geometry for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
+                        foreach (var (_, meshId, placeholder) in toLoad)
+                            MarkEmpty(meshId, placeholder);
+                        return;
+                    }
+
+                    var toBuild = new List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)>();
+
+                    foreach (var (agentSize, meshId, placeholder) in toLoad)
+                    {
+                        if (!IsCurrent(meshId, placeholder))
                             continue;
+
+                        var meshPath = GetMeshPath(InteriorMeshDirectory, meshId, false, agentSize, geoms[agentSize].GetFingerprint());
+                        try
+                        {
+                            if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
+                            {
+                                MarkIslands(cachedMesh, NoSeeds, false);
+                                Meshes.TryUpdate(meshId, new InteriorMesh(cachedMesh, FindPassableDoors(cachedMesh, cellGroup, agentSize)), placeholder);
+                                continue;
+                            }
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        log.Warn($"Pathfinder: could not load the {agentSize} mesh for cell group {group} at {location}, rebuilding it: {e.Message}");
+                        catch (Exception e)
+                        {
+                            log.Warn($"Pathfinder: could not load the {agentSize} mesh for cell group {group} at {location}, rebuilding it: {e.Message}");
+                        }
+
+                        toBuild.Add((agentSize, meshId, meshPath, placeholder));
                     }
 
-                    toBuild.Add(entry);
+                    if (toBuild.Count > 0)
+                        BuildInteriorMeshes(toBuild, geoms);
                 }
-
-                if (toBuild.Count > 0)
-                    BuildInteriorMeshes(toBuild);
+                catch (Exception e)
+                {
+                    // the placeholders would otherwise stay until the landblock unloads
+                    log.Warn($"Pathfinder: failed to load the meshes of cell group {group} at {location}: {e}");
+                    foreach (var (_, meshId, placeholder) in toLoad)
+                        MarkFailed(meshId, placeholder);
+                }
+                finally
+                {
+                    InteriorLoadSlots.Release();
+                }
             });
 
-            void BuildInteriorMeshes(List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)> toBuild) => RunMeshBuild(() =>
+            void BuildInteriorMeshes(List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)> toBuild, Dictionary<AgentSize, NavMeshGeometry> geoms) => RunMeshBuild(() =>
             {
-                // the cells are loaded once; each size gets its own door aprons (see DoorApron)
-                Dictionary<AgentSize, NavMeshGeometry> geoms = null;
-
                 foreach (var (agentSize, meshId, meshPath, placeholder) in toBuild)
                 {
                     if (!IsCurrent(meshId, placeholder))
@@ -681,16 +714,6 @@ namespace ACE.Server.Pathfinding
                     // until a rebuild is requested.
                     try
                     {
-                        geoms ??= NavMeshGeometry.LoadGeometry(cellGroup.Cells, cellGroup.Doors, toBuild.Select(b => b.agentSize));
-                        // sealed rooms and orphan cells often have nothing walkable; that is expected, so only debug logging
-                        if (geoms is null)
-                        {
-                            log.Debug($"Pathfinder: no geometry for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
-                            foreach (var entry in toBuild)
-                                MarkEmpty(entry.meshId, entry.placeholder);
-                            return;
-                        }
-
                         var stopwatch = Stopwatch.StartNew();
                         var mesh = BuildAndSaveMesh(geoms[agentSize], GetMeshSettings(false, agentSize), meshId, meshPath);
                         if (mesh is null)

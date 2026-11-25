@@ -19,6 +19,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Threading;
 using Polygon = ACE.Server.Physics.Polygon;
 
 namespace ACE.Server.Pathfinding
@@ -43,11 +44,12 @@ namespace ACE.Server.Pathfinding
         /// changed, or every entry if the world key changed, is pending again. While the dats are unchanged nothing is
         /// read. Reads the whole world (about a minute and a half), so it runs off the world thread.
         /// </summary>
-        public static ReachabilityManifest UpdateReachabilityManifest()
+        /// <param name="cancel">Stops the scan: null is returned, and the saved manifest is left as it was</param>
+        public static ReachabilityManifest UpdateReachabilityManifest(CancellationToken cancel)
         {
             var manifest = ReachabilityManifest.Load(ReachabilityManifestPath) ?? new ReachabilityManifest();
 
-            var worldKey = FormattableString.Invariant($"{TerrainPassVersion}|{PhysicsGlobals.FloorZ}|{GetMeshCacheKey(true, AgentSize.Small)}");
+            var worldKey = FormattableString.Invariant($"{TerrainPassVersion}|{PhysicsGlobals.FloorZ}|{GetMeshCacheKey(true, AgentSize.Small)}|{GetMeshCacheKey(false, AgentSize.Small)}");
 
             // the server build too: the fingerprints change with the code that collects the geometry
             var datIdentity = string.Join("|", new[] { DatManager.CellDat.FilePath, DatManager.PortalDat.FilePath }.Select(path =>
@@ -56,7 +58,8 @@ namespace ACE.Server.Pathfinding
                 return $"{file.Length}:{file.LastWriteTimeUtc.Ticks}";
             })) + $"|{typeof(Pathfinder).Assembly.ManifestModule.ModuleVersionId}";
 
-            if (manifest.WorldKey == worldKey && manifest.DatIdentity == datIdentity && !manifest.Entries.Any(e => e.Method == ReachabilityMethod.Unchecked))
+            // an input that couldn't be read (Unchecked) is read again only with other dats or another build
+            if (manifest.WorldKey == worldKey && manifest.DatIdentity == datIdentity)
                 return manifest;
 
             var worldChanged = manifest.WorldKey != worldKey;
@@ -68,31 +71,49 @@ namespace ACE.Server.Pathfinding
 
             for (var i = 0; i < ReachabilityManifest.LandblockCount; i++)
             {
+                if (cancel.IsCancellationRequested)
+                {
+                    DropAddedCellDatEntries(cachedBefore);
+                    return null;
+                }
+
                 var landblockId = (uint)i << 16;
-                ReachabilityMethod method;
-                ulong fingerprint;
-                try
+                ref var entry = ref manifest.Entries[i];
+
+                // an input that can't be read is Unchecked and failed, so the next scan looks again
+                (ReachabilityMethod method, ulong fingerprint) Read(Func<uint, (ReachabilityMethod, ulong)> getInput, string what)
                 {
-                    (method, fingerprint) = GetReachabilityInput(landblockId);
-                }
-                catch (Exception e)
-                {
-                    log.Warn($"Pathfinder: could not fingerprint 0x{landblockId:X8} for reachability: {e}");
-                    manifest.Entries[i] = new ReachabilityEntry { Method = ReachabilityMethod.Unchecked, Status = ReachabilityStatus.Failed };
-                    continue;
+                    try
+                    {
+                        return getInput(landblockId);
+                    }
+                    catch (Exception e)
+                    {
+                        log.Warn($"Pathfinder: could not fingerprint the {what} of 0x{landblockId:X8} for reachability: {e}");
+                        return (ReachabilityMethod.Unchecked, 0);
+                    }
                 }
 
-                var entry = manifest.Entries[i];
-                if (!worldChanged && entry.Method == method && entry.Fingerprint == fingerprint && entry.Status != ReachabilityStatus.Failed)
-                    continue;
-
-                manifest.Entries[i] = new ReachabilityEntry
+                static ReachabilityStatus GetStatus(ReachabilityMethod method) => method switch
                 {
-                    Method = method,
-                    Status = method == ReachabilityMethod.None ? ReachabilityStatus.Done : ReachabilityStatus.Pending,
-                    Fingerprint = fingerprint
+                    ReachabilityMethod.None => ReachabilityStatus.Done,
+                    ReachabilityMethod.Unchecked => ReachabilityStatus.Failed,
+                    _ => ReachabilityStatus.Pending
                 };
-                changed++;
+
+                var (method, fingerprint) = Read(GetReachabilityInput, "outdoors");
+                if (worldChanged || entry.Method != method || entry.Fingerprint != fingerprint || entry.Status == ReachabilityStatus.Failed)
+                {
+                    (entry.Method, entry.Fingerprint, entry.Status) = (method, fingerprint, GetStatus(method));
+                    changed++;
+                }
+
+                var (interiorMethod, interiorFingerprint) = Read(GetInteriorInput, "interiors");
+                if (worldChanged || entry.InteriorMethod != interiorMethod || entry.InteriorFingerprint != interiorFingerprint || entry.InteriorStatus == ReachabilityStatus.Failed)
+                {
+                    (entry.InteriorMethod, entry.InteriorFingerprint, entry.InteriorStatus) = (interiorMethod, interiorFingerprint, GetStatus(interiorMethod));
+                    changed++;
+                }
             }
 
             DropAddedCellDatEntries(cachedBefore);
@@ -101,7 +122,7 @@ namespace ACE.Server.Pathfinding
             manifest.DatIdentity = datIdentity;
             manifest.Save(ReachabilityManifestPath);
 
-            log.Info($"Pathfinder: reachability manifest updated, {changed} landblocks changed{(worldChanged ? " (new world key)" : "")}");
+            log.Info($"Pathfinder: reachability manifest updated, {changed} outdoor or interior inputs changed{(worldChanged ? " (new world key)" : "")}");
             return manifest;
         }
 
@@ -214,8 +235,9 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The tile's connected components, the poly edges Detour links to the neighbor tiles, its ledge drops, and a
-        /// map of the piece found near terrain height. False if the tile can't be read as a mesh.
+        /// The tile's connected components, the poly edges Detour links to the neighbor tiles, its ledge drops, the
+        /// pieces in front of the doorways, and a map of the piece found near terrain height. False if the tile can't
+        /// be read as a mesh.
         /// </summary>
         private static bool SummarizeRecast(TileSummary summary, DtMeshData data, List<Polygon> terrain)
         {
@@ -224,50 +246,43 @@ namespace ACE.Server.Pathfinding
                 return false;
 
             var tile = mesh.GetTile(0);
-            var (component, area, hasDoor) = FindComponents(mesh, tile);
-            for (var c = 0; c < area.Count; c++)
-                summary.Pieces.Add(new SummaryPiece { Area = area[c], MinZ = float.MaxValue, MaxZ = float.MinValue, Flags = hasDoor[c] ? PieceFlags.HasDoor : PieceFlags.None });
-
             var origin = GeometryHelpers.GetLandblockOrigin(summary.LandblockId);
-            Vector3 GetLocalVertex(int v) => FromMeshPoint(new RcVec3f(data.verts[v * 3], data.verts[v * 3 + 1], data.verts[v * 3 + 2])) - origin;
+            var component = AddSummaryPieces(mesh, tile, origin, summary.Pieces, summary.LedgeDrops);
 
             for (var i = 0; i < data.header.polyCount; i++)
             {
                 if (component[i] < 0)
                     continue;
 
-                var poly = data.polys[i];
-                var piece = (ushort)component[i];
-                ref var p = ref CollectionsMarshal.AsSpan(summary.Pieces)[piece];
-                for (var j = 0; j < poly.vertCount; j++)
-                {
-                    var z = GetLocalVertex(poly.verts[j]).Z;
-                    p.MinZ = Math.Min(p.MinZ, z);
-                    p.MaxZ = Math.Max(p.MaxZ, z);
-                }
-
                 // Detour's portal sides 0, 2, 4, 6 (+x, +z, -x, -z) are east, north, west, south
+                var poly = data.polys[i];
                 for (var j = 0; j < poly.vertCount; j++)
                 {
                     if ((poly.neis[j] & DtDetour.DT_EXT_LINK) != 0)
-                        AddSpan(summary, piece, (poly.neis[j] & 0xFF) / 2, GetLocalVertex(poly.verts[j]), GetLocalVertex(poly.verts[(j + 1) % poly.vertCount]));
+                        AddSpan(summary, (ushort)component[i], (poly.neis[j] & 0xFF) / 2, GetLocalVertex(data, poly.verts[j], origin), GetLocalVertex(data, poly.verts[(j + 1) % poly.vertCount], origin));
                 }
-            }
-
-            foreach (var (_, from, to) in FindLedgeDrops(mesh, tile))
-            {
-                if (from < 0 || to < 0 || component[from] == component[to])
-                    continue;
-
-                var drop = ((ushort)component[from], (ushort)component[to]);
-                if (!summary.LedgeDrops.Contains(drop))
-                    summary.LedgeDrops.Add(drop);
             }
 
             summary.Map = new ushort[TileSummary.MapSide * TileSummary.MapSide];
             var halfExtents = new RcVec3f(0.05f, 1.5f, 0.05f);
             using (var lease = new MeshLease(mesh))
             {
+                // the piece the doorway's outdoor side is on, found as the door seeds of MarkIslands are
+                foreach (var group in CellGroupLoader.LoadCellGroups(summary.LandblockId).Where(g => g.ConnectsToOutside && g.Index <= MaxGroup))
+                {
+                    for (var d = 0; d < group.Doors.Count; d++)
+                    {
+                        var point = ToMeshPoint(summary.LandblockId, GetDoorOutsidePoint(group.Doors[d], AgentSize.Small), true);
+                        var status = lease.Query.FindNearestPoly(point, DoorSeedHalfExtents, AllPolysFilter, out var polyRef, out _, out _);
+                        if (status.Failed() || polyRef == 0)
+                            continue;
+
+                        mesh.GetTileAndPolyByRefUnsafe(polyRef, out _, out var poly);
+                        if (poly != null && component[poly.index] >= 0)
+                            summary.Doors.Add(new SummaryDoor { Group = (ushort)group.Index, Door = (ushort)d, Piece = (ushort)component[poly.index] });
+                    }
+                }
+
                 for (var x = 0; x < TileSummary.MapSide; x++)
                 {
                     for (var y = 0; y < TileSummary.MapSide; y++)
@@ -288,6 +303,49 @@ namespace ACE.Server.Pathfinding
 
             return true;
         }
+
+        /// <summary>
+        /// Adds a single-tile mesh's connected components (see FindComponents) as pieces, with their heights, and the
+        /// ledge drops between them. Returns the piece of each poly, -1 for a ledge drop.
+        /// </summary>
+        /// <param name="origin">Where the landblock starts on the mesh: an outdoor tile is in world coordinates, an
+        /// interior mesh in the landblock's own</param>
+        private static int[] AddSummaryPieces(DtNavMesh mesh, DtMeshTile tile, Vector3 origin, List<SummaryPiece> pieces, List<(ushort from, ushort to)> ledgeDrops)
+        {
+            var data = tile.data;
+            var (component, area, hasDoor) = FindComponents(mesh, tile);
+            for (var c = 0; c < area.Count; c++)
+                pieces.Add(new SummaryPiece { Area = area[c], MinZ = float.MaxValue, MaxZ = float.MinValue, Flags = hasDoor[c] ? PieceFlags.HasDoor : PieceFlags.None });
+
+            for (var i = 0; i < data.header.polyCount; i++)
+            {
+                if (component[i] < 0)
+                    continue;
+
+                var poly = data.polys[i];
+                ref var p = ref CollectionsMarshal.AsSpan(pieces)[component[i]];
+                for (var j = 0; j < poly.vertCount; j++)
+                {
+                    var z = GetLocalVertex(data, poly.verts[j], origin).Z;
+                    p.MinZ = Math.Min(p.MinZ, z);
+                    p.MaxZ = Math.Max(p.MaxZ, z);
+                }
+            }
+
+            foreach (var (_, from, to) in FindLedgeDrops(mesh, tile))
+            {
+                if (from < 0 || to < 0 || component[from] == component[to])
+                    continue;
+
+                var drop = ((ushort)component[from], (ushort)component[to]);
+                if (!ledgeDrops.Contains(drop))
+                    ledgeDrops.Add(drop);
+            }
+
+            return component;
+        }
+
+        private static Vector3 GetLocalVertex(DtMeshData data, int v, Vector3 origin) => FromMeshPoint(new RcVec3f(data.verts[v * 3], data.verts[v * 3 + 1], data.verts[v * 3 + 2])) - origin;
 
         /// <summary>
         /// The index of the terrain triangle under a landblock-local spot, in LandblockStruct.Polygons order.
