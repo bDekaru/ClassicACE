@@ -830,7 +830,7 @@ namespace ACE.Server.WorldObjects
                     DoCantripLogging(killer, wo);
                 }
 
-                if (IsMonster && 0.002 > ThreadSafeRandom.Next(0.0f, 1.0f))
+                if (IsMonster && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && 0.002 > ThreadSafeRandom.Next(0.0f, 1.0f))
                 {
                     var map = TreasureMap.TryCreateTreasureMap(this);
                     if (map != null)

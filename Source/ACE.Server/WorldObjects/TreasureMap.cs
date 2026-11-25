@@ -4,6 +4,7 @@ using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity;
 using ACE.Entity.Enum;
+using ACE.Entity.Enum.Properties;
 using ACE.Entity.Models;
 using ACE.Server.Entity;
 using ACE.Server.Entity.Actions;
@@ -12,9 +13,12 @@ using ACE.Server.Managers;
 using ACE.Server.Network.GameMessages.Messages;
 using ACE.Server.Physics.Common;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Threading;
+using Encounter = ACE.Database.Models.World.Encounter;
 using Position = ACE.Entity.Position;
 
 namespace ACE.Server.WorldObjects
@@ -39,85 +43,23 @@ namespace ACE.Server.WorldObjects
             50212,
         };
 
-        private static List<List<uint>> TreasureEncounters = null;
+        private static readonly string[] TreasureEncounterPrefixes = { "t0-startertown", "t1-", "t2-", "t3-", "t4-", "t5-", "t6-" };
 
-        public static void InitializeTreasureMaps()
+        /// <summary>
+        /// The encounter generators of each landblock tier (index), by class name prefix. Monsters die on several threads at once.
+        /// </summary>
+        private static readonly Lazy<List<List<uint>>> TreasureEncounters = new Lazy<List<List<uint>>>(GetTreasureEncounters, LazyThreadSafetyMode.PublicationOnly);
+
+        private static readonly ConcurrentDictionary<uint, List<Encounter>> EncountersByWcid = new ConcurrentDictionary<uint, List<Encounter>>();
+
+        private static List<List<uint>> GetTreasureEncounters()
         {
-            TreasureEncounters = new List<List<uint>>();
-
             var classNames = DatabaseManager.World.GetAllWeenieClassNames();
 
-            var t0classNames = classNames.Where(i => i.Value.StartsWith("t0-startertown")).ToList();
-            var t1classNames = classNames.Where(i => i.Value.StartsWith("t1-")).ToList();
-            var t2classNames = classNames.Where(i => i.Value.StartsWith("t2-")).ToList();
-            var t3classNames = classNames.Where(i => i.Value.StartsWith("t3-")).ToList();
-            var t4classNames = classNames.Where(i => i.Value.StartsWith("t4-")).ToList();
-            var t5classNames = classNames.Where(i => i.Value.StartsWith("t5-")).ToList();
-            var t6classNames = classNames.Where(i => i.Value.StartsWith("t6-")).ToList();
-
-            var t0 = new List<uint>();
-            foreach (var entry in t0classNames)
-            {
-                var weenie = DatabaseManager.World.GetCachedWeenie(entry.Key);
-                if (weenie.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.MaxGeneratedObjects).HasValue)
-                    t0.Add(entry.Key);
-            }
-
-            var t1 = new List<uint>();
-            foreach (var entry in t1classNames)
-            {
-                var weenie = DatabaseManager.World.GetCachedWeenie(entry.Key);
-                if (weenie.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.MaxGeneratedObjects).HasValue)
-                    t1.Add(entry.Key);
-            }
-
-            var t2 = new List<uint>();
-            foreach (var entry in t2classNames)
-            {
-                var weenie = DatabaseManager.World.GetCachedWeenie(entry.Key);
-                if (weenie.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.MaxGeneratedObjects).HasValue)
-                    t2.Add(entry.Key);
-            }
-
-            var t3 = new List<uint>();
-            foreach (var entry in t3classNames)
-            {
-                var weenie = DatabaseManager.World.GetCachedWeenie(entry.Key);
-                if (weenie.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.MaxGeneratedObjects).HasValue)
-                    t3.Add(entry.Key);
-            }
-
-            var t4 = new List<uint>();
-            foreach (var entry in t4classNames)
-            {
-                var weenie = DatabaseManager.World.GetCachedWeenie(entry.Key);
-                if (weenie.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.MaxGeneratedObjects).HasValue)
-                    t4.Add(entry.Key);
-            }
-
-            var t5 = new List<uint>();
-            foreach (var entry in t5classNames)
-            {
-                var weenie = DatabaseManager.World.GetCachedWeenie(entry.Key);
-                if (weenie.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.MaxGeneratedObjects).HasValue)
-                    t5.Add(entry.Key);
-            }
-
-            var t6 = new List<uint>();
-            foreach (var entry in t6classNames)
-            {
-                var weenie = DatabaseManager.World.GetCachedWeenie(entry.Key);
-                if (weenie.GetProperty(ACE.Entity.Enum.Properties.PropertyInt.MaxGeneratedObjects).HasValue)
-                    t6.Add(entry.Key);
-            }
-
-            TreasureEncounters.Add(t0);
-            TreasureEncounters.Add(t1);
-            TreasureEncounters.Add(t2);
-            TreasureEncounters.Add(t3);
-            TreasureEncounters.Add(t4);
-            TreasureEncounters.Add(t5);
-            TreasureEncounters.Add(t6);
+            return TreasureEncounterPrefixes.Select(prefix => classNames
+                .Where(i => i.Value.StartsWith(prefix) && DatabaseManager.World.GetCachedWeenie(i.Key)?.GetProperty(PropertyInt.MaxGeneratedObjects) != null)
+                .Select(i => i.Key)
+                .ToList()).ToList();
         }
 
         public static WorldObject TryCreateTreasureMap(Weenie creatureWeenie)
@@ -140,9 +82,6 @@ namespace ACE.Server.WorldObjects
             if (creature == null)
                 return null;
 
-            if (TreasureEncounters == null)
-                InitializeTreasureMaps();
-
             int landblockTier;
             int treasureTier;
             if (creature.Level <= 10)
@@ -152,30 +91,19 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                landblockTier = (int)Math.Floor((float)(creature.Tier ?? 1));
+                landblockTier = (int)Math.Floor(Math.Clamp(creature.Tier ?? 1, 1, 6));
                 treasureTier = creature.RollTier();
             }
 
-            var treasureEncounterIndex = landblockTier;
-            if (treasureEncounterIndex < 0 || TreasureEncounters.Count < treasureEncounterIndex)
-                return null;
-
-            var possibleEncounterWcids = TreasureEncounters[treasureEncounterIndex];
+            var possibleEncounterWcids = TreasureEncounters.Value[landblockTier];
             if (possibleEncounterWcids.Count == 0)
                 return null;
 
-            var rng = ThreadSafeRandom.Next(0, possibleEncounterWcids.Count() - 1);
-            var encounterWcid = possibleEncounterWcids[rng];
-
-            var possibleEncounters = DatabaseManager.World.GetEncountersByWcid(encounterWcid);
-
             Vector2? coords = null;
-            for (int retries = 0; retries < 10; retries++)
+            for (int retries = 0; retries < 10 && coords == null; retries++)
             {
-                coords = RollEncounter(possibleEncounters);
-
-                if (coords != null)
-                    break;
+                var encounterWcid = possibleEncounterWcids[ThreadSafeRandom.Next(0, possibleEncounterWcids.Count - 1)];
+                coords = RollEncounter(EncountersByWcid.GetOrAdd(encounterWcid, DatabaseManager.World.GetEncountersByWcid));
             }
 
             if (coords == null)
@@ -198,7 +126,7 @@ namespace ACE.Server.WorldObjects
             return wo;
         }
 
-        public static Vector2? RollEncounter(List<Database.Models.World.Encounter> possibleEncounters)
+        public static Vector2? RollEncounter(List<Encounter> possibleEncounters)
         {
             if (possibleEncounters == null || possibleEncounters.Count == 0)
                 return null;
@@ -215,7 +143,7 @@ namespace ACE.Server.WorldObjects
             pos.adjust_to_outside();
 
             var sortCell = LScape.get_landcell(pos.ObjCellID) as SortCell;
-            if (sortCell == null || sortCell.has_building() || sortCell.CurLandblock.WaterType == LandDefs.WaterType.EntirelyWater)
+            if (sortCell == null || sortCell.has_building() || sortCell.WaterType == LandDefs.WaterType.EntirelyWater)
                 return null;
 
             var location = pos.ACEPosition();
