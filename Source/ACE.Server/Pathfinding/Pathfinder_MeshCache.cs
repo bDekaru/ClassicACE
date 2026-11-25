@@ -450,9 +450,25 @@ namespace ACE.Server.Pathfinding
 
         private static DtNavMesh CreateSingleTileMesh(DtMeshData meshData)
         {
+            // Init(meshData) puts the grid origin at the tile's bmin, so queries look for the tile at grid (0, 0); an
+            // outdoor tile is at its landblock's coordinates, so the origin goes back to where that grid starts
+            var header = meshData.header;
+            var tileWidth = header.bmax.X - header.bmin.X;
+            var tileHeight = header.bmax.Z - header.bmin.Z;
+            var navMeshParams = new DtNavMeshParams
+            {
+                orig = new RcVec3f(header.bmin.X - header.x * tileWidth, header.bmin.Y, header.bmin.Z - header.y * tileHeight),
+                tileWidth = tileWidth,
+                tileHeight = tileHeight,
+                maxTiles = 1,
+                maxPolys = header.polyCount
+            };
+
             var mesh = new DtNavMesh();
-            var status = mesh.Init(meshData, MaxVertsPerPoly, 0);
-            return status.Failed() ? null : mesh;
+            if (mesh.Init(in navMeshParams, MaxVertsPerPoly).Failed())
+                return null;
+
+            return mesh.AddTile(meshData, 0, 0, out _).Failed() ? null : mesh;
         }
 
         private static void TryDeleteFile(string path)
@@ -896,6 +912,12 @@ namespace ACE.Server.Pathfinding
             OutdoorTilesRequested.TryRemove(landblockId, out _);
         }
 
+        /// <summary>
+        /// The steepest walkable slope in degrees, about the one physics allows (PhysicsGlobals.FloorZ, 48.38 degrees).
+        /// Recast keeps it unrounded but walks only strictly flatter faces, where physics also takes a face at FloorZ.
+        /// </summary>
+        private static float MaxWalkableSlope => (float)(Math.Acos(ACE.Server.Physics.PhysicsGlobals.FloorZ) * 180.0 / Math.PI);
+
         private static MeshBuildSettings GetMeshSettings(bool outdoor, AgentSize agentSize)
         {
             // the cell size and the radius in whole cells (see AgentProfile)
@@ -907,7 +929,7 @@ namespace ACE.Server.Pathfinding
             {
                 AgentHeight = profile.Height,
                 AgentMaxClimb = profile.MaxClimb,
-                AgentMaxSlope = 48f, // matches PhysicsGlobals.FloorZ (acos(0.664) = ~48.4 degrees), steeper is not walkable
+                AgentMaxSlope = MaxWalkableSlope,
                 CellHeight = 0.1f,
                 CellSize = cellSize,
 
