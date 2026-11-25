@@ -691,6 +691,7 @@ namespace ACE.Server.Managers
                 ("hardcore_death_keep_allegiance", new Property<bool>(false, "Allow hardcore characters to keep their allegiance on death")),
                 ("hardcore_pk_grant_ring_of_impermanency", new Property<bool>(false, "Give new hardcore PKs a ring that buffs their run and jump skills that they can wear up to level 20")),
                 ("pathfinding", new Property<bool>(false, "CustomDM: Allows creatures to use pathfinding to navigate dungeons")),
+                ("reachability_bake", new Property<bool>(true, "CustomDM: At startup, builds in the background what the world reachability graph still lacks (where players can walk to), see /reachability")),
                 ("cmd_pop_show_current", new Property<bool>(true, "Allow the pop command to show current online population count")),
                 ("cmd_pop_show_24_hours", new Property<bool>(true, "Allow the pop command to show the 24 hours unique IPs count")),
                 ("cmd_pop_show_7_days", new Property<bool>(true, "Allow the pop command to show the 7 days unique IPs count")),

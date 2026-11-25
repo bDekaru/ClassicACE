@@ -341,6 +341,10 @@ namespace ACE.Server
             log.Info("Initializing WorldManager...");
             WorldManager.Initialize();
 
+            // after the world: building tile geometry needs the physics engine
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && PropertyManager.GetBool("reachability_bake").Item)
+                Pathfinding.Pathfinder.StartReachabilityBake(Pathfinding.Pathfinder.StartupBakeThreads);
+
             log.Info("Initializing EventManager...");
             EventManager.Initialize();
 

@@ -95,13 +95,7 @@ namespace ACE.Server.Pathfinding
                 changed++;
             }
 
-            foreach (var fileId in DatManager.CellDat.FileCache.Keys)
-            {
-                // x or y 0xFF is past the world (neighbors of the last row), never loaded
-                var outsideWorld = fileId >> 24 == 0xFF || (fileId >> 16 & 0xFF) == 0xFF;
-                if (!cachedBefore.Contains(fileId) && (outsideWorld || !LandblockManager.IsLoaded(new LandblockId(fileId | 0xFFFF))))
-                    DatManager.CellDat.FileCache.TryRemove(fileId, out _);
-            }
+            DropAddedCellDatEntries(cachedBefore);
 
             manifest.WorldKey = worldKey;
             manifest.DatIdentity = datIdentity;
@@ -109,6 +103,21 @@ namespace ACE.Server.Pathfinding
 
             log.Info($"Pathfinder: reachability manifest updated, {changed} landblocks changed{(worldChanged ? " (new world key)" : "")}");
             return manifest;
+        }
+
+        /// <summary>
+        /// Drops the cell dat cache entries added since the snapshot, except for landblocks in use: a pass over the
+        /// world would otherwise keep the whole world's records.
+        /// </summary>
+        private static void DropAddedCellDatEntries(HashSet<uint> cachedBefore)
+        {
+            foreach (var fileId in DatManager.CellDat.FileCache.Keys)
+            {
+                // x or y 0xFF is past the world (neighbors of the last row), never loaded
+                var outsideWorld = fileId >> 24 == 0xFF || (fileId >> 16 & 0xFF) == 0xFF;
+                if (!cachedBefore.Contains(fileId) && (outsideWorld || !LandblockManager.IsLoaded(new LandblockId(fileId | 0xFFFF))))
+                    DatManager.CellDat.FileCache.TryRemove(fileId, out _);
+            }
         }
 
         /// <summary>
