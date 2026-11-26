@@ -51,11 +51,16 @@ namespace ACE.Server.Pathfinding
             var pieces = Enumerable.Range(0, summaries.Length).Where(i => summaries[i] != null)
                 .SelectMany(i => summaries[i].Pieces.Select((piece, k) => (landblock: i, index: k, piece, spot: new GraphSpot(i, GraphSpot.Outdoors, (ushort)k))))
                 .ToList();
+            string OutdoorTotals(int? level, TravelProfile profile) =>
+                string.Join(", ", pieces.GroupBy(p => graph.GetLabel(p.spot, level, profile)).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()} pieces {g.Sum(p => p.piece.Area) / 1e6:F1} km2"));
             foreach (var level in reportLevels)
-                lines.Add($"Outdoors, {LevelName(level)}: " + string.Join(", ", pieces.GroupBy(p => graph.GetLabel(p.spot, level)).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()} pieces {g.Sum(p => p.piece.Area) / 1e6:F1} km2")));
+                lines.Add($"Outdoors, {LevelName(level)}: {OutdoorTotals(level, TravelProfile.Portals)}");
+            foreach (var profile in new[] { TravelProfile.Walk, TravelProfile.Recall })
+                foreach (var level in new int?[] { 1, null })
+                    lines.Add($"Outdoors, {(profile == TravelProfile.Walk ? "on foot only" : "with recall")}, {LevelName(level)}: {OutdoorTotals(level, profile)}");
 
             lines.Add($"Reachability center {ReachabilityCenter.Cell:X8}: {DescribeReachability(ReachabilityCenter, null)}");
-            lines.Add($"Travel links: {graph.Links.Count} ({string.Join(", ", graph.Links.GroupBy(l => l.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()} {g.Key}"))}), {graph.DeadLinks.Count} with an end on no piece");
+            lines.Add($"Travel links: {graph.Links.Count} ({string.Join(", ", graph.Links.GroupBy(l => l.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()} {g.Key}"))}, {graph.Links.Count(l => l.Anywhere)} of them gems from anywhere), {graph.DeadLinks.Count} with an end on no piece");
             var shownLines = lines.Count;
 
             var unknown = Enumerable.Range(0, summaries.Length).Where(i => summaries[i] == null && manifest.Entries[i].Method != ReachabilityMethod.None).ToList();
@@ -72,6 +77,7 @@ namespace ACE.Server.Pathfinding
                 foreach (var group in interiorPieces.GroupBy(p => graph.GetLabel(p.spot, level)).OrderBy(g => g.Key))
                     lines.Add($"    {group.Key}: {group.Count()} pieces, {group.Sum(p => p.piece.Area):F0} m2, in {group.Select(p => p.landblock).Distinct().Count()} landblocks");
             }
+            lines.Add("  with recall, level 1: " + string.Join(", ", interiorPieces.GroupBy(p => graph.GetLabel(p.spot, 1, TravelProfile.Recall)).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()} pieces")));
 
             var levelDependent = pieces.Select(p => p.spot).Concat(interiorPieces.Select(p => p.spot)).Count(spot => graph.BandLevels.Select(l => graph.GetLabel(spot, l)).Distinct().Count() > 1);
             lines.Add($"Pieces whose label changes with the level: {levelDependent}");
@@ -79,7 +85,7 @@ namespace ACE.Server.Pathfinding
             string FormatSpot(GraphSpot spot) => $"{spot.Landblock:X4} {(spot.Group == GraphSpot.Outdoors ? "outdoors" : $"group {spot.Group}")} piece {(spot.Piece == TileSummary.NoPiece ? "none" : spot.Piece.ToString())}";
             lines.Add("Travel links with an end on no piece (first 40):");
             foreach (var link in graph.DeadLinks.Take(40))
-                lines.Add($"  {link.Kind} {link.Source}: from {FormatSpot(link.From)} to {FormatSpot(link.To)}");
+                lines.Add($"  {link.Kind} {link.Source}: from {(link.Anywhere ? "anywhere" : FormatSpot(link.From))} to {FormatSpot(link.To)}");
 
             // what quest travel would add: the ones whose destination nothing open reaches
             var dead = graph.DeadLinks.ToHashSet();

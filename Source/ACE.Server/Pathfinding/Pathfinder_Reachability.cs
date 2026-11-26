@@ -486,21 +486,56 @@ namespace ACE.Server.Pathfinding
             if (summaries[center.Landblock] != null && center.Piece == TileSummary.NoPiece)
                 log.Warn($"Pathfinder: reachability center 0x{ReachabilityCenter.Cell:X8} {ReachabilityCenter.Pos} is on no walkable piece, so it seeds nothing");
 
-            var graph = WorldGraph.Build(summaries, unknown, interiors, unknownInterior, new[] { center }, GetTravelLinks(summaries, interiors), SmallProfile.MaxClimb);
+            // only landblocks with cells can be dungeons; one whose dat can't be read refuses recall, the safe side
+            var dungeon = new bool[summaries.Length];
+            var dungeonInterior = new bool[summaries.Length];
+            for (var i = 0; i < summaries.Length; i++)
+            {
+                if (manifest.Entries[i].InteriorMethod == ReachabilityMethod.None)
+                    continue;
+                try
+                {
+                    (dungeon[i], dungeonInterior[i]) = GetDungeonFlags((uint)i << 16);
+                }
+                catch (Exception e)
+                {
+                    log.Warn($"Pathfinder: reading landblock {i:X4} for its dungeon flags failed, so recall is refused there: {e.Message}");
+                    (dungeon[i], dungeonInterior[i]) = (true, true);
+                }
+            }
+
+            var graph = WorldGraph.Build(summaries, unknown, interiors, unknownInterior, new[] { center }, GetTravelLinks(summaries, interiors), dungeon, dungeonInterior, SmallProfile.MaxClimb);
             reachabilityGraph = graph;
             return graph;
         }
 
         /// <summary>
-        /// Whether a player of the level (any level if null) can get to a spot from the reachability center and back, on
-        /// foot or through open portals. Outdoors it answers for the walkable surface at or just below the spot (the
-        /// ground for a spot at ground level), indoors for the floor of the cell nearest the spot's height. Unknown until
-        /// the graph is built.
+        /// Whether WorldObject.InDungeon holds outdoors and indoors on a landblock, from the dat as Landblock.IsDungeon and
+        /// HasDungeon read it: cells and no buildings, and outdoors also all heights 0 (but the northwest island).
         /// </summary>
-        public static ReachabilityLabel GetReachability(ACE.Entity.Position position, int? level) => GetReachability(reachabilityGraph, position, level);
+        private static (bool outdoors, bool indoors) GetDungeonFlags(uint landblockId)
+        {
+            var info = DatManager.CellDat.ReadFromDat<LandblockInfo>(landblockId | 0xFFFE, false);
+            if (info == null || info.NumCells == 0 || info.Buildings == null || info.Buildings.Count > 0)
+                return (false, false);
 
-        private static ReachabilityLabel GetReachability(WorldGraph graph, ACE.Entity.Position position, int? level) =>
-            graph?.GetLabel(GetGraphSpot(graph.Summaries, graph.Interiors, position), level) ?? ReachabilityLabel.Unknown;
+            if (landblockId >> 24 < 0x08 && (landblockId >> 16 & 0xFF) > 0xF8)
+                return (false, true);
+
+            var cellLandblock = DatManager.CellDat.ReadFromDat<CellLandblock>(landblockId | 0xFFFF, false);
+            return (cellLandblock.Height.All(h => h == 0), true);
+        }
+
+        /// <summary>
+        /// Whether a player of the level (any level if null) can get to a spot from the reachability center and back with
+        /// the profile's travel. Outdoors it answers for the walkable surface at or just below the spot (the ground for a
+        /// spot at ground level), indoors for the floor of the cell nearest the spot's height. Unknown until the graph is
+        /// built.
+        /// </summary>
+        public static ReachabilityLabel GetReachability(ACE.Entity.Position position, int? level, TravelProfile profile) => GetReachability(reachabilityGraph, position, level, profile);
+
+        private static ReachabilityLabel GetReachability(WorldGraph graph, ACE.Entity.Position position, int? level, TravelProfile profile = TravelProfile.Portals) =>
+            graph?.GetLabel(GetGraphSpot(graph.Summaries, graph.Interiors, position), level, profile) ?? ReachabilityLabel.Unknown;
 
         /// <summary>
         /// The graph spot of a position: indoors the piece of its cell nearest its height, outdoors the surface under it.

@@ -54,6 +54,7 @@ namespace ACE.Server.Pathfinding
             public Position To;
             public int MinLevel, MaxLevel, NpcMaxLevel;
             public TravelKind Kind;
+            public bool Anywhere;
             public string Source;
         }
 
@@ -87,14 +88,16 @@ namespace ACE.Server.Pathfinding
 
             var maxLevelApplies = PropertyManager.GetBool("use_portal_max_level_requirement").Item;
             var links = new List<TravelLink>();
-            var seen = new HashSet<(GraphSpot, GraphSpot, int, int, TravelKind)>();
+            var seen = new HashSet<(GraphSpot, GraphSpot, int, int, TravelKind, bool)>();
 
             // the encounter spot lists are shared by many sources and long: each is placed once
             var placedLists = new Dictionary<IReadOnlyList<Position>, List<GraphSpot>>(ReferenceEqualityComparer.Instance);
+            var anywhere = new List<GraphSpot> { default };
 
             foreach (var source in sources)
             {
-                if (!placedLists.TryGetValue(source.From, out var from))
+                var from = source.Anywhere ? anywhere : null;
+                if (from == null && !placedLists.TryGetValue(source.From, out from))
                     placedLists[source.From] = from = source.From.Select(p => GetGraphSpot(summaries, interiors, p)).Distinct().ToList();
 
                 var maxLevel = maxLevelApplies ? source.MaxLevel : 0;
@@ -102,8 +105,8 @@ namespace ACE.Server.Pathfinding
                     maxLevel = source.NpcMaxLevel;
                 var to = GetGraphSpot(summaries, interiors, source.To);
                 foreach (var spot in from)
-                    if (seen.Add((spot, to, source.MinLevel, maxLevel, source.Kind)))
-                        links.Add(new TravelLink { From = spot, To = to, MinLevel = source.MinLevel, MaxLevel = maxLevel, Kind = source.Kind, Source = source.Source });
+                    if (seen.Add((spot, to, source.MinLevel, maxLevel, source.Kind, source.Anywhere)))
+                        links.Add(new TravelLink { From = spot, To = to, MinLevel = source.MinLevel, MaxLevel = maxLevel, Kind = source.Kind, Anywhere = source.Anywhere, Source = source.Source });
             }
             return links;
         }
@@ -125,6 +128,7 @@ namespace ACE.Server.Pathfinding
             ILookup<uint, WeeniePropertiesEmote> ownerEmotes;
             HashSet<uint> coins;
             ILookup<uint, uint> stockingVendors;
+            Dictionary<uint, uint> summonGems;
 
             using (var context = new WorldDbContext())
             {
@@ -156,6 +160,14 @@ namespace ACE.Server.Pathfinding
                 ownerEmotes = context.WeeniePropertiesEmote.Include(e => e.WeeniePropertiesEmoteAction).Where(e => owners.Contains(e.ObjectId)).ToList().ToLookup(e => e.ObjectId);
                 var asked = ownerEmotes.SelectMany(g => g).SelectMany(e => e.WeeniePropertiesEmoteAction.Where(a => a.Type == (uint)EmoteType.InqOwnsItems).Select(a => a.WeenieClassId).Append(e.WeenieClassId))
                     .Where(w => w != null).Select(w => w.Value).ToHashSet();
+
+                // the gems that summon their linked portal, by gem, and their vendors too
+                var linked = context.WeeniePropertiesDID.Where(d => d.Type == (ushort)PropertyDataId.LinkedPortalOne).ToList()
+                    .Where(d => weenieTypes.GetValueOrDefault(d.ObjectId) == (int)WeenieType.Gem).ToList();
+                var linkedIds = linked.Select(d => d.ObjectId).ToList();
+                var gemSpells = context.WeeniePropertiesDID.Where(d => d.Type == (ushort)PropertyDataId.Spell && linkedIds.Contains(d.ObjectId)).ToDictionary(d => d.ObjectId, d => d.Value);
+                summonGems = linked.Where(d => gemSpells.TryGetValue(d.ObjectId, out var spell) && spells.TryGetValue(spell, out var s) && s.Link == 1).ToDictionary(d => d.ObjectId, d => d.Value);
+                asked.UnionWith(summonGems.Keys);
                 var askedList = asked.ToList();
                 stockingVendors = context.WeeniePropertiesCreateList.Where(c => c.DestinationType == (sbyte)DestinationType.Shop && askedList.Contains(c.WeenieClassId)).Select(c => new { c.WeenieClassId, c.ObjectId }).ToList()
                     .Select(c => (item: c.WeenieClassId, vendor: c.ObjectId))
@@ -394,6 +406,24 @@ namespace ACE.Server.Pathfinding
                 foreach (var source in GetPortalSources(wcid, GetEncounterSpots(wcid), " from encounters").Where(s => !fixedLandblocks.Contains(s.To.Cell >> 16)))
                 {
                     source.Kind = TravelKind.Quest;
+                    sources.Add(source);
+                }
+            }
+
+            // a summon gem a placed vendor sells is anyone's (gems trade, so the vendor's reach doesn't matter); one that
+            // asks for a skill adds nothing. The gem casts the summon itself, which skips the portal's NoSummon: most town
+            // gem portals have it, against player ties.
+            foreach (var (gem, portal) in summonGems)
+            {
+                var gemWeenie = database.GetCachedWeenie(gem);
+                if (!IsFee(gem) || gemWeenie == null
+                    || gemWeenie.GetProperty(PropertyInt.UseRequiresSkill) != null || gemWeenie.GetProperty(PropertyDataId.ItemSkillLimit) != null)
+                    continue;
+
+                foreach (var source in GetPortalSources(portal, Array.Empty<Position>(), $" from gem {gem} {GetName(gem)}"))
+                {
+                    source.MinLevel = Math.Max(source.MinLevel, gemWeenie.GetProperty(PropertyInt.UseRequiresLevel) ?? 0);
+                    source.Anywhere = true;
                     sources.Add(source);
                 }
             }

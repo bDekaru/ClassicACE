@@ -39,6 +39,12 @@ namespace ACE.Server.Pathfinding.Reachability
         public TravelKind Kind { get; set; }
 
         /// <summary>
+        /// Taken from anywhere outside a dungeon, From unused: a summon gem any player can buy. Only in the Recall
+        /// profile.
+        /// </summary>
+        public bool Anywhere { get; set; }
+
+        /// <summary>
         /// What it is, for the report, e.g. "portal 1595 Abandoned Mine".
         /// </summary>
         public string Source { get; set; }

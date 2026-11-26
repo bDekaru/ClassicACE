@@ -165,8 +165,8 @@ namespace ACE.Server.WorldObjects
             if (sortCell == null || sortCell.has_building() || sortCell.WaterType == LandDefs.WaterType.EntirelyWater || !spot.IsWalkable())
                 return null;
 
-            // Unknown too: a landblock not baked yet, or one that failed. OneWay is fine: the way back can be a recall.
-            if (Pathfinder.HasReachabilityGraph && Pathfinder.GetReachability(spot, level) is not (ReachabilityLabel.Walkable or ReachabilityLabel.OneWay))
+            // Unknown too: a landblock not baked yet, or one that failed
+            if (Pathfinder.HasReachabilityGraph && Pathfinder.GetReachability(spot, level, TravelProfile.Recall) != ReachabilityLabel.Walkable)
                 return null;
 
             return coords;

@@ -36,12 +36,36 @@ namespace ACE.Server.Pathfinding.Reachability
     }
 
     /// <summary>
+    /// The travel a label counts.
+    /// </summary>
+    public enum TravelProfile : byte
+    {
+        /// <summary>
+        /// On foot, ledge drops included.
+        /// </summary>
+        Walk,
+
+        /// <summary>
+        /// And the open travel links (portals, NPC travel).
+        /// </summary>
+        Portals,
+
+        /// <summary>
+        /// And, from anywhere outside a dungeon (where CustomDM refuses them), /ls back to the start town and the summon
+        /// gems vendors sell.
+        /// </summary>
+        Recall
+    }
+
+    /// <summary>
     /// Connectivity of the world, from the summaries and the travel links: outdoor pieces joined across landblock
     /// borders as Detour links tiles, interior pieces joined to the outdoor piece in front of their doorways, ledge drops
     /// and open travel links one way, and labels from the seeds. A landblock or interior with no summary yet is solved
     /// both as a wall and as joining everything around it (all of an interior's doorways through one node, so pieces in
     /// front of different buildings may join); a piece whose labels differ between the two is Unknown. Labels are kept
-    /// per band of player levels: the levels between two where an open link's level limits start or end.
+    /// per travel profile and band of player levels: the levels between two where an open link's level limits start or
+    /// end. Recall goes through one extra node that every node outside a dungeon leads to, which leads to the seeds and
+    /// to the gems' destinations.
     /// </summary>
     public class WorldGraph
     {
@@ -78,14 +102,14 @@ namespace ACE.Server.Pathfinding.Reachability
         private readonly bool[] unknownInterior;
 
         /// <summary>
-        /// By level band, then node.
+        /// By travel profile, level band, then node.
         /// </summary>
-        private ReachabilityLabel[][] labels;
+        private ReachabilityLabel[][][] labels;
 
         /// <summary>
-        /// By node, the best label over all bands.
+        /// By travel profile, then node, the best label over all bands.
         /// </summary>
-        private ReachabilityLabel[] bestLabels;
+        private ReachabilityLabel[][] bestLabels;
 
         /// <summary>
         /// The band of each level from 1 to MaxLevel.
@@ -162,16 +186,16 @@ namespace ACE.Server.Pathfinding.Reachability
         /// <summary>
         /// The spot's label for a player of the level, or the best one at any level.
         /// </summary>
-        public ReachabilityLabel GetLabel(GraphSpot spot, int? level = null)
+        public ReachabilityLabel GetLabel(GraphSpot spot, int? level = null, TravelProfile profile = TravelProfile.Portals)
         {
             var (known, optimistic) = GetNodes(spot);
             if (known < 0)
                 return optimistic < 0 ? ReachabilityLabel.Unreachable : ReachabilityLabel.Unknown;
 
             if (level != null)
-                return labels[levelBand[Math.Clamp(level.Value, 1, MaxLevel)]][known];
+                return labels[(int)profile][levelBand[Math.Clamp(level.Value, 1, MaxLevel)]][known];
 
-            return bestLabels[known];
+            return bestLabels[(int)profile][known];
         }
 
         /// <summary>
@@ -202,10 +226,11 @@ namespace ACE.Server.Pathfinding.Reachability
         /// <summary>
         /// Summaries by landblock index (id >> 16). Unknown: the landblocks that have walkable ground but no summary yet
         /// (the rest without one are walls), and likewise the interiors. Seeds: the spots labels are measured from.
-        /// Links: the travel between spots, of which only the open ones count. Climb: the mesh's walkableClimb, which
-        /// sets the height tolerance at a border.
+        /// Links: the travel between spots, of which only the open ones count. Dungeon, dungeonInterior: by landblock,
+        /// whether recall is refused outdoors and indoors there. Climb: the mesh's walkableClimb, which sets the height
+        /// tolerance at a border.
         /// </summary>
-        public static WorldGraph Build(TileSummary[] summaries, bool[] unknown, InteriorSummary[] interiors, bool[] unknownInterior, IEnumerable<GraphSpot> seeds, IEnumerable<TravelLink> links, float climb)
+        public static WorldGraph Build(TileSummary[] summaries, bool[] unknown, InteriorSummary[] interiors, bool[] unknownInterior, IEnumerable<GraphSpot> seeds, IEnumerable<TravelLink> links, bool[] dungeon, bool[] dungeonInterior, float climb)
         {
             var graph = new WorldGraph(summaries, unknown, interiors, unknownInterior);
             var nodeBase = graph.nodeBase;
@@ -215,7 +240,9 @@ namespace ACE.Server.Pathfinding.Reachability
             unknown = graph.unknown;
             unknownInterior = graph.unknownInterior;
 
-            var known = new DisjointSet(graph.NodeCount);
+            // the recall node is the one past the last
+            var recall = graph.NodeCount;
+            var known = new DisjointSet(graph.NodeCount + 1);
             var optimisticJoins = new List<(int, int)>();
 
             void JoinBorder(int a, int b, int sideA)
@@ -299,7 +326,7 @@ namespace ACE.Server.Pathfinding.Reachability
             var open = new List<(TravelLink link, int knownFrom, int knownTo, int from, int to)>();
             foreach (var link in graph.Links)
             {
-                var (knownFrom, from) = graph.GetNodes(link.From);
+                var (knownFrom, from) = link.Anywhere ? (recall, recall) : graph.GetNodes(link.From);
                 var (knownTo, to) = graph.GetNodes(link.To);
                 if (from < 0 || to < 0)
                     deadLinks.Add(link);
@@ -326,31 +353,71 @@ namespace ACE.Server.Pathfinding.Reachability
             var (optimisticGroup, optimisticGroupCount) = GetGroups(optimistic);
             var knownSeedGroups = knownSeeds.Select(n => knownGroup[n]).Distinct().ToList();
             var optimisticSeedGroups = optimisticSeeds.Select(n => optimisticGroup[n]).Distinct().ToList();
-            graph.GroupCount = knownGroupCount;
+            graph.GroupCount = knownGroupCount - 1;
             graph.SeedGroupCount = knownSeedGroups.Count;
 
-            graph.labels = new ReachabilityLabel[bandLevels.Count][];
-            for (var b = 0; b < bandLevels.Count; b++)
+            // into the recall node once per walking group outside a dungeon, and out of it to the seeds
+            List<(int, int)> GetRecallEdges(int[] group, List<int> seedNodes)
             {
-                var level = bandLevels[b];
-                var active = open.Where(o => o.link.MinLevel <= level && (o.link.MaxLevel == 0 || level <= o.link.MaxLevel)).ToList();
-                var (reach, escape) = Solve(knownGroup, knownGroupCount, drops.Concat(active.Where(o => o.knownFrom >= 0 && o.knownTo >= 0).Select(o => (o.knownFrom, o.knownTo))), knownSeedGroups);
-                var (maybeReach, maybeEscape) = Solve(optimisticGroup, optimisticGroupCount, drops.Concat(active.Select(o => (o.from, o.to))), optimisticSeedGroups);
+                var edges = new List<(int, int)>();
+                var joined = new HashSet<int>();
+                void Add(int start, int end)
+                {
+                    for (var n = start; n < end; n++)
+                        if (joined.Add(group[n]))
+                            edges.Add((n, recall));
+                }
+                for (var i = 0; i < summaries.Length; i++)
+                {
+                    if (!dungeon[i])
+                        Add(nodeBase[i], nodeBase[i + 1]);
+                    if (!dungeonInterior[i])
+                        Add(interiorBase[i], interiorBase[i + 1]);
+                }
+                edges.AddRange(seedNodes.Select(s => (recall, s)));
+                return edges;
+            }
+            var knownRecall = GetRecallEdges(knownGroup, knownSeeds);
+            var optimisticRecall = GetRecallEdges(optimisticGroup, optimisticSeeds);
 
-                var bandLabels = graph.labels[b] = new ReachabilityLabel[graph.NodeCount];
+            ReachabilityLabel[] Label(IEnumerable<(TravelLink link, int knownFrom, int knownTo, int from, int to)> active, bool withRecall)
+            {
+                var knownEdges = drops.Concat(active.Where(o => o.knownFrom >= 0 && o.knownTo >= 0).Select(o => (o.knownFrom, o.knownTo)));
+                var optimisticEdges = drops.Concat(active.Select(o => (o.from, o.to)));
+                var (reach, escape) = Solve(knownGroup, knownGroupCount, withRecall ? knownEdges.Concat(knownRecall) : knownEdges, knownSeedGroups);
+                var (maybeReach, maybeEscape) = Solve(optimisticGroup, optimisticGroupCount, withRecall ? optimisticEdges.Concat(optimisticRecall) : optimisticEdges, optimisticSeedGroups);
+
+                var result = new ReachabilityLabel[graph.NodeCount];
                 for (var n = 0; n < graph.NodeCount; n++)
                 {
                     bool r = reach[knownGroup[n]], e = escape[knownGroup[n]];
-                    bandLabels[n] = r && e ? ReachabilityLabel.Walkable
+                    result[n] = r && e ? ReachabilityLabel.Walkable
                         : r != maybeReach[optimisticGroup[n]] || e != maybeEscape[optimisticGroup[n]] ? ReachabilityLabel.Unknown
                         : r ? ReachabilityLabel.OneWay
                         : e ? ReachabilityLabel.EscapeOnly : ReachabilityLabel.Unreachable;
                 }
+                return result;
             }
 
-            graph.bestLabels = new ReachabilityLabel[graph.NodeCount];
-            for (var n = 0; n < graph.NodeCount; n++)
-                graph.bestLabels[n] = graph.labels.Select(band => band[n]).MaxBy(label => LabelRank[(int)label]);
+            // walking has no level limits: one array serves every band
+            var walk = Label(Enumerable.Empty<(TravelLink, int, int, int, int)>(), false);
+            graph.labels = Enum.GetValues<TravelProfile>().Select(_ => new ReachabilityLabel[bandLevels.Count][]).ToArray();
+            for (var b = 0; b < bandLevels.Count; b++)
+            {
+                var level = bandLevels[b];
+                var active = open.Where(o => o.link.MinLevel <= level && (o.link.MaxLevel == 0 || level <= o.link.MaxLevel)).ToList();
+                graph.labels[(int)TravelProfile.Walk][b] = walk;
+                graph.labels[(int)TravelProfile.Portals][b] = Label(active.Where(o => !o.link.Anywhere), false);
+                graph.labels[(int)TravelProfile.Recall][b] = Label(active, true);
+            }
+
+            graph.bestLabels = graph.labels.Select(bands =>
+            {
+                var best = new ReachabilityLabel[graph.NodeCount];
+                for (var n = 0; n < graph.NodeCount; n++)
+                    best[n] = bands.Select(band => band[n]).MaxBy(label => LabelRank[(int)label]);
+                return best;
+            }).ToArray();
 
             return graph;
         }

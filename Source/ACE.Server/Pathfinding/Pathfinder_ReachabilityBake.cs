@@ -391,6 +391,7 @@ namespace ACE.Server.Pathfinding
                         ranges.Add((graph.BandLevels[i], last));
                 }
                 text += ranges.Count == 0 ? " (Walkable at no level)" : $" (Walkable at levels {string.Join(", ", ranges.Select(r => r.first == r.last ? $"{r.first}" : $"{r.first}-{r.last}"))})";
+                text += $", on foot only {GetReachability(graph, position, level, TravelProfile.Walk)}, with recall {GetReachability(graph, position, level, TravelProfile.Recall)}";
             }
             text += $": landblock {landblock:X4}";
 
