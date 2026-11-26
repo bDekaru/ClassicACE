@@ -14,6 +14,11 @@ namespace ACE.Server.Pathfinding.Geometry
     public static class NavMeshBuilder
     {
         /// <summary>
+        /// The coarsest detail height error a tile retries with (see BuildTile): all six tiles that hit the limit build at 4 m.
+        /// </summary>
+        private const float MaxDetailSampleMaxError = 4f;
+
+        /// <summary>
         /// Builds a single-tile navmesh (an interior cell group) over all of the geometry.
         /// </summary>
         public static DtMeshData Build(NavMeshGeometry geom, MeshBuildSettings settings)
@@ -36,14 +41,27 @@ namespace ACE.Server.Pathfinding.Geometry
         {
             var tileCells = (int)MathF.Round(tileSize / settings.CellSize);
             var borderSize = RcConfig.CalcBorder(settings.AgentRadius, settings.CellSize);
-            var cfg = CreateConfig(settings, true, tileCells, borderSize);
 
             // the tile's xz bounds come from the tile coordinates (plus the border), only the height range from the geometry
             var bmin = new RcVec3f(0f, geom.GetMeshBoundsMin().Y, 0f);
             var bmax = new RcVec3f(0f, geom.GetMeshBoundsMax().Y, 0f);
-            var bcfg = new RcBuilderConfig(cfg, bmin, bmax, tileX, tileZ);
 
-            var rcResult = new RcBuilder().Build(geom, bcfg, false);
+            // DotRecast throws where Recast trims a poly's detail mesh to 255 triangles (one huge poly over rolling
+            // ground): a coarser height fit keeps the tile, and its polys are the same
+            RcBuilderResult rcResult;
+            for (var detailError = settings.DetailSampleMaxError; ; detailError = MathF.Min(MathF.Max(detailError * 2, 1f), MaxDetailSampleMaxError))
+            {
+                var bcfg = new RcBuilderConfig(CreateConfig(settings, true, tileCells, borderSize, detailError), bmin, bmax, tileX, tileZ);
+                try
+                {
+                    rcResult = new RcBuilder().Build(geom, bcfg, false);
+                    break;
+                }
+                catch (Exception e) when (e.Message.StartsWith("rcBuildPolyMeshDetail") && detailError < MaxDetailSampleMaxError)
+                {
+                }
+            }
+
             if (rcResult?.Mesh == null || rcResult.Mesh.npolys == 0)
                 return null;
 
@@ -57,7 +75,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// The Recast config for a build: a single mesh over all of the geometry, or one tile of a tiled mesh.
         /// </summary>
-        private static RcConfig CreateConfig(MeshBuildSettings settings, bool useTiles = false, int tileCells = 0, int borderSize = 0)
+        private static RcConfig CreateConfig(MeshBuildSettings settings, bool useTiles = false, int tileCells = 0, int borderSize = 0, float? detailSampleMaxError = null)
         {
             return new RcConfig(
                 useTiles, tileCells, tileCells, borderSize,
@@ -67,7 +85,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 settings.MinRegionArea, settings.MergedRegionArea,
                 settings.EdgeMaxLen, settings.EdgeMaxError,
                 settings.VertsPerPoly,
-                settings.DetailSampleDist, settings.DetailSampleMaxError,
+                settings.DetailSampleDist, detailSampleMaxError ?? settings.DetailSampleMaxError,
                 settings.FilterLowHangingObstacles, settings.FilterLedgeSpans, settings.FilterWalkableLowHeightSpans,
                 NavArea.WalkableMod, true);
         }
