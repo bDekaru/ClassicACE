@@ -45,13 +45,14 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Travel as the database gives it, before it is placed on a graph. From are the places it starts from, a list
-        /// often shared between sources.
+        /// often shared between sources. MaxLevel is a portal's, which use_portal_max_level_requirement can turn off;
+        /// NpcMaxLevel is an NPC's level test, which always applies.
         /// </summary>
         private class TravelSource
         {
             public IReadOnlyList<Position> From;
             public Position To;
-            public int MinLevel, MaxLevel;
+            public int MinLevel, MaxLevel, NpcMaxLevel;
             public TravelKind Kind;
             public string Source;
         }
@@ -97,6 +98,8 @@ namespace ACE.Server.Pathfinding
                     placedLists[source.From] = from = source.From.Select(p => GetGraphSpot(summaries, interiors, p)).Distinct().ToList();
 
                 var maxLevel = maxLevelApplies ? source.MaxLevel : 0;
+                if (source.NpcMaxLevel > 0 && (maxLevel == 0 || source.NpcMaxLevel < maxLevel))
+                    maxLevel = source.NpcMaxLevel;
                 var to = GetGraphSpot(summaries, interiors, source.To);
                 foreach (var spot in from)
                     if (seen.Add((spot, to, source.MinLevel, maxLevel, source.Kind)))
@@ -119,12 +122,17 @@ namespace ACE.Server.Pathfinding
             Dictionary<uint, HashSet<uint>> encounterRoots;
             Dictionary<uint, List<Position>> rootSpots;
             HashSet<string> emoteStartedEvents;
+            ILookup<uint, WeeniePropertiesEmote> ownerEmotes;
+            HashSet<uint> coins;
+            ILookup<uint, uint> stockingVendors;
 
             using (var context = new WorldDbContext())
             {
                 context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
 
-                portals =database.GetAllWeenieTypes(context).Where(t => t.Value == (int)WeenieType.Portal).Select(t => t.Key).ToHashSet();
+                var weenieTypes = database.GetAllWeenieTypes(context);
+                portals = weenieTypes.Where(t => t.Value == (int)WeenieType.Portal).Select(t => t.Key).ToHashSet();
+                coins = weenieTypes.Where(t => t.Value == (int)WeenieType.Coin).Select(t => t.Key).ToHashSet();
                 profiles = context.WeeniePropertiesGenerator.ToList();
                 profilesBySpawn = profiles.ToLookup(p => p.WeenieClassId);
 
@@ -142,8 +150,21 @@ namespace ACE.Server.Pathfinding
                 emoteStartedEvents = context.WeeniePropertiesEmoteAction.Where(a => a.Type == (uint)EmoteType.StartEvent && a.Message != null).Select(a => a.Message).ToList()
                     .Select(EventManager.GetEventName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                // the portals and emote owners, and the generators that spawn them
-                var targets = portals.Concat(emoteTravel.Select(x => x.emote.ObjectId)).ToHashSet();
+                // the emote owners' emote sets, which judge their travel, and the vendors of the items they ask for:
+                // vendors stock through their shop list or their generator profiles
+                var owners = emoteTravel.Select(x => x.emote.ObjectId).Distinct().ToList();
+                ownerEmotes = context.WeeniePropertiesEmote.Include(e => e.WeeniePropertiesEmoteAction).Where(e => owners.Contains(e.ObjectId)).ToList().ToLookup(e => e.ObjectId);
+                var asked = ownerEmotes.SelectMany(g => g).SelectMany(e => e.WeeniePropertiesEmoteAction.Where(a => a.Type == (uint)EmoteType.InqOwnsItems).Select(a => a.WeenieClassId).Append(e.WeenieClassId))
+                    .Where(w => w != null).Select(w => w.Value).ToHashSet();
+                var askedList = asked.ToList();
+                stockingVendors = context.WeeniePropertiesCreateList.Where(c => c.DestinationType == (sbyte)DestinationType.Shop && askedList.Contains(c.WeenieClassId)).Select(c => new { c.WeenieClassId, c.ObjectId }).ToList()
+                    .Select(c => (item: c.WeenieClassId, vendor: c.ObjectId))
+                    .Concat(profiles.Where(p => asked.Contains(p.WeenieClassId)).Select(p => (item: p.WeenieClassId, vendor: p.ObjectId)))
+                    .Where(s => weenieTypes.GetValueOrDefault(s.vendor) == (int)WeenieType.Vendor)
+                    .Distinct().ToLookup(s => s.item, s => s.vendor);
+
+                // the portals, emote owners and vendors, and the generators that spawn them
+                var targets = portals.Concat(owners).Concat(stockingVendors.SelectMany(g => g)).ToHashSet();
                 var wanted = new HashSet<uint>(targets);
                 var spawners = targets.ToList();
                 for (var depth = 0; depth < MaxGeneratorDepth && spawners.Count > 0; depth++)
@@ -151,7 +172,7 @@ namespace ACE.Server.Pathfinding
                 var wantedList = wanted.ToList();
                 placed = context.LandblockInstance.Where(i => wantedList.Contains(i.WeenieClassId)).ToList().ToLookup(i => i.WeenieClassId);
 
-                // which encounters spawn each portal or emote owner, through their generators' child generators
+                // which encounters spawn each portal, emote owner or vendor, through their generators' child generators
                 var profilesOf = profiles.ToLookup(p => p.ObjectId);
                 encounterRoots = new Dictionary<uint, HashSet<uint>>();
                 foreach (var root in context.Encounter.Select(e => e.WeenieClassId).Distinct().ToList())
@@ -192,14 +213,18 @@ namespace ACE.Server.Pathfinding
             }
             List<Position> GetSpawnSpots(WeeniePropertiesGenerator profile, int depth) => GetPlaces(profile.ObjectId, depth).Select(g => GetSpawnSpot(g, profile, rotateOffsets)).ToList();
 
-            // a generator tied to an event spawns only while the event is on: open if it is on now or an emote starts it
+            // an event counts as on when it is on now or an emote starts it
+            bool IsEventOpen(string name)
+            {
+                name = EventManager.GetEventName(name);
+                return !QuestGeneratorEvents.Contains(name) && (EventManager.IsEventStarted(name, null, null) || emoteStartedEvents.Contains(name));
+            }
+
+            // a generator tied to an event spawns only while the event is on
             bool IsEventGated(uint generator)
             {
                 var name = database.GetCachedWeenie(generator)?.GetProperty(PropertyString.GeneratorEvent);
-                if (string.IsNullOrEmpty(name) || !EventManager.IsEventAvailable(name))
-                    return false;
-                name = EventManager.GetEventName(name);
-                return QuestGeneratorEvents.Contains(name) || (!EventManager.IsEventStarted(name, null, null) && !emoteStartedEvents.Contains(name));
+                return !string.IsNullOrEmpty(name) && EventManager.IsEventAvailable(name) && !IsEventOpen(name);
             }
 
             var encounterSpots = new Dictionary<uint, IReadOnlyList<Position>>();
@@ -249,6 +274,96 @@ namespace ACE.Server.Pathfinding
                     to.LandblockId = new LandblockId(to.GetCell());
                     return Make(new[] { start }, to);
                 }).ToList();
+            }
+
+            // coins and what a placed vendor sells
+            var fees = new Dictionary<uint, bool>();
+            bool IsFee(uint wcid)
+            {
+                if (!fees.TryGetValue(wcid, out var fee))
+                    fees[wcid] = fee = coins.Contains(wcid) || stockingVendors[wcid].Any(v => GetPlaces(v, 0).Count > 0);
+                return fee;
+            }
+
+            // whether the reference player at a level gets the inquiry or Goto action to run an emote set of this
+            // category; null where it never does
+            Func<int, bool> GetPassCondition(WeeniePropertiesEmoteAction action, EmoteCategory category)
+            {
+                var success = category is EmoteCategory.TestSuccess or EmoteCategory.QuestSuccess or EmoteCategory.EventSuccess;
+                bool InRange(int value) => value >= (action.Min ?? int.MinValue) && value <= (action.Max ?? int.MaxValue);
+                Func<int, bool> Always(bool passes) => passes ? level => true : null;
+
+                switch ((EmoteType)action.Type)
+                {
+                    case EmoteType.Goto:
+                        return Always(category == EmoteCategory.GotoSet);
+                    // QuestSuccess needs the flag with its timer running
+                    case EmoteType.InqQuest:
+                    case EmoteType.InqMyQuest:
+                        return Always(category == EmoteCategory.QuestFailure);
+                    case EmoteType.InqFellowQuest:
+                        return Always(category == EmoteCategory.QuestNoFellow);
+                    case EmoteType.InqIntStat when category is EmoteCategory.TestSuccess or EmoteCategory.TestFailure:
+                        if (action.Stat == (int)PropertyInt.Level)
+                            return level => InRange(level) == success;
+                        return Always(action.Stat == (int)PropertyInt.PlayerKillerStatus && InRange((int)PlayerKillerStatus.NPK) == success);
+                    case EmoteType.InqYesNo:
+                        return Always(category is EmoteCategory.TestSuccess or EmoteCategory.TestFailure);
+                    case EmoteType.InqOwnsItems:
+                        return Always(category == EmoteCategory.TestFailure || (category == EmoteCategory.TestSuccess && action.WeenieClassId != null && IsFee(action.WeenieClassId.Value)));
+                    case EmoteType.InqEvent:
+                        return Always(category == EmoteCategory.EventSuccess ? IsEventOpen(action.Message) : category == EmoteCategory.EventFailure && !EventManager.IsEventStarted(action.Message, null, null));
+                    default:
+                        return null;
+                }
+            }
+
+            // the levels (index 1 to WorldGraph.MaxLevel) at which the reference player gets an emote set to run, through
+            // the emote sets that run it: no quest flags, no fellowship, NPK, carrying only fees
+            bool[] GetRunLevels(WeeniePropertiesEmote set, HashSet<uint> visiting)
+            {
+                var levels = new bool[WorldGraph.MaxLevel + 1];
+                var category = (EmoteCategory)set.Category;
+                switch (category)
+                {
+                    case EmoteCategory.Use:
+                    case EmoteCategory.Activation:
+                        Array.Fill(levels, true, 1, WorldGraph.MaxLevel);
+                        return levels;
+                    case EmoteCategory.Give:
+                    case EmoteCategory.Refuse:
+                        if (set.WeenieClassId != null && IsFee(set.WeenieClassId.Value))
+                            Array.Fill(levels, true, 1, WorldGraph.MaxLevel);
+                        return levels;
+                    case EmoteCategory.QuestSuccess:
+                    case EmoteCategory.QuestFailure:
+                    case EmoteCategory.QuestNoFellow:
+                    case EmoteCategory.TestSuccess:
+                    case EmoteCategory.TestFailure:
+                    case EmoteCategory.EventSuccess:
+                    case EmoteCategory.EventFailure:
+                    case EmoteCategory.GotoSet:
+                        break;
+                    default:
+                        return levels;
+                }
+                if (set.Quest == null || !visiting.Add(set.Id))
+                    return levels;
+
+                foreach (var parent in ownerEmotes[set.ObjectId])
+                {
+                    foreach (var action in parent.WeeniePropertiesEmoteAction.Where(a => set.Quest.Equals(a.Message, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var passes = GetPassCondition(action, category);
+                        if (passes == null)
+                            continue;
+                        var parentLevels = GetRunLevels(parent, visiting);
+                        for (var level = 1; level <= WorldGraph.MaxLevel; level++)
+                            levels[level] |= parentLevels[level] && passes(level);
+                    }
+                }
+                visiting.Remove(set.Id);
+                return levels;
             }
 
             var sources = new List<TravelSource>();
@@ -308,20 +423,53 @@ namespace ACE.Server.Pathfinding
                 }
 
                 var category = (EmoteCategory)emote.Category;
+                var levels = category == EmoteCategory.Death ? null : GetRunLevels(emote, new HashSet<uint>());
                 foreach (var source in travel)
                 {
                     if (category == EmoteCategory.Death)
                     {
                         source.Kind = TravelKind.Quest;
                         source.Source = $"kill {owner} {GetName(owner)}: {source.Source}";
+                        sources.Add(source);
+                        continue;
                     }
-                    else
+
+                    source.Source = $"{category} emote of {owner} {GetName(owner)}" + (emote.WeenieClassId != null ? $" for {emote.WeenieClassId} {GetName(emote.WeenieClassId.Value)}" : "")
+                        + (emote.Quest != null ? $" ({emote.Quest})" : "") + $": {source.Source}";
+
+                    // a summoned portal that asks for a quest stays Quest whatever the emote set asks
+                    if (source.Kind == TravelKind.Open)
                     {
-                        source.Kind = TravelKind.Unjudged;
-                        source.Source = $"{category} emote of {owner} {GetName(owner)}" + (emote.WeenieClassId != null ? $" for {emote.WeenieClassId} {GetName(emote.WeenieClassId.Value)}" : "")
-                            + (emote.Quest != null ? $" ({emote.Quest})" : "") + $": {source.Source}";
+                        // one open link per run of levels the emote set runs at
+                        for (var start = 1; start <= WorldGraph.MaxLevel; start++)
+                        {
+                            if (!levels[start] || levels[start - 1])
+                                continue;
+                            var end = start;
+                            while (end < WorldGraph.MaxLevel && levels[end + 1])
+                                end++;
+                            var minLevel = Math.Max(source.MinLevel, start == 1 ? 0 : start);
+                            if (minLevel > end)
+                                continue;
+                            sources.Add(new TravelSource
+                            {
+                                From = source.From,
+                                To = source.To,
+                                MinLevel = minLevel,
+                                MaxLevel = source.MaxLevel,
+                                NpcMaxLevel = end == WorldGraph.MaxLevel ? 0 : end,
+                                Kind = TravelKind.Open,
+                                Source = source.Source
+                            });
+                        }
                     }
-                    sources.Add(source);
+
+                    // the levels it doesn't run at, for the report
+                    if (source.Kind == TravelKind.Quest || levels.Skip(1).Contains(false))
+                    {
+                        source.Kind = TravelKind.Quest;
+                        sources.Add(source);
+                    }
                 }
             }
 

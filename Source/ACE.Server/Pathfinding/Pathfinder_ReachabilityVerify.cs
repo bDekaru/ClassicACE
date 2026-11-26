@@ -81,16 +81,13 @@ namespace ACE.Server.Pathfinding
             foreach (var link in graph.DeadLinks.Take(40))
                 lines.Add($"  {link.Kind} {link.Source}: from {FormatSpot(link.From)} to {FormatSpot(link.To)}");
 
-            // what quest and NPC travel would add: the ones whose destination nothing open reaches
+            // what quest travel would add: the ones whose destination nothing open reaches
             var dead = graph.DeadLinks.ToHashSet();
-            foreach (var kind in new[] { TravelKind.Unjudged, TravelKind.Quest })
-            {
-                var needed = graph.Links.Where(l => l.Kind == kind && !dead.Contains(l) && graph.GetLabel(l.To) is not (ReachabilityLabel.Walkable or ReachabilityLabel.OneWay))
-                    .GroupBy(l => l.Source).ToList();
-                lines.Add($"{kind} travel to places nothing open reaches: {needed.Count} sources (first 80)");
-                foreach (var group in needed.Take(80))
-                    lines.Add($"  {group.Key}: {group.Count()} links, to {FormatSpot(group.First().To)} ({graph.GetLabel(group.First().To)})");
-            }
+            var needed = graph.Links.Where(l => l.Kind == TravelKind.Quest && !dead.Contains(l) && graph.GetLabel(l.To) is not (ReachabilityLabel.Walkable or ReachabilityLabel.OneWay))
+                .GroupBy(l => l.Source).ToList();
+            lines.Add($"Quest travel to places nothing open reaches: {needed.Count} sources (first 80)");
+            foreach (var group in needed.Take(80))
+                lines.Add($"  {group.Key}: {group.Count()} links, to {FormatSpot(group.First().To)} ({graph.GetLabel(group.First().To)})");
 
             var unknownInteriors = Enumerable.Range(0, interiors.Length).Where(i => interiors[i] == null && manifest.Entries[i].InteriorMethod != ReachabilityMethod.None).ToList();
             lines.Add($"Interiors without a summary (Unknown): {unknownInteriors.Count}" + (unknownInteriors.Count <= 50 ? " " + string.Join(" ", unknownInteriors.Select(i => $"{i:X4}({manifest.Entries[i].InteriorStatus.ToString().ToLowerInvariant()})")) : ""));

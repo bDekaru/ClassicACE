@@ -17,15 +17,10 @@ namespace ACE.Server.Pathfinding.Reachability
         Open,
 
         /// <summary>
-        /// Needs a quest, or a kill a player may need a group for: kept for the report, not in the labels.
+        /// Needs a quest (a flag, a quest item, a fellowship, PK status, a skill), or a kill a player may need a group
+        /// for: kept for the report, not in the labels.
         /// </summary>
-        Quest,
-
-        /// <summary>
-        /// An NPC sends the player or summons a portal, for a fee, an item, a quest or nothing: not judged yet, kept for
-        /// the report.
-        /// </summary>
-        Unjudged
+        Quest
     }
 
     /// <summary>
