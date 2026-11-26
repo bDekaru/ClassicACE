@@ -178,8 +178,14 @@ namespace ACE.Server.Pathfinding.Reachability
             }
 
             var doorCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
+            var doorways = new HashSet<(ushort, ushort)>();
             for (var i = 0; i < doorCount; i++)
-                summary.Doors.Add(new SummaryDoor { Group = reader.ReadUInt16(), Door = reader.ReadUInt16(), Piece = SummaryFile.ReadPiece(reader, label, pieceCount) });
+            {
+                var door = new SummaryDoor { Group = reader.ReadUInt16(), Door = reader.ReadUInt16(), Piece = SummaryFile.ReadPiece(reader, label, pieceCount) };
+                if (!doorways.Add((door.Group, door.Door)))
+                    throw new InvalidDataException($"{label} has doorway {door.Door} of group {door.Group} twice");
+                summary.Doors.Add(door);
+            }
 
             if (SummaryFile.ReadCount(reader, label, mapLength) != mapLength)
                 throw new InvalidDataException($"{label} has a map of the wrong size");

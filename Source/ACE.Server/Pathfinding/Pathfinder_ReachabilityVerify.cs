@@ -59,6 +59,17 @@ namespace ACE.Server.Pathfinding
             var unknown = Enumerable.Range(0, summaries.Length).Where(i => summaries[i] == null && manifest.Entries[i].Method != ReachabilityMethod.None).ToList();
             lines.Add($"Landblocks without a summary (Unknown): {unknown.Count}" + (unknown.Count <= 50 ? " " + string.Join(" ", unknown.Select(i => $"{i:X4}({manifest.Entries[i].Status.ToString().ToLowerInvariant()})")) : ""));
 
+            var interiors = graph.Interiors;
+            var interiorPieces = Enumerable.Range(0, interiors.Length).Where(i => interiors[i] != null)
+                .SelectMany(i => interiors[i].Groups.SelectMany(g => g.Pieces.Select((piece, k) => (landblock: i, group: g.Index, index: k, piece, label: graph.GetInteriorLabel(i, g.Index, (ushort)k), hasDoors: g.Doors.Count > 0))))
+                .ToList();
+            lines.Add($"Interiors: {interiors.Count(s => s != null)} landblocks, {interiorPieces.Count} pieces, {graph.DoorJoinCount} doorways joined to the outside, {graph.DoorUnjoinedCount} not joined to the outside");
+            foreach (var group in interiorPieces.GroupBy(p => p.label).OrderBy(g => g.Key))
+                lines.Add($"  {group.Key}: {group.Count()} pieces, {group.Sum(p => p.piece.Area):F0} m2, in {group.Select(p => p.landblock).Distinct().Count()} landblocks");
+
+            var unknownInteriors = Enumerable.Range(0, interiors.Length).Where(i => interiors[i] == null && manifest.Entries[i].InteriorMethod != ReachabilityMethod.None).ToList();
+            lines.Add($"Interiors without a summary (Unknown): {unknownInteriors.Count}" + (unknownInteriors.Count <= 50 ? " " + string.Join(" ", unknownInteriors.Select(i => $"{i:X4}({manifest.Entries[i].InteriorStatus.ToString().ToLowerInvariant()})")) : ""));
+
             var withDrops = summaries.Where(s => s != null && s.LedgeDrops.Count > 0).ToList();
             lines.Add($"Ledge drops: {withDrops.Sum(s => s.LedgeDrops.Count)} in {withDrops.Count} landblocks; most " +
                 string.Join(" ", withDrops.OrderByDescending(s => s.LedgeDrops.Count).Take(5).Select(s => $"{s.LandblockId >> 16:X4}:{s.LedgeDrops.Count}")));
@@ -66,6 +77,10 @@ namespace ACE.Server.Pathfinding
             lines.Add("Largest pieces that aren't Walkable:");
             foreach (var p in pieces.Where(p => p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
                 lines.Add($"  {p.label} {p.landblock:X4} piece {p.index} ({summaries[p.landblock].Method}): {p.piece.Area:F0} m2, z {p.piece.MinZ:F1} to {p.piece.MaxZ:F1}");
+
+            lines.Add("Largest interior pieces with doorways that aren't Walkable:");
+            foreach (var p in interiorPieces.Where(p => p.hasDoors && p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
+                lines.Add($"  {p.label} {p.landblock:X4} group {p.group} piece {p.index}: {p.piece.Area:F0} m2, z {p.piece.MinZ:F1} to {p.piece.MaxZ:F1}");
 
             var shown = string.Join("\n", lines.Take(shownLines));
             try

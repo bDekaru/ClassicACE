@@ -313,7 +313,7 @@ namespace ACE.Server.Pathfinding
                 manifest.Save(ReachabilityManifestPath);
             }
 
-            BuildReachabilityGraph(summaries, manifest);
+            BuildReachabilityGraph(summaries, interiors, manifest);
             reachabilityGraphTime = DateTime.UtcNow;
         }
 
@@ -371,16 +371,30 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         public static string DescribeReachability(ACE.Entity.Position position)
         {
+            // one graph for the label and the details: a bake may put a new one in use meanwhile
+            var graph = reachabilityGraph;
             var landblock = (int)(position.Cell >> 16);
-            var text = $"{GetReachability(position)}: landblock {landblock:X4}";
+            var text = $"{GetReachability(graph, position)}: landblock {landblock:X4}";
 
             var manifest = reachabilityManifest;
             if (manifest != null)
                 text += $" ({manifest.Entries[landblock].Method}, {manifest.Entries[landblock].Status.ToString().ToLowerInvariant()})";
 
-            var summary = reachabilityGraph?.Summaries[landblock];
             if (position.Indoors)
-                return text + ", indoors: not in the graph yet";
+            {
+                if (graph?.Interiors[landblock] == null)
+                    return text + ", indoors, no interior summary";
+
+                var (group, interiorPiece) = graph.FindInteriorPiece(landblock, (ushort)position.Cell, position.Pos.Z);
+                if (group == null)
+                    return text + $", indoors, cell {position.Cell & 0xFFFF:X4} on no walkable piece";
+
+                var ip = group.Pieces[interiorPiece];
+                return text + $", indoors, cell group {group.Index} piece {interiorPiece} of {group.Pieces.Count}: {ip.Area:F0} m2, z {ip.MinZ:F1} to {ip.MaxZ:F1}, " +
+                    $"doorways {group.Doors.Count(d => d.Piece == interiorPiece)}, ledge drops out {group.LedgeDrops.Count(d => d.from == interiorPiece)}, in {group.LedgeDrops.Count(d => d.to == interiorPiece)}";
+            }
+
+            var summary = graph?.Summaries[landblock];
             if (summary == null)
                 return text + ", no summary";
 

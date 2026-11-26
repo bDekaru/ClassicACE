@@ -389,11 +389,13 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Builds the walking graph of the world from the summaries (by landblock index, null where there is none) and
-        /// puts it in use. Landblocks the manifest gives walkable ground but that have no summary are Unknown.
+        /// puts it in use. Landblocks the manifest gives walkable ground or interiors but that have no summary are
+        /// Unknown.
         /// </summary>
-        public static WorldGraph BuildReachabilityGraph(TileSummary[] summaries, ReachabilityManifest manifest)
+        public static WorldGraph BuildReachabilityGraph(TileSummary[] summaries, InteriorSummary[] interiors, ReachabilityManifest manifest)
         {
             var unknown = manifest.Entries.Select((entry, i) => summaries[i] == null && entry.Method != ReachabilityMethod.None).ToArray();
+            var unknownInterior = manifest.Entries.Select((entry, i) => interiors[i] == null && entry.InteriorMethod != ReachabilityMethod.None).ToArray();
 
             var seeds = PlayerFactory.StarterTownLocations.Values.SelectMany(spots => spots).Select(spot =>
             {
@@ -407,23 +409,31 @@ namespace ACE.Server.Pathfinding
                 return (landblock, piece);
             }).ToList();
 
-            var graph = WorldGraph.Build(summaries, unknown, seeds, SmallProfile.MaxClimb);
+            var graph = WorldGraph.Build(summaries, unknown, interiors, unknownInterior, seeds, SmallProfile.MaxClimb);
             reachabilityGraph = graph;
             return graph;
         }
 
         /// <summary>
-        /// Whether a spot can be walked to from a start spot and back. Answers for the ground under the spot (a roof or
-        /// platform gets the ground's label). Unknown until the graph is built, and for interiors (not in the graph
-        /// yet).
+        /// Whether a spot can be walked to from a start spot and back. Outdoors it answers for the ground under the spot
+        /// (a roof or platform gets the ground's label), indoors for the floor of the cell nearest the spot's height.
+        /// Interiors reached only through portals are Unreachable until portals are in the graph. Unknown until the
+        /// graph is built.
         /// </summary>
-        public static ReachabilityLabel GetReachability(ACE.Entity.Position position)
+        public static ReachabilityLabel GetReachability(ACE.Entity.Position position) => GetReachability(reachabilityGraph, position);
+
+        private static ReachabilityLabel GetReachability(WorldGraph graph, ACE.Entity.Position position)
         {
-            var graph = reachabilityGraph;
-            if (graph == null || position.Indoors)
+            if (graph == null)
                 return ReachabilityLabel.Unknown;
 
             var landblock = (int)(position.Cell >> 16);
+            if (position.Indoors)
+            {
+                var (group, piece) = graph.FindInteriorPiece(landblock, (ushort)position.Cell, position.Pos.Z);
+                return graph.GetInteriorLabel(landblock, group?.Index ?? 0, piece);
+            }
+
             var summary = graph.Summaries[landblock];
             return graph.GetLabel(landblock, summary == null ? TileSummary.NoPiece : GetSummaryPiece(summary, position.Pos));
         }

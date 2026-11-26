@@ -153,7 +153,12 @@ namespace ACE.Server.Pathfinding.Reachability
 
             var groupCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
             for (var i = 0; i < groupCount; i++)
-                summary.Groups.Add(GroupSummary.Read(reader, label));
+            {
+                var group = GroupSummary.Read(reader, label);
+                if (i > 0 && group.Index <= summary.Groups[i - 1].Index)
+                    throw new InvalidDataException($"{label} has its groups out of order");
+                summary.Groups.Add(group);
+            }
 
             return summary;
         }

@@ -33,21 +33,34 @@ namespace ACE.Server.Pathfinding.Reachability
     }
 
     /// <summary>
-    /// Walking connectivity of the world's outdoor surface, from the tile summaries alone: pieces joined across
-    /// landblock borders as Detour links tiles, ledge drops one way, and labels from the start spots. A landblock with
-    /// no summary yet is solved both as a wall and as joining all its borders; a piece whose labels differ between the
-    /// two is Unknown.
+    /// Walking connectivity of the world, from the summaries alone: outdoor pieces joined across landblock borders as
+    /// Detour links tiles, interior pieces joined to the outdoor piece in front of their doorways, ledge drops one way,
+    /// and labels from the start spots. A landblock or interior with no summary yet is solved both as a wall and as
+    /// joining everything around it (all of an interior's doorways through one node, so pieces in front of different
+    /// buildings may join); a piece whose labels differ between the two is Unknown.
     /// </summary>
     public class WorldGraph
     {
         public TileSummary[] Summaries { get; }
 
+        public InteriorSummary[] Interiors { get; }
+
         /// <summary>
-        /// Index of each landblock's first piece; a landblock waiting for its summary has one node standing for it.
+        /// Index of each landblock's first outdoor piece, then of each landblock's first interior piece; a landblock or
+        /// interior waiting for its summary has one node standing for it.
         /// </summary>
         private readonly int[] nodeBase;
 
+        private readonly int[] interiorBase;
+
+        /// <summary>
+        /// Per landblock with an interior summary, by group index, the group's first piece after interiorBase.
+        /// </summary>
+        private readonly int[][] groupBase;
+
         private readonly bool[] unknown;
+
+        private readonly bool[] unknownInterior;
 
         private readonly ReachabilityLabel[] labels;
 
@@ -60,17 +73,50 @@ namespace ACE.Server.Pathfinding.Reachability
 
         public int SeedGroupCount { get; private set; }
 
-        private WorldGraph(TileSummary[] summaries, bool[] unknown)
+        /// <summary>
+        /// Doorways whose outdoor and inside pieces are joined.
+        /// </summary>
+        public int DoorJoinCount { get; private set; }
+
+        /// <summary>
+        /// Doorways passable from inside that join nothing: their landblock's tile summary has no outdoor piece in front
+        /// of them. Mostly openings with no floor outside (upper-floor windows and doors, tower doors onto a narrow
+        /// ledge), a few whose outside lies in a neighbor. Landblocks without a tile summary aren't counted.
+        /// </summary>
+        public int DoorUnjoinedCount { get; private set; }
+
+        private WorldGraph(TileSummary[] summaries, bool[] unknown, InteriorSummary[] interiors, bool[] unknownInterior)
         {
             // copies: the node numbering must not change under the caller filling in summaries later
             Summaries = (TileSummary[])summaries.Clone();
+            Interiors = (InteriorSummary[])interiors.Clone();
             this.unknown = (bool[])unknown.Clone();
+            this.unknownInterior = (bool[])unknownInterior.Clone();
 
             nodeBase = new int[summaries.Length + 1];
             for (var i = 0; i < summaries.Length; i++)
-                nodeBase[i + 1] = nodeBase[i] + (summaries[i]?.Pieces.Count ?? (unknown[i] ? 1 : 0));
+                nodeBase[i + 1] = nodeBase[i] + (Summaries[i]?.Pieces.Count ?? (unknown[i] ? 1 : 0));
 
-            labels = new ReachabilityLabel[nodeBase[summaries.Length]];
+            interiorBase = new int[summaries.Length + 1];
+            interiorBase[0] = nodeBase[summaries.Length];
+            groupBase = new int[summaries.Length][];
+            for (var i = 0; i < summaries.Length; i++)
+            {
+                var interior = Interiors[i];
+                var count = interior == null && unknownInterior[i] ? 1 : 0;
+                if (interior != null && interior.Groups.Count > 0)
+                {
+                    groupBase[i] = new int[interior.Groups[^1].Index + 1];
+                    foreach (var group in interior.Groups)
+                    {
+                        groupBase[i][group.Index] = count;
+                        count += group.Pieces.Count;
+                    }
+                }
+                interiorBase[i + 1] = interiorBase[i] + count;
+            }
+
+            labels = new ReachabilityLabel[interiorBase[summaries.Length]];
         }
 
         public ReachabilityLabel GetLabel(int landblock, ushort piece)
@@ -81,17 +127,45 @@ namespace ACE.Server.Pathfinding.Reachability
             return piece == TileSummary.NoPiece ? ReachabilityLabel.Unreachable : labels[nodeBase[landblock] + piece];
         }
 
+        public ReachabilityLabel GetInteriorLabel(int landblock, ushort group, ushort piece)
+        {
+            if (Interiors[landblock] == null)
+                return unknownInterior[landblock] ? ReachabilityLabel.Unknown : ReachabilityLabel.Unreachable;
+
+            return piece == TileSummary.NoPiece ? ReachabilityLabel.Unreachable : labels[GetInteriorNode(landblock, group, piece)];
+        }
+
+        /// <summary>
+        /// The interior group and piece at a height in a cell (cell id 0xBBBB): null and NoPiece if the landblock's
+        /// interior has no summary or the cell has no piece.
+        /// </summary>
+        public (GroupSummary group, ushort piece) FindInteriorPiece(int landblock, ushort cell, float z)
+        {
+            foreach (var group in Interiors[landblock]?.Groups ?? Enumerable.Empty<GroupSummary>())
+            {
+                var piece = group.GetPiece(cell, z);
+                if (piece != TileSummary.NoPiece)
+                    return (group, piece);
+            }
+            return (null, TileSummary.NoPiece);
+        }
+
+        private int GetInteriorNode(int landblock, int group, ushort piece) => interiorBase[landblock] + groupBase[landblock][group] + piece;
+
         /// <summary>
         /// Summaries by landblock index (id >> 16). Unknown: the landblocks that have walkable ground but no summary yet
-        /// (the rest without one are walls). Seeds: the start spots' pieces, NoPiece where the landblock has no summary.
-        /// Climb: the mesh's walkableClimb, which sets the height tolerance at a border.
+        /// (the rest without one are walls), and likewise the interiors. Seeds: the start spots' pieces, NoPiece where
+        /// the landblock has no summary. Climb: the mesh's walkableClimb, which sets the height tolerance at a border.
         /// </summary>
-        public static WorldGraph Build(TileSummary[] summaries, bool[] unknown, IEnumerable<(int landblock, ushort piece)> seeds, float climb)
+        public static WorldGraph Build(TileSummary[] summaries, bool[] unknown, InteriorSummary[] interiors, bool[] unknownInterior, IEnumerable<(int landblock, ushort piece)> seeds, float climb)
         {
-            var graph = new WorldGraph(summaries, unknown);
+            var graph = new WorldGraph(summaries, unknown, interiors, unknownInterior);
             var nodeBase = graph.nodeBase;
+            var interiorBase = graph.interiorBase;
             summaries = graph.Summaries;
+            interiors = graph.Interiors;
             unknown = graph.unknown;
+            unknownInterior = graph.unknownInterior;
 
             var known = new DisjointSet(graph.NodeCount);
             var optimisticJoins = new List<(int, int)>();
@@ -128,8 +202,43 @@ namespace ACE.Server.Pathfinding.Reachability
 
             var drops = new List<(int from, int to)>();
             for (var i = 0; i < summaries.Length; i++)
-                if (summaries[i] != null)
-                    drops.AddRange(summaries[i].LedgeDrops.Select(d => (nodeBase[i] + d.from, nodeBase[i] + d.to)));
+            {
+                var tile = summaries[i];
+                var interior = interiors[i];
+                if (tile != null)
+                    drops.AddRange(tile.LedgeDrops.Select(d => (nodeBase[i] + d.from, nodeBase[i] + d.to)));
+
+                // a doorway joins when both sides found it passable: the tile the piece in front, the group the one inside
+                if (interior != null)
+                {
+                    var outside = tile?.Doors.ToDictionary(d => (d.Group, d.Door), d => d.Piece);
+                    foreach (var group in interior.Groups)
+                    {
+                        drops.AddRange(group.LedgeDrops.Select(d => (graph.GetInteriorNode(i, group.Index, d.from), graph.GetInteriorNode(i, group.Index, d.to))));
+
+                        foreach (var door in group.Doors)
+                        {
+                            var inside = graph.GetInteriorNode(i, group.Index, door.Piece);
+                            if (outside != null && outside.TryGetValue((group.Index, door.Door), out var piece))
+                            {
+                                known.Union(nodeBase[i] + piece, inside);
+                                graph.DoorJoinCount++;
+                            }
+                            else if (outside != null)
+                                graph.DoorUnjoinedCount++;
+                            else if (tile == null && unknown[i])
+                                optimisticJoins.Add((nodeBase[i], inside));
+                        }
+                    }
+                }
+                else if (unknownInterior[i])
+                {
+                    if (tile != null)
+                        optimisticJoins.AddRange(tile.Doors.Select(d => (nodeBase[i] + d.Piece, interiorBase[i])));
+                    else if (unknown[i])
+                        optimisticJoins.Add((nodeBase[i], interiorBase[i]));
+                }
+            }
 
             var seedList = seeds.ToList();
             var knownSeeds = seedList.Where(s => summaries[s.landblock] != null && s.piece != TileSummary.NoPiece).Select(s => nodeBase[s.landblock] + s.piece).ToList();
