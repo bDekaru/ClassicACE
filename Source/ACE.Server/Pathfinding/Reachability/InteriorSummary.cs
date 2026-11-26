@@ -136,6 +136,20 @@ namespace ACE.Server.Pathfinding.Reachability
         /// </summary>
         public List<GroupSummary> Groups { get; } = new List<GroupSummary>();
 
+        /// <summary>
+        /// The group and piece at a height in a cell (cell id 0xBBBB): null and NoPiece if the cell has no piece.
+        /// </summary>
+        public (GroupSummary group, ushort piece) FindPiece(ushort cell, float z)
+        {
+            foreach (var group in Groups)
+            {
+                var piece = group.GetPiece(cell, z);
+                if (piece != TileSummary.NoPiece)
+                    return (group, piece);
+            }
+            return (null, TileSummary.NoPiece);
+        }
+
         public void Write(BinaryWriter writer)
         {
             writer.Write(LandblockId);

@@ -1,5 +1,4 @@
 using ACE.DatLoader;
-using ACE.Server.Factories;
 using ACE.Server.Pathfinding.Reachability;
 using System;
 using System.Collections.Concurrent;
@@ -12,8 +11,8 @@ using System.Threading;
 namespace ACE.Server.Pathfinding
 {
     /// <summary>
-    /// The world reachability bake in the background: the summaries still missing are built, nearest the start spots
-    /// first, and the world graph is put in use as they come.
+    /// The world reachability bake in the background: the summaries still missing are built, nearest the reachability
+    /// center first, and the world graph is put in use as they come.
     /// </summary>
     public static partial class Pathfinder
     {
@@ -217,9 +216,9 @@ namespace ACE.Server.Pathfinding
             }
             PublishReachability(manifest, summaries, interiors, pending.Count > 0);
 
-            var seeds = PlayerFactory.StarterTownLocations.Values.SelectMany(spots => spots).Select(spot => GetLandblockCoords(spot.Cell)).ToList();
+            var center = GetLandblockCoords(ReachabilityCenter.Cell);
             var recast = pending.Where(i => manifest.Entries[i].Method == ReachabilityMethod.Recast)
-                .OrderBy(i => seeds.Min(s => Math.Max(Math.Abs((i >> 8) - s.x), Math.Abs((i & 0xFF) - s.y))))
+                .OrderBy(i => Math.Max(Math.Abs((i >> 8) - center.x), Math.Abs((i & 0xFF) - center.y)))
                 .ToList();
 
             // the outdoor tiles first: their pieces are what the interiors join. The counters are per phase, as a tile
@@ -361,20 +360,39 @@ namespace ACE.Server.Pathfinding
             if (graph == null)
                 lines.Add("No graph in use: every spot is Unknown.");
             else
-                lines.Add($"Graph from {reachabilityGraphTime:yyyy-MM-dd HH:mm:ss} UTC: {graph.Summaries.Count(s => s != null)} landblocks summarized, {graph.GroupCount} groups, start spots in {graph.SeedGroupCount}");
+                lines.Add($"Graph from {reachabilityGraphTime:yyyy-MM-dd HH:mm:ss} UTC: {graph.Summaries.Count(s => s != null)} landblocks summarized, {graph.GroupCount} groups, center in {graph.SeedGroupCount}");
 
             return string.Join("\n", lines);
         }
 
         /// <summary>
-        /// What the graph says about a spot and the piece of ground under it, for /reachability at.
+        /// What the graph says about a spot for a player of the level (any level if null) and the piece of ground under
+        /// it, for /reachability at.
         /// </summary>
-        public static string DescribeReachability(ACE.Entity.Position position)
+        public static string DescribeReachability(ACE.Entity.Position position, int? level)
         {
             // one graph for the label and the details: a bake may put a new one in use meanwhile
             var graph = reachabilityGraph;
             var landblock = (int)(position.Cell >> 16);
-            var text = $"{GetReachability(graph, position)}: landblock {landblock:X4}";
+            var text = $"{GetReachability(graph, position, level)} {(level == null ? "at best" : $"at level {level}")}";
+            if (graph != null)
+            {
+                var spot = GetGraphSpot(graph.Summaries, graph.Interiors, position);
+                // the level ranges it is Walkable at, adjacent bands merged
+                var ranges = new List<(int first, int last)>();
+                for (var i = 0; i < graph.BandLevels.Count; i++)
+                {
+                    if (graph.GetLabel(spot, graph.BandLevels[i]) != ReachabilityLabel.Walkable)
+                        continue;
+                    var last = i + 1 < graph.BandLevels.Count ? graph.BandLevels[i + 1] - 1 : WorldGraph.MaxLevel;
+                    if (ranges.Count > 0 && ranges[^1].last == graph.BandLevels[i] - 1)
+                        ranges[^1] = (ranges[^1].first, last);
+                    else
+                        ranges.Add((graph.BandLevels[i], last));
+                }
+                text += ranges.Count == 0 ? " (Walkable at no level)" : $" (Walkable at levels {string.Join(", ", ranges.Select(r => r.first == r.last ? $"{r.first}" : $"{r.first}-{r.last}"))})";
+            }
+            text += $": landblock {landblock:X4}";
 
             var manifest = reachabilityManifest;
             if (manifest != null)
@@ -385,7 +403,7 @@ namespace ACE.Server.Pathfinding
                 if (graph?.Interiors[landblock] == null)
                     return text + ", indoors, no interior summary";
 
-                var (group, interiorPiece) = graph.FindInteriorPiece(landblock, (ushort)position.Cell, position.Pos.Z);
+                var (group, interiorPiece) = graph.Interiors[landblock].FindPiece((ushort)position.Cell, position.Pos.Z);
                 if (group == null)
                     return text + $", indoors, cell {position.Cell & 0xFFFF:X4} on no walkable piece";
 

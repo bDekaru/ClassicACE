@@ -14,8 +14,8 @@ namespace ACE.Server.Command.Handlers
             "verify: checks the summaries against Detour's links and against Recast tiles of sampled terrain landblocks, on all cores (samples: default 150, a few minutes)\n" +
             "stop: stops a running bake or verify after the work in progress; the next bake resumes there\n" +
             "status: the progress of a bake or verify, and the graph in use\n" +
-            "at: what the graph says about where you stand\n" +
-            "report: label totals, start spots, Unknown landblocks and the largest pieces that aren't Walkable, written to a file")]
+            "at: what the graph says about where you stand, at your level\n" +
+            "report: label totals, the reachability center, travel links, Unknown landblocks and the largest pieces that aren't Walkable, written to a file")]
         public static void HandleReachability(Session session, params string[] parameters)
         {
             if (ConfigManager.Config.Server.WorldRuleset != Ruleset.CustomDM)
@@ -72,7 +72,7 @@ namespace ACE.Server.Command.Handlers
                         CommandHandlerHelper.WriteOutputInfo(session, "@reachability at needs a character in the world.");
                         return;
                     }
-                    CommandHandlerHelper.WriteOutputInfo(session, Pathfinder.DescribeReachability(session.Player.Location));
+                    CommandHandlerHelper.WriteOutputInfo(session, Pathfinder.DescribeReachability(session.Player.Location, session.Player.Level));
                     break;
 
                 default:

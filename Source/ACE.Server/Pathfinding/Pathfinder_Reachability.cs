@@ -2,7 +2,6 @@ using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
 using ACE.Entity;
 using ACE.Entity.Enum;
-using ACE.Server.Factories;
 using ACE.Server.Managers;
 using ACE.Server.Pathfinding.Geometry;
 using ACE.Server.Pathfinding.Reachability;
@@ -388,54 +387,54 @@ namespace ACE.Server.Pathfinding
         private static volatile WorldGraph reachabilityGraph;
 
         /// <summary>
-        /// Builds the walking graph of the world from the summaries (by landblock index, null where there is none) and
-        /// puts it in use. Landblocks the manifest gives walkable ground or interiors but that have no summary are
-        /// Unknown.
+        /// The spot reachability is measured from: the surface outside the Abandoned Mine near Arwic, where the mine's
+        /// Surface portal (wcid 1596) lands.
+        /// </summary>
+        public static readonly ACE.Entity.Position ReachabilityCenter = new ACE.Entity.Position(0xC3AB0021, 109.6f, 7.4f, 116.1f, 0f, 0f, -1f, 0f);
+
+        /// <summary>
+        /// Builds the graph of the world from the summaries (by landblock index, null where there is none) and the
+        /// travel links, and puts it in use. Landblocks the manifest gives walkable ground or interiors but that have no
+        /// summary are Unknown.
         /// </summary>
         public static WorldGraph BuildReachabilityGraph(TileSummary[] summaries, InteriorSummary[] interiors, ReachabilityManifest manifest)
         {
             var unknown = manifest.Entries.Select((entry, i) => summaries[i] == null && entry.Method != ReachabilityMethod.None).ToArray();
             var unknownInterior = manifest.Entries.Select((entry, i) => interiors[i] == null && entry.InteriorMethod != ReachabilityMethod.None).ToArray();
 
-            var seeds = PlayerFactory.StarterTownLocations.Values.SelectMany(spots => spots).Select(spot =>
-            {
-                var landblock = (int)(spot.Cell >> 16);
-                if (summaries[landblock] == null)
-                    return (landblock, TileSummary.NoPiece);
+            var center = GetGraphSpot(summaries, interiors, ReachabilityCenter);
+            if (summaries[center.Landblock] != null && center.Piece == TileSummary.NoPiece)
+                log.Warn($"Pathfinder: reachability center 0x{ReachabilityCenter.Cell:X8} {ReachabilityCenter.Pos} is on no walkable piece, so it seeds nothing");
 
-                var piece = GetSummaryPiece(summaries[landblock], spot.Pos);
-                if (piece == TileSummary.NoPiece)
-                    log.Warn($"Pathfinder: start spot 0x{spot.Cell:X8} {spot.Pos} is on no walkable piece, so it seeds nothing");
-                return (landblock, piece);
-            }).ToList();
-
-            var graph = WorldGraph.Build(summaries, unknown, interiors, unknownInterior, seeds, SmallProfile.MaxClimb);
+            var graph = WorldGraph.Build(summaries, unknown, interiors, unknownInterior, new[] { center }, GetTravelLinks(summaries, interiors), SmallProfile.MaxClimb);
             reachabilityGraph = graph;
             return graph;
         }
 
         /// <summary>
-        /// Whether a spot can be walked to from a start spot and back. Outdoors it answers for the ground under the spot
-        /// (a roof or platform gets the ground's label), indoors for the floor of the cell nearest the spot's height.
-        /// Interiors reached only through portals are Unreachable until portals are in the graph. Unknown until the
-        /// graph is built.
+        /// Whether a player of the level (any level if null) can get to a spot from the reachability center and back, on
+        /// foot or through open portals. Outdoors it answers for the ground under the spot (a roof or platform gets the
+        /// ground's label), indoors for the floor of the cell nearest the spot's height. Unknown until the graph is built.
         /// </summary>
-        public static ReachabilityLabel GetReachability(ACE.Entity.Position position) => GetReachability(reachabilityGraph, position);
+        public static ReachabilityLabel GetReachability(ACE.Entity.Position position, int? level) => GetReachability(reachabilityGraph, position, level);
 
-        private static ReachabilityLabel GetReachability(WorldGraph graph, ACE.Entity.Position position)
+        private static ReachabilityLabel GetReachability(WorldGraph graph, ACE.Entity.Position position, int? level) =>
+            graph?.GetLabel(GetGraphSpot(graph.Summaries, graph.Interiors, position), level) ?? ReachabilityLabel.Unknown;
+
+        /// <summary>
+        /// The graph spot of a position: indoors the piece of its cell nearest its height, outdoors the ground under it.
+        /// </summary>
+        private static GraphSpot GetGraphSpot(TileSummary[] summaries, InteriorSummary[] interiors, ACE.Entity.Position position)
         {
-            if (graph == null)
-                return ReachabilityLabel.Unknown;
-
             var landblock = (int)(position.Cell >> 16);
             if (position.Indoors)
             {
-                var (group, piece) = graph.FindInteriorPiece(landblock, (ushort)position.Cell, position.Pos.Z);
-                return graph.GetInteriorLabel(landblock, group?.Index ?? 0, piece);
+                var (group, piece) = interiors[landblock]?.FindPiece((ushort)position.Cell, position.Pos.Z) ?? (null, TileSummary.NoPiece);
+                return new GraphSpot(landblock, group?.Index ?? 0, piece);
             }
 
-            var summary = graph.Summaries[landblock];
-            return graph.GetLabel(landblock, summary == null ? TileSummary.NoPiece : GetSummaryPiece(summary, position.Pos));
+            var summary = summaries[landblock];
+            return new GraphSpot(landblock, GraphSpot.Outdoors, summary == null ? TileSummary.NoPiece : GetSummaryPiece(summary, position.Pos));
         }
 
         private static void AddSpan(TileSummary summary, ushort piece, int side, Vector3 a, Vector3 b)

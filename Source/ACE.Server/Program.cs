@@ -341,12 +341,13 @@ namespace ACE.Server
             log.Info("Initializing WorldManager...");
             WorldManager.Initialize();
 
-            // after the world: building tile geometry needs the physics engine
-            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && PropertyManager.GetBool("reachability_bake").Item)
-                Pathfinding.Pathfinder.StartReachabilityBake(Pathfinding.Pathfinder.StartupBakeThreads);
-
             log.Info("Initializing EventManager...");
             EventManager.Initialize();
+
+            // after the world (building tile geometry needs the physics engine) and the events (the travel links judge
+            // generator events)
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && PropertyManager.GetBool("reachability_bake").Item)
+                Pathfinding.Pathfinder.StartReachabilityBake(Pathfinding.Pathfinder.StartupBakeThreads);
 
             // Free up memory before the server goes online. This can free up 6 GB+ on larger servers.
             log.Info("Forcing .net garbage collection...");

@@ -4,6 +4,9 @@ using System.Linq;
 
 namespace ACE.Server.Pathfinding.Reachability
 {
+    /// <summary>
+    /// Where a player can get from the reachability center, on foot or through open travel links.
+    /// </summary>
     public enum ReachabilityLabel : byte
     {
         /// <summary>
@@ -12,35 +15,47 @@ namespace ACE.Server.Pathfinding.Reachability
         Unknown,
 
         /// <summary>
-        /// Can't be walked to from a start spot, nor back to one; also a spot with no walkable ground.
+        /// Can't be walked to from the reachability center, nor back to it; also a spot with no walkable ground.
         /// </summary>
         Unreachable,
 
         /// <summary>
-        /// Can be walked to (a ledge drop on the way), but not back to a start spot.
+        /// Can be walked to (a ledge drop on the way), but not back to the reachability center.
         /// </summary>
         OneWay,
 
         /// <summary>
-        /// Can be walked back to a start spot from, but not to.
+        /// Can be walked back to the reachability center from, but not to.
         /// </summary>
         EscapeOnly,
 
         /// <summary>
-        /// Can be walked to from a start spot and back to one.
+        /// Can be walked to from the reachability center and back.
         /// </summary>
         Walkable
     }
 
     /// <summary>
-    /// Walking connectivity of the world, from the summaries alone: outdoor pieces joined across landblock borders as
-    /// Detour links tiles, interior pieces joined to the outdoor piece in front of their doorways, ledge drops one way,
-    /// and labels from the start spots. A landblock or interior with no summary yet is solved both as a wall and as
-    /// joining everything around it (all of an interior's doorways through one node, so pieces in front of different
-    /// buildings may join); a piece whose labels differ between the two is Unknown.
+    /// Connectivity of the world, from the summaries and the travel links: outdoor pieces joined across landblock
+    /// borders as Detour links tiles, interior pieces joined to the outdoor piece in front of their doorways, ledge drops
+    /// and open travel links one way, and labels from the seeds. A landblock or interior with no summary yet is solved
+    /// both as a wall and as joining everything around it (all of an interior's doorways through one node, so pieces in
+    /// front of different buildings may join); a piece whose labels differ between the two is Unknown. Labels are kept
+    /// per band of player levels: the levels between two where an open link's level limits start or end.
     /// </summary>
     public class WorldGraph
     {
+        /// <summary>
+        /// The highest player level; a higher one counts as this.
+        /// </summary>
+        public const int MaxLevel = 126;
+
+        /// <summary>
+        /// Rank of each label when the best over all levels is asked for: Walkable, OneWay, EscapeOnly, Unknown, then
+        /// Unreachable.
+        /// </summary>
+        private static readonly int[] LabelRank = { 1, 0, 3, 2, 4 };
+
         public TileSummary[] Summaries { get; }
 
         public InteriorSummary[] Interiors { get; }
@@ -62,9 +77,34 @@ namespace ACE.Server.Pathfinding.Reachability
 
         private readonly bool[] unknownInterior;
 
-        private readonly ReachabilityLabel[] labels;
+        /// <summary>
+        /// By level band, then node.
+        /// </summary>
+        private ReachabilityLabel[][] labels;
 
-        public int NodeCount => labels.Length;
+        /// <summary>
+        /// By node, the best label over all bands.
+        /// </summary>
+        private ReachabilityLabel[] bestLabels;
+
+        /// <summary>
+        /// The band of each level from 1 to MaxLevel.
+        /// </summary>
+        private readonly int[] levelBand = new int[MaxLevel + 1];
+
+        public int NodeCount { get; }
+
+        /// <summary>
+        /// The first level of each level band.
+        /// </summary>
+        public IReadOnlyList<int> BandLevels { get; private set; }
+
+        public IReadOnlyList<TravelLink> Links { get; private set; }
+
+        /// <summary>
+        /// Links with an end on no piece: no walkable floor or ground there.
+        /// </summary>
+        public IReadOnlyList<TravelLink> DeadLinks { get; private set; }
 
         /// <summary>
         /// Walking groups, missing landblocks taken as walls (each still counts as a group of its own).
@@ -116,48 +156,56 @@ namespace ACE.Server.Pathfinding.Reachability
                 interiorBase[i + 1] = interiorBase[i] + count;
             }
 
-            labels = new ReachabilityLabel[interiorBase[summaries.Length]];
-        }
-
-        public ReachabilityLabel GetLabel(int landblock, ushort piece)
-        {
-            if (Summaries[landblock] == null)
-                return unknown[landblock] ? ReachabilityLabel.Unknown : ReachabilityLabel.Unreachable;
-
-            return piece == TileSummary.NoPiece ? ReachabilityLabel.Unreachable : labels[nodeBase[landblock] + piece];
-        }
-
-        public ReachabilityLabel GetInteriorLabel(int landblock, ushort group, ushort piece)
-        {
-            if (Interiors[landblock] == null)
-                return unknownInterior[landblock] ? ReachabilityLabel.Unknown : ReachabilityLabel.Unreachable;
-
-            return piece == TileSummary.NoPiece ? ReachabilityLabel.Unreachable : labels[GetInteriorNode(landblock, group, piece)];
+            NodeCount = interiorBase[summaries.Length];
         }
 
         /// <summary>
-        /// The interior group and piece at a height in a cell (cell id 0xBBBB): null and NoPiece if the landblock's
-        /// interior has no summary or the cell has no piece.
+        /// The spot's label for a player of the level, or the best one at any level.
         /// </summary>
-        public (GroupSummary group, ushort piece) FindInteriorPiece(int landblock, ushort cell, float z)
+        public ReachabilityLabel GetLabel(GraphSpot spot, int? level = null)
         {
-            foreach (var group in Interiors[landblock]?.Groups ?? Enumerable.Empty<GroupSummary>())
+            var (known, optimistic) = GetNodes(spot);
+            if (known < 0)
+                return optimistic < 0 ? ReachabilityLabel.Unreachable : ReachabilityLabel.Unknown;
+
+            if (level != null)
+                return labels[levelBand[Math.Clamp(level.Value, 1, MaxLevel)]][known];
+
+            return bestLabels[known];
+        }
+
+        /// <summary>
+        /// The spot's node in the graph of what is summarized (-1 if it has none: no summary yet, or no piece), and in
+        /// the optimistic one, where a landblock or interior waiting for its summary is one node.
+        /// </summary>
+        private (int known, int optimistic) GetNodes(GraphSpot spot)
+        {
+            var landblock = spot.Landblock;
+            if (spot.Group == GraphSpot.Outdoors)
             {
-                var piece = group.GetPiece(cell, z);
-                if (piece != TileSummary.NoPiece)
-                    return (group, piece);
+                if (Summaries[landblock] == null)
+                    return (-1, unknown[landblock] ? nodeBase[landblock] : -1);
+
+                var node = spot.Piece == TileSummary.NoPiece ? -1 : nodeBase[landblock] + spot.Piece;
+                return (node, node);
             }
-            return (null, TileSummary.NoPiece);
+
+            if (Interiors[landblock] == null)
+                return (-1, unknownInterior[landblock] ? interiorBase[landblock] : -1);
+
+            var inside = spot.Piece == TileSummary.NoPiece ? -1 : GetInteriorNode(landblock, spot.Group, spot.Piece);
+            return (inside, inside);
         }
 
         private int GetInteriorNode(int landblock, int group, ushort piece) => interiorBase[landblock] + groupBase[landblock][group] + piece;
 
         /// <summary>
         /// Summaries by landblock index (id >> 16). Unknown: the landblocks that have walkable ground but no summary yet
-        /// (the rest without one are walls), and likewise the interiors. Seeds: the start spots' pieces, NoPiece where
-        /// the landblock has no summary. Climb: the mesh's walkableClimb, which sets the height tolerance at a border.
+        /// (the rest without one are walls), and likewise the interiors. Seeds: the spots labels are measured from.
+        /// Links: the travel between spots, of which only the open ones count. Climb: the mesh's walkableClimb, which
+        /// sets the height tolerance at a border.
         /// </summary>
-        public static WorldGraph Build(TileSummary[] summaries, bool[] unknown, InteriorSummary[] interiors, bool[] unknownInterior, IEnumerable<(int landblock, ushort piece)> seeds, float climb)
+        public static WorldGraph Build(TileSummary[] summaries, bool[] unknown, InteriorSummary[] interiors, bool[] unknownInterior, IEnumerable<GraphSpot> seeds, IEnumerable<TravelLink> links, float climb)
         {
             var graph = new WorldGraph(summaries, unknown, interiors, unknownInterior);
             var nodeBase = graph.nodeBase;
@@ -240,51 +288,101 @@ namespace ACE.Server.Pathfinding.Reachability
                 }
             }
 
-            var seedList = seeds.ToList();
-            var knownSeeds = seedList.Where(s => summaries[s.landblock] != null && s.piece != TileSummary.NoPiece).Select(s => nodeBase[s.landblock] + s.piece).ToList();
-            var optimisticSeeds = knownSeeds.Concat(seedList.Where(s => summaries[s.landblock] == null && unknown[s.landblock]).Select(s => nodeBase[s.landblock])).ToList();
+            var seedNodes = seeds.Select(graph.GetNodes).ToList();
+            var knownSeeds = seedNodes.Where(s => s.known >= 0).Select(s => s.known).ToList();
+            var optimisticSeeds = seedNodes.Where(s => s.optimistic >= 0).Select(s => s.optimistic).ToList();
+
+            // a link with an end on no node at all leads nowhere; one with an end waiting for its summary is only in the
+            // optimistic graph
+            graph.Links = links.ToList();
+            var deadLinks = new List<TravelLink>();
+            var open = new List<(TravelLink link, int knownFrom, int knownTo, int from, int to)>();
+            foreach (var link in graph.Links)
+            {
+                var (knownFrom, from) = graph.GetNodes(link.From);
+                var (knownTo, to) = graph.GetNodes(link.To);
+                if (from < 0 || to < 0)
+                    deadLinks.Add(link);
+                else if (link.Kind == TravelKind.Open)
+                    open.Add((link, knownFrom, knownTo, from, to));
+            }
+            graph.DeadLinks = deadLinks;
+
+            var bandLevels = open.SelectMany(o => new[] { o.link.MinLevel, o.link.MaxLevel > 0 ? o.link.MaxLevel + 1 : 0 })
+                .Where(level => level > 1 && level <= MaxLevel).Append(1).Distinct().OrderBy(level => level).ToList();
+            graph.BandLevels = bandLevels;
+            for (int level = 1, band = 0; level <= MaxLevel; level++)
+            {
+                if (band + 1 < bandLevels.Count && bandLevels[band + 1] == level)
+                    band++;
+                graph.levelBand[level] = band;
+            }
 
             var optimistic = known.Clone();
             foreach (var (a, b) in optimisticJoins)
                 optimistic.Union(a, b);
 
-            var (reach, escape, groupCount, seedGroupCount) = Solve(known, drops, knownSeeds);
-            var (maybeReach, maybeEscape, _, _) = Solve(optimistic, drops, optimisticSeeds);
-            graph.GroupCount = groupCount;
-            graph.SeedGroupCount = seedGroupCount;
+            var (knownGroup, knownGroupCount) = GetGroups(known);
+            var (optimisticGroup, optimisticGroupCount) = GetGroups(optimistic);
+            var knownSeedGroups = knownSeeds.Select(n => knownGroup[n]).Distinct().ToList();
+            var optimisticSeedGroups = optimisticSeeds.Select(n => optimisticGroup[n]).Distinct().ToList();
+            graph.GroupCount = knownGroupCount;
+            graph.SeedGroupCount = knownSeedGroups.Count;
 
-            for (var n = 0; n < graph.NodeCount; n++)
+            graph.labels = new ReachabilityLabel[bandLevels.Count][];
+            for (var b = 0; b < bandLevels.Count; b++)
             {
-                graph.labels[n] = reach[n] && escape[n] ? ReachabilityLabel.Walkable
-                    : reach[n] != maybeReach[n] || escape[n] != maybeEscape[n] ? ReachabilityLabel.Unknown
-                    : reach[n] ? ReachabilityLabel.OneWay
-                    : escape[n] ? ReachabilityLabel.EscapeOnly : ReachabilityLabel.Unreachable;
+                var level = bandLevels[b];
+                var active = open.Where(o => o.link.MinLevel <= level && (o.link.MaxLevel == 0 || level <= o.link.MaxLevel)).ToList();
+                var (reach, escape) = Solve(knownGroup, knownGroupCount, drops.Concat(active.Where(o => o.knownFrom >= 0 && o.knownTo >= 0).Select(o => (o.knownFrom, o.knownTo))), knownSeedGroups);
+                var (maybeReach, maybeEscape) = Solve(optimisticGroup, optimisticGroupCount, drops.Concat(active.Select(o => (o.from, o.to))), optimisticSeedGroups);
+
+                var bandLabels = graph.labels[b] = new ReachabilityLabel[graph.NodeCount];
+                for (var n = 0; n < graph.NodeCount; n++)
+                {
+                    bool r = reach[knownGroup[n]], e = escape[knownGroup[n]];
+                    bandLabels[n] = r && e ? ReachabilityLabel.Walkable
+                        : r != maybeReach[optimisticGroup[n]] || e != maybeEscape[optimisticGroup[n]] ? ReachabilityLabel.Unknown
+                        : r ? ReachabilityLabel.OneWay
+                        : e ? ReachabilityLabel.EscapeOnly : ReachabilityLabel.Unreachable;
+                }
             }
+
+            graph.bestLabels = new ReachabilityLabel[graph.NodeCount];
+            for (var n = 0; n < graph.NodeCount; n++)
+                graph.bestLabels[n] = graph.labels.Select(band => band[n]).MaxBy(label => LabelRank[(int)label]);
 
             return graph;
         }
 
         /// <summary>
-        /// Per node, whether its group can be reached from a seed group and can reach one, over the ledge drops between
-        /// groups.
+        /// Each node's group in the set, and how many groups there are.
         /// </summary>
-        private static (bool[] reach, bool[] escape, int groupCount, int seedGroupCount) Solve(DisjointSet set, List<(int from, int to)> drops, List<int> seeds)
+        private static (int[] group, int count) GetGroups(DisjointSet set)
         {
             var group = new int[set.Count];
             var groupOfRoot = new int[set.Count];
             Array.Fill(groupOfRoot, -1);
-            var groupCount = 0;
+            var count = 0;
             for (var n = 0; n < set.Count; n++)
             {
                 var root = set.Find(n);
                 if (groupOfRoot[root] < 0)
-                    groupOfRoot[root] = groupCount++;
+                    groupOfRoot[root] = count++;
                 group[n] = groupOfRoot[root];
             }
+            return (group, count);
+        }
 
+        /// <summary>
+        /// Per group, whether it can be reached from a seed group and can reach one, over the one-way edges (ledge drops,
+        /// travel links) between nodes.
+        /// </summary>
+        private static (bool[] reach, bool[] escape) Solve(int[] group, int groupCount, IEnumerable<(int from, int to)> edges, List<int> seedGroups)
+        {
             var forward = new List<int>[groupCount];
             var backward = new List<int>[groupCount];
-            foreach (var (from, to) in drops)
+            foreach (var (from, to) in edges)
             {
                 int a = group[from], b = group[to];
                 if (a == b)
@@ -294,11 +392,7 @@ namespace ACE.Server.Pathfinding.Reachability
                 (backward[b] ??= new List<int>()).Add(a);
             }
 
-            var seedGroups = seeds.Select(s => group[s]).Distinct().ToList();
-            var reachGroup = Flood(seedGroups, forward);
-            var escapeGroup = Flood(seedGroups, backward);
-
-            return (group.Select(g => reachGroup[g]).ToArray(), group.Select(g => escapeGroup[g]).ToArray(), groupCount, seedGroups.Count);
+            return (Flood(seedGroups, forward), Flood(seedGroups, backward));
         }
 
         private static bool[] Flood(List<int> start, List<int>[] edges)

@@ -105,7 +105,7 @@ namespace ACE.Server.WorldObjects
             for (int retries = 0; retries < 10 && coords == null; retries++)
             {
                 var encounterWcid = possibleEncounterWcids[ThreadSafeRandom.Next(0, possibleEncounterWcids.Count - 1)];
-                coords = RollEncounter(EncountersByWcid.GetOrAdd(encounterWcid, DatabaseManager.World.GetEncountersByWcid));
+                coords = RollEncounter(EncountersByWcid.GetOrAdd(encounterWcid, DatabaseManager.World.GetEncountersByWcid), creature.Level);
             }
 
             if (coords == null)
@@ -134,7 +134,10 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private static bool WaitsForReachability => ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && PropertyManager.GetBool("reachability_bake").Item && !Pathfinder.HasReachabilityGraph;
 
-        public static Vector2? RollEncounter(List<Encounter> possibleEncounters)
+        /// <summary>
+        /// A spot of one of the encounters that a player of the level (any level if null) can get to.
+        /// </summary>
+        public static Vector2? RollEncounter(List<Encounter> possibleEncounters, int? level)
         {
             if (possibleEncounters == null || possibleEncounters.Count == 0)
                 return null;
@@ -162,8 +165,8 @@ namespace ACE.Server.WorldObjects
             if (sortCell == null || sortCell.has_building() || sortCell.WaterType == LandDefs.WaterType.EntirelyWater || !spot.IsWalkable())
                 return null;
 
-            // Unknown too: a landblock not baked yet, or one that failed
-            if (Pathfinder.HasReachabilityGraph && Pathfinder.GetReachability(spot) != ReachabilityLabel.Walkable)
+            // Unknown too: a landblock not baked yet, or one that failed. OneWay is fine: the way back can be a recall.
+            if (Pathfinder.HasReachabilityGraph && Pathfinder.GetReachability(spot, level) is not (ReachabilityLabel.Walkable or ReachabilityLabel.OneWay))
                 return null;
 
             return coords;

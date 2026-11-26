@@ -1,6 +1,5 @@
 using ACE.DatLoader;
 using ACE.DatLoader.FileTypes;
-using ACE.Server.Factories;
 using ACE.Server.Physics.Common;
 using ACE.Server.Pathfinding.Reachability;
 using DotRecast.Detour;
@@ -34,7 +33,7 @@ namespace ACE.Server.Pathfinding
         public static bool HasReachabilityGraph => reachabilityGraph != null;
 
         /// <summary>
-        /// Writes the report file and returns its first lines (labels and start spots). Null without a graph.
+        /// Writes the report file and returns its first lines (labels and the reachability center). Null without a graph.
         /// </summary>
         public static string WriteReachabilityReport()
         {
@@ -44,16 +43,19 @@ namespace ACE.Server.Pathfinding
                 return null;
 
             var summaries = graph.Summaries;
-            var lines = new List<string> { $"Graph from {reachabilityGraphTime:yyyy-MM-dd HH:mm:ss} UTC: {graph.GroupCount} groups, start spots in {graph.SeedGroupCount}" };
+            var lines = new List<string> { $"Graph from {reachabilityGraphTime:yyyy-MM-dd HH:mm:ss} UTC: {graph.GroupCount} groups, center in {graph.SeedGroupCount}, level bands from {string.Join(" ", graph.BandLevels)}" };
+
+            var reportLevels = new int?[] { 1, 50, WorldGraph.MaxLevel, null };
+            string LevelName(int? level) => level == null ? "best at any level" : $"level {level}";
 
             var pieces = Enumerable.Range(0, summaries.Length).Where(i => summaries[i] != null)
-                .SelectMany(i => summaries[i].Pieces.Select((piece, k) => (landblock: i, index: k, piece, label: graph.GetLabel(i, (ushort)k))))
+                .SelectMany(i => summaries[i].Pieces.Select((piece, k) => (landblock: i, index: k, piece, spot: new GraphSpot(i, GraphSpot.Outdoors, (ushort)k))))
                 .ToList();
-            foreach (var group in pieces.GroupBy(p => p.label).OrderBy(g => g.Key))
-                lines.Add($"{group.Key}: {group.Count()} pieces, {group.Sum(p => p.piece.Area) / 1e6:F1} km2");
+            foreach (var level in reportLevels)
+                lines.Add($"Outdoors, {LevelName(level)}: " + string.Join(", ", pieces.GroupBy(p => graph.GetLabel(p.spot, level)).OrderBy(g => g.Key).Select(g => $"{g.Key} {g.Count()} pieces {g.Sum(p => p.piece.Area) / 1e6:F1} km2")));
 
-            foreach (var spot in PlayerFactory.StarterTownLocations.Values.SelectMany(spots => spots))
-                lines.Add($"Start spot {spot.Cell:X8}: {DescribeReachability(spot)}");
+            lines.Add($"Reachability center {ReachabilityCenter.Cell:X8}: {DescribeReachability(ReachabilityCenter, null)}");
+            lines.Add($"Travel links: {graph.Links.Count} ({string.Join(", ", graph.Links.GroupBy(l => l.Kind).OrderBy(g => g.Key).Select(g => $"{g.Count()} {g.Key}"))}), {graph.DeadLinks.Count} with an end on no piece");
             var shownLines = lines.Count;
 
             var unknown = Enumerable.Range(0, summaries.Length).Where(i => summaries[i] == null && manifest.Entries[i].Method != ReachabilityMethod.None).ToList();
@@ -61,11 +63,34 @@ namespace ACE.Server.Pathfinding
 
             var interiors = graph.Interiors;
             var interiorPieces = Enumerable.Range(0, interiors.Length).Where(i => interiors[i] != null)
-                .SelectMany(i => interiors[i].Groups.SelectMany(g => g.Pieces.Select((piece, k) => (landblock: i, group: g.Index, index: k, piece, label: graph.GetInteriorLabel(i, g.Index, (ushort)k), hasDoors: g.Doors.Count > 0))))
+                .SelectMany(i => interiors[i].Groups.SelectMany(g => g.Pieces.Select((piece, k) => (landblock: i, group: g.Index, index: k, piece, spot: new GraphSpot(i, g.Index, (ushort)k), hasDoors: g.Doors.Count > 0))))
                 .ToList();
             lines.Add($"Interiors: {interiors.Count(s => s != null)} landblocks, {interiorPieces.Count} pieces, {graph.DoorJoinCount} doorways joined to the outside, {graph.DoorUnjoinedCount} not joined to the outside");
-            foreach (var group in interiorPieces.GroupBy(p => p.label).OrderBy(g => g.Key))
-                lines.Add($"  {group.Key}: {group.Count()} pieces, {group.Sum(p => p.piece.Area):F0} m2, in {group.Select(p => p.landblock).Distinct().Count()} landblocks");
+            foreach (var level in reportLevels)
+            {
+                lines.Add($"  {LevelName(level)}:");
+                foreach (var group in interiorPieces.GroupBy(p => graph.GetLabel(p.spot, level)).OrderBy(g => g.Key))
+                    lines.Add($"    {group.Key}: {group.Count()} pieces, {group.Sum(p => p.piece.Area):F0} m2, in {group.Select(p => p.landblock).Distinct().Count()} landblocks");
+            }
+
+            var levelDependent = pieces.Select(p => p.spot).Concat(interiorPieces.Select(p => p.spot)).Count(spot => graph.BandLevels.Select(l => graph.GetLabel(spot, l)).Distinct().Count() > 1);
+            lines.Add($"Pieces whose label changes with the level: {levelDependent}");
+
+            string FormatSpot(GraphSpot spot) => $"{spot.Landblock:X4} {(spot.Group == GraphSpot.Outdoors ? "outdoors" : $"group {spot.Group}")} piece {(spot.Piece == TileSummary.NoPiece ? "none" : spot.Piece.ToString())}";
+            lines.Add("Travel links with an end on no piece (first 40):");
+            foreach (var link in graph.DeadLinks.Take(40))
+                lines.Add($"  {link.Kind} {link.Source}: from {FormatSpot(link.From)} to {FormatSpot(link.To)}");
+
+            // what quest and NPC travel would add: the ones whose destination nothing open reaches
+            var dead = graph.DeadLinks.ToHashSet();
+            foreach (var kind in new[] { TravelKind.Unjudged, TravelKind.Quest })
+            {
+                var needed = graph.Links.Where(l => l.Kind == kind && !dead.Contains(l) && graph.GetLabel(l.To) is not (ReachabilityLabel.Walkable or ReachabilityLabel.OneWay))
+                    .GroupBy(l => l.Source).ToList();
+                lines.Add($"{kind} travel to places nothing open reaches: {needed.Count} sources (first 80)");
+                foreach (var group in needed.Take(80))
+                    lines.Add($"  {group.Key}: {group.Count()} links, to {FormatSpot(group.First().To)} ({graph.GetLabel(group.First().To)})");
+            }
 
             var unknownInteriors = Enumerable.Range(0, interiors.Length).Where(i => interiors[i] == null && manifest.Entries[i].InteriorMethod != ReachabilityMethod.None).ToList();
             lines.Add($"Interiors without a summary (Unknown): {unknownInteriors.Count}" + (unknownInteriors.Count <= 50 ? " " + string.Join(" ", unknownInteriors.Select(i => $"{i:X4}({manifest.Entries[i].InteriorStatus.ToString().ToLowerInvariant()})")) : ""));
@@ -74,12 +99,17 @@ namespace ACE.Server.Pathfinding
             lines.Add($"Ledge drops: {withDrops.Sum(s => s.LedgeDrops.Count)} in {withDrops.Count} landblocks; most " +
                 string.Join(" ", withDrops.OrderByDescending(s => s.LedgeDrops.Count).Take(5).Select(s => $"{s.LandblockId >> 16:X4}:{s.LedgeDrops.Count}")));
 
-            lines.Add("Largest pieces that aren't Walkable:");
-            foreach (var p in pieces.Where(p => p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
+            lines.Add("Largest pieces that aren't Walkable at any level:");
+            foreach (var p in pieces.Select(p => (p.landblock, p.index, p.piece, label: graph.GetLabel(p.spot))).Where(p => p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
                 lines.Add($"  {p.label} {p.landblock:X4} piece {p.index} ({summaries[p.landblock].Method}): {p.piece.Area:F0} m2, z {p.piece.MinZ:F1} to {p.piece.MaxZ:F1}");
 
-            lines.Add("Largest interior pieces with doorways that aren't Walkable:");
-            foreach (var p in interiorPieces.Where(p => p.hasDoors && p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
+            var interiorLabels = interiorPieces.Select(p => (p.landblock, p.group, p.index, p.piece, p.hasDoors, label: graph.GetLabel(p.spot))).ToList();
+            lines.Add("Largest interior pieces with doorways that aren't Walkable at any level:");
+            foreach (var p in interiorLabels.Where(p => p.hasDoors && p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
+                lines.Add($"  {p.label} {p.landblock:X4} group {p.group} piece {p.index}: {p.piece.Area:F0} m2, z {p.piece.MinZ:F1} to {p.piece.MaxZ:F1}");
+
+            lines.Add("Largest interior pieces without doorways that aren't reached at any level:");
+            foreach (var p in interiorLabels.Where(p => !p.hasDoors && p.label is not (ReachabilityLabel.Walkable or ReachabilityLabel.OneWay)).OrderByDescending(p => p.piece.Area).Take(25))
                 lines.Add($"  {p.label} {p.landblock:X4} group {p.group} piece {p.index}: {p.piece.Area:F0} m2, z {p.piece.MinZ:F1} to {p.piece.MaxZ:F1}");
 
             var shown = string.Join("\n", lines.Take(shownLines));
