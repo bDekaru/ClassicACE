@@ -216,6 +216,12 @@ namespace ACE.Server.WorldObjects
 
         public void HandleActionTeleToMarketPlace()
         {
+            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+            {
+                Session.Network.EnqueueSend(new GameMessageSystemChat("Unknown command: mp", ChatMessageType.Help));
+                return;
+            }
+
             if (IsOlthoiPlayer)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.OlthoiCanOnlyRecallToLifestone));
@@ -237,12 +243,6 @@ namespace ACE.Server.WorldObjects
             if (TooBusyToRecall)
             {
                 Session.Network.EnqueueSend(new GameEventWeenieError(Session, WeenieError.YoureTooBusy));
-                return;
-            }
-
-            if (Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && InDungeon)
-            {
-                Session.Network.EnqueueSend(new GameMessageSystemChat("You may not recall from this location.", ChatMessageType.Broadcast));
                 return;
             }
 
