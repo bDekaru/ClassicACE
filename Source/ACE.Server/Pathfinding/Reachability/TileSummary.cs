@@ -2,6 +2,7 @@ using ACE.Server.Physics.Common;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace ACE.Server.Pathfinding.Reachability
 {
@@ -56,16 +57,26 @@ namespace ACE.Server.Pathfinding.Reachability
     }
 
     /// <summary>
+    /// A piece over a Recast map cell clearly above the ground there (a roof, a rim, a platform), with its surface height
+    /// over the cell in landblock-local metres.
+    /// </summary>
+    public struct SummaryLayer
+    {
+        public ushort Piece;
+        public float Z;
+    }
+
+    /// <summary>
     /// What the world graph needs of one landblock's outdoor walkable surface, without its mesh: the connected pieces,
-    /// where they reach the tile edge, the ledge drops between them, the pieces in front of the doorways, and a
-    /// ground-level map of which piece a spot is on.
+    /// where they reach the tile edge, the ledge drops between them, the pieces in front of the doorways, and a map of
+    /// which piece a spot is on, at ground level and on the raised layers.
     /// </summary>
     public class TileSummary
     {
         /// <summary>
         /// Bump when the summaries built from the same input change, so they are built again.
         /// </summary>
-        public const int Version = 2;
+        public const int Version = 3;
 
         public const ushort NoPiece = ushort.MaxValue;
 
@@ -105,6 +116,11 @@ namespace ACE.Server.Pathfinding.Reachability
         /// </summary>
         public ushort[] Map { get; set; }
 
+        /// <summary>
+        /// Recast only: the raised layers by map cell, for the cells that have any.
+        /// </summary>
+        public Dictionary<int, List<SummaryLayer>> Layers { get; } = new Dictionary<int, List<SummaryLayer>>();
+
         public void Write(BinaryWriter writer)
         {
             writer.Write(LandblockId);
@@ -143,6 +159,18 @@ namespace ACE.Server.Pathfinding.Reachability
                 writer.Write(Map[i]);
                 writer.Write((ushort)run);
                 i += run;
+            }
+
+            writer.Write(Layers.Count);
+            foreach (var (cell, layers) in Layers.OrderBy(l => l.Key))
+            {
+                writer.Write((ushort)cell);
+                writer.Write((byte)layers.Count);
+                foreach (var layer in layers)
+                {
+                    writer.Write(layer.Piece);
+                    writer.Write(layer.Z);
+                }
             }
         }
 
@@ -200,6 +228,20 @@ namespace ACE.Server.Pathfinding.Reachability
 
                 Array.Fill(summary.Map, value, i, run);
                 i += run;
+            }
+
+            var layerCells = SummaryFile.ReadCount(reader, label, mapLength);
+            for (var i = 0; i < layerCells; i++)
+            {
+                var cell = reader.ReadUInt16();
+                var count = reader.ReadByte();
+                if (cell >= mapLength || count == 0 || summary.Layers.ContainsKey(cell))
+                    throw new InvalidDataException($"{label} has {count} layers at map cell {cell}");
+
+                var layers = new List<SummaryLayer>(count);
+                for (var j = 0; j < count; j++)
+                    layers.Add(new SummaryLayer { Piece = SummaryFile.ReadPiece(reader, label, pieceCount), Z = reader.ReadSingle() });
+                summary.Layers[cell] = layers;
             }
 
             return summary;

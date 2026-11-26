@@ -235,8 +235,8 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The tile's connected components, the poly edges Detour links to the neighbor tiles, its ledge drops, the
-        /// pieces in front of the doorways, and a map of the piece found near terrain height. False if the tile can't
-        /// be read as a mesh.
+        /// pieces in front of the doorways, and a map of the piece found near terrain height and the layers above it.
+        /// False if the tile can't be read as a mesh.
         /// </summary>
         private static bool SummarizeRecast(TileSummary summary, DtMeshData data, List<Polygon> terrain)
         {
@@ -263,6 +263,7 @@ namespace ACE.Server.Pathfinding
             }
 
             summary.Map = new ushort[TileSummary.MapSide * TileSummary.MapSide];
+            var groundZ = new float[summary.Map.Length];
             var halfExtents = new RcVec3f(0.05f, 1.5f, 0.05f);
             using (var lease = new MeshLease(mesh))
             {
@@ -287,15 +288,55 @@ namespace ACE.Server.Pathfinding
                     for (var y = 0; y < TileSummary.MapSide; y++)
                     {
                         var point = new Vector3((x + 0.5f) * TileSummary.MapCellSize, (y + 0.5f) * TileSummary.MapCellSize, 0f);
-                        var ground = terrain[GetTerrainPolygon(terrain, point)];
-                        point.Z = -(ground.Plane.Normal.X * point.X + ground.Plane.Normal.Y * point.Y + ground.Plane.D) / ground.Plane.Normal.Z;
+                        point.Z = GetTerrainZ(terrain, point);
 
                         var status = lease.Query.FindNearestPoly(ToMeshPoint(summary.LandblockId, point, true), halfExtents, AllPolysFilter, out var polyRef, out _, out _);
                         DtPoly poly = null;
                         if (status.Succeeded() && polyRef != 0)
                             mesh.GetTileAndPolyByRefUnsafe(polyRef, out _, out poly);
 
-                        summary.Map[x * TileSummary.MapSide + y] = poly != null && component[poly.index] >= 0 ? (ushort)component[poly.index] : TileSummary.NoPiece;
+                        var cell = x * TileSummary.MapSide + y;
+                        groundZ[cell] = point.Z;
+                        summary.Map[cell] = poly != null && component[poly.index] >= 0 ? (ushort)component[poly.index] : TileSummary.NoPiece;
+                    }
+                }
+
+                // the ground sample keeps only the poly nearest the terrain: every poly clearly above it is a layer of the
+                // cells its bounds cover, at its height over the cell
+                var baseRef = mesh.GetPolyRefBase(tile);
+                var halfCell = TileSummary.MapCellSize * 0.5f;
+                for (var i = 0; i < data.header.polyCount; i++)
+                {
+                    if (component[i] < 0)
+                        continue;
+
+                    var poly = data.polys[i];
+                    float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+                    for (var j = 0; j < poly.vertCount; j++)
+                    {
+                        var v = GetLocalVertex(data, poly.verts[j], origin);
+                        (minX, minY, maxX, maxY) = (Math.Min(minX, v.X), Math.Min(minY, v.Y), Math.Max(maxX, v.X), Math.Max(maxY, v.Y));
+                    }
+
+                    var piece = (ushort)component[i];
+                    for (var x = GetMapIndex(minX); x <= GetMapIndex(maxX); x++)
+                    {
+                        for (var y = GetMapIndex(minY); y <= GetMapIndex(maxY); y++)
+                        {
+                            var cell = x * TileSummary.MapSide + y;
+                            var center = new Vector3((x + 0.5f) * TileSummary.MapCellSize, (y + 0.5f) * TileSummary.MapCellSize, groundZ[cell]);
+                            if (lease.Query.ClosestPointOnPoly(baseRef | (long)i, ToMeshPoint(summary.LandblockId, center, true), out var closest, out _).Failed())
+                                continue;
+
+                            var local = FromMeshPoint(closest) - origin;
+                            if (local.Z <= groundZ[cell] + LayerTolerance || Math.Abs(local.X - center.X) > halfCell || Math.Abs(local.Y - center.Y) > halfCell)
+                                continue;
+
+                            if (!summary.Layers.TryGetValue(cell, out var layers))
+                                summary.Layers[cell] = layers = new List<SummaryLayer>();
+                            if (layers.Count < byte.MaxValue && !layers.Any(l => l.Piece == piece && Math.Abs(l.Z - local.Z) < LayerTolerance))
+                                layers.Add(new SummaryLayer { Piece = piece, Z = local.Z });
+                        }
                     }
                 }
             }
@@ -361,7 +402,22 @@ namespace ACE.Server.Pathfinding
         private static int GetTerrainCell(Vector3 local) => (int)(local.X / LandDefs.CellLength) * LandDefs.BlockSide + (int)(local.Y / LandDefs.CellLength);
 
         /// <summary>
-        /// The piece at ground level under a landblock-local spot, NoPiece if there is none.
+        /// How far a surface must be above the ground to be a layer, and how far a spot may be off a layer's height
+        /// (Detour's surface error, a teleport destination a little above or below it) and still be on it.
+        /// </summary>
+        private const float LayerTolerance = 0.5f;
+
+        private static int GetMapIndex(float local) => Math.Clamp((int)(local / TileSummary.MapCellSize), 0, TileSummary.MapSide - 1);
+
+        private static float GetTerrainZ(List<Polygon> terrain, Vector3 local)
+        {
+            var plane = terrain[GetTerrainPolygon(terrain, local)].Plane;
+            return -(plane.Normal.X * local.X + plane.Normal.Y * local.Y + plane.D) / plane.Normal.Z;
+        }
+
+        /// <summary>
+        /// The piece under a landblock-local spot, NoPiece if there is none: for a spot clearly above the ground, the
+        /// highest layer at or just below it, else the piece at ground level (always for z 0).
         /// </summary>
         /// <param name="terrain">The landblock's terrain polygons, if the caller has them: read from the dat otherwise</param>
         private static ushort GetSummaryPiece(TileSummary summary, Vector3 local, List<Polygon> terrain = null)
@@ -370,18 +426,42 @@ namespace ACE.Server.Pathfinding
             var spot = new Vector3(Math.Clamp(local.X, 0f, max), Math.Clamp(local.Y, 0f, max), 0f);
 
             if (summary.Method == ReachabilityMethod.Recast)
-                return summary.Map[(int)(spot.X / TileSummary.MapCellSize) * TileSummary.MapSide + (int)(spot.Y / TileSummary.MapCellSize)];
+            {
+                var mapCell = GetMapIndex(spot.X) * TileSummary.MapSide + GetMapIndex(spot.Y);
+                if (local.Z > LayerTolerance && summary.Layers.TryGetValue(mapCell, out var layers))
+                {
+                    terrain ??= ReadTerrain(summary.LandblockId);
+                    if (terrain != null && local.Z > GetTerrainZ(terrain, spot) + LayerTolerance)
+                    {
+                        var best = -1;
+                        for (var i = 0; i < layers.Count; i++)
+                        {
+                            if (layers[i].Z <= local.Z + LayerTolerance && (best < 0 || layers[i].Z > layers[best].Z))
+                                best = i;
+                        }
+                        if (best >= 0)
+                            return layers[best].Piece;
+                    }
+                }
+                return summary.Map[mapCell];
+            }
 
             // a cell's two triangles are nearly always the same piece; only when they differ does the split matter
             var cell = GetTerrainCell(spot);
             if (summary.Map[cell * 2] == summary.Map[cell * 2 + 1])
                 return summary.Map[cell * 2];
 
-            if (terrain != null)
-                return summary.Map[GetTerrainPolygon(terrain, spot)];
+            terrain ??= ReadTerrain(summary.LandblockId);
+            return terrain != null ? summary.Map[GetTerrainPolygon(terrain, spot)] : TileSummary.NoPiece;
+        }
 
-            var cellLandblock = DatManager.CellDat.ReadFromDat<CellLandblock>(summary.LandblockId | 0xFFFF, false);
-            return HasFullTerrain(cellLandblock) ? summary.Map[GetTerrainPolygon(new LandblockStruct(cellLandblock).Polygons, spot)] : TileSummary.NoPiece;
+        /// <summary>
+        /// The landblock's terrain polygons from the dat, uncached; null if its terrain isn't complete.
+        /// </summary>
+        private static List<Polygon> ReadTerrain(uint landblockId)
+        {
+            var cellLandblock = DatManager.CellDat.ReadFromDat<CellLandblock>(landblockId | 0xFFFF, false);
+            return HasFullTerrain(cellLandblock) ? new LandblockStruct(cellLandblock).Polygons : null;
         }
 
         private static volatile WorldGraph reachabilityGraph;
@@ -413,8 +493,9 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Whether a player of the level (any level if null) can get to a spot from the reachability center and back, on
-        /// foot or through open portals. Outdoors it answers for the ground under the spot (a roof or platform gets the
-        /// ground's label), indoors for the floor of the cell nearest the spot's height. Unknown until the graph is built.
+        /// foot or through open portals. Outdoors it answers for the walkable surface at or just below the spot (the
+        /// ground for a spot at ground level), indoors for the floor of the cell nearest the spot's height. Unknown until
+        /// the graph is built.
         /// </summary>
         public static ReachabilityLabel GetReachability(ACE.Entity.Position position, int? level) => GetReachability(reachabilityGraph, position, level);
 
@@ -422,7 +503,7 @@ namespace ACE.Server.Pathfinding
             graph?.GetLabel(GetGraphSpot(graph.Summaries, graph.Interiors, position), level) ?? ReachabilityLabel.Unknown;
 
         /// <summary>
-        /// The graph spot of a position: indoors the piece of its cell nearest its height, outdoors the ground under it.
+        /// The graph spot of a position: indoors the piece of its cell nearest its height, outdoors the surface under it.
         /// </summary>
         private static GraphSpot GetGraphSpot(TileSummary[] summaries, InteriorSummary[] interiors, ACE.Entity.Position position)
         {
