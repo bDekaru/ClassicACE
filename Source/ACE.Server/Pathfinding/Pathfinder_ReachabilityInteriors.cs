@@ -149,9 +149,6 @@ namespace ACE.Server.Pathfinding
                 }
             }
 
-            summary.Cells.AddRange(cellPieces.SelectMany(c => c.Value.Select(p => new SummaryCellPiece { Cell = (ushort)c.Key, Piece = p.piece, MinZ = p.min, MaxZ = p.max })));
-            summary.Cells.Sort(GroupSummary.CellOrder);
-
             using (var lease = new MeshLease(mesh))
             {
                 for (var d = 0; d < group.Doors.Count; d++)
@@ -166,6 +163,22 @@ namespace ACE.Server.Pathfinding
                         summary.Doors.Add(new SummaryDoor { Group = summary.Index, Door = (ushort)d, Piece = (ushort)component[poly.index], Position = group.Doors[d].Position, Normal = group.Doors[d].Normal });
                 }
             }
+
+            // a piece only at doorways can lie outside every cell (a rim around an open roof): its doorways' cells list it,
+            // or a spot on it would answer for the floor below. At the doorway's height, as the piece's whole range could
+            // take over spots on a floor in the cell
+            var listed = cellPieces.Values.SelectMany(c => c.Select(p => p.piece)).ToHashSet();
+            foreach (var door in summary.Doors.Where(d => !listed.Contains(d.Piece)))
+            {
+                var (cellId, sill) = (group.Doors[door.Door].CellId, group.Doors[door.Door].Position.Z);
+                var pieces = cellPieces.TryGetValue(cellId, out var known) ? known : new List<(ushort piece, float min, float max)>();
+                // a new list: cells without floor of their own share their neighbor's
+                if (!pieces.Any(p => p.piece == door.Piece))
+                    cellPieces[cellId] = pieces.Append((door.Piece, sill, sill)).ToList();
+            }
+
+            summary.Cells.AddRange(cellPieces.SelectMany(c => c.Value.Select(p => new SummaryCellPiece { Cell = (ushort)c.Key, Piece = p.piece, MinZ = p.min, MaxZ = p.max })));
+            summary.Cells.Sort(GroupSummary.CellOrder);
         }
     }
 }

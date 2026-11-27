@@ -5,7 +5,8 @@ using System.Numerics;
 namespace ACE.Server.Pathfinding.Reachability
 {
     /// <summary>
-    /// The pieces of an interior cell that has walkable floor, with the heights they span in it.
+    /// The pieces of an interior cell that has walkable floor, with the heights they span in it. A piece in no cell (a
+    /// rim around an open roof) is listed in its doorways' cells, at the doorway's height.
     /// </summary>
     public struct SummaryCellPiece
     {
@@ -130,7 +131,7 @@ namespace ACE.Server.Pathfinding.Reachability
         /// <summary>
         /// Bump when the summaries built from the same input change, so they are built again.
         /// </summary>
-        public const int Version = 4;
+        public const int Version = 5;
 
         private const uint FileMagic = 0x49524341; // "ACRI"
 

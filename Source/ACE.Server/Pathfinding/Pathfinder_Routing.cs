@@ -314,6 +314,12 @@ namespace ACE.Server.Pathfinding
         private const int MaxDoorCandidates = 3;
 
         /// <summary>
+        /// How many batches of MaxDoorCandidates a leg tries, the next one only when no doorway of the batch before can
+        /// be reached: openings that lead nowhere (around an open roof) can rank ahead of the real door.
+        /// </summary>
+        private const int MaxDoorBatches = 2;
+
+        /// <summary>
         /// Doorways closer together than this count as one (e.g. the portals of a double door).
         /// </summary>
         private const float SameDoorDistance = 1.0f;
@@ -487,14 +493,15 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The crossings out of a group a leg from start could head for (see PlanCrossings): the most promising few by
-        /// straight-line estimate of the whole route, best first, for FindRoute to compare by actual path length. None
-        /// leads back onto a group's component the route has walked (visited, -1 for any of it): its estimate runs
-        /// through that group's walls. Only doorways on the start's mesh component are used, -1 for any (see Crossing).
+        /// straight-line estimate of the whole route, best first, for FindRoute to compare by actual path length, in
+        /// batches of MaxDoorCandidates. None leads back onto a group's component the route has walked (visited, -1 for
+        /// any of it): its estimate runs through that group's walls. Only doorways on the start's mesh component are used,
+        /// -1 for any (see Crossing).
         /// </summary>
         private static List<(Crossing crossing, float remaining)> GetCrossingCandidates(ILookup<MeshGroupKey, (Crossing crossing, float remaining)> plan, Position start, int component, MeshGroupKey group, List<(MeshGroupKey group, int component)> visited)
         {
             var startAt = ToGlobal(start);
-            var candidates = new List<(Crossing crossing, float remaining)>(MaxDoorCandidates);
+            var candidates = new List<(Crossing crossing, float remaining)>(MaxDoorCandidates * MaxDoorBatches);
             var reachable = plan[group].Where(c => SameComponent(component, c.crossing.NearComponent) && !visited.Any(v => v.group == c.crossing.To && SameComponent(v.component, c.crossing.FarComponent)));
 
             foreach (var candidate in reachable.OrderBy(c => Vector3.Distance(startAt, c.crossing.NearAt) + c.remaining))
@@ -503,7 +510,7 @@ namespace ACE.Server.Pathfinding
                     continue;
 
                 candidates.Add(candidate);
-                if (candidates.Count == MaxDoorCandidates)
+                if (candidates.Count == MaxDoorCandidates * MaxDoorBatches)
                     break;
             }
 
@@ -613,7 +620,17 @@ namespace ACE.Server.Pathfinding
                     var candidates = group == endGroup ? null : GetCrossingCandidates(plan, current, component, group, visited);
                     var targets = candidates?.Select(c => (c.crossing.Near, c.remaining)).ToList() ?? new List<(Position, float)> { (end, 0f) };
 
-                    var leg = FindRoute(current, group, targets, agentSize, profile, out var reached);
+                    // a batch of targets at a time; if none reaches one, the partial route of the most promising batch stands
+                    List<Position> leg = null;
+                    var reached = -1;
+                    for (var first = 0; reached < 0 && first < targets.Count; first += MaxDoorCandidates)
+                    {
+                        var found = FindRoute(current, group, targets.GetRange(first, Math.Min(MaxDoorCandidates, targets.Count - first)), agentSize, profile, out var index);
+                        if (index >= 0)
+                            (leg, reached) = (found, first + index);
+                        else
+                            leg ??= found;
+                    }
                     if (leg == null || leg.Count == 0)
                         break;
 
