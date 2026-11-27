@@ -1,10 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using DotRecast.Core;
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
 using DotRecast.Recast;
 using DotRecast.Recast.Geom;
+using log4net;
 
 namespace ACE.Server.Pathfinding.Geometry
 {
@@ -14,6 +17,8 @@ namespace ACE.Server.Pathfinding.Geometry
     /// </summary>
     public static class NavMeshBuilder
     {
+        private static readonly ILog log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         /// <summary>
         /// The coarsest detail height error a tile retries with (see BuildTile): all six tiles that hit the limit build at 4 m.
         /// </summary>
@@ -23,6 +28,45 @@ namespace ACE.Server.Pathfinding.Geometry
         /// How many cells a single-tile build's grid reaches past the geometry on every side (see Build).
         /// </summary>
         private const int BoundsPaddingCells = 2;
+
+        /// <summary>
+        /// What Recast has written to the console during this thread's build, null outside one (see RunBuild).
+        /// </summary>
+        [ThreadStatic]
+        private static List<string> recastMessages;
+
+        // DotRecast writes to the console itself, with no setting to change that
+        static NavMeshBuilder()
+        {
+            Console.SetOut(new RecastConsoleWriter(Console.Out));
+            Console.SetError(new RecastConsoleWriter(Console.Error));
+        }
+
+        /// <summary>
+        /// Passes text on to a console writer, except the lines written during a Recast build, which are collected for
+        /// the log, leaving out the harmless detail mesh warnings.
+        /// </summary>
+        private sealed class RecastConsoleWriter(TextWriter inner) : TextWriter
+        {
+            public override Encoding Encoding => inner.Encoding;
+
+            public override void Write(char value) => inner.Write(value);
+
+            public override void Write(string value) => inner.Write(value);
+
+            public override void Write(char[] buffer, int index, int count) => inner.Write(buffer, index, count);
+
+            public override void WriteLine(string value)
+            {
+                if (recastMessages == null)
+                    inner.WriteLine(value);
+                else if (value != null && !value.StartsWith("delaunayHull: Removing dangling face", StringComparison.Ordinal)
+                    && !value.StartsWith("Walk towards polygon center failed to reach center", StringComparison.Ordinal))
+                    recastMessages.Add(value);
+            }
+
+            public override void Flush() => inner.Flush();
+        }
 
         /// <summary>
         /// Builds a single-tile navmesh (an interior cell group) over all of the geometry.
@@ -86,11 +130,25 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         private static RcBuilderResult RunBuild(NavMeshGeometry geom, MeshBuildSettings settings, RcBuilderConfig bcfg)
         {
-            var context = new RcContext();
-            var solid = RcVoxelizations.BuildSolidHeightfield(context, geom, bcfg);
-            ObstacleErosion.FilterAndErode(context, solid, bcfg.cfg, settings);
+            recastMessages = new List<string>();
+            try
+            {
+                var context = new RcContext();
+                var solid = RcVoxelizations.BuildSolidHeightfield(context, geom, bcfg);
+                ObstacleErosion.FilterAndErode(context, solid, bcfg.cfg, settings);
 
-            return new RcBuilder().Build(context, bcfg.tileX, bcfg.tileZ, geom, bcfg.cfg, solid, false);
+                return new RcBuilder().Build(context, bcfg.tileX, bcfg.tileZ, geom, bcfg.cfg, solid, false);
+            }
+            finally
+            {
+                var messages = recastMessages;
+                recastMessages = null;
+
+                // logged only now: logging from inside the writer, under the console's lock, could deadlock with the
+                // console appender
+                foreach (var message in messages)
+                    log.Info($"[RECAST] {message}");
+            }
         }
 
         /// <summary>
