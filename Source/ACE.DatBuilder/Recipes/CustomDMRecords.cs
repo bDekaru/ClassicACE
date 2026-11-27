@@ -8,7 +8,7 @@ namespace ACE.DatBuilder
         /// <summary>The EoR-only records the CustomDM world's DID properties reach that the Infiltration list lacks (56 setups, 48 icons, 10 clothing tables, 5 palettes and everything those name).</summary>
         public const string EoRRecordsFile = "customdm-eor-records.json";
 
-        /// <summary>The EoR-only records the landblocks that <see cref="DatMapRecipes.CustomDM"/> takes from the EoR and ToD cell dats reference (56 environments, 183 surfaces, 238 objects and everything those name).</summary>
+        /// <summary>The EoR-only records the landblocks that <see cref="DatMapRecipes.CustomDM"/> takes from the EoR and ToD cell dats reference, and the island scenery of <see cref="RegionRecords.IslandScenery"/>, with everything those name.</summary>
         public const string MapEoRRecordsFile = "customdm-map-eor-records.json";
 
         public const string MiscModelsFile = "misc-models.json";

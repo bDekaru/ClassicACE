@@ -1,0 +1,21 @@
+{
+  "Slots": [
+    { "TerrainType": 1, "Slot": 31 },
+    { "TerrainType": 21, "Slot": 24 },
+    { "TerrainType": 21, "Slot": 23 },
+    { "TerrainType": 14, "Slot": 26 },
+    { "TerrainType": 18, "Slot": 26 },
+    { "TerrainType": 15, "Slot": 28 },
+    { "TerrainType": 15, "Slot": 29 },
+    { "TerrainType": 15, "Slot": 30 },
+    { "TerrainType": 15, "Slot": 31 },
+    { "TerrainType": 27, "Slot": 31 },
+    { "TerrainType": 2, "Slot": 31 }
+  ],
+  "Emitters": {
+    "120002B8": "120000FD",
+    "120002B9": "120000FE",
+    "120002BA": "120000FE",
+    "120002BB": "120000FE"
+  }
+}

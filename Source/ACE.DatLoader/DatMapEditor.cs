@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using ACE.DatLoader.FileTypes;
+
 namespace ACE.DatLoader
 {
     /// <summary>
@@ -821,6 +823,25 @@ namespace ACE.DatLoader
 
                 return changed;
             });
+        }
+
+        /// <summary>Replaces the surfaces of the environment cells of the landblocks (high 16 bits of an id) by what <paramref name="map"/> gives for them.</summary>
+        public void ReplaceSurfaces(IEnumerable<uint> landblocks, IReadOnlyDictionary<uint, uint> map)
+        {
+            foreach (var id in landblocks.SelectMany(_store.CellsOf))
+            {
+                _store.TryGet(id, out var data);
+                var cell = FileType.Unpack<EnvCell>(data);
+
+                if (!cell.Surfaces.Any(map.ContainsKey))
+                    continue;
+
+                for (var i = 0; i < cell.Surfaces.Count; i++)
+                    if (map.TryGetValue(cell.Surfaces[i], out var surface))
+                        cell.Surfaces[i] = surface;
+
+                _store.Set(id, cell.Pack());
+            }
         }
 
         /// <summary>The landblocks of a rectangle (see <see cref="RectLandblocks"/>) that exist in this store, as the high 16 bits of an id.</summary>

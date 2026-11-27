@@ -108,7 +108,7 @@ namespace ACE.DatBuilder
 
         private static (ushort TopLeft, ushort BottomRight, ushort NewTopLeft) Rect(ushort topLeft, ushort bottomRight, ushort newTopLeft = 0) => (topLeft, bottomRight, newTopLeft);
 
-        /// <param name="portalIs2005">The portal dat is the 2005 one, so the 856E tent and the Olthoi dungeon (66790000) come from the 2005 cell dat instead of the ToD and EoR ones, whose surface ids the portal lacks.</param>
+        /// <param name="portalIs2005">The portal dat is the 2005 one, so the 856E tent and the Olthoi dungeon (66790000) come from the 2005 cell dat instead of the ToD and EoR ones, whose surface ids the portal lacks; the cells of the EoR islands have their surfaces mapped, and the island scenery has its vertices adjusted.</param>
         public static void CustomDM(DatMapEditor map, DatMapSources sources, bool portalIs2005 = false)
         {
             var release = sources.Get(DatMapSource.Release);
@@ -258,22 +258,39 @@ namespace ACE.DatBuilder
             map.ReplaceRects(arwic, marae);
 
             // Islands from the EoR dat. Olthoi Island overlaps the Dark Isle area and has to go after it; the Halaetan Isles and Freebooter Isle after that.
-            map.ReplaceRects(eor, new[]
+            var eorIslands = new[]
             {
-                Rect(0x3B0F, 0x400D),
-                Rect(0x370D, 0x4409),
-                Rect(0xC0F9, 0xD9E0),
-                Rect(0xCBE0, 0xD9DD),
-                Rect(0xD2DD, 0xD9D9),
-            });
-            map.ReplaceRects(eor, new[] { Rect(0xE2D8, 0xEBCC, 0xCEF3) });
-            map.ReplaceRects(eor, new[]
+                new[]
+                {
+                    Rect(0x3B0F, 0x400D),
+                    Rect(0x370D, 0x4409),
+                    Rect(0xC0F9, 0xD9E0),
+                    Rect(0xCBE0, 0xD9DD),
+                    Rect(0xD2DD, 0xD9D9),
+                },
+                new[] { Rect(0xE2D8, 0xEBCC, 0xCEF3) },
+                new[]
+                {
+                    Rect(0xF43F, 0xFD2C),
+                    Rect(0x1EF9, 0x3DD5),
+                    Rect(0x3DFA, 0x45E6),
+                    Rect(0x45FA, 0x51EC),
+                },
+            };
+
+            foreach (var rects in eorIslands)
+                map.ReplaceRects(eor, rects);
+
+            if (portalIs2005)
             {
-                Rect(0xF43F, 0xFD2C),
-                Rect(0x1EF9, 0x3DD5),
-                Rect(0x3DFA, 0x45E6),
-                Rect(0x45FA, 0x51EC),
-            });
+                // The EoR cells name EoR surfaces. Once per landblock: a mapped surface can itself be one that is mapped.
+                var landblocks = eorIslands.SelectMany(rects => rects).SelectMany(r => DatMapEditor.RectLandblocks(r.TopLeft, r.BottomRight, r.NewTopLeft)).Select(p => p.Value).Distinct();
+                map.ReplaceSurfaces(landblocks, DatRecipeData.Load<EoRSurfaceRecords.SurfaceEdits>(EoRSurfaceRecords.DataFile).SurfaceMap());
+
+                // The island scenery gives Grassland slot 31 objects. The 10 vertices that use it outside the islands move to slot 0, plain grassland, which has the scene type slot 31 had.
+                foreach (var landblock in new uint[] { 0xC7A90000, 0xC7AA0000 })
+                    map.ReplaceTexture(landblock, 0xF804, 0x0004);
+            }
 
             map.ReplaceLandblocks(new uint[]
             {
