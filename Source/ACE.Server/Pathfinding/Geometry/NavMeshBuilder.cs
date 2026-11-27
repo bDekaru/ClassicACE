@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using DotRecast.Core;
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
 using DotRecast.Recast;
@@ -19,12 +20,20 @@ namespace ACE.Server.Pathfinding.Geometry
         private const float MaxDetailSampleMaxError = 4f;
 
         /// <summary>
+        /// How many cells a single-tile build's grid reaches past the geometry on every side (see Build).
+        /// </summary>
+        private const int BoundsPaddingCells = 2;
+
+        /// <summary>
         /// Builds a single-tile navmesh (an interior cell group) over all of the geometry.
         /// </summary>
         public static DtMeshData Build(NavMeshGeometry geom, MeshBuildSettings settings)
         {
-            var bcfg = new RcBuilderConfig(CreateConfig(settings), geom.GetMeshBoundsMin(), geom.GetMeshBoundsMax());
-            var rcResult = new RcBuilder().Build(geom, bcfg, false);
+            // Recast rounds the grid to whole cells and can cut off the geometry's last half cell (an outer wall), and
+            // the erosion needs the columns past the outermost geometry to be empty, not off the grid
+            var padding = new RcVec3f(BoundsPaddingCells * settings.CellSize, 0f, BoundsPaddingCells * settings.CellSize);
+            var bcfg = new RcBuilderConfig(CreateConfig(settings), geom.GetMeshBoundsMin() - padding, geom.GetMeshBoundsMax() + padding);
+            var rcResult = RunBuild(geom, settings, bcfg);
             if (rcResult?.Mesh == null || rcResult.Mesh.npolys == 0)
                 return null;
 
@@ -54,7 +63,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 var bcfg = new RcBuilderConfig(CreateConfig(settings, true, tileCells, borderSize, detailError), bmin, bmax, tileX, tileZ);
                 try
                 {
-                    rcResult = new RcBuilder().Build(geom, bcfg, false);
+                    rcResult = RunBuild(geom, settings, bcfg);
                     break;
                 }
                 catch (Exception e) when (e.Message.StartsWith("rcBuildPolyMeshDetail") && detailError < MaxDetailSampleMaxError)
@@ -73,7 +82,20 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// The Recast config for a build: a single mesh over all of the geometry, or one tile of a tiled mesh.
+        /// Recast's build with its filters and erosion replaced by ObstacleErosion's.
+        /// </summary>
+        private static RcBuilderResult RunBuild(NavMeshGeometry geom, MeshBuildSettings settings, RcBuilderConfig bcfg)
+        {
+            var context = new RcContext();
+            var solid = RcVoxelizations.BuildSolidHeightfield(context, geom, bcfg);
+            ObstacleErosion.FilterAndErode(context, solid, bcfg.cfg, settings);
+
+            return new RcBuilder().Build(context, bcfg.tileX, bcfg.tileZ, geom, bcfg.cfg, solid, false);
+        }
+
+        /// <summary>
+        /// The Recast config for a build: a single mesh over all of the geometry, or one tile of a tiled mesh. It has no
+        /// agent radius or filters, as RunBuild applies them itself.
         /// </summary>
         private static RcConfig CreateConfig(MeshBuildSettings settings, bool useTiles = false, int tileCells = 0, int borderSize = 0, float? detailSampleMaxError = null)
         {
@@ -81,12 +103,12 @@ namespace ACE.Server.Pathfinding.Geometry
                 useTiles, tileCells, tileCells, borderSize,
                 settings.Partitioning,
                 settings.CellSize, settings.CellHeight,
-                settings.AgentMaxSlope, settings.AgentHeight, settings.AgentRadius, settings.AgentMaxClimb,
+                settings.AgentMaxSlope, settings.AgentHeight, 0f, settings.AgentMaxClimb,
                 settings.MinRegionArea, settings.MergedRegionArea,
                 settings.EdgeMaxLen, settings.EdgeMaxError,
                 settings.VertsPerPoly,
                 settings.DetailSampleDist, detailSampleMaxError ?? settings.DetailSampleMaxError,
-                settings.FilterLowHangingObstacles, settings.FilterLedgeSpans, settings.FilterWalkableLowHeightSpans,
+                false, false, false,
                 NavArea.WalkableMod, true);
         }
 
@@ -143,7 +165,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
         /// <summary>
         /// Gives each poly of the Recast build its area and flags: the walkable area Recast marks becomes Ground, and
-        /// floor is flagged Walk and door aprons Door (see NavArea, NavPolyFlags).
+        /// floor is flagged Walk (narrow floor Narrow too) and door aprons Door (see NavArea, NavPolyFlags).
         /// </summary>
         private static void SetAreasAndFlags(RcPolyMesh polyMesh)
         {
@@ -152,7 +174,12 @@ namespace ACE.Server.Pathfinding.Geometry
                 if (polyMesh.areas[i] == NavArea.Walkable)
                     polyMesh.areas[i] = NavArea.Ground;
 
-                polyMesh.flags[i] = polyMesh.areas[i] == NavArea.Door ? NavPolyFlags.Door : NavPolyFlags.Walk;
+                polyMesh.flags[i] = polyMesh.areas[i] switch
+                {
+                    NavArea.Door => NavPolyFlags.Door,
+                    NavArea.Narrow => NavPolyFlags.Walk | NavPolyFlags.Narrow,
+                    _ => NavPolyFlags.Walk
+                };
             }
         }
 
@@ -167,13 +194,15 @@ namespace ACE.Server.Pathfinding.Geometry
             if (meshData == null)
                 return null;
 
-            var ledgeDrops = LedgeDropFinder.Find(meshData, geom, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
-            if (ledgeDrops.Count == 0)
-                return meshData;
+            var ledgeDrops = LedgeDropFinder.Find(meshData, geom, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb, settings.AgentMaxStepDown);
+            if (ledgeDrops.Count > 0)
+            {
+                SetOffMeshConnections(option, ledgeDrops);
+                meshData = DtNavMeshBuilder.CreateNavMeshData(option) ?? meshData;
+            }
 
-            SetOffMeshConnections(option, ledgeDrops);
-
-            return DtNavMeshBuilder.CreateNavMeshData(option) ?? meshData;
+            LedgeDropFinder.MarkDropEdges(meshData, geom, settings.AgentRadius, settings.AgentHeight, settings.AgentMaxClimb);
+            return meshData;
         }
 
         private static void SetOffMeshConnections(DtNavMeshCreateParams option, List<RcOffMeshConnection> connections)

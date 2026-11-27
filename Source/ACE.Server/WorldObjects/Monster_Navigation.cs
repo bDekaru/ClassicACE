@@ -1018,6 +1018,13 @@ namespace ACE.Server.WorldObjects
 
         private static bool UsesPathfinding => Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Pathfinder.PathfindingEnabled;
 
+        /// <summary>
+        /// The mesh runs to the edge of a deep drop (see ObstacleErosion), so every non-player creature gets EdgeSlide
+        /// to stay on it, whatever its weenie says.
+        /// TODO: decide whether to keep this or to give the weenies AllowEdgeSlide instead.
+        /// </summary>
+        public bool ForcesEdgeSlide => this is not Player && UsesPathfinding;
+
         private double LastRouteTime = 0;
         private WorldObject RouteAttackTarget = null;
 
@@ -1440,9 +1447,9 @@ namespace ACE.Server.WorldObjects
             }
             else
             {
-                // attempt to step away from the nearest wall, hopefully that will get us past the point we got stuck.
+                // attempt to step away from the nearest wall or drop, hopefully that will get us past the point we got stuck.
                 var agentSize = GetPathfindingAgentSize();
-                var nearbyWallPos = Pathfinder.GetNearestWallPosition(Location, 1.0f, agentSize);
+                var nearbyWallPos = Pathfinder.GetNearestEdgePosition(Location, 1.0f, agentSize, true);
                 if (nearbyWallPos != null)
                 {
                     // A mesh edge can also be a ledge or one side of a narrow corridor, so stepping out from it can
@@ -1515,6 +1522,8 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Lets this creature walk off the ledge at the start of a ledge drop: EdgeSlide would keep it on the edge.
         /// MoveTo waits while it falls and goes on when it lands. The move to the landing walks (see ContinueRoute).
+        /// Clients are told too: one that keeps EdgeSlide holds the creature on the ledge while its position updates
+        /// bring it down.
         /// </summary>
         private void BeginLedgeDrop()
         {
@@ -1527,6 +1536,7 @@ namespace ACE.Server.WorldObjects
             {
                 PhysicsObj.State &= ~PhysicsState.EdgeSlide;
                 LedgeDropRestoreEdgeSlide = true;
+                EnqueueBroadcastPhysicsState();
             }
         }
 
@@ -1539,7 +1549,10 @@ namespace ACE.Server.WorldObjects
                 Console.WriteLine($"{Name} ({Guid}).EndLedgeDrop()");
 
             if (LedgeDropRestoreEdgeSlide && PhysicsObj != null)
+            {
                 PhysicsObj.State |= PhysicsState.EdgeSlide;
+                EnqueueBroadcastPhysicsState();
+            }
 
             IsLedgeDropping = false;
             LedgeDropRestoreEdgeSlide = false;

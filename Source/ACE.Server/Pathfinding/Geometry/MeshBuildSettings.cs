@@ -25,6 +25,12 @@ namespace ACE.Server.Pathfinding.Geometry
         public float AgentMaxSlope;
 
         /// <summary>
+        /// The deepest drop the agent walks down (its StepDownHeight): the walkable area keeps AgentRadius from these
+        /// drops as from walls, and runs to the edge of deeper ones (see ObstacleErosion).
+        /// </summary>
+        public float AgentMaxStepDown;
+
+        /// <summary>
         /// Regions smaller than MinRegionArea (in m²) are removed; ones smaller than MergedRegionArea are merged into
         /// their neighbors.
         /// </summary>
@@ -34,8 +40,8 @@ namespace ACE.Server.Pathfinding.Geometry
         public RcPartition Partitioning = RcPartition.WATERSHED;
 
         /// <summary>
-        /// Recast's filters: walk up onto low obstacles, drop the walkable spans along ledges, and drop the spans with
-        /// less than AgentHeight overhead.
+        /// Recast's filters: walk up onto low obstacles, drop the walkable spans on steep slopes (only that half of its
+        /// ledge filter, see ObstacleErosion), and drop the spans with less than AgentHeight overhead.
         /// </summary>
         public bool FilterLowHangingObstacles = true;
         public bool FilterLedgeSpans = true;

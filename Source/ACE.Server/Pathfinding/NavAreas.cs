@@ -30,6 +30,12 @@ namespace ACE.Server.Pathfinding
         public const int LedgeDrop = 5;
 
         /// <summary>
+        /// Narrow floor, like the top of a wall or a fence (see ObstacleErosion). Walkable, but a route filter prices it
+        /// high, so it is only taken to reach it or when the way around is much longer.
+        /// </summary>
+        public const int Narrow = 6;
+
+        /// <summary>
         /// The area Recast gives every walkable span (RcRecast.RC_WALKABLE_AREA). The mesh build turns it into Ground.
         /// </summary>
         public const int Walkable = RcRecast.RC_WALKABLE_AREA;
@@ -56,7 +62,7 @@ namespace ACE.Server.Pathfinding
     public enum RouteProfile
     {
         /// <summary>
-        /// Every area costs its length (ledge drops more): the shortest way.
+        /// Every area costs its length (ledge drops and narrow floor more): the shortest way.
         /// </summary>
         Default,
 
@@ -67,13 +73,13 @@ namespace ACE.Server.Pathfinding
     }
 
     /// <summary>
-    /// The flags of navmesh polys, which query filters include or exclude. Walk, Door and LedgeDrop are saved in the cached
-    /// mesh files; Island is set when a mesh is loaded.
+    /// The flags of navmesh polys, which query filters include or exclude. Walk, Door, LedgeDrop, Narrow and the drop
+    /// edges are saved in the cached mesh files; Island is set when a mesh is loaded.
     /// </summary>
     public static class NavPolyFlags
     {
         /// <summary>
-        /// Floor (Ground and Road areas).
+        /// Floor (Ground, Road and Narrow areas).
         /// </summary>
         public const int Walk = 0x01;
 
@@ -88,10 +94,21 @@ namespace ACE.Server.Pathfinding
         public const int LedgeDrop = 0x08;
 
         /// <summary>
+        /// Narrow floor (Narrow area), also flagged Walk.
+        /// </summary>
+        public const int Narrow = 0x10;
+
+        /// <summary>
         /// Islands: parts of a mesh that cannot be walked to from its main area or its doorways, like the top of a
         /// table, a crate or a large rock. Set when a mesh is loaded, not saved in the mesh files (see
         /// Pathfinder.MarkIslands).
         /// </summary>
         public const int Island = 0x0100;
+
+        /// <summary>
+        /// A poly's boundary edge is a drop, not a wall: this shifted left by the edge's index (see
+        /// LedgeDropFinder.MarkDropEdges). Polys have up to 6 edges, so 0x0200 to 0x4000.
+        /// </summary>
+        public const int DropEdge = 0x0200;
     }
 }

@@ -19,15 +19,15 @@ namespace ACE.Server.Pathfinding.Geometry
     public static class DoorApron
     {
         /// <summary>
-        /// How far past the agent radius the apron reaches out of the doorway. Erosion takes the agent radius off its
-        /// outer edge and the ledge filter another cell, so it must be deeper than the radius for a door poly to remain.
+        /// How far past the agent radius the apron reaches out of the doorway. The mesh runs to its outer edge, or ends
+        /// the radius short of it where the agent steps down to a floor below (see ObstacleErosion): this much of it is
+        /// left then.
         /// </summary>
         private const float DepthMargin = 0.4f;
 
         /// <summary>
         /// How far the apron reaches past either side of the opening, along the wall. The opening itself limits the
-        /// width of the passage; this keeps the ledge filter (a cell along the apron's open sides) from making the
-        /// apron narrower than the opening. More than the largest interior cell size (0.125 m for Large, see AgentProfile).
+        /// width of the passage.
         /// </summary>
         public const float SideMargin = 0.3f;
 
@@ -51,7 +51,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public static float GetDepth(AgentSize agentSize)
         {
-            return 2f * Pathfinder.GetAgentRadius(agentSize) + DepthMargin;
+            return Pathfinder.GetAgentRadius(agentSize) + DepthMargin;
         }
 
         /// <summary>

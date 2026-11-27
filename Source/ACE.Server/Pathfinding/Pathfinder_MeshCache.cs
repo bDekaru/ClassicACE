@@ -397,7 +397,7 @@ namespace ACE.Server.Pathfinding
 
                 // partitioning is keyed by its number, as when the settings were the DotRecast toolset's
                 var text = FormattableString.Invariant(
-                    $"{geometryVersion}|{MaxVertsPerPoly}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.MinRegionArea}|{s.MergedRegionArea}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|ledgedrops|{LedgeDropFinder.Version}|{LedgeDropFinder.MaxLedgeDropHeight}");
+                    $"{geometryVersion}|{MaxVertsPerPoly}|{s.VertsPerPoly}|{(int)s.Partitioning}|{s.CellSize}|{s.CellHeight}|{s.AgentHeight}|{s.AgentRadius}|{s.AgentMaxClimb}|{s.AgentMaxSlope}|{s.AgentMaxStepDown}|{s.MinRegionArea}|{s.MergedRegionArea}|{s.EdgeMaxLen}|{s.EdgeMaxError}|{s.DetailSampleDist}|{s.DetailSampleMaxError}|{s.FilterLowHangingObstacles}|{s.FilterLedgeSpans}|{s.FilterWalkableLowHeightSpans}|ledgedrops|{LedgeDropFinder.Version}|{LedgeDropFinder.MaxLedgeDropHeight}|erosion|{ObstacleErosion.Version}");
 
                 if (key.outdoor)
                     text += FormattableString.Invariant($"|tiled|{OutdoorMeshGeometryVersion}|{Position.BlockLength}|{MeshGeometryCollector.SurfaceMargin}");
@@ -993,6 +993,7 @@ namespace ACE.Server.Pathfinding
                 AgentHeight = profile.Height,
                 AgentMaxClimb = profile.MaxClimb,
                 AgentMaxSlope = MaxWalkableSlope,
+                AgentMaxStepDown = profile.MaxStepDown,
                 CellHeight = 0.1f,
                 CellSize = cellSize,
 

@@ -22,7 +22,7 @@ namespace ACE.Server.Pathfinding
     {
         /// <summary>
         /// Extra distance turn waypoints are pushed away from the corner they bend around, on top of the agent radius
-        /// the mesh is already eroded by.
+        /// the mesh keeps from walls and shallow drops. It runs to the edge of a deep drop (see ObstacleErosion).
         /// </summary>
         private const float CornerClearance = 0.3f;
 
@@ -51,17 +51,30 @@ namespace ACE.Server.Pathfinding
         private const float LedgeDropCostFactor = 5.0f;
 
         /// <summary>
-        /// Every poly, for route searches: like AllPolysFilter, with ledge drops at LedgeDropCostFactor.
+        /// Narrow floor costs this many times its length: physics lets a creature walk along a wall or fence top, but
+        /// it should not choose to over the floor beside it.
+        /// </summary>
+        private const float NarrowCostFactor = 5.0f;
+
+        /// <summary>
+        /// Every poly but narrow floor, for smoothing a route: its raycasts ignore costs, and would pull a straight leg
+        /// across a wall top.
+        /// </summary>
+        private static readonly DtQueryDefaultFilter SmoothingFilter = new DtQueryDefaultFilter(0xFFFF, NavPolyFlags.Narrow, Array.Empty<float>());
+
+        /// <summary>
+        /// Every poly, for route searches: like AllPolysFilter, with ledge drops and narrow floor at their cost factors.
         /// </summary>
         private static readonly DtQueryDefaultFilter RouteFilter = CreateRouteFilter(1.0f, LedgeDropCostFactor);
 
-        /// <param name="offRoadCost">The cost factor of every area but the road (1) and ledge drops</param>
+        /// <param name="offRoadCost">The cost factor of every area but the road (1), ledge drops and narrow floor</param>
         private static DtQueryDefaultFilter CreateRouteFilter(float offRoadCost, float ledgeDropCost, int excludeFlags = 0)
         {
             var areaCosts = new float[DtDetour.DT_MAX_AREAS];
             Array.Fill(areaCosts, offRoadCost);
             areaCosts[NavArea.Road] = 1.0f;
             areaCosts[NavArea.LedgeDrop] = ledgeDropCost;
+            areaCosts[NavArea.Narrow] = NarrowCostFactor;
             return new DtQueryDefaultFilter(0xFFFF, excludeFlags, areaCosts);
         }
 
@@ -178,8 +191,8 @@ namespace ACE.Server.Pathfinding
                 return null;
 
             // clusters of corner waypoints become one with room around it; the corners left are pushed off their walls
-            MergeCornerClusters(query, AllPolysFilter, waypoints);
-            OffsetCorners(query, AllPolysFilter, waypoints);
+            MergeCornerClusters(query, SmoothingFilter, waypoints);
+            OffsetCorners(query, SmoothingFilter, waypoints);
 
             for (int i = 0; i < waypoints.Count; i++)
                 waypoints[i] = SnapToFloor(query, waypoints[i]);

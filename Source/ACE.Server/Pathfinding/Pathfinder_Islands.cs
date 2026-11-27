@@ -57,8 +57,9 @@ namespace ACE.Server.Pathfinding
         private static readonly DtQueryDefaultFilter DoorFilter = new DtQueryDefaultFilter(NavPolyFlags.Door, 0, Array.Empty<float>());
 
         /// <summary>
-        /// How far around the center of a door apron to look for its door polys, on the mesh of an agent size. Erosion
-        /// leaves them well inside the apron; vertically they are on the threshold.
+        /// How far around the center of a door apron to look for its door polys, on the mesh of an agent size: they
+        /// reach across the apron, or end the radius short of its outer edge over a floor the agent steps down to (see
+        /// DoorApron); vertically they are on the threshold.
         /// </summary>
         private static RcVec3f GetDoorPolyHalfExtents(AgentSize agentSize)
         {

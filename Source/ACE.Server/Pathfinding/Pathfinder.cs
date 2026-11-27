@@ -87,6 +87,11 @@ namespace ACE.Server.Pathfinding
         private const int MaxVertsPerPoly = 6;
 
         /// <summary>
+        /// The most polys GetNearestEdgePosition looks through.
+        /// </summary>
+        private const int MaxEdgeSearchPolys = 256;
+
+        /// <summary>
         /// The longest poly corridor and straight path a route can have. Outdoor routes can cross several landblocks.
         /// </summary>
         private const int MaxPolys = 1024;
@@ -94,10 +99,10 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// What each mesh is built for, per agent size.
         ///
-        /// Radius: how far the walkable area keeps from walls. A creature's radius is that of its collision spheres
-        /// (Setup.Sphere x scale), which is what collides with walls. Small covers ~69% of monster spawns (drudges,
-        /// olthoi, humans), Medium ~22% (tuskers, burun, mattekars) and Large ~8% (guruks and other big creatures); the
-        /// ~1% wider than Large route on it anyway.
+        /// Radius: how far the walkable area keeps from walls, and from drops no deeper than MaxStepDown (see
+        /// ObstacleErosion). A creature's radius is that of its collision spheres (Setup.Sphere x scale), which is what
+        /// collides with walls. Small covers ~69% of monster spawns (drudges, olthoi, humans), Medium ~22% (tuskers,
+        /// burun, mattekars) and Large ~8% (guruks and other big creatures); the ~1% wider than Large route on it anyway.
         ///
         /// Height: the clearance needed overhead, which closes every opening lower than it on that mesh. Chosen from
         /// the world's openings: building doorways are nearly all 2.5m tall and dungeon corridors mostly 3.0m, and
@@ -113,8 +118,13 @@ namespace ACE.Server.Pathfinding
         /// to push into the ledge. The foot sphere is the tighter limit for nearly every creature, so these are the
         /// heights about 96% (Small) and 99-100% (Medium, Large) of each mesh's spawns climb every time.
         ///
-        /// Cell sizes: the voxel cell size and the agent radius in whole cells, interior and outdoor. Recast erodes the
-        /// walkable area by ceil(radius / cellSize) cells, so a radius that isn't a whole number of cells is rounded
+        /// MaxStepDown: the deepest drop a creature walks down (Setup.StepDownHeight x scale). EdgeSlide stops a
+        /// creature at the edge of a deeper drop, but not of this one, so a creature that strays past its edge ends up
+        /// on the floor below: the walkable area keeps the radius from it. These are the step-down heights of 99% of
+        /// each mesh's spawns (the median is 1.7-2.0m).
+        ///
+        /// Cell sizes: the voxel cell size and the agent radius in whole cells, interior and outdoor. The walkable area
+        /// is eroded by ceil(radius / cellSize) cells, so a radius that isn't a whole number of cells is rounded
         /// up (0.65m on 0.2m cells erodes 0.8m). Each mesh gets a cell size its agent radius divides into:
         ///
         ///   Interior: Small 0.65/7 (~0.093m) x 7 = 0.65m, Medium 0.1 x 10 = 1.0m, Large 0.125 x 14 = 1.75m.
@@ -125,13 +135,13 @@ namespace ACE.Server.Pathfinding
         /// finer grids for narrow doorways and stairs. Large needs no fine detail (Recast's guideline is a cell size of a
         /// half to a third of the agent radius), so its coarser grid also makes its meshes cheaper to build.
         /// </summary>
-        private readonly record struct AgentProfile(float Radius, float Height, float MaxClimb, float InteriorCellSize, int InteriorRadiusCells, float OutdoorCellSize, int OutdoorRadiusCells);
+        private readonly record struct AgentProfile(float Radius, float Height, float MaxClimb, float MaxStepDown, float InteriorCellSize, int InteriorRadiusCells, float OutdoorCellSize, int OutdoorRadiusCells);
 
-        private static readonly AgentProfile SmallProfile = new AgentProfile(0.65f, 2.4f, 0.4f, 0.65f / 7f, 7, 0.16f, 4);
+        private static readonly AgentProfile SmallProfile = new AgentProfile(0.65f, 2.4f, 0.4f, 2.4f, 0.65f / 7f, 7, 0.16f, 4);
 
-        private static readonly AgentProfile MediumProfile = new AgentProfile(1.0f, 2.9f, 0.6f, 0.1f, 10, 0.2f, 5);
+        private static readonly AgentProfile MediumProfile = new AgentProfile(1.0f, 2.9f, 0.6f, 2.8f, 0.1f, 10, 0.2f, 5);
 
-        private static readonly AgentProfile LargeProfile = new AgentProfile(1.75f, 3.4f, 0.8f, 0.125f, 14, 0.25f, 7);
+        private static readonly AgentProfile LargeProfile = new AgentProfile(1.75f, 3.4f, 0.8f, 4.0f, 0.125f, 14, 0.25f, 7);
 
         /// <summary>
         /// Every agent size, each with its own meshes.
@@ -214,6 +224,11 @@ namespace ACE.Server.Pathfinding
         /// Every poly except islands.
         /// </summary>
         private static readonly DtQueryDefaultFilter ReachableFilter = new DtQueryDefaultFilter(0xFFFF, NavPolyFlags.Island, Array.Empty<float>());
+
+        /// <summary>
+        /// Every poly except islands and narrow floor, for wandering.
+        /// </summary>
+        private static readonly DtQueryDefaultFilter WanderFilter = new DtQueryDefaultFilter(0xFFFF, NavPolyFlags.Island | NavPolyFlags.Narrow, Array.Empty<float>());
 
         /// <summary>
         /// Per landblock (0xAAAA0000), its interior cell groups.
@@ -608,8 +623,13 @@ namespace ACE.Server.Pathfinding
                     return null;
 
                 // the search spreads out from the start poly, so on an island it has to be allowed to stay on it
-                var filter = startOnIsland ? AllPolysFilter : ReachableFilter;
+                var filter = startOnIsland ? AllPolysFilter : WanderFilter;
                 var status = query.FindRandomPointWithinCircle(startRef, startPt, radius, filter, ThreadSafeRcRand.Instance, out long randomRef, out var randomPt);
+
+                // and from narrow floor it fails with a filter that keeps off it
+                if (status.Failed() && !startOnIsland)
+                    status = query.FindRandomPointWithinCircle(startRef, startPt, radius, ReachableFilter, ThreadSafeRcRand.Instance, out randomRef, out randomPt);
+
                 if (status.Failed() || randomRef == 0)
                     return null;
 
@@ -646,10 +666,11 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The nearest point on a wall within radius of a position, on the mesh of the given agent size, facing away
-        /// from the wall (or towards it with faceWall). Null if there is no wall in range or the mesh isn't loaded.
+        /// The nearest point on a boundary edge within radius of a position, on the mesh of the given agent size, facing
+        /// away from the edge (or towards it with faceEdge). Edges the floor drops away from count only with
+        /// includeDrops; the others are walls, or anything else. Null if there is none in range or the mesh isn't loaded.
         /// </summary>
-        public static Position GetNearestWallPosition(Position location, float radius, AgentSize agentSize, bool faceWall = false)
+        public static Position GetNearestEdgePosition(Position location, float radius, AgentSize agentSize, bool includeDrops, bool faceEdge = false)
         {
             try
             {
@@ -663,27 +684,68 @@ namespace ACE.Server.Pathfinding
                 if (!TryFindNearestReachablePoly(query, lease.ToMesh(location), out var startRef, out var startPt, out _))
                     return null;
 
-                var status = query.FindDistanceToWall(startRef, startPt, radius, AllPolysFilter, out var wallDistance, out var wallPt, out var wallNormal);
-                if (status.Failed())
+                if (!TryFindNearestEdge(query, startRef, startPt, radius, includeDrops, out var edgePt))
                     return null;
 
-                // no wall closer than the radius leaves the distance at the radius
-                if (wallDistance >= radius)
-                    return null;
+                var position = CreatePosition(location, group, edgePt);
 
-                var position = CreatePosition(location, group, wallPt);
-
-                // the normal points away from the wall
-                var normal = FromMeshPoint(wallNormal);
-                position.Rotate(faceWall ? -normal : normal);
+                // the normal points away from the edge
+                var normal = FromMeshPoint(RcVec3f.Normalize(RcVec3f.Subtract(startPt, edgePt)));
+                position.Rotate(faceEdge ? -normal : normal);
 
                 return position;
             }
             catch (Exception e)
             {
-                log.Error($"Pathfinder: failed to find the nearest wall to {location.ToLOCString()}: {e}");
+                log.Error($"Pathfinder: failed to find the nearest edge to {location.ToLOCString()}: {e}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Like Detour's FindDistanceToWall, which can't tell the boundary edges apart: the nearest point on a boundary
+        /// edge, within radius, of the polys connected to the start.
+        /// </summary>
+        private static bool TryFindNearestEdge(DtNavMeshQuery query, long startRef, RcVec3f center, float radius, bool includeDrops, out RcVec3f nearest)
+        {
+            nearest = default;
+
+            Span<long> polys = stackalloc long[MaxEdgeSearchPolys];
+            Span<long> parents = stackalloc long[MaxEdgeSearchPolys];
+            Span<float> costs = stackalloc float[MaxEdgeSearchPolys];
+
+            if (query.FindPolysAroundCircle(startRef, center, radius, AllPolysFilter, polys, parents, costs, out var count, MaxEdgeSearchPolys).Failed())
+                return false;
+
+            var nearestSquared = radius * radius;
+            var found = false;
+
+            for (var i = 0; i < count; i++)
+            {
+                if (query.GetAttachedNavMesh().GetTileAndPolyByRef(polys[i], out var tile, out var poly).Failed() ||
+                    poly.GetPolyType() != DtPolyTypes.DT_POLYTYPE_GROUND)
+                    continue;
+
+                for (var j = 0; j < poly.vertCount; j++)
+                {
+                    if (poly.neis[j] != 0 || !includeDrops && (poly.flags & (NavPolyFlags.DropEdge << j)) != 0)
+                        continue;
+
+                    var a = LedgeDropFinder.GetVertex(tile.data.verts, poly.verts[j]);
+                    var b = LedgeDropFinder.GetVertex(tile.data.verts, poly.verts[(j + 1) % poly.vertCount]);
+
+                    // the distance is measured on the horizontal plane, as Detour's is
+                    var squared = DtUtils.DistancePtSegSqr2D(center, a, b, out var t);
+                    if (squared >= nearestSquared)
+                        continue;
+
+                    nearestSquared = squared;
+                    nearest = RcVec3f.Lerp(a, b, t);
+                    found = true;
+                }
+            }
+
+            return found;
         }
     }
 }
