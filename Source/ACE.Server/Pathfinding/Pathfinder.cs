@@ -228,6 +228,12 @@ namespace ACE.Server.Pathfinding
             private readonly ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell> physicsCells = new ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell>();
 
             /// <summary>
+            /// By group index, the doorways that open straight into another group's (see FindTouchingDoors).
+            /// </summary>
+            public Dictionary<int, List<(CellGroupDoor door, MeshGroupKey other, CellGroupDoor otherDoor)>> TouchingDoors => touchingDoors.Value;
+            private readonly Lazy<Dictionary<int, List<(CellGroupDoor door, MeshGroupKey other, CellGroupDoor otherDoor)>>> touchingDoors;
+
+            /// <summary>
             /// The cells FindCell has queued and its queue, per thread.
             /// </summary>
             [ThreadStatic]
@@ -241,10 +247,13 @@ namespace ACE.Server.Pathfinding
             /// </summary>
             public LandblockGroups()
             {
+                touchingDoors = new Lazy<Dictionary<int, List<(CellGroupDoor, MeshGroupKey, CellGroupDoor)>>>(new Dictionary<int, List<(CellGroupDoor, MeshGroupKey, CellGroupDoor)>>());
             }
 
             public LandblockGroups(uint landblockId)
             {
+                touchingDoors = new Lazy<Dictionary<int, List<(CellGroupDoor, MeshGroupKey, CellGroupDoor)>>>(() => FindTouchingDoors(landblockId, ByIndex.Values));
+
                 foreach (var group in CellGroupLoader.LoadCellGroups(landblockId))
                 {
                     if (group.Index > MaxGroup)

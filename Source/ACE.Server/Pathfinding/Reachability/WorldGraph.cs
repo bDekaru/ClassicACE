@@ -103,6 +103,11 @@ namespace ACE.Server.Pathfinding.Reachability
         private readonly bool[] unknownInterior;
 
         /// <summary>
+        /// By outdoor node, its outdoor area (see GetOutdoorArea).
+        /// </summary>
+        private int[] outdoorArea;
+
+        /// <summary>
         /// By travel profile, level band, then node.
         /// </summary>
         private ReachabilityLabel[][][] labels;
@@ -156,13 +161,13 @@ namespace ACE.Server.Pathfinding.Reachability
         /// </summary>
         public int TouchingDoorJoinCount { get; private set; }
 
-        private const float TouchingDoorDistance = 0.5f;
+        public const float TouchingDoorDistance = 0.5f;
         private const float TouchingDoorFacing = -0.9f;
         private const float TouchingDoorCell = 4f;
 
         /// <summary>
         /// True if two doorways open straight into each other: thresholds (in the same coordinates) within half a meter,
-        /// facing each other. Route planning crosses them the same way (GetOtherSideOfDoorway).
+        /// facing each other. Route planning crosses them the same way (Pathfinder.FindTouchingDoors).
         /// </summary>
         public static bool DoorsTouch(Vector3 positionA, Vector3 normalA, Vector3 positionB, Vector3 normalB)
         {
@@ -219,6 +224,20 @@ namespace ACE.Server.Pathfinding.Reachability
         }
 
         /// <summary>
+        /// The outdoor spot's area, -1 if it has no piece or no summary yet: outdoor pieces joined at landblock borders
+        /// and by ledge drops either way, never through buildings, so two spots in different areas can't be walked
+        /// between without going indoors. Optimistic: landblocks waiting for their summary join what borders them.
+        /// </summary>
+        public int GetOutdoorArea(GraphSpot spot)
+        {
+            if (spot.Group != GraphSpot.Outdoors)
+                return -1;
+
+            var (known, _) = GetNodes(spot);
+            return known < 0 ? -1 : outdoorArea[known];
+        }
+
+        /// <summary>
         /// The spot's node in the graph of what is summarized (-1 if it has none: no summary yet, or no piece), and in
         /// the optimistic one, where a landblock or interior waiting for its summary is one node.
         /// </summary>
@@ -263,6 +282,7 @@ namespace ACE.Server.Pathfinding.Reachability
             // the recall node is the one past the last
             var recall = graph.NodeCount;
             var known = new DisjointSet(graph.NodeCount + 1);
+            var areas = new DisjointSet(interiorBase[0]);
             var optimisticJoins = new List<(int, int)>();
 
             void JoinBorder(int a, int b, int sideA)
@@ -276,7 +296,10 @@ namespace ACE.Server.Pathfinding.Reachability
                     foreach (var spanA in summaryA.Spans.Where(s => s.Side == sideA))
                         foreach (var spanB in spansB)
                             if (OverlapSlabs(spanA, spanB, climb))
+                            {
                                 known.Union(nodeBase[a] + spanA.Piece, nodeBase[b] + spanB.Piece);
+                                areas.Union(nodeBase[a] + spanA.Piece, nodeBase[b] + spanB.Piece);
+                            }
                 }
                 else if (summaryA != null && unknown[b])
                     optimisticJoins.AddRange(summaryA.Spans.Where(s => s.Side == sideA).Select(s => (nodeBase[a] + s.Piece, nodeBase[b])));
@@ -295,13 +318,21 @@ namespace ACE.Server.Pathfinding.Reachability
                     JoinBorder(i, i + 1, 1);
             }
 
+            // so far only outdoor ones
+            foreach (var (a, b) in optimisticJoins)
+                areas.Union(a, b);
+
             var drops = new List<(int from, int to)>();
             for (var i = 0; i < summaries.Length; i++)
             {
                 var tile = summaries[i];
                 var interior = interiors[i];
                 if (tile != null)
-                    drops.AddRange(tile.LedgeDrops.Select(d => (nodeBase[i] + d.from, nodeBase[i] + d.to)));
+                    foreach (var (from, to) in tile.LedgeDrops)
+                    {
+                        drops.Add((nodeBase[i] + from, nodeBase[i] + to));
+                        areas.Union(nodeBase[i] + from, nodeBase[i] + to);
+                    }
 
                 // a doorway joins when both sides found it passable: the tile the piece in front, the group the one inside
                 if (interior != null)
@@ -402,6 +433,7 @@ namespace ACE.Server.Pathfinding.Reachability
 
             var (knownGroup, knownGroupCount) = GetGroups(known);
             var (optimisticGroup, optimisticGroupCount) = GetGroups(optimistic);
+            graph.outdoorArea = GetGroups(areas).group;
             var knownSeedGroups = knownSeeds.Select(n => knownGroup[n]).Distinct().ToList();
             var optimisticSeedGroups = optimisticSeeds.Select(n => optimisticGroup[n]).Distinct().ToList();
             graph.GroupCount = knownGroupCount - 1;

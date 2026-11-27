@@ -130,7 +130,7 @@ namespace ACE.Server.Pathfinding.Reachability
         /// <summary>
         /// Bump when the summaries built from the same input change, so they are built again.
         /// </summary>
-        public const int Version = 3;
+        public const int Version = 4;
 
         private const uint FileMagic = 0x49524341; // "ACRI"
 

@@ -39,13 +39,19 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public readonly Vector3 Normal;
 
-        public CellGroupDoor(uint cellId, Vector3 position, float top, float width, Vector3 normal)
+        /// <summary>
+        /// One edge of an opening in a floor or ceiling (see AddOpeningEdgeDoors): open above, so Top is no lintel.
+        /// </summary>
+        public readonly bool IsOpeningEdge;
+
+        public CellGroupDoor(uint cellId, Vector3 position, float top, float width, Vector3 normal, bool isOpeningEdge = false)
         {
             CellId = cellId;
             Position = position;
             Top = top;
             Width = width;
             Normal = normal;
+            IsOpeningEdge = isOpeningEdge;
         }
     }
 
@@ -253,7 +259,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 if (Vector3.Dot(normal, middle - center) < 0f)
                     normal = -normal;
 
-                group.Doors.Add(new CellGroupDoor(cellId, new Vector3(middle.X, middle.Y, Math.Min(a.Z, b.Z)), Math.Max(a.Z, b.Z), length, normal));
+                group.Doors.Add(new CellGroupDoor(cellId, new Vector3(middle.X, middle.Y, Math.Min(a.Z, b.Z)), Math.Max(a.Z, b.Z), length, normal, true));
             }
         }
 
@@ -324,7 +330,7 @@ namespace ACE.Server.Pathfinding.Geometry
             // the merged threshold: centered along the wall, on the lower opening's wall plane and floor
             var position = lower.Position + along * ((min + max) * 0.5f - Vector3.Dot(lower.Position, along));
 
-            door = new CellGroupDoor(lower.CellId, position, Math.Max(a.Top, b.Top), max - min, lower.Normal);
+            door = new CellGroupDoor(lower.CellId, position, Math.Max(a.Top, b.Top), max - min, lower.Normal, a.IsOpeningEdge && b.IsOpeningEdge);
             return true;
         }
 

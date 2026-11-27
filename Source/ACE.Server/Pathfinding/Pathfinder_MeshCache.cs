@@ -101,6 +101,11 @@ namespace ACE.Server.Pathfinding
             public readonly List<CellGroupDoor> PassableDoors;
 
             /// <summary>
+            /// The mesh component (see FindComponents) of each passable doorway's door poly, in the order of PassableDoors.
+            /// </summary>
+            public readonly int[] PassableDoorComponents;
+
+            /// <summary>
             /// Loaded with a mesh, Loading for a placeholder, or Empty or Failed for a load that ended without one.
             /// </summary>
             public readonly MeshLoadStatus Status;
@@ -110,10 +115,11 @@ namespace ACE.Server.Pathfinding
             /// </summary>
             public bool IsPlaceholder => Mesh == null;
 
-            public InteriorMesh(DtNavMesh mesh, List<CellGroupDoor> passableDoors)
+            public InteriorMesh(DtNavMesh mesh, List<(CellGroupDoor door, int component)> passableDoors)
             {
                 Mesh = mesh;
-                PassableDoors = passableDoors;
+                PassableDoors = passableDoors.Select(d => d.door).ToList();
+                PassableDoorComponents = passableDoors.Select(d => d.component).ToArray();
                 Status = MeshLoadStatus.Loaded;
             }
 

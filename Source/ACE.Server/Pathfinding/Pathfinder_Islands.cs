@@ -292,20 +292,38 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The doorways of a cell group an agent can get through on the group's mesh (built for that agent's size), from
-        /// the door aprons it has left (see DoorApron). Islands must be marked first.
+        /// the door aprons it has left (see DoorApron), each with the mesh component its door poly is in (see
+        /// FindComponents): two doorways are connected inside the group only if they share one. Islands must be marked first.
         /// </summary>
-        private static List<CellGroupDoor> FindPassableDoors(DtNavMesh mesh, CellGroup cellGroup, AgentSize agentSize)
+        private static List<(CellGroupDoor door, int component)> FindPassableDoors(DtNavMesh mesh, CellGroup cellGroup, AgentSize agentSize)
         {
+            var tile = mesh.GetMaxTiles() > 0 ? mesh.GetTile(0) : null;
+            var component = tile?.data?.header != null ? FindComponents(mesh, tile).component : null;
+
             using var lease = new MeshLease(mesh);
-            return cellGroup.Doors.Where(door => FindDoorPoly(lease.Query, cellGroup, door, agentSize, PassableDoorFilter) != 0).ToList();
+            var doors = new List<(CellGroupDoor door, int component)>();
+            foreach (var door in cellGroup.Doors)
+            {
+                var doorRef = FindDoorPoly(lease.Query, cellGroup, door, agentSize, PassableDoorFilter);
+                if (doorRef == 0)
+                    continue;
+
+                mesh.GetTileAndPolyByRefUnsafe(doorRef, out _, out var poly);
+                doors.Add((door, component != null && poly != null ? component[poly.index] : -1));
+            }
+            return doors;
         }
 
         /// <summary>
         /// The door poly of a doorway's apron on a cell group's mesh of an agent size, among the polys the filter
-        /// passes; 0 if there is none.
+        /// passes; 0 if there is none or the doorway is too narrow or too low for the agent.
         /// </summary>
         private static long FindDoorPoly(DtNavMeshQuery query, CellGroup cellGroup, CellGroupDoor door, AgentSize agentSize, IDtQueryFilter filter)
         {
+            // Recast can join an apron to the floor inside under a lintel thinner than a voxel (a low window)
+            if (door.Width + AgentSizeTolerance < 2f * GetAgentRadius(agentSize) || (!door.IsOpeningEdge && door.Top - door.Position.Z + AgentSizeTolerance < GetAgentHeight(agentSize)))
+                return 0;
+
             var center = DoorApron.GetCenter(door, agentSize);
             var status = query.FindNearestPoly(ToMeshPoint(0, center, false), GetDoorPolyHalfExtents(agentSize), filter, out var doorRef, out var doorPt, out _);
             if (status.Failed() || doorRef == 0)
@@ -314,8 +332,10 @@ namespace ACE.Server.Pathfinding
             // the door poly found could belong to the apron of a doorway next to this one
             var found = FromMeshPoint(doorPt);
             var owner = cellGroup.Doors.MinBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentSize), found));
-            return owner.CellId == door.CellId && owner.Position == door.Position ? doorRef : 0;
+            return IsSameDoor(owner, door) ? doorRef : 0;
         }
+
+        private static bool IsSameDoor(CellGroupDoor a, CellGroupDoor b) => a.CellId == b.CellId && a.Position == b.Position;
 
         /// <summary>
         /// The doorways of a cell group an agent of the given size can get through (see FindPassableDoors). Loads the
@@ -323,15 +343,23 @@ namespace ACE.Server.Pathfinding
         /// An empty or failed mesh (see InteriorMesh.Status) also returns all doorways: a route from outside then leads
         /// to the doorway and ends there, so a creature too big for the group still heads for it.
         /// </summary>
-        private static List<CellGroupDoor> GetDoors(MeshGroupKey key, CellGroup cellGroup, AgentSize agentSize)
+        /// <param name="components">The mesh component of each doorway returned (see FindPassableDoors), or null when
+        /// that isn't known and every doorway counts as connected</param>
+        private static List<CellGroupDoor> GetDoors(MeshGroupKey key, CellGroup cellGroup, AgentSize agentSize, out int[] components)
         {
+            components = null;
+
             if (!Meshes.TryGetValue(GetMeshId(key.LandblockId, key.Index, agentSize), out var interiorMesh))
             {
                 TryLoadInteriorMesh(key.LandblockId, key.Index);
                 return cellGroup.Doors;
             }
 
-            return interiorMesh.PassableDoors ?? cellGroup.Doors;
+            if (interiorMesh.PassableDoors == null)
+                return cellGroup.Doors;
+
+            components = interiorMesh.PassableDoorComponents;
+            return interiorMesh.PassableDoors;
         }
 
         /// <summary>
