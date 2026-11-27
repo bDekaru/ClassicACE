@@ -18,6 +18,7 @@ namespace ACE.DatBuilder
         ToD,
         EoR,
         Admin2005,
+        DarkMajestyDisc,
     }
 
     /// <summary>
@@ -26,7 +27,7 @@ namespace ACE.DatBuilder
     /// </summary>
     public class DatMapSources
     {
-        // MD5 of each file as checked 2026-11-17.
+        // MD5 of each file as checked 2026-11-17 (the 2001-09-12 one 2026-11-27).
         public static readonly IReadOnlyDictionary<DatMapSource, (string File, bool RetailLayout)> Files = new Dictionary<DatMapSource, (string, bool)>
         {
             // MD5 8e61b2b6dfae5bef16f3ef670a6869df
@@ -45,6 +46,8 @@ namespace ACE.DatBuilder
             [DatMapSource.EoR] = ("cell - 2016-12-23 - Iteration 982 - 100% - EoR.dat", false),
             // The cell dat the destination is converted from (MD5 0f32588ffbf648cd0695a4dbd6488205), for edits that put a 2005 building back.
             [DatMapSource.Admin2005] = (DatBuildRecipes.PreToDCellDat, true),
+            // The 2001-09-12 snapshot (Dark Majesty CD), MD5 8b1210713dd0381be164fe9edb563c6e
+            [DatMapSource.DarkMajestyDisc] = ("cell - 2001-09-12 - Iteration 375 - 100% - Dark Majesty.dat", true),
         };
 
         private readonly string _sourceDats;
@@ -223,13 +226,14 @@ namespace ACE.DatBuilder
                 Rect(0x54FB, 0x61EB),
                 Rect(0x61FB, 0x6CEE),
                 Rect(0x6CFB, 0x72F2),
-                Rect(0xD1ED, 0xDAE2, 0xD1F9), // The part of this area whose destination the next two Eastern Island rectangles overwrite is left out (x DB-E1 below y E7, all of x E2).
+                Rect(0xD1ED, 0xDAE2, 0xD1F9), // The part of this area whose destination the Eastern Island rectangles overwrite is left out (x DB-E1 below y E7, all of x E2).
                 Rect(0xDBED, 0xE1E7, 0xDBF9),
-                Rect(0xE2C6, 0xFD6D, 0xE2FD),
-                Rect(0xE96D, 0xF061, 0xE9A4),
                 Rect(0xDBBB, 0xE29E, 0xDBF2),
                 Rect(0xD6E8, 0xDADF, 0xD6DF),
             });
+
+            // Eastern Island, from a later dat than the other islands: the same terrain, plus a huge hut, an object and two Shadow Spires pieces (removed below).
+            map.ReplaceRects(sources.Get(DatMapSource.DarkMajestyDisc), new[] { Rect(0xE2C6, 0xFD6D, 0xE2FD), Rect(0xE96D, 0xF061, 0xE9A4) });
 
             // Old Marae Lassel: the dat's old terrain words are swapped for the ones the current client draws before the landblocks are taken.
             var marae = new[]
@@ -284,9 +288,12 @@ namespace ACE.DatBuilder
             foreach (var landblock in new uint[] { 0x66780000, 0x667A0000 })
                 map.ReplaceLandblock(landblock, portalIs2005 ? sources.Get(DatMapSource.Admin2005) : eor, false, false, false, true);
 
-            // Buildings retail never loaded (has-objects flag off from 1999-2000 until ToD emptied them): a large building that doesn't load, two Shadow Spires
-            // event pieces and a Sho house. No world spawn is in their cells.
-            foreach (var landblock in new uint[] { 0x24580000, 0x24590000, 0x25770000, 0x26770000, 0x287F0000, 0xC0810000, 0xDB470000, 0xF95D0000 })
+            // Buildings retail never loaded (has-objects flag off from 1999-2000 until ToD emptied them). Four copies of a huge hut are switched on.
+            foreach (var landblock in new uint[] { 0x24590000, 0x25770000, 0x26770000, 0x287F0000 })
+                map.SetHasObjects(landblock);
+
+            // The rest go (an empty record, three landblocks of Shadow Spires event pieces and a Sho house). No world spawn is in their cells.
+            foreach (var landblock in new uint[] { 0x24580000, 0xC0810000, 0xDB470000, 0xF4D80000, 0xF95D0000 })
                 map.RemoveLandblockInfo(landblock);
         }
     }

@@ -757,6 +757,22 @@ namespace ACE.DatLoader
             return true;
         }
 
+        /// <summary>Sets a landblock's has-objects flag, without which its landblock info (buildings and static objects) is never loaded.</summary>
+        /// <returns>False if the landblock doesn't exist or has no landblock info.</returns>
+        public bool SetHasObjects(uint cellIdInLandblock)
+        {
+            var landblockId = LandblockId(cellIdInLandblock);
+
+            if (!_store.Contains(LandblockInfoId(landblockId)) || !_store.TryGet(landblockId, out var landblock))
+                return false;
+
+            landblock = (byte[])landblock.Clone();
+            landblock[LandblockHasObjectsOffset] = 1;
+            _store.Set(landblockId, landblock);
+
+            return true;
+        }
+
         /// <summary>Copies the terrain parts of a landblock from another store; a landblock the source lacks is removed here unless <paramref name="createOnly"/>.</summary>
         public void ReplaceTerrain(uint cellIdInLandblock, DatCellStore from, bool heightmap = true, bool textures = true, bool createOnly = false)
         {
