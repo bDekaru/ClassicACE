@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace ACE.Server.Pathfinding.Reachability
 {
@@ -145,9 +146,28 @@ namespace ACE.Server.Pathfinding.Reachability
         /// <summary>
         /// Doorways passable from inside that join nothing: their landblock's tile summary has no outdoor piece in front
         /// of them. Mostly openings with no floor outside (upper-floor windows and doors, tower doors onto a narrow
-        /// ledge), a few whose outside lies in a neighbor. Landblocks without a tile summary aren't counted.
+        /// ledge) and doorways opening into another group's (see TouchingDoorJoinCount). Landblocks without a tile
+        /// summary aren't counted.
         /// </summary>
         public int DoorUnjoinedCount { get; private set; }
+
+        /// <summary>
+        /// Pairs of passable doorways of different pieces joined because their thresholds touch, facing each other.
+        /// </summary>
+        public int TouchingDoorJoinCount { get; private set; }
+
+        private const float TouchingDoorDistance = 0.5f;
+        private const float TouchingDoorFacing = -0.9f;
+        private const float TouchingDoorCell = 4f;
+
+        /// <summary>
+        /// True if two doorways open straight into each other: thresholds (in the same coordinates) within half a meter,
+        /// facing each other. Route planning crosses them the same way (GetOtherSideOfDoorway).
+        /// </summary>
+        public static bool DoorsTouch(Vector3 positionA, Vector3 normalA, Vector3 positionB, Vector3 normalB)
+        {
+            return Vector3.Distance(positionA, positionB) <= TouchingDoorDistance && Vector3.Dot(normalA, normalB) <= TouchingDoorFacing;
+        }
 
         private WorldGraph(TileSummary[] summaries, bool[] unknown, InteriorSummary[] interiors, bool[] unknownInterior)
         {
@@ -313,6 +333,37 @@ namespace ACE.Server.Pathfinding.Reachability
                     else if (unknown[i])
                         optimisticJoins.Add((nodeBase[i], interiorBase[i]));
                 }
+            }
+
+            // a doorway that opens straight into another group's (buildings built against each other, also across a
+            // landblock border) has its outdoor side inside the other group, so it joins that doorway's inside piece
+            var thresholds = new List<(int node, Vector3 position, Vector3 normal)>();
+            for (var i = 0; i < interiors.Length; i++)
+            {
+                if (interiors[i] == null)
+                    continue;
+
+                var origin = new Vector3((i >> 8) * Physics.Common.LandDefs.BlockLength, (i & 0xFF) * Physics.Common.LandDefs.BlockLength, 0);
+                foreach (var group in interiors[i].Groups)
+                    foreach (var door in group.Doors)
+                        thresholds.Add((graph.GetInteriorNode(i, group.Index, door.Piece), origin + door.Position, door.Normal));
+            }
+
+            (int, int) ThresholdCell(Vector3 p) => ((int)MathF.Floor(p.X / TouchingDoorCell), (int)MathF.Floor(p.Y / TouchingDoorCell));
+            var byCell = Enumerable.Range(0, thresholds.Count).ToLookup(t => ThresholdCell(thresholds[t].position));
+            for (var a = 0; a < thresholds.Count; a++)
+            {
+                var (cellX, cellY) = ThresholdCell(thresholds[a].position);
+                for (var dx = -1; dx <= 1; dx++)
+                    for (var dy = -1; dy <= 1; dy++)
+                        foreach (var b in byCell[(cellX + dx, cellY + dy)])
+                        {
+                            if (b > a && thresholds[a].node != thresholds[b].node && DoorsTouch(thresholds[a].position, thresholds[a].normal, thresholds[b].position, thresholds[b].normal))
+                            {
+                                known.Union(thresholds[a].node, thresholds[b].node);
+                                graph.TouchingDoorJoinCount++;
+                            }
+                        }
             }
 
             var seedNodes = seeds.Select(graph.GetNodes).ToList();

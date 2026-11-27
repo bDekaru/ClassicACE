@@ -2,6 +2,7 @@
 // This code is based on Trevis' pathfinding proof of concept at https://gitlab.com/trevis/ace.mods.pathfinding/-/tree/master
 //
 
+using ACE.DatLoader;
 using ACE.Entity;
 using ACE.Server.Entity;
 using ACE.Server.Managers;
@@ -920,8 +921,9 @@ namespace ACE.Server.Pathfinding
                     if (nx < 0 || ny < 0 || nx > 0xFF || ny > 0xFF)
                         continue;
 
+                    // row and column FF have no record, and reading a missing one logs it
                     var sourceId = GetLandblockId(nx, ny);
-                    var landblock = ACE.Server.Physics.Common.Landblock.CreateDetached(sourceId);
+                    var landblock = DatManager.CellDat.AllFiles.ContainsKey(sourceId | 0xFFFF) ? ACE.Server.Physics.Common.Landblock.CreateDetached(sourceId) : null;
                     if (landblock == null)
                         continue; // past the edge of the world
 

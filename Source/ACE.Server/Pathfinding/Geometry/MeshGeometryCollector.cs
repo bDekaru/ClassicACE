@@ -465,10 +465,10 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// Terrain this far below an interior floor (or anywhere above it, up to the cell's ceiling) is removed.
         /// A little under the smallest agent height (2.4 m for Small): terrain closer under a floor than this leaves too
-        /// little headroom to walk on anyway.
+        /// little headroom to walk on anyway. Terrain above the ceiling stays, however close: it is the ground over a
+        /// cellar (B2A1's yard lies 0.2 m over one).
         /// </summary>
         private const float TerrainCutBelowFloor = 2.0f;
-        private const float TerrainCutAboveCeiling = 0.5f;
 
         /// <summary>
         /// How far past its own landblock the geometry of an outdoor tile reaches into its neighbors. Must cover the
@@ -527,6 +527,8 @@ namespace ACE.Server.Pathfinding.Geometry
             public FootprintBounds Bounds = new FootprintBounds();
             public List<Vector3[]> Floors = new List<Vector3[]>();
             public List<Vector3> FloorNormals = new List<Vector3>();
+            public List<Vector3[]> Ceilings = new List<Vector3[]>();
+            public List<Vector3> CeilingNormals = new List<Vector3>();
             public float MaxZ = float.MinValue;
         }
 
@@ -707,7 +709,9 @@ namespace ACE.Server.Pathfinding.Geometry
 
             foreach (var cell in cells)
             {
-                if (cell == null)
+                // physics only checks the terrain from a cell next to its outside portal, and the outdoors never enters
+                // a cell but through a building portal: ground over a cellar or cave that can't see outside stays ground
+                if (cell == null || !cell.SeenOutside)
                     continue;
 
                 var environment = DatManager.PortalDat.ReadFromDat<Environment>(cell.EnvironmentId);
@@ -716,7 +720,12 @@ namespace ACE.Server.Pathfinding.Geometry
 
                 var footprint = new CellFootprint();
 
-                foreach (var poly in cellStruct.PhysicsPolygons.Values)
+                // a stairwell is a portal in the floor, not a physics polygon: without it the terrain stays in the hole
+                var portalIds = cell.CellPortals.Where(p => p.OtherCellId != 0xFFFF).Select(p => p.PolygonId).ToHashSet();
+                var polygons = cellStruct.PhysicsPolygons.Values.Select(p => (poly: p, portal: false))
+                    .Concat(cellStruct.Polygons.Where(kv => portalIds.Contains(kv.Key)).Select(kv => (poly: kv.Value, portal: true)));
+
+                foreach (var (poly, portal) in polygons)
                 {
                     if (poly.VertexIds.Count < 3)
                         continue;
@@ -726,7 +735,18 @@ namespace ACE.Server.Pathfinding.Geometry
                     foreach (var p in points)
                         footprint.MaxZ = Math.Max(footprint.MaxZ, p.Z);
 
+                    // portal polygons face either way
                     var normal = GeometryHelpers.GetPolygonNormal(points);
+                    if (portal && normal.Z < 0)
+                        normal = -normal;
+
+                    if (!portal && normal.Z < -0.01f)
+                    {
+                        footprint.Ceilings.Add(points);
+                        footprint.CeilingNormals.Add(normal);
+                    }
+
+                    // walls have no usable 2D outline
                     if (normal.Z < floorZ)
                         continue;
 
@@ -755,9 +775,16 @@ namespace ACE.Server.Pathfinding.Geometry
             return inside;
         }
 
+        private static float PlaneZ(Vector3[] poly, Vector3 normal, float x, float y)
+        {
+            return poly[0].Z - (normal.X * (x - poly[0].X) + normal.Y * (y - poly[0].Y)) / normal.Z;
+        }
+
         /// <summary>
         /// True if a terrain point at (x, y, terrainZ) lies inside an interior cell: within a floor's 2D outline,
-        /// no more than TerrainCutBelowFloor below that floor and not above the cell's ceiling.
+        /// no more than TerrainCutBelowFloor below that floor and not above the cell's ceiling at (x, y), which is the
+        /// lowest ceiling polygon over the floor there, or the cell's top where none covers it (a cave's ceiling
+        /// slopes, so its top can be well above the ground over a low part).
         /// </summary>
         private static bool IsInsideInterior(List<CellFootprint> footprints, float x, float y, float terrainZ)
         {
@@ -765,7 +792,7 @@ namespace ACE.Server.Pathfinding.Geometry
             {
                 if (!footprint.Bounds.ContainsPoint2D(new Vector3(x, y, 0)))
                     continue;
-                if (terrainZ > footprint.MaxZ + TerrainCutAboveCeiling)
+                if (terrainZ > footprint.MaxZ)
                     continue;
 
                 for (var i = 0; i < footprint.Floors.Count; i++)
@@ -774,10 +801,23 @@ namespace ACE.Server.Pathfinding.Geometry
                     if (!PointInPolygon2D(floor, x, y))
                         continue;
 
-                    var n = footprint.FloorNormals[i];
-                    var floorHeight = floor[0].Z - (n.X * (x - floor[0].X) + n.Y * (y - floor[0].Y)) / n.Z;
+                    var floorHeight = PlaneZ(floor, footprint.FloorNormals[i], x, y);
+                    if (terrainZ < floorHeight - TerrainCutBelowFloor)
+                        continue;
 
-                    if (terrainZ >= floorHeight - TerrainCutBelowFloor)
+                    var ceilingHeight = footprint.MaxZ;
+                    for (var c = 0; c < footprint.Ceilings.Count; c++)
+                    {
+                        var ceiling = footprint.Ceilings[c];
+                        if (!PointInPolygon2D(ceiling, x, y))
+                            continue;
+
+                        var z = PlaneZ(ceiling, footprint.CeilingNormals[c], x, y);
+                        if (z > floorHeight && z < ceilingHeight)
+                            ceilingHeight = z;
+                    }
+
+                    if (terrainZ <= ceilingHeight)
                         return true;
                 }
             }

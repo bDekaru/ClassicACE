@@ -98,7 +98,7 @@ namespace ACE.Server.Pathfinding
             {
                 var from = source.Anywhere ? anywhere : null;
                 if (from == null && !placedLists.TryGetValue(source.From, out from))
-                    placedLists[source.From] = from = source.From.Select(p => GetGraphSpot(summaries, interiors, p)).Distinct().ToList();
+                    placedLists[source.From] = from = source.From.Select(p => GetUseSpot(summaries, interiors, p)).Distinct().ToList();
 
                 var maxLevel = maxLevelApplies ? source.MaxLevel : 0;
                 if (source.NpcMaxLevel > 0 && (maxLevel == 0 || source.NpcMaxLevel < maxLevel))
@@ -109,6 +109,41 @@ namespace ACE.Server.Pathfinding
                         links.Add(new TravelLink { From = spot, To = to, MinLevel = source.MinLevel, MaxLevel = maxLevel, Kind = source.Kind, Anywhere = source.Anywhere, Source = source.Source });
             }
             return links;
+        }
+
+        /// <summary>
+        /// How far around an outdoor travel start the ground is looked for: the object stands on its own spot and is used
+        /// from beside it, about touching distance.
+        /// </summary>
+        private static readonly float[] UseReaches = { 1f, 2f };
+
+        /// <summary>
+        /// The graph spot a player uses a travel start from: the spot itself, or outdoors where the object's own map cell
+        /// has no piece, the ground beside it.
+        /// </summary>
+        private static GraphSpot GetUseSpot(TileSummary[] summaries, InteriorSummary[] interiors, Position position)
+        {
+            var spot = GetGraphSpot(summaries, interiors, position);
+            var summary = summaries[spot.Landblock];
+            if (spot.Piece != TileSummary.NoPiece || spot.Group != GraphSpot.Outdoors || summary == null)
+                return spot;
+
+            var terrain = ReadTerrain(summary.LandblockId);
+            var local = position.Pos;
+            foreach (var reach in UseReaches)
+            {
+                for (var i = 0; i < 16; i++)
+                {
+                    var around = new Vector3(local.X + reach * MathF.Cos(i * MathF.PI / 8), local.Y + reach * MathF.Sin(i * MathF.PI / 8), local.Z);
+                    if (around.X < 0f || around.Y < 0f || around.X >= Position.BlockLength || around.Y >= Position.BlockLength)
+                        continue;
+
+                    var piece = GetSummaryPiece(summary, around, terrain);
+                    if (piece != TileSummary.NoPiece)
+                        return new GraphSpot(spot.Landblock, GraphSpot.Outdoors, piece);
+                }
+            }
+            return spot;
         }
 
         private static List<TravelSource> LoadTravelSources()

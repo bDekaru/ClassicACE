@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 
 namespace ACE.Server.Pathfinding.Reachability
 {
@@ -76,6 +77,8 @@ namespace ACE.Server.Pathfinding.Reachability
             {
                 writer.Write(door.Door);
                 writer.Write(door.Piece);
+                foreach (var value in new[] { door.Position.X, door.Position.Y, door.Position.Z, door.Normal.X, door.Normal.Y, door.Normal.Z })
+                    writer.Write(value);
             }
 
             writer.Write(Cells.Count);
@@ -97,7 +100,14 @@ namespace ACE.Server.Pathfinding.Reachability
 
             var doorCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
             for (var i = 0; i < doorCount; i++)
-                group.Doors.Add(new SummaryDoor { Group = group.Index, Door = reader.ReadUInt16(), Piece = SummaryFile.ReadPiece(reader, label, pieceCount) });
+                group.Doors.Add(new SummaryDoor
+                {
+                    Group = group.Index,
+                    Door = reader.ReadUInt16(),
+                    Piece = SummaryFile.ReadPiece(reader, label, pieceCount),
+                    Position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),
+                    Normal = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),
+                });
 
             var cellCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
             for (var i = 0; i < cellCount; i++)
@@ -120,7 +130,7 @@ namespace ACE.Server.Pathfinding.Reachability
         /// <summary>
         /// Bump when the summaries built from the same input change, so they are built again.
         /// </summary>
-        public const int Version = 1;
+        public const int Version = 3;
 
         private const uint FileMagic = 0x49524341; // "ACRI"
 

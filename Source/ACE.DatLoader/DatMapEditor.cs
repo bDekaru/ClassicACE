@@ -108,6 +108,7 @@ namespace ACE.DatLoader
         private const int LandblockHeightBytes = 81;
 
         private readonly DatCellStore _store;
+        private readonly Dictionary<uint, byte[]> _emptyCells = new Dictionary<uint, byte[]>();
 
         public DatMapEditor(DatCellStore store)
         {
@@ -472,10 +473,11 @@ namespace ACE.DatLoader
         }
 
         /// <summary>
-        /// Removes the building that has <paramref name="cellInBuilding"/> among its portals' visible cells, as Melt's removeBuilding does with removeCells off.
-        /// Object removal covers the building's own outdoor cell. NumCells is left as it was.
+        /// Removes the building that has <paramref name="cellInBuilding"/> among its portals' visible cells, and its cells (Melt's removeBuilding kept them by
+        /// default, leaving interiors with no way in). Object removal covers the building's own outdoor cell. NumCells goes down to the highest cell left,
+        /// so no missing ids are read past it and a landblock left with no cells is not taken for a dungeon; removed ids below it get empty cells.
         /// </summary>
-        public bool RemoveBuilding(uint cellInBuilding, bool removeObjects = false, IReadOnlyCollection<uint> objectIds = null, bool removeCells = false)
+        public bool RemoveBuilding(uint cellInBuilding, bool removeObjects = false, IReadOnlyCollection<uint> objectIds = null)
         {
             var infoId = LandblockInfoId(cellInBuilding);
 
@@ -500,8 +502,22 @@ namespace ACE.DatLoader
                     RemoveObjectsInCell(cell, cell & 0xFFFF0000, info, objectIds);
                 }
 
-                if (removeCells)
-                    RemoveCellsFrom(cellInBuilding);
+                var removed = RemoveCellsFrom(cellInBuilding);
+                info.NumCells = _store.CellsOf(cellInBuilding).Where(id => !IsEmptyCell(id)).Select(id => (id & 0xFFFF) - 0xFF).Where(n => n <= info.NumCells).DefaultIfEmpty(0u).Max();
+
+                // the client loads every cell id below NumCells and asks the server for a missing one, so a gap gets an empty cell instead
+                foreach (var id in _store.CellsOf(cellInBuilding).Where(id => IsEmptyCell(id) && (id & 0xFFFF) - 0xFF > info.NumCells))
+                    _store.Remove(id);
+
+                foreach (var cell in removed)
+                {
+                    if ((cell.Key & 0xFFFF) - 0xFF > info.NumCells)
+                        continue;
+
+                    var empty = EmptyCell(cell.Value);
+                    _store.Set(cell.Key, empty);
+                    _emptyCells[cell.Key] = empty;
+                }
 
                 _store.Set(infoId, info.Pack());
                 return true;
@@ -521,6 +537,22 @@ namespace ACE.DatLoader
             visibleAt = portalsAt + portalCount * CellPortalBytes;
             visibleCount = BitConverter.ToUInt16(cell, 14);
         }
+
+        /// <summary>A cell record cut after its frame: same id, surfaces and environment, but no flags, portals, visible cells or objects.</summary>
+        private static byte[] EmptyCell(byte[] cell)
+        {
+            CellLayout(cell, out var portalsAt, out _, out _, out _);
+
+            var result = new byte[portalsAt];
+            Array.Copy(cell, result, portalsAt);
+            Array.Clear(result, 4, 4);
+            result[13] = 0;
+            Array.Clear(result, 14, 2);
+            return result;
+        }
+
+        /// <summary>True while the record is still the empty cell RemoveBuilding wrote, not one a later edit put there.</summary>
+        private bool IsEmptyCell(uint id) => _emptyCells.TryGetValue(id, out var empty) && _store.TryGet(id, out var cell) && cell == empty;
 
         private static IEnumerable<ushort> VisibleCells(byte[] cell)
         {
@@ -556,10 +588,10 @@ namespace ACE.DatLoader
             return result;
         }
 
-        /// <summary>Removes a cell and every cell reachable through visible-cell lists, as Melt's removeCell with recursion does. Returns the number removed.</summary>
-        public int RemoveCellsFrom(uint cellId)
+        /// <summary>Removes a cell and every cell reachable through visible-cell lists, as Melt's removeCell with recursion does. Returns the removed records by id.</summary>
+        public Dictionary<uint, byte[]> RemoveCellsFrom(uint cellId)
         {
-            var removed = 0;
+            var removed = new Dictionary<uint, byte[]>();
             var pending = new Stack<uint>();
             pending.Push(cellId);
 
@@ -571,7 +603,7 @@ namespace ACE.DatLoader
                     continue;
 
                 _store.Remove(id);
-                removed++;
+                removed[id] = cell;
 
                 foreach (var visible in VisibleCells(cell))
                     pending.Push((id & 0xFFFF0000) | visible);
@@ -631,9 +663,9 @@ namespace ACE.DatLoader
 
         /// <summary>
         /// Copies the cells of a building from a store into free cell ids of this landblock, moving the building's portals to the new ids (Melt's copyBuildingCellsNewId).
-        /// The building's visible cells are the ones copied; returns how many cells were written.
+        /// The building's visible cells are the ones copied.
         /// </summary>
-        private int CopyBuildingCells(uint landblockPrefix, Entity.BuildInfo building, DatCellStore from, uint newLowestCellId)
+        private void CopyBuildingCells(uint landblockPrefix, Entity.BuildInfo building, DatCellStore from, uint newLowestCellId)
         {
             var copied = new HashSet<uint>();
             var lowest = building.Portals.SelectMany(p => p.StabList).Select(c => (uint)c).DefaultIfEmpty(uint.MaxValue).Min();
@@ -657,17 +689,16 @@ namespace ACE.DatLoader
 
                 portal.OtherCellId += (ushort)offset;
             }
-
-            return copied.Count;
         }
 
-        private uint CopyBuildingToFreeCells(uint landblockPrefix, Entity.BuildInfo building, DatCellStore from, out int copied)
+        /// <returns>The NumCells that covers the copied cells: the free run can lie in a gap below NumCells or past orphan records.</returns>
+        private uint CopyBuildingToFreeCells(uint landblockPrefix, Entity.BuildInfo building, DatCellStore from)
         {
             var needed = CountCells(from, (landblockPrefix & 0xFFFF0000) | building.Portals[0].OtherCellId);
             var newCell = NextFreeCellBlock(0x0100 | (landblockPrefix & 0xFFFF0000), needed);
 
-            copied = CopyBuildingCells(landblockPrefix, building, from, newCell);
-            return newCell;
+            CopyBuildingCells(landblockPrefix, building, from, newCell);
+            return building.Portals.SelectMany(p => p.StabList).Select(c => (uint)c - 0xFF).DefaultIfEmpty(0u).Max();
         }
 
         /// <summary>
@@ -691,11 +722,36 @@ namespace ACE.DatLoader
             {
                 var info = FileTypes.LandblockInfo.Parse(destinationData);
 
-                CopyBuildingToFreeCells(cellInBuilding, building, from, out var copied);
-
-                info.NumCells += (uint)copied;
+                info.NumCells = Math.Max(info.NumCells, CopyBuildingToFreeCells(cellInBuilding, building, from));
                 info.Buildings.Add(building);
                 _store.Set(infoId, info.Pack());
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Removes a landblock's buildings, static objects and environment cells: the landblock info record goes and the has-objects flag is cleared. The terrain stays.
+        /// </summary>
+        /// <returns>False if the landblock has no landblock info.</returns>
+        public bool RemoveLandblockInfo(uint cellIdInLandblock)
+        {
+            var landblockId = LandblockId(cellIdInLandblock);
+            var infoId = LandblockInfoId(landblockId);
+
+            if (!_store.Contains(infoId))
+                return false;
+
+            foreach (var id in _store.CellsOf(landblockId))
+                _store.Remove(id);
+
+            _store.Remove(infoId);
+
+            if (_store.TryGet(landblockId, out var landblock))
+            {
+                landblock = (byte[])landblock.Clone();
+                Array.Clear(landblock, LandblockHasObjectsOffset, 4);
+                _store.Set(landblockId, landblock);
             }
 
             return true;
@@ -819,7 +875,6 @@ namespace ACE.DatLoader
         /// <summary>
         /// A starter outpost landblock from a store with the pristine spire (Melt's replaceLandblockSpecialForStarterOutposts): the terrain textures and has-objects flag come from the source,
         /// the ruined spire and its cells go, the pristine spire is copied in with new cell ids, and the objects become the portal stands that were here plus the source's objects.
-        /// NumCells is left as it was.
         /// </summary>
         public void ReplaceStarterOutpost(uint cellIdInLandblock, DatCellStore from)
         {
@@ -860,7 +915,7 @@ namespace ACE.DatLoader
 
             if (ruined != null)
             {
-                RemoveBuilding(prefix | ruined.Portals[0].OtherCellId, false, null, true);
+                RemoveBuilding(prefix | ruined.Portals[0].OtherCellId);
                 info = FileTypes.LandblockInfo.Parse(_store.TryGet(infoId, out var refreshed) ? refreshed : destinationData);
             }
 
@@ -871,7 +926,7 @@ namespace ACE.DatLoader
             if (pristine != null)
             {
                 info.Buildings.Add(pristine);
-                CopyBuildingToFreeCells(prefix, pristine, from, out _);
+                info.NumCells = Math.Max(info.NumCells, CopyBuildingToFreeCells(prefix, pristine, from));
             }
 
             _store.Set(infoId, info.Pack());

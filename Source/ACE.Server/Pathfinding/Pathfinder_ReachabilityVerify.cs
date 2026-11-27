@@ -70,7 +70,7 @@ namespace ACE.Server.Pathfinding
             var interiorPieces = Enumerable.Range(0, interiors.Length).Where(i => interiors[i] != null)
                 .SelectMany(i => interiors[i].Groups.SelectMany(g => g.Pieces.Select((piece, k) => (landblock: i, group: g.Index, index: k, piece, spot: new GraphSpot(i, g.Index, (ushort)k), hasDoors: g.Doors.Count > 0))))
                 .ToList();
-            lines.Add($"Interiors: {interiors.Count(s => s != null)} landblocks, {interiorPieces.Count} pieces, {graph.DoorJoinCount} doorways joined to the outside, {graph.DoorUnjoinedCount} not joined to the outside");
+            lines.Add($"Interiors: {interiors.Count(s => s != null)} landblocks, {interiorPieces.Count} pieces, {graph.DoorJoinCount} doorways joined to the outside, {graph.DoorUnjoinedCount} not joined to the outside, {graph.TouchingDoorJoinCount} doorway pairs joined to each other");
             foreach (var level in reportLevels)
             {
                 lines.Add($"  {LevelName(level)}:");

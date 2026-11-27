@@ -330,19 +330,71 @@ namespace ACE.DatLoader.Tests
         }
 
         [TestMethod]
-        public void RemoveBuilding_WithCells_RemovesEveryReachableCell()
+        public void RemoveBuilding_EmptiesReachableCellsBelowACellLeft()
         {
             var target = Store(
                 R(0xAAAAFFFE, BuildingInfo(0xAAAAFFFE, 3, 0x01000500, 0x100, 0x100, 0x101)),
-                R(0xAAAA0100, RealCell(0xAAAA0100, new ushort[] { 0x101 }, new ushort[0])),
+                R(0xAAAA0100, RealCell(0xAAAA0100, new ushort[] { 0x101 }, new ushort[] { 0xFFFF })),
                 R(0xAAAA0101, RealCell(0xAAAA0101, new ushort[] { 0x100 }, new ushort[0])),
                 R(0xAAAA0102, RealCell(0xAAAA0102, new ushort[0], new ushort[0])));
 
-            Assert.IsTrue(new DatMapEditor(target).RemoveBuilding(0xAAAA0100, false, null, true));
+            Assert.IsTrue(new DatMapEditor(target).RemoveBuilding(0xAAAA0100));
+
+            foreach (var id in new[] { 0xAAAA0100u, 0xAAAA0101u })
+            {
+                var cell = Read(target, id);
+                Assert.AreEqual(id, BitConverter.ToUInt32(cell, 0));
+                Assert.AreEqual(0u, BitConverter.ToUInt32(cell, 4), "no flags");
+                Assert.AreEqual(0, cell[13], "no portals");
+                Assert.AreEqual(0, VisibleOf(cell).Length);
+                Assert.AreEqual(16 + 4 + 28, cell.Length, "nothing after the frame");
+            }
+
+            Assert.IsTrue(target.Contains(0xAAAA0102));
+            Assert.AreEqual(3u, FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE)).NumCells, "a cell below the removed ones keeps NumCells");
+        }
+
+        [TestMethod]
+        public void RemoveBuilding_DropsEmptyCellsWhenTheCellsAboveThemGo()
+        {
+            var info = new FileTypes.LandblockInfo { Id = 0xAAAAFFFE, NumCells = 2 };
+
+            foreach (ushort cell in new ushort[] { 0x100, 0x101 })
+            {
+                var building = new BuildInfo { ModelId = 0x01000500, NumLeaves = 1 };
+                building.Portals.Add(new CBldPortal { Flags = (PortalFlags)3, OtherCellId = cell, OtherPortalId = 1 });
+                building.Portals[0].StabList.Add(cell);
+                info.Buildings.Add(building);
+            }
+
+            var target = Store(
+                R(0xAAAAFFFE, info.Pack()),
+                R(0xAAAA0100, RealCell(0xAAAA0100, new ushort[0], new ushort[] { 0xFFFF })),
+                R(0xAAAA0101, RealCell(0xAAAA0101, new ushort[0], new ushort[] { 0xFFFF })));
+            var editor = new DatMapEditor(target);
+
+            Assert.IsTrue(editor.RemoveBuilding(0xAAAA0100));
+            Assert.IsTrue(target.Contains(0xAAAA0100), "emptied while a cell above it is left");
+            Assert.IsTrue(editor.RemoveBuilding(0xAAAA0101));
             Assert.IsFalse(target.Contains(0xAAAA0100));
             Assert.IsFalse(target.Contains(0xAAAA0101));
-            Assert.IsTrue(target.Contains(0xAAAA0102));
-            Assert.AreEqual(3u, FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE)).NumCells, "NumCells stays as Melt leaves it");
+            Assert.AreEqual(0u, FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE)).NumCells);
+        }
+
+        [TestMethod]
+        public void RemoveBuilding_LowersNumCellsToTheHighestCellLeft()
+        {
+            var target = Store(
+                R(0xAAAAFFFE, BuildingInfo(0xAAAAFFFE, 4, 0x01000500, 0x102, 0x102, 0x103)),
+                R(0xAAAA0100, RealCell(0xAAAA0100, new ushort[0], new ushort[0])),
+                R(0xAAAA0102, RealCell(0xAAAA0102, new ushort[] { 0x103 }, new ushort[0])),
+                R(0xAAAA0103, RealCell(0xAAAA0103, new ushort[] { 0x102 }, new ushort[0])),
+                R(0xAAAA0110, RealCell(0xAAAA0110, new ushort[0], new ushort[0])));
+
+            Assert.IsTrue(new DatMapEditor(target).RemoveBuilding(0xAAAA0102));
+            Assert.IsFalse(target.Contains(0xAAAA0102), "cells above the highest cell left are removed, not emptied");
+            Assert.IsFalse(target.Contains(0xAAAA0103));
+            Assert.AreEqual(1u, FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE)).NumCells, "a record past NumCells doesn't raise it");
         }
 
         [TestMethod]
@@ -428,7 +480,7 @@ namespace ACE.DatLoader.Tests
             var info = FileTypes.LandblockInfo.Parse(Read(target, 0xAAAAFFFE));
             CollectionAssert.AreEqual(new uint[] { 0x020007C5, 0x01000009 }, info.Objects.Select(o => o.Id).ToArray());
             Assert.AreEqual(0x010014C3u, info.Buildings.Single().ModelId);
-            Assert.AreEqual(2u, info.NumCells, "NumCells stays as Melt leaves it");
+            Assert.AreEqual(3u, info.NumCells, "NumCells covers the pristine spire's cells");
             Assert.AreEqual((ushort)0x100, info.Buildings.Single().Portals[0].OtherCellId, "the ruined spire's cells were free again");
             Assert.IsTrue(target.Contains(0xAAAA0100) && target.Contains(0xAAAA0101) && target.Contains(0xAAAA0102));
             CollectionAssert.AreEqual(new ushort[] { 0x101, 0x102 }, VisibleOf(Read(target, 0xAAAA0100)));

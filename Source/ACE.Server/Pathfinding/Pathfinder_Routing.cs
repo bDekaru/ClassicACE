@@ -4,6 +4,7 @@
 
 using ACE.Entity;
 using ACE.Server.Pathfinding.Geometry;
+using ACE.Server.Pathfinding.Reachability;
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
 using System;
@@ -528,6 +529,18 @@ namespace ACE.Server.Pathfinding
             var door = doors.OrderBy(d => Vector3.DistanceSquared(GetDoorApproach(d, doorGroup.LandblockId, group.IsOutdoor, agentSize), legEndAt)).First();
             if (Vector3.Distance(GetDoorApproach(door, doorGroup.LandblockId, group.IsOutdoor, agentSize), legEndAt) > DoorReachDistance)
                 return null; // the leg did not make it to the doorway
+
+            // a doorway opening straight into the destination group's (buildings built against each other, also across
+            // a landblock border): its outdoor side lies inside that group, so the next leg starts at that doorway
+            if (!group.IsOutdoor && !endGroup.IsOutdoor && TryGetCellGroup(endGroup, out var endCellGroup))
+            {
+                var doorAt = ToGlobal(group.LandblockId, door.Position);
+                foreach (var other in GetDoors(endGroup, endCellGroup, agentSize))
+                {
+                    if (WorldGraph.DoorsTouch(ToGlobal(endGroup.LandblockId, other.Position), other.Normal, doorAt, door.Normal))
+                        return new Position(other.CellId, other.Position, Quaternion.Identity);
+                }
+            }
 
             return group.IsOutdoor
                 ? new Position(door.CellId, door.Position, Quaternion.Identity)

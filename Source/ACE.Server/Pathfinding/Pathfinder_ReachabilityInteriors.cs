@@ -161,8 +161,9 @@ namespace ACE.Server.Pathfinding
                         continue;
 
                     mesh.GetTileAndPolyByRefUnsafe(doorRef, out _, out var poly);
-                    if (poly != null && component[poly.index] >= 0)
-                        summary.Doors.Add(new SummaryDoor { Group = summary.Index, Door = (ushort)d, Piece = (ushort)component[poly.index] });
+                    // a door apron with no floor of its own can't be reached from inside (a window), as MarkIslands judges it
+                    if (poly != null && component[poly.index] >= 0 && summary.Pieces[component[poly.index]].Area > 0f)
+                        summary.Doors.Add(new SummaryDoor { Group = summary.Index, Door = (ushort)d, Piece = (ushort)component[poly.index], Position = group.Doors[d].Position, Normal = group.Doors[d].Normal });
                 }
             }
         }

@@ -29,6 +29,21 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static readonly RcVec3f DoorSeedHalfExtents = new RcVec3f(2.0f, 2.0f, 2.0f);
 
+        /// <summary>
+        /// How far the mesh in front of a doorway may be below or above its threshold for the doorway to open onto it. Measured at the
+        /// outside point, a small ramp down from a door is ~0.7 m below, while the ground under a window is 1 m or more below the sill.
+        /// </summary>
+        private const float DoorSeedMaxDrop = 0.85f;
+
+        /// <summary>
+        /// The poly a doorway opens onto, around a point just outside it at threshold height (Recast space), or 0.
+        /// </summary>
+        private static long FindDoorSeedPoly(DtNavMeshQuery query, RcVec3f seed)
+        {
+            var status = query.FindNearestPoly(seed, DoorSeedHalfExtents, AllPolysFilter, out var polyRef, out var point, out _);
+            return status.Succeeded() && Math.Abs(point.Y - seed.Y) <= DoorSeedMaxDrop ? polyRef : 0;
+        }
+
         private static readonly RcVec3f[] NoSeeds = Array.Empty<RcVec3f>();
 
         /// <summary>
@@ -103,8 +118,8 @@ namespace ACE.Server.Pathfinding
                 {
                     foreach (var seed in seeds)
                     {
-                        var status = lease.Query.FindNearestPoly(seed, DoorSeedHalfExtents, AllPolysFilter, out var seedRef, out _, out _);
-                        if (status.Failed() || seedRef == 0)
+                        var seedRef = FindDoorSeedPoly(lease.Query, seed);
+                        if (seedRef == 0)
                             continue;
 
                         mesh.GetTileAndPolyByRefUnsafe(seedRef, out var seedTile, out var seedPoly);

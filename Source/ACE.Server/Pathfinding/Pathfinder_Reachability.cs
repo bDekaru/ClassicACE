@@ -112,6 +112,10 @@ namespace ACE.Server.Pathfinding
                 {
                     (entry.InteriorMethod, entry.InteriorFingerprint, entry.InteriorStatus) = (interiorMethod, interiorFingerprint, GetStatus(interiorMethod));
                     changed++;
+
+                    // the outdoor summary names doorways by group index (SummaryDoor.Group), which can change with the cells alone
+                    if (entry.Status == ReachabilityStatus.Done)
+                        entry.Status = GetStatus(entry.Method);
                 }
             }
 
@@ -273,8 +277,8 @@ namespace ACE.Server.Pathfinding
                     for (var d = 0; d < group.Doors.Count; d++)
                     {
                         var point = ToMeshPoint(summary.LandblockId, GetDoorOutsidePoint(group.Doors[d], AgentSize.Small), true);
-                        var status = lease.Query.FindNearestPoly(point, DoorSeedHalfExtents, AllPolysFilter, out var polyRef, out _, out _);
-                        if (status.Failed() || polyRef == 0)
+                        var polyRef = FindDoorSeedPoly(lease.Query, point);
+                        if (polyRef == 0)
                             continue;
 
                         mesh.GetTileAndPolyByRefUnsafe(polyRef, out _, out var poly);
@@ -571,8 +575,9 @@ namespace ACE.Server.Pathfinding
         /// </summary>
         private static (ReachabilityMethod method, ulong fingerprint) GetReachabilityInput(uint landblockId)
         {
-            // a scan of the whole world, so the landblocks are left out of the dat cache
-            var cellLandblock = DatManager.CellDat.ReadFromDat<CellLandblock>(landblockId | 0xFFFF, false);
+            // a scan of the whole world, so the landblocks are left out of the dat cache; row and column FF have no record,
+            // and reading a missing one logs it
+            var cellLandblock = DatManager.CellDat.AllFiles.ContainsKey(landblockId | 0xFFFF) ? DatManager.CellDat.ReadFromDat<CellLandblock>(landblockId | 0xFFFF, false) : null;
             if (!HasFullTerrain(cellLandblock))
                 return (ReachabilityMethod.None, 0);
 

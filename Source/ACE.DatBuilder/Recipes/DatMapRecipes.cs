@@ -279,6 +279,15 @@ namespace ACE.DatBuilder
 
             // The Olthoi dungeon: the Arwic island rectangle 5C80-6F57 above removes its landblock info, so it is put back. The EoR record differs from the 2005 one only in surface ids.
             map.ReplaceLandblock(0x66790000, portalIs2005 ? sources.Get(DatMapSource.Admin2005) : eor);
+
+            // The Olthoi Warrior Nest and Mutilator Tunnels, lost to the same Arwic rectangle. Their portals are in the world DB. Cells only: neither has outside objects, and the Arwic terrain stays.
+            foreach (var landblock in new uint[] { 0x66780000, 0x667A0000 })
+                map.ReplaceLandblock(landblock, portalIs2005 ? sources.Get(DatMapSource.Admin2005) : eor, false, false, false, true);
+
+            // Buildings retail never loaded (has-objects flag off from 1999-2000 until ToD emptied them): a large building that doesn't load, two Shadow Spires
+            // event pieces and a Sho house. No world spawn is in their cells.
+            foreach (var landblock in new uint[] { 0x24580000, 0x24590000, 0x25770000, 0x26770000, 0x287F0000, 0xC0810000, 0xDB470000, 0xF95D0000 })
+                map.RemoveLandblockInfo(landblock);
         }
     }
 }

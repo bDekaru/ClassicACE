@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 
 namespace ACE.Server.Pathfinding.Reachability
 {
@@ -54,6 +55,13 @@ namespace ACE.Server.Pathfinding.Reachability
         public ushort Group;
         public ushort Door;
         public ushort Piece;
+
+        /// <summary>
+        /// Interiors only: the doorway's threshold in landblock-local metres and the way it faces out, to join doorways
+        /// that open straight into another group's (see WorldGraph.Build).
+        /// </summary>
+        public Vector3 Position;
+        public Vector3 Normal;
     }
 
     /// <summary>
@@ -76,7 +84,7 @@ namespace ACE.Server.Pathfinding.Reachability
         /// <summary>
         /// Bump when the summaries built from the same input change, so they are built again.
         /// </summary>
-        public const int Version = 3;
+        public const int Version = 4;
 
         public const ushort NoPiece = ushort.MaxValue;
 
