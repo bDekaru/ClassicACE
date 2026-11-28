@@ -71,13 +71,14 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// Builds a single-tile navmesh (an interior cell group) over all of the geometry.
         /// </summary>
-        public static DtMeshData Build(NavMeshGeometry geom, MeshBuildSettings settings)
+        /// <param name="name">What is being built, for the log</param>
+        public static DtMeshData Build(NavMeshGeometry geom, MeshBuildSettings settings, string name)
         {
             // Recast rounds the grid to whole cells and can cut off the geometry's last half cell (an outer wall), and
             // the erosion needs the columns past the outermost geometry to be empty, not off the grid
             var padding = new RcVec3f(BoundsPaddingCells * settings.CellSize, 0f, BoundsPaddingCells * settings.CellSize);
             var bcfg = new RcBuilderConfig(CreateConfig(settings), geom.GetMeshBoundsMin() - padding, geom.GetMeshBoundsMax() + padding);
-            var rcResult = RunBuild(geom, settings, bcfg);
+            var rcResult = RunBuild(geom, settings, bcfg, name);
             if (rcResult?.Mesh == null || rcResult.Mesh.npolys == 0)
                 return null;
 
@@ -90,7 +91,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// radius plus 3 cells); the border is rasterized and then trimmed, so the walkable area at the tile edge is
         /// correct and its edge polys line up with the neighboring tiles', which lets Detour link them.
         /// </summary>
-        public static DtMeshData BuildTile(NavMeshGeometry geom, MeshBuildSettings settings, int tileX, int tileZ, float tileSize)
+        public static DtMeshData BuildTile(NavMeshGeometry geom, MeshBuildSettings settings, int tileX, int tileZ, float tileSize, string name)
         {
             var tileCells = (int)MathF.Round(tileSize / settings.CellSize);
             var borderSize = RcConfig.CalcBorder(settings.AgentRadius, settings.CellSize);
@@ -107,7 +108,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 var bcfg = new RcBuilderConfig(CreateConfig(settings, true, tileCells, borderSize, detailError), bmin, bmax, tileX, tileZ);
                 try
                 {
-                    rcResult = RunBuild(geom, settings, bcfg);
+                    rcResult = RunBuild(geom, settings, bcfg, name);
                     break;
                 }
                 catch (Exception e) when (e.Message.StartsWith("rcBuildPolyMeshDetail") && detailError < MaxDetailSampleMaxError)
@@ -128,7 +129,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// <summary>
         /// Recast's build with its filters and erosion replaced by ObstacleErosion's.
         /// </summary>
-        private static RcBuilderResult RunBuild(NavMeshGeometry geom, MeshBuildSettings settings, RcBuilderConfig bcfg)
+        private static RcBuilderResult RunBuild(NavMeshGeometry geom, MeshBuildSettings settings, RcBuilderConfig bcfg, string name)
         {
             recastMessages = new List<string>();
             try
@@ -147,7 +148,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 // logged only now: logging from inside the writer, under the console's lock, could deadlock with the
                 // console appender
                 foreach (var message in messages)
-                    log.Info($"[RECAST] {message}");
+                    log.Info($"[RECAST] {name}: {message}");
             }
         }
 

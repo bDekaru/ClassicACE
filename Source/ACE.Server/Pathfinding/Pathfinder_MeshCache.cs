@@ -552,9 +552,9 @@ namespace ACE.Server.Pathfinding
             }
         }
 
-        private static DtNavMesh BuildAndSaveMesh(NavMeshGeometry geom, MeshBuildSettings settings, uint meshId, string meshPath)
+        private static DtNavMesh BuildAndSaveMesh(NavMeshGeometry geom, MeshBuildSettings settings, uint meshId, string meshPath, string name)
         {
-            var data = NavMeshBuilder.Build(geom, settings);
+            var data = NavMeshBuilder.Build(geom, settings, name);
             if (data is null)
                 return null;
 
@@ -726,7 +726,7 @@ namespace ACE.Server.Pathfinding
                     try
                     {
                         var stopwatch = Stopwatch.StartNew();
-                        var mesh = BuildAndSaveMesh(geoms[agentSize], GetMeshSettings(false, agentSize), meshId, meshPath);
+                        var mesh = BuildAndSaveMesh(geoms[agentSize], GetMeshSettings(false, agentSize), meshId, meshPath, $"{agentSize} mesh for cell group {group} at {location}");
                         if (mesh is null)
                         {
                             log.Debug($"Pathfinder: could not build the {agentSize} nav mesh for cell group {group} ({cellGroup.Cells.Count} cells) at {location}");
@@ -901,7 +901,7 @@ namespace ACE.Server.Pathfinding
             }
 
             var stopwatch = Stopwatch.StartNew();
-            var data = NavMeshBuilder.BuildTile(geom, GetMeshSettings(true, agentSize), tileX, tileY, Position.BlockLength);
+            var data = NavMeshBuilder.BuildTile(geom, GetMeshSettings(true, agentSize), tileX, tileY, Position.BlockLength, $"{agentSize} outdoor tile for 0x{landblockId:X8}");
             if (data == null)
             {
                 log.Warn($"Pathfinder: could not build the {agentSize} outdoor tile for 0x{landblockId:X8}");

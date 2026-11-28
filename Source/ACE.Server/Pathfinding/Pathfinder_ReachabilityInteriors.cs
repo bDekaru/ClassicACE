@@ -76,7 +76,7 @@ namespace ACE.Server.Pathfinding
                 var meshId = GetMeshId(landblockId, group.Index, AgentSize.Small);
                 var meshPath = GetMeshPath(InteriorMeshDirectory, meshId, false, AgentSize.Small, fingerprint);
                 if (!TryReadMeshFile(meshPath, out var mesh))
-                    mesh = BuildAndSaveMesh(geom, GetMeshSettings(false, AgentSize.Small), meshId, meshPath);
+                    mesh = BuildAndSaveMesh(geom, GetMeshSettings(false, AgentSize.Small), meshId, meshPath, $"{AgentSize.Small} mesh for cell group {group.Index} at landblock 0x{landblockId:X8}");
 
                 if (mesh != null)
                     SummarizeGroup(groupSummary, mesh, group, groups);
