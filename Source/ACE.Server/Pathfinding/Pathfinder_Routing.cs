@@ -388,11 +388,17 @@ namespace ACE.Server.Pathfinding
         /// between its doorways are estimated as straight lines. Only doorways an agent of the given size can get
         /// through are used (see GetDoors), and as exits only those the reachability bake found outdoor floor in front of
         /// (while their tile has no Recast summary, all of them). EndComponent is the end's component as in Crossing.
+        /// With one group for both start and end it plans a detour, for when the mesh doesn't connect the two: out of
+        /// the group through one doorway and back through another, outdoors through the buildings GetDetourGroups gives.
+        /// The group is then only entered again through doorways a path leads from to the end.
         /// </summary>
-        private static ILookup<MeshGroupKey, (Crossing crossing, float remaining)> PlanCrossings(WorldGraph graph, MeshGroupKey startGroup, Position end, MeshGroupKey endGroup, int endComponent, AgentSize agentSize)
+        private static ILookup<MeshGroupKey, (Crossing crossing, float remaining)> PlanCrossings(WorldGraph graph, Position start, MeshGroupKey startGroup, Position end, MeshGroupKey endGroup, int endComponent, AgentSize agentSize, RouteProfile profile)
         {
+            var detour = startGroup == endGroup;
             var crossings = new List<Crossing>();
             var groups = new HashSet<MeshGroupKey> { startGroup, endGroup };
+            if (detour && startGroup.IsOutdoor)
+                groups.UnionWith(GetDetourGroups(graph, start, end));
             var pending = new Stack<MeshGroupKey>(groups);
 
             while (pending.TryPop(out var group))
@@ -469,7 +475,40 @@ namespace ACE.Server.Pathfinding
             var queue = new PriorityQueue<int, float>();
             var into = Enumerable.Range(0, crossings.Count).Where(i => crossings[i].To == endGroup).ToList();
             var matching = into.Where(i => SameComponent(crossings[i].FarComponent, endComponent)).ToList();
-            foreach (var i in matching.Count > 0 ? matching : into)
+            var exits = matching.Count > 0 ? matching : into;
+
+            if (detour)
+            {
+                // a detour needs exits a path leads from to the end: a doorway back onto the start's side often looks
+                // the closest
+                exits = LeadingToEnd(exits);
+                if (exits.Count == 0)
+                    exits = LeadingToEnd(into.Except(matching));
+            }
+
+            // those of the nearest few doorways that a path leads from to the end
+            List<int> LeadingToEnd(IEnumerable<int> candidates)
+            {
+                var tried = new List<Vector3>();
+                var leading = new List<int>();
+                foreach (var i in candidates.OrderBy(i => Vector3.Distance(crossings[i].FarAt, endAt)))
+                {
+                    var at = crossings[i].FarAt;
+                    if (tried.Any(t => Vector3.Distance(t, at) < SameDoorDistance))
+                        continue;
+
+                    tried.Add(at);
+                    FindRoute(crossings[i].Far, endGroup, new List<(Position, float)> { (end, 0f) }, agentSize, profile, out var reached);
+                    if (reached >= 0)
+                        leading.Add(i);
+
+                    if (tried.Count == MaxDoorCandidates * MaxDoorBatches)
+                        break;
+                }
+                return leading;
+            }
+
+            foreach (var i in exits)
             {
                 remaining[i] = Vector3.Distance(crossings[i].NearAt, endAt);
                 queue.Enqueue(i, remaining[i]);
@@ -482,8 +521,13 @@ namespace ACE.Server.Pathfinding
 
                 foreach (var i in byTo[crossings[next].From])
                 {
-                    // straight back where it came from never leads on, but its estimate would pass for a way through
-                    if (crossings[i].From == crossings[next].To)
+                    // a detour passes the group it starts and ends in only at those two ends
+                    if (detour && crossings[i].To == endGroup)
+                        continue;
+
+                    // straight back where it came from never leads on, but its estimate would pass for a way through. A
+                    // detour does come back, through another doorway.
+                    if (crossings[i].From == crossings[next].To && !(detour && crossings[next].To == endGroup && Vector3.Distance(crossings[i].FarAt, crossings[next].NearAt) >= SameDoorDistance))
                         continue;
 
                     // inside a group, only between doorways on the same mesh component
@@ -502,6 +546,42 @@ namespace ACE.Server.Pathfinding
             return Enumerable.Range(0, crossings.Count)
                 .Where(i => remaining[i] < float.MaxValue)
                 .ToLookup(i => crossings[i].From, i => (crossings[i], remaining[i]));
+        }
+
+        /// <summary>
+        /// The buildings an outdoor detour (see PlanCrossings) may go through: those of the start's and end's landblocks
+        /// with at least two doorways onto the start's or end's outdoor area. Not every building around, as planning
+        /// through one loads its mesh, and creatures chasing a target they can't reach plan detours.
+        /// </summary>
+        private static IEnumerable<MeshGroupKey> GetDetourGroups(WorldGraph graph, Position start, Position end)
+        {
+            var startArea = GetOutdoorArea(graph, start);
+            var endArea = GetOutdoorArea(graph, end);
+
+            foreach (var landblockId in new[] { start.Cell & 0xFFFF0000, end.Cell & 0xFFFF0000 }.Distinct())
+            {
+                var tileSummary = graph?.Summaries[landblockId >> 16];
+
+                foreach (var cellGroup in GetGroups(landblockId).ByIndex.Values)
+                {
+                    var doors = cellGroup.Doors;
+                    if (tileSummary?.Method == ReachabilityMethod.Recast)
+                    {
+                        doors = tileSummary.Doors
+                            .Where(s => s.Group == cellGroup.Index && s.Door < cellGroup.Doors.Count)
+                            .Where(s =>
+                            {
+                                var area = graph.GetOutdoorArea(new GraphSpot((int)(landblockId >> 16), GraphSpot.Outdoors, s.Piece));
+                                return SameComponent(area, startArea) || SameComponent(area, endArea);
+                            })
+                            .Select(s => cellGroup.Doors[s.Door])
+                            .ToList();
+                    }
+
+                    if (doors.Any(d => Vector3.Distance(d.Position, doors[0].Position) >= SameDoorDistance))
+                        yield return new MeshGroupKey(landblockId, cellGroup.Index);
+                }
+            }
         }
 
         /// <summary>
@@ -600,9 +680,11 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// Finds a route that may cross between mesh groups through doorways, by chaining FindRoute calls: each leg
         /// runs on one group's mesh, and when it ends at a doorway the next leg starts on the other side of it. The
-        /// doorways are planned first (see PlanCrossings). Returns the legs in order (the last one may be partial), or
-        /// null if not even the first leg was found. Outdoor tiles load in the background, so a leg through the outdoors
-        /// can be missing or partial the first time.
+        /// doorways are planned first (see PlanCrossings). Within one group the end is routed to directly, and through
+        /// doorways only if that doesn't reach it (see FindDetourLegs; not for RouteProfile.Road, whose follower would
+        /// cut doorway waypoints short). Returns the legs in order (the last one may be partial), or null if not even the
+        /// first leg was found. Outdoor tiles load in the background, so a leg through the outdoors can be missing or
+        /// partial the first time.
         /// </summary>
         /// <param name="reachesEnd">True if the legs lead all the way to the end position</param>
         public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd, RouteProfile profile = RouteProfile.Default)
@@ -618,64 +700,22 @@ namespace ACE.Server.Pathfinding
 
                 // read once: a bake swaps in a new graph, and area numbers differ between graphs
                 var graph = reachabilityGraph;
-                var plan = group == endGroup ? null : PlanCrossings(graph, group, end, endGroup, GetOutdoorArea(graph, end), agentSize);
-                var visited = new List<(MeshGroupKey group, int component)>();
-                var legs = new List<List<Position>>();
-                var current = start;
-                var component = plan == null ? -1 : GetOutdoorArea(graph, start);
+                var plan = group == endGroup ? null : PlanCrossings(graph, start, group, end, endGroup, GetOutdoorArea(graph, end), agentSize, profile);
+                var legs = FollowPlan(graph, plan, start, group, end, endGroup, agentSize, profile, out reachesEnd);
 
-                // as the end's (see PlanCrossings), the start's area only narrows the choice
-                if (plan != null && !plan[group].Any(c => SameComponent(component, c.crossing.NearComponent)))
-                    component = -1;
-
-                for (var i = 0; i < MaxRouteLegs; i++)
+                // creatures replan towards targets they can't reach: no detour where the direct search already shows
+                // none can help (not even a first leg, or an end beyond the search span)
+                if (group == endGroup && !reachesEnd && legs != null && profile != RouteProfile.Road && (!group.IsOutdoor || IsWithinRouteSpan(start, end, profile)))
                 {
-                    var candidates = group == endGroup ? null : GetCrossingCandidates(plan, current, component, group, visited);
-                    var targets = candidates?.Select(c => (c.crossing.Near, c.remaining)).ToList() ?? new List<(Position, float)> { (end, 0f) };
-
-                    // a batch of targets at a time; if none reaches one, the partial route of the most promising batch stands
-                    List<Position> leg = null;
-                    var reached = -1;
-                    for (var first = 0; reached < 0 && first < targets.Count; first += MaxDoorCandidates)
+                    var detourLegs = FindDetourLegs(graph, start, end, group, agentSize, profile);
+                    if (detourLegs != null)
                     {
-                        var found = FindRoute(current, group, targets.GetRange(first, Math.Min(MaxDoorCandidates, targets.Count - first)), agentSize, profile, out var index);
-                        if (index >= 0)
-                            (leg, reached) = (found, first + index);
-                        else
-                            leg ??= found;
+                        reachesEnd = true;
+                        return detourLegs;
                     }
-                    if (leg == null || leg.Count == 0)
-                        break;
-
-                    // A route's first waypoint is where it starts, the mesh point nearest the start position. The route's
-                    // follower is already there, so it is left out of the first leg. Later legs start on the other side of a
-                    // doorway, and that point is one of the two that take the follower through it.
-                    if (i == 0 && leg.Count > 1)
-                        leg.RemoveAt(0);
-
-                    legs.Add(leg);
-
-                    if (group == endGroup)
-                    {
-                        // the final leg, complete or as close as this mesh gets
-                        reachesEnd = reached >= 0;
-                        break;
-                    }
-
-                    if (reached < 0)
-                        break; // the doorway is out of reach on this mesh
-
-                    var crossing = candidates[reached].crossing;
-                    if (Vector3.Distance(ToGlobal(leg[^1]), crossing.NearAt) > DoorReachDistance)
-                        break; // the leg did not make it to the doorway
-
-                    visited.Add((group, crossing.NearComponent));
-                    current = crossing.Far;
-                    component = crossing.FarComponent;
-                    group = crossing.To;
                 }
 
-                return legs.Count > 0 ? legs : null;
+                return legs;
             }
             catch (Exception e)
             {
@@ -685,6 +725,105 @@ namespace ACE.Server.Pathfinding
                 reachesEnd = false;
                 return null;
             }
+        }
+
+        /// <summary>
+        /// The legs of a detour between two positions of one mesh group (see PlanCrossings), or null if none reaches the
+        /// end.
+        /// </summary>
+        private static List<List<Position>> FindDetourLegs(WorldGraph graph, Position start, Position end, MeshGroupKey group, AgentSize agentSize, RouteProfile profile)
+        {
+            try
+            {
+                var plan = PlanCrossings(graph, start, group, end, group, GetOutdoorArea(graph, end), agentSize, profile);
+                var legs = FollowPlan(graph, plan, start, group, end, group, agentSize, profile, out var reachesEnd);
+                return reachesEnd ? legs : null;
+            }
+            catch (Exception e)
+            {
+                // the direct search's partial route still stands
+                log.Error($"Pathfinder: failed to find a detour from {start.ToLOCString()} to {end.ToLOCString()}: {e}");
+                return null;
+            }
+        }
+
+        private static bool IsWithinRouteSpan(Position a, Position b, RouteProfile profile)
+        {
+            var (ax, ay) = GetLandblockCoords(a.Cell);
+            var (bx, by) = GetLandblockCoords(b.Cell);
+            var span = GetRouteLandblockSpan(profile);
+            return Math.Abs(ax - bx) <= span && Math.Abs(ay - by) <= span;
+        }
+
+        /// <summary>
+        /// The legs of a route along a plan (see PlanCrossings), or the single leg to the end without one. Null if not
+        /// even the first leg was found.
+        /// </summary>
+        private static List<List<Position>> FollowPlan(WorldGraph graph, ILookup<MeshGroupKey, (Crossing crossing, float remaining)> plan, Position start, MeshGroupKey group, Position end, MeshGroupKey endGroup, AgentSize agentSize, RouteProfile profile, out bool reachesEnd)
+        {
+            reachesEnd = false;
+
+            var visited = new List<(MeshGroupKey group, int component)>();
+            var legs = new List<List<Position>>();
+            var current = start;
+            var component = plan == null ? -1 : GetOutdoorArea(graph, start);
+
+            // as the end's (see PlanCrossings), the start's area only narrows the choice
+            if (plan != null && !plan[group].Any(c => SameComponent(component, c.crossing.NearComponent)))
+                component = -1;
+
+            for (var i = 0; i < MaxRouteLegs; i++)
+            {
+                // a detour starts in the end's group, and heads for the end only once it is back
+                var final = group == endGroup && (plan == null || i > 0);
+                var candidates = final ? null : GetCrossingCandidates(plan, current, component, group, visited);
+                var targets = candidates?.Select(c => (c.crossing.Near, c.remaining)).ToList() ?? new List<(Position, float)> { (end, 0f) };
+
+                // a batch of targets at a time; if none reaches one, the partial route of the most promising batch stands
+                List<Position> leg = null;
+                var reached = -1;
+                for (var first = 0; reached < 0 && first < targets.Count; first += MaxDoorCandidates)
+                {
+                    var found = FindRoute(current, group, targets.GetRange(first, Math.Min(MaxDoorCandidates, targets.Count - first)), agentSize, profile, out var index);
+                    if (index >= 0)
+                        (leg, reached) = (found, first + index);
+                    else
+                        leg ??= found;
+                }
+                if (leg == null || leg.Count == 0)
+                    break;
+
+                // A route's first waypoint is where it starts, the mesh point nearest the start position. The route's
+                // follower is already there, so it is left out of the first leg. Later legs start on the other side of a
+                // doorway, and that point is one of the two that take the follower through it.
+                if (i == 0 && leg.Count > 1)
+                    leg.RemoveAt(0);
+
+                legs.Add(leg);
+
+                if (final)
+                {
+                    // the final leg, complete or as close as this mesh gets
+                    reachesEnd = reached >= 0;
+                    break;
+                }
+
+                if (reached < 0)
+                    break; // the doorway is out of reach on this mesh
+
+                var crossing = candidates[reached].crossing;
+                if (Vector3.Distance(ToGlobal(leg[^1]), crossing.NearAt) > DoorReachDistance)
+                    break; // the leg did not make it to the doorway
+
+                // the group a detour starts in stays open, as the route comes back to it
+                if (group != endGroup)
+                    visited.Add((group, crossing.NearComponent));
+                current = crossing.Far;
+                component = crossing.FarComponent;
+                group = crossing.To;
+            }
+
+            return legs.Count > 0 ? legs : null;
         }
 
         /// <summary>
