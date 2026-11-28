@@ -696,7 +696,7 @@ namespace ACE.Server.WorldObjects
             else
                 physicsState &= ~PhysicsState.ReportCollisionsAsEnvironment;
             ////EdgeSlide                   = 0x00400000,
-            if ((AllowEdgeSlide ?? false) || this is Creature { ForcesEdgeSlide: true })
+            if (AllowEdgeSlide ?? false)
                 physicsState |= PhysicsState.EdgeSlide;
             else
                 physicsState &= ~PhysicsState.EdgeSlide;

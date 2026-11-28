@@ -1018,13 +1018,6 @@ namespace ACE.Server.WorldObjects
 
         private static bool UsesPathfinding => Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM && Pathfinder.PathfindingEnabled;
 
-        /// <summary>
-        /// The mesh runs to the edge of a deep drop (see ObstacleErosion), so every non-player creature gets EdgeSlide
-        /// to stay on it, whatever its weenie says.
-        /// TODO: decide whether to keep this or to give the weenies AllowEdgeSlide instead.
-        /// </summary>
-        public bool ForcesEdgeSlide => this is not Player && UsesPathfinding;
-
         private double LastRouteTime = 0;
         private WorldObject RouteAttackTarget = null;
 
@@ -1091,11 +1084,6 @@ namespace ACE.Server.WorldObjects
         /// FailedMovementCount, which the successful move back to the ledge drop's start resets each time.
         /// </summary>
         private int FailedLedgeDropCount = 0;
-
-        /// <summary>
-        /// True if EdgeSlide was cleared for the current ledge drop, to be set again once it is over.
-        /// </summary>
-        private bool LedgeDropRestoreEdgeSlide = false;
 
         /// <summary>
         /// True if this creature routes with the pathfinder where it stands: indoors and on the landscape alike.
@@ -1329,6 +1317,22 @@ namespace ACE.Server.WorldObjects
             CurrentRoute = route;
             CurrentRouteIndex = 0;
             PendingContinueRoute = true;
+
+            // the mesh runs to the edge of a deep drop (see ObstacleErosion), so a routing creature needs EdgeSlide
+            SetEdgeSlide(true);
+        }
+
+        /// <summary>
+        /// Clients are told too: one that disagrees about EdgeSlide holds the creature on a ledge, or lets it off one,
+        /// while its position updates say otherwise.
+        /// </summary>
+        private void SetEdgeSlide(bool edgeSlide)
+        {
+            if (PhysicsObj == null || PhysicsObj.State.HasFlag(PhysicsState.EdgeSlide) == edgeSlide)
+                return;
+
+            PhysicsObj.State ^= PhysicsState.EdgeSlide;
+            EnqueueBroadcastPhysicsState();
         }
 
         private void StartRoute()
@@ -1522,8 +1526,6 @@ namespace ACE.Server.WorldObjects
         /// <summary>
         /// Lets this creature walk off the ledge at the start of a ledge drop: EdgeSlide would keep it on the edge.
         /// MoveTo waits while it falls and goes on when it lands. The move to the landing walks (see ContinueRoute).
-        /// Clients are told too: one that keeps EdgeSlide holds the creature on the ledge while its position updates
-        /// bring it down.
         /// </summary>
         private void BeginLedgeDrop()
         {
@@ -1531,13 +1533,7 @@ namespace ACE.Server.WorldObjects
                 Console.WriteLine($"{Name} ({Guid}).BeginLedgeDrop()");
 
             IsLedgeDropping = true;
-
-            if (PhysicsObj != null && PhysicsObj.State.HasFlag(PhysicsState.EdgeSlide))
-            {
-                PhysicsObj.State &= ~PhysicsState.EdgeSlide;
-                LedgeDropRestoreEdgeSlide = true;
-                EnqueueBroadcastPhysicsState();
-            }
+            SetEdgeSlide(false);
         }
 
         private void EndLedgeDrop()
@@ -1548,14 +1544,8 @@ namespace ACE.Server.WorldObjects
             if (DebugMove)
                 Console.WriteLine($"{Name} ({Guid}).EndLedgeDrop()");
 
-            if (LedgeDropRestoreEdgeSlide && PhysicsObj != null)
-            {
-                PhysicsObj.State |= PhysicsState.EdgeSlide;
-                EnqueueBroadcastPhysicsState();
-            }
-
             IsLedgeDropping = false;
-            LedgeDropRestoreEdgeSlide = false;
+            SetEdgeSlide(true);
         }
 
         /// <summary>
@@ -1592,6 +1582,10 @@ namespace ACE.Server.WorldObjects
             CancelPendingMovement();
 
             EndLedgeDrop();
+
+            // back to the creature's own setting for its other moves
+            if (IsRouting)
+                SetEdgeSlide(AllowEdgeSlide ?? false);
 
             IsRouteStartPending = false;
             IsRouting = false;
