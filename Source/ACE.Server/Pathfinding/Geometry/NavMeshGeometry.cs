@@ -4,6 +4,7 @@ using DotRecast.Recast.Geom;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using EnvCell = ACE.DatLoader.FileTypes.EnvCell;
@@ -40,11 +41,11 @@ namespace ACE.Server.Pathfinding.Geometry
 
         /// <summary>
         /// Geometry for a set of interior (dungeon) cells, per agent size: with an opening apron (see OpeningApron)
-        /// sized for that agent outside each of the given openings, marked as an opening area. The cells and their
-        /// static objects are loaded once, and only the opening aprons differ per size. Null if the cells have no
-        /// geometry.
+        /// sized for that agent outside each of the given openings, marked as an opening area, and the floor under the
+        /// landblock's doors marked as door areas (see DoorArea). The cells and their static objects are loaded once,
+        /// and only the opening aprons differ per size. Null if the cells have no geometry.
         /// </summary>
-        public static Dictionary<AgentSize, NavMeshGeometry> LoadGeometry(List<EnvCell> cells, IEnumerable<CellGroupOpening> openings, IEnumerable<AgentSize> agentSizes)
+        public static Dictionary<AgentSize, NavMeshGeometry> LoadGeometry(List<EnvCell> cells, IEnumerable<CellGroupOpening> openings, IEnumerable<DoorPlacement> doors, IEnumerable<AgentSize> agentSizes)
         {
             var collector = new MeshGeometryCollector(cells);
             collector.LoadCells();
@@ -62,6 +63,9 @@ namespace ACE.Server.Pathfinding.Geometry
                 collector.AddOpeningAprons(openingList, agentSize);
 
                 var geometry = FromCollector(collector);
+
+                // before the aprons, which stay opening areas outside a doorway whose door reaches into them
+                geometry.AddDoorVolumes(doors);
                 foreach (var opening in openingList)
                     geometry.AddConvexVolume(OpeningApron.GetOpeningVolume(opening, agentSize));
                 geometries[agentSize] = geometry;
@@ -89,6 +93,8 @@ namespace ACE.Server.Pathfinding.Geometry
 
             foreach (var volume in collector.RoadVolumes)
                 geometry.AddConvexVolume(volume);
+            foreach (var source in sources)
+                geometry.AddDoorVolumes(DoorArea.GetDoors(source.LandblockId, GeometryHelpers.GetLandblockOrigin(source.LandblockId)));
             geometry.NeighborObjectsInside = collector.NeighborObjectsInside;
 
             return geometry;
@@ -151,6 +157,24 @@ namespace ACE.Server.Pathfinding.Geometry
         public void AddConvexVolume(RcConvexVolume convexVolume)
         {
             volumes.Add(convexVolume);
+        }
+
+        /// <summary>
+        /// Adds the volumes of the doors that reach into the geometry's bounds. One elsewhere would mark nothing, but
+        /// would change the fingerprint.
+        /// </summary>
+        private void AddDoorVolumes(IEnumerable<DoorPlacement> doors)
+        {
+            foreach (var door in doors)
+            {
+                var volume = DoorArea.GetVolume(door);
+
+                var (min, max) = GeometryHelpers.GetBounds(door.Footprint);
+                if (max.X < bmin.X || min.X > bmax.X || max.Y < bmin.Z || min.Y > bmax.Z || volume.hmax < bmin.Y || volume.hmin > bmax.Y)
+                    continue;
+
+                AddConvexVolume(volume);
+            }
         }
 
         /// <summary>

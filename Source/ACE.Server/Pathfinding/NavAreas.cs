@@ -25,6 +25,11 @@ namespace ACE.Server.Pathfinding
         public const int Opening = 3;
 
         /// <summary>
+        /// The floor under a placed door (see DoorArea). Walkable; a route search judges each door by its state.
+        /// </summary>
+        public const int Door = 4;
+
+        /// <summary>
         /// A ledge drop (see LedgeDropFinder): a one-way off-mesh connection down a ledge.
         /// </summary>
         public const int LedgeDrop = 5;
@@ -54,6 +59,11 @@ namespace ACE.Server.Pathfinding
         /// Marks the spans inside an opening apron's volume as Opening.
         /// </summary>
         public static readonly RcAreaModification OpeningMod = new RcAreaModification(Opening, RcAreaModification.RC_AREA_FLAGS_MASK);
+
+        /// <summary>
+        /// Marks the spans inside a door's volume as Door.
+        /// </summary>
+        public static readonly RcAreaModification DoorMod = new RcAreaModification(Door, RcAreaModification.RC_AREA_FLAGS_MASK);
     }
 
     /// <summary>
@@ -79,7 +89,7 @@ namespace ACE.Server.Pathfinding
     public static class NavPolyFlags
     {
         /// <summary>
-        /// Floor (Ground, Road and Narrow areas).
+        /// Floor (Ground, Road, Narrow and Door areas).
         /// </summary>
         public const int Walk = 0x01;
 

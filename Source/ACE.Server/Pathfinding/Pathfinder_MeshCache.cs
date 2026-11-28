@@ -353,6 +353,7 @@ namespace ACE.Server.Pathfinding
             OutdoorTilesRequested.TryRemove(landblockId, out _);
             OutdoorTilesBuilt.TryRemove(landblockId, out _);
             Groups.TryRemove(landblockId, out _);
+            PlacedDoors.TryRemove(landblockId, out _);
             OutdoorBuildFailures.TryRemove(landblockId, out _);
         }
 
@@ -659,7 +660,8 @@ namespace ACE.Server.Pathfinding
                         return;
 
                     // the cells are loaded once; each size gets its own opening aprons (see OpeningApron)
-                    var geoms = NavMeshGeometry.LoadGeometry(cellGroup.Cells, cellGroup.Openings, toLoad.Select(l => l.agentSize));
+                    var doors = DoorArea.GetDoors(landblockId);
+                    var geoms = NavMeshGeometry.LoadGeometry(cellGroup.Cells, cellGroup.Openings, doors, toLoad.Select(l => l.agentSize));
 
                     // sealed rooms and orphan cells often have nothing walkable; that is expected, so only debug logging
                     if (geoms is null)
@@ -683,6 +685,7 @@ namespace ACE.Server.Pathfinding
                             if (!rebuildMesh && TryReadMeshFile(meshPath, out var cachedMesh))
                             {
                                 MarkIslands(cachedMesh, NoSeeds, false);
+                                MapDoorPolys(cachedMesh, doors);
                                 Meshes.TryUpdate(meshId, new InteriorMesh(cachedMesh, FindPassableOpenings(cachedMesh, cellGroup, agentSize)), placeholder);
                                 continue;
                             }
@@ -696,7 +699,7 @@ namespace ACE.Server.Pathfinding
                     }
 
                     if (toBuild.Count > 0)
-                        BuildInteriorMeshes(toBuild, geoms);
+                        BuildInteriorMeshes(toBuild, geoms, doors);
                 }
                 catch (Exception e)
                 {
@@ -711,7 +714,7 @@ namespace ACE.Server.Pathfinding
                 }
             });
 
-            void BuildInteriorMeshes(List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)> toBuild, Dictionary<AgentSize, NavMeshGeometry> geoms) => RunMeshBuild(() =>
+            void BuildInteriorMeshes(List<(AgentSize agentSize, uint meshId, string meshPath, InteriorMesh placeholder)> toBuild, Dictionary<AgentSize, NavMeshGeometry> geoms, List<DoorPlacement> doors) => RunMeshBuild(() =>
             {
                 foreach (var (agentSize, meshId, meshPath, placeholder) in toBuild)
                 {
@@ -732,6 +735,7 @@ namespace ACE.Server.Pathfinding
                         }
 
                         MarkIslands(mesh, NoSeeds, false);
+                        MapDoorPolys(mesh, doors);
                         if (!Meshes.TryUpdate(meshId, new InteriorMesh(mesh, FindPassableOpenings(mesh, cellGroup, agentSize)), placeholder))
                         {
                             log.Debug($"Pathfinder: dropped the {agentSize} nav mesh built for cell group {group} at {location}: it was unloaded or rebuilt meanwhile");
@@ -840,6 +844,7 @@ namespace ACE.Server.Pathfinding
                         return;
                     }
                     MarkIslands(tileMesh, GetOutdoorOpeningPositions(landblockId, agentSize), true);
+                    MapDoorPolys(tileMesh, GetSurfaceDoors(landblockId));
 
                     lock (OutdoorTileSync)
                     {
@@ -907,6 +912,26 @@ namespace ACE.Server.Pathfinding
 
             log.Info($"Pathfinder: built {agentSize} outdoor tile for 0x{landblockId:X8} in {stopwatch.ElapsedMilliseconds}ms ({geom.Vertices.Length / 3} vertices, {geom.Faces.Length / 3} triangles, {data.header.offMeshConCount} ledge drops)");
             return data;
+        }
+
+        /// <summary>
+        /// The doors of a landblock and its neighbors, as its outdoor tile's geometry takes them, in world coordinates.
+        /// </summary>
+        private static List<DoorPlacement> GetSurfaceDoors(uint landblockId)
+        {
+            var doors = new List<DoorPlacement>();
+            var (x, y) = GetLandblockCoords(landblockId);
+
+            for (var nx = Math.Max(0, x - 1); nx <= Math.Min(0xFF, x + 1); nx++)
+            {
+                for (var ny = Math.Max(0, y - 1); ny <= Math.Min(0xFF, y + 1); ny++)
+                {
+                    var neighborId = GetLandblockId(nx, ny);
+                    doors.AddRange(DoorArea.GetDoors(neighborId, GeometryHelpers.GetLandblockOrigin(neighborId)));
+                }
+            }
+
+            return doors;
         }
 
         /// <summary>

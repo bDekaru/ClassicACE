@@ -134,7 +134,7 @@ namespace ACE.Server.Pathfinding
         /// <param name="reached">The index of the target the route leads all the way to, or -1 for a partial route,
         /// which leads as close to the most promising target as the mesh allows.</param>
         /// <returns>A list of positions</returns>
-        private static List<Position> FindRoute(Position start, MeshGroupKey group, List<(Position target, float remaining)> targets, AgentSize agentSize, RouteProfile profile, out int reached)
+        private static List<Position> FindRoute(Position start, MeshGroupKey group, List<(Position target, float remaining)> targets, AgentSize agentSize, RouteProfile profile, DoorRules? doors, out int reached)
         {
             reached = -1;
 
@@ -156,7 +156,10 @@ namespace ACE.Server.Pathfinding
             if (!TryFindNearestReachablePoly(query, lease.ToMesh(start), out var startRef, out var startPt, out var startOnIsland))
                 return null; // the start is not on the mesh
 
-            var pathFilter = GetPathFilter(lease, start, profile);
+            var pathFilter = GetPathFilter(lease, start, profile, doors);
+
+            // smoothing must not pull a leg through a closed door the search went around
+            var smoothingFilter = doors != null ? new DoorFilter(SmoothingFilter, new DoorRules(false, true)) : (IDtQueryFilter)SmoothingFilter;
 
             // Path to each target and keep the shortest complete route, counting the estimated distance left after
             // an opening. If no target can be reached, use the partial route towards the most promising one.
@@ -167,7 +170,7 @@ namespace ACE.Server.Pathfinding
             for (var i = 0; i < targets.Count; i++)
             {
                 var (target, remaining) = targets[i];
-                var targetWaypoints = FindWaypoints(query, pathFilter, startRef, startPt, startOnIsland, lease.ToMesh(target), out var reachesTarget);
+                var targetWaypoints = FindWaypoints(query, pathFilter, startRef, startPt, startOnIsland, lease.ToMesh(target), doors != null, out var reachesTarget);
                 if (targetWaypoints == null)
                     continue;
 
@@ -191,8 +194,8 @@ namespace ACE.Server.Pathfinding
                 return null;
 
             // clusters of corner waypoints become one with room around it; the corners left are pushed off their walls
-            MergeCornerClusters(query, SmoothingFilter, waypoints);
-            OffsetCorners(query, SmoothingFilter, waypoints);
+            MergeCornerClusters(query, smoothingFilter, waypoints);
+            OffsetCorners(query, smoothingFilter, waypoints);
 
             for (int i = 0; i < waypoints.Count; i++)
                 waypoints[i] = SnapToFloor(query, waypoints[i]);
@@ -202,7 +205,7 @@ namespace ACE.Server.Pathfinding
             var previous = start;
             foreach (var waypoint in waypoints)
             {
-                previous = new RoutePosition(CreatePosition(previous, group, ToRcVec3f(waypoint.Pos)), waypoint.IsLedgeDropStart);
+                previous = new RoutePosition(CreatePosition(previous, group, ToRcVec3f(waypoint.Pos)), waypoint.IsLedgeDropStart, waypoint.Doors);
                 positionList.Add(previous);
             }
 
@@ -211,11 +214,14 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The filter a route search runs with: every poly, but outdoors only within the profile's span
-        /// landblocks of the start.
+        /// landblocks of the start. With door rules, doors are judged by them (see DoorFilter).
         /// </summary>
-        private static IDtQueryFilter GetPathFilter(MeshLease lease, Position start, RouteProfile profile)
+        private static IDtQueryFilter GetPathFilter(MeshLease lease, Position start, RouteProfile profile, DoorRules? doors)
         {
-            var filter = profile == RouteProfile.Road ? RoadRouteFilter : RouteFilter;
+            IDtQueryFilter filter = profile == RouteProfile.Road ? RoadRouteFilter : RouteFilter;
+            if (doors is { } rules)
+                filter = new DoorFilter(filter, rules);
+
             if (!lease.IsOutdoor)
                 return filter;
 
@@ -228,7 +234,7 @@ namespace ACE.Server.Pathfinding
         /// The string-pulled path from a start poly to a target, as waypoints. reachesTarget is false for a partial
         /// path, which leads as close to the target as the mesh allows. Returns null if there is no path at all.
         /// </summary>
-        private static List<Waypoint> FindWaypoints(DtNavMeshQuery query, IDtQueryFilter pathFilter, long startRef, RcVec3f startPt, bool startOnIsland, RcVec3f target, out bool reachesTarget)
+        private static List<Waypoint> FindWaypoints(DtNavMeshQuery query, IDtQueryFilter pathFilter, long startRef, RcVec3f startPt, bool startOnIsland, RcVec3f target, bool markDoors, out bool reachesTarget)
         {
             reachesTarget = false;
 
@@ -262,19 +268,21 @@ namespace ACE.Server.Pathfinding
                 if (straightStatus.Failed() || straightPathCount == 0)
                     return null;
 
-                var waypoints = new List<Waypoint>(straightPathCount + 1);
-                for (int i = 0; i < straightPathCount; i++)
+                var points = GetStraightPoints(query, startPt, pathEnd, polys, polyCount, path, straightPathCount, markDoors);
+
+                var waypoints = new List<Waypoint>(points.Count + 1);
+                for (int i = 0; i < points.Count; i++)
                 {
-                    var entry = path[i];
+                    var (entry, entered) = points[i];
                     var isLedgeDropStart = (entry.flags & DtStraightPathFlags.DT_STRAIGHTPATH_OFFMESH_CONNECTION) != 0;
 
                     // the end vertex of a straight path carries no poly ref, fall back to the last poly of the corridor
-                    waypoints.Add(new Waypoint(ToVector3(entry.pos), entry.refs != 0 ? entry.refs : lastPolyRef, isLedgeDropStart));
+                    waypoints.Add(new Waypoint(ToVector3(entry.pos), entry.refs != 0 ? entry.refs : lastPolyRef, isLedgeDropStart, entered));
 
                     // The landing of a ledge drop must be a waypoint of its own, so the ledge drop is followed as found. String
                     // pulling can leave it out when the path goes on straight from it.
                     if (isLedgeDropStart && TryGetLedgeDropLanding(query, polys, polyCount, entry.refs, out var landing) &&
-                        (i + 1 >= straightPathCount || Vector3.DistanceSquared(ToVector3(path[i + 1].pos), landing.Pos) > 0.01f))
+                        (i + 1 >= points.Count || Vector3.DistanceSquared(ToVector3(points[i + 1].point.pos), landing.Pos) > 0.01f))
                         waypoints.Add(landing);
                 }
 
@@ -286,6 +294,69 @@ namespace ACE.Server.Pathfinding
                 ArrayPool<long>.Shared.Return(polys);
                 ArrayPool<DtStraightPath>.Shared.Return(path);
             }
+        }
+
+        /// <summary>
+        /// The points of the straight path found along a corridor. With markDoors, a corridor over doors also gets a point
+        /// where it enters a door's floor (of the crossings between polys only these are kept), carrying the doors entered.
+        /// A door under the start only counts if the path goes through to its other side.
+        /// </summary>
+        private static List<(DtStraightPath point, uint[] doors)> GetStraightPoints(DtNavMeshQuery query, RcVec3f start, RcVec3f end, long[] polys, int polyCount, DtStraightPath[] path, int pathCount, bool markDoors)
+        {
+            var mesh = query.GetAttachedNavMesh();
+            DoorPlacement[] DoorsOf(long polyRef) => polyRef != 0 && mesh.GetTileAndPolyByRef(polyRef, out _, out var poly).Succeeded() ? GetPolyDoors(poly) : Array.Empty<DoorPlacement>();
+
+            var corners = path.AsSpan(0, pathCount).ToArray();
+            var points = new List<(DtStraightPath, uint[])>(pathCount);
+
+            var crossingCount = 0;
+            var overDoors = markDoors && Array.FindIndex(polys, 0, polyCount, r => DoorsOf(r).Length > 0) >= 0 &&
+                query.FindStraightPath(start, end, polys, polyCount, path, out crossingCount, MaxPolys, DtStraightPathOptions.DT_STRAIGHTPATH_ALL_CROSSINGS).Succeeded();
+
+            if (!overDoors)
+            {
+                foreach (var corner in corners)
+                    points.Add((corner, null));
+                return points;
+            }
+
+            bool IsBehind(DoorPlacement door, int i) => DoorArea.IsBehind(door, new Vector2(path[i].pos.X, path[i].pos.Z)); // Recast space: y up
+
+            bool GoesThrough(DoorPlacement door)
+            {
+                var startsBehind = IsBehind(door, 0);
+                for (var i = 1; i < crossingCount; i++)
+                {
+                    if (IsBehind(door, i) != startsBehind)
+                        return true;
+                    if (Array.IndexOf(DoorsOf(path[i].refs), door) < 0)
+                        break;
+                }
+                return false;
+            }
+
+            var next = 0;
+            var current = Array.Empty<DoorPlacement>();
+            for (var i = 0; i < crossingCount; i++)
+            {
+                var point = path[i];
+                var here = DoorsOf(point.refs);
+                var entered = here.Where(door => i == 0 ? GoesThrough(door) : Array.IndexOf(current, door) < 0).Select(door => door.Guid).ToArray();
+                current = here;
+
+                var guids = entered.Length > 0 ? entered : null;
+                var isCorner = next < corners.Length && Vector3.DistanceSquared(ToVector3(point.pos), ToVector3(corners[next].pos)) < 0.0001f;
+                if (isCorner)
+                    points.Add((corners[next++], guids));
+                else if (guids != null)
+                    points.Add((point, guids));
+            }
+
+            // a long path's crossings can fill the buffer before its end
+            while (next < corners.Length)
+                points.Add((corners[next++], null));
+
+            return points;
         }
 
         /// <summary>
@@ -498,7 +569,7 @@ namespace ACE.Server.Pathfinding
                         continue;
 
                     tried.Add(at);
-                    FindRoute(crossings[i].Far, endGroup, new List<(Position, float)> { (end, 0f) }, agentSize, profile, out var reached);
+                    FindRoute(crossings[i].Far, endGroup, new List<(Position, float)> { (end, 0f) }, agentSize, profile, null, out var reached);
                     if (reached >= 0)
                         leading.Add(i);
 
@@ -591,11 +662,13 @@ namespace ACE.Server.Pathfinding
         /// for any of it): its estimate runs through that group's walls. Only openings on the start's mesh component are
         /// used, -1 for any (see Crossing).
         /// </summary>
-        private static List<(Crossing crossing, float remaining)> GetCrossingCandidates(ILookup<MeshGroupKey, (Crossing crossing, float remaining)> plan, Position start, int component, MeshGroupKey group, List<(MeshGroupKey group, int component)> visited)
+        private static List<(Crossing crossing, float remaining)> GetCrossingCandidates(ILookup<MeshGroupKey, (Crossing crossing, float remaining)> plan, Position start, int component, MeshGroupKey group, List<(MeshGroupKey group, int component)> visited, DoorRules? doors)
         {
             var startAt = ToGlobal(start);
             var candidates = new List<(Crossing crossing, float remaining)>(MaxOpeningCandidates * MaxOpeningBatches);
             var reachable = plan[group].Where(c => SameComponent(component, c.crossing.NearComponent) && !visited.Any(v => v.group == c.crossing.To && SameComponent(v.component, c.crossing.FarComponent)));
+            if (doors is { BlockImpassable: true } blocking)
+                reachable = reachable.Where(c => GetCrossingDoors(c.crossing).All(door => CanPassDoor(door, blocking.CanOpenDoors)));
 
             foreach (var candidate in reachable.OrderBy(c => Vector3.Distance(startAt, c.crossing.NearAt) + c.remaining))
             {
@@ -687,7 +760,8 @@ namespace ACE.Server.Pathfinding
         /// or partial the first time.
         /// </summary>
         /// <param name="reachesEnd">True if the legs lead all the way to the end position</param>
-        public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd, RouteProfile profile = RouteProfile.Default)
+        /// <param name="doors">How closed doors are treated (see DoorRules); null ignores doors</param>
+        public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd, RouteProfile profile = RouteProfile.Default, DoorRules? doors = null)
         {
             reachesEnd = false;
 
@@ -701,13 +775,13 @@ namespace ACE.Server.Pathfinding
                 // read once: a bake swaps in a new graph, and area numbers differ between graphs
                 var graph = reachabilityGraph;
                 var plan = group == endGroup ? null : PlanCrossings(graph, start, group, end, endGroup, GetOutdoorArea(graph, end), agentSize, profile);
-                var legs = FollowPlan(graph, plan, start, group, end, endGroup, agentSize, profile, out reachesEnd);
+                var legs = FollowPlan(graph, plan, start, group, end, endGroup, agentSize, profile, doors, out reachesEnd);
 
                 // creatures replan towards targets they can't reach: no detour where the direct search already shows
                 // none can help (not even a first leg, or an end beyond the search span)
                 if (group == endGroup && !reachesEnd && legs != null && profile != RouteProfile.Road && (!group.IsOutdoor || IsWithinRouteSpan(start, end, profile)))
                 {
-                    var detourLegs = FindDetourLegs(graph, start, end, group, agentSize, profile);
+                    var detourLegs = FindDetourLegs(graph, start, end, group, agentSize, profile, doors);
                     if (detourLegs != null)
                     {
                         reachesEnd = true;
@@ -731,12 +805,12 @@ namespace ACE.Server.Pathfinding
         /// The legs of a detour between two positions of one mesh group (see PlanCrossings), or null if none reaches the
         /// end.
         /// </summary>
-        private static List<List<Position>> FindDetourLegs(WorldGraph graph, Position start, Position end, MeshGroupKey group, AgentSize agentSize, RouteProfile profile)
+        private static List<List<Position>> FindDetourLegs(WorldGraph graph, Position start, Position end, MeshGroupKey group, AgentSize agentSize, RouteProfile profile, DoorRules? doors)
         {
             try
             {
                 var plan = PlanCrossings(graph, start, group, end, group, GetOutdoorArea(graph, end), agentSize, profile);
-                var legs = FollowPlan(graph, plan, start, group, end, group, agentSize, profile, out var reachesEnd);
+                var legs = FollowPlan(graph, plan, start, group, end, group, agentSize, profile, doors, out var reachesEnd);
                 return reachesEnd ? legs : null;
             }
             catch (Exception e)
@@ -759,7 +833,7 @@ namespace ACE.Server.Pathfinding
         /// The legs of a route along a plan (see PlanCrossings), or the single leg to the end without one. Null if not
         /// even the first leg was found.
         /// </summary>
-        private static List<List<Position>> FollowPlan(WorldGraph graph, ILookup<MeshGroupKey, (Crossing crossing, float remaining)> plan, Position start, MeshGroupKey group, Position end, MeshGroupKey endGroup, AgentSize agentSize, RouteProfile profile, out bool reachesEnd)
+        private static List<List<Position>> FollowPlan(WorldGraph graph, ILookup<MeshGroupKey, (Crossing crossing, float remaining)> plan, Position start, MeshGroupKey group, Position end, MeshGroupKey endGroup, AgentSize agentSize, RouteProfile profile, DoorRules? doors, out bool reachesEnd)
         {
             reachesEnd = false;
 
@@ -776,7 +850,7 @@ namespace ACE.Server.Pathfinding
             {
                 // a detour starts in the end's group, and heads for the end only once it is back
                 var final = group == endGroup && (plan == null || i > 0);
-                var candidates = final ? null : GetCrossingCandidates(plan, current, component, group, visited);
+                var candidates = final ? null : GetCrossingCandidates(plan, current, component, group, visited, doors);
                 var targets = candidates?.Select(c => (c.crossing.Near, c.remaining)).ToList() ?? new List<(Position, float)> { (end, 0f) };
 
                 // a batch of targets at a time; if none reaches one, the partial route of the most promising batch stands
@@ -784,7 +858,7 @@ namespace ACE.Server.Pathfinding
                 var reached = -1;
                 for (var first = 0; reached < 0 && first < targets.Count; first += MaxOpeningCandidates)
                 {
-                    var found = FindRoute(current, group, targets.GetRange(first, Math.Min(MaxOpeningCandidates, targets.Count - first)), agentSize, profile, out var index);
+                    var found = FindRoute(current, group, targets.GetRange(first, Math.Min(MaxOpeningCandidates, targets.Count - first)), agentSize, profile, doors, out var index);
                     if (index >= 0)
                         (leg, reached) = (found, first + index);
                     else
@@ -794,9 +868,10 @@ namespace ACE.Server.Pathfinding
                     break;
 
                 // A route's first waypoint is where it starts, the mesh point nearest the start position. The route's
-                // follower is already there, so it is left out of the first leg. Later legs start on the other side of
-                // an opening, and that point is one of the two that take the follower through it.
-                if (i == 0 && leg.Count > 1)
+                // follower is already there, so it is left out of the first leg unless it carries a door to pass. Later
+                // legs start on the other side of an opening, and that point is one of the two that take the follower
+                // through it.
+                if (i == 0 && leg.Count > 1 && RoutePosition.GetDoors(leg[0]).Length == 0)
                     leg.RemoveAt(0);
 
                 legs.Add(leg);
@@ -814,6 +889,9 @@ namespace ACE.Server.Pathfinding
                 var crossing = candidates[reached].crossing;
                 if (Vector3.Distance(ToGlobal(leg[^1]), crossing.NearAt) > OpeningReachDistance)
                     break; // the leg did not make it to the opening
+
+                if (doors != null)
+                    AddDoors(leg, GetCrossingDoors(crossing));
 
                 // the group a detour starts in stays open, as the route comes back to it
                 if (group != endGroup)
@@ -871,12 +949,14 @@ namespace ACE.Server.Pathfinding
             public readonly Vector3 Pos;
             public readonly long PolyRef;
             public readonly bool IsLedgeDropStart;
+            public readonly uint[] Doors;
 
-            public Waypoint(Vector3 pos, long polyRef, bool isLedgeDropStart = false)
+            public Waypoint(Vector3 pos, long polyRef, bool isLedgeDropStart = false, uint[] doors = null)
             {
                 Pos = pos;
                 PolyRef = polyRef;
                 IsLedgeDropStart = isLedgeDropStart;
+                Doors = doors;
             }
         }
 
@@ -894,7 +974,7 @@ namespace ACE.Server.Pathfinding
             if (status.Failed())
                 return waypoint;
 
-            return new Waypoint(ToVector3(closest), waypoint.PolyRef);
+            return new Waypoint(ToVector3(closest), waypoint.PolyRef, doors: waypoint.Doors);
         }
 
         /// <summary>
@@ -941,8 +1021,9 @@ namespace ACE.Server.Pathfinding
                 if (current.PolyRef == 0)
                     continue;
 
-                // the ends of a ledge drop stay where it was found: it was only checked from there
-                if (current.IsLedgeDropStart || waypoints[i - 1].IsLedgeDropStart)
+                // the ends of a ledge drop stay where it was found: it was only checked from there; a door's entry stays at
+                // its door
+                if (current.IsLedgeDropStart || waypoints[i - 1].IsLedgeDropStart || current.Doors != null)
                     continue;
 
                 // already clear of every wall (e.g. the waypoint that replaced a corner cluster)
@@ -1040,11 +1121,11 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// True if a waypoint can belong to a corner cluster: it is on a poly, and is neither a ledge drop's start nor
-        /// the landing after one.
+        /// the landing after one, nor a door's entry.
         /// </summary>
         private static bool IsMergeable(List<Waypoint> waypoints, int index)
         {
-            return waypoints[index].PolyRef != 0 && !waypoints[index].IsLedgeDropStart && !waypoints[index - 1].IsLedgeDropStart;
+            return waypoints[index].PolyRef != 0 && !waypoints[index].IsLedgeDropStart && !waypoints[index - 1].IsLedgeDropStart && waypoints[index].Doors == null;
         }
 
         private static bool TryMergeCluster(DtNavMeshQuery query, IDtQueryFilter filter, Waypoint previous, List<Waypoint> waypoints, int first, int last, out Waypoint merged)

@@ -66,6 +66,12 @@ namespace ACE.Server.WorldObjects
             ActivationResponse |= ActivationResponse.Use;
         }
 
+        /// <summary>
+        /// True if a creature that opens doors may open this one: not locked, and one a player could open by hand rather
+        /// than only by a lever or script.
+        /// </summary>
+        public bool CanBeOpenedByCreatures => !IsLocked && ItemUseable != Usable.No;
+
         public string LockCode
         {
             get => GetProperty(PropertyString.LockCode);
@@ -257,6 +263,10 @@ namespace ACE.Server.WorldObjects
             // 1 meaning able to open doors?
             var creature = target as Creature;
             if (creature == null || creature.AiOptions == 0)
+                return;
+
+            // CustomDM: bumping must not open a door only a lever or script opens
+            if (ConfigManager.Config.Server.WorldRuleset == Ruleset.CustomDM && ItemUseable == Usable.No)
                 return;
 
             ActOnUse(target);

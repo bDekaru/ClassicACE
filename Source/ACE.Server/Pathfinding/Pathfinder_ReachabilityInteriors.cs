@@ -30,7 +30,7 @@ namespace ACE.Server.Pathfinding
 
         private static NavMeshGeometry LoadSmallInteriorGeometry(CellGroup group)
         {
-            return NavMeshGeometry.LoadGeometry(group.Cells, group.Openings, new[] { AgentSize.Small })?[AgentSize.Small];
+            return NavMeshGeometry.LoadGeometry(group.Cells, group.Openings, DoorArea.GetDoors(group.Cells[0].Id), new[] { AgentSize.Small })?[AgentSize.Small];
         }
 
         /// <summary>

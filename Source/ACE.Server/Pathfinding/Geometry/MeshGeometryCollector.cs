@@ -641,7 +641,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// Nothing for an ethereal object, nor for one of only small spheres (see SmallObstacleSphereRadius).
         /// </summary>
         /// <param name="usePolygons">Use the part BSP polygons whatever the object's state, as for buildings</param>
-        private static IEnumerable<List<Vector3>> GetCollisionPolygons(ACE.Server.Physics.PhysicsObj obj, Vector3 offset, bool usePolygons)
+        public static IEnumerable<List<Vector3>> GetCollisionPolygons(ACE.Server.Physics.PhysicsObj obj, Vector3 offset, bool usePolygons)
         {
             if (obj?.PartArray == null || obj.Position?.Frame == null)
                 yield break;

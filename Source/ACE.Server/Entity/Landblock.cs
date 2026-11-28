@@ -1355,6 +1355,9 @@ namespace ACE.Server.Entity
             if (wo is Player player)
                 player.SetFogColor(FogColor);
 
+            if (wo is Door door && Common.ConfigManager.Config.Server.WorldRuleset == Common.Ruleset.CustomDM)
+                Pathfinder.RegisterDoor(door);
+
             if (wo is Corpse && wo.Level.HasValue)
             {
                 var corpseLimit = PropertyManager.GetLong("corpse_spam_limit").Item;

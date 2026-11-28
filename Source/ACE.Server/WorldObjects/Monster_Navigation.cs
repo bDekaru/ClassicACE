@@ -1214,8 +1214,32 @@ namespace ACE.Server.WorldObjects
         /// </summary>
         private List<Position> FindRouteThroughOpenings(Position goal, AgentSize agentSize, out bool reachesTarget)
         {
-            return Pathfinder.FindRouteLegs(Location, goal, agentSize, out reachesTarget)?.SelectMany(leg => leg).ToList();
+            List<Position> Find(bool blockImpassable, out bool reaches) =>
+                Pathfinder.FindRouteLegs(Location, goal, agentSize, out reaches, doors: new DoorRules(CanOpenDoors, blockImpassable))?.SelectMany(leg => leg).ToList();
+
+            var route = Find(false, out reachesTarget);
+
+            var blocked = route?.FindIndex(p => RoutePosition.GetDoors(p).Any(door => !Pathfinder.CanPassDoor(door, CanOpenDoors))) ?? -1;
+            if (blocked < 0)
+                return route;
+
+            // a door this creature can't pass is on the way: take another way if it isn't much longer, else walk up to the door
+            var detour = Find(true, out var detourReaches);
+            if (detour != null && detourReaches &&
+                (!reachesTarget || Pathfinder.GetRouteLength(Location, detour) <= Pathfinder.GetRouteLength(Location, route) + MaxDoorDetourDistance))
+            {
+                reachesTarget = true;
+                return detour;
+            }
+
+            reachesTarget = false;
+            return route.GetRange(0, blocked + 1);
         }
+
+        /// <summary>
+        /// How many metres longer than the way through a door the creature can't pass a way around it may be.
+        /// </summary>
+        private const float MaxDoorDetourDistance = 40.0f;
 
         /// <summary>
         /// The mesh this creature routes on, by its size: the smallest mesh it fits, as a smaller mesh's routes lead
@@ -1426,6 +1450,9 @@ namespace ACE.Server.WorldObjects
 
             if (!retry)
             {
+                if (!PassDoorAtWaypoint())
+                    return;
+
                 if (CurrentRoute != null && CurrentRouteIndex >= CurrentRoute.Count)
                 {
                     if (!TryContinuePartialRoute())
@@ -1477,9 +1504,53 @@ namespace ACE.Server.WorldObjects
             CancelPendingMovement();
             FailedSightCount = 0;
 
-            // Measured from the centre: a waypoint counts as reached where it is, not a body radius early. A ledge drop
-            // is walked off, so the creature comes down where LedgeDropFinder tested: running, it would land further out.
-            MoveTo(RoutePositionTarget, RouteWaypointRadius, 1.0f, false, useSpheres: false, walk: IsRouteWalking || IsLedgeDropping, interruptAnimations: true);
+            // Measured from the centre: a waypoint counts as reached where it is, not a body radius early, except a door's
+            // entry, so the body doesn't run into the closed door. A ledge drop is walked off, so the creature comes down
+            // where LedgeDropFinder tested: running, it would land further out.
+            var radius = RoutePosition.GetDoors(RoutePositionTarget).Length > 0 ? RouteWaypointRadius + PhysicsObj.GetRadius() : RouteWaypointRadius;
+
+            MoveTo(RoutePositionTarget, radius, 1.0f, false, useSpheres: false, walk: IsRouteWalking || IsLedgeDropping, interruptAnimations: true);
+        }
+
+        /// <summary>
+        /// At a door's entry on the route, opens the door and waits for it to swing open. False while waiting (the same
+        /// step runs again on the next tick). A door this creature can't open ends the route there, to be planned again.
+        /// </summary>
+        private bool PassDoorAtWaypoint()
+        {
+            if (CurrentRoute == null || CurrentRouteIndex <= 0)
+                return true;
+
+            var opening = false;
+            foreach (var guid in RoutePosition.GetDoors(CurrentRoute[CurrentRouteIndex - 1]))
+            {
+                var door = Pathfinder.GetDoor(guid);
+                if (door == null)
+                    continue;
+
+                if (!door.IsOpen)
+                {
+                    if (!CanOpenDoors || !door.CanBeOpenedByCreatures)
+                    {
+                        if (CurrentRouteIndex < CurrentRoute.Count)
+                        {
+                            CurrentRoute.RemoveRange(CurrentRouteIndex, CurrentRoute.Count - CurrentRouteIndex);
+                            RouteReachesTarget = false;
+                        }
+                        return true;
+                    }
+
+                    door.ActOnUse(this);
+                }
+
+                opening |= door.IsBusy;
+            }
+
+            if (!opening)
+                return true;
+
+            PendingContinueRoute = true;
+            return false;
         }
 
         /// <summary>
