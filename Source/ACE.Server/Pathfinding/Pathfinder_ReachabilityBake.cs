@@ -410,7 +410,7 @@ namespace ACE.Server.Pathfinding
 
                 var ip = group.Pieces[interiorPiece];
                 return text + $", indoors, cell group {group.Index} piece {interiorPiece} of {group.Pieces.Count}: {ip.Area:F0} m2, z {ip.MinZ:F1} to {ip.MaxZ:F1}, " +
-                    $"doorways {group.Doors.Count(d => d.Piece == interiorPiece)}, ledge drops out {group.LedgeDrops.Count(d => d.from == interiorPiece)}, in {group.LedgeDrops.Count(d => d.to == interiorPiece)}";
+                    $"openings {group.Openings.Count(d => d.Piece == interiorPiece)}, ledge drops out {group.LedgeDrops.Count(d => d.from == interiorPiece)}, in {group.LedgeDrops.Count(d => d.to == interiorPiece)}";
             }
 
             var summary = graph?.Summaries[landblock];

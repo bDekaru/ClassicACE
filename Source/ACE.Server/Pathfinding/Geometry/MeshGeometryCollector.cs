@@ -44,7 +44,7 @@ namespace ACE.Server.Pathfinding.Geometry
     /// <summary>
     /// Collects the polygons a navmesh is built from, as indexed vertices in Recast space (y up): the cells and static
     /// objects of an interior cell group (see LoadCells), or the outdoors around a landblock (see LoadSurface), plus
-    /// door aprons.
+    /// opening aprons.
     /// </summary>
     internal sealed class MeshGeometryCollector
     {
@@ -352,12 +352,12 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Adds the floor of a door apron (see DoorApron) for each doorway in a wall.
+        /// Adds the floor of an opening apron (see OpeningApron) for each opening in a wall.
         /// </summary>
-        public void AddDoorAprons(IEnumerable<CellGroupDoor> doors, AgentSize agentSize)
+        public void AddOpeningAprons(IEnumerable<CellGroupOpening> openings, AgentSize agentSize)
         {
-            foreach (var door in doors)
-                AddPolygon(DoorApron.GetFloor(door, agentSize));
+            foreach (var opening in openings)
+                AddPolygon(OpeningApron.GetFloor(opening, agentSize));
         }
 
         /// <summary>
@@ -369,7 +369,7 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// Removes the geometry added since a mark (see GetMark), e.g. one agent size's door aprons, so the same
+        /// Removes the geometry added since a mark (see GetMark), e.g. one agent size's opening aprons, so the same
         /// loaded cells can get another size's.
         /// </summary>
         public void Truncate((int vertices, int polygons) mark)
@@ -917,7 +917,7 @@ namespace ACE.Server.Pathfinding.Geometry
                     {
                         for (var j = 0; j < steps; j++)
                         {
-                            // only drop a sub-quad when it is entirely inside, so terrain still meets door thresholds
+                            // only drop a sub-quad when it is entirely inside, so terrain still meets opening thresholds
                             if (covered[i, j] && covered[i + 1, j] && covered[i, j + 1] && covered[i + 1, j + 1])
                                 continue;
 

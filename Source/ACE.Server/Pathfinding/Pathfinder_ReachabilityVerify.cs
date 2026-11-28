@@ -68,9 +68,9 @@ namespace ACE.Server.Pathfinding
 
             var interiors = graph.Interiors;
             var interiorPieces = Enumerable.Range(0, interiors.Length).Where(i => interiors[i] != null)
-                .SelectMany(i => interiors[i].Groups.SelectMany(g => g.Pieces.Select((piece, k) => (landblock: i, group: g.Index, index: k, piece, spot: new GraphSpot(i, g.Index, (ushort)k), hasDoors: g.Doors.Count > 0))))
+                .SelectMany(i => interiors[i].Groups.SelectMany(g => g.Pieces.Select((piece, k) => (landblock: i, group: g.Index, index: k, piece, spot: new GraphSpot(i, g.Index, (ushort)k), hasOpenings: g.Openings.Count > 0))))
                 .ToList();
-            lines.Add($"Interiors: {interiors.Count(s => s != null)} landblocks, {interiorPieces.Count} pieces, {graph.DoorJoinCount} doorways joined to the outside, {graph.DoorUnjoinedCount} not joined to the outside, {graph.TouchingDoorJoinCount} doorway pairs joined to each other");
+            lines.Add($"Interiors: {interiors.Count(s => s != null)} landblocks, {interiorPieces.Count} pieces, {graph.OpeningJoinCount} openings joined to the outside, {graph.OpeningUnjoinedCount} not joined to the outside, {graph.TouchingOpeningJoinCount} opening pairs joined to each other");
             foreach (var level in reportLevels)
             {
                 lines.Add($"  {LevelName(level)}:");
@@ -106,13 +106,13 @@ namespace ACE.Server.Pathfinding
             foreach (var p in pieces.Select(p => (p.landblock, p.index, p.piece, label: graph.GetLabel(p.spot))).Where(p => p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
                 lines.Add($"  {p.label} {p.landblock:X4} piece {p.index} ({summaries[p.landblock].Method}): {p.piece.Area:F0} m2, z {p.piece.MinZ:F1} to {p.piece.MaxZ:F1}");
 
-            var interiorLabels = interiorPieces.Select(p => (p.landblock, p.group, p.index, p.piece, p.hasDoors, label: graph.GetLabel(p.spot))).ToList();
-            lines.Add("Largest interior pieces with doorways that aren't Walkable at any level:");
-            foreach (var p in interiorLabels.Where(p => p.hasDoors && p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
+            var interiorLabels = interiorPieces.Select(p => (p.landblock, p.group, p.index, p.piece, p.hasOpenings, label: graph.GetLabel(p.spot))).ToList();
+            lines.Add("Largest interior pieces with openings that aren't Walkable at any level:");
+            foreach (var p in interiorLabels.Where(p => p.hasOpenings && p.label != ReachabilityLabel.Walkable).OrderByDescending(p => p.piece.Area).Take(25))
                 lines.Add($"  {p.label} {p.landblock:X4} group {p.group} piece {p.index}: {p.piece.Area:F0} m2, z {p.piece.MinZ:F1} to {p.piece.MaxZ:F1}");
 
-            lines.Add("Largest interior pieces without doorways that aren't reached at any level:");
-            foreach (var p in interiorLabels.Where(p => !p.hasDoors && p.label is not (ReachabilityLabel.Walkable or ReachabilityLabel.OneWay)).OrderByDescending(p => p.piece.Area).Take(25))
+            lines.Add("Largest interior pieces without openings that aren't reached at any level:");
+            foreach (var p in interiorLabels.Where(p => !p.hasOpenings && p.label is not (ReachabilityLabel.Walkable or ReachabilityLabel.OneWay)).OrderByDescending(p => p.piece.Area).Take(25))
                 lines.Add($"  {p.label} {p.landblock:X4} group {p.group} piece {p.index}: {p.piece.Area:F0} m2, z {p.piece.MinZ:F1} to {p.piece.MaxZ:F1}");
 
             var shown = string.Join("\n", lines.Take(shownLines));

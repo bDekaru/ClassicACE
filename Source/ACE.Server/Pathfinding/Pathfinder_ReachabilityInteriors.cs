@@ -30,7 +30,7 @@ namespace ACE.Server.Pathfinding
 
         private static NavMeshGeometry LoadSmallInteriorGeometry(CellGroup group)
         {
-            return NavMeshGeometry.LoadGeometry(group.Cells, group.Doors, new[] { AgentSize.Small })?[AgentSize.Small];
+            return NavMeshGeometry.LoadGeometry(group.Cells, group.Openings, new[] { AgentSize.Small })?[AgentSize.Small];
         }
 
         /// <summary>
@@ -87,7 +87,7 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// A group's connected components and ledge drops, the piece inside each doorway a player gets through, and the
+        /// A group's connected components and ledge drops, the piece inside each opening a player gets through, and the
         /// pieces of each cell, found from the cell around each poly's middle.
         /// </summary>
         private static void SummarizeGroup(GroupSummary summary, DtNavMesh mesh, CellGroup group, LandblockGroups groups)
@@ -123,7 +123,7 @@ namespace ACE.Server.Pathfinding
                     var point = j < 0 ? middle : Vector3.Lerp(vertices[j], middle, 0.1f);
                     var cell = groups.FindCell(group.Index, lastCell, point + new Vector3(0f, 0f, CellProbeHeight));
                     if (cell == 0)
-                        continue; // on a door apron outside, or over a gap between cells
+                        continue; // on an opening apron outside, or over a gap between cells
 
                     lastCell = cell;
                     var key = (cell, (ushort)component[i]);
@@ -151,30 +151,31 @@ namespace ACE.Server.Pathfinding
 
             using (var lease = new MeshLease(mesh))
             {
-                for (var d = 0; d < group.Doors.Count; d++)
+                for (var d = 0; d < group.Openings.Count; d++)
                 {
-                    var doorRef = FindDoorPoly(lease.Query, group, group.Doors[d], AgentSize.Small, DoorFilter);
-                    if (doorRef == 0)
+                    var openingRef = FindOpeningPoly(lease.Query, group, group.Openings[d], AgentSize.Small, OpeningFilter);
+                    if (openingRef == 0)
                         continue;
 
-                    mesh.GetTileAndPolyByRefUnsafe(doorRef, out _, out var poly);
-                    // a door apron with no floor of its own can't be reached from inside (a window), as MarkIslands judges it
+                    mesh.GetTileAndPolyByRefUnsafe(openingRef, out _, out var poly);
+                    // an opening apron with no floor of its own can't be reached from inside (a window), as MarkIslands
+                    // judges it
                     if (poly != null && component[poly.index] >= 0 && summary.Pieces[component[poly.index]].Area > 0f)
-                        summary.Doors.Add(new SummaryDoor { Group = summary.Index, Door = (ushort)d, Piece = (ushort)component[poly.index], Position = group.Doors[d].Position, Normal = group.Doors[d].Normal });
+                        summary.Openings.Add(new SummaryOpening { Group = summary.Index, Opening = (ushort)d, Piece = (ushort)component[poly.index], Position = group.Openings[d].Position, Normal = group.Openings[d].Normal });
                 }
             }
 
-            // a piece only at doorways can lie outside every cell (a rim around an open roof): its doorways' cells list it,
-            // or a spot on it would answer for the floor below. At the doorway's height, as the piece's whole range could
-            // take over spots on a floor in the cell
+            // a piece only at openings can lie outside every cell (a rim around an open roof): its openings' cells list
+            // it, or a spot on it would answer for the floor below. At the opening's height, as the piece's whole range
+            // could take over spots on a floor in the cell
             var listed = cellPieces.Values.SelectMany(c => c.Select(p => p.piece)).ToHashSet();
-            foreach (var door in summary.Doors.Where(d => !listed.Contains(d.Piece)))
+            foreach (var opening in summary.Openings.Where(d => !listed.Contains(d.Piece)))
             {
-                var (cellId, sill) = (group.Doors[door.Door].CellId, group.Doors[door.Door].Position.Z);
+                var (cellId, sill) = (group.Openings[opening.Opening].CellId, group.Openings[opening.Opening].Position.Z);
                 var pieces = cellPieces.TryGetValue(cellId, out var known) ? known : new List<(ushort piece, float min, float max)>();
                 // a new list: cells without floor of their own share their neighbor's
-                if (!pieces.Any(p => p.piece == door.Piece))
-                    cellPieces[cellId] = pieces.Append((door.Piece, sill, sill)).ToList();
+                if (!pieces.Any(p => p.piece == opening.Piece))
+                    cellPieces[cellId] = pieces.Append((opening.Piece, sill, sill)).ToList();
             }
 
             summary.Cells.AddRange(cellPieces.SelectMany(c => c.Value.Select(p => new SummaryCellPiece { Cell = (ushort)c.Key, Piece = p.piece, MinZ = p.min, MaxZ = p.max })));

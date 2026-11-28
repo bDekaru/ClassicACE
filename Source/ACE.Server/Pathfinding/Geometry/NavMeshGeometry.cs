@@ -12,7 +12,7 @@ namespace ACE.Server.Pathfinding.Geometry
 {
     /// <summary>
     /// The geometry a navmesh is built from (see NavMeshBuilder), as Recast takes it: one triangle mesh in Recast space
-    /// (Y up), and the convex volumes that mark the door aprons.
+    /// (Y up), and the convex volumes that mark the opening aprons.
     /// </summary>
     public class NavMeshGeometry : IRcInputGeomProvider
     {
@@ -39,11 +39,12 @@ namespace ACE.Server.Pathfinding.Geometry
         private readonly RcTriMesh[] meshes;
 
         /// <summary>
-        /// Geometry for a set of interior (dungeon) cells, per agent size: with a door apron (see DoorApron) sized for
-        /// that agent outside each of the given doorways, marked as a door area. The cells and their static objects are
-        /// loaded once, and only the door aprons differ per size. Null if the cells have no geometry.
+        /// Geometry for a set of interior (dungeon) cells, per agent size: with an opening apron (see OpeningApron)
+        /// sized for that agent outside each of the given openings, marked as an opening area. The cells and their
+        /// static objects are loaded once, and only the opening aprons differ per size. Null if the cells have no
+        /// geometry.
         /// </summary>
-        public static Dictionary<AgentSize, NavMeshGeometry> LoadGeometry(List<EnvCell> cells, IEnumerable<CellGroupDoor> doors, IEnumerable<AgentSize> agentSizes)
+        public static Dictionary<AgentSize, NavMeshGeometry> LoadGeometry(List<EnvCell> cells, IEnumerable<CellGroupOpening> openings, IEnumerable<AgentSize> agentSizes)
         {
             var collector = new MeshGeometryCollector(cells);
             collector.LoadCells();
@@ -52,17 +53,17 @@ namespace ACE.Server.Pathfinding.Geometry
             if (collector.Vertices.Count == 0)
                 return null;
 
-            var doorList = doors?.ToList() ?? new List<CellGroupDoor>();
+            var openingList = openings?.ToList() ?? new List<CellGroupOpening>();
             var cellsEnd = collector.GetMark();
             var geometries = new Dictionary<AgentSize, NavMeshGeometry>();
 
             foreach (var agentSize in agentSizes)
             {
-                collector.AddDoorAprons(doorList, agentSize);
+                collector.AddOpeningAprons(openingList, agentSize);
 
                 var geometry = FromCollector(collector);
-                foreach (var door in doorList)
-                    geometry.AddConvexVolume(DoorApron.GetDoorVolume(door, agentSize));
+                foreach (var opening in openingList)
+                    geometry.AddConvexVolume(OpeningApron.GetOpeningVolume(opening, agentSize));
                 geometries[agentSize] = geometry;
 
                 collector.Truncate(cellsEnd);
@@ -140,7 +141,7 @@ namespace ACE.Server.Pathfinding.Geometry
         }
 
         /// <summary>
-        /// The volumes that mark areas of the mesh: the door aprons (see DoorApron) and the roads (see RoadArea).
+        /// The volumes that mark areas of the mesh: the opening aprons (see OpeningApron) and the roads (see RoadArea).
         /// </summary>
         public IList<RcConvexVolume> ConvexVolumes()
         {

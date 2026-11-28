@@ -113,7 +113,8 @@ namespace ACE.Server.Pathfinding
                     (entry.InteriorMethod, entry.InteriorFingerprint, entry.InteriorStatus) = (interiorMethod, interiorFingerprint, GetStatus(interiorMethod));
                     changed++;
 
-                    // the outdoor summary names doorways by group index (SummaryDoor.Group), which can change with the cells alone
+                    // the outdoor summary names openings by group index (SummaryOpening.Group), which can change with
+                    // the cells alone
                     if (entry.Status == ReachabilityStatus.Done)
                         entry.Status = GetStatus(entry.Method);
                 }
@@ -239,7 +240,7 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The tile's connected components, the poly edges Detour links to the neighbor tiles, its ledge drops, the
-        /// pieces in front of the doorways, and a map of the piece found near terrain height and the layers above it.
+        /// pieces in front of the openings, and a map of the piece found near terrain height and the layers above it.
         /// False if the tile can't be read as a mesh.
         /// </summary>
         private static bool SummarizeRecast(TileSummary summary, DtMeshData data, List<Polygon> terrain)
@@ -271,19 +272,19 @@ namespace ACE.Server.Pathfinding
             var halfExtents = new RcVec3f(0.05f, 1.5f, 0.05f);
             using (var lease = new MeshLease(mesh))
             {
-                // the piece the doorway's outdoor side is on, found as the door seeds of MarkIslands are
+                // the piece the opening's outdoor side is on, found as the opening seeds of MarkIslands are
                 foreach (var group in CellGroupLoader.LoadCellGroups(summary.LandblockId).Where(g => g.ConnectsToOutside && g.Index <= MaxGroup))
                 {
-                    for (var d = 0; d < group.Doors.Count; d++)
+                    for (var d = 0; d < group.Openings.Count; d++)
                     {
-                        var point = ToMeshPoint(summary.LandblockId, GetDoorOutsidePoint(group.Doors[d], AgentSize.Small), true);
-                        var polyRef = FindDoorSeedPoly(lease.Query, point);
+                        var point = ToMeshPoint(summary.LandblockId, GetOpeningOutsidePoint(group.Openings[d], AgentSize.Small), true);
+                        var polyRef = FindOpeningSeedPoly(lease.Query, point);
                         if (polyRef == 0)
                             continue;
 
                         mesh.GetTileAndPolyByRefUnsafe(polyRef, out _, out var poly);
                         if (poly != null && component[poly.index] >= 0)
-                            summary.Doors.Add(new SummaryDoor { Group = (ushort)group.Index, Door = (ushort)d, Piece = (ushort)component[poly.index] });
+                            summary.Openings.Add(new SummaryOpening { Group = (ushort)group.Index, Opening = (ushort)d, Piece = (ushort)component[poly.index] });
                     }
                 }
 
@@ -357,9 +358,9 @@ namespace ACE.Server.Pathfinding
         private static int[] AddSummaryPieces(DtNavMesh mesh, DtMeshTile tile, Vector3 origin, List<SummaryPiece> pieces, List<(ushort from, ushort to)> ledgeDrops)
         {
             var data = tile.data;
-            var (component, area, hasDoor) = FindComponents(mesh, tile);
+            var (component, area, hasOpening) = FindComponents(mesh, tile);
             for (var c = 0; c < area.Count; c++)
-                pieces.Add(new SummaryPiece { Area = area[c], MinZ = float.MaxValue, MaxZ = float.MinValue, Flags = hasDoor[c] ? PieceFlags.HasDoor : PieceFlags.None });
+                pieces.Add(new SummaryPiece { Area = area[c], MinZ = float.MaxValue, MaxZ = float.MinValue, Flags = hasOpening[c] ? PieceFlags.HasOpening : PieceFlags.None });
 
             for (var i = 0; i < data.header.polyCount; i++)
             {

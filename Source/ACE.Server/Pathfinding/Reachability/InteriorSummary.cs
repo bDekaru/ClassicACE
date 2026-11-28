@@ -6,7 +6,7 @@ namespace ACE.Server.Pathfinding.Reachability
 {
     /// <summary>
     /// The pieces of an interior cell that has walkable floor, with the heights they span in it. A piece in no cell (a
-    /// rim around an open roof) is listed in its doorways' cells, at the doorway's height.
+    /// rim around an open roof) is listed in its openings' cells, at the opening's height.
     /// </summary>
     public struct SummaryCellPiece
     {
@@ -21,7 +21,7 @@ namespace ACE.Server.Pathfinding.Reachability
 
     /// <summary>
     /// What the world graph needs of one interior cell group, from its Small (player) mesh: the connected pieces, the
-    /// ledge drops between them, the piece each passable doorway opens onto, and the pieces of each cell.
+    /// ledge drops between them, the piece each passable opening leads onto, and the pieces of each cell.
     /// </summary>
     public class GroupSummary
     {
@@ -32,9 +32,9 @@ namespace ACE.Server.Pathfinding.Reachability
         public List<(ushort from, ushort to)> LedgeDrops { get; } = new List<(ushort, ushort)>();
 
         /// <summary>
-        /// The doorways a player gets through, with the piece inside (Group is this group's Index, not written).
+        /// The openings a player gets through, with the piece inside (Group is this group's Index, not written).
         /// </summary>
-        public List<SummaryDoor> Doors { get; } = new List<SummaryDoor>();
+        public List<SummaryOpening> Openings { get; } = new List<SummaryOpening>();
 
         /// <summary>
         /// Ordered by cell. A cell without floor of its own has its nearest cell's pieces (through the cell portals).
@@ -73,12 +73,12 @@ namespace ACE.Server.Pathfinding.Reachability
             writer.Write(Index);
             SummaryFile.WritePieces(writer, Pieces, LedgeDrops);
 
-            writer.Write(Doors.Count);
-            foreach (var door in Doors)
+            writer.Write(Openings.Count);
+            foreach (var opening in Openings)
             {
-                writer.Write(door.Door);
-                writer.Write(door.Piece);
-                foreach (var value in new[] { door.Position.X, door.Position.Y, door.Position.Z, door.Normal.X, door.Normal.Y, door.Normal.Z })
+                writer.Write(opening.Opening);
+                writer.Write(opening.Piece);
+                foreach (var value in new[] { opening.Position.X, opening.Position.Y, opening.Position.Z, opening.Normal.X, opening.Normal.Y, opening.Normal.Z })
                     writer.Write(value);
             }
 
@@ -99,12 +99,12 @@ namespace ACE.Server.Pathfinding.Reachability
 
             var pieceCount = SummaryFile.ReadPieces(reader, label, group.Pieces, group.LedgeDrops);
 
-            var doorCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
-            for (var i = 0; i < doorCount; i++)
-                group.Doors.Add(new SummaryDoor
+            var openingCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
+            for (var i = 0; i < openingCount; i++)
+                group.Openings.Add(new SummaryOpening
                 {
                     Group = group.Index,
-                    Door = reader.ReadUInt16(),
+                    Opening = reader.ReadUInt16(),
                     Piece = SummaryFile.ReadPiece(reader, label, pieceCount),
                     Position = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),
                     Normal = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle()),

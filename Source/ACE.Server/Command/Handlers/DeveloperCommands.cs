@@ -1613,7 +1613,7 @@ namespace ACE.Server.Command.Handlers
             if (legCount == 0)
                 return "N/A (no route)";
 
-            var legs = legCount == 1 ? "1 leg" : $"{legCount} legs through doorways";
+            var legs = legCount == 1 ? "1 leg" : $"{legCount} legs through openings";
             if (reached)
                 return $"{distance:0.00} ({legs})";
 
@@ -4357,7 +4357,7 @@ namespace ACE.Server.Command.Handlers
             var meshHeight = Pathfinder.GetAgentHeight(agentSize);
             CommandHandlerHelper.WriteOutputInfo(session, $"Mesh used: {agentSize} (collision radius {collisionRadius:0.00}m / height {collisionHeight:0.00}m, mesh agent radius {meshRadius:0.00}m / height {meshHeight:0.00}m)");
 
-            // chain routes through doorways, so a creature in a building can be sent outside or into another building
+            // chain routes through openings, so a creature in a building can be sent outside or into another building
             var legs = Pathfinder.FindRouteLegs(creature.Location, player.Location, agentSize, out var reachesEnd);
             if (legs == null)
             {
@@ -4372,7 +4372,8 @@ namespace ACE.Server.Command.Handlers
                 var leg = legs[i];
                 var length = Pathfinder.GetRouteLength(legStart, leg);
 
-                // the leg's first waypoint is on the leg's mesh (legStart is still on the previous leg's side of the doorway)
+                // the leg's first waypoint is on the leg's mesh (legStart is still on the previous leg's side of the
+                // opening)
                 var group = Pathfinder.GetMeshGroup(leg[0]);
                 var mesh = group == Pathfinder.OutdoorGroup ? "outdoors" : $"interior group {group}";
                 CommandHandlerHelper.WriteOutputInfo(session, $"Leg {i + 1}: {mesh}, 0x{leg[0].Cell:X8} -> 0x{leg[leg.Count - 1].Cell:X8}, {leg.Count} waypoints, {length:0.00}m");
@@ -4629,7 +4630,7 @@ namespace ACE.Server.Command.Handlers
 
             var length = Pathfinder.GetRouteLength(player.Location, waypoints);
 
-            var legsText = legs.Count == 1 ? "1 leg" : $"{legs.Count} legs through doorways";
+            var legsText = legs.Count == 1 ? "1 leg" : $"{legs.Count} legs through openings";
             var endText = reachesDestination
                 ? ""
                 : $", ending {waypoints[waypoints.Count - 1].DistanceTo(walk.Destination):0.0}m short of the destination (planning again from there)";

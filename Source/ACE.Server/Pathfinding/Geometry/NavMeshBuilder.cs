@@ -223,7 +223,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
         /// <summary>
         /// Gives each poly of the Recast build its area and flags: the walkable area Recast marks becomes Ground, and
-        /// floor is flagged Walk (narrow floor Narrow too) and door aprons Door (see NavArea, NavPolyFlags).
+        /// floor is flagged Walk (narrow floor Narrow too) and opening aprons Opening (see NavArea, NavPolyFlags).
         /// </summary>
         private static void SetAreasAndFlags(RcPolyMesh polyMesh)
         {
@@ -234,7 +234,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
                 polyMesh.flags[i] = polyMesh.areas[i] switch
                 {
-                    NavArea.Door => NavPolyFlags.Door,
+                    NavArea.Opening => NavPolyFlags.Opening,
                     NavArea.Narrow => NavPolyFlags.Walk | NavPolyFlags.Narrow,
                     _ => NavPolyFlags.Walk
                 };

@@ -27,7 +27,7 @@ namespace ACE.Server.Pathfinding
     /// </summary>
     public enum AgentSize
     {
-        Small,  // Fits most doors
+        Small,  // Fits most doorways
         Medium, // Fits regular corridors
         Large   // Fits large rooms and outdoors only
     }
@@ -107,7 +107,7 @@ namespace ACE.Server.Pathfinding
         /// Height: the clearance needed overhead, which closes every opening lower than it on that mesh. Chosen from
         /// the world's openings: building doorways are nearly all 2.5m tall and dungeon corridors mostly 3.0m, and
         /// Recast loses about a cell (0.1m) voxelizing a floor and a lintel, so an opening stays open for an
-        /// agentHeight a cell under it. Small at 2.4 keeps 86% of the building doors open for its creatures (2.6
+        /// agentHeight a cell under it. Small at 2.4 keeps 86% of the building doorways open for its creatures (2.6
         /// kept 41%); Medium at 2.9 keeps 99% of the dungeon openings (3.2 kept 62%). Large at 3.4 costs nothing in
         /// dungeons, as every opening wide enough for it is also tall enough. A creature taller than its radius' mesh
         /// routes on the next one up (see GetAgentSize): ~2% of spawns.
@@ -243,10 +243,10 @@ namespace ACE.Server.Pathfinding
             private readonly ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell> physicsCells = new ConcurrentDictionary<uint, ACE.Server.Physics.Common.EnvCell>();
 
             /// <summary>
-            /// By group index, the doorways that open straight into another group's (see FindTouchingDoors).
+            /// By group index, the openings that lead straight into another group's (see FindTouchingOpenings).
             /// </summary>
-            public Dictionary<int, List<(CellGroupDoor door, MeshGroupKey other, CellGroupDoor otherDoor)>> TouchingDoors => touchingDoors.Value;
-            private readonly Lazy<Dictionary<int, List<(CellGroupDoor door, MeshGroupKey other, CellGroupDoor otherDoor)>>> touchingDoors;
+            public Dictionary<int, List<(CellGroupOpening opening, MeshGroupKey other, CellGroupOpening otherOpening)>> TouchingOpenings => touchingOpenings.Value;
+            private readonly Lazy<Dictionary<int, List<(CellGroupOpening opening, MeshGroupKey other, CellGroupOpening otherOpening)>>> touchingOpenings;
 
             /// <summary>
             /// The cells FindCell has queued and its queue, per thread.
@@ -262,12 +262,12 @@ namespace ACE.Server.Pathfinding
             /// </summary>
             public LandblockGroups()
             {
-                touchingDoors = new Lazy<Dictionary<int, List<(CellGroupDoor, MeshGroupKey, CellGroupDoor)>>>(new Dictionary<int, List<(CellGroupDoor, MeshGroupKey, CellGroupDoor)>>());
+                touchingOpenings = new Lazy<Dictionary<int, List<(CellGroupOpening, MeshGroupKey, CellGroupOpening)>>>(new Dictionary<int, List<(CellGroupOpening, MeshGroupKey, CellGroupOpening)>>());
             }
 
             public LandblockGroups(uint landblockId)
             {
-                touchingDoors = new Lazy<Dictionary<int, List<(CellGroupDoor, MeshGroupKey, CellGroupDoor)>>>(() => FindTouchingDoors(landblockId, ByIndex.Values));
+                touchingOpenings = new Lazy<Dictionary<int, List<(CellGroupOpening, MeshGroupKey, CellGroupOpening)>>>(() => FindTouchingOpenings(landblockId, ByIndex.Values));
 
                 foreach (var group in CellGroupLoader.LoadCellGroups(landblockId))
                 {

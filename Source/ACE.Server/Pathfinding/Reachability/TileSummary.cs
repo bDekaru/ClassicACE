@@ -13,9 +13,9 @@ namespace ACE.Server.Pathfinding.Reachability
         None = 0,
 
         /// <summary>
-        /// Has door apron polys: a doorway between a building or cave and the outdoors.
+        /// Has opening apron polys: an opening between a building or cave and the outdoors.
         /// </summary>
-        HasDoor = 0x1,
+        HasOpening = 0x1,
 
         /// <summary>
         /// Reaches the tile edge (has spans), where it may continue into the neighbor.
@@ -47,17 +47,17 @@ namespace ACE.Server.Pathfinding.Reachability
     }
 
     /// <summary>
-    /// The piece at one doorway of a cell group, by the doorway's index in CellGroup.Doors: on a tile the outdoor piece
-    /// in front of it, in an interior the piece inside.
+    /// The piece at one opening of a cell group, by the opening's index in CellGroup.Openings: on a tile the outdoor
+    /// piece in front of it, in an interior the piece inside.
     /// </summary>
-    public struct SummaryDoor
+    public struct SummaryOpening
     {
         public ushort Group;
-        public ushort Door;
+        public ushort Opening;
         public ushort Piece;
 
         /// <summary>
-        /// Interiors only: the doorway's threshold in landblock-local metres and the way it faces out, to join doorways
+        /// Interiors only: the opening's threshold in landblock-local metres and the way it faces out, to join openings
         /// that open straight into another group's (see WorldGraph.Build).
         /// </summary>
         public Vector3 Position;
@@ -76,7 +76,7 @@ namespace ACE.Server.Pathfinding.Reachability
 
     /// <summary>
     /// What the world graph needs of one landblock's outdoor walkable surface, without its mesh: the connected pieces,
-    /// where they reach the tile edge, the ledge drops between them, the pieces in front of the doorways, and a map of
+    /// where they reach the tile edge, the ledge drops between them, the pieces in front of the openings, and a map of
     /// which piece a spot is on, at ground level and on the raised layers.
     /// </summary>
     public class TileSummary
@@ -114,9 +114,9 @@ namespace ACE.Server.Pathfinding.Reachability
         public List<(ushort from, ushort to)> LedgeDrops { get; } = new List<(ushort, ushort)>();
 
         /// <summary>
-        /// Recast only: the doorways of the landblock's buildings and caves that have an outdoor piece in front.
+        /// Recast only: the openings of the landblock's buildings and caves that have an outdoor piece in front.
         /// </summary>
-        public List<SummaryDoor> Doors { get; } = new List<SummaryDoor>();
+        public List<SummaryOpening> Openings { get; } = new List<SummaryOpening>();
 
         /// <summary>
         /// The piece at ground level, or NoPiece. Terrain: per terrain triangle, in LandblockStruct.Polygons order.
@@ -148,12 +148,12 @@ namespace ACE.Server.Pathfinding.Reachability
                 writer.Write(span.EndZ);
             }
 
-            writer.Write(Doors.Count);
-            foreach (var door in Doors)
+            writer.Write(Openings.Count);
+            foreach (var opening in Openings)
             {
-                writer.Write(door.Group);
-                writer.Write(door.Door);
-                writer.Write(door.Piece);
+                writer.Write(opening.Group);
+                writer.Write(opening.Opening);
+                writer.Write(opening.Piece);
             }
 
             // run-length encoded: a tile of one piece is a single run
@@ -213,14 +213,14 @@ namespace ACE.Server.Pathfinding.Reachability
                 summary.Spans.Add(span);
             }
 
-            var doorCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
-            var doorways = new HashSet<(ushort, ushort)>();
-            for (var i = 0; i < doorCount; i++)
+            var openingCount = SummaryFile.ReadCount(reader, label, ushort.MaxValue);
+            var openings = new HashSet<(ushort, ushort)>();
+            for (var i = 0; i < openingCount; i++)
             {
-                var door = new SummaryDoor { Group = reader.ReadUInt16(), Door = reader.ReadUInt16(), Piece = SummaryFile.ReadPiece(reader, label, pieceCount) };
-                if (!doorways.Add((door.Group, door.Door)))
-                    throw new InvalidDataException($"{label} has doorway {door.Door} of group {door.Group} twice");
-                summary.Doors.Add(door);
+                var opening = new SummaryOpening { Group = reader.ReadUInt16(), Opening = reader.ReadUInt16(), Piece = SummaryFile.ReadPiece(reader, label, pieceCount) };
+                if (!openings.Add((opening.Group, opening.Opening)))
+                    throw new InvalidDataException($"{label} has opening {opening.Opening} of group {opening.Group} twice");
+                summary.Openings.Add(opening);
             }
 
             if (SummaryFile.ReadCount(reader, label, mapLength) != mapLength)

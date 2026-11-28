@@ -1209,10 +1209,10 @@ namespace ACE.Server.WorldObjects
         }
 
         /// <summary>
-        /// A route to a position that may leave this building or cave and enter another one through their doorways,
+        /// A route to a position that may leave this building or cave and enter another one through their openings,
         /// chaining one route per navmesh (see Pathfinder.FindRouteLegs).
         /// </summary>
-        private List<Position> FindRouteThroughDoorways(Position goal, AgentSize agentSize, out bool reachesTarget)
+        private List<Position> FindRouteThroughOpenings(Position goal, AgentSize agentSize, out bool reachesTarget)
         {
             return Pathfinder.FindRouteLegs(Location, goal, agentSize, out reachesTarget)?.SelectMany(leg => leg).ToList();
         }
@@ -1244,7 +1244,7 @@ namespace ACE.Server.WorldObjects
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
             try
             {
-                return FindRouteThroughDoorways(goal, GetPathfindingAgentSize(), out reachesTarget);
+                return FindRouteThroughOpenings(goal, GetPathfindingAgentSize(), out reachesTarget);
             }
             finally
             {

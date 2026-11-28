@@ -16,7 +16,7 @@ using System.Numerics;
 namespace ACE.Server.Pathfinding
 {
     /// <summary>
-    /// Routes: paths on one mesh, and the legs of a route that crosses between meshes through doorways.
+    /// Routes: paths on one mesh, and the legs of a route that crosses between meshes through openings.
     /// </summary>
     public static partial class Pathfinder
     {
@@ -126,7 +126,7 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// Find a route on the start's mesh group to one of the targets: the end position when it is in that group, or
-        /// the doorways towards it (see GetCrossingCandidates). Each target comes with an estimate of the distance left
+        /// the openings towards it (see GetCrossingCandidates). Each target comes with an estimate of the distance left
         /// after it, and the shortest complete route counting it wins. Outdoor routes cross landblock edges, searching
         /// up to the profile's span (GetRouteLandblockSpan) of landblocks away from the start. Outdoor tiles load in the
         /// background, so a route through landblocks whose tiles are not loaded yet ends at the edge of the loaded ones.
@@ -159,7 +159,7 @@ namespace ACE.Server.Pathfinding
             var pathFilter = GetPathFilter(lease, start, profile);
 
             // Path to each target and keep the shortest complete route, counting the estimated distance left after
-            // a doorway. If no target can be reached, use the partial route towards the most promising one.
+            // an opening. If no target can be reached, use the partial route towards the most promising one.
             List<Waypoint> best = null;
             List<Waypoint> partial = null;
             var bestScore = float.MaxValue;
@@ -322,24 +322,24 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The most doorways FindRoute paths to when picking one.
+        /// The most openings FindRoute paths to when picking one.
         /// </summary>
-        private const int MaxDoorCandidates = 3;
+        private const int MaxOpeningCandidates = 3;
 
         /// <summary>
-        /// How many batches of MaxDoorCandidates a leg tries, the next one only when no doorway of the batch before can
-        /// be reached: openings that lead nowhere (around an open roof) can rank ahead of the real door.
+        /// How many batches of MaxOpeningCandidates a leg tries, the next one only when no opening of the batch before
+        /// can be reached: openings that lead nowhere (around an open roof) can rank ahead of the real doorway.
         /// </summary>
-        private const int MaxDoorBatches = 2;
+        private const int MaxOpeningBatches = 2;
 
         /// <summary>
-        /// Doorways closer together than this count as one (e.g. the portals of a double door).
+        /// Openings closer together than this count as one (e.g. the portals of a double doorway).
         /// </summary>
-        private const float SameDoorDistance = 1.0f;
+        private const float SameOpeningDistance = 1.0f;
 
         /// <summary>
         /// The most legs a route follows. Each crossing between mesh groups starts one: leaving a building, entering one,
-        /// or stepping through touching doorways into the next building of a compound.
+        /// or stepping through touching openings into the next building of a compound.
         /// </summary>
         private const int MaxRouteLegs = 12;
 
@@ -347,31 +347,31 @@ namespace ACE.Server.Pathfinding
         /// A leg must end this close to the crossing it was headed for (see Crossing.Near) for the route to continue on
         /// the other side.
         /// </summary>
-        private const float DoorReachDistance = 2.0f;
+        private const float OpeningReachDistance = 2.0f;
 
         /// <summary>
-        /// How far onto the outdoor mesh a doorway's outdoor side is placed (see GetDoorOutsidePoint).
+        /// How far onto the outdoor mesh an opening's outdoor side is placed (see GetOpeningOutsidePoint).
         /// </summary>
-        private const float DoorOutsideMargin = 0.3f;
+        private const float OpeningOutsideMargin = 0.3f;
 
         /// <summary>
-        /// Where a route meets a doorway on the outdoor mesh, in landblock coordinates. The outdoor mesh keeps an agent
-        /// radius from the building's walls, so in front of a doorway in a wall it starts about that far out from the
+        /// Where a route meets an opening on the outdoor mesh, in landblock coordinates. The outdoor mesh keeps an agent
+        /// radius from the building's walls, so in front of an opening in a wall it starts about that far out from the
         /// threshold: the point is there, a little onto the mesh, at threshold height.
         /// </summary>
-        private static Vector3 GetDoorOutsidePoint(CellGroupDoor door, AgentSize agentSize)
+        private static Vector3 GetOpeningOutsidePoint(CellGroupOpening opening, AgentSize agentSize)
         {
-            return door.Position + door.Normal * (GetAgentRadius(agentSize) + DoorOutsideMargin);
+            return opening.Position + opening.Normal * (GetAgentRadius(agentSize) + OpeningOutsideMargin);
         }
 
         /// <summary>
-        /// A way from one mesh group into another through a doorway: between an interior group and the outdoors (either
-        /// way), or between two interior groups through touching doorways (see FindTouchingDoors). Near is where a leg on
-        /// From's mesh heads for it, Far where the next leg starts on To's mesh: the threshold on an interior mesh, the
-        /// outdoor point (see GetDoorOutsidePoint) on the outdoor mesh, whose door apron reaches it. NearAt and FarAt
-        /// are the same points in world coordinates. NearComponent and FarComponent are the mesh components of the
-        /// doorway at either end: on an interior side as FindPassableDoors found them, outdoors the outdoor area in front
-        /// (see WorldGraph.GetOutdoorArea), -1 when not known.
+        /// A way from one mesh group into another through an opening: between an interior group and the outdoors (either
+        /// way), or between two interior groups through touching openings (see FindTouchingOpenings). Near is where a
+        /// leg on From's mesh heads for it, Far where the next leg starts on To's mesh: the threshold on an interior
+        /// mesh, the outdoor point (see GetOpeningOutsidePoint) on the outdoor mesh, whose opening apron reaches it.
+        /// NearAt and FarAt are the same points in world coordinates. NearComponent and FarComponent are the mesh
+        /// components of the opening at either end: on an interior side as FindPassableOpenings found them, outdoors the
+        /// outdoor area in front (see WorldGraph.GetOutdoorArea), -1 when not known.
         /// </summary>
         private readonly record struct Crossing(MeshGroupKey From, MeshGroupKey To, Position Near, Vector3 NearAt, Position Far, Vector3 FarAt, int NearComponent, int FarComponent);
 
@@ -383,14 +383,14 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// The crossings a route from the start's mesh group to the end's can take, by the group they leave, each with a
         /// straight-line estimate of the distance left from it to the end, through the crossings after it. They are the
-        /// crossings of the two groups and of every group joined to them through touching doorways, so a route also
+        /// crossings of the two groups and of every group joined to them through touching openings, so a route also
         /// enters or leaves a building that only opens into its neighbours. Walks through the outdoors and inside a group
-        /// between its doorways are estimated as straight lines. Only doorways an agent of the given size can get
-        /// through are used (see GetDoors), and as exits only those the reachability bake found outdoor floor in front of
-        /// (while their tile has no Recast summary, all of them). EndComponent is the end's component as in Crossing.
-        /// With one group for both start and end it plans a detour, for when the mesh doesn't connect the two: out of
-        /// the group through one doorway and back through another, outdoors through the buildings GetDetourGroups gives.
-        /// The group is then only entered again through doorways a path leads from to the end.
+        /// between its openings are estimated as straight lines. Only openings an agent of the given size can get
+        /// through are used (see GetOpenings), and as exits only those the reachability bake found outdoor floor in
+        /// front of (while their tile has no Recast summary, all of them). EndComponent is the end's component as in
+        /// Crossing. With one group for both start and end it plans a detour, for when the mesh doesn't connect the two:
+        /// out of the group through one opening and back through another, outdoors through the buildings GetDetourGroups
+        /// gives. The group is then only entered again through openings a path leads from to the end.
         /// </summary>
         private static ILookup<MeshGroupKey, (Crossing crossing, float remaining)> PlanCrossings(WorldGraph graph, Position start, MeshGroupKey startGroup, Position end, MeshGroupKey endGroup, int endComponent, AgentSize agentSize, RouteProfile profile)
         {
@@ -403,60 +403,60 @@ namespace ACE.Server.Pathfinding
 
             while (pending.TryPop(out var group))
             {
-                // the outdoors is entered through the doorways of the interior groups
+                // the outdoors is entered through the openings of the interior groups
                 if (group.IsOutdoor || group.IsNone)
                     continue;
 
-                // one lookup: an unloaded landblock's groups (and touching doorways) are built anew on every call
+                // one lookup: an unloaded landblock's groups (and touching openings) are built anew on every call
                 var landblockGroups = GetGroups(group.LandblockId);
                 if (!landblockGroups.ByIndex.TryGetValue(group.Index, out var cellGroup))
                     continue;
 
-                landblockGroups.TouchingDoors.TryGetValue(group.Index, out var touching);
+                landblockGroups.TouchingOpenings.TryGetValue(group.Index, out var touching);
                 var tileSummary = graph?.Summaries[group.LandblockId >> 16];
 
-                var doors = GetDoors(group, cellGroup, agentSize, out var components);
-                for (var d = 0; d < doors.Count; d++)
+                var openings = GetOpenings(group, cellGroup, agentSize, out var components);
+                for (var d = 0; d < openings.Count; d++)
                 {
-                    var door = doors[d];
+                    var opening = openings[d];
                     var component = components?[d] ?? -1;
-                    var threshold = new Position(door.CellId, door.Position, Quaternion.Identity);
-                    var thresholdAt = ToGlobal(group.LandblockId, door.Position);
+                    var threshold = new Position(opening.CellId, opening.Position, Quaternion.Identity);
+                    var thresholdAt = ToGlobal(group.LandblockId, opening.Position);
 
-                    // a doorway opening into another group's leads there, never outside
-                    var pairs = touching?.Where(t => IsSameDoor(t.door, door)).ToList();
+                    // an opening into another group's leads there, never outside
+                    var pairs = touching?.Where(t => IsSameOpening(t.opening, opening)).ToList();
                     if (pairs == null || pairs.Count == 0)
                     {
                         var area = -1;
                         if (tileSummary?.Method == ReachabilityMethod.Recast)
                         {
                             // no outdoor floor in front of it, as the bake judged (a wall outside, a window above the ground)
-                            var front = tileSummary.Doors.FindIndex(s => s.Group == group.Index && s.Door < cellGroup.Doors.Count && IsSameDoor(cellGroup.Doors[s.Door], door));
+                            var front = tileSummary.Openings.FindIndex(s => s.Group == group.Index && s.Opening < cellGroup.Openings.Count && IsSameOpening(cellGroup.Openings[s.Opening], opening));
                             if (front < 0)
                                 continue;
 
-                            area = graph.GetOutdoorArea(new GraphSpot((int)(group.LandblockId >> 16), GraphSpot.Outdoors, tileSummary.Doors[front].Piece));
+                            area = graph.GetOutdoorArea(new GraphSpot((int)(group.LandblockId >> 16), GraphSpot.Outdoors, tileSummary.Openings[front].Piece));
                         }
 
-                        var outsideAt = ToGlobal(group.LandblockId, GetDoorOutsidePoint(door, agentSize));
+                        var outsideAt = ToGlobal(group.LandblockId, GetOpeningOutsidePoint(opening, agentSize));
                         var outside = CreateOutdoorPosition(outsideAt);
                         crossings.Add(new Crossing(group, MeshGroupKey.Outdoors, threshold, thresholdAt, outside, outsideAt, component, area));
                         crossings.Add(new Crossing(MeshGroupKey.Outdoors, group, outside, outsideAt, threshold, thresholdAt, area, component));
                         continue;
                     }
 
-                    foreach (var (_, other, otherDoor) in pairs)
+                    foreach (var (_, other, otherOpening) in pairs)
                     {
                         if (!TryGetCellGroup(other, out var otherCellGroup))
                             continue;
 
-                        var otherDoors = GetDoors(other, otherCellGroup, agentSize, out var otherComponents);
-                        var otherIndex = otherDoors.FindIndex(o => IsSameDoor(o, otherDoor));
+                        var otherOpenings = GetOpenings(other, otherCellGroup, agentSize, out var otherComponents);
+                        var otherIndex = otherOpenings.FindIndex(o => IsSameOpening(o, otherOpening));
                         if (otherIndex < 0)
                             continue;
 
-                        var otherThreshold = new Position(otherDoor.CellId, otherDoor.Position, Quaternion.Identity);
-                        crossings.Add(new Crossing(group, other, threshold, thresholdAt, otherThreshold, ToGlobal(other.LandblockId, otherDoor.Position), component, otherComponents?[otherIndex] ?? -1));
+                        var otherThreshold = new Position(otherOpening.CellId, otherOpening.Position, Quaternion.Identity);
+                        crossings.Add(new Crossing(group, other, threshold, thresholdAt, otherThreshold, ToGlobal(other.LandblockId, otherOpening.Position), component, otherComponents?[otherIndex] ?? -1));
 
                         if (groups.Add(other))
                             pending.Push(other);
@@ -479,14 +479,14 @@ namespace ACE.Server.Pathfinding
 
             if (detour)
             {
-                // a detour needs exits a path leads from to the end: a doorway back onto the start's side often looks
+                // a detour needs exits a path leads from to the end: an opening back onto the start's side often looks
                 // the closest
                 exits = LeadingToEnd(exits);
                 if (exits.Count == 0)
                     exits = LeadingToEnd(into.Except(matching));
             }
 
-            // those of the nearest few doorways that a path leads from to the end
+            // those of the nearest few openings that a path leads from to the end
             List<int> LeadingToEnd(IEnumerable<int> candidates)
             {
                 var tried = new List<Vector3>();
@@ -494,7 +494,7 @@ namespace ACE.Server.Pathfinding
                 foreach (var i in candidates.OrderBy(i => Vector3.Distance(crossings[i].FarAt, endAt)))
                 {
                     var at = crossings[i].FarAt;
-                    if (tried.Any(t => Vector3.Distance(t, at) < SameDoorDistance))
+                    if (tried.Any(t => Vector3.Distance(t, at) < SameOpeningDistance))
                         continue;
 
                     tried.Add(at);
@@ -502,7 +502,7 @@ namespace ACE.Server.Pathfinding
                     if (reached >= 0)
                         leading.Add(i);
 
-                    if (tried.Count == MaxDoorCandidates * MaxDoorBatches)
+                    if (tried.Count == MaxOpeningCandidates * MaxOpeningBatches)
                         break;
                 }
                 return leading;
@@ -526,11 +526,11 @@ namespace ACE.Server.Pathfinding
                         continue;
 
                     // straight back where it came from never leads on, but its estimate would pass for a way through. A
-                    // detour does come back, through another doorway.
-                    if (crossings[i].From == crossings[next].To && !(detour && crossings[next].To == endGroup && Vector3.Distance(crossings[i].FarAt, crossings[next].NearAt) >= SameDoorDistance))
+                    // detour does come back, through another opening.
+                    if (crossings[i].From == crossings[next].To && !(detour && crossings[next].To == endGroup && Vector3.Distance(crossings[i].FarAt, crossings[next].NearAt) >= SameOpeningDistance))
                         continue;
 
-                    // inside a group, only between doorways on the same mesh component
+                    // inside a group, only between openings on the same mesh component
                     if (!SameComponent(crossings[i].FarComponent, crossings[next].NearComponent))
                         continue;
 
@@ -550,7 +550,7 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The buildings an outdoor detour (see PlanCrossings) may go through: those of the start's and end's landblocks
-        /// with at least two doorways onto the start's or end's outdoor area. Not every building around, as planning
+        /// with at least two openings onto the start's or end's outdoor area. Not every building around, as planning
         /// through one loads its mesh, and creatures chasing a target they can't reach plan detours.
         /// </summary>
         private static IEnumerable<MeshGroupKey> GetDetourGroups(WorldGraph graph, Position start, Position end)
@@ -564,21 +564,21 @@ namespace ACE.Server.Pathfinding
 
                 foreach (var cellGroup in GetGroups(landblockId).ByIndex.Values)
                 {
-                    var doors = cellGroup.Doors;
+                    var openings = cellGroup.Openings;
                     if (tileSummary?.Method == ReachabilityMethod.Recast)
                     {
-                        doors = tileSummary.Doors
-                            .Where(s => s.Group == cellGroup.Index && s.Door < cellGroup.Doors.Count)
+                        openings = tileSummary.Openings
+                            .Where(s => s.Group == cellGroup.Index && s.Opening < cellGroup.Openings.Count)
                             .Where(s =>
                             {
                                 var area = graph.GetOutdoorArea(new GraphSpot((int)(landblockId >> 16), GraphSpot.Outdoors, s.Piece));
                                 return SameComponent(area, startArea) || SameComponent(area, endArea);
                             })
-                            .Select(s => cellGroup.Doors[s.Door])
+                            .Select(s => cellGroup.Openings[s.Opening])
                             .ToList();
                     }
 
-                    if (doors.Any(d => Vector3.Distance(d.Position, doors[0].Position) >= SameDoorDistance))
+                    if (openings.Any(d => Vector3.Distance(d.Position, openings[0].Position) >= SameOpeningDistance))
                         yield return new MeshGroupKey(landblockId, cellGroup.Index);
                 }
             }
@@ -587,23 +587,23 @@ namespace ACE.Server.Pathfinding
         /// <summary>
         /// The crossings out of a group a leg from start could head for (see PlanCrossings): the most promising few by
         /// straight-line estimate of the whole route, best first, for FindRoute to compare by actual path length, in
-        /// batches of MaxDoorCandidates. None leads back onto a group's component the route has walked (visited, -1 for
-        /// any of it): its estimate runs through that group's walls. Only doorways on the start's mesh component are used,
-        /// -1 for any (see Crossing).
+        /// batches of MaxOpeningCandidates. None leads back onto a group's component the route has walked (visited, -1
+        /// for any of it): its estimate runs through that group's walls. Only openings on the start's mesh component are
+        /// used, -1 for any (see Crossing).
         /// </summary>
         private static List<(Crossing crossing, float remaining)> GetCrossingCandidates(ILookup<MeshGroupKey, (Crossing crossing, float remaining)> plan, Position start, int component, MeshGroupKey group, List<(MeshGroupKey group, int component)> visited)
         {
             var startAt = ToGlobal(start);
-            var candidates = new List<(Crossing crossing, float remaining)>(MaxDoorCandidates * MaxDoorBatches);
+            var candidates = new List<(Crossing crossing, float remaining)>(MaxOpeningCandidates * MaxOpeningBatches);
             var reachable = plan[group].Where(c => SameComponent(component, c.crossing.NearComponent) && !visited.Any(v => v.group == c.crossing.To && SameComponent(v.component, c.crossing.FarComponent)));
 
             foreach (var candidate in reachable.OrderBy(c => Vector3.Distance(startAt, c.crossing.NearAt) + c.remaining))
             {
-                if (candidates.Any(c => Vector3.Distance(c.crossing.NearAt, candidate.crossing.NearAt) < SameDoorDistance))
+                if (candidates.Any(c => Vector3.Distance(c.crossing.NearAt, candidate.crossing.NearAt) < SameOpeningDistance))
                     continue;
 
                 candidates.Add(candidate);
-                if (candidates.Count == MaxDoorCandidates * MaxDoorBatches)
+                if (candidates.Count == MaxOpeningCandidates * MaxOpeningBatches)
                     break;
             }
 
@@ -617,13 +617,13 @@ namespace ACE.Server.Pathfinding
             graph == null || position.Indoors ? -1 : graph.GetOutdoorArea(GetGraphSpot(graph.Summaries, graph.Interiors, position));
 
         /// <summary>
-        /// The doorways of a landblock's cell groups that open straight into another group's doorway (see
-        /// WorldGraph.DoorsTouch: buildings built against each other, also across a landblock border), by group index.
-        /// Their outdoor side lies inside the other group.
+        /// The openings of a landblock's cell groups that open straight into another group's opening (see
+        /// WorldGraph.OpeningsTouch: buildings built against each other, also across a landblock border), by group
+        /// index. Their outdoor side lies inside the other group.
         /// </summary>
-        private static Dictionary<int, List<(CellGroupDoor door, MeshGroupKey other, CellGroupDoor otherDoor)>> FindTouchingDoors(uint landblockId, IEnumerable<CellGroup> groups)
+        private static Dictionary<int, List<(CellGroupOpening opening, MeshGroupKey other, CellGroupOpening otherOpening)>> FindTouchingOpenings(uint landblockId, IEnumerable<CellGroup> groups)
         {
-            var touching = new Dictionary<int, List<(CellGroupDoor door, MeshGroupKey other, CellGroupDoor otherDoor)>>();
+            var touching = new Dictionary<int, List<(CellGroupOpening opening, MeshGroupKey other, CellGroupOpening otherOpening)>>();
 
             try
             {
@@ -635,11 +635,11 @@ namespace ACE.Server.Pathfinding
 
                 foreach (var (key, group) in own)
                 {
-                    foreach (var door in group.Doors)
+                    foreach (var opening in group.Openings)
                     {
-                        // the neighbouring landblocks only for a doorway on their edge
-                        var dx = door.Position.X <= WorldGraph.TouchingDoorDistance ? -1 : door.Position.X >= Position.BlockLength - WorldGraph.TouchingDoorDistance ? 1 : 0;
-                        var dy = door.Position.Y <= WorldGraph.TouchingDoorDistance ? -1 : door.Position.Y >= Position.BlockLength - WorldGraph.TouchingDoorDistance ? 1 : 0;
+                        // the neighbouring landblocks only for an opening on their edge
+                        var dx = opening.Position.X <= WorldGraph.TouchingOpeningDistance ? -1 : opening.Position.X >= Position.BlockLength - WorldGraph.TouchingOpeningDistance ? 1 : 0;
+                        var dy = opening.Position.Y <= WorldGraph.TouchingOpeningDistance ? -1 : opening.Position.Y >= Position.BlockLength - WorldGraph.TouchingOpeningDistance ? 1 : 0;
                         var others = own.Where(o => o.key != key);
                         foreach (var (nx, ny) in new[] { (x + dx, y), (x, y + dy), (x + dx, y + dy) }.Distinct())
                         {
@@ -652,17 +652,17 @@ namespace ACE.Server.Pathfinding
                             others = others.Concat(neighbourGroups);
                         }
 
-                        var at = ToGlobal(landblockId, door.Position);
+                        var at = ToGlobal(landblockId, opening.Position);
                         foreach (var (otherKey, otherGroup) in others)
                         {
-                            foreach (var otherDoor in otherGroup.Doors)
+                            foreach (var otherOpening in otherGroup.Openings)
                             {
-                                if (!WorldGraph.DoorsTouch(ToGlobal(otherKey.LandblockId, otherDoor.Position), otherDoor.Normal, at, door.Normal))
+                                if (!WorldGraph.OpeningsTouch(ToGlobal(otherKey.LandblockId, otherOpening.Position), otherOpening.Normal, at, opening.Normal))
                                     continue;
 
                                 if (!touching.TryGetValue(group.Index, out var list))
-                                    touching[group.Index] = list = new List<(CellGroupDoor, MeshGroupKey, CellGroupDoor)>();
-                                list.Add((door, otherKey, otherDoor));
+                                    touching[group.Index] = list = new List<(CellGroupOpening, MeshGroupKey, CellGroupOpening)>();
+                                list.Add((opening, otherKey, otherOpening));
                             }
                         }
                     }
@@ -670,21 +670,21 @@ namespace ACE.Server.Pathfinding
             }
             catch (Exception e)
             {
-                // routes then treat these doorways as leading outside, rather than failing on every query
-                log.Error($"Pathfinder: failed to find the touching doorways of landblock 0x{landblockId:X8}: {e}");
+                // routes then treat these openings as leading outside, rather than failing on every query
+                log.Error($"Pathfinder: failed to find the touching openings of landblock 0x{landblockId:X8}: {e}");
             }
 
             return touching;
         }
 
         /// <summary>
-        /// Finds a route that may cross between mesh groups through doorways, by chaining FindRoute calls: each leg
-        /// runs on one group's mesh, and when it ends at a doorway the next leg starts on the other side of it. The
-        /// doorways are planned first (see PlanCrossings). Within one group the end is routed to directly, and through
-        /// doorways only if that doesn't reach it (see FindDetourLegs; not for RouteProfile.Road, whose follower would
-        /// cut doorway waypoints short). Returns the legs in order (the last one may be partial), or null if not even the
-        /// first leg was found. Outdoor tiles load in the background, so a leg through the outdoors can be missing or
-        /// partial the first time.
+        /// Finds a route that may cross between mesh groups through openings, by chaining FindRoute calls: each leg
+        /// runs on one group's mesh, and when it ends at an opening the next leg starts on the other side of it. The
+        /// openings are planned first (see PlanCrossings). Within one group the end is routed to directly, and through
+        /// openings only if that doesn't reach it (see FindDetourLegs; not for RouteProfile.Road, whose follower would
+        /// cut opening waypoints short). Returns the legs in order (the last one may be partial), or null if not even
+        /// the first leg was found. Outdoor tiles load in the background, so a leg through the outdoors can be missing
+        /// or partial the first time.
         /// </summary>
         /// <param name="reachesEnd">True if the legs lead all the way to the end position</param>
         public static List<List<Position>> FindRouteLegs(Position start, Position end, AgentSize agentSize, out bool reachesEnd, RouteProfile profile = RouteProfile.Default)
@@ -782,9 +782,9 @@ namespace ACE.Server.Pathfinding
                 // a batch of targets at a time; if none reaches one, the partial route of the most promising batch stands
                 List<Position> leg = null;
                 var reached = -1;
-                for (var first = 0; reached < 0 && first < targets.Count; first += MaxDoorCandidates)
+                for (var first = 0; reached < 0 && first < targets.Count; first += MaxOpeningCandidates)
                 {
-                    var found = FindRoute(current, group, targets.GetRange(first, Math.Min(MaxDoorCandidates, targets.Count - first)), agentSize, profile, out var index);
+                    var found = FindRoute(current, group, targets.GetRange(first, Math.Min(MaxOpeningCandidates, targets.Count - first)), agentSize, profile, out var index);
                     if (index >= 0)
                         (leg, reached) = (found, first + index);
                     else
@@ -794,8 +794,8 @@ namespace ACE.Server.Pathfinding
                     break;
 
                 // A route's first waypoint is where it starts, the mesh point nearest the start position. The route's
-                // follower is already there, so it is left out of the first leg. Later legs start on the other side of a
-                // doorway, and that point is one of the two that take the follower through it.
+                // follower is already there, so it is left out of the first leg. Later legs start on the other side of
+                // an opening, and that point is one of the two that take the follower through it.
                 if (i == 0 && leg.Count > 1)
                     leg.RemoveAt(0);
 
@@ -809,11 +809,11 @@ namespace ACE.Server.Pathfinding
                 }
 
                 if (reached < 0)
-                    break; // the doorway is out of reach on this mesh
+                    break; // the opening is out of reach on this mesh
 
                 var crossing = candidates[reached].crossing;
-                if (Vector3.Distance(ToGlobal(leg[^1]), crossing.NearAt) > DoorReachDistance)
-                    break; // the leg did not make it to the doorway
+                if (Vector3.Distance(ToGlobal(leg[^1]), crossing.NearAt) > OpeningReachDistance)
+                    break; // the leg did not make it to the opening
 
                 // the group a detour starts in stays open, as the route comes back to it
                 if (group != endGroup)
@@ -827,7 +827,7 @@ namespace ACE.Server.Pathfinding
         }
 
         /// <summary>
-        /// The length of the route to the end (see GetRouteLength), following it through doorways between mesh groups
+        /// The length of the route to the end (see GetRouteLength), following it through openings between mesh groups
         /// (see FindRouteLegs). Returns true if the route reaches the end; distance and legs are set either way.
         /// </summary>
         public static bool GetRouteLegsDistance(Position start, Position end, AgentSize agentSize, out float distance, out int legCount, out float endGap)

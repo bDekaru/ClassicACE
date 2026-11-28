@@ -20,9 +20,9 @@ namespace ACE.Server.Pathfinding
         public const int Road = 1;
 
         /// <summary>
-        /// A door apron (see DoorApron), outside a doorway.
+        /// An opening apron (see OpeningApron), outside an opening.
         /// </summary>
-        public const int Door = 3;
+        public const int Opening = 3;
 
         /// <summary>
         /// A ledge drop (see LedgeDropFinder): a one-way off-mesh connection down a ledge.
@@ -51,9 +51,9 @@ namespace ACE.Server.Pathfinding
         public static readonly RcAreaModification RoadMod = new RcAreaModification(Road, RcAreaModification.RC_AREA_FLAGS_MASK);
 
         /// <summary>
-        /// Marks the spans inside a door apron's volume as Door.
+        /// Marks the spans inside an opening apron's volume as Opening.
         /// </summary>
-        public static readonly RcAreaModification DoorMod = new RcAreaModification(Door, RcAreaModification.RC_AREA_FLAGS_MASK);
+        public static readonly RcAreaModification OpeningMod = new RcAreaModification(Opening, RcAreaModification.RC_AREA_FLAGS_MASK);
     }
 
     /// <summary>
@@ -73,7 +73,7 @@ namespace ACE.Server.Pathfinding
     }
 
     /// <summary>
-    /// The flags of navmesh polys, which query filters include or exclude. Walk, Door, LedgeDrop, Narrow and the drop
+    /// The flags of navmesh polys, which query filters include or exclude. Walk, Opening, LedgeDrop, Narrow and the drop
     /// edges are saved in the cached mesh files; Island is set when a mesh is loaded.
     /// </summary>
     public static class NavPolyFlags
@@ -84,9 +84,9 @@ namespace ACE.Server.Pathfinding
         public const int Walk = 0x01;
 
         /// <summary>
-        /// A door apron (Door area). Door aprons are not flagged Walk.
+        /// An opening apron (Opening area). Opening aprons are not flagged Walk.
         /// </summary>
-        public const int Door = 0x04;
+        public const int Opening = 0x04;
 
         /// <summary>
         /// A ledge drop (LedgeDrop area).
@@ -99,7 +99,7 @@ namespace ACE.Server.Pathfinding
         public const int Narrow = 0x10;
 
         /// <summary>
-        /// Islands: parts of a mesh that cannot be walked to from its main area or its doorways, like the top of a
+        /// Islands: parts of a mesh that cannot be walked to from its main area or its openings, like the top of a
         /// table, a crate or a large rock. Set when a mesh is loaded, not saved in the mesh files (see
         /// Pathfinder.MarkIslands).
         /// </summary>

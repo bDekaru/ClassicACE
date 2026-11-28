@@ -13,7 +13,7 @@ using System.Numerics;
 namespace ACE.Server.Pathfinding
 {
     /// <summary>
-    /// The parts of a mesh nothing can walk to (islands), and the doorways each agent size can get through.
+    /// The parts of a mesh nothing can walk to (islands), and the openings each agent size can get through.
     /// </summary>
     public static partial class Pathfinder
     {
@@ -24,60 +24,61 @@ namespace ACE.Server.Pathfinding
         private const float TileEdgeTolerance = 0.25f;
 
         /// <summary>
-        /// How far around a doorway to look for the mesh poly that anchors its component (doorways are not on the
+        /// How far around an opening to look for the mesh poly that anchors its component (openings are not on the
         /// eroded mesh themselves).
         /// </summary>
-        private static readonly RcVec3f DoorSeedHalfExtents = new RcVec3f(2.0f, 2.0f, 2.0f);
+        private static readonly RcVec3f OpeningSeedHalfExtents = new RcVec3f(2.0f, 2.0f, 2.0f);
 
         /// <summary>
-        /// How far the mesh in front of a doorway may be below or above its threshold for the doorway to open onto it. Measured at the
-        /// outside point, a small ramp down from a door is ~0.7 m below, while the ground under a window is 1 m or more below the sill.
+        /// How far the mesh in front of an opening may be below or above its threshold for the opening to lead onto it.
+        /// Measured at the outside point, a small ramp down from a doorway is ~0.7 m below, while the ground under a
+        /// window is 1 m or more below the sill.
         /// </summary>
-        private const float DoorSeedMaxDrop = 0.85f;
+        private const float OpeningSeedMaxDrop = 0.85f;
 
         /// <summary>
-        /// The poly a doorway opens onto, around a point just outside it at threshold height (Recast space), or 0.
+        /// The poly an opening leads onto, around a point just outside it at threshold height (Recast space), or 0.
         /// </summary>
-        private static long FindDoorSeedPoly(DtNavMeshQuery query, RcVec3f seed)
+        private static long FindOpeningSeedPoly(DtNavMeshQuery query, RcVec3f seed)
         {
-            var status = query.FindNearestPoly(seed, DoorSeedHalfExtents, AllPolysFilter, out var polyRef, out var point, out _);
-            return status.Succeeded() && Math.Abs(point.Y - seed.Y) <= DoorSeedMaxDrop ? polyRef : 0;
+            var status = query.FindNearestPoly(seed, OpeningSeedHalfExtents, AllPolysFilter, out var polyRef, out var point, out _);
+            return status.Succeeded() && Math.Abs(point.Y - seed.Y) <= OpeningSeedMaxDrop ? polyRef : 0;
         }
 
         private static readonly RcVec3f[] NoSeeds = Array.Empty<RcVec3f>();
 
         /// <summary>
-        /// The door polys of reachable door aprons.
+        /// The opening polys of reachable opening aprons.
         /// </summary>
-        private static readonly DtQueryDefaultFilter PassableDoorFilter = new DtQueryDefaultFilter(NavPolyFlags.Door, NavPolyFlags.Island, Array.Empty<float>());
+        private static readonly DtQueryDefaultFilter PassableOpeningFilter = new DtQueryDefaultFilter(NavPolyFlags.Opening, NavPolyFlags.Island, Array.Empty<float>());
 
         /// <summary>
-        /// The door polys of all door aprons, on a mesh whose islands aren't marked.
+        /// The opening polys of all opening aprons, on a mesh whose islands aren't marked.
         /// </summary>
-        private static readonly DtQueryDefaultFilter DoorFilter = new DtQueryDefaultFilter(NavPolyFlags.Door, 0, Array.Empty<float>());
+        private static readonly DtQueryDefaultFilter OpeningFilter = new DtQueryDefaultFilter(NavPolyFlags.Opening, 0, Array.Empty<float>());
 
         /// <summary>
-        /// How far around the center of a door apron to look for its door polys, on the mesh of an agent size: they
-        /// reach across the apron, or end the radius short of its outer edge over a floor the agent steps down to (see
-        /// DoorApron); vertically they are on the threshold.
+        /// How far around the center of an opening apron to look for its opening polys, on the mesh of an agent size:
+        /// they reach across the apron, or end the radius short of its outer edge over a floor the agent steps down to
+        /// (see OpeningApron); vertically they are on the threshold.
         /// </summary>
-        private static RcVec3f GetDoorPolyHalfExtents(AgentSize agentSize)
+        private static RcVec3f GetOpeningPolyHalfExtents(AgentSize agentSize)
         {
-            var horizontal = DoorApron.GetDepth(agentSize) * 0.5f + 0.25f;
+            var horizontal = OpeningApron.GetDepth(agentSize) * 0.5f + 0.25f;
             return new RcVec3f(horizontal, 0.6f, horizontal);
         }
 
         /// <summary>
         /// Flags the islands of a mesh with a single tile, before it is published: connected components of polys that
         /// cannot be walked to. A component is kept (not an island) if it is the largest one, holds one of the seed
-        /// points (doorways), has floor connected to a door apron (see DoorApron), or, for an outdoor tile, reaches
-        /// the tile edge where it may continue into the neighbor. The rest are tabletops, the tops of crates and rocks,
-        /// pits you can only drop into, door aprons that can't be reached (windows) and the like. Sizes are compared
-        /// without the door aprons, and a component that is only a door apron is never kept.
-        /// Must run before the tile is published, since it changes poly flags.
+        /// points (openings), has floor connected to an opening apron (see OpeningApron), or, for an outdoor tile,
+        /// reaches the tile edge where it may continue into the neighbor. The rest are tabletops, the tops of crates and
+        /// rocks, pits you can only drop into, opening aprons that can't be reached (windows) and the like. Sizes are
+        /// compared without the opening aprons, and a component that is only an opening apron is never kept. Must run
+        /// before the tile is published, since it changes poly flags.
         /// </summary>
         /// <param name="seeds">Points known to be reachable, on the mesh (Recast space). Interior meshes have none: their
-        /// doorways have door aprons, which keep their component by themselves when it can be reached.</param>
+        /// openings have opening aprons, which keep their component by themselves when it can be reached.</param>
         private static void MarkIslands(DtNavMesh mesh, IEnumerable<RcVec3f> seeds, bool outdoor)
         {
             var tile = mesh.GetMaxTiles() > 0 ? mesh.GetTile(0) : null;
@@ -87,7 +88,7 @@ namespace ACE.Server.Pathfinding
 
             var polyCount = data.header.polyCount;
 
-            var (component, componentArea, componentHasDoor) = FindComponents(mesh, tile);
+            var (component, componentArea, componentHasOpening) = FindComponents(mesh, tile);
             var ledgeDrops = FindLedgeDrops(mesh, tile);
 
             // all connected: everything is kept, and only a ledge drop that isn't attached to the floor on both ends leads nowhere
@@ -107,11 +108,11 @@ namespace ACE.Server.Pathfinding
                 }
                 kept[largest] = true;
 
-                // A component with a door apron connected to its floor can be walked to through that doorway. A door
-                // apron on its own (the doorway can't be reached from the floor, e.g. a window) is never kept.
+                // A component with an opening apron connected to its floor can be walked to through that opening. An
+                // opening apron on its own (the opening can't be reached from the floor, e.g. a window) is never kept.
                 for (var c = 0; c < componentArea.Count; c++)
                 {
-                    if (componentHasDoor[c] && componentArea[c] > 0f)
+                    if (componentHasOpening[c] && componentArea[c] > 0f)
                         kept[c] = true;
                 }
 
@@ -119,7 +120,7 @@ namespace ACE.Server.Pathfinding
                 {
                     foreach (var seed in seeds)
                     {
-                        var seedRef = FindDoorSeedPoly(lease.Query, seed);
+                        var seedRef = FindOpeningSeedPoly(lease.Query, seed);
                         if (seedRef == 0)
                             continue;
 
@@ -239,16 +240,16 @@ namespace ACE.Server.Pathfinding
 
         /// <summary>
         /// The connected components of a tile over its poly links, within the tile: the component of each poly (-1 for
-        /// a ledge drop, which belongs to none), and for each component its area without door aprons and whether it has
-        /// door apron polys.
+        /// a ledge drop, which belongs to none), and for each component its area without opening aprons and whether it
+        /// has opening apron polys.
         /// </summary>
-        private static (int[] component, List<float> area, List<bool> hasDoor) FindComponents(DtNavMesh mesh, DtMeshTile tile)
+        private static (int[] component, List<float> area, List<bool> hasOpening) FindComponents(DtNavMesh mesh, DtMeshTile tile)
         {
             var data = tile.data;
             var polyCount = data.header.polyCount;
             var component = new int[polyCount];
             var componentArea = new List<float>();
-            var componentHasDoor = new List<bool>();
+            var componentHasOpening = new List<bool>();
 
             Array.Fill(component, -1);
             var stack = new Stack<int>();
@@ -260,15 +261,15 @@ namespace ACE.Server.Pathfinding
 
                 var id = componentArea.Count;
                 var area = 0f;
-                var hasDoor = false;
+                var hasOpening = false;
                 component[i] = id;
                 stack.Push(i);
 
                 while (stack.Count > 0)
                 {
                     var poly = data.polys[stack.Pop()];
-                    if (poly.GetArea() == NavArea.Door)
-                        hasDoor = true;
+                    if (poly.GetArea() == NavArea.Opening)
+                        hasOpening = true;
                     else
                         area += GetPolyArea(data, poly);
 
@@ -285,82 +286,83 @@ namespace ACE.Server.Pathfinding
                 }
 
                 componentArea.Add(area);
-                componentHasDoor.Add(hasDoor);
+                componentHasOpening.Add(hasOpening);
             }
 
-            return (component, componentArea, componentHasDoor);
+            return (component, componentArea, componentHasOpening);
         }
 
         /// <summary>
-        /// The doorways of a cell group an agent can get through on the group's mesh (built for that agent's size), from
-        /// the door aprons it has left (see DoorApron), each with the mesh component its door poly is in (see
-        /// FindComponents): two doorways are connected inside the group only if they share one. Islands must be marked first.
+        /// The openings of a cell group an agent can get through on the group's mesh (built for that agent's size), from
+        /// the opening aprons it has left (see OpeningApron), each with the mesh component its opening poly is in (see
+        /// FindComponents): two openings are connected inside the group only if they share one. Islands must be marked
+        /// first.
         /// </summary>
-        private static List<(CellGroupDoor door, int component)> FindPassableDoors(DtNavMesh mesh, CellGroup cellGroup, AgentSize agentSize)
+        private static List<(CellGroupOpening opening, int component)> FindPassableOpenings(DtNavMesh mesh, CellGroup cellGroup, AgentSize agentSize)
         {
             var tile = mesh.GetMaxTiles() > 0 ? mesh.GetTile(0) : null;
             var component = tile?.data?.header != null ? FindComponents(mesh, tile).component : null;
 
             using var lease = new MeshLease(mesh);
-            var doors = new List<(CellGroupDoor door, int component)>();
-            foreach (var door in cellGroup.Doors)
+            var openings = new List<(CellGroupOpening opening, int component)>();
+            foreach (var opening in cellGroup.Openings)
             {
-                var doorRef = FindDoorPoly(lease.Query, cellGroup, door, agentSize, PassableDoorFilter);
-                if (doorRef == 0)
+                var openingRef = FindOpeningPoly(lease.Query, cellGroup, opening, agentSize, PassableOpeningFilter);
+                if (openingRef == 0)
                     continue;
 
-                mesh.GetTileAndPolyByRefUnsafe(doorRef, out _, out var poly);
-                doors.Add((door, component != null && poly != null ? component[poly.index] : -1));
+                mesh.GetTileAndPolyByRefUnsafe(openingRef, out _, out var poly);
+                openings.Add((opening, component != null && poly != null ? component[poly.index] : -1));
             }
-            return doors;
+            return openings;
         }
 
         /// <summary>
-        /// The door poly of a doorway's apron on a cell group's mesh of an agent size, among the polys the filter
-        /// passes; 0 if there is none or the doorway is too narrow or too low for the agent.
+        /// The opening poly of an opening's apron on a cell group's mesh of an agent size, among the polys the filter
+        /// passes; 0 if there is none or the opening is too narrow or too low for the agent.
         /// </summary>
-        private static long FindDoorPoly(DtNavMeshQuery query, CellGroup cellGroup, CellGroupDoor door, AgentSize agentSize, IDtQueryFilter filter)
+        private static long FindOpeningPoly(DtNavMeshQuery query, CellGroup cellGroup, CellGroupOpening opening, AgentSize agentSize, IDtQueryFilter filter)
         {
             // Recast can join an apron to the floor inside under a lintel thinner than a voxel (a low window)
-            if (door.Width + AgentSizeTolerance < 2f * GetAgentRadius(agentSize) || (!door.IsOpeningEdge && door.Top - door.Position.Z + AgentSizeTolerance < GetAgentHeight(agentSize)))
+            if (opening.Width + AgentSizeTolerance < 2f * GetAgentRadius(agentSize) || (!opening.IsHoleEdge && opening.Top - opening.Position.Z + AgentSizeTolerance < GetAgentHeight(agentSize)))
                 return 0;
 
-            var center = DoorApron.GetCenter(door, agentSize);
-            var status = query.FindNearestPoly(ToMeshPoint(0, center, false), GetDoorPolyHalfExtents(agentSize), filter, out var doorRef, out var doorPt, out _);
-            if (status.Failed() || doorRef == 0)
+            var center = OpeningApron.GetCenter(opening, agentSize);
+            var status = query.FindNearestPoly(ToMeshPoint(0, center, false), GetOpeningPolyHalfExtents(agentSize), filter, out var openingRef, out var openingPt, out _);
+            if (status.Failed() || openingRef == 0)
                 return 0;
 
-            // the door poly found could belong to the apron of a doorway next to this one
-            var found = FromMeshPoint(doorPt);
-            var owner = cellGroup.Doors.MinBy(d => Vector3.DistanceSquared(DoorApron.GetCenter(d, agentSize), found));
-            return IsSameDoor(owner, door) ? doorRef : 0;
+            // the opening poly found could belong to the apron of an opening next to this one
+            var found = FromMeshPoint(openingPt);
+            var owner = cellGroup.Openings.MinBy(d => Vector3.DistanceSquared(OpeningApron.GetCenter(d, agentSize), found));
+            return IsSameOpening(owner, opening) ? openingRef : 0;
         }
 
-        private static bool IsSameDoor(CellGroupDoor a, CellGroupDoor b) => a.CellId == b.CellId && a.Position == b.Position;
+        private static bool IsSameOpening(CellGroupOpening a, CellGroupOpening b) => a.CellId == b.CellId && a.Position == b.Position;
 
         /// <summary>
-        /// The doorways of a cell group an agent of the given size can get through (see FindPassableDoors). Loads the
-        /// group's mesh if it isn't yet. While the mesh is still loading that isn't known, and all doorways are returned.
-        /// An empty or failed mesh (see InteriorMesh.Status) also returns all doorways: a route from outside then leads
-        /// to the doorway and ends there, so a creature too big for the group still heads for it.
+        /// The openings of a cell group an agent of the given size can get through (see FindPassableOpenings). Loads the
+        /// group's mesh if it isn't yet. While the mesh is still loading that isn't known, and all openings are
+        /// returned. An empty or failed mesh (see InteriorMesh.Status) also returns all openings: a route from outside
+        /// then leads to the opening and ends there, so a creature too big for the group still heads for it.
         /// </summary>
-        /// <param name="components">The mesh component of each doorway returned (see FindPassableDoors), or null when
-        /// that isn't known and every doorway counts as connected</param>
-        private static List<CellGroupDoor> GetDoors(MeshGroupKey key, CellGroup cellGroup, AgentSize agentSize, out int[] components)
+        /// <param name="components">The mesh component of each opening returned (see FindPassableOpenings), or null when
+        /// that isn't known and every opening counts as connected</param>
+        private static List<CellGroupOpening> GetOpenings(MeshGroupKey key, CellGroup cellGroup, AgentSize agentSize, out int[] components)
         {
             components = null;
 
             if (!Meshes.TryGetValue(GetMeshId(key.LandblockId, key.Index, agentSize), out var interiorMesh))
             {
                 TryLoadInteriorMesh(key.LandblockId, key.Index);
-                return cellGroup.Doors;
+                return cellGroup.Openings;
             }
 
-            if (interiorMesh.PassableDoors == null)
-                return cellGroup.Doors;
+            if (interiorMesh.PassableOpenings == null)
+                return cellGroup.Openings;
 
-            components = interiorMesh.PassableDoorComponents;
-            return interiorMesh.PassableDoors;
+            components = interiorMesh.PassableOpeningComponents;
+            return interiorMesh.PassableOpenings;
         }
 
         /// <summary>

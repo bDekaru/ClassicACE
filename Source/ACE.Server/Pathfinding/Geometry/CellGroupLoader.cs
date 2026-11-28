@@ -8,13 +8,14 @@ using System.Numerics;
 namespace ACE.Server.Pathfinding.Geometry
 {
     /// <summary>
-    /// A doorway from an interior cell group to the outdoors: a cell portal that leads outside, or one edge of
-    /// a portal that is not in a wall (an opening in a floor or ceiling, see CellGroupLoader.AddOpeningEdgeDoors).
+    /// An opening from an interior cell group to the outdoors: a cell portal that leads outside (a doorway, a window or
+    /// any other), or one edge of a portal that is not in a wall (a hole in a floor or ceiling, see
+    /// CellGroupLoader.AddHoleEdgeOpenings).
     /// </summary>
-    public readonly struct CellGroupDoor
+    public readonly struct CellGroupOpening
     {
         /// <summary>
-        /// The interior cell the doorway belongs to, in the format 0xAAAABBBB
+        /// The interior cell the opening belongs to, in the format 0xAAAABBBB
         /// </summary>
         public readonly uint CellId;
 
@@ -34,24 +35,25 @@ namespace ACE.Server.Pathfinding.Geometry
         public readonly float Width;
 
         /// <summary>
-        /// The horizontal direction out of the cell through the portal (unit length): a door apron is placed in front
-        /// of it (see DoorApron). A portal in a floor or ceiling has no such direction and is split into one door per edge (see AddOpeningEdgeDoors).
+        /// The horizontal direction out of the cell through the portal (unit length): an opening apron is placed in
+        /// front of it (see OpeningApron). A portal in a floor or ceiling has no such direction and is split into one
+        /// opening per edge (see AddHoleEdgeOpenings).
         /// </summary>
         public readonly Vector3 Normal;
 
         /// <summary>
-        /// One edge of an opening in a floor or ceiling (see AddOpeningEdgeDoors): open above, so Top is no lintel.
+        /// One edge of a hole in a floor or ceiling (see AddHoleEdgeOpenings): open above, so Top is no lintel.
         /// </summary>
-        public readonly bool IsOpeningEdge;
+        public readonly bool IsHoleEdge;
 
-        public CellGroupDoor(uint cellId, Vector3 position, float top, float width, Vector3 normal, bool isOpeningEdge = false)
+        public CellGroupOpening(uint cellId, Vector3 position, float top, float width, Vector3 normal, bool isHoleEdge = false)
         {
             CellId = cellId;
             Position = position;
             Top = top;
             Width = width;
             Normal = normal;
-            IsOpeningEdge = isOpeningEdge;
+            IsHoleEdge = isHoleEdge;
         }
     }
 
@@ -76,7 +78,7 @@ namespace ACE.Server.Pathfinding.Geometry
         /// </summary>
         public bool ConnectsToOutside { get; internal set; }
 
-        public List<CellGroupDoor> Doors { get; } = new List<CellGroupDoor>();
+        public List<CellGroupOpening> Openings { get; } = new List<CellGroupOpening>();
 
         public CellGroup(int index)
         {
@@ -181,12 +183,12 @@ namespace ACE.Server.Pathfinding.Geometry
                 group.CellIds.Add(cellId);
 
                 if (leadsOutside)
-                    AddDoors(group, cellId, envCell);
+                    AddOpenings(group, cellId, envCell);
             }
 
             foreach (var group in groups)
             {
-                MergeAdjacentDoors(group.Doors);
+                MergeAdjacentOpenings(group.Openings);
 
                 foreach (var cellId in group.CellIds.OrderBy(c => c))
                     group.Cells.Add(envCells[cellId - id - minCell]);
@@ -195,7 +197,7 @@ namespace ACE.Server.Pathfinding.Geometry
             return groups;
         }
 
-        private static void AddDoors(CellGroup group, uint cellId, EnvCell envCell)
+        private static void AddOpenings(CellGroup group, uint cellId, EnvCell envCell)
         {
             var environment = DatManager.PortalDat.ReadFromDat<ACE.DatLoader.FileTypes.Environment>(envCell.EnvironmentId);
             if (environment == null || !environment.Cells.TryGetValue(envCell.CellStructure, out var cellStruct))
@@ -218,7 +220,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
                 if (normal == Vector3.Zero)
                 {
-                    AddOpeningEdgeDoors(group, cellId, points, center);
+                    AddHoleEdgeOpenings(group, cellId, points, center);
                     continue;
                 }
 
@@ -226,23 +228,23 @@ namespace ACE.Server.Pathfinding.Geometry
                 var along = new Vector3(-normal.Y, normal.X, 0f);
                 var width = points.Max(p => Vector3.Dot(p, along)) - points.Min(p => Vector3.Dot(p, along));
 
-                group.Doors.Add(new CellGroupDoor(cellId, new Vector3(center.X, center.Y, points.Min(p => p.Z)), points.Max(p => p.Z), width, normal));
+                group.Openings.Add(new CellGroupOpening(cellId, new Vector3(center.X, center.Y, points.Min(p => p.Z)), points.Max(p => p.Z), width, normal));
             }
         }
 
         /// <summary>
-        /// Opening edges shorter than this horizontally get no doorway.
+        /// Hole edges shorter than this horizontally get no opening.
         /// </summary>
-        private const float MinOpeningEdgeLength = 0.3f;
+        private const float MinHoleEdgeLength = 0.3f;
 
         /// <summary>
-        /// A portal that is not in a wall (an opening in a floor or ceiling, like the mouth of a pit entrance) is crossed
-        /// over its edge, not through its middle, which is in the air. Each edge of the opening becomes a doorway of its own,
-        /// facing away from the hole, so it gets a door apron like a doorway in a wall: Recast then decides which edges
-        /// can be walked over (the edge of a pit whose sides lead down into it) and which can't (a skylight, far above
-        /// the floor), and the outdoor side of a usable edge is on the ground next to the hole.
+        /// A portal that is not in a wall (a hole in a floor or ceiling, like the mouth of a pit entrance) is crossed
+        /// over its edge, not through its middle, which is in the air. Each edge of the hole becomes an opening of its
+        /// own, facing away from the hole, so it gets an opening apron like an opening in a wall: Recast then decides
+        /// which edges can be walked over (the edge of a pit whose sides lead down into it) and which can't (a skylight,
+        /// far above the floor), and the outdoor side of a usable edge is on the ground next to the hole.
         /// </summary>
-        private static void AddOpeningEdgeDoors(CellGroup group, uint cellId, List<Vector3> points, Vector3 center)
+        private static void AddHoleEdgeOpenings(CellGroup group, uint cellId, List<Vector3> points, Vector3 center)
         {
             for (int i = 0, j = points.Count - 1; i < points.Count; j = i++)
             {
@@ -251,7 +253,7 @@ namespace ACE.Server.Pathfinding.Geometry
 
                 var edge = new Vector3(b.X - a.X, b.Y - a.Y, 0f);
                 var length = edge.Length();
-                if (length < MinOpeningEdgeLength)
+                if (length < MinHoleEdgeLength)
                     continue;
 
                 var middle = (a + b) * 0.5f;
@@ -259,7 +261,7 @@ namespace ACE.Server.Pathfinding.Geometry
                 if (Vector3.Dot(normal, middle - center) < 0f)
                     normal = -normal;
 
-                group.Doors.Add(new CellGroupDoor(cellId, new Vector3(middle.X, middle.Y, Math.Min(a.Z, b.Z)), Math.Max(a.Z, b.Z), length, normal, true));
+                group.Openings.Add(new CellGroupOpening(cellId, new Vector3(middle.X, middle.Y, Math.Min(a.Z, b.Z)), Math.Max(a.Z, b.Z), length, normal, true));
             }
         }
 
@@ -275,23 +277,23 @@ namespace ACE.Server.Pathfinding.Geometry
 
         /// <summary>
         /// Merges wall portals that together make up one opening: an opening split between cells, like the lower and
-        /// upper half of a cave mouth or the two leaves of a double door. On their own each half could be too low or
-        /// have no floor under it. The merged doorway spans both, in the cell of the lowest one.
+        /// upper half of a cave mouth or the two leaves of a double doorway. On their own each half could be too low or
+        /// have no floor under it. The merged opening spans both, in the cell of the lowest one.
         /// </summary>
-        private static void MergeAdjacentDoors(List<CellGroupDoor> doors)
+        private static void MergeAdjacentOpenings(List<CellGroupOpening> openings)
         {
             var merged = true;
             while (merged)
             {
                 merged = false;
-                for (var i = 0; i < doors.Count && !merged; i++)
+                for (var i = 0; i < openings.Count && !merged; i++)
                 {
-                    for (var j = i + 1; j < doors.Count && !merged; j++)
+                    for (var j = i + 1; j < openings.Count && !merged; j++)
                     {
-                        if (TryMergeDoors(doors[i], doors[j], out var door))
+                        if (TryMergeOpenings(openings[i], openings[j], out var opening))
                         {
-                            doors[i] = door;
-                            doors.RemoveAt(j);
+                            openings[i] = opening;
+                            openings.RemoveAt(j);
                             merged = true;
                         }
                     }
@@ -299,9 +301,9 @@ namespace ACE.Server.Pathfinding.Geometry
             }
         }
 
-        private static bool TryMergeDoors(CellGroupDoor a, CellGroupDoor b, out CellGroupDoor door)
+        private static bool TryMergeOpenings(CellGroupOpening a, CellGroupOpening b, out CellGroupOpening opening)
         {
-            door = default;
+            opening = default;
 
             if (Vector3.Dot(a.Normal, b.Normal) < 0.99f)
                 return false;
@@ -330,7 +332,7 @@ namespace ACE.Server.Pathfinding.Geometry
             // the merged threshold: centered along the wall, on the lower opening's wall plane and floor
             var position = lower.Position + along * ((min + max) * 0.5f - Vector3.Dot(lower.Position, along));
 
-            door = new CellGroupDoor(lower.CellId, position, Math.Max(a.Top, b.Top), max - min, lower.Normal, a.IsOpeningEdge && b.IsOpeningEdge);
+            opening = new CellGroupOpening(lower.CellId, position, Math.Max(a.Top, b.Top), max - min, lower.Normal, a.IsHoleEdge && b.IsHoleEdge);
             return true;
         }
 

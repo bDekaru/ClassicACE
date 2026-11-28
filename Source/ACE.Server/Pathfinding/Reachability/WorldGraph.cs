@@ -60,13 +60,13 @@ namespace ACE.Server.Pathfinding.Reachability
 
     /// <summary>
     /// Connectivity of the world, from the summaries and the travel links: outdoor pieces joined across landblock
-    /// borders as Detour links tiles, interior pieces joined to the outdoor piece in front of their doorways, ledge drops
-    /// and open travel links one way, and labels from the seeds. A landblock or interior with no summary yet is solved
-    /// both as a wall and as joining everything around it (all of an interior's doorways through one node, so pieces in
-    /// front of different buildings may join); a piece whose labels differ between the two is Unknown. Labels are kept
-    /// per travel profile and band of player levels: the levels between two where an open link's level limits start or
-    /// end. Recall goes through one extra node that every node outside a dungeon leads to, which leads to the seeds and
-    /// to the gems' destinations.
+    /// borders as Detour links tiles, interior pieces joined to the outdoor piece in front of their openings, ledge
+    /// drops and open travel links one way, and labels from the seeds. A landblock or interior with no summary yet is
+    /// solved both as a wall and as joining everything around it (all of an interior's openings through one node, so
+    /// pieces in front of different buildings may join); a piece whose labels differ between the two is Unknown. Labels
+    /// are kept per travel profile and band of player levels: the levels between two where an open link's level limits
+    /// start or end. Recall goes through one extra node that every node outside a dungeon leads to, which leads to the
+    /// seeds and to the gems' destinations.
     /// </summary>
     public class WorldGraph
     {
@@ -144,34 +144,34 @@ namespace ACE.Server.Pathfinding.Reachability
         public int SeedGroupCount { get; private set; }
 
         /// <summary>
-        /// Doorways whose outdoor and inside pieces are joined.
+        /// Openings whose outdoor and inside pieces are joined.
         /// </summary>
-        public int DoorJoinCount { get; private set; }
+        public int OpeningJoinCount { get; private set; }
 
         /// <summary>
-        /// Doorways passable from inside that join nothing: their landblock's tile summary has no outdoor piece in front
-        /// of them. Mostly openings with no floor outside (upper-floor windows and doors, tower doors onto a narrow
-        /// ledge) and doorways opening into another group's (see TouchingDoorJoinCount). Landblocks without a tile
+        /// Openings passable from inside that join nothing: their landblock's tile summary has no outdoor piece in front
+        /// of them. Mostly openings with no floor outside (upper-floor windows and doorways, tower doorways onto a
+        /// narrow ledge) and openings into another group's (see TouchingOpeningJoinCount). Landblocks without a tile
         /// summary aren't counted.
         /// </summary>
-        public int DoorUnjoinedCount { get; private set; }
+        public int OpeningUnjoinedCount { get; private set; }
 
         /// <summary>
-        /// Pairs of passable doorways of different pieces joined because their thresholds touch, facing each other.
+        /// Pairs of passable openings of different pieces joined because their thresholds touch, facing each other.
         /// </summary>
-        public int TouchingDoorJoinCount { get; private set; }
+        public int TouchingOpeningJoinCount { get; private set; }
 
-        public const float TouchingDoorDistance = 0.5f;
-        private const float TouchingDoorFacing = -0.9f;
-        private const float TouchingDoorCell = 4f;
+        public const float TouchingOpeningDistance = 0.5f;
+        private const float TouchingOpeningFacing = -0.9f;
+        private const float TouchingOpeningCell = 4f;
 
         /// <summary>
-        /// True if two doorways open straight into each other: thresholds (in the same coordinates) within half a meter,
-        /// facing each other. Route planning crosses them the same way (Pathfinder.FindTouchingDoors).
+        /// True if two openings lead straight into each other: thresholds (in the same coordinates) within half a meter,
+        /// facing each other. Route planning crosses them the same way (Pathfinder.FindTouchingOpenings).
         /// </summary>
-        public static bool DoorsTouch(Vector3 positionA, Vector3 normalA, Vector3 positionB, Vector3 normalB)
+        public static bool OpeningsTouch(Vector3 positionA, Vector3 normalA, Vector3 positionB, Vector3 normalB)
         {
-            return Vector3.Distance(positionA, positionB) <= TouchingDoorDistance && Vector3.Dot(normalA, normalB) <= TouchingDoorFacing;
+            return Vector3.Distance(positionA, positionB) <= TouchingOpeningDistance && Vector3.Dot(normalA, normalB) <= TouchingOpeningFacing;
         }
 
         private WorldGraph(TileSummary[] summaries, bool[] unknown, InteriorSummary[] interiors, bool[] unknownInterior)
@@ -334,24 +334,25 @@ namespace ACE.Server.Pathfinding.Reachability
                         areas.Union(nodeBase[i] + from, nodeBase[i] + to);
                     }
 
-                // a doorway joins when both sides found it passable: the tile the piece in front, the group the one inside
+                // an opening joins when both sides found it passable: the tile the piece in front, the group the one
+                // inside
                 if (interior != null)
                 {
-                    var outside = tile?.Doors.ToDictionary(d => (d.Group, d.Door), d => d.Piece);
+                    var outside = tile?.Openings.ToDictionary(d => (d.Group, d.Opening), d => d.Piece);
                     foreach (var group in interior.Groups)
                     {
                         drops.AddRange(group.LedgeDrops.Select(d => (graph.GetInteriorNode(i, group.Index, d.from), graph.GetInteriorNode(i, group.Index, d.to))));
 
-                        foreach (var door in group.Doors)
+                        foreach (var opening in group.Openings)
                         {
-                            var inside = graph.GetInteriorNode(i, group.Index, door.Piece);
-                            if (outside != null && outside.TryGetValue((group.Index, door.Door), out var piece))
+                            var inside = graph.GetInteriorNode(i, group.Index, opening.Piece);
+                            if (outside != null && outside.TryGetValue((group.Index, opening.Opening), out var piece))
                             {
                                 known.Union(nodeBase[i] + piece, inside);
-                                graph.DoorJoinCount++;
+                                graph.OpeningJoinCount++;
                             }
                             else if (outside != null)
-                                graph.DoorUnjoinedCount++;
+                                graph.OpeningUnjoinedCount++;
                             else if (tile == null && unknown[i])
                                 optimisticJoins.Add((nodeBase[i], inside));
                         }
@@ -360,14 +361,14 @@ namespace ACE.Server.Pathfinding.Reachability
                 else if (unknownInterior[i])
                 {
                     if (tile != null)
-                        optimisticJoins.AddRange(tile.Doors.Select(d => (nodeBase[i] + d.Piece, interiorBase[i])));
+                        optimisticJoins.AddRange(tile.Openings.Select(d => (nodeBase[i] + d.Piece, interiorBase[i])));
                     else if (unknown[i])
                         optimisticJoins.Add((nodeBase[i], interiorBase[i]));
                 }
             }
 
-            // a doorway that opens straight into another group's (buildings built against each other, also across a
-            // landblock border) has its outdoor side inside the other group, so it joins that doorway's inside piece
+            // an opening that leads straight into another group's (buildings built against each other, also across a
+            // landblock border) has its outdoor side inside the other group, so it joins that opening's inside piece
             var thresholds = new List<(int node, Vector3 position, Vector3 normal)>();
             for (var i = 0; i < interiors.Length; i++)
             {
@@ -376,11 +377,11 @@ namespace ACE.Server.Pathfinding.Reachability
 
                 var origin = new Vector3((i >> 8) * Physics.Common.LandDefs.BlockLength, (i & 0xFF) * Physics.Common.LandDefs.BlockLength, 0);
                 foreach (var group in interiors[i].Groups)
-                    foreach (var door in group.Doors)
-                        thresholds.Add((graph.GetInteriorNode(i, group.Index, door.Piece), origin + door.Position, door.Normal));
+                    foreach (var opening in group.Openings)
+                        thresholds.Add((graph.GetInteriorNode(i, group.Index, opening.Piece), origin + opening.Position, opening.Normal));
             }
 
-            (int, int) ThresholdCell(Vector3 p) => ((int)MathF.Floor(p.X / TouchingDoorCell), (int)MathF.Floor(p.Y / TouchingDoorCell));
+            (int, int) ThresholdCell(Vector3 p) => ((int)MathF.Floor(p.X / TouchingOpeningCell), (int)MathF.Floor(p.Y / TouchingOpeningCell));
             var byCell = Enumerable.Range(0, thresholds.Count).ToLookup(t => ThresholdCell(thresholds[t].position));
             for (var a = 0; a < thresholds.Count; a++)
             {
@@ -389,10 +390,10 @@ namespace ACE.Server.Pathfinding.Reachability
                     for (var dy = -1; dy <= 1; dy++)
                         foreach (var b in byCell[(cellX + dx, cellY + dy)])
                         {
-                            if (b > a && thresholds[a].node != thresholds[b].node && DoorsTouch(thresholds[a].position, thresholds[a].normal, thresholds[b].position, thresholds[b].normal))
+                            if (b > a && thresholds[a].node != thresholds[b].node && OpeningsTouch(thresholds[a].position, thresholds[a].normal, thresholds[b].position, thresholds[b].normal))
                             {
                                 known.Union(thresholds[a].node, thresholds[b].node);
-                                graph.TouchingDoorJoinCount++;
+                                graph.TouchingOpeningJoinCount++;
                             }
                         }
             }
